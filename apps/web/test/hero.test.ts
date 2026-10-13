@@ -1,3 +1,4 @@
+import { renderAppPreview } from './helpers/render-app-preview.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement } from 'react';
@@ -81,7 +82,7 @@ test('desktop preview composes kit chat components with localized copy in both l
     assert.ok(!html.includes(demo.settings.groups[0]?.label ?? '__none__'));
     assert.ok(!html.includes(demo.runtime.groups[0]?.label ?? '__none__'));
     // The apps library stays hidden until its surface is selected.
-    assert.ok(!html.includes('织羽 Zhiyu'));
+    assert.ok(!html.includes('织羽'));
 
     if (locale === 'zh') {
       // No kit default English copy leaks into the Chinese demo.
@@ -99,7 +100,7 @@ test('the morph override pins the hero demo to the apps surface', async () => {
 
   // While the morph runs, the zooming hero window already shows apps content.
   assert.ok(html.includes(demo.apps.searchPlaceholder));
-  assert.ok(html.includes('织羽 Zhiyu'));
+  assert.ok(html.includes('织羽'));
   assert.ok(!html.includes(demo.chat.greeting));
 });
 
@@ -126,13 +127,13 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   const appsHtml = renderToStaticMarkup(createElement(DemoAppsSurface, { apps: demo.apps, preview: demo.appPreview }));
   assert.ok(appsHtml.includes(demo.apps.searchPlaceholder));
   assert.ok(appsHtml.includes(`${demo.apps.items.length}${demo.apps.countSuffix}`));
-  assert.ok(appsHtml.includes('织羽 Zhiyu'));
+  assert.ok(appsHtml.includes('织羽'));
   assert.ok(appsHtml.includes(demo.apps.launchLabel));
   // Row selection alone must not open the preview modal.
   assert.ok(!appsHtml.includes('data-testid="demo-app-preview"'));
 
   const zhiyu = demo.appPreview.zhiyu;
-  const zhiyuHtml = renderToStaticMarkup(createElement(DemoZhiyuPreview, { content: zhiyu }));
+  const zhiyuHtml = renderAppPreview(createElement(DemoZhiyuPreview, { content: zhiyu }));
   // The preview is the Zhiyu shell composition: same regions, class names,
   // and data attributes as apps/zhiyu's agent-chat surface, on kit surfaces.
   assert.ok(zhiyuHtml.includes('data-demo-zhiyu-root="true"'));

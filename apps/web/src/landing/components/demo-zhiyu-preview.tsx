@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import {
   useCallback,
@@ -55,7 +56,7 @@ import {
 type RightPanelMode = 'closed' | 'agent';
 type VoiceStatus = 'idle' | 'recording' | 'transcribing';
 
-const ZHIYU_USER_NAME = '你';
+const ZHIYU_USER_NAME = (t: PreviewTranslate) => t('zhiyu.workspace.you');
 // Paced like a local model reply so the streaming state (status bubble,
 // 停止回复, disabled composer) is actually observable.
 const STREAM_TICK_MS = 110;
@@ -64,10 +65,10 @@ const STREAM_LEAD_MS = 700;
 const VOICE_TRANSCRIBE_MS = 900;
 const NOTICE_MS = 6_000;
 
-function partnerInitial(name: string): string {
+function partnerInitial(name: string, t: PreviewTranslate): string {
   const firstLetter = name.match(/[A-Za-z]/u)?.[0];
   if (firstLetter) return firstLetter.toUpperCase();
-  return Array.from(name.trim())[0] || '本';
+  return Array.from(name.trim())[0] || t('zhiyu.partnerInitial.local');
 }
 
 function formatZhiyuTranscriptDateLabel(
@@ -85,6 +86,7 @@ function formatZhiyuTranscriptDateLabel(
 function materializePartnerMessages(
   partners: ReadonlyArray<HeroDemoZhiyuPartner>,
   now: number,
+  t: PreviewTranslate,
 ): Record<string, ConversationCanonicalMessage[]> {
   const result: Record<string, ConversationCanonicalMessage[]> = {};
   for (const partner of partners) {
@@ -96,6 +98,7 @@ function materializePartnerMessages(
         now - seed.minutesAgo * 60_000,
         'complete',
         seedMedia(seed),
+        t,
       ),
       id: seed.id,
     }));
@@ -133,6 +136,7 @@ function buildMessage(
   stamp: number,
   status: ConversationCanonicalMessage['status'] = 'complete',
   media: MessageMedia = { kind: 'text' },
+  t: PreviewTranslate,
 ): ConversationCanonicalMessage {
   return {
     id: `zhiyu-local-${partner.id}-${stamp}-${role}`,
@@ -145,7 +149,7 @@ function buildMessage(
     status,
     kind: media.kind,
     ...(media.metadata ? { metadata: media.metadata } : {}),
-    senderName: role === 'user' ? ZHIYU_USER_NAME : partner.name,
+    senderName: role === 'user' ? ZHIYU_USER_NAME(t) : partner.name,
     senderAvatarUrl: role === 'user' ? null : partner.avatarUrl,
     senderKind: role === 'user' ? 'human' : 'agent',
   };
@@ -168,19 +172,15 @@ function DemoPresenceRail({
   onOpenCurrentAgent: () => void;
   onSelectPartner: (partnerId: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
-    <section
-      className="zhiyu-agent-rail"
-      data-zhiyu-region="presence"
-      aria-label={pText(copy.railLabel)}
-    >
+    <section className="zhiyu-agent-rail" data-zhiyu-region="presence" aria-label={copy.railLabel}>
       <div
         className="zhiyu-agent-rail__logo"
-        aria-label={pText('Nimi')}
+        aria-label={t('zhiyu.zhiyuAgentRail.nimi')}
         data-zhiyu-desktop-logo-image="nimi"
       >
-        <img src="/logo.svg" alt={pText('')} aria-hidden="true" />
+        <img src="/logo.svg" alt={''} aria-hidden="true" />
       </div>
       <div
         className="zhiyu-agent-rail__agents"
@@ -207,11 +207,9 @@ function DemoPresenceRail({
               <button
                 type="button"
                 className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}`}
-                aria-label={pText(
-                  `${isCurrent ? copy.currentPartnerAriaPrefix : copy.selectPartnerAriaPrefix}${partner.name}`,
-                )}
+                aria-label={`${isCurrent ? copy.currentPartnerAriaPrefix : copy.selectPartnerAriaPrefix}${partner.name}`}
                 aria-pressed={isCurrent}
-                title={pText(partner.name)}
+                title={partner.name}
                 data-zhiyu-local-agent-candidate="true"
                 data-zhiyu-local-agent-candidate-active={String(isCurrent)}
                 data-zhiyu-agent-handle={partner.id}
@@ -224,9 +222,9 @@ function DemoPresenceRail({
                 }}
               >
                 {partner.avatarUrl ? (
-                  <img src={partner.avatarUrl} alt={pText('')} aria-hidden="true" />
+                  <img src={partner.avatarUrl} alt={''} aria-hidden="true" />
                 ) : (
-                  partnerInitial(partner.name)
+                  partnerInitial(partner.name, t)
                 )}
               </button>
             </div>
@@ -260,7 +258,7 @@ function DemoAgentPanel({
   onOpenRuntimeSettings: () => void;
   onAvatarLaunch: () => void;
 }) {
-  const { pText, previewLocale } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const i18n = useMemo(() => {
     const overrides: Partial<Record<AgentCenterTranslationKey, string>> = {
       'AgentCenter.chrome.title': copy.panelTitle,
@@ -272,10 +270,10 @@ function DemoAgentPanel({
     return createAgentCenterI18n({
       language: previewLocale,
       t(key) {
-        return pText(overrides[key as AgentCenterTranslationKey] || key);
+        return overrides[key as AgentCenterTranslationKey] || key;
       },
     });
-  }, [copy, pText, previewLocale]);
+  }, [copy, t, previewLocale]);
   const worldLabel: string | null = null;
   return (
     <aside
@@ -285,7 +283,7 @@ function DemoAgentPanel({
       data-zhiyu-agent-panel-mode="agent"
       data-zhiyu-agent-center-side-sheet="desktop"
       data-zhiyu-agent-panel-tab={activeTab}
-      aria-label={pText(copy.panelAriaLabel)}
+      aria-label={copy.panelAriaLabel}
     >
       {partner.hostMoodLabel || partner.hostActivityLabel || worldLabel ? (
         <div
@@ -297,7 +295,7 @@ function DemoAgentPanel({
               className="rounded-full bg-violet-500/10 px-2 py-px text-[10px] font-semibold text-violet-700"
               data-zhiyu-agent-center-state-chip="mood"
             >
-              {pText(partner.hostMoodLabel)}
+              {partner.hostMoodLabel}
             </span>
           ) : null}
           {partner.hostActivityLabel ? (
@@ -305,7 +303,7 @@ function DemoAgentPanel({
               className="rounded-full bg-sky-500/10 px-2 py-px text-[10px] font-semibold text-sky-700"
               data-zhiyu-agent-center-state-chip="activity"
             >
-              {pText(partner.hostActivityLabel)}
+              {partner.hostActivityLabel}
             </span>
           ) : null}
           {worldLabel ? (
@@ -314,7 +312,7 @@ function DemoAgentPanel({
               data-zhiyu-agent-center-world-name={worldLabel}
             >
               <Globe2 aria-hidden="true" size={12} />
-              <span className="truncate">{pText(worldLabel)}</span>
+              <span className="truncate">{worldLabel}</span>
             </span>
           ) : null}
         </div>
@@ -326,7 +324,7 @@ function DemoAgentPanel({
         identity={{
           displayName: partner.name,
           avatarUrl: null,
-          avatarFallback: partnerInitial(partner.name),
+          avatarFallback: partnerInitial(partner.name, t),
         }}
         onSectionChange={onActiveTabChange}
         placementActions={{
@@ -353,20 +351,20 @@ function ComposerAvatarButton({
   copy: HeroDemoZhiyuPreview['copy'];
   onOpenSettings: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const label = `${copy.avatarAriaPrefix}${partner.name}`;
   return (
     <button
       type="button"
       className="zhiyu-home__composer-avatar"
-      aria-label={pText(label)}
-      title={pText(label)}
+      aria-label={label}
+      title={label}
       onClick={onOpenSettings}
     >
       {partner.avatarUrl ? (
-        <img src={partner.avatarUrl} alt={pText('')} aria-hidden="true" />
+        <img src={partner.avatarUrl} alt={''} aria-hidden="true" />
       ) : (
-        partnerInitial(partner.name)
+        partnerInitial(partner.name, t)
       )}
     </button>
   );
@@ -385,14 +383,13 @@ function ComposerModeTools({
   onOpenAppearance: () => void;
   onOpenBehavior: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   const avatarLabel = avatarReady ? copy.avatarLaunchLabel : copy.avatarConfigureLabel;
   return (
     <>
       <button
         type="button"
-        aria-label={pText(avatarLabel)}
-        title={pText(avatarLabel)}
+        aria-label={avatarLabel}
+        title={avatarLabel}
         data-zhiyu-composer-tool="avatar"
         data-zhiyu-avatar-launch-entry={avatarReady ? 'ready' : 'blocked'}
         onClick={avatarReady ? onAvatarLaunch : onOpenAppearance}
@@ -406,8 +403,8 @@ function ComposerModeTools({
       />
       <button
         type="button"
-        aria-label={pText(copy.proactiveLabel)}
-        title={pText(copy.proactiveLabel)}
+        aria-label={copy.proactiveLabel}
+        title={copy.proactiveLabel}
         data-zhiyu-composer-tool="proactive"
         onClick={onOpenBehavior}
       >
@@ -426,13 +423,12 @@ function ComposerAgentCenterButton({
   open: boolean;
   onToggleAgentPanel: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <button
       type="button"
-      aria-label={pText(copy.agentCenterLabel)}
+      aria-label={copy.agentCenterLabel}
       aria-pressed={open}
-      title={pText(open ? copy.agentCenterCloseLabel : copy.agentCenterLabel)}
+      title={open ? copy.agentCenterCloseLabel : copy.agentCenterLabel}
       data-nimi-semantic-id="zhiyu-primary-action"
       data-zhiyu-composer-tool="agent"
       data-zhiyu-composer-agent-center-state={open ? 'open' : 'closed'}
@@ -448,7 +444,7 @@ function ComposerAgentCenterButton({
 /* ------------------------------------------------------------------------ */
 
 export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview }) {
-  const { pText, pData, previewLang } = useAppPreviewLocale();
+  const { previewLang, t } = useAppPreviewLocale();
   const { copy } = content;
   const [activePartnerId, setActivePartnerId] = useState<string | null>(
     content.partners[0]?.id ?? null,
@@ -461,7 +457,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     partial: string;
     reasoning: string | null;
   } | null>(null);
-  const [draft, setDraft] = useState(() => pData(''));
+  const [draft, setDraft] = useState(() => '');
   const [attachments, setAttachments] = useState<readonly BrowserDataUrlAttachment[]>([]);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle');
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
@@ -478,7 +474,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
 
   const activePartner = content.partners.find((partner) => partner.id === activePartnerId) ?? null;
   const baseMessages = useMemo(
-    () => materializePartnerMessages(content.partners, Date.now()),
+    () => materializePartnerMessages(content.partners, Date.now(), t),
     [content],
   );
   const formatDateLabel = useMemo(
@@ -531,7 +527,8 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
   const avatarReady = committedAppearance
     ? Boolean(
         committedAppearance.avatarAssetRef &&
-        (committedAppearance.backendKind === 'live2d' || committedAppearance.backendKind === 'vrm'),
+          (committedAppearance.backendKind === 'live2d' ||
+            committedAppearance.backendKind === 'vrm'),
       )
     : Boolean(activePartner?.appearance.avatarAssetRef);
 
@@ -598,7 +595,10 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
       clearStreamTimer();
       setStream(null);
       if (text.trim().length > 0) {
-        appendMessage(partner.id, buildMessage(partner, 'assistant', text, Date.now(), status));
+        appendMessage(
+          partner.id,
+          buildMessage(partner, 'assistant', text, Date.now(), status, undefined, t),
+        );
       }
     },
     [appendMessage, clearStreamTimer],
@@ -651,16 +651,24 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
         appendMessage(
           activePartner.id,
           attachment
-            ? buildMessage(activePartner, 'user', body || attachment.name, stamp, 'complete', {
-                kind: 'image',
-                metadata: {
-                  mediaUrl: attachment.dataUrl,
-                  attachmentName: attachment.name,
-                  attachmentMimeType: attachment.mimeType,
-                  ...(body ? { caption: body } : {}),
+            ? buildMessage(
+                activePartner,
+                'user',
+                body || attachment.name,
+                stamp,
+                'complete',
+                {
+                  kind: 'image',
+                  metadata: {
+                    mediaUrl: attachment.dataUrl,
+                    attachmentName: attachment.name,
+                    attachmentMimeType: attachment.mimeType,
+                    ...(body ? { caption: body } : {}),
+                  },
                 },
-              })
-            : buildMessage(activePartner, 'user', body, stamp),
+                t,
+              )
+            : buildMessage(activePartner, 'user', body, stamp, undefined, undefined, t),
         );
         setDraft('');
         setAttachments([]);
@@ -746,22 +754,22 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
       >
         <ChatStreamStatus
           mode="streaming"
-          partialText={pText(stream.partial || copy.streamingPlaceholder)}
-          reasoningText={pText(stream.reasoning)}
-          reasoningLabel={pText(copy.reasoningLabel)}
+          partialText={stream.partial || copy.streamingPlaceholder}
+          reasoningText={stream.reasoning}
+          reasoningLabel={copy.reasoningLabel}
         />
         <button
           type="button"
           className="zhiyu-chat-canvas__stop-button"
           data-zhiyu-chat-stop-action="true"
           data-zhiyu-agent-chat-stop-state="available"
-          aria-label={pText(copy.stopAriaLabel)}
+          aria-label={copy.stopAriaLabel}
           onClick={() => {
             if (activePartner) finishStream(activePartner, stream.partial, 'canceled');
           }}
         >
           <X size={16} aria-hidden="true" />
-          <span>{pText(copy.stopLabel)}</span>
+          <span>{copy.stopLabel}</span>
         </button>
       </div>
     ) : null;
@@ -775,7 +783,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     >
       <main
         className="zhiyu-agent-chat"
-        aria-label={pText(content.appName)}
+        aria-label={content.appName}
         data-zhiyu-screen="home"
         data-zhiyu-agent-chat-shell="primary"
       >
@@ -791,7 +799,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
           >
             <DemoPresenceRail
               partners={content.partners}
-              copy={pData(copy)}
+              copy={copy}
               currentPartnerId={activePartnerId}
               onOpenCurrentAgent={() => openAgentSection('overview')}
               onSelectPartner={handleSelectPartner}
@@ -812,9 +820,9 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
               />
               {notice ? (
                 <div className="demo-zhiyu-notice" role="status" data-demo-zhiyu-notice="true">
-                  <span>{pText(notice)}</span>
+                  <span>{notice}</span>
                   <button type="button" onClick={() => setNotice(null)}>
-                    {pText(content.demo.noticeDismissLabel)}
+                    {content.demo.noticeDismissLabel}
                   </button>
                 </div>
               ) : null}
@@ -827,11 +835,13 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                 <div ref={transcriptViewportRef} className="zhiyu-chat-canvas__transcript">
                   <CanonicalTranscriptView
                     messages={messages.map((message) =>
-                      message.role === 'user' ? { ...message, senderName: pText('你') } : message,
+                      message.role === 'user'
+                        ? { ...message, senderName: t('zhiyu.zhiyuChatCanvas.you') }
+                        : message,
                     )}
                     activeConversationId={activePartner ? `zhiyu-${activePartner.id}` : null}
                     agentName={activePartner?.name}
-                    copy={pData(copy.chat)}
+                    copy={copy.chat}
                     voicePlayingMessageId={voicePlayingMessageId}
                     onPlayVoiceMessage={playVoiceMessage}
                     formatDateLabel={formatDateLabel}
@@ -840,7 +850,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                     emptyDescription={copy.emptyDescription}
                     footerContent={
                       <>
-                        {pText(chatFooter)}
+                        {chatFooter}
                         <span
                           data-zhiyu-transcript-end="true"
                           aria-hidden="true"
@@ -869,26 +879,26 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                         attachmentAdapter={attachmentAdapter}
                         attachments={attachments}
                         onAttachmentsChange={setAttachments}
-                        attachLabel={pText(copy.attachLabel)}
+                        attachLabel={copy.attachLabel}
                         voiceState={voiceState}
                         text={draft}
                         onTextChange={(value) => setDraft(value)}
                         disabled={streamingHere}
-                        placeholder={pText(copy.composerPlaceholder)}
-                        runtimeHint={pText(streamingHere ? copy.streamingHint : null)}
-                        sendHint={pText(streamingHere ? copy.streamingSendHint : undefined)}
-                        sendLabel={pText(copy.sendLabel)}
+                        placeholder={copy.composerPlaceholder}
+                        runtimeHint={streamingHere ? copy.streamingHint : null}
+                        sendHint={streamingHere ? copy.streamingSendHint : undefined}
+                        sendLabel={copy.sendLabel}
                         layout="stacked"
                         leadingSlot={
                           <ComposerAvatarButton
                             partner={activePartner}
-                            copy={pData(copy)}
+                            copy={copy}
                             onOpenSettings={() => openAgentSection('appearance')}
                           />
                         }
                         toolbarSlot={
                           <ComposerModeTools
-                            copy={pData(copy)}
+                            copy={copy}
                             avatarReady={avatarReady}
                             onAvatarLaunch={() => showNotice(content.demo.avatarLaunchNotice)}
                             onOpenAppearance={() => openAgentSection('appearance')}
@@ -897,7 +907,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                         }
                         trailingSlot={
                           <ComposerAgentCenterButton
-                            copy={pData(copy)}
+                            copy={copy}
                             open={rightPanelMode === 'agent'}
                             onToggleAgentPanel={() => {
                               if (rightPanelMode === 'agent') {
@@ -917,44 +927,36 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                       className="zhiyu-chat-canvas__labeled-chip"
                       data-zhiyu-labeled-chip="conversation"
                     >
-                      <span className="zhiyu-chat-canvas__chip-label">
-                        {pText(copy.sessionChipLabel)}
-                      </span>
+                      <span className="zhiyu-chat-canvas__chip-label">{copy.sessionChipLabel}</span>
                       <StatusBadge tone="success" shape="dot">
-                        {pText(copy.readyChipLabel)}
+                        {copy.readyChipLabel}
                       </StatusBadge>
                     </span>
                     <span
                       className="zhiyu-chat-canvas__labeled-chip"
                       data-zhiyu-labeled-chip="chat"
                     >
-                      <span className="zhiyu-chat-canvas__chip-label">
-                        {pText(copy.replyChipLabel)}
-                      </span>
+                      <span className="zhiyu-chat-canvas__chip-label">{copy.replyChipLabel}</span>
                       <StatusBadge
                         tone={
                           streamingHere ? 'warning' : messages.length > 0 ? 'success' : 'neutral'
                         }
                         shape="dot"
                       >
-                        {pText(
-                          streamingHere
-                            ? copy.streamingChipLabel
-                            : messages.length > 0
-                              ? copy.readyChipLabel
-                              : copy.idleChipLabel,
-                        )}
+                        {streamingHere
+                          ? copy.streamingChipLabel
+                          : messages.length > 0
+                            ? copy.readyChipLabel
+                            : copy.idleChipLabel}
                       </StatusBadge>
                     </span>
                     <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-region="companion">
-                      <span className="zhiyu-chat-canvas__chip-label">
-                        {pText(copy.rapportChipLabel)}
-                      </span>
+                      <span className="zhiyu-chat-canvas__chip-label">{copy.rapportChipLabel}</span>
                       <StatusBadge
                         tone={activePartner?.hostMoodLabel ? 'success' : 'neutral'}
                         shape="dot"
                       >
-                        {pText(activePartner?.moodLabel ?? '')}
+                        {activePartner?.moodLabel ?? ''}
                       </StatusBadge>
                     </span>
                   </div>
@@ -965,7 +967,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
             {rightPanelMode !== 'closed' && activePartner && session ? (
               <DemoAgentPanel
                 partner={activePartner}
-                copy={pData(copy)}
+                copy={copy}
                 session={session}
                 activeTab={activeAgentTab}
                 onActiveTabChange={setActiveAgentTab}

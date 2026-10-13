@@ -7,41 +7,37 @@ import { PreviewTabs, RemainingPreview } from './demo-remaining-shared.js';
 
 /** Overtone's paper composer, blue direction choices, take library and persistent player rail. */
 export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [prompt, setPrompt] = useState(() =>
-    pData('一段适合雨后散步的音乐，轻盈、温暖，带一点城市的节奏。'),
-  );
-  const [direction, setDirection] = useState('雨后慢行');
+  const { t } = useAppPreviewLocale();
+  const [prompt, setPrompt] = useState(() => t('overtone.workspace.musicForAWalkAfterRainLight'));
+  const [direction, setDirection] = useState(t('overtone.workspace.aWalkAfterRain'));
   const [stage, setStage] = useState('探索方向');
   const [takes, setTakes] = useState(false);
   const [favorite, setFavorite] = useState(0);
   const [compare, setCompare] = useState(false);
   const [lyrics, setLyrics] = useState(() =>
-    pData(
-      '[Verse]\n街角的灯，映着雨的余温\n脚步轻轻，把忙碌留给黄昏\n\n[Chorus]\n让风慢一点，让心远一点',
-    ),
+    t('overtone.workspace.verseStreetlightsHoldTheWarmthOfRain'),
   );
   const [settings, setSettings] = useState(false);
   const [soundImagery, setSoundImagery] = useState(() =>
-    pData('雨后的街道，轻快的脚步，一点温暖的灯光'),
+    t('overtone.workspace.rainWashedStreetsLightFootstepsAndWarmLight'),
   );
   const [duration, setDuration] = useState('30 秒');
   const [creationMode, setCreationMode] = useState('纯音乐');
   const directions = [
     {
-      name: '雨后慢行',
+      name: t('overtone.workspace.aWalkAfterRain'),
       genre: 'Lo-fi / Jazz',
-      description: '柔和键盘、轻鼓与留白，像一次不赶时间的散步。',
+      description: t('overtone.workspace.softKeysLightDrumsAndRoomTo'),
     },
     {
-      name: '霓虹回声',
+      name: t('overtone.workspace.neonEchoes'),
       genre: 'Indie / Electronic',
-      description: '干净的合成器与轻快律动，让城市在耳边亮起来。',
+      description: t('overtone.workspace.cleanSynthsAndALightGrooveBring'),
     },
     {
-      name: '窗边午后',
+      name: t('overtone.workspace.afternoonByTheWindow'),
       genre: 'Acoustic / Folk',
-      description: '原声吉他与温暖人声，安静但不单薄。',
+      description: t('overtone.workspace.acousticGuitarAndWarmVocalsQuietBut'),
     },
   ];
   return (
@@ -49,47 +45,50 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
       <header className="ot-demo-masthead">
         <div>
           <Music2 size={27} />
-          <strong>{pText('OVERTONE')}</strong>
-          <span>{pText('把灵感，变成声音。')}</span>
+          <strong>{t('overtone.demoMasthead.overtone')}</strong>
+          <span>{t('overtone.demoMasthead.turnIdeasIntoSound')}</span>
         </div>
         <PreviewButton onClick={() => setSettings(!settings)}>
           <SlidersHorizontal size={16} />
-          {pText('创作设置')}
+          {t('overtone.demoMasthead.creativeSettings')}
         </PreviewButton>
       </header>
       {settings && (
         <div className="ot-demo-settings">
           <label>
-            {pText('音轨时长')}
+            {t('overtone.workspace.trackDuration')}
             <select value={duration} onChange={(e) => setDuration(e.target.value)}>
-              <option value={'30 秒'}>{pText('30 秒')}</option>
-              <option value={'60 秒'}>{pText('60 秒')}</option>
+              <option value="30 秒">{t('overtone.workspace.30Seconds')}</option>
+              <option value="60 秒">{t('overtone.workspace.60Seconds')}</option>
             </select>
           </label>
           <label>
-            {pText('创作模式')}
+            {t('overtone.workspace.creationMode')}
             <select value={creationMode} onChange={(e) => setCreationMode(e.target.value)}>
-              <option value={'纯音乐'}>{pText('纯音乐')}</option>
-              <option value={'包含歌词'}>{pText('包含歌词')}</option>
+              <option value="纯音乐">{t('overtone.workspace.instrumental')}</option>
+              <option value="包含歌词">{t('overtone.workspace.withLyrics')}</option>
             </select>
           </label>
-          <p>{pText('静态预览中的候选不会随模型配置变化。')}</p>
+          <p>{t('overtone.workspace.sampleCandidatesDoNotChangeWithModel')}</p>
         </div>
       )}
       <div className="ot-demo-workspace">
         <main className="ot-demo-composer">
           <PreviewTabs
-            items={['探索方向', '写成一首歌']}
+            items={[
+              { value: '探索方向', label: t('overtone.tabs.exploreDirections') },
+              { value: '写成一首歌', label: t('overtone.demoComposer.writeASong') },
+            ]}
             value={stage}
             onChange={setStage}
-            label={pText('创作阶段')}
+            label={t('overtone.demoComposer.creationStage')}
           />
           {stage === '探索方向' ? (
             <>
-              <h1>{pText('你想听见什么？')}</h1>
+              <h1>{t('overtone.demoComposer.whatWouldYouLikeToHear')}</h1>
               <div className="ot-demo-prompt">
                 <textarea
-                  aria-label={pText('音乐灵感')}
+                  aria-label={t('overtone.demoComposer.musicIdea')}
                   rows={3}
                   value={prompt}
                   onChange={(e) => {
@@ -99,17 +98,17 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
                 <div>
                   <span>
                     <Music2 size={14} />
-                    {pText('从一句灵感开始')}
+                    {t('overtone.demoComposer.startWithAnIdea')}
                   </span>
                   <PreviewButton primary disabled={!prompt.trim()} onClick={() => setTakes(true)}>
-                    {pText('查看示例方向')}
+                    {t('overtone.demoComposer.viewSampleDirections')}
                     <ArrowRight size={16} />
                   </PreviewButton>
                 </div>
               </div>
               <div className="rp-section-heading">
-                <h2>{pText('三个方向，听见不同可能')}</h2>
-                <span>{pText('预设示例')}</span>
+                <h2>{t('overtone.demoComposer.threeDirectionsDifferentPossibilities')}</h2>
+                <span>{t('overtone.demoComposer.savedExamples')}</span>
               </div>
               <div className="ot-demo-directions">
                 {directions.map((d) => (
@@ -122,11 +121,13 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
                       setTakes(true);
                     }}
                   >
-                    <span>{pText(d.genre)}</span>
-                    <h3>{pText(d.name)}</h3>
-                    <p>{pText(d.description)}</p>
+                    <span>{d.genre}</span>
+                    <h3>{d.name}</h3>
+                    <p>{d.description}</p>
                     <strong>
-                      {pText(direction === d.name ? pText('当前方向') : pText('沿这个方向探索'))}
+                      {direction === d.name
+                        ? t('overtone.demoComposer.currentDirection')
+                        : t('overtone.demoComposer.exploreThisDirection')}
                       <ArrowRight size={14} />
                     </strong>
                   </button>
@@ -135,10 +136,10 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
               <section className="ot-demo-notebook">
                 <h2>
                   <FileText size={18} />
-                  {pText('创作笔记')}
+                  {t('overtone.demoNotebook.creativeNotebook')}
                 </h2>
                 <label>
-                  {pText('声音意象')}
+                  {t('overtone.demoNotebook.soundImagery')}
                   <input
                     value={soundImagery}
                     onChange={(e) => {
@@ -150,15 +151,15 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
             </>
           ) : (
             <>
-              <h1>{pText('把灵感写成一首歌')}</h1>
+              <h1>{t('overtone.demoComposer.writeYourIdeaIntoASong')}</h1>
               <p className="tp-muted">
-                {pText('方向：')}
-                {pText(direction)} {pText(' · 示例歌曲结构')}
+                {t('overtone.demoComposer.direction')}
+                {direction} {t('overtone.demoComposer.sampleSongStructure')}
               </p>
               <label>
-                {pText('歌词')}
+                {t('overtone.demoComposer.lyrics')}
                 <textarea
-                  aria-label={pText('歌曲歌词')}
+                  aria-label={t('overtone.demoComposer.songLyrics')}
                   rows={10}
                   value={lyrics}
                   onChange={(e) => {
@@ -167,63 +168,74 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
                 />
               </label>
               <div className="ot-demo-song-sections">
-                {['Intro', 'Verse', 'Chorus', 'Outro'].map((x) => (
-                  <span key={x}>{pText(x)}</span>
+                {[
+                  t('overtone.demoComposer.intro'),
+                  t('overtone.demoComposer.verse'),
+                  t('overtone.demoComposer.chorus'),
+                  t('overtone.demoComposer.outro'),
+                ].map((x) => (
+                  <span key={x}>{x}</span>
                 ))}
               </div>
               <PreviewButton primary onClick={() => setTakes(true)}>
-                {pText('查看示例候选')}
+                {t('overtone.demoComposer.viewSampleTakes')}
               </PreviewButton>
             </>
           )}
         </main>
         <aside className="ot-demo-takes">
           <div className="rp-section-heading">
-            <h2>{pText('候选音轨')}</h2>
-            <span>{pText(takes ? '2' : '0')}</span>
+            <h2>{t('overtone.demoTakes.candidateTracks')}</h2>
+            <span>{takes ? '2' : '0'}</span>
           </div>
           {takes ? (
             <>
-              {['轻盈版本', '更温暖的版本'].map((name, i) => (
-                <article key={name}>
-                  <div>
-                    <span>
-                      {pText('TAKE ')}
-                      {pText(String(i + 1).padStart(2, '0'))}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={pText(`收藏${name}`)}
-                      aria-pressed={favorite === i}
-                      onClick={() => setFavorite(i)}
-                    >
-                      <Star size={16} fill={favorite === i ? 'currentColor' : 'none'} />
-                    </button>
-                  </div>
-                  <h3>
-                    {pText(direction)} {pText(' · ')}
-                    {pText(name)}
-                  </h3>
-                  <PreviewWaveform label={pText(`${name}音轨示意`)} />
-                  <p>{pText('00:30 · 示例音轨，不含播放文件')}</p>
-                </article>
-              ))}
+              {[t('overtone.demoTakes.lighterVersion'), t('overtone.demoTakes.warmerVersion')].map(
+                (name, i) => (
+                  <article key={name}>
+                    <div>
+                      <span>
+                        {t('overtone.demoTakes.take')}
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={t('overtone.demoTakes.favorite', { name: name })}
+                        aria-pressed={favorite === i}
+                        onClick={() => setFavorite(i)}
+                      >
+                        <Star size={16} fill={favorite === i ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+                    <h3>
+                      {direction} {' · '}
+                      {name}
+                    </h3>
+                    <PreviewWaveform
+                      label={t('overtone.demoTakes.trackIllustration', { name: name })}
+                    />
+                    <p>{t('overtone.demoTakes.0030SampleTrackNoPlaybackFile')}</p>
+                  </article>
+                ),
+              )}
               <PreviewButton onClick={() => setCompare(!compare)}>
-                {pText(compare ? pText('收起比较') : pText('A / B 比较'))}
+                {compare
+                  ? t('overtone.demoTakes.hideComparison')
+                  : t('overtone.demoTakes.aBComparison')}
               </PreviewButton>
               {compare && (
                 <div className="ot-demo-compare">
-                  <strong>{pText('A · 更轻盈')}</strong>
-                  <p>{pText('节奏靠前，适合短片开场。')}</p>
-                  <strong>{pText('B · 更温暖')}</strong>
-                  <p>{pText('留白更多，适合旁白背景。')}</p>
+                  <strong>{t('overtone.demoTakes.aLighter')}</strong>
+                  <p>{t('overtone.demoTakes.aForwardRhythmForTheOpeningOf')}</p>
+                  <strong>{t('overtone.demoTakes.bWarmer')}</strong>
+                  <p>{t('overtone.demoTakes.moreSpaceForVoiceover')}</p>
                 </div>
               )}
             </>
           ) : (
             <div className="rp-empty">
               <Music2 size={35} />
-              <p>{pText('选择一个方向，探索示例候选。')}</p>
+              <p>{t('overtone.demoTakes.chooseADirectionToExploreSampleTakes')}</p>
             </div>
           )}
         </aside>
@@ -232,16 +244,14 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
         <Music2 size={20} />
         <div>
           <strong>
-            {pText(
-              takes
-                ? `${direction} · ${favorite === 0 ? pText('轻盈版本') : pText('更温暖的版本')}`
-                : pText('还没有选择音轨'),
-            )}
+            {takes
+              ? `${direction} · ${favorite === 0 ? t('overtone.workspace.lighterVersion') : t('overtone.workspace.warmerVersion')}`
+              : t('overtone.workspace.noTrackSelected')}
           </strong>
-          <small>{pText('静态音轨示意')}</small>
+          <small>{t('overtone.workspace.staticTrackIllustration')}</small>
         </div>
         <span className="ot-demo-track-line" />
-        <span>{pText('00:00 / 00:30')}</span>
+        <span>{'00:00 / 00:30'}</span>
         {takes && <Check size={17} />}
       </div>
     </RemainingPreview>

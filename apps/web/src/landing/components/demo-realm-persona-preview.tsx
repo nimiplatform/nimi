@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import {
@@ -26,45 +27,47 @@ type PersonaDraft = {
   image: string;
   post: string;
 };
-const PERSONAS: PersonaDraft[] = [
+const createSamplePersonas = (t: PreviewTranslate): PersonaDraft[] => [
   {
-    name: '晚星',
-    role: '记录城市的旅人',
-    description: '喜欢在傍晚散步，用文字记录街角的小故事。温和、好奇，善于发现日常里的新鲜感。',
+    name: t('realmPersona.workspace.wanxing'),
+    role: t('realmPersona.workspace.aTravelerRecordingTheCity'),
+    description: t('realmPersona.workspace.enjoysEveningWalksAndWritingAboutSmall'),
     image: '/demo/zhiyu/wanxing-avatar.svg',
-    post: '今天走过一条平时不会经过的小巷，发现了一家亮着暖灯的书店。',
+    post: t('realmPersona.workspace.iTookAnUnfamiliarAlleyTodayAnd'),
   },
   {
-    name: '潮',
-    role: '海边的故事收集者',
-    description: '在海边长大，喜欢潮汐、航行和来自远方的故事。说话直接而温暖。',
+    name: t('realmPersona.workspace.chao'),
+    role: t('realmPersona.workspace.aCollectorOfSeasideStories'),
+    description: t('realmPersona.workspace.grewUpByTheSeaAndLoves'),
     image: '/demo/zhiyu/chao-avatar.svg',
-    post: '今天的海风很轻，码头又来了一位带着故事的旅人。',
+    post: t('realmPersona.workspace.theSeaBreezeWasGentleTodayAnother'),
   },
 ];
 
 /** Realm Persona Studio's portfolio and owner-facing profile/draft editor. */
 export function DemoRealmPersonaPreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [view, setView] = useState('portfolio');
   const [tab, setTab] = useState('角色资料');
-  const [query, setQuery] = useState(() => pData(''));
-  const [items, setItems] = useState(() => pData(PERSONAS));
+  const [query, setQuery] = useState(() => '');
+  const [items, setItems] = useState(() => createSamplePersonas(t));
   const [selected, setSelected] = useState<number | null>(null);
-  const [idea, setIdea] = useState(() => pData('一位喜欢收集城市声音、在傍晚写下观察的旅人。'));
+  const [idea, setIdea] = useState(() =>
+    t('realmPersona.workspace.aTravelerWhoCollectsCitySoundsAnd'),
+  );
   const [saved, setSaved] = useState(false);
   const nav = [
-    { id: 'portfolio', label: '我的角色', Icon: Users },
-    { id: 'drafts', label: '创作草稿', Icon: FilePenLine },
-    { id: 'assets', label: '素材库', Icon: Image },
-    { id: 'settings', label: 'AI 配置', Icon: Settings2 },
+    { id: 'portfolio', label: t('realmPersona.workspace.myPersonas'), Icon: Users },
+    { id: 'drafts', label: t('realmPersona.workspace.creativeDrafts'), Icon: FilePenLine },
+    { id: 'assets', label: t('realmPersona.workspace.assetLibrary'), Icon: Image },
+    { id: 'settings', label: t('realmPersona.workspace.aiConfiguration'), Icon: Settings2 },
   ];
   const create = () => {
     setItems((v) => [
       ...v,
       {
-        name: pText('新角色草稿'),
-        role: '等待你补充设定',
+        name: t('realmPersona.workspace.newPersonaDraft'),
+        role: t('realmPersona.workspace.waitingForYourSetting'),
         description: idea,
         image: '/demo/zhiyu/qingzhao-avatar.svg',
         post: '',
@@ -92,7 +95,7 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
           footer={
             <>
               <UserRound size={20} />
-              <span>{pText('示例创作者工作区')}</span>
+              <span>{t('realmPersona.workspace.sampleCreatorWorkspace')}</span>
             </>
           }
         />
@@ -101,29 +104,38 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
             <>
               <PreviewButton onClick={() => setSelected(null)}>
                 <ArrowLeft size={15} />
-                {pText('返回角色库')}
+                {t('realmPersona.main.backToPersonaLibrary')}
               </PreviewButton>
               <div className="ps-profile-header">
-                <img src={items[selected]!.image} alt={pText('示例角色头像')} />
+                <img
+                  src={items[selected]!.image}
+                  alt={t('realmPersona.main.samplePersonaAvatar')}
+                />
                 <div>
                   <h1>{items[selected]!.name}</h1>
                   <p>{items[selected]!.role}</p>
-                  <span className="rp-badge">{pText('示例草稿')}</span>
+                  <span className="rp-badge">{t('realmPersona.main.sampleDraft')}</span>
                 </div>
                 <PreviewButton primary onClick={() => setSaved(true)}>
-                  {pText(saved ? pText('示例草稿已保留') : pText('保存示例草稿'))}
+                  {saved
+                    ? t('realmPersona.main.sampleDraftKept')
+                    : t('realmPersona.main.saveSampleDraft')}
                 </PreviewButton>
               </div>
               <PreviewTabs
-                items={['角色资料', '视觉形象', '动态草稿']}
+                items={[
+                  { value: '角色资料', label: t('realmPersona.tabs.personaProfile') },
+                  { value: '视觉形象', label: t('realmPersona.tabs.visualAppearance') },
+                  { value: '动态草稿', label: t('realmPersona.main.postDraft') },
+                ]}
                 value={tab}
                 onChange={setTab}
-                label={pText('角色编辑区域')}
+                label={t('realmPersona.main.personaEditingArea')}
               />
               {tab === '角色资料' ? (
                 <div className="ps-profile-form">
                   <label>
-                    {pText('显示名称')}
+                    {t('realmPersona.main.displayName')}
                     <input
                       value={items[selected]!.name}
                       onChange={(e) => {
@@ -132,7 +144,7 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                     />
                   </label>
                   <label>
-                    {pText('一句话介绍')}
+                    {t('realmPersona.main.oneLineIntroduction')}
                     <input
                       value={items[selected]!.role}
                       onChange={(e) => {
@@ -141,7 +153,7 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                     />
                   </label>
                   <label>
-                    {pText('角色设定')}
+                    {t('realmPersona.main.personaSetting')}
                     <textarea
                       value={items[selected]!.description}
                       rows={6}
@@ -150,14 +162,17 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                       }}
                     />
                   </label>
-                  <p>{pText('草稿先由你审阅；此预览不会向 Realm 创建或发布角色。')}</p>
+                  <p>{t('realmPersona.main.reviewTheDraftFirstThisPreviewDoes')}</p>
                 </div>
               ) : tab === '视觉形象' ? (
                 <section className="ps-visual">
-                  <img src={items[selected]!.image} alt={pText('当前示例视觉形象')} />
+                  <img
+                    src={items[selected]!.image}
+                    alt={t('realmPersona.visual.currentSampleAppearance')}
+                  />
                   <div>
-                    <h2>{pText('视觉形象候选')}</h2>
-                    <p>{pText('完整 App 中可审阅形象候选，并将合适的形象用于角色资料。')}</p>
+                    <h2>{t('realmPersona.visual.appearanceCandidates')}</h2>
+                    <p>{t('realmPersona.visual.theFullAppLetsYouReviewAppearance')}</p>
                     <PreviewButton
                       onClick={() =>
                         update(
@@ -168,15 +183,15 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                         )
                       }
                     >
-                      {pText('切换示例形象')}
+                      {t('realmPersona.visual.switchSampleAppearance')}
                     </PreviewButton>
                   </div>
                 </section>
               ) : (
                 <section className="ps-profile-form">
-                  <h2>{pText('让角色留下自己的观察')}</h2>
+                  <h2>{t('realmPersona.profileForm.letThePersonaShareAnObservation')}</h2>
                   <label>
-                    {pText('动态草稿')}
+                    {t('realmPersona.profileForm.postDraft')}
                     <textarea
                       rows={7}
                       value={items[selected]!.post}
@@ -189,7 +204,9 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                     disabled={!items[selected]!.post.trim()}
                     onClick={() => setSaved(true)}
                   >
-                    {pText(saved ? pText('示例动态已保留') : pText('保留示例动态草稿'))}
+                    {saved
+                      ? t('realmPersona.profileForm.samplePostKept')
+                      : t('realmPersona.profileForm.keepSamplePostDraft')}
                   </PreviewButton>
                 </section>
               )}
@@ -197,8 +214,8 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
           ) : view === 'assets' ? (
             <>
               <PreviewHeading
-                title={pText('素材库')}
-                description={pText('查看这份预览使用的角色形象。')}
+                title={t('realmPersona.main.assetLibrary')}
+                description={t('realmPersona.main.seeThePersonaAppearancesUsedInThis')}
               />
               <div className="ps-asset-grid">
                 {items.map((p, i) => (
@@ -220,33 +237,35 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
           ) : view === 'settings' ? (
             <>
               <PreviewHeading
-                title={pText('AI 配置')}
-                description={pText('完整 App 使用 Nimi 提供的文字与图像能力。')}
+                title={t('realmPersona.main.aiConfiguration')}
+                description={t('realmPersona.main.theFullAppUsesNimiSTextAnd')}
               />
               <section className="rp-soft-panel">
-                <h2>{pText('角色内容与视觉形象')}</h2>
-                <p>
-                  {pText('模型在 Nimi 的 App AI 配置中选择。这里的示例内容已预设，无需配置服务。')}
-                </p>
+                <h2>{t('realmPersona.softPanel.personaContentAndAppearance')}</h2>
+                <p>{t('realmPersona.softPanel.chooseModelsInNimiSAppAiSettings')}</p>
               </section>
             </>
           ) : (
             <>
               <PreviewHeading
-                title={pText(view === 'drafts' ? pText('创作草稿') : pText('我的 Realm Personas'))}
-                description={pText('从一个想法开始，让角色逐渐鲜明。')}
+                title={
+                  view === 'drafts'
+                    ? t('realmPersona.main.creativeDrafts')
+                    : t('realmPersona.main.myRealmPersonas')
+                }
+                description={t('realmPersona.main.startWithAnIdeaAndLetA')}
               >
                 <PreviewButton primary onClick={create}>
                   <Plus size={16} />
-                  {pText('新建角色草稿')}
+                  {t('realmPersona.main.newPersonaDraft')}
                 </PreviewButton>
               </PreviewHeading>
               {view === 'portfolio' && (
                 <section className="ps-idea">
-                  <h2>{pText('你想遇见怎样的角色？')}</h2>
-                  <p>{pText('一句灵感，也可以成为一个有故事的开始。')}</p>
+                  <h2>{t('realmPersona.idea.whatKindOfPersonaWouldYouLike')}</h2>
+                  <p>{t('realmPersona.idea.aSingleIdeaCanBeTheBeginning')}</p>
                   <textarea
-                    aria-label={pText('角色灵感')}
+                    aria-label={t('realmPersona.idea.personaIdea')}
                     rows={3}
                     value={idea}
                     onChange={(e) => {
@@ -254,17 +273,21 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                     }}
                   />
                   <PreviewButton primary disabled={!idea.trim()} onClick={create}>
-                    {pText('整理成示例草稿')}
+                    {t('realmPersona.idea.organizeIntoASampleDraft')}
                   </PreviewButton>
                 </section>
               )}
               <div className="rp-collection-tools">
-                <h2>{pText(view === 'drafts' ? pText('本次预览的草稿') : pText('角色作品集'))}</h2>
+                <h2>
+                  {view === 'drafts'
+                    ? t('realmPersona.main.draftsInThisPreview')
+                    : t('realmPersona.main.personaPortfolio')}
+                </h2>
                 <label className="rp-search">
                   <Search size={15} />
                   <input
-                    aria-label={pText('搜索角色')}
-                    placeholder={pText('搜索角色…')}
+                    aria-label={t('realmPersona.main.searchPersonas')}
+                    placeholder={t('realmPersona.main.searchPersonas2')}
                     value={query}
                     onChange={(e) => {
                       setQuery(e.target.value);
@@ -286,10 +309,10 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                         }}
                       >
                         <div className="ps-persona-art">
-                          <img src={p.image} alt={pText('')} />
+                          <img src={p.image} alt={''} />
                         </div>
                         <div>
-                          <span className="rp-badge">{pText('示例草稿')}</span>
+                          <span className="rp-badge">{t('realmPersona.main.sampleDraft')}</span>
                           <h3>{p.name}</h3>
                           <p>{p.role}</p>
                         </div>
@@ -298,7 +321,7 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
                 )}
               </div>
               {!items.some((p) => p.name.toLowerCase().includes(query.toLowerCase())) && (
-                <p className="rp-empty">{pText('没有匹配的示例角色。')}</p>
+                <p className="rp-empty">{t('realmPersona.main.noMatchingSamplePersonas')}</p>
               )}
             </>
           )}

@@ -6,8 +6,8 @@ import { PreviewButton, PreviewNotice } from './demo-third-party-shared.js';
 
 /** Replica of jev_ultrafast/static/index.html's task, browser, choice and history panels. */
 export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPreviewContent }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
-  const [goal, setGoal] = useState<string>(() => pData(content.goal));
+  const { previewLang, t } = useAppPreviewLocale();
+  const [goal, setGoal] = useState<string>(() => content.goal);
   const [started, setStarted] = useState(false);
   const [chosen, setChosen] = useState(false);
   const [step, setStep] = useState(0);
@@ -28,20 +28,20 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
     >
       <header className="ju-header">
         <strong>
-          {pText('browser')}
-          <span>{pText('use')}</span>
-          <i>{pText('×')}</i>
-          {pText('Nimi')}
+          {t('jevUltrafast.header.browser')}
+          <span>{t('jevUltrafast.header.use')}</span>
+          <i>{'×'}</i>
+          {t('jevUltrafast.header.nimi')}
         </strong>
         <span>
           <i className="ju-dot" />
-          {pText('Jev Ultrafast')}
+          {t('jevUltrafast.header.jevUltrafast')}
         </span>
       </header>
       <main className="ju-main">
         <div className="ju-intro">
-          <h1>{pText(content.title)}</h1>
-          <p>{pText(content.description)}</p>
+          <h1>{content.title}</h1>
+          <p>{content.description}</p>
         </div>
         <form
           className="ju-task"
@@ -50,11 +50,11 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
             begin();
           }}
         >
-          <label htmlFor="ju-demo-goal">{pText('Give it a task')}</label>
+          <label htmlFor="ju-demo-goal">{t('jevUltrafast.main.giveItATask')}</label>
           <div className="ju-url">
-            <span>{pText('Start URL')}</span>
-            <code>{pText('https://example.com')}</code>
-            <span className="tp-chip">{pText('Saved example')}</span>
+            <span>{t('jevUltrafast.main.startUrl')}</span>
+            <code>{t('jevUltrafast.main.httpsExampleCom')}</code>
+            <span className="tp-chip">{t('jevUltrafast.main.savedExample')}</span>
           </div>
           <div className="ju-task-row">
             <textarea
@@ -67,7 +67,7 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
               rows={2}
             />
             <PreviewButton primary type="submit" disabled={!goal.trim()}>
-              {pText('Start')}
+              {t('jevUltrafast.main.start')}
               <ArrowUpRight size={17} />
             </PreviewButton>
           </div>
@@ -75,15 +75,13 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
         <div className="ju-toolbar">
           <span role="status">
             <i className="ju-dot" />
-            {pText(
-              !started
-                ? 'Ready to explore the example'
-                : stopped
-                  ? 'Example stopped'
-                  : step === 1
-                    ? 'Destination reached · example'
-                    : 'Example page observed',
-            )}
+            {!started
+              ? t('jevUltrafast.main.readyToExploreTheExample')
+              : stopped
+                ? t('jevUltrafast.main.exampleStopped')
+                : step === 1
+                  ? t('jevUltrafast.main.destinationReachedExample')
+                  : t('jevUltrafast.main.examplePageObserved')}
           </span>
           <div>
             <label>
@@ -94,13 +92,13 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
                   setTargets(event.target.checked);
                 }}
               />
-              {pText('Targets')}
+              {t('jevUltrafast.main.targets')}
             </label>
             <PreviewButton
               disabled={!started || stopped || step === 1}
               onClick={() => setChosen(true)}
             >
-              {pText('Choose next')}
+              {t('jevUltrafast.main.chooseNext')}
             </PreviewButton>
             <PreviewButton
               disabled={!chosen || stopped || step === 1}
@@ -109,16 +107,19 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
                 setChosen(true);
               }}
             >
-              {pText('Execute choice')}
+              {t('jevUltrafast.main.executeChoice')}
             </PreviewButton>
             {started && !stopped && step === 0 ? (
-              <PreviewButton aria-label={pText('Stop example')} onClick={() => setStopped(true)}>
+              <PreviewButton
+                aria-label={t('jevUltrafast.main.stopExample')}
+                onClick={() => setStopped(true)}
+              >
                 <Square size={13} />
-                {pText('Stop')}
+                {t('jevUltrafast.main.stop')}
               </PreviewButton>
             ) : (
               <PreviewButton
-                aria-label={pText('Reset example')}
+                aria-label={t('jevUltrafast.main.resetExample')}
                 onClick={() => {
                   setStarted(false);
                   setChosen(false);
@@ -139,33 +140,33 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
                 <i />
                 <i />
               </span>
-              <span>{pText(started ? current.url : 'Dedicated automation browser')}</span>
-              <b>{pText('SAMPLE')}</b>
+              <span>
+                {started ? current.url : t('jevUltrafast.browser.dedicatedAutomationBrowser')}
+              </span>
+              <b>{t('jevUltrafast.browser.sample')}</b>
             </div>
             <div className="ju-viewport">
               {!started ? (
                 <div className="ju-empty">
                   <MousePointer2 size={34} />
-                  <h2>{pText('Watch the decision happen.')}</h2>
+                  <h2>{t('jevUltrafast.browser.watchTheDecisionHappen')}</h2>
                   <p>
-                    {pText('Explore a saved page, its available actions,')}
+                    {t('jevUltrafast.browser.exploreASavedPageItsAvailableActions')}
                     <br />
-                    {pText('and the next choice.')}
+                    {t('jevUltrafast.browser.andTheNextChoice')}
                   </p>
                   <PreviewButton primary onClick={begin}>
                     <Play size={15} />
-                    {pText('Explore example')}
+                    {t('jevUltrafast.browser.exploreExample')}
                   </PreviewButton>
                 </div>
               ) : (
                 <div className={`ju-example-domain${step === 1 ? ' ju-example-domain--iana' : ''}`}>
-                  <h2>{pText(current.page)}</h2>
+                  <h2>{current.page}</h2>
                   <p>
-                    {pText(
-                      step === 0
-                        ? 'This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.'
-                        : 'As described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are maintained for documentation purposes.',
-                    )}
+                    {step === 0
+                      ? t('jevUltrafast.browser.thisDomainIsForUseInIllustrative')
+                      : t('jevUltrafast.browser.asDescribedInRfc2606AndRfc')}
                   </p>
                   {step === 0 ? (
                     <button
@@ -175,47 +176,53 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
                         setStep(1);
                       }}
                     >
-                      {targets && <b className="ju-target">{pText('1')}</b>}
-                      {pText('More information…')}
+                      {targets && <b className="ju-target">{'1'}</b>}
+                      {t('jevUltrafast.browser.moreInformation')}
                     </button>
                   ) : (
                     <span className="ju-completed">
                       <Check size={16} />
-                      {pText('Example destination')}
+                      {t('jevUltrafast.browser.exampleDestination')}
                     </span>
                   )}
                 </div>
               )}
             </div>
             <div className="ju-browser-footer">
-              {pText('Isolated automation tab')}
-              <span>{pText('Saved page · no live browser')}</span>
+              {t('jevUltrafast.browser.isolatedAutomationTab')}
+              <span>{t('jevUltrafast.browser.savedPageNoLiveBrowser')}</span>
             </div>
           </section>
           <aside className="ju-choice">
-            <h2>{pText('Next action')}</h2>
+            <h2>{t('jevUltrafast.choice.nextAction')}</h2>
             {started && chosen ? (
               <>
-                <span className="ju-action">{pText(current.action)}</span>
-                <h3>{pText(current.target)}</h3>
-                <p>{pText(current.detail)}</p>
+                <span className="ju-action">{current.action}</span>
+                <h3>{current.target}</h3>
+                <p>{current.detail}</p>
                 <dl>
-                  <dt>{pText('Source')}</dt>
-                  <dd>{pText('Saved example')}</dd>
-                  <dt>{pText('Target')}</dt>
-                  <dd>{pText(step === 0 ? 'Link 1' : 'Goal reached')}</dd>
+                  <dt>{t('jevUltrafast.choice.source')}</dt>
+                  <dd>{t('jevUltrafast.choice.savedExample')}</dd>
+                  <dt>{t('jevUltrafast.choice.target')}</dt>
+                  <dd>
+                    {step === 0
+                      ? t('jevUltrafast.choice.link1')
+                      : t('jevUltrafast.choice.goalReached')}
+                  </dd>
                 </dl>
               </>
             ) : (
               <>
                 <MousePointer2 size={26} />
-                <h3>{pText(started ? 'Page observed' : 'Waiting for a page')}</h3>
+                <h3>
+                  {started
+                    ? t('jevUltrafast.choice.pageObserved')
+                    : t('jevUltrafast.choice.waitingForAPage')}
+                </h3>
                 <p>
-                  {pText(
-                    started
-                      ? 'Choose next to inspect the example decision.'
-                      : 'Start the example to inspect its action sequence.',
-                  )}
+                  {started
+                    ? t('jevUltrafast.choice.chooseNextToInspectTheExampleDecision')
+                    : t('jevUltrafast.choice.startTheExampleToInspectItsAction')}
                 </p>
               </>
             )}
@@ -223,23 +230,27 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
         </div>
         {started && (
           <section className="ju-history">
-            <h2>{pText('Step history')}</h2>
+            <h2>{t('jevUltrafast.history.stepHistory')}</h2>
             <div>
-              <span>{pText('1')}</span>
-              <p>{pText('Observe example.com')}</p>
-              <code>{pText(step === 0 ? 'OBSERVE' : 'CLICK → More information…')}</code>
+              <span>{'1'}</span>
+              <p>{t('jevUltrafast.history.observeExampleCom')}</p>
+              <code>
+                {step === 0
+                  ? t('jevUltrafast.history.observe')
+                  : t('jevUltrafast.history.clickMoreInformation')}
+              </code>
             </div>
             {step === 1 && (
               <div>
-                <span>{pText('2')}</span>
-                <p>{pText('Open the information page')}</p>
-                <code>{pText('DONE')}</code>
+                <span>{'2'}</span>
+                <p>{t('jevUltrafast.history.openTheInformationPage')}</p>
+                <code>{t('jevUltrafast.history.done')}</code>
               </div>
             )}
           </section>
         )}
       </main>
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }

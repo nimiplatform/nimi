@@ -1,14 +1,13 @@
+import {
+  createPreviewTranslate,
+  type PreviewMessageKey,
+} from '../src/landing/i18n/preview-messages.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
-import {
-  AppPreviewLocaleProvider,
-  formatPreviewText,
-  translatePreviewData,
-  translatePreviewText,
-} from '../src/landing/i18n/app-preview-locale.js';
+import { AppPreviewLocaleProvider } from '../src/landing/i18n/app-preview-locale.js';
 import { appPreviewMessagesEn } from '../src/landing/content/app-preview-messages.en.js';
 import { appPreviewMessagesZh } from '../src/landing/content/app-preview-messages.zh.js';
 
@@ -68,36 +67,44 @@ test('all 23 previews render English UI and authored examples when the outer loc
   }
 });
 
-test('preview copy localizes dynamic labels without translating action identifiers or object keys', () => {
+test('both locales have the same stable semantic keys and interpolation parameters', () => {
+  const enKeys = Object.keys(appPreviewMessagesEn).sort();
+  assert.deepEqual(enKeys, Object.keys(appPreviewMessagesZh).sort());
+  const parameters = (text: string) =>
+    [...new Set([...text.matchAll(/\{([a-zA-Z]\w*)\}/gu)].map((match) => match[1]))].sort();
+  for (const key of enKeys as PreviewMessageKey[]) {
+    assert.match(key, /^[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+$/u);
+    assert.deepEqual(
+      parameters(appPreviewMessagesEn[key]),
+      parameters(appPreviewMessagesZh[key]),
+      key,
+    );
+  }
+});
+
+test('message lookup fails on unknown keys and keeps visitor-supplied values verbatim', () => {
+  const t = createPreviewTranslate(appPreviewMessagesZh);
+  assert.throws(() => t('没有这个 key' as PreviewMessageKey), /Missing App preview message/);
+  assert.throws(() => t('toString' as PreviewMessageKey), /Missing App preview message/);
+  assert.equal(t('parentos.nav.timeline'), '首页');
+  const changed = createPreviewTranslate({
+    ...appPreviewMessagesZh,
+    'parentos.nav.timeline': '新的首页文案',
+  });
+  assert.equal(changed('parentos.nav.timeline'), '新的首页文案');
+  assert.equal(createPreviewTranslate(appPreviewMessagesEn)('parentos.nav.timeline'), 'Home');
   assert.equal(
-    translatePreviewText('Slide 2: Start with the journey.', appPreviewMessagesZh),
-    '幻灯片 2：从日常旅程开始。',
+    t('presenton.slides.slide', { number: 2, title: 'Paper 工作台 {number}' }),
+    '幻灯片 2：Paper 工作台 {number}',
   );
-  assert.equal(translatePreviewText('审阅场景 2', appPreviewMessagesEn), 'Review scene 2');
-  assert.equal(translatePreviewText('Message Rowan…', appPreviewMessagesZh), '给罗恩发消息…');
-  assert.equal(translatePreviewText('My own draft 123', appPreviewMessagesZh), 'My own draft 123');
-  assert.equal(translatePreviewText('工作台', appPreviewMessagesEn), 'Workbench');
+  assert.throws(() => t('presenton.slides.slide', { number: 2 }), /Missing App preview parameter/);
   assert.equal(
-    formatPreviewText('Message {0}…', ['Rowan'], appPreviewMessagesZh),
-    '给Rowan发消息…',
-  );
-  assert.equal(translatePreviewText('Use Paper theme', appPreviewMessagesZh), '使用纸张主题');
-  assert.equal(
-    formatPreviewText('Slide {0}: {1}', [1, 'Paper'], appPreviewMessagesZh),
-    '幻灯片 1：Paper',
-  );
-  assert.equal(
-    formatPreviewText('请{0}{1}', ['Book', 'write the story'], appPreviewMessagesEn),
+    createPreviewTranslate(appPreviewMessagesEn)('oddBureau.strikeGame.askTo', {
+      name: 'Book',
+      task: 'write the story',
+    }),
     'Ask Book to write the story',
   );
-  const source = { id: 'timeline', action: 'CLICK', label: '工作台', child: ['声音意象'] };
-  assert.deepEqual(translatePreviewData(source, appPreviewMessagesEn), {
-    id: 'timeline',
-    action: 'CLICK',
-    label: 'Workbench',
-    child: ['Sound imagery'],
-  });
-  assert.equal(source.label, '工作台');
 });
 
 test('English-first product examples have Chinese copy under the outer Chinese locale', async () => {
@@ -126,12 +133,5 @@ test('ShiJing preserves palace joins and semantic chart grades across interface 
   assert.deepEqual(
     en.palaces.flatMap((palace) => palace.major.map((star) => star.mutagen)),
     zh.palaces.flatMap((palace) => palace.major.map((star) => star.mutagen)),
-  );
-  assert.deepEqual(
-    translatePreviewData(
-      { strength: '七强', brightness: '庙', label: '七强' },
-      appPreviewMessagesEn,
-    ),
-    { strength: '七强', brightness: '庙', label: 'Strongest dignity' },
   );
 });

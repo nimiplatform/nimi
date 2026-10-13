@@ -1,12 +1,15 @@
-import { remainingAppPreviewContent } from './landing-content.remaining-apps.js';
+import { createPreviewTranslate } from '../i18n/preview-messages.js';
+import { createRemainingAppPreviewContent } from './landing-content.remaining-apps.js';
 import { appPreviewMessagesZh } from './app-preview-messages.zh.js';
 import type { LandingContent } from './landing-content.js';
-import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
-import { shijingPreviewContent } from './landing-content.shijing.js';
-import { parentosPreviewContent } from './landing-content.parentos.js';
-import { storybookPreviewContent } from './landing-content.storybook.js';
-import { oddBureauPreviewContent } from './landing-content.odd-bureau.js';
-import { jevSearchPreviewContent, jevUltrafastPreviewContent, moneyPrinterPreviewContent, openwhisprPreviewContent, videoLingoPreviewContent, voiceStudioPreviewContent } from './landing-content.third-party.js';
+import { createZhiyuPreviewContent } from './landing-content.zhiyu.js';
+import { createShijingPreviewContent } from './landing-content.shijing.js';
+import { createParentosPreviewContent } from './landing-content.parentos.js';
+import { createStorybookPreviewContent } from './landing-content.storybook.js';
+import { createOddBureauPreviewContent } from './landing-content.odd-bureau.js';
+import { createJevSearchPreviewContent, createJevUltrafastPreviewContent, createMoneyPrinterPreviewContent, createOpenwhisprPreviewContent, createVideoLingoPreviewContent, createVoiceStudioPreviewContent } from './landing-content.third-party.js';
+
+const t = createPreviewTranslate(appPreviewMessagesZh);
 
 export const landingContentZh: LandingContent = {
   skipToContent: '跳转到主要内容',
@@ -120,7 +123,7 @@ export const landingContentZh: LandingContent = {
         previewUnavailableBody: '该 App 的交互预览尚未提供。请从应用库选择其他 App。',
         closeLabel: '关闭',
         items: [
-          { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: '孵化本地 AI 伙伴：与它对话、陪伴与共同成长。', tags: ['文字生成', '语音合成'], updatedAt: '2026年9月17日', localDev: true },
+          { id: 'nimi.zhiyu', name: '织羽', task: '孵化本地 AI 伙伴：与它对话、陪伴与共同成长。', tags: ['文字生成', '语音合成'], updatedAt: '2026年9月17日', localDev: true },
           { id: 'nimi.parentos', name: 'ParentOS', task: '记录孩子的成长与家庭观察，整理成长档案。', tags: ['文字生成', '语音转写'], updatedAt: '2026年9月15日', localDev: true, iconSrc: '/demo/parentos-icon.png' },
           { id: "io.github.nimiplatform.jev-search", name: "Jev Search", task: "用自然语言搜索网页，筛选来源、整理相关链接。", tags: ["搜索","结果排序"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/jev-search-icon.png' },
           { id: "io.github.nimiplatform.jev-ultrafast", name: "Jev Ultrafast", task: "给浏览器一个目标，逐步观察、选择和执行操作。", tags: ["浏览器任务","文字"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
@@ -148,18 +151,18 @@ export const landingContentZh: LandingContent = {
       appPreview: {
         locale: 'zh',
         messages: appPreviewMessagesZh,
-        remainingApps: remainingAppPreviewContent,
-        zhiyu: zhiyuPreviewContent,
-        shijing: shijingPreviewContent,
-        parentos: parentosPreviewContent,
-        storybook: storybookPreviewContent,
-        oddBureau: oddBureauPreviewContent,
-        jevSearch: jevSearchPreviewContent,
-        jevUltrafast: jevUltrafastPreviewContent,
-        moneyPrinter: moneyPrinterPreviewContent,
-        openwhispr: openwhisprPreviewContent,
-        videoLingo: videoLingoPreviewContent,
-        voiceStudio: voiceStudioPreviewContent,
+        remainingApps: createRemainingAppPreviewContent(t),
+        zhiyu: createZhiyuPreviewContent(t),
+        shijing: createShijingPreviewContent(t),
+        parentos: createParentosPreviewContent(t),
+        storybook: createStorybookPreviewContent(t),
+        oddBureau: createOddBureauPreviewContent(t),
+        jevSearch: createJevSearchPreviewContent(t),
+        jevUltrafast: createJevUltrafastPreviewContent(t),
+        moneyPrinter: createMoneyPrinterPreviewContent(t),
+        openwhispr: createOpenwhisprPreviewContent(t),
+        videoLingo: createVideoLingoPreviewContent(t),
+        voiceStudio: createVoiceStudioPreviewContent(t),
       },
       runtime: {
         title: '运行时',

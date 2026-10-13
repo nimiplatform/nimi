@@ -1,6 +1,6 @@
 schema_version: 1
 app_id: nimi.zhiyu
-display_name: 织羽 Zhiyu
+display_name: 织羽
 metadata:
   icon: src/shell/assets/app-icon.png
 app_access:

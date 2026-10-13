@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import {
   createContext,
@@ -58,6 +59,45 @@ const FIVE_ELEMENTS: readonly HeroDemoShijingElement[] = [
 ];
 const HUA_LEGEND = ['禄', '权', '科', '忌'] as const;
 
+function mutagenLabels(t: PreviewTranslate): Record<string, string> {
+  return {
+    禄: t('shijing.ziwei.mutagen.prosperity'),
+    权: t('shijing.ziwei.mutagen.authority'),
+    科: t('shijing.ziwei.mutagen.recognition'),
+    忌: t('shijing.ziwei.mutagen.needsCare'),
+  };
+}
+
+function brightnessLabels(t: PreviewTranslate): Record<string, string> {
+  return {
+    庙: t('shijing.ziwei.brightness.exalted'),
+    旺: t('shijing.ziwei.brightness.strong'),
+    得: t('shijing.ziwei.brightness.established'),
+    利: t('shijing.ziwei.brightness.favorable'),
+    平: t('shijing.ziwei.brightness.neutral'),
+    不: t('shijing.ziwei.brightness.unrated'),
+    陷: t('shijing.ziwei.brightness.weakened'),
+  };
+}
+
+function palaceLabels(t: PreviewTranslate): Record<string, string> {
+  return {
+    仆役: t('shijing.ziwei.palace.associates'),
+    命宫: t('shijing.ziwei.palace.soulPalace'),
+    兄弟: t('shijing.ziwei.palace.siblings'),
+    夫妻: t('shijing.ziwei.palace.partnership'),
+    子女: t('shijing.ziwei.palace.child'),
+    财帛: t('shijing.ziwei.palace.wealth'),
+    疾厄: t('shijing.ziwei.palace.health'),
+    迁移: t('shijing.ziwei.palace.travel'),
+    交友: t('shijing.ziwei.palace.friends'),
+    官禄: t('shijing.ziwei.palace.career'),
+    田宅: t('shijing.ziwei.palace.property'),
+    福德: t('shijing.ziwei.palace.wellbeing'),
+    父母: t('shijing.ziwei.palace.parent'),
+  };
+}
+
 function fill(template: string, count: number): string {
   return template.replace('{count}', String(count));
 }
@@ -79,7 +119,6 @@ function GeneratingButton({
   children: ReactNode;
   onClick: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <button
       type="button"
@@ -90,7 +129,7 @@ function GeneratingButton({
       onClick={onClick}
     >
       {busy ? <span className="shijing-generating-button__spinner" aria-hidden="true" /> : null}
-      <span className="shijing-generating-button__label">{pText(busy ? busyLabel : children)}</span>
+      <span className="shijing-generating-button__label">{busy ? busyLabel : children}</span>
     </button>
   );
 }
@@ -115,7 +154,6 @@ function useSimulatedGenerate(): { busy: boolean; run: () => void } {
 // Stands in for the kit Popover the app uses (mingjing-info.tsx): a toggle
 // button with an inline bubble anchored below it.
 function MingJingInfo({ label, children }: { label: string; children: ReactNode }) {
-  const { pText } = useAppPreviewLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -138,7 +176,7 @@ function MingJingInfo({ label, children }: { label: string; children: ReactNode 
       <button
         type="button"
         className="shijing-mingjing-info__button"
-        aria-label={pText(label)}
+        aria-label={label}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
@@ -160,7 +198,7 @@ function MingJingInfo({ label, children }: { label: string; children: ReactNode 
       </button>
       {open ? (
         <span className="shijing-mingjing-info__bubble" role="tooltip">
-          {pText(children)}
+          {children}
         </span>
       ) : null}
     </span>
@@ -238,7 +276,7 @@ function BaziRoute({
   tendency: Record<HeroDemoShijingTone, string>;
   readingCopy: HeroDemoShijingMingjing['reading'];
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const stagesRef = useRef<HTMLDivElement>(null);
   const [events, setEvents] = useState(content.events.items);
   return (
@@ -265,7 +303,7 @@ function BaziRoute({
         <BaziReading content={content.reading} readingCopy={readingCopy} />
       </div>
       <button type="button" className="shijing-mj-footer-cta">
-        {pText(content.rectifyEntry)}
+        {content.rectifyEntry}
       </button>
     </>
   );
@@ -280,47 +318,47 @@ function BaziHero({
   tendency: Record<HeroDemoShijingTone, string>;
   onSeeStages: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const labels: Record<HeroDemoShijingElement, string> = {
-    wood: '木',
-    fire: '火',
-    earth: '土',
-    metal: '金',
-    water: '水',
+    wood: t('shijing.baziHero.wood'),
+    fire: t('shijing.baziHero.fire'),
+    earth: t('shijing.baziHero.earth'),
+    metal: t('shijing.baziHero.metal'),
+    water: t('shijing.baziHero.water'),
   };
   return (
     <header className="shijing-mj-hero" data-strength={content.strengthClass}>
       <div className="shijing-mj-hero__glow" aria-hidden="true" />
       <div className="shijing-mj-hero__main">
-        <p className="shijing-mj-hero__eyebrow">{pText(content.eyebrow)}</p>
-        <h1 className="shijing-mj-hero__title">{pText(content.title)}</h1>
+        <p className="shijing-mj-hero__eyebrow">{content.eyebrow}</p>
+        <h1 className="shijing-mj-hero__title">{content.title}</h1>
         <p className="shijing-mj-hero__summary">
-          <span>{pText(content.dayMaster)}</span>
-          <span className="shijing-mj-hero__dot">{pText('·')}</span>
-          <span>{pText(content.patternTag)}</span>
-          <span className="shijing-mj-hero__dot">{pText('·')}</span>
-          <span>{pText(content.strengthTag)}</span>
+          <span>{content.dayMaster}</span>
+          <span className="shijing-mj-hero__dot">{'·'}</span>
+          <span>{content.patternTag}</span>
+          <span className="shijing-mj-hero__dot">{'·'}</span>
+          <span>{content.strengthTag}</span>
         </p>
-        <p className="shijing-mj-hero__persona">{pText(content.persona)}</p>
+        <p className="shijing-mj-hero__persona">{content.persona}</p>
       </div>
       <aside className="shijing-mj-hero__panel">
         <div className="shijing-mj-hero__favor">
-          <p className="shijing-mj-hero__favor-title">{pText(content.favorableTitle)}</p>
+          <p className="shijing-mj-hero__favor-title">{content.favorableTitle}</p>
           <div className="shijing-mj-hero__chips">
             {content.favorable.length > 0 ? (
               content.favorable.map((el) => (
                 <span key={el} className="shijing-mj-hero__chip" data-element={el}>
-                  {pText(labels[el])}
+                  {labels[el]}
                 </span>
               ))
             ) : (
-              <span className="shijing-mj-hero__chip-empty">{pText('—')}</span>
+              <span className="shijing-mj-hero__chip-empty">{'—'}</span>
             )}
           </div>
-          <p className="shijing-mj-hero__favor-hint">{pText(content.favorableHint)}</p>
+          <p className="shijing-mj-hero__favor-hint">{content.favorableHint}</p>
         </div>
         <div className="shijing-mj-hero__favor shijing-mj-hero__favor--adverse">
-          <p className="shijing-mj-hero__favor-title">{pText(content.adverseTitle)}</p>
+          <p className="shijing-mj-hero__favor-title">{content.adverseTitle}</p>
           <div className="shijing-mj-hero__chips">
             {content.adverse.length > 0 ? (
               content.adverse.map((el) => (
@@ -329,39 +367,39 @@ function BaziHero({
                   className="shijing-mj-hero__chip shijing-mj-hero__chip--muted"
                   data-element={el}
                 >
-                  {pText(labels[el])}
+                  {labels[el]}
                 </span>
               ))
             ) : (
-              <span className="shijing-mj-hero__chip-empty">{pText('—')}</span>
+              <span className="shijing-mj-hero__chip-empty">{'—'}</span>
             )}
           </div>
         </div>
         <div className="shijing-mj-hero__stage">
-          <p className="shijing-mj-hero__stage-label">{pText(content.currentStageLabel)}</p>
+          <p className="shijing-mj-hero__stage-label">{content.currentStageLabel}</p>
           {content.current ? (
             <p className="shijing-mj-hero__stage-value">
               <span
                 className="shijing-mj-hero__stage-pillar"
                 data-element={content.current.stemElement}
               >
-                {pText(content.current.pillar)}
+                {content.current.pillar}
               </span>
               <span className="shijing-mj-hero__stage-text">
-                {pText(content.dayunWord)} {pText(' · ')}
-                {pText(content.current.ageRange)}
+                {content.dayunWord} {' · '}
+                {content.current.ageRange}
               </span>
               <span className="shijing-mj-hero__stage-badge" data-nature={content.current.nature}>
-                {pText(tendency[content.current.nature])}
+                {tendency[content.current.nature]}
               </span>
             </p>
           ) : (
             <p className="shijing-mj-hero__stage-value shijing-mj-hero__stage-value--empty">
-              {pText(content.notStarted)}
+              {content.notStarted}
             </p>
           )}
           <button type="button" className="shijing-mj-hero__cta" onClick={onSeeStages}>
-            {pText(content.seeStages)}
+            {content.seeStages}
           </button>
         </div>
       </aside>
@@ -376,14 +414,13 @@ function ElementNames({
   elements: ReadonlyArray<HeroDemoShijingElement>;
   labels: Record<HeroDemoShijingElement, string>;
 }) {
-  const { pText } = useAppPreviewLocale();
-  if (elements.length === 0) return <span className="shijing-paipan__empty">{pText('—')}</span>;
+  if (elements.length === 0) return <span className="shijing-paipan__empty">{'—'}</span>;
   return (
     <>
       {elements.map((el, index) => (
         <span key={el} data-element={el}>
-          {pText(index > 0 ? '、' : '')}
-          {pText(labels[el])}
+          {index > 0 ? '、' : ''}
+          {labels[el]}
         </span>
       ))}
     </>
@@ -391,22 +428,22 @@ function ElementNames({
 }
 
 function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [expanded, setExpanded] = useState(false);
   const detailId = useId();
   const five = content.five;
   const max = Math.max(1, ...FIVE_ELEMENTS.map((el) => five.count[el]));
   return (
-    <section className="shijing-mingjing-paipan" aria-label={pText(content.sectionTitle)}>
+    <section className="shijing-mingjing-paipan" aria-label={content.sectionTitle}>
       <div className="shijing-paipan__head">
         <div>
-          <h2 className="shijing-paipan__title">{pText(content.sectionTitle)}</h2>
-          <p className="shijing-paipan__intro">{pText(content.sectionIntro)}</p>
+          <h2 className="shijing-paipan__title">{content.sectionTitle}</h2>
+          <p className="shijing-paipan__intro">{content.sectionIntro}</p>
         </div>
-        <span className="shijing-paipan__structure-badge">{pText(content.structureBadge)}</span>
+        <span className="shijing-paipan__structure-badge">{content.structureBadge}</span>
       </div>
 
-      <div className="shijing-paipan__pillar-grid" aria-label={pText(content.sectionTitle)}>
+      <div className="shijing-paipan__pillar-grid" aria-label={content.sectionTitle}>
         {content.columns.map((col) => (
           <article
             key={col.position}
@@ -414,38 +451,34 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
             data-daymaster={col.isDay ? '' : undefined}
           >
             {col.isDay ? (
-              <span className="shijing-paipan__day-badge">{pText(content.dayBadge)}</span>
+              <span className="shijing-paipan__day-badge">{content.dayBadge}</span>
             ) : null}
             <p className="shijing-paipan__pillar-role">
-              {pText(content.pillarLabels[col.position])} {pText(' · ')}
-              {pText(content.roles[col.position])}
+              {content.pillarLabels[col.position]} {' · '}
+              {content.roles[col.position]}
             </p>
             <p
               className="shijing-paipan__glyphs"
-              aria-label={pText(
-                `${content.pillarLabels[col.position]} ${col.stemHanzi}${col.branchHanzi}`,
-              )}
+              aria-label={`${content.pillarLabels[col.position]} ${col.stemHanzi}${col.branchHanzi}`}
             >
-              <span data-element={col.stemElement}>{pText(col.stemHanzi)}</span>
-              <span data-element={col.branchElement}>{pText(col.branchHanzi)}</span>
+              <span data-element={col.stemElement}>{col.stemHanzi}</span>
+              <span data-element={col.branchElement}>{col.branchHanzi}</span>
             </p>
             <p className="shijing-paipan__ten-god">
-              {pText(
-                col.isDay
-                  ? `${content.dayMaster} · ${content.roles.day}`
-                  : `${content.rows.tenGod} · ${col.tenGod}`,
-              )}
+              {col.isDay
+                ? `${content.dayMaster} · ${content.roles.day}`
+                : `${content.rows.tenGod} · ${col.tenGod}`}
             </p>
           </article>
         ))}
       </div>
 
-      <div className="shijing-mingjing-five" aria-label={pText(five.title)}>
+      <div className="shijing-mingjing-five" aria-label={five.title}>
         <div className="shijing-mingjing-five__head shijing-mingjing-panel__title-row">
-          <h3 className="shijing-mingjing-five__title">{pText(five.title)}</h3>
-          <p className="shijing-mingjing-five__summary">{pText(five.summary)}</p>
-          <MingJingInfo label={pText(`${five.title}说明`)}>
-            <p>{pText(five.explanation)}</p>
+          <h3 className="shijing-mingjing-five__title">{five.title}</h3>
+          <p className="shijing-mingjing-five__summary">{five.summary}</p>
+          <MingJingInfo label={t('shijing.baziPaipan.about', { fiveTitle: five.title })}>
+            <p>{five.explanation}</p>
           </MingJingInfo>
         </div>
         <div className="shijing-mingjing-five__bars">
@@ -457,12 +490,12 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
               data-dominant={el === five.dominant ? '' : undefined}
               data-weakest={el === five.weakest ? '' : undefined}
             >
-              <span className="shijing-mingjing-five__count">{pText(five.count[el])}</span>
+              <span className="shijing-mingjing-five__count">{five.count[el]}</span>
               <span
                 className="shijing-mingjing-five__value"
                 style={{ height: `${Math.round((five.count[el] / max) * 100)}%` }}
               />
-              <span className="shijing-mingjing-five__label">{pText(five.labels[el])}</span>
+              <span className="shijing-mingjing-five__label">{five.labels[el]}</span>
             </div>
           ))}
         </div>
@@ -475,13 +508,13 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
         aria-controls={detailId}
         onClick={() => setExpanded((value) => !value)}
       >
-        <span>{pText(expanded ? content.collapse : content.expand)}</span>
+        <span>{expanded ? content.collapse : content.expand}</span>
         <ChevronIcon className="shijing-paipan__toggle-icon" />
       </button>
 
       {expanded ? (
         <div id={detailId} className="shijing-paipan__detail">
-          <p className="shijing-paipan__detail-title">{pText(content.detailTitle)}</p>
+          <p className="shijing-paipan__detail-title">{content.detailTitle}</p>
           <div className="shijing-paipan__table-wrap">
             <table className="shijing-paipan__table">
               <thead>
@@ -489,8 +522,8 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
                   <th className="shijing-paipan__corner" scope="col"></th>
                   {content.columns.map((col) => (
                     <th key={col.position} scope="col" data-daymaster={col.isDay ? '' : undefined}>
-                      {pText(content.pillarLabels[col.position])}
-                      {col.isDay ? <span>{pText(content.dayMaster)}</span> : null}
+                      {content.pillarLabels[col.position]}
+                      {col.isDay ? <span>{content.dayMaster}</span> : null}
                     </th>
                   ))}
                 </tr>
@@ -498,7 +531,7 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
               <tbody>
                 <tr>
                   <th className="shijing-paipan__row-label" scope="row">
-                    {pText(content.rows.hidden)}
+                    {content.rows.hidden}
                   </th>
                   {content.columns.map((col) => (
                     <td key={col.position}>
@@ -509,7 +542,7 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
                             data-element={h.element}
                             data-weight={h.weight}
                           >
-                            {pText(h.hanzi)}
+                            {h.hanzi}
                           </em>
                         ))}
                       </span>
@@ -518,62 +551,58 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
                 </tr>
                 <tr>
                   <th className="shijing-paipan__row-label" scope="row">
-                    {pText(content.rows.nayin)}
+                    {content.rows.nayin}
                   </th>
                   {content.columns.map((col) => (
-                    <td key={col.position}>{pText(col.nayin)}</td>
+                    <td key={col.position}>{col.nayin}</td>
                   ))}
                 </tr>
                 <tr>
                   <th className="shijing-paipan__row-label" scope="row">
-                    {pText(content.rows.terrain)}
+                    {content.rows.terrain}
                   </th>
                   {content.columns.map((col) => (
-                    <td key={col.position}>{pText(col.terrain)}</td>
+                    <td key={col.position}>{col.terrain}</td>
                   ))}
                 </tr>
                 <tr>
                   <th className="shijing-paipan__row-label" scope="row">
-                    {pText(content.rows.voidRow)}
+                    {content.rows.voidRow}
                   </th>
                   {content.columns.map((col) => (
-                    <td key={col.position}>
-                      {pText(col.isVoid ? content.voidMark : content.voidEmpty)}
-                    </td>
+                    <td key={col.position}>{col.isVoid ? content.voidMark : content.voidEmpty}</td>
                   ))}
                 </tr>
               </tbody>
             </table>
           </div>
-          <div className="shijing-paipan__summary" aria-label={pText(content.geju.strengthLabel)}>
+          <div className="shijing-paipan__summary" aria-label={content.geju.strengthLabel}>
             <span className="shijing-paipan__summary-chip">
-              {pText(content.geju.strengthLabel)}
-              {pText(': ')}
-              <strong>{pText(content.strengthBand)}</strong>
+              {content.geju.strengthLabel}
+              {': '}
+              <strong>{content.strengthBand}</strong>
               <span>
-                {pText('(')}
-                {pText(content.geju.supportRatioLabel)} {pText(content.supportRatio)}
-                {pText(')')}
+                {'('}
+                {content.geju.supportRatioLabel} {content.supportRatio}
+                {')'}
               </span>
             </span>
             <span className="shijing-paipan__summary-chip">
-              {pText(content.geju.yong)}
-              {pText(': ')}
+              {content.geju.yong}
+              {': '}
               <ElementNames elements={content.yong} labels={five.labels} />
             </span>
             <span className="shijing-paipan__summary-chip shijing-paipan__summary-chip--muted">
-              {pText(content.geju.ji)}
-              {pText(': ')}
+              {content.geju.ji}
+              {': '}
               <ElementNames elements={content.ji} labels={five.labels} />
             </span>
             <span className="shijing-paipan__summary-chip">
-              {pText(content.geju.relationsLabel)}
-              {pText(': ')}
-              {pText(
-                content.relations.length > 0
-                  ? content.relations.join(' / ')
-                  : content.geju.relationsEmpty,
-              )}
+              {content.geju.relationsLabel}
+              {': '}
+              {content.relations.length > 0
+                ? content.relations.join(' / ')
+                : content.geju.relationsEmpty}
             </span>
           </div>
         </div>
@@ -589,7 +618,7 @@ function BaziDayun({
   content: HeroDemoShijingBaziRoute['dayun'];
   tendency: Record<HeroDemoShijingTone, string>;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const currentPeriod =
     content.currentIndex >= 0 ? content.periods[content.currentIndex] : undefined;
   const [expandedYear, setExpandedYear] = useState<number | null>(currentPeriod?.startYear ?? null);
@@ -622,34 +651,34 @@ function BaziDayun({
         >
           <span className="shijing-dayun__identity">
             <span className="shijing-dayun__pillar" data-element={period.stemElement}>
-              {pText(period.pillar)}
+              {period.pillar}
             </span>
           </span>
           <span className="shijing-dayun__row-copy">
             <span className="shijing-dayun__row-title">
-              <span className="shijing-dayun__stage-title">{pText(period.phaseTitle)}</span>
+              <span className="shijing-dayun__stage-title">{period.phaseTitle}</span>
               <span className="shijing-dayun__technical">
                 <span className="shijing-dayun__term-grid">
                   <span className="shijing-dayun__term">
-                    <small>{pText(content.cols.age)}</small>
-                    {pText(period.startAge)}
-                    {pText('–')}
-                    {pText(period.endAge)}
-                    {pText('岁')}
+                    <small>{content.cols.age}</small>
+                    {period.startAge}
+                    {'–'}
+                    {period.endAge}
+                    {t('shijing.baziDayun.years')}
                   </span>
                   <span className="shijing-dayun__term">
-                    <small>{pText(content.cols.years)}</small>
-                    {pText(period.startYear)}
-                    {pText('–')}
-                    {pText(period.endYear)}
+                    <small>{content.cols.years}</small>
+                    {period.startYear}
+                    {'–'}
+                    {period.endYear}
                   </span>
                   <span className="shijing-dayun__term">
-                    <small>{pText(content.cols.tenGod)}</small>
-                    {pText(period.tenGod)}
+                    <small>{content.cols.tenGod}</small>
+                    {period.tenGod}
                   </span>
                   <span className="shijing-dayun__term">
-                    <small>{pText(content.cols.terrain)}</small>
-                    {pText(period.terrainLabel)}
+                    <small>{content.cols.terrain}</small>
+                    {period.terrainLabel}
                   </span>
                 </span>
               </span>
@@ -657,14 +686,14 @@ function BaziDayun({
           </span>
           <span className="shijing-dayun__row-nature" data-favor={period.favor}>
             <span className="shijing-dayun__nature-dot" aria-hidden="true" />
-            {pText(tendency[period.nature])}
+            {tendency[period.nature]}
           </span>
           <span className="shijing-dayun__chevron" aria-hidden="true">
-            {pText(expanded ? '⌄' : '›')}
+            {expanded ? '⌄' : '›'}
           </span>
         </button>
         <div id={contentId} className="shijing-dayun__explanation" hidden={!expanded}>
-          <p>{pText(period.explanation)}</p>
+          <p>{period.explanation}</p>
         </div>
       </li>
     );
@@ -673,16 +702,18 @@ function BaziDayun({
   return (
     <section
       className="shijing-mingjing-panel shijing-mingjing-dayun"
-      aria-label={pText(content.sectionTitle)}
+      aria-label={content.sectionTitle}
     >
       <header className="shijing-mingjing-panel__head">
         <div className="shijing-mingjing-panel__title-row">
-          <h2 className="shijing-mingjing-panel__title">{pText(content.sectionTitle)}</h2>
-          <MingJingInfo label={pText(`${content.sectionTitle}说明`)}>
-            <p>{pText(content.explanation)}</p>
+          <h2 className="shijing-mingjing-panel__title">{content.sectionTitle}</h2>
+          <MingJingInfo
+            label={t('shijing.baziDayun.about', { contentSectionTitle: content.sectionTitle })}
+          >
+            <p>{content.explanation}</p>
             <p>
-              {pText(content.directionLabel)} {pText(' · ')}
-              {pText(content.startAgeLabel)}
+              {content.directionLabel} {' · '}
+              {content.startAgeLabel}
             </p>
           </MingJingInfo>
         </div>
@@ -695,10 +726,10 @@ function BaziDayun({
                 data-tone={seg.tone}
                 data-nature={seg.tone === 'current' ? currentPeriod?.nature : undefined}
               >
-                {pText(seg.text)}
+                {seg.text}
               </strong>
             ) : (
-              <span key={index}>{pText(seg.text)}</span>
+              <span key={index}>{seg.text}</span>
             ),
           )}
         </p>
@@ -717,17 +748,17 @@ function BaziDayun({
               data-highlight={isHighlight ? '' : undefined}
             >
               {isCurrent ? (
-                <span className="shijing-dayun__seg-here">{pText(content.currentLabel)}</span>
+                <span className="shijing-dayun__seg-here">{content.currentLabel}</span>
               ) : null}
               <span className="shijing-dayun__seg-bar">
                 <span className="shijing-dayun__seg-label">
-                  {pText(isHighlight ? content.highlightLabel : tendency[period.nature])}
+                  {isHighlight ? content.highlightLabel : tendency[period.nature]}
                 </span>
               </span>
               <span className="shijing-dayun__seg-age">
-                {pText(period.startAge)}
-                {pText('–')}
-                {pText(period.endAge)}
+                {period.startAge}
+                {'–'}
+                {period.endAge}
               </span>
             </li>
           );
@@ -735,32 +766,32 @@ function BaziDayun({
       </ol>
 
       <div className="shijing-dayun__matrix-head" aria-hidden="true">
-        <span>{pText(content.cols.pillar)}</span>
+        <span>{content.cols.pillar}</span>
         <span>
-          {pText(content.cols.age)} {pText(' / ')}
-          {pText(content.cols.years)} {pText(' / ')}
-          {pText(content.cols.tenGod)} {pText(' / ')}
-          {pText(content.cols.terrain)}
+          {content.cols.age} {' / '}
+          {content.cols.years} {' / '}
+          {content.cols.tenGod} {' / '}
+          {content.cols.terrain}
         </span>
-        <span>{pText(content.cols.nature)}</span>
+        <span>{content.cols.nature}</span>
         <span />
       </div>
 
       <ol className="shijing-dayun__list">
-        {pText(regular.map(renderRow))}
+        {regular.map(renderRow)}
         {distant.length > 0 ? (
           <li className="shijing-dayun__distant-shell">
             <details className="shijing-dayun__distant-group">
               <summary className="shijing-dayun__distant-toggle">
                 <span className="shijing-dayun__distant-copy">
-                  <strong>{pText(content.distantTitle)}</strong>
-                  <span>{pText(content.distantDescription)}</span>
+                  <strong>{content.distantTitle}</strong>
+                  <span>{content.distantDescription}</span>
                 </span>
                 <span className="shijing-dayun__distant-chevron" aria-hidden="true">
-                  {pText('›')}
+                  {'›'}
                 </span>
               </summary>
-              <ol className="shijing-dayun__distant-list">{pText(distant.map(renderRow))}</ol>
+              <ol className="shijing-dayun__distant-list">{distant.map(renderRow)}</ol>
             </details>
           </li>
         ) : null}
@@ -776,21 +807,18 @@ function BaziLiunian({
   content: HeroDemoShijingBaziRoute['liunian'];
   tendency: Record<HeroDemoShijingTone, string>;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
-    <section
-      className="shijing-mingjing-panel shijing-mingjing-liunian"
-      aria-label={pText(content.title)}
-    >
+    <section className="shijing-mingjing-panel shijing-mingjing-liunian" aria-label={content.title}>
       <header className="shijing-mingjing-panel__head">
         <div className="shijing-mingjing-panel__title-row">
-          <h2 className="shijing-mingjing-panel__title">{pText(content.title)}</h2>
-          <MingJingInfo label={pText(`${content.title}说明`)}>
-            <p>{pText(content.intro)}</p>
-            <p>{pText(content.explanation)}</p>
+          <h2 className="shijing-mingjing-panel__title">{content.title}</h2>
+          <MingJingInfo label={t('shijing.baziLiunian.about', { contentTitle: content.title })}>
+            <p>{content.intro}</p>
+            <p>{content.explanation}</p>
           </MingJingInfo>
         </div>
-        <p className="shijing-mingjing-panel__intro">{pText(content.horizonLabel)}</p>
+        <p className="shijing-mingjing-panel__intro">{content.horizonLabel}</p>
       </header>
       {content.windows.length > 0 ? (
         <ol className="shijing-liunian__list">
@@ -808,51 +836,51 @@ function BaziLiunian({
                 data-salience={window.salience}
               >
                 <header className="shijing-liunian__card-head">
-                  <span className="shijing-liunian__range">{pText(window.range)}</span>
+                  <span className="shijing-liunian__range">{window.range}</span>
                   <span className="shijing-liunian__badge" data-nature={window.nature}>
-                    {pText(window.badge)}
+                    {window.badge}
                   </span>
                   <span className="shijing-liunian__salience" data-salience={window.salience}>
-                    {pText(content.salienceLabels[window.salience])}
+                    {content.salienceLabels[window.salience]}
                   </span>
                 </header>
-                <p className="shijing-liunian__plain">{pText(window.plain)}</p>
+                <p className="shijing-liunian__plain">{window.plain}</p>
                 <div className="shijing-liunian__years-wrap">
-                  <span className="shijing-liunian__label">{pText(content.yearsLabel)}</span>
+                  <span className="shijing-liunian__label">{content.yearsLabel}</span>
                   <ul className="shijing-liunian__years">
                     {window.pillars.map((yp) => (
                       <li key={yp.year}>
-                        <span className="shijing-liunian__year">{pText(yp.year)}</span>
-                        <span className="shijing-liunian__ganzhi">{pText(yp.ganzhi)}</span>
+                        <span className="shijing-liunian__year">{yp.year}</span>
+                        <span className="shijing-liunian__ganzhi">{yp.ganzhi}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
                 <details className="shijing-liunian__details">
-                  <summary>{pText(content.detailToggle)}</summary>
+                  <summary>{content.detailToggle}</summary>
                   <div className="shijing-liunian__evidence">
                     <div className="shijing-liunian__evidence-head">
-                      <span>{pText(content.evidenceLabel)}</span>
+                      <span>{content.evidenceLabel}</span>
                       <strong data-favor={window.favor}>
-                        {pText(tendency[window.nature])} {pText(' · ')}
-                        {pText(content.favorLabels[window.favor] ?? window.favor)}
+                        {tendency[window.nature]} {' · '}
+                        {content.favorLabels[window.favor] ?? window.favor}
                       </strong>
                     </div>
                     {window.dayunPillar ? (
                       <span className="shijing-liunian__dayun">
-                        {pText(content.dayunLabel)}
-                        {pText(': ')}
-                        {pText(window.dayunPillar)}
+                        {content.dayunLabel}
+                        {': '}
+                        {window.dayunPillar}
                       </span>
                     ) : null}
                     {visibleRelations.length > 0 ? (
                       <ul className="shijing-liunian__relations">
                         {visibleRelations.map((rel, i) => (
-                          <li key={i}>{pText(rel)}</li>
+                          <li key={i}>{rel}</li>
                         ))}
                         {hiddenRelations > 0 ? (
                           <li className="shijing-liunian__relations-more">
-                            {pText(fill(content.relationMore, hiddenRelations))}
+                            {fill(content.relationMore, hiddenRelations)}
                           </li>
                         ) : null}
                       </ul>
@@ -860,11 +888,11 @@ function BaziLiunian({
                     {visibleBasis.length > 0 ? (
                       <ul className="shijing-liunian__basis">
                         {visibleBasis.map((b, i) => (
-                          <li key={i}>{pText(b)}</li>
+                          <li key={i}>{b}</li>
                         ))}
                         {hiddenBasis > 0 ? (
                           <li className="shijing-liunian__basis-more">
-                            {pText(fill(content.basisMore, hiddenBasis))}
+                            {fill(content.basisMore, hiddenBasis)}
                           </li>
                         ) : null}
                       </ul>
@@ -877,7 +905,7 @@ function BaziLiunian({
         </ol>
       ) : (
         <p className="shijing-liunian__empty" role="status">
-          {pText(content.empty)}
+          {content.empty}
         </p>
       )}
     </section>
@@ -897,9 +925,9 @@ function BaziEvents({
   events: ReadonlyArray<EventItem>;
   onChange: (next: ReadonlyArray<EventItem>) => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [date, setDate] = useState(() => pData(''));
-  const [body, setBody] = useState(() => pData(''));
+  const { t } = useAppPreviewLocale();
+  const [date, setDate] = useState(() => '');
+  const [body, setBody] = useState(() => '');
   const [error, setError] = useState(false);
   const sorted = useMemo(() => [...events].sort((a, b) => a.date.localeCompare(b.date)), [events]);
 
@@ -916,93 +944,88 @@ function BaziEvents({
   }
 
   return (
-    <section
-      className="shijing-mingjing-panel shijing-mingjing-events"
-      aria-label={pText(content.title)}
-    >
+    <section className="shijing-mingjing-panel shijing-mingjing-events" aria-label={content.title}>
       <header className="shijing-mingjing-panel__head">
         <div className="shijing-mingjing-panel__title-row">
-          <h2 className="shijing-mingjing-panel__title">{pText(content.title)}</h2>
-          <MingJingInfo label={pText(`${content.title}说明`)}>
-            <p>{pText(content.intro)}</p>
-            <p>{pText(content.explanation)}</p>
+          <h2 className="shijing-mingjing-panel__title">{content.title}</h2>
+          <MingJingInfo label={t('shijing.baziEvents.about', { contentTitle: content.title })}>
+            <p>{content.intro}</p>
+            <p>{content.explanation}</p>
           </MingJingInfo>
         </div>
       </header>
 
       <div className="shijing-mj-events__recorder">
         <label className="shijing-mj-events__field shijing-mj-events__field--date">
-          <span className="shijing-mj-events__sr">{pText(content.dateLabel)}</span>
+          <span className="shijing-mj-events__sr">{content.dateLabel}</span>
           <input
             type="date"
             className="shijing-mj-events__date-input"
             value={date}
             max="2100-12-31"
-            placeholder={pText(content.datePlaceholder)}
+            placeholder={content.datePlaceholder}
             onChange={(e) => {
               setDate(e.target.value);
             }}
           />
         </label>
         <label className="shijing-mj-events__field shijing-mj-events__field--grow">
-          <span className="shijing-mj-events__sr">{pText(content.bodyLabel)}</span>
+          <span className="shijing-mj-events__sr">{content.bodyLabel}</span>
           <input
             type="text"
             value={body}
-            placeholder={pText(content.bodyPlaceholder)}
+            placeholder={content.bodyPlaceholder}
             onChange={(e) => {
               setBody(e.target.value);
             }}
           />
         </label>
         <button type="button" className="shijing-mj-events__add" onClick={handleAdd}>
-          {pText(content.add)}
+          {content.add}
         </button>
       </div>
       {error ? (
         <p className="shijing-mj-events__error" role="alert">
-          {pText(content.invalidHint)}
+          {content.invalidHint}
         </p>
       ) : null}
 
       {sorted.length === 0 ? (
-        <p className="shijing-mj-events__empty">{pText(content.empty)}</p>
+        <p className="shijing-mj-events__empty">{content.empty}</p>
       ) : (
         <>
-          <p className="shijing-mj-events__hint">{pText(content.preGenHint)}</p>
+          <p className="shijing-mj-events__hint">{content.preGenHint}</p>
           <ul className="shijing-mj-events__list">
             {sorted.map((event) => {
               const r = event.resonance;
               return (
                 <li key={event.id} className="shijing-mj-events__item" data-nature={r?.dayunNature}>
                   <time className="shijing-mj-events__date" dateTime={event.date}>
-                    {pText(event.date)}
+                    {event.date}
                   </time>
                   <div className="shijing-mj-events__main">
-                    <p className="shijing-mj-events__body">{pText(event.body)}</p>
+                    <p className="shijing-mj-events__body">{event.body}</p>
                     {r ? (
                       <div className="shijing-mj-events__resonance">
                         <span className="shijing-mj-events__chip" data-nature={r.dayunNature}>
                           <span className="shijing-mj-events__chip-label">
-                            {pText(content.dayunColumn)}
+                            {content.dayunColumn}
                           </span>
                           <span className="shijing-mj-events__chip-value">
-                            {pText(r.dayunPillar ?? '—')}
-                            {pText(r.dayunTenGod ? `·${r.dayunTenGod}` : '')}
+                            {r.dayunPillar ?? '—'}
+                            {r.dayunTenGod ? `·${r.dayunTenGod}` : ''}
                           </span>
                           <span className="shijing-mj-events__chip-nature">
-                            {pText(tendency[r.dayunNature])}
+                            {tendency[r.dayunNature]}
                           </span>
                         </span>
                         <span className="shijing-mj-events__chip" data-nature={r.liunianNature}>
                           <span className="shijing-mj-events__chip-label">
-                            {pText(content.liunianColumn)}
+                            {content.liunianColumn}
                           </span>
-                          <span className="shijing-mj-events__chip-value">
-                            {pText(r.liunianPillar)}
-                          </span>
+                          <span className="shijing-mj-events__chip-value">{r.liunianPillar}</span>
                           <span className="shijing-mj-events__chip-nature">
-                            {pText(tendency[r.liunianNature])}
+                            {tendency[r.liunianNature]}
                           </span>
                         </span>
                       </div>
@@ -1011,10 +1034,10 @@ function BaziEvents({
                   <button
                     type="button"
                     className="shijing-mj-events__delete"
-                    aria-label={pText(content.delete)}
+                    aria-label={content.delete}
                     onClick={() => onChange(events.filter((item) => item.id !== event.id))}
                   >
-                    {pText('×')}
+                    {'×'}
                   </button>
                 </li>
               );
@@ -1033,21 +1056,23 @@ function BaziReading({
   content: HeroDemoShijingBaziRoute['reading'];
   readingCopy: HeroDemoShijingMingjing['reading'];
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const { busy, run } = useSimulatedGenerate();
   const output = content.output;
   return (
     <section
       className="shijing-mingjing-panel shijing-mingjing-reading"
-      aria-label={pText(content.coreTitle)}
+      aria-label={content.coreTitle}
     >
       <header className="shijing-mingjing-panel__head shijing-mj-reading__head">
         <div>
-          <p className="shijing-mingjing__eyebrow">{pText(content.eyebrow)}</p>
+          <p className="shijing-mingjing__eyebrow">{content.eyebrow}</p>
           <div className="shijing-mingjing-panel__title-row">
-            <h2 className="shijing-mingjing-panel__title">{pText(content.coreTitle)}</h2>
-            <MingJingInfo label={pText(`${content.coreTitle}说明`)}>
-              <p>{pText(content.explanation)}</p>
+            <h2 className="shijing-mingjing-panel__title">{content.coreTitle}</h2>
+            <MingJingInfo
+              label={t('shijing.baziReading.about', { contentCoreTitle: content.coreTitle })}
+            >
+              <p>{content.explanation}</p>
             </MingJingInfo>
           </div>
         </div>
@@ -1057,31 +1082,31 @@ function BaziReading({
           busyLabel={readingCopy.generating}
           onClick={run}
         >
-          {pText(readingCopy.regenerate)}
+          {readingCopy.regenerate}
         </GeneratingButton>
       </header>
-      <p className="shijing-mj-reading__summary">{pText(output.summary)}</p>
+      <p className="shijing-mj-reading__summary">{output.summary}</p>
       <dl className="shijing-mj-reading__core">
         {CORE_ORDER.map((key) => (
           <div key={key} className="shijing-mj-reading__core-item">
-            <dt>{pText(content.coreLabels[key])}</dt>
-            <dd>{pText(output.core[key])}</dd>
+            <dt>{content.coreLabels[key]}</dt>
+            <dd>{output.core[key]}</dd>
           </div>
         ))}
       </dl>
-      <h3 className="shijing-mj-reading__subtitle">{pText(content.strategiesTitle)}</h3>
+      <h3 className="shijing-mj-reading__subtitle">{content.strategiesTitle}</h3>
       <ol className="shijing-mj-reading__strategies">
         {output.strategies.map((s) => (
           <li key={s.pillar} className="shijing-mj-reading__strategy">
             <div className="shijing-mj-reading__phase">
-              <span className="shijing-mj-reading__pillar">{pText(s.pillar)}</span>
+              <span className="shijing-mj-reading__pillar">{s.pillar}</span>
               <span className="shijing-mj-reading__age">
-                {pText(s.ageRange)}
-                {pText('岁')}
+                {s.ageRange}
+                {t('shijing.baziReading.years')}
               </span>
-              <span className="shijing-mj-reading__theme">{pText(s.theme)}</span>
+              <span className="shijing-mj-reading__theme">{s.theme}</span>
             </div>
-            <p className="shijing-mj-reading__strategy-text">{pText(s.strategy)}</p>
+            <p className="shijing-mj-reading__strategy-text">{s.strategy}</p>
           </li>
         ))}
       </ol>
@@ -1104,7 +1129,7 @@ function ageRange(palace: ZiweiPalace): string {
 }
 
 function StarChip({ star, major }: { star: HeroDemoShijingZiweiStar; major: boolean }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
     <span
       className="shijing-ziwei-star"
@@ -1112,17 +1137,20 @@ function StarChip({ star, major }: { star: HeroDemoShijingZiweiStar; major: bool
       data-bright={star.brightness || undefined}
       data-mutagen={star.mutagen || undefined}
     >
-      <span className="shijing-ziwei-star__name">{pText(star.name)}</span>
+      <span className="shijing-ziwei-star__name">{star.name}</span>
       {star.brightness ? (
-        <span className="shijing-ziwei-star__brightness">{pText(star.brightness)}</span>
+        <span className="shijing-ziwei-star__brightness">
+          {brightnessLabels(t)[star.brightness]}
+        </span>
       ) : null}
-      {star.mutagen ? <span className="shijing-ziwei-star__hua">{pText(star.mutagen)}</span> : null}
+      {star.mutagen ? (
+        <span className="shijing-ziwei-star__hua">{mutagenLabels(t)[star.mutagen]}</span>
+      ) : null}
     </span>
   );
 }
 
 function PalaceStars({ palace, emptyLabel }: { palace: ZiweiPalace; emptyLabel: string }) {
-  const { pText } = useAppPreviewLocale();
   const empty = palace.major.length === 0 && palace.minor.length === 0;
   return (
     <div className="shijing-ziwei-palace__stars">
@@ -1132,7 +1160,7 @@ function PalaceStars({ palace, emptyLabel }: { palace: ZiweiPalace; emptyLabel: 
       {palace.minor.map((star) => (
         <StarChip key={`minor:${star.name}`} star={star} major={false} />
       ))}
-      {empty ? <span className="shijing-ziwei-palace__empty">{pText(emptyLabel)}</span> : null}
+      {empty ? <span className="shijing-ziwei-palace__empty">{emptyLabel}</span> : null}
     </div>
   );
 }
@@ -1144,7 +1172,7 @@ function ZiweiRoute({
   content: HeroDemoShijingZiweiRoute;
   readingCopy: HeroDemoShijingMingjing['reading'];
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const c = content.copy;
   const defaultPalace = content.palaces.find((p) => p.isSoul) ?? content.palaces[0];
   const [selectedKey, setSelectedKey] = useState(defaultPalace ? palaceKey(defaultPalace) : '');
@@ -1164,19 +1192,19 @@ function ZiweiRoute({
       className="shijing-mingjing__panels shijing-mingjing__panels--ziwei"
       data-mingjing-route="ziwei_sanhe_v1"
     >
-      <section className="shijing-ziwei-persona" aria-label={pText(c.chartTitle)}>
+      <section className="shijing-ziwei-persona" aria-label={c.chartTitle}>
         <div className="shijing-ziwei-persona__mark" aria-hidden="true">
-          {pText(c.personaMark)}
+          {c.personaMark}
         </div>
         <div className="shijing-ziwei-persona__identity">
-          <h3>{pText(c.personaTitle)}</h3>
-          <p>{pText(c.personaSubtitle)}</p>
+          <h3>{c.personaTitle}</h3>
+          <p>{c.personaSubtitle}</p>
         </div>
         <dl className="shijing-ziwei-persona__facts">
           {basisItems.map(([label, value]) => (
             <div key={label}>
-              <dt>{pText(label)}</dt>
-              <dd>{pText(value)}</dd>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
             </div>
           ))}
         </dl>
@@ -1185,22 +1213,22 @@ function ZiweiRoute({
       <div className="shijing-ziwei-workspace">
         <section
           className="shijing-mingjing-panel shijing-ziwei-chart"
-          aria-label={pText(c.astrolabeAria)}
+          aria-label={c.astrolabeAria}
         >
           <header className="shijing-ziwei-chart__head">
             <div>
-              <h2 className="shijing-mingjing-panel__title">{pText(c.chartTitle)}</h2>
-              <p>{pText(c.chartHint)}</p>
+              <h2 className="shijing-mingjing-panel__title">{c.chartTitle}</h2>
+              <p>{c.chartHint}</p>
             </div>
-            <div className="shijing-ziwei-chart__legend" aria-label={pText(c.sihuaLabel)}>
+            <div className="shijing-ziwei-chart__legend" aria-label={c.sihuaLabel}>
               {HUA_LEGEND.map((hua) => (
                 <span key={hua} data-mutagen={hua}>
-                  {pText(hua)}
+                  {mutagenLabels(t)[hua]}
                 </span>
               ))}
             </div>
           </header>
-          <div className="shijing-ziwei-grid" role="list" aria-label={pText(c.chartTitle)}>
+          <div className="shijing-ziwei-grid" role="list" aria-label={c.chartTitle}>
             {content.palaces.map((palace) => {
               const key = palaceKey(palace);
               const isSelected = key === selectedKey;
@@ -1218,36 +1246,36 @@ function ZiweiRoute({
                 >
                   <span className="shijing-ziwei-palace__top">
                     <span className="shijing-ziwei-palace__name">
-                      {pText(palace.name)}
+                      {palaceLabels(t)[palace.name] ?? palace.name}
                       {palace.isBody ? (
-                        <span className="shijing-ziwei-palace__body-mark">{pText(c.bodyRole)}</span>
+                        <span className="shijing-ziwei-palace__body-mark">{c.bodyRole}</span>
                       ) : null}
                     </span>
-                    <span className="shijing-ziwei-palace__age">{pText(ageRange(palace))}</span>
+                    <span className="shijing-ziwei-palace__age">{ageRange(palace)}</span>
                   </span>
-                  <PalaceStars palace={palace} emptyLabel={pText(c.emptyPalace)} />
+                  <PalaceStars palace={palace} emptyLabel={c.emptyPalace} />
                   <span className="shijing-ziwei-palace__branch">
-                    {pText(palace.stem)}
-                    {pText(palace.branch)}
+                    {palace.stem}
+                    {palace.branch}
                   </span>
                 </button>
               );
             })}
             <div className="shijing-ziwei-center">
-              <p>{pText(c.centralEyebrow)}</p>
-              <h3>{pText(c.chartTitle)}</h3>
+              <p>{c.centralEyebrow}</p>
+              <h3>{c.chartTitle}</h3>
               <dl>
                 <div>
-                  <dt>{pText(c.basis.fiveElements)}</dt>
-                  <dd>{pText(content.basis.fiveElementsClass)}</dd>
+                  <dt>{c.basis.fiveElements}</dt>
+                  <dd>{content.basis.fiveElementsClass}</dd>
                 </div>
                 <div>
-                  <dt>{pText(c.basis.soulStar)}</dt>
-                  <dd>{pText(content.basis.soulStar)}</dd>
+                  <dt>{c.basis.soulStar}</dt>
+                  <dd>{content.basis.soulStar}</dd>
                 </div>
                 <div>
-                  <dt>{pText(c.basis.bodyStar)}</dt>
-                  <dd>{pText(content.basis.bodyStar)}</dd>
+                  <dt>{c.basis.bodyStar}</dt>
+                  <dd>{content.basis.bodyStar}</dd>
                 </div>
               </dl>
             </div>
@@ -1258,12 +1286,12 @@ function ZiweiRoute({
 
       <section
         className="shijing-mingjing-panel shijing-mingjing-reading shijing-ziwei-brief"
-        aria-label={pText(c.briefAria)}
+        aria-label={c.briefAria}
       >
         <header className="shijing-mingjing-panel__head shijing-mj-reading__head">
           <div>
-            <p className="shijing-mingjing__eyebrow">{pText(c.briefEyebrow)}</p>
-            <h2 className="shijing-mingjing-panel__title">{pText(c.briefTitle)}</h2>
+            <p className="shijing-mingjing__eyebrow">{c.briefEyebrow}</p>
+            <h2 className="shijing-mingjing-panel__title">{c.briefTitle}</h2>
           </div>
           <GeneratingButton
             className="shijing-mj-reading__generate"
@@ -1271,20 +1299,20 @@ function ZiweiRoute({
             busyLabel={readingCopy.generating}
             onClick={run}
           >
-            {pText(readingCopy.regenerate)}
+            {readingCopy.regenerate}
           </GeneratingButton>
         </header>
         <p className="shijing-mj-reading__summary shijing-ziwei-brief__summary">
-          {pText(content.reading.summary)}
+          {content.reading.summary}
         </p>
         <dl className="shijing-mj-reading__core shijing-ziwei-brief__grid">
           {PROFILE_ORDER.map((key) => (
             <div key={key} className="shijing-mj-reading__core-item shijing-ziwei-brief__card">
               <span className="shijing-ziwei-brief__numeral" aria-hidden="true">
-                {pText(c.profileNumerals[key])}
+                {c.profileNumerals[key]}
               </span>
-              <dt>{pText(c.profileLabels[key])}</dt>
-              <dd>{pText(content.reading.profile[key])}</dd>
+              <dt>{c.profileLabels[key]}</dt>
+              <dd>{content.reading.profile[key]}</dd>
             </div>
           ))}
         </dl>
@@ -1300,7 +1328,7 @@ function ZiweiPalaceDetail({
   content: HeroDemoShijingZiweiRoute;
   palace: ZiweiPalace;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const c = content.copy;
   const domain = content.palaceDomains[palace.name] ?? content.defaultPalaceDomain;
   const guidance =
@@ -1316,39 +1344,39 @@ function ZiweiPalaceDetail({
   return (
     <aside
       className="shijing-mingjing-panel shijing-ziwei-detail"
-      aria-label={pText(c.palaceDetailEyebrow)}
+      aria-label={c.palaceDetailEyebrow}
     >
       <header className="shijing-ziwei-detail__head">
-        <p className="shijing-mingjing__eyebrow">{pText(c.palaceDetailEyebrow)}</p>
+        <p className="shijing-mingjing__eyebrow">{c.palaceDetailEyebrow}</p>
         <div className="shijing-ziwei-detail__roles">
           {roles.map((role) => (
-            <span key={role}>{pText(role)}</span>
+            <span key={role}>{role}</span>
           ))}
         </div>
       </header>
       <div className="shijing-ziwei-detail__heading">
         <h2>
-          {pText(palace.name)}
-          <span className="shijing-ziwei-detail__age">{pText(ageRange(palace))}</span>
+          {palaceLabels(t)[palace.name] ?? palace.name}
+          <span className="shijing-ziwei-detail__age">{ageRange(palace)}</span>
         </h2>
-        <p className="shijing-ziwei-detail__tagline">{pText(domain.tagline)}</p>
+        <p className="shijing-ziwei-detail__tagline">{domain.tagline}</p>
       </div>
       <div className="shijing-ziwei-detail__stars">
         <div className="shijing-ziwei-detail__star-col">
-          <h3>{pText(c.majorStars)}</h3>
+          <h3>{c.majorStars}</h3>
           <div className="shijing-ziwei-palace__stars">
             {palace.major.map((star) => (
               <StarChip key={`major:${star.name}`} star={star} major />
             ))}
             {palace.major.length === 0 ? (
-              <span className="shijing-ziwei-palace__empty">{pText(c.emptyPalace)}</span>
+              <span className="shijing-ziwei-palace__empty">{c.emptyPalace}</span>
             ) : null}
           </div>
         </div>
         <div className="shijing-ziwei-detail__star-col">
           <h3>
-            {pText(c.minorStars)} {pText(' · ')}
-            {pText(c.stemBranchLabel)}
+            {c.minorStars} {' · '}
+            {c.stemBranchLabel}
           </h3>
           <div className="shijing-ziwei-detail__minor">
             <div className="shijing-ziwei-palace__stars">
@@ -1356,31 +1384,31 @@ function ZiweiPalaceDetail({
                 <StarChip key={`minor:${star.name}`} star={star} major={false} />
               ))}
               {palace.minor.length === 0 ? (
-                <span className="shijing-ziwei-detail__dash">{pText('—')}</span>
+                <span className="shijing-ziwei-detail__dash">{'—'}</span>
               ) : null}
             </div>
             <span className="shijing-ziwei-detail__branch">
-              {pText(palace.stem)}
-              {pText(palace.branch)}
+              {palace.stem}
+              {palace.branch}
             </span>
           </div>
         </div>
       </div>
       <section className="shijing-ziwei-detail__interpretation">
-        <h3>{pText(c.interpretationTitle)}</h3>
-        <p>{pText(domain.scope)}</p>
-        <p>{pText(domain.boundary)}</p>
+        <h3>{c.interpretationTitle}</h3>
+        <p>{domain.scope}</p>
+        <p>{domain.boundary}</p>
       </section>
       <section className="shijing-ziwei-detail__decade">
-        <h3>{pText(c.decadeTitle)}</h3>
+        <h3>{c.decadeTitle}</h3>
         <div className="shijing-ziwei-detail__decade-head">
           <span>
-            {pText(ageRange(palace))} {pText(' · ')}
-            {pText(palace.name)}
+            {ageRange(palace)} {' · '}
+            {palaceLabels(t)[palace.name] ?? palace.name}
           </span>
-          <strong>{pText(guidance?.theme ?? majorNames)}</strong>
+          <strong>{guidance?.theme ?? majorNames}</strong>
         </div>
-        <p>{pText(guidance?.strategy ?? c.decadeEmpty)}</p>
+        <p>{guidance?.strategy ?? c.decadeEmpty}</p>
       </section>
     </aside>
   );
@@ -1414,7 +1442,6 @@ function QizhengGlossaryProvider({
   gloss: Record<string, string>;
   children: ReactNode;
 }) {
-  const { pText } = useAppPreviewLocale();
   const [active, setActive] = useState<ActiveTerm | null>(null);
   const [pinned, setPinned] = useState(false);
   const pinnedRef = useRef(false);
@@ -1484,7 +1511,7 @@ function QizhengGlossaryProvider({
   const text = active ? gloss[active.key] : null;
   return (
     <GlossaryContext.Provider value={value}>
-      {pText(children)}
+      {children}
       {active && text ? (
         <div
           data-gloss-pop
@@ -1493,8 +1520,8 @@ function QizhengGlossaryProvider({
           role="tooltip"
         >
           <div className="shijing-qz-pop__bubble">
-            <div className="shijing-qz-pop__title">{pText(active.key)}</div>
-            <div className="shijing-qz-pop__text">{pText(text)}</div>
+            <div className="shijing-qz-pop__title">{active.key}</div>
+            <div className="shijing-qz-pop__text">{text}</div>
           </div>
           <div className="shijing-qz-pop__arrow" />
         </div>
@@ -1512,18 +1539,39 @@ function GlossTerm({
   children?: ReactNode;
   className?: string;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
+  const termLabels: Record<string, string> = {
+    七政: t('shijing.glossary.sevenLuminaries'),
+    四余: t('shijing.glossary.fourAdditionalPoints'),
+    命主: t('shijing.glossary.lifeRuler'),
+    空宫: t('shijing.glossary.emptyHouse'),
+    宿: t('shijing.glossary.mansion'),
+    宫势: t('shijing.glossary.houseEmphasis'),
+    黄道度: t('shijing.glossary.longitude'),
+    身主: t('shijing.glossary.bodyRuler'),
+    命宫: t('shijing.glossary.soulPalace'),
+    福点: t('shijing.glossary.term9'),
+    日生: t('shijing.glossary.term10'),
+    夜生: t('shijing.glossary.term11'),
+    七强: t('shijing.glossary.strongestDignity'),
+    三弱: t('shijing.glossary.term13'),
+    躔度: t('shijing.glossary.term14'),
+    入垣: t('shijing.glossary.term15'),
+    曜: t('shijing.glossary.term16'),
+    命度: t('shijing.glossary.term17'),
+    躔宿: t('shijing.glossary.term18'),
+  };
+  const termLabel = termLabels[termKey] ?? (typeof children === 'string' ? children : termKey);
   const ctx = useContext(GlossaryContext);
   const ref = useRef<HTMLButtonElement>(null);
-  if (!ctx || !ctx.has(termKey))
-    return <span className={className}>{pText(children ?? termKey)}</span>;
+  if (!ctx || !ctx.has(termKey)) return <span className={className}>{children ?? termLabel}</span>;
   return (
     <button
       ref={ref}
       type="button"
       data-gloss-term
       className={`shijing-qz-term${className ? ` ${className}` : ''}`}
-      aria-label={pText(termKey)}
+      aria-label={termLabel}
       onMouseEnter={() => {
         if (ref.current) ctx.show(termKey, ref.current);
       }}
@@ -1533,7 +1581,7 @@ function GlossTerm({
         if (ref.current) ctx.pin(termKey, ref.current);
       }}
     >
-      {pText(children ?? termKey)}
+      {children ?? termLabel}
     </button>
   );
 }
@@ -1563,7 +1611,6 @@ function QizhengRoute({
   content: HeroDemoShijingQizhengRoute;
   readingCopy: HeroDemoShijingMingjing['reading'];
 }) {
-  const { pText } = useAppPreviewLocale();
   const x = content.copy;
   const defaultIndex = useMemo(() => {
     let best = content.palaces[0];
@@ -1598,8 +1645,8 @@ function QizhengRoute({
         <QizhengHero content={content} />
 
         <div className="shijing-qz-view-toggle">
-          <p className="shijing-qz-view-toggle__intro">{pText(x.viewIntro)}</p>
-          <div className="shijing-qz-toggle" role="tablist" aria-label={pText(x.viewToggleAria)}>
+          <p className="shijing-qz-view-toggle__intro">{x.viewIntro}</p>
+          <div className="shijing-qz-toggle" role="tablist" aria-label={x.viewToggleAria}>
             <button
               type="button"
               role="tab"
@@ -1608,7 +1655,7 @@ function QizhengRoute({
               data-active={view === 'plain' ? '' : undefined}
               onClick={() => setView('plain')}
             >
-              {pText(x.viewPlain)}
+              {x.viewPlain}
             </button>
             <button
               type="button"
@@ -1618,7 +1665,7 @@ function QizhengRoute({
               data-active={view === 'data' ? '' : undefined}
               onClick={() => setView('data')}
             >
-              {pText(x.viewData)}
+              {x.viewData}
             </button>
           </div>
         </div>
@@ -1627,30 +1674,30 @@ function QizhengRoute({
           <div className="shijing-qz-plain">
             <section
               className="shijing-mingjing-panel shijing-qz-explainer"
-              aria-label={pText(x.explainerTitle)}
+              aria-label={x.explainerTitle}
             >
               <div className="shijing-qz-explainer__head">
                 <InfoIcon className="shijing-qz-explainer__icon" />
-                <h3 className="shijing-qz-explainer__title">{pText(x.explainerTitle)}</h3>
+                <h3 className="shijing-qz-explainer__title">{x.explainerTitle}</h3>
               </div>
-              <p className="shijing-qz-explainer__body">{pText(x.explainerBody)}</p>
+              <p className="shijing-qz-explainer__body">{x.explainerBody}</p>
               <div className="shijing-qz-explainer__cards">
                 <div className="shijing-qz-explainer__card">
                   <div className="shijing-qz-explainer__card-title">
-                    <GlossTerm termKey="七政">{pText(x.terms.qizheng)}</GlossTerm> {pText(' · ')}
-                    {pText(x.qizhengCardTitle)}
+                    <GlossTerm termKey="七政">{x.terms.qizheng}</GlossTerm> {' · '}
+                    {x.qizhengCardTitle}
                   </div>
-                  <div className="shijing-qz-explainer__card-body">{pText(x.qizhengCardBody)}</div>
+                  <div className="shijing-qz-explainer__card-body">{x.qizhengCardBody}</div>
                 </div>
                 <div className="shijing-qz-explainer__card">
                   <div className="shijing-qz-explainer__card-title">
-                    <GlossTerm termKey="四余">{pText(x.terms.siyu)}</GlossTerm> {pText(' · ')}
-                    {pText(x.siyuCardTitle)}
+                    <GlossTerm termKey="四余">{x.terms.siyu}</GlossTerm> {' · '}
+                    {x.siyuCardTitle}
                   </div>
-                  <div className="shijing-qz-explainer__card-body">{pText(x.siyuCardBody)}</div>
+                  <div className="shijing-qz-explainer__card-body">{x.siyuCardBody}</div>
                 </div>
               </div>
-              <p className="shijing-qz-explainer__hint">{pText(x.explainerHint)}</p>
+              <p className="shijing-qz-explainer__hint">{x.explainerHint}</p>
             </section>
             <div ref={chartRef} className="shijing-mingjing__anchor">
               <QizhengChart
@@ -1666,12 +1713,12 @@ function QizhengRoute({
           <QizhengDataView content={content} />
         )}
 
-        <div className="shijing-qz-reading" aria-label={pText(x.readingAria)}>
+        <div className="shijing-qz-reading" aria-label={x.readingAria}>
           <section className="shijing-qz-cta">
             <div className="shijing-qz-cta__copy">
-              <p className="shijing-qz-cta__eyebrow">{pText(x.ctaEyebrow)}</p>
-              <h3 className="shijing-qz-cta__title">{pText(x.ctaTitle)}</h3>
-              <p className="shijing-qz-cta__body">{pText(x.ctaBody)}</p>
+              <p className="shijing-qz-cta__eyebrow">{x.ctaEyebrow}</p>
+              <h3 className="shijing-qz-cta__title">{x.ctaTitle}</h3>
+              <p className="shijing-qz-cta__body">{x.ctaBody}</p>
             </div>
             <GeneratingButton
               className="shijing-qz-cta__button"
@@ -1679,39 +1726,39 @@ function QizhengRoute({
               busyLabel={readingCopy.generating}
               onClick={run}
             >
-              {pText(readingCopy.regenerate)}
+              {readingCopy.regenerate}
             </GeneratingButton>
           </section>
           <section className="shijing-mingjing-panel shijing-qz-result">
             <div className="shijing-qz-result__head">
               <SparkleIcon className="shijing-qz-result__icon" />
               <h3 className="shijing-qz-result__title">
-                {pText(content.hero.title)} {pText(' · ')}
-                {pText(x.readingTitleSuffix)}
+                {content.hero.title} {' · '}
+                {x.readingTitleSuffix}
               </h3>
             </div>
-            <p className="shijing-qz-result__summary">{pText(content.reading.summary)}</p>
+            <p className="shijing-qz-result__summary">{content.reading.summary}</p>
             <dl className="shijing-qz-result__profile">
               {PROFILE_ORDER.map((key) => (
                 <div key={key} className="shijing-qz-result__profile-item">
-                  <dt>{pText(x.profileLabels[key])}</dt>
-                  <dd>{pText(content.reading.profile[key])}</dd>
+                  <dt>{x.profileLabels[key]}</dt>
+                  <dd>{content.reading.profile[key]}</dd>
                 </div>
               ))}
             </dl>
-            <h4 className="shijing-qz-result__subtitle">{pText(x.starGuidanceTitle)}</h4>
+            <h4 className="shijing-qz-result__subtitle">{x.starGuidanceTitle}</h4>
             <ol className="shijing-qz-result__guidance">
               {content.reading.starGuidance.map((item) => (
                 <li key={item.bodyKey} className="shijing-qz-result__guide">
                   <div className="shijing-qz-result__guide-head">
-                    <span className="shijing-qz-result__guide-star">{pText(item.bodyLabel)}</span>
+                    <span className="shijing-qz-result__guide-star">{item.bodyLabel}</span>
                     <span className="shijing-qz-result__guide-where">
-                      {pText(item.houseName)} {pText(' · ')}
-                      {pText(item.mansion)}
+                      {item.houseName} {' · '}
+                      {item.mansion}
                     </span>
-                    <span className="shijing-qz-result__guide-theme">{pText(item.theme)}</span>
+                    <span className="shijing-qz-result__guide-theme">{item.theme}</span>
                   </div>
-                  <p className="shijing-qz-result__guide-text">{pText(item.strategy)}</p>
+                  <p className="shijing-qz-result__guide-text">{item.strategy}</p>
                 </li>
               ))}
             </ol>
@@ -1723,36 +1770,35 @@ function QizhengRoute({
 }
 
 function QizhengHero({ content }: { content: HeroDemoShijingQizhengRoute }) {
-  const { pText } = useAppPreviewLocale();
   const x = content.copy;
   const hero = content.hero;
   const tailChips = hero.subtitleChips.slice(1);
   return (
-    <section className="shijing-qz-hero" aria-label={pText(x.heroEyebrow)}>
+    <section className="shijing-qz-hero" aria-label={x.heroEyebrow}>
       <div className="shijing-qz-hero__grid">
         <div className="shijing-qz-hero__main">
-          <p className="shijing-qz-hero__eyebrow">{pText(x.heroEyebrow)}</p>
-          <h2 className="shijing-qz-hero__title">{pText(hero.title)}</h2>
+          <p className="shijing-qz-hero__eyebrow">{x.heroEyebrow}</p>
+          <h2 className="shijing-qz-hero__title">{hero.title}</h2>
           <div className="shijing-qz-hero__subtitle">
             <span>
               <GlossTerm termKey="命主" className="shijing-qz-term--light">
-                {pText(x.terms.mingZhu)}
+                {x.terms.mingZhu}
               </GlossTerm>
-              {pText(hero.mingZhuLabel)}
+              {hero.mingZhuLabel}
             </span>
             {tailChips.map((chip) => (
               <span key={chip}>
-                <span className="shijing-qz-hero__sep">{pText('·')}</span>
-                {pText(chip)}
+                <span className="shijing-qz-hero__sep">{'·'}</span>
+                {chip}
               </span>
             ))}
           </div>
-          <p className="shijing-qz-hero__lead">{pText(hero.oneLiner)}</p>
-          <p className="shijing-qz-hero__body">{pText(hero.paragraph)}</p>
+          <p className="shijing-qz-hero__lead">{hero.oneLiner}</p>
+          <p className="shijing-qz-hero__body">{hero.paragraph}</p>
         </div>
         <div className="shijing-qz-hero__side">
           <div className="shijing-qz-hero__group">
-            <p className="shijing-qz-hero__group-title">{pText(x.favorableTitle)}</p>
+            <p className="shijing-qz-hero__group-title">{x.favorableTitle}</p>
             <div className="shijing-qz-hero__chips">
               {hero.favorable.map((label, index) => (
                 <span
@@ -1760,26 +1806,26 @@ function QizhengHero({ content }: { content: HeroDemoShijingQizhengRoute }) {
                   className="shijing-qz-hero__chip"
                   data-primary={index === 0 ? '' : undefined}
                 >
-                  {pText(label)}
+                  {label}
                 </span>
               ))}
             </div>
           </div>
           {hero.watch.length > 0 ? (
             <div className="shijing-qz-hero__group">
-              <p className="shijing-qz-hero__group-title">{pText(x.watchTitle)}</p>
+              <p className="shijing-qz-hero__group-title">{x.watchTitle}</p>
               <div className="shijing-qz-hero__chips">
                 {hero.watch.map((label) => (
                   <span key={label} className="shijing-qz-hero__chip shijing-qz-hero__chip--watch">
-                    {pText(label)}
+                    {label}
                   </span>
                 ))}
               </div>
             </div>
           ) : null}
           <div className="shijing-qz-hero__basis">
-            <p className="shijing-qz-hero__group-title">{pText(x.basisTitle)}</p>
-            <p className="shijing-qz-hero__basis-value">{pText(hero.basisLabel)}</p>
+            <p className="shijing-qz-hero__group-title">{x.basisTitle}</p>
+            <p className="shijing-qz-hero__basis-value">{hero.basisLabel}</p>
           </div>
         </div>
       </div>
@@ -1796,17 +1842,17 @@ function QizhengChart({
   selectedIndex: number;
   onSelect: (index: number) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const x = content.copy;
   const palaces = content.palaces;
   const selected = palaces.find((p) => p.index === selectedIndex) ?? palaces[0];
   const mingColor =
     palaces.flatMap((p) => p.occupants).find((occ) => occ.isMing)?.color ?? '#5a8ec0';
   return (
-    <section className="shijing-mingjing-panel shijing-qz-chart" aria-label={pText(x.chartTitle)}>
+    <section className="shijing-mingjing-panel shijing-qz-chart" aria-label={x.chartTitle}>
       <div className="shijing-qz-section-head">
-        <h3 className="shijing-qz-section-title">{pText(x.chartTitle)}</h3>
-        <span className="shijing-qz-section-hint">{pText(x.chartHint)}</span>
+        <h3 className="shijing-qz-section-title">{x.chartTitle}</h3>
+        <span className="shijing-qz-section-hint">{x.chartHint}</span>
       </div>
       <div className="shijing-qz-chart__layout">
         <div className="shijing-qz-wheel">
@@ -1814,7 +1860,7 @@ function QizhengChart({
             viewBox="0 0 360 360"
             className="shijing-qz-wheel__svg"
             role="img"
-            aria-label={pText(x.chartTitle)}
+            aria-label={x.chartTitle}
           >
             {palaces.map((palace) => {
               const isSel = palace.index === selectedIndex;
@@ -1858,7 +1904,7 @@ function QizhengChart({
               return (
                 <g key={palace.name}>
                   <text x={lx.toFixed(1)} y={ly.toFixed(1)} style={labelStyle}>
-                    {pText(palace.name)}
+                    {palaceLabels(t)[palace.name] ?? palace.name}
                   </text>
                   {palace.occupants.map((occ, k) => {
                     const n = palace.occupants.length;
@@ -1882,36 +1928,36 @@ function QizhengChart({
             className="shijing-qz-wheel__center"
             style={{ '--qz-ming-color': mingColor } as CSSProperties}
           >
-            <div className="shijing-qz-wheel__center-eyebrow">{pText(x.wheelCenterEyebrow)}</div>
-            <div className="shijing-qz-wheel__center-star">{pText(content.hero.mingZhuLabel)}</div>
-            <div className="shijing-qz-wheel__center-basis">{pText(content.hero.basisLabel)}</div>
+            <div className="shijing-qz-wheel__center-eyebrow">{x.wheelCenterEyebrow}</div>
+            <div className="shijing-qz-wheel__center-star">{content.hero.mingZhuLabel}</div>
+            <div className="shijing-qz-wheel__center-basis">{content.hero.basisLabel}</div>
           </div>
         </div>
         {selected ? (
           <div className="shijing-qz-detail">
             <div className="shijing-qz-detail__head">
-              <span className="shijing-qz-detail__name">{pText(selected.name)}</span>
-              <span className="shijing-qz-detail__count">{pText(selected.countLabel)}</span>
-              <span className="shijing-qz-detail__range">{pText(selected.range)}</span>
+              <span className="shijing-qz-detail__name">{selected.name}</span>
+              <span className="shijing-qz-detail__count">{selected.countLabel}</span>
+              <span className="shijing-qz-detail__range">{selected.range}</span>
             </div>
-            <p className="shijing-qz-detail__domain">{pText(selected.domain)}</p>
+            <p className="shijing-qz-detail__domain">{selected.domain}</p>
             {selected.occupants.map((star) => (
               <QizhengOccupantRow key={star.key} star={star} mingLabel={x.terms.mingZhu} />
             ))}
             {selected.isEmpty ? (
               <div className="shijing-qz-detail__empty">
                 <div className="shijing-qz-detail__empty-title">
-                  <GlossTerm termKey="空宫">{pText(x.terms.emptyHouse)}</GlossTerm> {pText(' · ')}
-                  {pText(x.emptyDetail)}
+                  <GlossTerm termKey="空宫">{x.terms.emptyHouse}</GlossTerm> {' · '}
+                  {x.emptyDetail}
                 </div>
                 {selected.ruler ? (
-                  <div className="shijing-qz-detail__ruler">{pText(selected.ruler)}</div>
+                  <div className="shijing-qz-detail__ruler">{selected.ruler}</div>
                 ) : null}
               </div>
             ) : null}
             <div className="shijing-qz-detail__deep">
-              <div className="shijing-qz-deep-label">{pText(x.deepTitle)}</div>
-              <p className="shijing-qz-deep-text">{pText(selected.deep)}</p>
+              <div className="shijing-qz-deep-label">{x.deepTitle}</div>
+              <p className="shijing-qz-deep-text">{selected.deep}</p>
             </div>
           </div>
         ) : null}
@@ -1927,27 +1973,26 @@ function QizhengOccupantRow({
   star: HeroDemoShijingQizhengStar;
   mingLabel: string;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <div className="shijing-qz-occ">
       <span
         className="shijing-qz-glyph shijing-qz-glyph--sm"
         style={{ background: star.bg, color: star.color }}
       >
-        {pText(star.label)}
+        {star.label}
       </span>
       <div className="shijing-qz-occ__body">
         <div className="shijing-qz-occ__head">
-          <b>{pText(star.label)}</b>
-          <span className="shijing-qz-occ__planet">{pText(star.planet)}</span>
+          <b>{star.label}</b>
+          <span className="shijing-qz-occ__planet">{star.planet}</span>
           {star.isMing ? (
-            <span className="shijing-qz-tag shijing-qz-tag--ming">{pText(mingLabel)}</span>
+            <span className="shijing-qz-tag shijing-qz-tag--ming">{mingLabel}</span>
           ) : null}
           <span className="shijing-qz-tag" data-strength={star.strength}>
-            {pText(star.strengthLabel)}
+            {star.strengthLabel}
           </span>
         </div>
-        <div className="shijing-qz-occ__meaning">{pText(star.essence)}</div>
+        <div className="shijing-qz-occ__meaning">{star.essence}</div>
       </div>
     </div>
   );
@@ -1962,14 +2007,13 @@ function QizhengStars({
   aiByKey: Record<string, { theme: string; strategy: string }>;
   onGoPalace: (houseName: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   const x = content.copy;
   const [open, setOpen] = useState<Record<string, boolean>>({});
   return (
-    <section className="shijing-qz-stars" aria-label={pText(x.starsTitle)}>
+    <section className="shijing-qz-stars" aria-label={x.starsTitle}>
       <div className="shijing-qz-section-head shijing-qz-section-head--loose">
-        <h3 className="shijing-qz-section-title">{pText(x.starsTitle)}</h3>
-        <span className="shijing-qz-section-hint">{pText(x.starsHint)}</span>
+        <h3 className="shijing-qz-section-title">{x.starsTitle}</h3>
+        <span className="shijing-qz-section-hint">{x.starsHint}</span>
       </div>
       <div className="shijing-qz-stars__grid">
         {content.stars.map((star) => {
@@ -1992,18 +2036,16 @@ function QizhengStars({
               >
                 <span className="shijing-qz-glyph" style={{ color: star.color }}>
                   <span className="shijing-qz-glyph__swatch" style={{ background: star.bg }}>
-                    {pText(glyphHead)}
+                    {glyphHead}
                   </span>
-                  {glyphTail ? (
-                    <span className="shijing-qz-glyph__tail">{pText(glyphTail)}</span>
-                  ) : null}
+                  {glyphTail ? <span className="shijing-qz-glyph__tail">{glyphTail}</span> : null}
                 </span>
                 <span className="shijing-qz-star__body">
                   <span className="shijing-qz-star__title">
-                    <b>{pText(star.label)}</b>
-                    <span className="shijing-qz-star__planet">{pText(star.planet)}</span>
+                    <b>{star.label}</b>
+                    <span className="shijing-qz-star__planet">{star.planet}</span>
                   </span>
-                  <span className="shijing-qz-star__meaning">{pText(star.essence)}</span>
+                  <span className="shijing-qz-star__meaning">{star.essence}</span>
                   <span className="shijing-qz-star__chips">
                     <span
                       className="shijing-qz-chip shijing-qz-chip--go"
@@ -2021,14 +2063,12 @@ function QizhengStars({
                         }
                       }}
                     >
-                      {pText(x.starGoPalace)} {pText(star.houseName)} {pText(' ↗')}
+                      {x.starGoPalace} {star.houseName} {' ↗'}
                     </span>
                     <span className="shijing-qz-chip" data-strength={star.strength}>
-                      {pText(star.strengthLabel)}
+                      {star.strengthLabel}
                     </span>
-                    <span className="shijing-qz-chip shijing-qz-chip--mono">
-                      {pText(star.degree)}
-                    </span>
+                    <span className="shijing-qz-chip shijing-qz-chip--mono">{star.degree}</span>
                   </span>
                 </span>
                 <ChevronIcon className="shijing-qz-star__chevron" />
@@ -2036,14 +2076,12 @@ function QizhengStars({
               {expanded ? (
                 <div className="shijing-qz-star__detail">
                   <div className="shijing-qz-star__deep">
-                    <p>{pText(star.deep)}</p>
+                    <p>{star.deep}</p>
                     {ai && ai.strategy ? (
                       <div className="shijing-qz-star__ai">
-                        <div className="shijing-qz-deep-label">{pText(x.starGuidanceTitle)}</div>
-                        {ai.theme ? (
-                          <p className="shijing-qz-star__ai-theme">{pText(ai.theme)}</p>
-                        ) : null}
-                        <p>{pText(ai.strategy)}</p>
+                        <div className="shijing-qz-deep-label">{x.starGuidanceTitle}</div>
+                        {ai.theme ? <p className="shijing-qz-star__ai-theme">{ai.theme}</p> : null}
+                        <p>{ai.strategy}</p>
                       </div>
                     ) : null}
                   </div>
@@ -2058,15 +2096,14 @@ function QizhengStars({
 }
 
 function QizhengPatterns({ content }: { content: HeroDemoShijingQizhengRoute }) {
-  const { pText } = useAppPreviewLocale();
   const x = content.copy;
   const [open, setOpen] = useState<Record<string, boolean>>({});
   if (content.patterns.length === 0) return null;
   return (
-    <section className="shijing-qz-patterns" aria-label={pText(x.patternsTitle)}>
+    <section className="shijing-qz-patterns" aria-label={x.patternsTitle}>
       <div className="shijing-qz-section-head shijing-qz-section-head--loose">
-        <h3 className="shijing-qz-section-title">{pText(x.patternsTitle)}</h3>
-        <span className="shijing-qz-section-hint">{pText(x.patternsHint)}</span>
+        <h3 className="shijing-qz-section-title">{x.patternsTitle}</h3>
+        <span className="shijing-qz-section-hint">{x.patternsHint}</span>
       </div>
       <div className="shijing-qz-patterns__list">
         {content.patterns.map((pattern) => {
@@ -2084,11 +2121,11 @@ function QizhengPatterns({ content }: { content: HeroDemoShijingQizhengRoute }) 
                 onClick={() => setOpen((prev) => ({ ...prev, [pattern.id]: !prev[pattern.id] }))}
               >
                 <span className="shijing-qz-pattern__tag" data-tone={pattern.tone}>
-                  {pText(pattern.tag)}
+                  {pattern.tag}
                 </span>
                 <span className="shijing-qz-pattern__body">
-                  <span className="shijing-qz-pattern__title">{pText(pattern.title)}</span>
-                  <span className="shijing-qz-pattern__summary">{pText(pattern.summary)}</span>
+                  <span className="shijing-qz-pattern__title">{pattern.title}</span>
+                  <span className="shijing-qz-pattern__summary">{pattern.summary}</span>
                 </span>
                 <span className="shijing-qz-pattern__glyphs">
                   {pattern.glyphs.map((glyph, index) => (
@@ -2097,7 +2134,7 @@ function QizhengPatterns({ content }: { content: HeroDemoShijingQizhengRoute }) 
                       className="shijing-qz-pattern__glyph"
                       style={{ background: glyph.color }}
                     >
-                      {pText(glyph.name)}
+                      {glyph.name}
                     </span>
                   ))}
                 </span>
@@ -2105,7 +2142,7 @@ function QizhengPatterns({ content }: { content: HeroDemoShijingQizhengRoute }) 
               </button>
               {expanded ? (
                 <div className="shijing-qz-pattern__detail">
-                  <p>{pText(pattern.deep)}</p>
+                  <p>{pattern.deep}</p>
                 </div>
               ) : null}
             </article>
@@ -2117,76 +2154,71 @@ function QizhengPatterns({ content }: { content: HeroDemoShijingQizhengRoute }) 
 }
 
 function QizhengDataView({ content }: { content: HeroDemoShijingQizhengRoute }) {
-  const { pText } = useAppPreviewLocale();
   const x = content.copy;
   return (
     <div className="shijing-qz-data">
-      <section className="shijing-mingjing-panel" aria-label={pText(x.chartAria)}>
+      <section className="shijing-mingjing-panel" aria-label={x.chartAria}>
         <div className="shijing-qz-section-head">
-          <h3 className="shijing-qz-section-title">{pText(x.basisSectionTitle)}</h3>
-          <span className="shijing-qz-section-hint">{pText(x.basisSectionHint)}</span>
+          <h3 className="shijing-qz-section-title">{x.basisSectionTitle}</h3>
+          <span className="shijing-qz-section-hint">{x.basisSectionHint}</span>
         </div>
         <div className="shijing-qz-basis">
           {content.basisRows.map((row) => (
             <div key={row.term} className="shijing-qz-basis__item">
               <div className="shijing-qz-basis__k">
-                <GlossTerm termKey={row.term}>{pText(row.label)}</GlossTerm>
+                <GlossTerm termKey={row.term}>{row.label}</GlossTerm>
               </div>
-              <div className="shijing-qz-basis__v">{pText(row.value)}</div>
+              <div className="shijing-qz-basis__v">{row.value}</div>
             </div>
           ))}
         </div>
       </section>
-      <section className="shijing-mingjing-panel" aria-label={pText(x.bodiesTitle)}>
-        <h3 className="shijing-qz-section-title shijing-qz-section-title--solo">
-          {pText(x.bodiesTitle)}
-        </h3>
+      <section className="shijing-mingjing-panel" aria-label={x.bodiesTitle}>
+        <h3 className="shijing-qz-section-title shijing-qz-section-title--solo">{x.bodiesTitle}</h3>
         <div className="shijing-qz-luogong">
           <div className="shijing-qz-luogong__head">
-            <span>{pText(x.bodyColumns.body)}</span>
-            <span>{pText(x.bodyColumns.house)}</span>
+            <span>{x.bodyColumns.body}</span>
+            <span>{x.bodyColumns.house}</span>
             <span>
-              <GlossTerm termKey="宿">{pText(x.bodyColumns.mansion)}</GlossTerm>
+              <GlossTerm termKey="宿">{x.bodyColumns.mansion}</GlossTerm>
             </span>
             <span>
-              <GlossTerm termKey="宫势">{pText(x.bodyColumns.position)}</GlossTerm>
+              <GlossTerm termKey="宫势">{x.bodyColumns.position}</GlossTerm>
             </span>
             <span>
-              <GlossTerm termKey="黄道度">{pText(x.bodyColumns.longitude)}</GlossTerm>
+              <GlossTerm termKey="黄道度">{x.bodyColumns.longitude}</GlossTerm>
             </span>
           </div>
           {content.stars.map((star) => (
             <div key={star.key} className="shijing-qz-luogong__row">
               <span className="shijing-qz-luogong__name">
                 <span className="shijing-qz-luogong__dot" style={{ background: star.color }} />
-                <b>{pText(star.label)}</b>
+                <b>{star.label}</b>
               </span>
-              <span>{pText(star.houseName)}</span>
-              <span className="shijing-qz-luogong__mono">{pText(star.mansion)}</span>
+              <span>{star.houseName}</span>
+              <span className="shijing-qz-luogong__mono">{star.mansion}</span>
               <span>
                 <span className="shijing-qz-chip" data-strength={star.strength}>
-                  {pText(star.strengthLabel)}
+                  {star.strengthLabel}
                 </span>
               </span>
-              <span className="shijing-qz-luogong__mono">{pText(star.degree)}</span>
+              <span className="shijing-qz-luogong__mono">{star.degree}</span>
             </div>
           ))}
         </div>
       </section>
-      <section className="shijing-mingjing-panel" aria-label={pText(x.housesTitle)}>
-        <h3 className="shijing-qz-section-title shijing-qz-section-title--solo">
-          {pText(x.housesTitle)}
-        </h3>
+      <section className="shijing-mingjing-panel" aria-label={x.housesTitle}>
+        <h3 className="shijing-qz-section-title shijing-qz-section-title--solo">{x.housesTitle}</h3>
         <div className="shijing-qz-palace-list">
           {content.houses.map((house) => (
             <div key={house.name} className="shijing-qz-palace-row">
-              <b className="shijing-qz-palace-row__name">{pText(house.name)}</b>
-              <span className="shijing-qz-palace-row__range">{pText(house.range)}</span>
+              <b className="shijing-qz-palace-row__name">{house.name}</b>
+              <span className="shijing-qz-palace-row__range">{house.range}</span>
               <span
                 className="shijing-qz-palace-row__occ"
                 data-empty={house.occupants ? undefined : ''}
               >
-                {pText(house.occupants || x.emptyHouse)}
+                {house.occupants || x.emptyHouse}
               </span>
             </div>
           ))}
@@ -2207,16 +2239,16 @@ export function DemoShijingMingJing({
   content: HeroDemoShijingMingjing;
   methodProfile: HeroDemoShijingMethodId;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
     <section
       className="shijing-tab shijing-mingjing"
       data-mirror-kind="mingjing"
-      aria-label={pText(content.title)}
+      aria-label={content.title}
     >
       <header className="shijing-mirror-header">
         <div className="shijing-mirror-header__titles">
-          <h1>{pText(content.title)}</h1>
+          <h1>{content.title}</h1>
         </div>
       </header>
       {methodProfile === 'bazi_ziping_v1' ? (

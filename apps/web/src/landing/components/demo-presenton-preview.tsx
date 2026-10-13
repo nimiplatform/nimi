@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import {
@@ -15,29 +16,34 @@ import { PreviewButton } from './demo-third-party-shared.js';
 import { RemainingPreview } from './demo-remaining-shared.js';
 
 type SampleSlide = { title: string; body: string; image?: string; notes?: string };
-const SLIDES: SampleSlide[] = [
+const createSampleSlides = (t: PreviewTranslate): SampleSlide[] => [
   {
-    title: 'A little more room\nfor everyday life.',
-    body: 'Designing calmer, more welcoming places.\nAn illustrative presentation.',
+    title: t('presenton.workspace.aLittleMoreRoomForEverydayLife'),
+    body: t('presenton.workspace.designingCalmerMoreWelcomingPlacesAnIllustrative'),
     image: '/demo/remaining/inscape-landscape.webp',
   },
   {
-    title: 'Start with the journey.',
-    body: 'Connect the places people already visit.\nMake crossings clear and predictable.\nLeave space to stop, rest and meet.',
+    title: t('presenton.workspace.startWithTheJourney'),
+    body: t('presenton.workspace.connectThePlacesPeopleAlreadyVisitMake'),
   },
   {
-    title: 'Small changes.\nShared possibilities.',
-    body: 'A shaded bench. A safer crossing. A place to gather.\nWhat would you change on your daily walk?',
+    title: t('presenton.workspace.smallChangesSharedPossibilities'),
+    body: t('presenton.workspace.aShadedBenchASaferCrossingA'),
     image: '/demo/storybook/garden.jpg',
   },
 ];
 
 /** Presenton's slide strip, editable canvas, template settings and presentation mode. */
 export function DemoPresentonPreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData, pFormat } = useAppPreviewLocale();
-  const [slides, setSlides] = useState(() => pData(SLIDES));
+  const { t } = useAppPreviewLocale();
+  const [slides, setSlides] = useState(() => createSampleSlides(t));
   const [selected, setSelected] = useState(0);
-  const [title, setTitle] = useState(() => pData('A more welcoming city'));
+  const [title, setTitle] = useState(() => t('presenton.workspace.aMoreWelcomingCity'));
+  const themes = [
+    { value: 'Fern', label: t('presenton.settings.fern') },
+    { value: 'Slate', label: t('presenton.settings.slate') },
+    { value: 'Paper', label: t('presenton.settings.paper') },
+  ];
   const [theme, setTheme] = useState('Fern');
   const [presenting, setPresenting] = useState(false);
   const [settings, setSettings] = useState(true);
@@ -54,10 +60,10 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
         <>
           <header className="pn-header">
             <div>
-              <img src={content.icon} alt={pText('')} />
-              <strong>{pText('Presenton')}</strong>
+              <img src={content.icon} alt={''} />
+              <strong>{t('presenton.header.presenton')}</strong>
               <input
-                aria-label={pText('Presentation title')}
+                aria-label={t('presenton.header.presentationTitle')}
                 value={title}
                 onChange={(e) => {
                   setTitle(e.target.value);
@@ -68,37 +74,37 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
             <div>
               <PreviewButton onClick={() => setSaved(true)}>
                 <Check size={14} />
-                {pText(saved ? 'Kept in preview' : 'Save example')}
+                {saved ? t('presenton.header.keptInPreview') : t('presenton.header.saveExample')}
               </PreviewButton>
               <PreviewButton onClick={() => setExportOpen(!exportOpen)}>
-                {pText('Export options')}
+                {t('presenton.header.exportOptions')}
               </PreviewButton>
               <PreviewButton primary onClick={() => setPresenting(true)}>
                 <Play size={15} />
-                {pText('Present')}
+                {t('presenton.header.present')}
               </PreviewButton>
             </div>
           </header>
           {exportOpen && (
             <section className="pn-export" role="status">
-              <strong>{pText('Export in the installed App')}</strong>
-              <span>{pText('PowerPoint (.pptx) · PDF (.pdf)')}</span>
-              <p>{pText('This static preview does not create an export file.')}</p>
+              <strong>{t('presenton.export.exportInTheInstalledApp')}</strong>
+              <span>{t('presenton.export.powerPointPptxPdfPdf')}</span>
+              <p>{t('presenton.export.thisStaticPreviewDoesNotCreateAn')}</p>
             </section>
           )}
           <div className={`pn-workspace${settings ? '' : ' pn-workspace--wide'}`}>
             <aside className="pn-slides">
               <div>
-                <h2>{pText('Slides')}</h2>
+                <h2>{t('presenton.slides.slides')}</h2>
                 <button
                   type="button"
-                  aria-label={pText('Add sample slide')}
+                  aria-label={t('presenton.slides.addSampleSlide')}
                   onClick={() => {
                     setSlides((v) => [
                       ...v,
                       {
-                        title: pText('A new idea'),
-                        body: pText('Write a few lines to develop it.'),
+                        title: t('presenton.slides.aNewIdea'),
+                        body: t('presenton.slides.writeAFewLinesToDevelopIt'),
                       },
                     ]);
                     setSelected(slides.length);
@@ -112,11 +118,14 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
                 <button
                   type="button"
                   key={i}
-                  aria-label={pFormat('Slide {0}: {1}', i + 1, s.title.replace('\n', ' '))}
+                  aria-label={t('presenton.slides.slide', {
+                    number: i + 1,
+                    title: s.title.replace('\n', ' '),
+                  })}
                   aria-pressed={selected === i}
                   onClick={() => setSelected(i)}
                 >
-                  <span>{pText(i + 1)}</span>
+                  <span>{i + 1}</span>
                   <div className={`pn-mini pn-theme-${theme.toLowerCase()}`}>
                     <strong>{s.title}</strong>
                     <small>{s.body.split('\n')[0]}</small>
@@ -127,22 +136,22 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
             <main className="pn-main">
               <div className="pn-toolbar">
                 <span>
-                  {pText('Slide ')}
-                  {pText(selected + 1)} {pText(' / ')}
+                  {t('presenton.main.slide')}
+                  {selected + 1} {' / '}
                   {slides.length}
                 </span>
                 <PreviewButton onClick={() => setSettings(!settings)}>
                   <SlidersHorizontal size={15} />
-                  {pText(settings ? 'Hide settings' : 'Slide settings')}
+                  {settings ? t('presenton.main.hideSettings') : t('presenton.main.slideSettings')}
                 </PreviewButton>
               </div>
               <section
                 className={`pn-canvas pn-theme-${theme.toLowerCase()}${slide.image ? ' pn-canvas--image' : ''}`}
-                aria-label={pText('Slide canvas')}
+                aria-label={t('presenton.main.slideCanvas')}
               >
                 <div>
                   <textarea
-                    aria-label={pText('Slide title')}
+                    aria-label={t('presenton.main.slideTitle')}
                     rows={3}
                     value={slide.title}
                     onChange={(e) => {
@@ -150,26 +159,26 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
                     }}
                   />
                   <textarea
-                    aria-label={pText('Slide content')}
+                    aria-label={t('presenton.main.slideContent')}
                     rows={4}
                     value={slide.body}
                     onChange={(e) => {
                       update('body', e.target.value);
                     }}
                   />
-                  <span>{pText('PRESENTON · SAMPLE DECK')}</span>
+                  <span>{t('presenton.main.presentonSampleDeck')}</span>
                 </div>
-                {slide.image && <img src={slide.image} alt={pText('Sample slide illustration')} />}
+                {slide.image && (
+                  <img src={slide.image} alt={t('presenton.main.sampleSlideIllustration')} />
+                )}
               </section>
-              <p className="pn-edit-hint">
-                {pText('Click the title or body to edit this sample slide.')}
-              </p>
+              <p className="pn-edit-hint">{t('presenton.main.clickTheTitleOrBodyToEdit')}</p>
               <label className="pn-speaker-notes">
-                {pText('Speaker notes')}
+                {t('presenton.main.speakerNotes')}
                 <textarea
-                  aria-label={pText('Speaker notes')}
+                  aria-label={t('presenton.main.speakerNotes')}
                   rows={2}
-                  placeholder={pText('Add a note for this slide…')}
+                  placeholder={t('presenton.main.addANoteForThisSlide')}
                   value={slide.notes ?? ''}
                   onChange={(e) => {
                     update('notes', e.target.value);
@@ -181,37 +190,41 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
               <aside className="pn-settings">
                 <h2>
                   <LayoutTemplate size={17} />
-                  {pText('Slide settings')}
+                  {t('presenton.settings.slideSettings')}
                 </h2>
                 <label>
-                  {pText('Theme')}
+                  {t('presenton.settings.theme')}
                   <select value={theme} onChange={(e) => setTheme(e.target.value)}>
-                    {['Fern', 'Slate', 'Paper'].map((x) => (
+                    {themes.map(({ value: x, label }) => (
                       <option value={x} key={x}>
-                        {pText(x)}
+                        {label}
                       </option>
                     ))}
                   </select>
                 </label>
                 <div className="pn-theme-swatches">
-                  {['Fern', 'Slate', 'Paper'].map((x) => (
+                  {themes.map(({ value: x, label }) => (
                     <button
                       type="button"
                       key={x}
-                      aria-label={pText(`Use ${x} theme`)}
+                      aria-label={t('presenton.settings.useTheme', {
+                        theme: label,
+                      })}
                       aria-pressed={theme === x}
                       className={`pn-theme-${x.toLowerCase()}`}
                       onClick={() => setTheme(x)}
                     >
-                      <span>{pText('Aa')}</span>
-                      {pText(x)}
+                      <span>{t('presenton.settings.aa')}</span>
+                      {label}
                     </button>
                   ))}
                 </div>
-                <h3>{pText('Layout')}</h3>
+                <h3>{t('presenton.settings.layout')}</h3>
                 <p>
-                  {pText(slide.image ? 'Text with image' : 'Text slide')}{' '}
-                  {pText(' · illustrative template')}
+                  {slide.image
+                    ? t('presenton.settings.textWithImage')
+                    : t('presenton.settings.textSlide')}{' '}
+                  {t('presenton.settings.illustrativeTemplate')}
                 </p>
                 <PreviewButton
                   onClick={() => {
@@ -225,7 +238,7 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
                     setSaved(false);
                   }}
                 >
-                  {pText('Toggle sample image')}
+                  {t('presenton.settings.toggleSampleImage')}
                 </PreviewButton>
               </aside>
             )}
@@ -233,11 +246,14 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
         </>
       )}
       {presenting && (
-        <section className="pn-presentation" aria-label={pText('Presentation mode')}>
+        <section
+          className="pn-presentation"
+          aria-label={t('presenton.presentation.presentationMode')}
+        >
           <header>
             <strong>{title}</strong>
             <PreviewButton onClick={() => setPresenting(false)}>
-              {pText('Exit presentation')}
+              {t('presenton.presentation.exitPresentation')}
             </PreviewButton>
           </header>
           <div
@@ -246,24 +262,26 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
             <div>
               <h1>{slide.title}</h1>
               <p>{slide.body}</p>
-              <span>{pText('PRESENTON · SAMPLE DECK')}</span>
+              <span>{t('presenton.presentation.presentonSampleDeck')}</span>
             </div>
-            {slide.image && <img src={slide.image} alt={pText('Sample slide illustration')} />}
+            {slide.image && (
+              <img src={slide.image} alt={t('presenton.presentation.sampleSlideIllustration')} />
+            )}
           </div>
           <footer>
             <PreviewButton
-              aria-label={pText('Previous slide')}
+              aria-label={t('presenton.presentation.previousSlide')}
               disabled={selected === 0}
               onClick={() => setSelected(selected - 1)}
             >
               <ArrowLeft size={18} />
             </PreviewButton>
             <span>
-              {pText(selected + 1)} {pText(' / ')}
+              {selected + 1} {' / '}
               {slides.length}
             </span>
             <PreviewButton
-              aria-label={pText('Next slide')}
+              aria-label={t('presenton.presentation.nextSlide')}
               disabled={selected === slides.length - 1}
               onClick={() => setSelected(selected + 1)}
             >

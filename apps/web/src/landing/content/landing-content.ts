@@ -1,5 +1,5 @@
 import type { LandingLocale } from '../i18n/locale.js';
-import { translatePreviewData, type PreviewMessages } from '../i18n/app-preview-locale.js';
+import type { PreviewMessages } from '../i18n/preview-messages.js';
 import type { RemainingAppPreviewContent } from './landing-content.remaining-apps.js';
 import type { CanonicalTranscriptViewProps } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import type { JevSearchPreviewContent, JevUltrafastPreviewContent, MoneyPrinterPreviewContent, OpenwhisprPreviewContent, VideoLingoPreviewContent, VoiceStudioPreviewContent } from './landing-content.third-party.js';
@@ -1294,53 +1294,7 @@ export function loadLandingContent(locale: LandingLocale): Promise<LandingConten
     return cached;
   }
 
-  const pending = importLandingContent(locale).then((content) => {
-    const { messages, ...preview } = content.hero.demo.appPreview;
-    const localizedPreview = translatePreviewData(preview, messages);
-    return {
-      ...content,
-      hero: {
-        ...content.hero,
-        demo: {
-          ...content.hero.demo,
-          appPreview: {
-            ...localizedPreview,
-            messages,
-            shijing: {
-              ...localizedPreview.shijing,
-              mingjing: {
-                ...localizedPreview.shijing.mingjing,
-                ziwei: {
-                  ...localizedPreview.shijing.mingjing.ziwei,
-                  // Palace names join domain/decade records; keep these identity
-                  // values stable and translate only their rendered labels.
-                  palaces: localizedPreview.shijing.mingjing.ziwei.palaces.map((palace, index) => ({
-                    ...palace,
-                    name: preview.shijing.mingjing.ziwei.palaces[index]!.name,
-                  })),
-                  reading: {
-                    ...localizedPreview.shijing.mingjing.ziwei.reading,
-                    decadeGuidance:
-                      localizedPreview.shijing.mingjing.ziwei.reading.decadeGuidance.map(
-                        (entry, index) => ({
-                          ...entry,
-                          palaceName:
-                            preview.shijing.mingjing.ziwei.reading.decadeGuidance[index]!
-                              .palaceName,
-                        }),
-                      ),
-                  },
-                },
-              },
-            },
-            // These cues demonstrate English → Chinese translation. Their content
-            // language belongs to the media task, independently of interface language.
-            videoLingo: { ...localizedPreview.videoLingo, subtitles: preview.videoLingo.subtitles },
-          },
-        },
-      },
-    };
-  });
+  const pending = importLandingContent(locale);
   landingContentCache[locale] = pending;
   // A rejected chunk import must not poison the cache: clearing it lets the
   // retry action issue a fresh import instead of replaying the failure.

@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import {
@@ -27,48 +28,48 @@ type WorldDraft = {
   character: string;
   setting: string;
 };
-const WORLDS: WorldDraft[] = [
+const createSampleWorlds = (t: PreviewTranslate): WorldDraft[] => [
   {
-    title: '潮汐之间',
-    genre: '海港 · 日常 · 轻奇幻',
-    description: '一座与潮汐一起呼吸的小城。灯塔、旧书店和每周到港的渡轮，连接着居民各自的故事。',
+    title: t('realmWorld.workspace.betweenTheTides'),
+    genre: t('realmWorld.workspace.harborEverydayLifeGentleFantasy'),
+    description: t('realmWorld.workspace.aSmallTownBreathingWithTheTides'),
     image: '/demo/storybook/harbor.jpg',
-    character: '灯塔守望者',
-    setting: '每天黄昏点亮灯塔，也倾听来往旅人的故事。',
+    character: t('realmWorld.workspace.lighthouseKeeper'),
+    setting: t('realmWorld.workspace.lightsTheLighthouseEveryEveningAndListens'),
   },
   {
-    title: '玻璃花园',
-    genre: '自然 · 成长 · 治愈',
-    description: '四季同时停留在一座花园里。来访者沿着自己的小径，遇见不同季节的朋友。',
+    title: t('realmWorld.workspace.glassGarden'),
+    genre: t('realmWorld.workspace.natureGrowthComfort'),
+    description: t('realmWorld.workspace.allFourSeasonsStayInOneGarden'),
     image: '/demo/storybook/garden.jpg',
-    character: '四季园丁',
-    setting: '照看每一条小径，陪伴来访者发现属于自己的季节。',
+    character: t('realmWorld.workspace.fourSeasonGardener'),
+    setting: t('realmWorld.workspace.tendsEveryPathAndHelpsVisitorsDiscover'),
   },
 ];
 
 /** Realm World Studio's blue world library, idea entry and world/character setting editor. */
 export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [view, setView] = useState('library');
-  const [worlds, setWorlds] = useState(() => pData(WORLDS));
+  const [worlds, setWorlds] = useState(() => createSampleWorlds(t));
   const [selected, setSelected] = useState<number | null>(null);
   const [tab, setTab] = useState('世界设定');
   const [idea, setIdea] = useState(() =>
-    pData('一座靠海的小城，每个居民都收藏着一个与潮汐有关的故事。'),
+    t('realmWorld.workspace.aSeasideTownWhereEveryResidentKeeps'),
   );
-  const [query, setQuery] = useState(() => pData(''));
+  const [query, setQuery] = useState(() => '');
   const [saved, setSaved] = useState(false);
   const nav = [
-    { id: 'library', label: '世界库', Icon: BookOpen },
-    { id: 'drafts', label: '草稿', Icon: FilePenLine },
-    { id: 'new', label: '新建世界', Icon: PlusCircle },
+    { id: 'library', label: t('realmWorld.workspace.worldLibrary'), Icon: BookOpen },
+    { id: 'drafts', label: t('realmWorld.navigation.drafts'), Icon: FilePenLine },
+    { id: 'new', label: t('realmWorld.workspace.newWorld'), Icon: PlusCircle },
   ];
   const create = () => {
     setWorlds((v) => [
       ...v,
       {
-        title: pText('新的世界草稿'),
-        genre: pText('等待补充'),
+        title: t('realmWorld.workspace.newWorldDraft'),
+        genre: t('realmWorld.workspace.waitingForDetails'),
         description: idea,
         image: '/demo/storybook/train.jpg',
         character: '',
@@ -98,7 +99,7 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
           footer={
             <>
               <Globe2 size={21} />
-              <span>{pText('示例创作者空间')}</span>
+              <span>{t('realmWorld.workspace.sampleCreatorSpace')}</span>
             </>
           }
         />
@@ -107,29 +108,35 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
             <>
               <PreviewButton onClick={() => setSelected(null)}>
                 <ArrowLeft size={15} />
-                {pText('返回世界库')}
+                {t('realmWorld.main.backToWorldLibrary')}
               </PreviewButton>
               <div className="ws-world-heading">
-                <img src={worlds[selected]!.image} alt={pText('示例世界封面')} />
+                <img src={worlds[selected]!.image} alt={t('realmWorld.main.sampleWorldCover')} />
                 <div>
-                  <span className="rp-badge">{pText('示例草稿')}</span>
+                  <span className="rp-badge">{t('realmWorld.main.sampleDraft')}</span>
                   <h1>{worlds[selected]!.title}</h1>
                   <p>{worlds[selected]!.genre}</p>
                 </div>
                 <PreviewButton primary onClick={() => setSaved(true)}>
-                  {pText(saved ? pText('示例草稿已保留') : pText('保存示例草稿'))}
+                  {saved
+                    ? t('realmWorld.main.sampleDraftKept')
+                    : t('realmWorld.main.saveSampleDraft')}
                 </PreviewButton>
               </div>
               <PreviewTabs
-                items={['世界设定', '角色', '地点与关系']}
+                items={[
+                  { value: '世界设定', label: t('realmWorld.tabs.worldSetting') },
+                  { value: '角色', label: t('realmWorld.tabs.character') },
+                  { value: '地点与关系', label: t('realmWorld.main.placesAndRelationships') },
+                ]}
                 value={tab}
                 onChange={setTab}
-                label={pText('世界编辑区域')}
+                label={t('realmWorld.main.worldEditingArea')}
               />
               {tab === '世界设定' ? (
                 <div className="ws-form">
                   <label>
-                    {pText('世界名称')}
+                    {t('realmWorld.main.worldName')}
                     <input
                       value={worlds[selected]!.title}
                       onChange={(e) => {
@@ -138,7 +145,7 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                     />
                   </label>
                   <label>
-                    {pText('类型与主题')}
+                    {t('realmWorld.main.genreAndThemes')}
                     <input
                       value={worlds[selected]!.genre}
                       onChange={(e) => {
@@ -147,7 +154,7 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                     />
                   </label>
                   <label>
-                    {pText('世界概述')}
+                    {t('realmWorld.main.worldOverview')}
                     <textarea
                       rows={6}
                       value={worlds[selected]!.description}
@@ -157,10 +164,8 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                     />
                   </label>
                   <details>
-                    <summary>{pText('世界规则示例')}</summary>
-                    <p>
-                      {pText('小城的钟声随着潮汐而变化。居民可以远行，但每年会在同一天回到码头。')}
-                    </p>
+                    <summary>{t('realmWorld.main.sampleWorldRules')}</summary>
+                    <p>{t('realmWorld.main.theTownSBellsChangeWithTheTides')}</p>
                   </details>
                 </div>
               ) : tab === '角色' ? (
@@ -169,9 +174,9 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                     <Users size={37} />
                   </div>
                   <div>
-                    <h2>{pText('维护角色设定')}</h2>
+                    <h2>{t('realmWorld.character.maintainCharacterSettings')}</h2>
                     <label>
-                      {pText('角色名称')}
+                      {t('realmWorld.character.characterName')}
                       <input
                         value={worlds[selected]!.character}
                         onChange={(e) => {
@@ -180,7 +185,7 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                       />
                     </label>
                     <label>
-                      {pText('角色职责与故事')}
+                      {t('realmWorld.character.characterRoleAndStory')}
                       <textarea
                         value={worlds[selected]!.setting}
                         onChange={(e) => {
@@ -189,28 +194,28 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                         rows={5}
                       />
                     </label>
-                    <p>{pText('这是示例世界中的角色设定，不会创建对话或本地 AI。')}</p>
+                    <p>{t('realmWorld.character.theseAreCharacterSettingsWithinASample')}</p>
                   </div>
                 </section>
               ) : (
                 <section className="ws-locations">
                   <article>
-                    <h2>{pText('灯塔')}</h2>
+                    <h2>{t('realmWorld.locations.lighthouse')}</h2>
                     <p>
-                      {worlds[selected]!.character || pText('示例角色')}
-                      {pText('在这里工作，也是小城与远方联系的起点。')}
+                      {worlds[selected]!.character || t('realmWorld.locations.sampleCharacter')}
+                      {t('realmWorld.locations.worksHereWhereTheTownSConnection')}
                     </p>
                   </article>
                   <article>
-                    <h2>{pText('码头')}</h2>
-                    <p>{pText('渡轮带来新的故事，居民在这里迎来重逢与告别。')}</p>
+                    <h2>{t('realmWorld.locations.dock')}</h2>
+                    <p>{t('realmWorld.locations.ferriesBringNewStoriesResidentsMeetAgain')}</p>
                   </article>
                   <div>
-                    {pText('灯塔守望者 ')}
+                    {t('realmWorld.locations.lighthouseKeeper')}
                     <ArrowRight size={17} />
-                    {pText('照看 ')}
+                    {t('realmWorld.locations.looksAfter')}
                     <ArrowRight size={17} />
-                    {pText('旧港灯塔')}
+                    {t('realmWorld.locations.oldHarborLighthouse')}
                   </div>
                 </section>
               )}
@@ -218,19 +223,19 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
           ) : (
             <>
               <PreviewHeading
-                title={pText(
+                title={
                   view === 'new'
-                    ? pText('从一个想法开始')
+                    ? t('realmWorld.main.startWithAnIdea')
                     : view === 'drafts'
-                      ? pText('创作草稿')
-                      : pText('你的世界，由你展开。'),
-                )}
-                description={pText('构建设定、塑造角色，把想象整理成一个可以继续生长的世界。')}
+                      ? t('realmWorld.main.creativeDrafts')
+                      : t('realmWorld.main.yourWorldUnfoldingYourWay')
+                }
+                description={t('realmWorld.main.buildSettingsAndCharactersAndOrganizeImagination')}
               />
               <section className="ws-idea">
-                <h2>{pText('你想创造怎样的世界？')}</h2>
+                <h2>{t('realmWorld.idea.whatKindOfWorldWouldYouLike')}</h2>
                 <textarea
-                  aria-label={pText('世界灵感')}
+                  aria-label={t('realmWorld.idea.worldIdea')}
                   value={idea}
                   rows={3}
                   onChange={(e) => {
@@ -238,25 +243,28 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                   }}
                 />
                 <div>
-                  <span>{pText('从一句灵感开始 · 示例草稿')}</span>
+                  <span>{t('realmWorld.idea.startWithAnIdeaSampleDraft')}</span>
                   <PreviewButton primary disabled={!idea.trim()} onClick={create}>
-                    {pText('探索这个想法')}
+                    {t('realmWorld.idea.exploreThisIdea')}
                     <ArrowRight size={15} />
                   </PreviewButton>
                 </div>
               </section>
               <div className="rp-collection-tools">
                 <PreviewTabs
-                  items={['世界库', '草稿']}
-                  value={view === 'drafts' ? pText('草稿') : pText('世界库')}
+                  items={[
+                    { value: '世界库', label: t('realmWorld.main.worldLibrary') },
+                    { value: '草稿', label: t('realmWorld.tabs.drafts') },
+                  ]}
+                  value={view === 'drafts' ? '草稿' : '世界库'}
                   onChange={(x) => setView(x === '草稿' ? 'drafts' : 'library')}
-                  label={pText('世界集合')}
+                  label={t('realmWorld.main.worldCollection')}
                 />
                 <label className="rp-search">
                   <Search size={15} />
                   <input
-                    aria-label={pText('搜索世界')}
-                    placeholder={pText('搜索世界…')}
+                    aria-label={t('realmWorld.main.searchWorlds')}
+                    placeholder={t('realmWorld.main.searchWorlds2')}
                     value={query}
                     onChange={(e) => {
                       setQuery(e.target.value);
@@ -277,9 +285,9 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                           setTab('世界设定');
                         }}
                       >
-                        <img src={w.image} alt={pText('')} />
+                        <img src={w.image} alt={''} />
                         <div>
-                          <span className="rp-badge">{pText('示例草稿')}</span>
+                          <span className="rp-badge">{t('realmWorld.main.sampleDraft')}</span>
                           <h2>{w.title}</h2>
                           <p>{w.genre}</p>
                         </div>
@@ -288,7 +296,7 @@ export function DemoRealmWorldPreview({ content }: { content: RemainingPreviewMe
                 )}
               </div>
               {!worlds.some((w) => w.title.toLowerCase().includes(query.toLowerCase())) && (
-                <p className="rp-empty">{pText('没有匹配的示例世界。')}</p>
+                <p className="rp-empty">{t('realmWorld.main.noMatchingSampleWorlds')}</p>
               )}
             </>
           )}

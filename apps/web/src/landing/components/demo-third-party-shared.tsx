@@ -7,26 +7,25 @@ export function PreviewButton({
   primary,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { primary?: boolean }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <button
       type="button"
       {...props}
       className={`tp-button${primary ? ' tp-button--primary' : ''}${props.className ? ` ${props.className}` : ''}`}
     >
-      {pText(children)}
+      {children}
     </button>
   );
 }
 
 export function PreviewNotice({ children }: { children: ReactNode }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
     <footer className="tp-notice">
       <Info size={14} aria-hidden="true" />
-      <span>{pText(children)}</span>
+      <span>{children}</span>
       <a href="/demo/third-party-NOTICES.txt" target="_blank" rel="noreferrer">
-        {pText('Credits')}
+        {t('shared.previewNotice.credits')}
       </a>
     </footer>
   );
@@ -41,9 +40,9 @@ export function PreviewSteps({
   active: number;
   onSelect: (index: number) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
-    <nav className="tp-steps" aria-label={pText('制作阶段')}>
+    <nav className="tp-steps" aria-label={t('shared.previewSteps.productionStages')}>
       {steps.map((step, index) => (
         <button
           type="button"
@@ -52,7 +51,7 @@ export function PreviewSteps({
           onClick={() => onSelect(index)}
         >
           <span>{index < active ? <Check size={13} aria-hidden="true" /> : index + 1}</span>
-          {pText(step)}
+          {step}
         </button>
       ))}
     </nav>
@@ -61,9 +60,8 @@ export function PreviewSteps({
 
 /** A schematic timeline, never a claim that an audio file has been generated. */
 export function PreviewWaveform({ label }: { label: string }) {
-  const { pText } = useAppPreviewLocale();
   return (
-    <div className="tp-waveform" role="img" aria-label={pText(label)}>
+    <div className="tp-waveform" role="img" aria-label={label}>
       {Array.from({ length: 64 }, (_, index) => (
         <i key={index} style={{ height: `${16 + ((index * 19 + index * index * 7) % 72)}%` }} />
       ))}

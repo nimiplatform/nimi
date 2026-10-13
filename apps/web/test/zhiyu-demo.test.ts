@@ -1,18 +1,22 @@
+import { createPreviewTranslate } from '../src/landing/i18n/preview-messages.js';
+import { appPreviewMessagesZh } from '../src/landing/content/app-preview-messages.zh.js';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderAppPreview as renderToStaticMarkup } from './helpers/render-app-preview.js';
 import {
   createDemoZhiyuAgentCenterSession,
   createDemoZhiyuAgentClient,
   demoZhiyuPartnerHandle,
 } from '../src/landing/components/demo-zhiyu-agent-center.js';
 import { DemoZhiyuPreview } from '../src/landing/components/demo-zhiyu-preview.js';
-import { zhiyuPreviewContent } from '../src/landing/content/landing-content.zhiyu.js';
+import { createZhiyuPreviewContent } from '../src/landing/content/landing-content.zhiyu.js';
 import { loadLandingContent, type HeroDemoZhiyuPartner } from '../src/landing/content/landing-content.js';
+
+const zhiyuPreviewContent = createZhiyuPreviewContent(createPreviewTranslate(appPreviewMessagesZh));
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -32,6 +36,9 @@ test('Zhiyu localizes sample copy while preserving companion identities in both 
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
     const preview = content.hero.demo.appPreview.zhiyu;
+    const appName = locale === 'en' ? 'Zhiyu' : '织羽';
+    assert.equal(preview.appName, appName);
+    assert.equal(content.hero.demo.apps.items.find((entry) => entry.id === 'nimi.zhiyu')?.name, appName);
     assert.deepEqual(preview.partners.map((entry) => entry.id), zhiyuPreviewContent.partners.map((entry) => entry.id));
     assert.equal(preview.copy.sendLabel, locale === 'en' ? 'Send' : '发送');
   }

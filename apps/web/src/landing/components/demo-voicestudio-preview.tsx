@@ -35,36 +35,48 @@ type DemoVoice = { name: string; detail: string; initial: string };
 
 /** Landing-owned replica of VoiceStudio's T3-style workspace, voice library and design page. */
 export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPreviewContent }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
-  const [view, setView] = useState('设计');
-  const [description, setDescription] = useState<string>(() => pData(content.description));
-  const [script, setScript] = useState<string>(() => pData(content.script));
+  const { previewLang, t } = useAppPreviewLocale();
+  const navigationLabels: Record<string, string> = {
+    clone: content.navigation[0],
+    story: content.navigation[1],
+    dubbing: content.navigation[2],
+    savedVoices: content.navigation[3],
+    transcribe: content.navigation[4],
+    design: content.navigation[5],
+    audiobook: content.navigation[6],
+    projects: content.navigation[7],
+    tools: content.navigation[8],
+    settings: t('voiceStudio.navigation.settings'),
+  };
+  const [view, setView] = useState('design');
+  const [description, setDescription] = useState<string>(() => content.description);
+  const [script, setScript] = useState<string>(() => content.script);
   const [voices, setVoices] = useState<DemoVoice[]>([...content.voices]);
-  const [selected, setSelected] = useState(() => pData('海边叙述者'));
-  const [name, setName] = useState(() => pData(''));
+  const [selected, setSelected] = useState(() => t('voiceStudio.workspace.seasideNarrator'));
+  const [name, setName] = useState(() => '');
   const [take, setTake] = useState(false);
   const [language, setLanguage] = useState('自动');
   const [saved, setSaved] = useState(false);
-  const [query, setQuery] = useState(() => pData(''));
+  const [query, setQuery] = useState(() => '');
   const pickVoice = (voice: DemoVoice) => {
     setSelected(voice.name);
     setDescription(voice.detail);
-    setView('设计');
+    setView('design');
   };
   return (
     <div className="tp-preview voicestudio-preview" data-demo-voicestudio-root lang={previewLang}>
       <div className="vs-layout">
         <aside className="vs-sidebar">
           <div className="vs-brand">
-            <img src="/demo/voicestudio-icon.png" alt={pText('')} />
-            <strong>{pText('VoiceStudio')}</strong>
+            <img src="/demo/voicestudio-icon.png" alt={''} />
+            <strong>{t('voiceStudio.sidebar.voiceStudio')}</strong>
           </div>
           <div className="vs-library-heading">
-            <span>{pText('已保存的配置')}</span>
+            <span>{t('voiceStudio.sidebar.savedVoices')}</span>
             <button
               type="button"
-              aria-label={pText('查看声音配置')}
-              onClick={() => setView('配置档案')}
+              aria-label={t('voiceStudio.sidebar.viewVoiceConfiguration')}
+              onClick={() => setView('savedVoices')}
             >
               <Plus size={15} />
             </button>
@@ -82,8 +94,18 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
               </button>
             ))}
           </div>
-          <nav aria-label={pText('工作区')}>
-            {content.navigation.map((label, index) => {
+          <nav aria-label={t('voiceStudio.sidebar.workspaces')}>
+            {[
+              'clone',
+              'story',
+              'dubbing',
+              'savedVoices',
+              'transcribe',
+              'design',
+              'audiobook',
+              'projects',
+              'tools',
+            ].map((label, index) => {
               const Icon = NAV_ICONS[index]!;
               return (
                 <button
@@ -93,29 +115,33 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                   onClick={() => setView(label)}
                 >
                   <Icon size={16} />
-                  {pText(label)}
+                  {navigationLabels[label] ?? label}
                 </button>
               );
             })}
           </nav>
-          <button className="vs-settings-link" type="button" onClick={() => setView('设置')}>
+          <button className="vs-settings-link" type="button" onClick={() => setView('settings')}>
             <Settings size={16} />
-            {pText('设置')}
+            {t('voiceStudio.sidebar.settings')}
           </button>
         </aside>
         <main className="vs-main">
           <header className="vs-header">
-            <h1>{pText(view === '配置档案' ? pText('已保存的配置') : view)}</h1>
-            <span className="tp-chip">{pText('示例工作区')}</span>
+            <h1>
+              {view === 'savedVoices'
+                ? t('voiceStudio.header.savedVoices')
+                : navigationLabels[view]}
+            </h1>
+            <span className="tp-chip">{t('voiceStudio.header.sampleWorkspace')}</span>
           </header>
-          {view === '设计' || view === '克隆' ? (
+          {view === 'design' || view === 'clone' ? (
             <div className="vs-creation">
               <aside className="vs-designer">
-                <h2>{pText(view)}</h2>
-                {view === '设计' ? (
+                <h2>{navigationLabels[view]}</h2>
+                {view === 'design' ? (
                   <>
                     <label>
-                      {pText('描述你想要的声音')}
+                      {t('voiceStudio.designer.describeYourVoice')}
                       <textarea
                         rows={5}
                         value={description}
@@ -125,27 +151,40 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                         }}
                       />
                     </label>
-                    <p className="tp-muted">{pText('描述这个声音，或选择一个起点。')}</p>
-                    <h3>{pText('起点')}</h3>
+                    <p className="tp-muted">
+                      {t('voiceStudio.designer.describeTheVoiceOrChooseAStarting')}
+                    </p>
+                    <h3>{t('voiceStudio.designer.startingPoints')}</h3>
                     <div className="vs-presets">
-                      {['叙述者', '随性', '新闻主播', '说书人', '商务', '活力'].map((preset) => (
+                      {[
+                        t('voiceStudio.designer.narrator'),
+                        t('voiceStudio.designer.casual'),
+                        t('voiceStudio.designer.newsAnchor'),
+                        t('voiceStudio.designer.storyteller'),
+                        t('voiceStudio.designer.corporate'),
+                        t('voiceStudio.designer.energetic'),
+                      ].map((preset) => (
                         <button
                           type="button"
                           key={preset}
-                          onClick={() => setDescription(`${preset}风格，吐字清晰，语速自然。`)}
+                          onClick={() =>
+                            setDescription(
+                              t('voiceStudio.designer.presetDescription', { preset: preset }),
+                            )
+                          }
                         >
-                          {pText(preset)}
+                          {preset}
                         </button>
                       ))}
                     </div>
                     <details>
-                      <summary>{pText('详情')}</summary>
+                      <summary>{t('voiceStudio.designer.details')}</summary>
                       <label>
-                        {pText('语速')}
+                        {t('voiceStudio.designer.speed')}
                         <select defaultValue="自然">
-                          <option value={'自然'}>{pText('自然')}</option>
-                          <option value={'舒缓'}>{pText('舒缓')}</option>
-                          <option value={'轻快'}>{pText('轻快')}</option>
+                          <option value="自然">{t('voiceStudio.designer.natural')}</option>
+                          <option value="舒缓">{t('voiceStudio.designer.soothing')}</option>
+                          <option value="轻快">{t('voiceStudio.designer.light')}</option>
                         </select>
                       </label>
                     </details>
@@ -153,24 +192,24 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                 ) : (
                   <div className="vs-reference">
                     <Upload size={27} />
-                    <h3>{pText('参考音频')}</h3>
-                    <p>{pText('完整 App 支持使用一段清晰的参考语音创建声音配置。')}</p>
+                    <h3>{t('voiceStudio.designer.referenceAudio')}</h3>
+                    <p>{t('voiceStudio.designer.theFullAppCanCreateAVoice')}</p>
                     <PreviewButton
                       onClick={() => {
-                        setSelected('海边叙述者');
+                        setSelected(t('voiceStudio.designer.seasideNarrator'));
                         setDescription(content.description);
                       }}
                     >
-                      {pText('载入示例配置')}
+                      {t('voiceStudio.designer.loadSampleConfiguration')}
                     </PreviewButton>
                   </div>
                 )}
                 <label>
-                  {pText('配置名称')}
+                  {t('voiceStudio.designer.profileName')}
                   <input
                     value={name}
                     maxLength={60}
-                    placeholder={pText('配置名称…')}
+                    placeholder={t('voiceStudio.designer.configurationName')}
                     onChange={(event) => {
                       setName(event.target.value);
                       setSaved(false);
@@ -194,12 +233,12 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                   }}
                 >
                   <Plus size={14} />
-                  {pText('保存为声音配置')}
+                  {t('voiceStudio.designer.saveAsVoiceProfile')}
                 </PreviewButton>
                 {saved && (
                   <p role="status">
                     <Check size={14} />
-                    {pText('示例配置已加入侧栏')}
+                    {t('voiceStudio.designer.sampleConfigurationAddedToTheSidebar')}
                   </p>
                 )}
               </aside>
@@ -207,22 +246,22 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                 <button
                   type="button"
                   className="vs-current-voice"
-                  onClick={() => setView('配置档案')}
+                  onClick={() => setView('savedVoices')}
                 >
                   <span className="vs-voice-avatar">{Array.from(selected)[0]}</span>
                   <span>
-                    <small>{pText('语音')}</small>
+                    <small>{t('voiceStudio.script.voice')}</small>
                     {selected}
                   </span>
                   <ChevronRight size={16} />
                 </button>
                 <label>
-                  {pText('文本')}
+                  {t('voiceStudio.script.text')}
                   <textarea
                     value={script}
                     rows={7}
                     maxLength={3000}
-                    placeholder={pText('想让这个声音说什么？')}
+                    placeholder={t('voiceStudio.script.whatShouldThisVoiceSay')}
                     onChange={(event) => {
                       setScript(event.target.value);
                     }}
@@ -230,15 +269,15 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                 </label>
                 <div className="vs-generate-row">
                   <label>
-                    <span className="tp-sr-only">{pText('语言')}</span>
+                    <span className="tp-sr-only">{t('voiceStudio.script.language')}</span>
                     <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-                      <option value={'自动'}>{pText('自动')}</option>
-                      <option value={'中文'}>{pText('中文')}</option>
-                      <option value={'English'}>{pText('English')}</option>
+                      <option value="自动">{t('voiceStudio.script.automatic')}</option>
+                      <option value="中文">{t('voiceStudio.script.chinese')}</option>
+                      <option value="English">{t('voiceStudio.script.english')}</option>
                     </select>
                   </label>
                   <span>
-                    {script.length} {pText(' 字')}
+                    {script.length} {t('voiceStudio.script.characters')}
                   </span>
                   <PreviewButton
                     primary
@@ -246,35 +285,35 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                     onClick={() => setTake(true)}
                   >
                     <Sparkles size={15} />
-                    {pText('生成音频')}
+                    {t('voiceStudio.script.synthesizeAudio')}
                   </PreviewButton>
                 </div>
                 <p className="vs-sample-hint">
-                  {pText('此按钮展示预录示例，音频内容不随输入文字或声音配置变化。')}
+                  {t('voiceStudio.script.thisButtonPlaysAPrerecordedExampleAudio')}
                 </p>
                 {take && (
                   <section className="vs-take">
-                    <h3>{pText('最新拍摄 · 预录示例')}</h3>
-                    <PreviewWaveform label={pText('示例音轨示意')} />
+                    <h3>{t('voiceStudio.take.latestTakePrerecordedExample')}</h3>
+                    <PreviewWaveform label={t('voiceStudio.take.sampleAudioTrackIllustration')} />
                     <audio
                       controls
                       preload="none"
                       src="/demo/zhiyu/qingzhao-voice.mp3"
-                      aria-label={pText('VoiceStudio 预录示例音频')}
+                      aria-label={t('voiceStudio.take.voiceStudioPrerecordedSampleAudio')}
                     />
-                    <p>{pText('预录演示音频 · 非本次生成')}</p>
+                    <p>{t('voiceStudio.take.prerecordedDemoAudioNotGeneratedIn')}</p>
                   </section>
                 )}
               </section>
             </div>
-          ) : view === '配置档案' ? (
+          ) : view === 'savedVoices' ? (
             <section className="vs-profiles">
               <label className="vs-search">
                 <Search size={16} />
                 <input
                   value={query}
-                  aria-label={pText('搜索示例声音')}
-                  placeholder={pText('搜索…')}
+                  aria-label={t('voiceStudio.profiles.searchSampleVoices')}
+                  placeholder={t('voiceStudio.profiles.search')}
                   onChange={(event) => {
                     setQuery(event.target.value);
                   }}
@@ -289,22 +328,22 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
                       <strong>{voice.name}</strong>
                       <p>{voice.detail}</p>
                       <span>
-                        {pText('使用此声音')}
+                        {t('voiceStudio.profiles.useVoice')}
                         <ChevronRight size={14} />
                       </span>
                     </button>
                   ))}
               </div>
               {!voices.some((voice) => voice.name.toLowerCase().includes(query.toLowerCase())) && (
-                <p className="tp-empty">{pText('没有匹配的示例声音。')}</p>
+                <p className="tp-empty">{t('voiceStudio.profiles.noMatchingSampleVoices')}</p>
               )}
             </section>
-          ) : view === '故事' || view === '有声读物' ? (
+          ) : view === 'story' || view === 'audiobook' ? (
             <section className="vs-story">
-              <h2>{pText('海边的一天')}</h2>
-              <p className="tp-muted">{pText('示例故事 · 为每个角色分配声音')}</p>
+              <h2>{t('voiceStudio.story.aDayByTheSea')}</h2>
+              <p className="tp-muted">{t('voiceStudio.story.sampleStoryAssignAVoiceTo')}</p>
               <label>
-                {pText('故事文本')}
+                {t('voiceStudio.story.storyText')}
                 <textarea
                   rows={6}
                   value={script}
@@ -316,44 +355,44 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
               {voices.slice(0, 2).map((voice, index) => (
                 <div className="vs-track" key={voice.name}>
                   <span>
-                    {pText(index === 0 ? pText('旁白') : pText('角色'))}
+                    {index === 0
+                      ? t('voiceStudio.story.narrator')
+                      : t('voiceStudio.story.character')}
                     <small>{voice.name}</small>
                   </span>
-                  <PreviewWaveform label={pText(`${voice.name}示例轨道`)} />
+                  <PreviewWaveform
+                    label={t('voiceStudio.story.sampleTrack', { voiceName: voice.name })}
+                  />
                 </div>
               ))}
             </section>
           ) : (
             <section className="vs-story">
               <h2>
-                {pText(
-                  view === '转录'
-                    ? pText('把录音变成文字')
-                    : view === '配音'
-                      ? pText('为画面赋予声音')
-                      : view === '设置'
-                        ? pText('声音创作偏好')
-                        : `${view}工作区`,
-                )}
+                {view === 'transcribe'
+                  ? t('voiceStudio.story.turnRecordingsIntoText')
+                  : view === 'dubbing'
+                    ? t('voiceStudio.story.giveVisualsAVoice')
+                    : view === 'settings'
+                      ? t('voiceStudio.story.voiceCreationPreferences')
+                      : t('voiceStudio.workspace.title', { name: navigationLabels[view]! })}
               </h2>
               <p>
-                {pText(
-                  view === '转录'
-                    ? pText('完整 App 支持文件、录音与快捷键听写。')
-                    : view === '配音'
-                      ? pText('导入视频，整理台词，为片段选择声音。')
-                      : pText('在完整 App 中管理项目、音频工具和 Nimi AI 配置。'),
-                )}
+                {view === 'transcribe'
+                  ? t('voiceStudio.story.theFullAppSupportsFilesRecordingAnd')
+                  : view === 'dubbing'
+                    ? t('voiceStudio.story.importVideoOrganizeDialogueAndChooseVoices')
+                    : t('voiceStudio.story.manageProjectsAudioToolsAndNimiAi')}
               </p>
-              <PreviewButton onClick={() => setView('设计')}>
-                {pText('探索声音设计')}
+              <PreviewButton onClick={() => setView('design')}>
+                {t('voiceStudio.story.exploreVoiceDesign')}
                 <ChevronRight size={15} />
               </PreviewButton>
             </section>
           )}
         </main>
       </div>
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }

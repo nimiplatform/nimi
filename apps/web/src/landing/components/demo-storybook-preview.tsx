@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -211,13 +212,13 @@ function relativeDate(timestamp: number, now: number, locale: string): string {
 /* ------------------------------------------------------------------------ */
 
 export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPreview }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [now] = useState(() => Date.now());
   const [surface, setSurface] = useState<Surface>('play');
   const [playView, setPlayView] = useState<PlayView>({ screen: 'library', filter: 'all' });
   const [studioView, setStudioView] = useState<StudioView>('projects');
   const [settings, setSettings] = useState(false);
-  const [runs, setRuns] = useState<DemoRun[]>(() => pData((() => seedRuns(content, now))()));
+  const [runs, setRuns] = useState<DemoRun[]>(() => (() => seedRuns(content, now))());
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -285,16 +286,16 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                   type="button"
                   className="sb-brand"
                   onClick={() => library('all')}
-                  aria-label={pText('Storybook 书架')}
+                  aria-label={t('storybook.sidebar.storybookLibrary')}
                 >
                   <BookOpen size={27} strokeWidth={1.6} />
                   <span>
-                    {pText('storybook')}
-                    <span className="sb-brand-dot">{pText('.')}</span>
+                    {t('storybook.sidebar.storybook')}
+                    <span className="sb-brand-dot">{'.'}</span>
                   </span>
                 </button>
-                <div className="sb-sidebar-label">{pText('你的故事宇宙')}</div>
-                <nav className="sb-nav" aria-label={pText('主导航')}>
+                <div className="sb-sidebar-label">{t('storybook.sidebar.yourStoryUniverse')}</div>
+                <nav className="sb-nav" aria-label={t('storybook.nav.primaryNavigation')}>
                   <button
                     type="button"
                     className={navActive('all') ? 'is-active' : ''}
@@ -302,7 +303,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                     onClick={() => library('all')}
                   >
                     <Compass size={19} />
-                    {pText('发现故事')}
+                    {t('storybook.nav.discoverStories')}
                   </button>
                   <button
                     type="button"
@@ -310,7 +311,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                     onClick={() => library('continue')}
                   >
                     <Footprints size={19} />
-                    {pText('我的足迹')}
+                    {t('storybook.nav.myJourneys')}
                   </button>
                   <div className="sb-nav-divider" />
                   <button
@@ -323,29 +324,29 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                     }}
                   >
                     <Feather size={19} />
-                    {pText('创作间')}
-                    <span className="sb-nav-note">{pText('Studio')}</span>
+                    {t('storybook.nav.studio')}
+                    <span className="sb-nav-note">{t('storybook.nav.studio')}</span>
                   </button>
                 </nav>
                 <div className="sb-sidebar-note">
-                  <span>{pText('故事没有唯一的读法。')}</span>
+                  <span>{t('storybook.sidebar.thereIsNoSingleWayToRead')}</span>
                   <p>
-                    {pText('你走过的那条路，')}
+                    {t('storybook.sidebar.thePathYouTake')}
                     <br />
-                    {pText('才是你的故事。')}
+                    {t('storybook.sidebar.becomesYourStory')}
                   </p>
                   <BookOpen size={22} strokeWidth={1} />
                 </div>
                 <div className="sb-sidebar-bottom">
                   <button type="button" className="sb-settings-link" onClick={openSettings}>
                     <Settings2 size={18} />
-                    {pText('设置与 AI')}
+                    {t('storybook.sidebar.settingsAndAi')}
                     <ArrowUpRight size={14} />
                   </button>
                   <span className="sb-connection">
                     <i className="is-connected" />
-                    {pText(content.settings.accountName)}
-                    <span>{pText('PRE-ALPHA')}</span>
+                    {content.settings.accountName}
+                    <span>{t('storybook.sidebar.preAlpha')}</span>
                   </span>
                 </div>
               </aside>
@@ -395,9 +396,9 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
           </div>
           {noticeText && (
             <div className="demo-storybook-notice" role="status" data-demo-storybook-notice="true">
-              <span>{pText(noticeText)}</span>
+              <span>{noticeText}</span>
               <button type="button" onClick={() => setNoticeText(null)}>
-                {pText(content.demo.dismiss)}
+                {content.demo.dismiss}
               </button>
             </div>
           )}
@@ -428,8 +429,8 @@ function PlayHome({
   onResume: (runId: string) => void;
   onHostOnly: () => void;
 }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
-  const [query, setQuery] = useState(() => pData(''));
+  const { previewLang, t } = useAppPreviewLocale();
+  const [query, setQuery] = useState(() => '');
   const [genre, setGenre] = useState('全部');
   const stories = content.stories;
   const featured = stories[0];
@@ -458,58 +459,58 @@ function PlayHome({
     <div className="sb-library sb-page">
       <header className="sb-page-top">
         <span className="sb-eyebrow">
-          {pText(
-            filter === 'continue' ? 'THE PATHS YOU HAVE TAKEN' : 'A LITTLE ESCAPE, A DIFFERENT YOU',
-          )}
+          {filter === 'continue'
+            ? t('storybook.playHome.thePathsYouHaveTaken')
+            : t('storybook.playHome.aLittleEscapeADifferentYou')}
         </span>
         <div className="sb-library-header-actions">
           <label className="sb-search">
             <Search size={15} />
             <input
-              aria-label={pText('搜索角色、世界或作品')}
+              aria-label={t('storybook.playHome.searchCharactersWorldsOrWorks')}
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
               }}
-              placeholder={pText('搜索角色、世界或作品…')}
+              placeholder={t('storybook.playHome.searchCharactersWorldsOrWorks2')}
             />
           </label>
           <button type="button" className="sb-quiet-button" onClick={onHostOnly}>
             <Upload size={15} />
-            {pText('导入角色或作品')}
+            {t('storybook.playHome.importCharactersOrWorks')}
           </button>
         </div>
       </header>
       <div className="sb-page-heading">
         <div>
           <h1>
-            {pText(filter === 'continue' ? pText('那些走过的故事。') : pText('下一页，由你决定。'))}
+            {filter === 'continue'
+              ? t('storybook.playHome.theStoriesYouVeWalkedThrough')
+              : t('storybook.playHome.theNextPageIsYours')}
           </h1>
           <p>
-            {pText(
-              filter === 'continue'
-                ? pText('每一个选择，都为你留下了一条独一无二的路。')
-                : pText('走进别人的世界，留下自己的故事。'),
-            )}
+            {filter === 'continue'
+              ? t('storybook.playHome.everyChoiceLeavesAPathThatIs')
+              : t('storybook.playHome.enterAnotherWorldAndLeaveAStory')}
           </p>
         </div>
         {filter === 'all' && (
           <span className="sb-library-count">
-            {pText(stories.length.toString().padStart(2, '0'))}{' '}
-            <span>{pText('个等待发生的世界')}</span>
+            {stories.length.toString().padStart(2, '0')}{' '}
+            <span>{t('storybook.playHome.worldsWaitingToUnfold')}</span>
           </span>
         )}
       </div>
       {filter === 'all' && (
         <section className="sb-import-invitation">
           <div>
-            <span className="sb-eyebrow">{pText('YOUR CHARACTERS. YOUR WORLDS.')}</span>
-            <h2>{pText('一张角色卡，就能开启新的可能。')}</h2>
-            <p>{pText('带来喜欢的角色、世界资料，或一整套自己编排的体验。')}</p>
+            <span className="sb-eyebrow">{t('storybook.playHome.yourCharactersYourWorlds')}</span>
+            <h2>{t('storybook.playHome.oneCharacterCardCanOpenNewPossibilities')}</h2>
+            <p>{t('storybook.playHome.bringAFavoriteCharacterWorldMaterialOr')}</p>
           </div>
           <button type="button" className="sb-primary" onClick={onHostOnly}>
             <Upload size={17} />
-            {pText('带一个世界进来')}
+            {t('storybook.playHome.bringInAWorld')}
           </button>
         </section>
       )}
@@ -519,19 +520,19 @@ function PlayHome({
           <div className="sb-featured-copy">
             <span className="sb-featured-kicker">
               <span />
-              {pText('从这里开始 · STORY NO. 01')}
+              {t('storybook.playHome.startHereStoryNo01')}
             </span>
-            <div className="sb-featured-genre">{pText(featured.themes.join(' / '))}</div>
-            <h2>{pText(featured.title)}</h2>
-            <p>{pText(featured.subtitle)}</p>
+            <div className="sb-featured-genre">{featured.themes.join(' / ')}</div>
+            <h2>{featured.title}</h2>
+            <p>{featured.subtitle}</p>
             <div className="sb-featured-meta">
               <span>
                 <BookOpen size={14} />
-                {pText(featured.nodes.length)} {pText(' 个场景')}
+                {featured.nodes.length} {t('storybook.playHome.scenes')}
               </span>
               <span>
                 <GitBranch size={14} />
-                {pText(featured.endings.length)} {pText(' 种结局')}
+                {featured.endings.length} {t('storybook.playHome.endings')}
               </span>
             </div>
             <button
@@ -539,21 +540,25 @@ function PlayHome({
               className="sb-primary sb-primary--cream"
               onClick={() => onStart(featured)}
             >
-              {pText('翻开故事')}
+              {t('storybook.playHome.openTheStory')}
               <ArrowRight size={17} />
             </button>
           </div>
-          <span className="sb-featured-caption">{pText(featured.role)}</span>
+          <span className="sb-featured-caption">{featured.role}</span>
         </section>
       )}
       {(filter === 'continue' || activeRuns.length > 0) && (
         <section className="sb-footprints">
           <div className="sb-section-title">
-            <h2>{pText(filter === 'continue' ? pText('你的故事足迹') : pText('故事还在等你'))}</h2>
+            <h2>
+              {filter === 'continue'
+                ? t('storybook.playHome.yourStoryJourneys')
+                : t('storybook.playHome.theStoryIsWaiting')}
+            </h2>
             <span>
-              {pText(
-                filter === 'continue' ? `${matchingRuns.length} 段经历` : pText('接着上一次的选择'),
-              )}
+              {filter === 'continue'
+                ? t('storybook.library.experienceCount', { count: matchingRuns.length })
+                : t('storybook.playHome.continueFromYourLastChoice')}
             </span>
           </div>
           {shownRuns.map((run) => {
@@ -567,19 +572,21 @@ function PlayHome({
                 key={run.id}
                 onClick={() => onResume(run.id)}
               >
-                <img src={story.cover} alt={pText('')} />
+                <img src={story.cover} alt={''} />
                 <span>
-                  <strong>{pText(story.title)}</strong>
+                  <strong>{story.title}</strong>
                   <small>
-                    {pText(node.title)}
-                    {pText(run.forkedFrom ? pText(' · 另一条路') : '')}
+                    {node.title}
+                    {run.forkedFrom ? t('storybook.playHome.anotherPath') : ''}
                   </small>
                 </span>
                 <span className="sb-resume-time">
-                  {pText(relativeDate(run.updatedAt, now, previewLang))}
+                  {relativeDate(run.updatedAt, now, previewLang)}
                 </span>
                 <span className="sb-resume-action">
-                  {pText(run.status === 'ended' ? pText('回看结局') : pText('继续故事'))}
+                  {run.status === 'ended'
+                    ? t('storybook.playHome.revisitTheEnding')
+                    : t('storybook.playHome.continueStory')}
                   <ArrowRight size={16} />
                 </span>
               </button>
@@ -587,7 +594,7 @@ function PlayHome({
           })}
           {filter === 'continue' && q && runs.length > 0 && matchingRuns.length === 0 && (
             <p className="sb-muted" role="status">
-              {pText('没有匹配的故事经历，换个名称试试。')}
+              {t('storybook.playHome.noMatchingJourneysTryADifferentName')}
             </p>
           )}
         </section>
@@ -595,11 +602,11 @@ function PlayHome({
       {filter === 'all' && (
         <section>
           <div className="sb-section-title">
-            <h2>{pText('挑一个世界，暂住片刻')}</h2>
-            <span>{pText('精选原创')}</span>
+            <h2>{t('storybook.playHome.chooseAWorldAndStayAWhile')}</h2>
+            <span>{t('storybook.playHome.selectedOriginals')}</span>
           </div>
           <div className="sb-library-tools">
-            <div className="sb-filter-row" aria-label={pText('故事题材')}>
+            <div className="sb-filter-row" aria-label={t('storybook.playHome.storyGenres')}>
               {genres.map((item) => (
                 <button
                   type="button"
@@ -608,7 +615,7 @@ function PlayHome({
                   className={genre === item ? 'is-active' : ''}
                   aria-pressed={genre === item}
                 >
-                  {pText(item === '全部' ? pText('全部故事') : item)}
+                  {item === '全部' ? t('storybook.playHome.allStories') : item}
                 </button>
               ))}
             </div>
@@ -622,22 +629,24 @@ function PlayHome({
                 onClick={() => onStart(story)}
               >
                 <div className={`sb-book-art sb-book-art--${index % 3}`}>
-                  <img src={story.cover} alt={pText('')} />
-                  <span className="sb-book-origin">{pText('STORYBOOK ORIGINAL')}</span>
+                  <img src={story.cover} alt={''} />
+                  <span className="sb-book-origin">
+                    {t('storybook.playHome.storybookOriginal')}
+                  </span>
                   <span className="sb-book-open">
                     <ArrowRight size={18} />
                   </span>
                 </div>
                 <div className="sb-book-body">
-                  <div className="sb-book-themes">{pText(story.themes.join(' · '))}</div>
-                  <h3>{pText(story.title)}</h3>
-                  <p>{pText(story.subtitle)}</p>
+                  <div className="sb-book-themes">{story.themes.join(' · ')}</div>
+                  <h3>{story.title}</h3>
+                  <p>{story.subtitle}</p>
                   <div className="sb-book-footer">
                     <span>
                       <GitBranch size={13} />
-                      {pText(story.endings.length)} {pText(' 种结局')}
+                      {story.endings.length} {t('storybook.playHome.endings')}
                     </span>
-                    <span>{pText(story.role)}</span>
+                    <span>{story.role}</span>
                   </div>
                 </div>
               </button>
@@ -646,15 +655,15 @@ function PlayHome({
           {visible.length === 0 && (
             <div className="sb-empty">
               <Search size={24} />
-              <p>{pText('还没有找到这个故事，换一个词试试。')}</p>
+              <p>{t('storybook.playHome.noStoryFoundTryAnotherWord')}</p>
             </div>
           )}
         </section>
       )}
       <footer className="sb-page-footer">
         <BookOpen size={14} />
-        <span>{pText('你带来的世界，会因你的参与而不同。')}</span>
-        <span>{pText('POWERED BY NIMI')}</span>
+        <span>{t('storybook.playHome.theWorldYouBringWillChangeThrough')}</span>
+        <span>{t('storybook.playHome.poweredByNimi')}</span>
       </footer>
     </div>
   );
@@ -683,8 +692,8 @@ function PlayRun({
   onExit: () => void;
   onOpenSettings: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [freeText, setFreeText] = useState(() => pData(''));
+  const { t } = useAppPreviewLocale();
+  const [freeText, setFreeText] = useState(() => '');
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [talk, setTalk] = useState(false);
@@ -714,10 +723,10 @@ function PlayRun({
     return (
       <div className="sb-page sb-empty">
         <BookOpen size={30} />
-        <h2>{pText('这本故事暂时无法打开。')}</h2>
-        <p>{pText('进度仍保存在本机，请重新导入完整故事文件。')}</p>
+        <h2>{t('storybook.playRun.thisStoryCannotBeOpenedRightNow')}</h2>
+        <p>{t('storybook.playRun.yourProgressRemainsOnThisDeviceImport')}</p>
         <button type="button" className="sb-primary" onClick={onExit}>
-          {pText('返回书架')}
+          {t('storybook.playRun.backToTheLibrary')}
         </button>
       </div>
     );
@@ -767,12 +776,17 @@ function PlayRun({
   function sendFreeText() {
     const text = freeText.trim();
     if (!text || busy || ended) return;
-    const speaker = node!.speaker || '故事的回应';
+    const speaker = node!.speaker || t('storybook.sendFreeText.theStoryResponds');
     const nodeId = node!.id;
     const withQuestion: DemoRun = {
       ...run!,
       updatedAt: Date.now(),
-      transcript: appendEntry(run!.transcript, { kind: 'free-text', detail: '你', text, nodeId }),
+      transcript: appendEntry(run!.transcript, {
+        kind: 'free-text',
+        detail: t('storybook.sendFreeText.you'),
+        text,
+        nodeId,
+      }),
     };
     onUpdate(withQuestion);
     setFreeText('');
@@ -800,11 +814,11 @@ function PlayRun({
       <header className="sb-reader-bar">
         <button type="button" className="sb-quiet-button" onClick={onExit} disabled={busy}>
           <ArrowLeft size={17} />
-          {pText('返回书架')}
+          {t('storybook.playRun.backToTheLibrary')}
         </button>
         <span className="sb-reader-book">
           <BookOpen size={16} />
-          {pText(story.title)}
+          {story.title}
         </span>
         <div className="sb-reader-tools">
           <button
@@ -812,9 +826,9 @@ function PlayRun({
             className="sb-quiet-button"
             aria-expanded={showReading}
             onClick={() => setShowReading(!showReading)}
-            aria-label={pText('阅读设置')}
+            aria-label={t('storybook.playRun.readingSettings')}
           >
-            {pText('Aa')}
+            {t('storybook.playRun.aa')}
           </button>
           <button
             type="button"
@@ -822,33 +836,35 @@ function PlayRun({
             onClick={() => journal.current?.showModal()}
           >
             <GitBranch size={17} />
-            <span>{pText('我的故事线')}</span>
-            <span className="sb-count">{pText(checkpoints.length)}</span>
+            <span>{t('storybook.playRun.myStoryline')}</span>
+            <span className="sb-count">{checkpoints.length}</span>
           </button>
         </div>
       </header>
       {showReading && (
         <div className="sb-reading-options">
-          <span>{pText('字号')}</span>
+          <span>{t('storybook.playRun.textSize')}</span>
           <button
             type="button"
             onClick={() => setFontSize(Math.max(16, fontSize - 1))}
             disabled={fontSize <= 16}
-            aria-label={pText('缩小字号')}
+            aria-label={t('storybook.playRun.decreaseTextSize')}
           >
-            {pText('A−')}
+            {t('storybook.playRun.a')}
           </button>
-          <span>{pText(fontSize)}</span>
+          <span>{fontSize}</span>
           <button
             type="button"
             onClick={() => setFontSize(Math.min(25, fontSize + 1))}
             disabled={fontSize >= 25}
-            aria-label={pText('放大字号')}
+            aria-label={t('storybook.playRun.increaseTextSize')}
           >
-            {pText('A+')}
+            {t('storybook.playRun.a2')}
           </button>
           <button type="button" aria-pressed={night} onClick={() => setNight(!night)}>
-            {pText(night ? pText('切换日间') : pText('切换夜读'))}
+            {night
+              ? t('storybook.playRun.switchToDayMode')
+              : t('storybook.playRun.switchToNightReading')}
           </button>
         </div>
       )}
@@ -857,58 +873,56 @@ function PlayRun({
       </div>
       <div className="sb-reader-layout">
         <aside className="sb-story-aside">
-          <img src={story.cover} alt={pText('')} />
+          <img src={story.cover} alt={''} />
           <span className="sb-eyebrow">
-            {pText(ended ? 'THE END, FOR NOW' : 'YOU ARE IN THE STORY')}
+            {ended ? t('storybook.playRun.theEndForNow') : t('storybook.playRun.youAreInTheStory')}
           </span>
-          <h2>{pText(story.title)}</h2>
-          <p>{pText(story.role)}</p>
+          <h2>{story.title}</h2>
+          <p>{story.role}</p>
           <div className="sb-story-tags">
             {story.themes.map((theme) => (
-              <span key={theme}>{pText(theme)}</span>
+              <span key={theme}>{theme}</span>
             ))}
           </div>
           <div className="sb-state-card">
-            <small>{pText('你留下的影响')}</small>
+            <small>{t('storybook.playRun.theImpactYouLeave')}</small>
             <div>
-              <span>{pText('与他人的联结')}</span>
+              <span>{t('storybook.playRun.connectionsWithOthers')}</span>
               <strong>
-                {pText(run.connection > 0 ? '+' : '')}
-                {pText(run.connection)}
+                {run.connection > 0 ? '+' : ''}
+                {run.connection}
               </strong>
             </div>
             <p>
               <Check size={13} />
-              {pText('进度已自动保存')}
+              {t('storybook.playRun.progressSavedAutomatically')}
             </p>
           </div>
         </aside>
         <article className="sb-story-paper" ref={storyRef} key={node.id}>
           <div className="sb-scene-meta">
             <span>
-              {pText(
-                ended
-                  ? pText('属于你的结局')
-                  : `第 ${String(checkpoints.length + 1).padStart(2, '0')} 幕`,
-              )}
+              {ended
+                ? t('storybook.playRun.yourEnding')
+                : t('storybook.reader.actNumber', {
+                    number: String(checkpoints.length + 1).padStart(2, '0'),
+                  })}
             </span>
             <span>
-              {pText(
-                ended
-                  ? pText('这一页，写下了你的选择')
-                  : node.speaker
-                    ? `${node.speaker} 在场`
-                    : pText('故事正在发生'),
-              )}
+              {ended
+                ? t('storybook.playRun.thisPageHoldsYourChoices')
+                : node.speaker
+                  ? t('storybook.reader.speakerPresent', { name: node.speaker })
+                  : t('storybook.playRun.theStoryUnfolds')}
             </span>
           </div>
-          <h1>{pText(node.title)}</h1>
+          <h1>{node.title}</h1>
           <div className="sb-story-prose" style={{ fontSize }}>
             {node.text
               .split(/\n+/)
               .filter(Boolean)
               .map((paragraph, index) => (
-                <p key={index}>{pText(paragraph)}</p>
+                <p key={index}>{paragraph}</p>
               ))}
           </div>
           {conversation.length > 0 && (
@@ -921,7 +935,9 @@ function PlayRun({
                   }
                 >
                   <small>
-                    {pText(entry.kind === 'free-text' ? pText('你轻声说') : entry.detail)}
+                    {entry.kind === 'free-text'
+                      ? t('storybook.playRun.youSaySoftly')
+                      : entry.detail}
                   </small>
                   <p>{entry.text}</p>
                 </div>
@@ -933,17 +949,17 @@ function PlayRun({
               <span className="sb-ending-ornament">
                 <GitBranch size={24} strokeWidth={1} />
               </span>
-              <h2>{pText('这是你选择的故事。')}</h2>
+              <h2>{t('storybook.playRun.thisIsTheStoryYouChose')}</h2>
               <p>
-                {pText('你已抵达 ')}
-                {pText(discovered.size)} {pText(' / ')}
-                {pText(endingCount)} {pText(' 种结局。另一条路，会带你去哪里？')}
+                {t('storybook.playRun.youHaveReached')}
+                {discovered.size} {' / '}
+                {endingCount} {t('storybook.playRun.endingsWhereMightAnotherPathLead')}
               </p>
               <div className="sb-ending-path">
                 {run.transcript
                   .filter((entry) => entry.kind === 'choice')
                   .map((entry) => (
-                    <span key={entry.seq}>{pText(entry.detail)}</span>
+                    <span key={entry.seq}>{entry.detail}</span>
                   ))}
               </div>
               <div className="sb-actions">
@@ -954,19 +970,19 @@ function PlayRun({
                   disabled={!checkpoints.length}
                 >
                   <GitBranch size={16} />
-                  {pText('回到某个岔路')}
+                  {t('storybook.playRun.returnToABranchingPoint')}
                 </button>
                 <button type="button" className="sb-quiet-button" onClick={() => onRestart(story)}>
                   <RotateCcw size={15} />
-                  {pText('重新开始')}
+                  {t('storybook.playRun.startAgain')}
                 </button>
               </div>
             </div>
           ) : (
             <div className="sb-next">
               <div className="sb-choice-heading">
-                <span>{pText('接下来，你会怎么做？')}</span>
-                <small>{pText('选择，让故事发生')}</small>
+                <span>{t('storybook.playRun.whatWillYouDoNext')}</span>
+                <small>{t('storybook.playRun.letYourChoiceShapeTheStory')}</small>
               </div>
               <div className="sb-choices" data-testid="play-choices">
                 {choices.map((choice, index) => (
@@ -977,10 +993,8 @@ function PlayRun({
                     disabled={busy}
                     onClick={() => choose(choice)}
                   >
-                    <span className="sb-choice-number">
-                      {pText(String(index + 1).padStart(2, '0'))}
-                    </span>
-                    <span>{pText(choice.label)}</span>
+                    <span className="sb-choice-number">{String(index + 1).padStart(2, '0')}</span>
+                    <span>{choice.label}</span>
                     <ArrowRight size={16} />
                   </button>
                 ))}
@@ -993,8 +1007,8 @@ function PlayRun({
                   onClick={() => setTalk(!talk)}
                 >
                   <MessageCircle size={16} />
-                  {pText('我想说点别的')}
-                  <span>{pText('AI 即兴对话')}</span>
+                  {t('storybook.playRun.iDLikeToSaySomethingElse')}
+                  <span>{t('storybook.playRun.improvisedAiConversation')}</span>
                   <ChevronDown size={15} />
                 </button>
                 {talk && (
@@ -1005,7 +1019,7 @@ function PlayRun({
                     }}
                   >
                     <label className="sb-sr-only" htmlFor="sb-freetext-input">
-                      {pText('你想说的话')}
+                      {t('storybook.playRun.whatYouWantToSay')}
                     </label>
                     <textarea
                       id="sb-freetext-input"
@@ -1015,13 +1029,15 @@ function PlayRun({
                       onChange={(event) => {
                         setFreeText(event.target.value);
                       }}
-                      placeholder={pText('问一个选项里没有的问题，或者说句心里话…')}
+                      placeholder={t('storybook.playRun.askSomethingBeyondTheChoicesOrSay')}
                     />
                     <div>
-                      <small>{pText('角色会回应你。故事仍由上方的选择推进。')}</small>
+                      <small>
+                        {t('storybook.playRun.theCharacterRespondsTheChoicesAboveStill')}
+                      </small>
                       <button
                         type="submit"
-                        aria-label={pText('发送对话')}
+                        aria-label={t('storybook.playRun.sendDialogue')}
                         disabled={busy || !freeText.trim()}
                       >
                         {busy ? <Sparkles className="sb-pulse" size={18} /> : <Send size={18} />}
@@ -1035,24 +1051,22 @@ function PlayRun({
           {busy && (
             <p role="status" className="sb-ai-wait">
               <Sparkles size={15} />
-              {pText('故事里的人正在回应你…')}
+              {t('storybook.playRun.someoneInTheStoryIsResponding')}
             </p>
           )}
           {noticeText && (
             <div role="alert" className="sb-notice">
-              <p>{pText(noticeText)}</p>
+              <p>{noticeText}</p>
               <button type="button" className="sb-quiet-button" onClick={onOpenSettings}>
                 <Settings2 size={14} />
-                {pText('检查 AI 连接')}
+                {t('storybook.playRun.checkAiConnection')}
               </button>
             </div>
           )}
           <footer className="sb-reader-note">
-            {pText(
-              ended
-                ? pText('有些故事结束了，但留在心里的还在继续。')
-                : pText('不必急。这个世界，会等你做出选择。'),
-            )}
+            {ended
+              ? t('storybook.playRun.someStoriesEndButStayWithYou')
+              : t('storybook.playRun.takeYourTimeThisWorldWillWait')}
           </footer>
         </article>
       </div>
@@ -1065,28 +1079,26 @@ function PlayRun({
       >
         <div className="sb-dialog-heading">
           <div>
-            <span className="sb-eyebrow">{pText('EVERY CHOICE LEAVES A TRACE')}</span>
-            <h2>{pText('我的故事线')}</h2>
+            <span className="sb-eyebrow">{t('storybook.playRun.everyChoiceLeavesATrace')}</span>
+            <h2>{t('storybook.playRun.myStoryline')}</h2>
           </div>
           <button
             type="button"
             className="sb-icon-button"
-            aria-label={pText('关闭故事线')}
+            aria-label={t('storybook.playRun.closeStoryline')}
             onClick={() => journal.current?.close()}
           >
             <X size={20} />
           </button>
         </div>
-        <p className="sb-muted">
-          {pText('回到某个选择，走一条新的路。原来的经历会留在「我的足迹」。')}
-        </p>
+        <p className="sb-muted">{t('storybook.playRun.returnToAChoiceAndTakeA')}</p>
         <div className="sb-timeline">
           {checkpoints.map((point, index) => (
             <div className="sb-timeline-step" key={point.id}>
-              <span className="sb-timeline-dot">{pText(index + 1)}</span>
+              <span className="sb-timeline-dot">{index + 1}</span>
               <div>
-                <small>{pText(nodeOf(story, point.snapshot.currentNodeId).title)}</small>
-                <p>{pText(point.label)}</p>
+                <small>{nodeOf(story, point.snapshot.currentNodeId).title}</small>
+                <p>{point.label}</p>
                 <button
                   type="button"
                   className="sb-quiet-button"
@@ -1096,7 +1108,7 @@ function PlayRun({
                     onFork(run, point.id);
                   }}
                 >
-                  {pText('从这里走另一条路')}
+                  {t('storybook.playRun.takeAnotherPathFromHere')}
                   <ArrowRight size={14} />
                 </button>
               </div>
@@ -1107,8 +1119,8 @@ function PlayRun({
               <BookOpen size={14} />
             </span>
             <div>
-              <small>{pText('你在这里')}</small>
-              <p>{pText(node.title)}</p>
+              <small>{t('storybook.playRun.youAreHere')}</small>
+              <p>{node.title}</p>
             </div>
           </div>
         </div>
@@ -1132,36 +1144,36 @@ function StudioHome({
   onNewProject: () => void;
   onHostOnly: () => void;
 }) {
-  const { pText, previewLang } = useAppPreviewLocale();
+  const { previewLang, t } = useAppPreviewLocale();
   const project = content.studioProject;
   return (
     <div className="sb-page sb-studio-home">
       <header className="sb-page-top">
-        <span className="sb-eyebrow">{pText('THE AUTHOR IN YOU')}</span>
-        <span className="sb-muted">{pText('STUDIO')}</span>
+        <span className="sb-eyebrow">{t('storybook.studioHome.theAuthorInYou')}</span>
+        <span className="sb-muted">{t('storybook.studioHome.studio')}</span>
       </header>
       <div className="sb-page-heading">
         <div>
-          <h1>{pText('让想象，长出一个世界。')}</h1>
-          <p>{pText('这里是你的创作间。一个念头，也能成为一场值得亲历的故事。')}</p>
+          <h1>{t('storybook.studioHome.letImaginationGrowAWorld')}</h1>
+          <p>{t('storybook.studioHome.thisIsYourStudioOneThoughtCan')}</p>
         </div>
       </div>
       <section className="sb-studio-invite">
         <div>
-          <span className="sb-eyebrow">{pText('YOUR WORDS. THEIR WORLD.')}</span>
+          <span className="sb-eyebrow">{t('storybook.studioHome.yourWordsTheirWorld')}</span>
           <h2>
-            {pText('故事由你开始。')}
+            {t('storybook.studioHome.youBeginTheStory')}
             <br />
-            {pText('剩下的，我们一起想象。')}
+            {t('storybook.studioHome.weImagineTheRestTogether')}
           </h2>
           <p>
-            {pText('带来角色、世界和想法，编排属于你的体验，')}
+            {t('storybook.studioHome.bringCharactersWorldsAndIdeasArrangeAn')}
             <br />
-            {pText('让每一次相遇，都有不同的可能。')}
+            {t('storybook.studioHome.andGiveEveryEncounterDifferentPossibilities')}
           </p>
           <button type="button" className="sb-primary" onClick={onHostOnly}>
             <Plus size={18} />
-            {pText('新建体验作品')}
+            {t('storybook.studioHome.newExperience')}
             <ArrowRight size={16} />
           </button>
           <button
@@ -1170,20 +1182,23 @@ function StudioHome({
             onClick={onNewProject}
           >
             <FileText size={16} />
-            {pText('从叙事文本改编')}
+            {t('storybook.studioHome.adaptNarrativeText')}
           </button>
         </div>
         <div className="sb-studio-art">
-          <img src="/demo/storybook/garden.jpg" alt={pText('雨夜中亮着温暖灯光的故事小店')} />
+          <img
+            src="/demo/storybook/garden.jpg"
+            alt={t('storybook.studioHome.aStoryShopGlowingWarmlyOnA')}
+          />
           <span>
             <Feather size={16} />
-            {pText('有些世界，还在等你写下第一句。')}
+            {t('storybook.studioHome.someWorldsAreStillWaitingForYour')}
           </span>
         </div>
       </section>
       <div className="sb-section-title">
-        <h2>{pText('我的创作')}</h2>
-        <span>{pText('1 个故事')}</span>
+        <h2>{t('storybook.studioHome.myCreations')}</h2>
+        <span>{t('storybook.studioHome.1Story')}</span>
       </div>
       <div className="sb-project-list">
         <button type="button" onClick={onHostOnly}>
@@ -1191,17 +1206,17 @@ function StudioHome({
             <BookOpen size={23} strokeWidth={1.3} />
           </span>
           <div>
-            <h3>{pText(project.name)}</h3>
-            <p>{pText(project.premise)}</p>
+            <h3>{project.name}</h3>
+            <p>{project.premise}</p>
           </div>
-          <span className="sb-status">{pText(project.status)}</span>
-          <small>{pText(relativeDate(now - project.minutesAgo * 60_000, now, previewLang))}</small>
+          <span className="sb-status">{project.status}</span>
+          <small>{relativeDate(now - project.minutesAgo * 60_000, now, previewLang)}</small>
           <ArrowRight size={17} />
         </button>
       </div>
       <footer className="sb-page-footer">
         <Feather size={14} />
-        <span>{pText('不需要懂代码。只需要有一个想讲的故事。')}</span>
+        <span>{t('storybook.studioHome.noCodingNeededJustAStoryYou')}</span>
       </footer>
     </div>
   );
@@ -1216,9 +1231,9 @@ function StudioIntake({
   onCancel: () => void;
   onHostOnly: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [name, setName] = useState(() => pData(''));
-  const [text, setText] = useState(() => pData(''));
+  const { t } = useAppPreviewLocale();
+  const [name, setName] = useState(() => '');
+  const [text, setText] = useState(() => '');
   const [direction, setDirection] = useState<string | null>(null);
   const saved = text.length > 0 || name.length > 0;
   return (
@@ -1226,22 +1241,22 @@ function StudioIntake({
       <header className="sb-page-top">
         <button type="button" className="sb-quiet-button" onClick={onCancel}>
           <ArrowLeft size={16} />
-          {pText('回到创作间')}
+          {t('storybook.studioIntake.backToTheStudio')}
         </button>
-        <span className="sb-eyebrow">{pText('FROM WORDS TO WORLDS')}</span>
+        <span className="sb-eyebrow">{t('storybook.studioIntake.fromWordsToWorlds')}</span>
       </header>
       <div className="sb-intake-heading">
         <span className="sb-intake-icon">
           <Feather size={26} strokeWidth={1.4} />
         </span>
-        <h1>{pText('每个故事，都有另一种可能。')}</h1>
-        <p>{pText('给我一段文字。我们一起把它变成一个可以走进去的世界。')}</p>
+        <h1>{t('storybook.studioIntake.everyStoryHasAnotherPossibility')}</h1>
+        <p>{t('storybook.studioIntake.giveMeSomeTextTogetherWeLlTurn')}</p>
       </div>
       <div className="sb-intake-workspace">
         <section className="sb-writing-paper">
           <div className="sb-writing-top">
             <label htmlFor="sb-name" className="sb-sr-only">
-              {pText('故事名称（可选）')}
+              {t('storybook.studioIntake.storyNameOptional')}
             </label>
             <input
               id="sb-name"
@@ -1250,15 +1265,15 @@ function StudioIntake({
               onChange={(event) => {
                 setName(event.target.value);
               }}
-              placeholder={pText('给故事起个名字，也可以晚点再想')}
+              placeholder={t('storybook.studioIntake.nameTheStoryOrLeaveItFor')}
             />
             <button type="button" className="sb-quiet-button" onClick={onHostOnly}>
               <Upload size={14} />
-              {pText('导入文字')}
+              {t('storybook.studioIntake.importText')}
             </button>
           </div>
           <label htmlFor="sb-text" className="sb-sr-only">
-            {pText('故事原文')}
+            {t('storybook.studioIntake.originalStory')}
           </label>
           <textarea
             id="sb-text"
@@ -1267,24 +1282,24 @@ function StudioIntake({
             onChange={(event) => {
               setText(event.target.value);
             }}
-            placeholder={pText(
-              '粘贴一篇短篇、一段你喜欢的文字，\n或者，只是一个突然冒出来的念头。\n\n那天，事情本来不应该这样发生……',
-            )}
+            placeholder={t('storybook.studioIntake.pasteAShortStoryAPassageYou')}
           />
           <div className="sb-writing-footer">
             <span>
               <FileText size={13} />
-              {pText(saved ? pText('草稿已保存在本机') : pText('输入后自动保存到本机'))}
+              {saved
+                ? t('storybook.studioIntake.draftSavedOnThisDevice')
+                : t('storybook.studioIntake.typingSavesAutomaticallyOnThisDevice')}
             </span>
             <span>
-              {text.length.toLocaleString()} {pText(' / 8,000 字')}
+              {text.length.toLocaleString()} {t('storybook.studioIntake.8000Characters')}
             </span>
           </div>
         </section>
         <aside className="sb-intake-aside">
-          <span className="sb-eyebrow">{pText('A LITTLE DIRECTION')}</span>
-          <h3>{pText('想让故事往哪里走？')}</h3>
-          <p>{pText('保留故事的灵魂，给体验一点方向。')}</p>
+          <span className="sb-eyebrow">{t('storybook.studioIntake.aLittleDirection')}</span>
+          <h3>{t('storybook.studioIntake.whereShouldTheStoryGo')}</h3>
+          <p>{t('storybook.studioIntake.keepTheStorySSoulAndGiveThe')}</p>
           <div className="sb-directions">
             {content.intakeDirections.map((item) => (
               <button
@@ -1294,37 +1309,39 @@ function StudioIntake({
                 className={direction === item ? 'is-active' : ''}
                 onClick={() => setDirection(item)}
               >
-                {pText(item)}
+                {item === '全部' ? t('storybook.library.allStories') : item}
               </button>
             ))}
           </div>
           <div className="sb-creation-steps">
             <div>
-              <span>{pText('01')}</span>
+              <span>{'01'}</span>
               <p>
-                <strong>{pText('读懂故事')}</strong>
-                <small>{pText('提炼世界、人物与隐藏的冲突')}</small>
+                <strong>{t('storybook.studioIntake.understandTheStory')}</strong>
+                <small>
+                  {t('storybook.studioIntake.extractTheWorldCharactersAndHiddenConflicts')}
+                </small>
               </p>
             </div>
             <div>
-              <span>{pText('02')}</span>
+              <span>{'02'}</span>
               <p>
-                <strong>{pText('一起定方向')}</strong>
-                <small>{pText('看一眼 AI 的提案，由你拍板')}</small>
+                <strong>{t('storybook.studioIntake.chooseADirectionTogether')}</strong>
+                <small>{t('storybook.studioIntake.reviewTheAiProposalAndMakeThe')}</small>
               </p>
             </div>
             <div>
-              <span>{pText('03')}</span>
+              <span>{'03'}</span>
               <p>
-                <strong>{pText('让选择发生')}</strong>
-                <small>{pText('编排分支与结局，亲自走进去')}</small>
+                <strong>{t('storybook.studioIntake.letChoicesUnfold')}</strong>
+                <small>{t('storybook.studioIntake.arrangeBranchesAndEndingsThenStepInside')}</small>
               </p>
             </div>
           </div>
         </aside>
       </div>
       <div className="sb-intake-submit">
-        <span>{pText('还没想好？从一个灵感开始')}</span>
+        <span>{t('storybook.studioIntake.notSureYetStartWithAnIdea')}</span>
         <button
           type="button"
           className="sb-primary"
@@ -1333,7 +1350,7 @@ function StudioIntake({
           data-testid="studio-intake-submit"
         >
           <Sparkles size={17} />
-          {pText('让故事开始生长')}
+          {t('storybook.studioIntake.letTheStoryGrow')}
           <ArrowRight size={17} />
         </button>
       </div>
@@ -1347,8 +1364,8 @@ function StudioIntake({
               setName(item.label);
             }}
           >
-            <span>{pText(item.label)}</span>
-            <p>{pText(item.text)}</p>
+            <span>{item.label}</span>
+            <p>{item.text}</p>
             <ArrowRight size={15} />
           </button>
         ))}
@@ -1377,60 +1394,64 @@ const DEMO_IMPLEMENTATION = {
 } as const;
 
 // Mirrors nimiapp-storybook src/shell/ai/model-config-copy.ts.
-const STORYBOOK_MODEL_CONFIG_COPY: ModelConfigCopy = {
-  title: 'AI 模型',
-  description: '为故事改编和角色对话选择 AI。',
-  backLabel: '返回',
-  activeModelLabel: '当前配置',
-  activeModelHint: '选择故事创作使用的模型',
-  activeModelConfiguredLabel: '已配置',
-  activeModelSetupPendingLabel: '待配置',
-  modelPickerTitle: '选择 Runtime 路由',
-  modelPickerSearchPlaceholder: '搜索',
-  modelPickerLoadingLabel: '正在加载…',
-  modelPickerEmptyLabel: '没有可用选项',
-  configuredSummary: '已保存 Runtime 路由意图。',
-  emptySummary: '尚未配置文本生成。',
-  routeLabel: '路由',
-  localLabel: '本地',
-  cloudLabel: '云端',
-  saveLocalLabel: '使用本地 Runtime',
-  saveCloudLabel: '保存云端意图',
-  savingLabel: '正在保存…',
-  advancedLabel: '高级意图',
-  advancedHint: '这些值是可移植请求意图，不指定 provider 或 model。',
-  requiredFeaturesLabel: '必需功能',
-  requiredFeaturesPlaceholder: '每行一个',
-  defaultsLabel: '生成默认值',
+const createStorybookModelConfigCopy = (t: PreviewTranslate): ModelConfigCopy => ({
+  title: t('storybook.workspace.aiModels'),
+  description: t('storybook.workspace.chooseAiForStoryAdaptationAndCharacter'),
+  backLabel: t('storybook.workspace.back'),
+  activeModelLabel: t('storybook.workspace.currentConfiguration'),
+  activeModelHint: t('storybook.workspace.chooseTheModelForStoryCreation'),
+  activeModelConfiguredLabel: t('storybook.workspace.configured'),
+  activeModelSetupPendingLabel: t('storybook.workspace.needsConfiguration'),
+  modelPickerTitle: t('storybook.workspace.chooseRuntimeRoute'),
+  modelPickerSearchPlaceholder: t('storybook.workspace.search'),
+  modelPickerLoadingLabel: t('storybook.workspace.loading'),
+  modelPickerEmptyLabel: t('storybook.workspace.noOptionsAvailable'),
+  configuredSummary: t('storybook.workspace.runtimeRouteIntentSaved'),
+  emptySummary: t('storybook.workspace.textGenerationIsNotConfigured'),
+  routeLabel: t('storybook.workspace.route'),
+  localLabel: t('storybook.workspace.local'),
+  cloudLabel: t('storybook.workspace.cloud'),
+  saveLocalLabel: t('storybook.workspace.useLocalRuntime'),
+  saveCloudLabel: t('storybook.workspace.saveCloudIntent'),
+  savingLabel: t('storybook.workspace.saving'),
+  advancedLabel: t('storybook.workspace.advancedIntent'),
+  advancedHint: t('storybook.workspace.theseValuesDescribePortableRequestIntentWithout'),
+  requiredFeaturesLabel: t('storybook.workspace.requiredFeatures'),
+  requiredFeaturesPlaceholder: t('storybook.workspace.onePerLine'),
+  defaultsLabel: t('storybook.workspace.generationDefaults'),
   defaultsPlaceholder: '{"temperature":0.7,"topP":1,"maxTokens":1024}',
-  localChoiceDescription: 'Runtime 在执行时验证本机选择。',
-  localSelectedLabel: '已选择本地 Runtime 意图',
-  localMissingLabel: '需要在 Nimi 中配置本机模型',
-  localBrokenLabel: '本机模型配置不可用',
-  localUnavailableLabel: '当前无法读取本机模型配置',
-  openMachineLabel: '在 Nimi 中配置',
-  loadFailed: '无法读取 AI 配置。',
-  saveFailed: '无法保存 AI 配置。',
-  retryLabel: '重试',
-  technicalDetailsLabel: '技术详情',
-  unsupportedCapabilityLabel: '不支持的能力',
-  notConfiguredLabel: '未配置',
-  configuredLabel: '已配置',
-  selectionRequiredLabel: '需要配置',
-  blockedLabel: '受阻',
-  mismatchLabel: '功能不匹配',
-  cancelLabel: '取消',
-  confirmSelectionLabel: '确认选择',
+  localChoiceDescription: t('storybook.workspace.runtimeValidatesTheLocalSelectionAtExecution'),
+  localSelectedLabel: t('storybook.workspace.localRuntimeIntentSelected'),
+  localMissingLabel: t('storybook.workspace.configureALocalModelInNimi'),
+  localBrokenLabel: t('storybook.workspace.localModelConfigurationUnavailable'),
+  localUnavailableLabel: t('storybook.workspace.cannotReadLocalModelConfigurationRightNow'),
+  openMachineLabel: t('storybook.workspace.configureInNimi'),
+  loadFailed: t('storybook.workspace.couldNotReadAiConfiguration'),
+  saveFailed: t('storybook.workspace.couldNotSaveAiConfiguration'),
+  retryLabel: t('storybook.workspace.retry'),
+  technicalDetailsLabel: t('storybook.workspace.technicalDetails'),
+  unsupportedCapabilityLabel: t('storybook.workspace.unsupportedCapability'),
+  notConfiguredLabel: t('storybook.workspace.notConfigured'),
+  configuredLabel: t('storybook.workspace.configured'),
+  selectionRequiredLabel: t('storybook.workspace.configurationNeeded'),
+  blockedLabel: t('storybook.workspace.blocked'),
+  mismatchLabel: t('storybook.workspace.featureMismatch'),
+  cancelLabel: t('storybook.workspace.cancel'),
+  confirmSelectionLabel: t('storybook.workspace.confirmSelection'),
   capabilityLabel: (capabilityContract, fallback) =>
-    capabilityContract === TEXT_GENERATE ? '叙事文本生成' : fallback,
+    capabilityContract === TEXT_GENERATE
+      ? t('storybook.workspace.narrativeTextGeneration')
+      : fallback,
   capabilityDescription: (capabilityContract, fallback) =>
-    capabilityContract === TEXT_GENERATE ? '用于故事改编、分支编排和角色即兴对话。' : fallback,
-};
+    capabilityContract === TEXT_GENERATE
+      ? t('storybook.workspace.forStoryAdaptationBranchArrangementAndImprovised')
+      : fallback,
+});
 
-function localLoadout(content: HeroDemoStorybookPreview) {
+function localLoadout(content: HeroDemoStorybookPreview, t: PreviewTranslate) {
   return {
     loadoutRef: `demo-loadout:${TEXT_GENERATE}`,
-    label: `${content.settings.modelLabel} · 本机`,
+    label: t('storybook.settings.localModel', { model: content.settings.modelLabel }),
     capabilityContract: TEXT_GENERATE,
     implementation: DEMO_IMPLEMENTATION,
     implementationSupportedFeatures: [],
@@ -1441,20 +1462,20 @@ function localLoadout(content: HeroDemoStorybookPreview) {
   };
 }
 
-function cloudConnector() {
+function cloudConnector(t: PreviewTranslate) {
   return {
     connectorRef: DEMO_CLOUD_CONNECTOR_REF,
-    label: 'Nimi Cloud',
+    label: t('storybook.cloudConnector.nimiCloud'),
     provider: 'demo',
     state: 'ready' as const,
     reasons: [],
   };
 }
 
-function cloudTarget(content: HeroDemoStorybookPreview) {
+function cloudTarget(content: HeroDemoStorybookPreview, t: PreviewTranslate) {
   return {
     connectorRef: DEMO_CLOUD_CONNECTOR_REF,
-    label: `${content.settings.modelLabel} · 云端`,
+    label: t('storybook.settings.cloudModel', { model: content.settings.modelLabel }),
     capabilityContract: TEXT_GENERATE,
     implementation: DEMO_IMPLEMENTATION,
     providerModelTarget: { model: 'demo-text-generate' },
@@ -1467,6 +1488,7 @@ function cloudTarget(content: HeroDemoStorybookPreview) {
 function effectiveSelectionsFor(
   intents: readonly AIConfigIntent[],
   content: HeroDemoStorybookPreview,
+  t: PreviewTranslate,
 ): EffectiveSelection[] {
   return intents.map((intent) => ({
     capabilityContract: intent.capabilityContract,
@@ -1475,9 +1497,9 @@ function effectiveSelectionsFor(
       intent.route.oneofKind === 'cloud'
         ? {
             oneofKind: 'cloud',
-            cloud: { connector: cloudConnector(), target: cloudTarget(content) },
+            cloud: { connector: cloudConnector(t), target: cloudTarget(content, t) },
           }
-        : { oneofKind: 'local', local: localLoadout(content) },
+        : { oneofKind: 'local', local: localLoadout(content, t) },
     reasons: [],
   }));
 }
@@ -1489,7 +1511,7 @@ function SettingsPage({
   content: HeroDemoStorybookPreview;
   onClose: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [intents, setIntents] = useState<AIConfigIntent[]>(() => [
     {
       capabilityContract: TEXT_GENERATE,
@@ -1511,15 +1533,16 @@ function SettingsPage({
     async (query): Promise<OptionsResult> => {
       switch (query.kind) {
         case 'cloud-connectors':
-          return { kind: 'cloud-connectors', options: [cloudConnector()], truncated: false };
+          return { kind: 'cloud-connectors', options: [cloudConnector(t)], truncated: false };
         case 'cloud-targets':
           return {
             kind: 'cloud-targets',
-            options: query.connectorRef === DEMO_CLOUD_CONNECTOR_REF ? [cloudTarget(content)] : [],
+            options:
+              query.connectorRef === DEMO_CLOUD_CONNECTOR_REF ? [cloudTarget(content, t)] : [],
             truncated: false,
           };
         case 'local-loadouts':
-          return { kind: 'local-loadouts', options: [localLoadout(content)], truncated: false };
+          return { kind: 'local-loadouts', options: [localLoadout(content, t)], truncated: false };
         case 'preset-voices':
           return { kind: 'preset-voices', options: [], truncated: false };
       }
@@ -1550,13 +1573,13 @@ function SettingsPage({
     <div className="sb-page sb-settings-page">
       <div className="sb-dialog-heading">
         <div>
-          <span className="sb-eyebrow">{pText('MAKE ROOM FOR IMAGINATION')}</span>
-          <h2>{pText('设置与 AI')}</h2>
+          <span className="sb-eyebrow">{t('storybook.settingsPage.makeRoomForImagination')}</span>
+          <h2>{t('storybook.settingsPage.settingsAndAi')}</h2>
         </div>
         <button
           type="button"
           className="sb-icon-button"
-          aria-label={pText('关闭设置')}
+          aria-label={t('storybook.settingsPage.closeSettings')}
           onClick={onClose}
         >
           <X size={20} />
@@ -1565,11 +1588,11 @@ function SettingsPage({
       <section className="sb-session-card">
         <div>
           <span className="sb-connection-dot is-connected" />
-          {pText('已连接 Nimi')}
+          {t('storybook.settingsPage.connectedToNimi')}
         </div>
-        <p>{pText(content.settings.accountNote)}</p>
+        <p>{content.settings.accountNote}</p>
         <Button tone="secondary" size="sm" loading={checking} onClick={recheck}>
-          {pText('重新检查连接')}
+          {t('storybook.settingsPage.checkConnectionAgain')}
         </Button>
       </section>
       <section id="storybook-ai-model-config" className="sb-ai-model-config" tabIndex={-1}>
@@ -1578,14 +1601,14 @@ function SettingsPage({
           capabilityContracts={[TEXT_GENERATE]}
           capabilities={intents}
           revision={revision}
-          effectiveSelections={effectiveSelectionsFor(intents, content)}
+          effectiveSelections={effectiveSelectionsFor(intents, content, t)}
           listOptions={listOptions}
           onOverwrite={overwrite}
-          copy={pData(STORYBOOK_MODEL_CONFIG_COPY)}
+          copy={createStorybookModelConfigCopy(t)}
           className="sb-ai-model-config__hub"
           headerSlot={
             <p className="sb-ai-model-config__posture">
-              {pText('配置由 Runtime 保存；Storybook 不持有 provider、model 或凭据。')}
+              {t('storybook.settingsPage.runtimeStoresConfigurationStorybookDoesNotHold')}
             </p>
           }
         />

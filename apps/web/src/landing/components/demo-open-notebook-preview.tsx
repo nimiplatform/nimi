@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import { ArrowUp, BookOpen, FileText, Mic, Plus, Search, Settings, StickyNote } from 'lucide-react';
@@ -10,54 +11,57 @@ import {
   RemainingPreview,
 } from './demo-remaining-shared.js';
 
-const SOURCES = [
+const createSampleSources = (t: PreviewTranslate) => [
   {
-    name: 'Urban gardens — field notes.pdf',
-    type: 'PDF · Sample source',
-    text: 'Community gardens can provide places to meet, learn practical skills, and share responsibility for a small patch of the city.',
+    name: t('openNotebook.workspace.urbanGardensFieldNotesPdf'),
+    type: t('openNotebook.workspace.pdfSampleSource'),
+    text: t('openNotebook.workspace.communityGardensCanProvidePlacesToMeet'),
   },
   {
-    name: 'A conversation about public space',
-    type: 'Text · Sample source',
-    text: 'Small public spaces become useful when they are easy to reach, comfortable to stay in, and welcoming to different needs.',
+    name: t('openNotebook.workspace.aConversationAboutPublicSpace'),
+    type: t('openNotebook.workspace.textSampleSource'),
+    text: t('openNotebook.workspace.smallPublicSpacesBecomeUsefulWhenThey'),
   },
   {
-    name: 'Questions for a neighborhood walk',
-    type: 'Web · Sample source',
-    text: 'Who uses this place? What makes people stay? Where could shade or a seat make a difference?',
+    name: t('openNotebook.workspace.questionsForANeighborhoodWalk'),
+    type: t('openNotebook.workspace.webSampleSource'),
+    text: t('openNotebook.workspace.whoUsesThisPlaceWhatMakesPeople'),
   },
 ];
-const ANSWER =
-  'The sample sources connect gardens with three ideas: shared care, informal learning, and welcoming public space. A useful next step is to note who uses a place and what helps them stay.';
+const sampleAnswer = (t: PreviewTranslate) =>
+  t('openNotebook.workspace.theSampleSourcesConnectGardensWithThree');
 
 /** Open Notebook's fern palette and Sources / Chat / Notes tri-column notebook. */
 export function DemoOpenNotebookPreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [view, setView] = useState('notebook');
   const [pane, setPane] = useState('Chat');
   const [selected, setSelected] = useState<number | null>(null);
   const [included, setIncluded] = useState([true, true, true]);
-  const [query, setQuery] = useState(() => pData('What themes connect these sources?'));
-  const [asked, setAsked] = useState(false);
-  const [notes, setNotes] = useState(() =>
-    pData([
-      {
-        title: 'Questions to take on a walk',
-        body: 'Who is this place for? What invites people to pause?',
-      },
-    ]),
+  const [query, setQuery] = useState(() =>
+    t('openNotebook.workspace.whatThemesConnectTheseSources'),
   );
+  const [asked, setAsked] = useState(false);
+  const [notes, setNotes] = useState(() => [
+    {
+      title: t('openNotebook.workspace.questionsToTakeOnAWalk'),
+      body: t('openNotebook.workspace.whoIsThisPlaceForWhatInvites'),
+    },
+  ]);
   const [activeNote, setActiveNote] = useState(0);
   const [saved, setSaved] = useState(false);
   const nav = [
-    { id: 'sources', label: 'Sources', Icon: FileText },
-    { id: 'notebook', label: 'Notebooks', Icon: BookOpen },
-    { id: 'search', label: 'Ask and Search', Icon: Search },
-    { id: 'podcasts', label: 'Podcasts', Icon: Mic },
-    { id: 'settings', label: 'Settings', Icon: Settings },
+    { id: 'sources', label: t('openNotebook.navigation.sources'), Icon: FileText },
+    { id: 'notebook', label: t('openNotebook.workspace.notebooks'), Icon: BookOpen },
+    { id: 'search', label: t('openNotebook.workspace.askAndSearch'), Icon: Search },
+    { id: 'podcasts', label: t('openNotebook.workspace.podcasts'), Icon: Mic },
+    { id: 'settings', label: t('openNotebook.workspace.settings'), Icon: Settings },
   ];
   const saveAnswer = () => {
-    setNotes((v) => [...v, { title: pText('Themes across the sources'), body: pText(ANSWER) }]);
+    setNotes((v) => [
+      ...v,
+      { title: t('openNotebook.workspace.themesAcrossTheSources'), body: sampleAnswer(t) },
+    ]);
     setActiveNote(notes.length);
     setPane('Notes');
   };
@@ -76,31 +80,25 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
         />
         <main className="rp-main nb-main">
           <PreviewHeading
-            title={pText(
+            title={
               view === 'podcasts'
-                ? 'Podcasts'
+                ? t('openNotebook.main.podcasts2')
                 : view === 'settings'
-                  ? 'Settings'
-                  : 'A more welcoming city',
-            )}
-            description={pText('Sample notebook · 3 sources')}
+                  ? t('openNotebook.main.settings2')
+                  : t('openNotebook.main.aMoreWelcomingCity')
+            }
+            description={t('openNotebook.main.sampleNotebook3Sources')}
           />
           {view === 'podcasts' ? (
             <section className="rp-page">
               <div className="nb-podcast">
                 <Mic size={35} />
-                <h2>{pText('Turn your research into a conversation')}</h2>
-                <p>
-                  {pText(
-                    'In the full App, plan and produce an audio discussion from your notebook sources.',
-                  )}
-                </p>
+                <h2>{t('openNotebook.page.turnYourResearchIntoAConversation')}</h2>
+                <p>{t('openNotebook.page.inTheFullAppPlanAndProduce')}</p>
                 <label>
-                  {pText('Episode brief')}
+                  {t('openNotebook.page.episodeBrief')}
                   <textarea
-                    defaultValue={pText(
-                      'A short discussion about community gardens and shared public space.',
-                    )}
+                    defaultValue={t('openNotebook.page.aShortDiscussionAboutCommunityGardensAnd')}
                     rows={4}
                   />
                 </label>
@@ -110,32 +108,34 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                     setPane('Notes');
                   }}
                 >
-                  {pText('Return to sample notes')}
+                  {t('openNotebook.page.returnToSampleNotes')}
                 </PreviewButton>
               </div>
             </section>
           ) : view === 'settings' ? (
             <section className="rp-page">
-              <h2>{pText('Notebook preferences')}</h2>
+              <h2>{t('openNotebook.page.notebookPreferences')}</h2>
               <label>
-                {pText('Example source language')}
+                {t('openNotebook.page.exampleSourceLanguage')}
                 <select defaultValue="English">
-                  <option value={'English'}>{pText('English')}</option>
-                  <option value={'中文'}>{pText('中文')}</option>
+                  <option value="English">{t('openNotebook.page.english')}</option>
+                  <option value="中文">{t('openNotebook.page.chinese')}</option>
                 </select>
               </label>
-              <p>
-                {pText('Models are selected through Nimi AI configuration in the installed App.')}
-              </p>
+              <p>{t('openNotebook.page.modelsAreSelectedThroughNimiAiConfiguration')}</p>
             </section>
           ) : (
             <>
               <div className="nb-mobile-tabs">
                 <PreviewTabs
-                  items={['Sources', 'Chat', 'Notes']}
+                  items={[
+                    { value: 'Sources', label: t('openNotebook.tabs.sources') },
+                    { value: 'Chat', label: t('openNotebook.tabs.chat') },
+                    { value: 'Notes', label: t('openNotebook.tabs.notes') },
+                  ]}
                   value={pane}
                   onChange={setPane}
-                  label={pText('Notebook panels')}
+                  label={t('openNotebook.main.notebookPanels')}
                 />
               </div>
               <div className="nb-columns">
@@ -143,16 +143,18 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                   <div className="nb-column-heading">
                     <h2>
                       <FileText size={17} />
-                      {pText('Sources')}
+                      {t('openNotebook.sources.sources')}
                     </h2>
-                    <span>{pText(SOURCES.length)}</span>
+                    <span>{createSampleSources(t).length}</span>
                   </div>
-                  <p className="tp-muted">{pText('Choose which example sources to include.')}</p>
-                  {SOURCES.map((source, i) => (
+                  <p className="tp-muted">
+                    {t('openNotebook.sources.chooseWhichExampleSourcesToInclude')}
+                  </p>
+                  {createSampleSources(t).map((source, i) => (
                     <div className="nb-source" key={source.name}>
                       <input
                         type="checkbox"
-                        aria-label={pText(`Include ${source.name}`)}
+                        aria-label={t('openNotebook.sources.include', { sourceName: source.name })}
                         checked={included[i]}
                         onChange={(e) => {
                           setIncluded((v) =>
@@ -161,10 +163,10 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                         }}
                       />
                       <button type="button" onClick={() => setSelected(selected === i ? null : i)}>
-                        <strong>{pText(source.name)}</strong>
-                        <small>{pText(source.type)}</small>
+                        <strong>{source.name}</strong>
+                        <small>{source.type}</small>
                       </button>
-                      {selected === i && <p>{pText(source.text)}</p>}
+                      {selected === i && <p>{source.text}</p>}
                     </div>
                   ))}
                 </section>
@@ -172,26 +174,28 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                   <div className="nb-column-heading">
                     <h2>
                       <BookOpen size={17} />
-                      {pText('Chat')}
+                      {t('openNotebook.chat.chat')}
                     </h2>
-                    <span>{pText('Sample session')}</span>
+                    <span>{t('openNotebook.chat.sampleSession')}</span>
                   </div>
                   <div className="nb-conversation">
                     {asked ? (
                       <article>
-                        <h3>{pText('Themes across the sources')}</h3>
-                        <p>{pText(ANSWER)}</p>
-                        <small>{pText('Prewritten example answer · sample sources 1–3')}</small>
+                        <h3>{t('openNotebook.chat.themesAcrossTheSources')}</h3>
+                        <p>{sampleAnswer(t)}</p>
+                        <small>
+                          {t('openNotebook.chat.prewrittenExampleAnswerSampleSources13')}
+                        </small>
                         <PreviewButton onClick={saveAnswer}>
                           <StickyNote size={14} />
-                          {pText('Save as note')}
+                          {t('openNotebook.chat.saveAsNote')}
                         </PreviewButton>
                       </article>
                     ) : (
                       <div className="nb-empty">
                         <BookOpen size={33} />
-                        <h2>{pText('Let your sources start a conversation.')}</h2>
-                        <p>{pText('Ask a question, connect ideas, and keep what matters.')}</p>
+                        <h2>{t('openNotebook.chat.letYourSourcesStartAConversation')}</h2>
+                        <p>{t('openNotebook.chat.askAQuestionConnectIdeasAndKeep')}</p>
                       </div>
                     )}
                   </div>
@@ -202,7 +206,7 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                     }}
                   >
                     <textarea
-                      aria-label={pText('Notebook question')}
+                      aria-label={t('openNotebook.chat.notebookQuestion')}
                       value={query}
                       rows={3}
                       onChange={(e) => {
@@ -211,34 +215,34 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                     />
                     <div>
                       <span>
-                        {pText(included.filter(Boolean).length)} {pText(' sample sources selected')}
+                        {included.filter(Boolean).length}{' '}
+                        {t('openNotebook.chat.sampleSourcesSelected')}
                       </span>
                       <button
                         type="submit"
-                        aria-label={pText('Show sample notebook answer')}
+                        aria-label={t('openNotebook.chat.showSampleNotebookAnswer')}
                         disabled={!query.trim() || !included.some(Boolean)}
                       >
                         <ArrowUp size={18} />
                       </button>
                     </div>
-                    <small>
-                      {pText(
-                        'The preview shows a saved example; source choices do not run retrieval.',
-                      )}
-                    </small>
+                    <small>{t('openNotebook.chat.thePreviewShowsASavedExampleSource')}</small>
                   </form>
                 </section>
                 <section data-active={pane === 'Notes'} className="nb-notes">
                   <div className="nb-column-heading">
                     <h2>
                       <StickyNote size={17} />
-                      {pText('Notes')}
+                      {t('openNotebook.notes.notes')}
                     </h2>
                     <button
                       type="button"
-                      aria-label={pText('Add sample note')}
+                      aria-label={t('openNotebook.notes.addSampleNote')}
                       onClick={() => {
-                        setNotes((v) => [...v, { title: pText('Untitled note'), body: '' }]);
+                        setNotes((v) => [
+                          ...v,
+                          { title: t('openNotebook.notes.untitledNote'), body: '' },
+                        ]);
                         setActiveNote(notes.length);
                         setSaved(false);
                       }}
@@ -257,12 +261,12 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                           setSaved(false);
                         }}
                       >
-                        {n.title || pText('Untitled note')}
+                        {n.title || t('openNotebook.notes.untitledNote')}
                       </button>
                     ))}
                   </div>
                   <label>
-                    {pText('Note title')}
+                    {t('openNotebook.notes.noteTitle')}
                     <input
                       value={notes[activeNote]!.title}
                       onChange={(e) => {
@@ -274,7 +278,7 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                     />
                   </label>
                   <label>
-                    {pText('Note content')}
+                    {t('openNotebook.notes.noteContent')}
                     <textarea
                       rows={7}
                       value={notes[activeNote]!.body}
@@ -287,7 +291,9 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                     />
                   </label>
                   <PreviewButton onClick={() => setSaved(true)}>
-                    {pText(saved ? 'Kept in this preview' : 'Save sample note')}
+                    {saved
+                      ? t('openNotebook.notes.keptInThisPreview')
+                      : t('openNotebook.notes.saveSampleNote')}
                   </PreviewButton>
                 </section>
               </div>

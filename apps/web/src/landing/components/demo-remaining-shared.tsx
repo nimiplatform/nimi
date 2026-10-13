@@ -15,15 +15,15 @@ export function RemainingPreview({
   kind: string;
   children: ReactNode;
 }) {
-  const { pText, previewLang } = useAppPreviewLocale();
+  const { previewLang } = useAppPreviewLocale();
   return (
     <div
       className={`tp-preview rp-preview rp-${kind}`}
       data-demo-remaining-app={content.id}
       lang={previewLang}
     >
-      {pText(children)}
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      {children}
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }
@@ -41,29 +41,29 @@ export function PreviewNav({
   onSelect: (id: string) => void;
   footer?: ReactNode;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   return (
     <aside className="rp-navigation">
       <div className="rp-brand">
-        <img src={content.icon} alt={pText('')} />
-        <strong>{pText(content.name)}</strong>
+        <img src={content.icon} alt={''} />
+        <strong>{content.name}</strong>
       </div>
-      <nav aria-label={pText('应用导航')}>
+      <nav aria-label={t('shared.previewNav.appNavigation')}>
         {items.map(({ id, label, Icon }) => (
           <button
             type="button"
             key={id}
-            aria-label={pText(label)}
-            title={pText(label)}
+            aria-label={label}
+            title={label}
             aria-current={active === id ? 'page' : undefined}
             onClick={() => onSelect(id)}
           >
             <Icon size={18} aria-hidden="true" />
-            <span>{pText(label)}</span>
+            <span>{label}</span>
           </button>
         ))}
       </nav>
-      {footer && <div className="rp-nav-footer">{pText(footer)}</div>}
+      {footer && <div className="rp-nav-footer">{footer}</div>}
     </aside>
   );
 }
@@ -77,14 +77,13 @@ export function PreviewHeading({
   description?: string;
   children?: ReactNode;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <header className="rp-heading">
       <div>
-        <h1>{pText(title)}</h1>
-        {description && <p>{pText(description)}</p>}
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
       </div>
-      {children && <div className="rp-heading-actions">{pText(children)}</div>}
+      {children && <div className="rp-heading-actions">{children}</div>}
     </header>
   );
 }
@@ -95,22 +94,21 @@ export function PreviewTabs({
   onChange,
   label,
 }: {
-  items: readonly string[];
+  items: readonly { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
   label: string;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
-    <div className="rp-tabs" role="group" aria-label={pText(label)}>
-      {items.map((item) => (
+    <div className="rp-tabs" role="group" aria-label={label}>
+      {items.map(({ value: item, label: itemLabel }) => (
         <button
           type="button"
           key={item}
           aria-pressed={value === item}
           onClick={() => onChange(item)}
         >
-          {pText(item)}
+          {itemLabel}
         </button>
       ))}
     </div>

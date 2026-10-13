@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import {
@@ -14,40 +15,38 @@ import type { RemainingPreviewMeta } from '../content/landing-content.remaining-
 import { PreviewButton } from './demo-third-party-shared.js';
 import { PreviewNav, PreviewTabs, RemainingPreview } from './demo-remaining-shared.js';
 
-const SOURCES = [
+const createSampleSources = (t: PreviewTranslate) => [
   {
-    title: 'Street design field notes',
-    label: 'Sample source 1',
-    text: 'Short crossing distances, shade and places to pause help create more comfortable walking routes.',
+    title: t('vane.workspace.streetDesignFieldNotes'),
+    label: t('vane.workspace.sampleSource1'),
+    text: t('vane.workspace.shortCrossingDistancesShadeAndPlacesTo'),
   },
   {
-    title: 'A public-space reading list',
-    label: 'Sample source 2',
-    text: 'A useful walking network links everyday destinations such as shops, schools, parks and public transport.',
+    title: t('vane.workspace.aPublicSpaceReadingList'),
+    label: t('vane.workspace.sampleSource2'),
+    text: t('vane.workspace.aUsefulWalkingNetworkLinksEverydayDestinations'),
   },
   {
-    title: 'Access for everyone',
-    label: 'Sample source 3',
-    text: 'Step-free routes, clear wayfinding and predictable crossings help more people use public space.',
+    title: t('vane.workspace.accessForEveryone'),
+    label: t('vane.workspace.sampleSource3'),
+    text: t('vane.workspace.stepFreeRoutesClearWayfindingAndPredictableCrossings'),
   },
 ];
 
 /** Vane's compact icon rail, centered research composer and source-led answer surface. */
 export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [view, setView] = useState('home');
-  const [query, setQuery] = useState(() =>
-    pData('How can small cities make walking more enjoyable?'),
-  );
+  const [query, setQuery] = useState(() => t('vane.workspace.howCanSmallCitiesMakeWalkingMore'));
   const [asked, setAsked] = useState(false);
   const [mode, setMode] = useState('Web');
   const [source, setSource] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const nav = [
-    { id: 'home', label: 'Home', Icon: House },
-    { id: 'discover', label: 'Discover', Icon: Compass },
-    { id: 'library', label: 'Library', Icon: BookOpen },
-    { id: 'settings', label: 'Settings', Icon: Settings },
+    { id: 'home', label: t('vane.workspace.home'), Icon: House },
+    { id: 'discover', label: t('vane.workspace.discover'), Icon: Compass },
+    { id: 'library', label: t('vane.workspace.library'), Icon: BookOpen },
+    { id: 'settings', label: t('vane.workspace.settings'), Icon: Settings },
   ];
   return (
     <RemainingPreview content={content} kind="vane">
@@ -64,23 +63,21 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
         <main className="rp-main vane-main">
           {view === 'settings' ? (
             <section className="rp-page">
-              <h1>{pText('Settings')}</h1>
-              <p>
-                {pText('Choose research preferences and configure Nimi AI in the installed App.')}
-              </p>
+              <h1>{t('vane.page.settings')}</h1>
+              <p>{t('vane.page.chooseResearchPreferencesAndConfigureNimiAi')}</p>
               <label>
-                {pText('Example search mode')}
+                {t('vane.page.exampleSearchMode')}
                 <select value={mode} onChange={(e) => setMode(e.target.value)}>
-                  <option value={'Web'}>{pText('Web')}</option>
-                  <option value={'Academic'}>{pText('Academic')}</option>
-                  <option value={'Writing'}>{pText('Writing')}</option>
+                  <option value="Web">{t('vane.page.web')}</option>
+                  <option value="Academic">{t('vane.page.academic')}</option>
+                  <option value="Writing">{t('vane.page.writing')}</option>
                 </select>
               </label>
             </section>
           ) : view === 'library' ? (
             <section className="rp-page">
-              <h1>{pText('Library')}</h1>
-              <p className="tp-muted">{pText('Saved sample research')}</p>
+              <h1>{t('vane.page.library')}</h1>
+              <p className="tp-muted">{t('vane.page.savedSampleResearch')}</p>
               {saved ? (
                 <button
                   type="button"
@@ -92,119 +89,115 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
                 >
                   <Search size={20} />
                   <span>
-                    {pText('Walking-friendly cities')}
-                    <small>{pText('Saved in this preview')}</small>
+                    {t('vane.page.walkingFriendlyCities')}
+                    <small>{t('vane.page.savedInThisPreview')}</small>
                   </span>
                 </button>
               ) : (
                 <div className="rp-empty">
                   <BookOpen size={32} />
-                  <p>{pText('Save the research example to find it here.')}</p>
+                  <p>{t('vane.page.saveTheResearchExampleToFindIt')}</p>
                   <PreviewButton
                     onClick={() => {
                       setView('home');
                       setAsked(true);
                     }}
                   >
-                    {pText('View example')}
+                    {t('vane.page.viewExample')}
                   </PreviewButton>
                 </div>
               )}
             </section>
           ) : view === 'discover' ? (
             <section className="rp-page">
-              <h1>{pText('Discover')}</h1>
+              <h1>{t('vane.page.discover')}</h1>
               <div className="vane-discover">
-                {['Walking-friendly streets', 'The sound of a city', 'A calmer daily routine'].map(
-                  (x, i) => (
-                    <button
-                      type="button"
-                      key={x}
-                      onClick={() => {
-                        setQuery(
-                          i === 0 ? pText('How can small cities make walking more enjoyable?') : x,
-                        );
-                        setView('home');
-                        setAsked(true);
-                      }}
-                    >
-                      <Globe2 size={24} />
-                      <h2>{pText(x)}</h2>
-                      <span>{pText('Explore saved example')}</span>
-                    </button>
-                  ),
-                )}
+                {[
+                  t('vane.page.walkingFriendlyStreets'),
+                  t('vane.page.theSoundOfACity'),
+                  t('vane.page.aCalmerDailyRoutine'),
+                ].map((x, i) => (
+                  <button
+                    type="button"
+                    key={x}
+                    onClick={() => {
+                      setQuery(i === 0 ? t('vane.page.howCanSmallCitiesMakeWalkingMore') : x);
+                      setView('home');
+                      setAsked(true);
+                    }}
+                  >
+                    <Globe2 size={24} />
+                    <h2>{x}</h2>
+                    <span>{t('vane.page.exploreSavedExample')}</span>
+                  </button>
+                ))}
               </div>
             </section>
           ) : (
             <div className={asked ? 'vane-research' : 'vane-welcome'}>
               {!asked ? (
                 <>
-                  <h1>{pText('Research begins here.')}</h1>
-                  <p>{pText('Follow a question. Explore its sources.')}</p>
+                  <h1>{t('vane.main.researchBeginsHere')}</h1>
+                  <p>{t('vane.main.followAQuestionExploreItsSources')}</p>
                 </>
               ) : (
                 <>
-                  <h1>{pText('Walking-friendly cities')}</h1>
+                  <h1>{t('vane.main.walkingFriendlyCities')}</h1>
                   <div className="vane-answer-tabs">
-                    <span>{pText('Saved research example')}</span>
+                    <span>{t('vane.main.savedResearchExample')}</span>
                     <PreviewButton onClick={() => setSaved(!saved)}>
                       <BookOpen size={15} />
-                      {pText(saved ? 'Saved to library' : 'Save example')}
+                      {saved ? t('vane.main.savedToLibrary') : t('vane.main.saveExample')}
                     </PreviewButton>
                   </div>
                   <h2>
                     <Globe2 size={17} />
-                    {pText('Sources')}
+                    {t('vane.main.sources')}
                   </h2>
                   <div className="vane-sources">
-                    {SOURCES.map((s, i) => (
+                    {createSampleSources(t).map((s, i) => (
                       <button
                         type="button"
                         key={s.title}
                         onClick={() => setSource(source === i ? null : i)}
                       >
                         <span>
-                          {pText(i + 1)} {pText(' · ')}
-                          {pText(s.label)}
+                          {i + 1} {' · '}
+                          {s.label}
                         </span>
-                        <strong>{pText(s.title)}</strong>
+                        <strong>{s.title}</strong>
                         <FileText size={14} />
                       </button>
                     ))}
                   </div>
                   {source !== null && (
                     <section className="vane-source-excerpt">
-                      <h3>{pText(SOURCES[source]!.title)}</h3>
-                      <p>{pText(SOURCES[source]!.text)}</p>
-                      <small>{pText('Illustrative excerpt authored for this preview.')}</small>
+                      <h3>{createSampleSources(t)[source]!.title}</h3>
+                      <p>{createSampleSources(t)[source]!.text}</p>
+                      <small>
+                        {t('vane.sourceExcerpt.illustrativeExcerptAuthoredForThisPreview')}
+                      </small>
                     </section>
                   )}
                   <article className="vane-answer">
-                    <h2>{pText('Make the everyday journey easier')}</h2>
-                    <p>
-                      {pText(
-                        'A comfortable walk combines a connected route with small places to pause. The example sources suggest three practical themes:',
-                      )}
-                    </p>
+                    <h2>{t('vane.main.makeTheEverydayJourneyEasier')}</h2>
+                    <p>{t('vane.main.aComfortableWalkCombinesAConnectedRoute')}</p>
                     <ol>
                       <li>
-                        <strong>{pText('Connect daily destinations.')}</strong>{' '}
-                        {pText(' Start with the routes people already need.')}
+                        <strong>{t('vane.main.connectDailyDestinations')}</strong>{' '}
+                        {t('vane.main.startWithTheRoutesPeopleAlready')}
                       </li>
                       <li>
-                        <strong>{pText('Make crossings predictable.')}</strong>{' '}
-                        {pText(' Clear paths help everyone navigate.')}
+                        <strong>{t('vane.main.makeCrossingsPredictable')}</strong>{' '}
+                        {t('vane.main.clearPathsHelpEveryoneNavigate')}
                       </li>
                       <li>
-                        <strong>{pText('Offer shade and rest.')}</strong>{' '}
-                        {pText(' Trees, benches and shelter make longer walks easier.')}
+                        <strong>{t('vane.main.offerShadeAndRest')}</strong>{' '}
+                        {t('vane.main.treesBenchesAndShelterMakeLonger')}
                       </li>
                     </ol>
                     <p className="tp-muted">
-                      {pText(
-                        'This prewritten answer demonstrates the reading flow; it does not answer newly entered questions.',
-                      )}
+                      {t('vane.main.thisPrewrittenAnswerDemonstratesTheReadingFlow')}
                     </p>
                   </article>
                 </>
@@ -217,8 +210,8 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
                 }}
               >
                 <textarea
-                  aria-label={pText('Research question')}
-                  placeholder={pText('Ask anything…')}
+                  aria-label={t('vane.main.researchQuestion')}
+                  placeholder={t('vane.main.askAnything')}
                   value={query}
                   rows={2}
                   onChange={(e) => {
@@ -227,14 +220,18 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
                 />
                 <div>
                   <PreviewTabs
-                    items={['Web', 'Academic', 'Writing']}
+                    items={[
+                      { value: 'Web', label: t('vane.main.web') },
+                      { value: 'Academic', label: t('vane.main.academic') },
+                      { value: 'Writing', label: t('vane.main.writing') },
+                    ]}
                     value={mode}
                     onChange={setMode}
-                    label={pText('Search focus')}
+                    label={t('vane.main.searchFocus')}
                   />
                   <button
                     type="submit"
-                    aria-label={pText('View saved research example')}
+                    aria-label={t('vane.main.viewSavedResearchExample')}
                     disabled={!query.trim()}
                   >
                     <ArrowUp size={18} />
@@ -244,7 +241,7 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
               {!asked && (
                 <div className="vane-suggestions">
                   <button type="button" onClick={() => setAsked(true)}>
-                    {pText('Explore a saved research example')}
+                    {t('vane.main.exploreASavedResearchExample')}
                     <Compass size={14} />
                   </button>
                 </div>

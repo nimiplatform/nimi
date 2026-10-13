@@ -1,0 +1,71 @@
+/** vane preview copy. Keys identify UI roles and stay stable when copy changes. */
+export const vaneMessagesEn = {
+  'vane.workspace.streetDesignFieldNotes': 'Street design field notes',
+  'vane.workspace.sampleSource1': 'Sample source 1',
+  'vane.workspace.shortCrossingDistancesShadeAndPlacesTo':
+    'Short crossing distances, shade and places to pause help create more comfortable walking routes.',
+  'vane.workspace.aPublicSpaceReadingList': 'A public-space reading list',
+  'vane.workspace.sampleSource2': 'Sample source 2',
+  'vane.workspace.aUsefulWalkingNetworkLinksEverydayDestinations':
+    'A useful walking network links everyday destinations such as shops, schools, parks and public transport.',
+  'vane.workspace.accessForEveryone': 'Access for everyone',
+  'vane.workspace.sampleSource3': 'Sample source 3',
+  'vane.workspace.stepFreeRoutesClearWayfindingAndPredictableCrossings':
+    'Step-free routes, clear wayfinding and predictable crossings help more people use public space.',
+  'vane.workspace.howCanSmallCitiesMakeWalkingMore':
+    'How can small cities make walking more enjoyable?',
+  'vane.workspace.home': 'Home',
+  'vane.workspace.discover': 'Discover',
+  'vane.workspace.library': 'Library',
+  'vane.workspace.settings': 'Settings',
+  'vane.page.settings': 'Settings',
+  'vane.page.chooseResearchPreferencesAndConfigureNimiAi':
+    'Choose research preferences and configure Nimi AI in the installed App.',
+  'vane.page.exampleSearchMode': 'Example search mode',
+  'vane.page.web': 'Web',
+  'vane.page.academic': 'Academic',
+  'vane.page.writing': 'Writing',
+  'vane.page.library': 'Library',
+  'vane.page.savedSampleResearch': 'Saved sample research',
+  'vane.page.walkingFriendlyCities': 'Walking-friendly cities',
+  'vane.page.savedInThisPreview': 'Saved in this preview',
+  'vane.page.saveTheResearchExampleToFindIt': 'Save the research example to find it here.',
+  'vane.page.viewExample': 'View example',
+  'vane.page.discover': 'Discover',
+  'vane.page.walkingFriendlyStreets': 'Walking-friendly streets',
+  'vane.page.theSoundOfACity': 'The sound of a city',
+  'vane.page.aCalmerDailyRoutine': 'A calmer daily routine',
+  'vane.page.howCanSmallCitiesMakeWalkingMore': 'How can small cities make walking more enjoyable?',
+  'vane.page.exploreSavedExample': 'Explore saved example',
+  'vane.main.researchBeginsHere': 'Research begins here.',
+  'vane.main.followAQuestionExploreItsSources': 'Follow a question. Explore its sources.',
+  'vane.main.walkingFriendlyCities': 'Walking-friendly cities',
+  'vane.main.savedResearchExample': 'Saved research example',
+  'vane.main.savedToLibrary': 'Saved to library',
+  'vane.main.saveExample': 'Save example',
+  'vane.main.sources': 'Sources',
+  'vane.sourceExcerpt.illustrativeExcerptAuthoredForThisPreview':
+    'Illustrative excerpt authored for this preview.',
+  'vane.main.makeTheEverydayJourneyEasier': 'Make the everyday journey easier',
+  'vane.main.aComfortableWalkCombinesAConnectedRoute':
+    'A comfortable walk combines a connected route with small places to pause. The example sources suggest three practical themes:',
+  'vane.main.connectDailyDestinations': 'Connect daily destinations.',
+  'vane.main.startWithTheRoutesPeopleAlready': ' Start with the routes people already need.',
+  'vane.main.makeCrossingsPredictable': 'Make crossings predictable.',
+  'vane.main.clearPathsHelpEveryoneNavigate': ' Clear paths help everyone navigate.',
+  'vane.main.offerShadeAndRest': 'Offer shade and rest.',
+  'vane.main.treesBenchesAndShelterMakeLonger':
+    ' Trees, benches and shelter make longer walks easier.',
+  'vane.main.thisPrewrittenAnswerDemonstratesTheReadingFlow':
+    'This prewritten answer demonstrates the reading flow; it does not answer newly entered questions.',
+  'vane.main.researchQuestion': 'Research question',
+  'vane.main.askAnything': 'Ask anything…',
+  'vane.main.web': 'Web',
+  'vane.main.academic': 'Academic',
+  'vane.main.writing': 'Writing',
+  'vane.main.searchFocus': 'Search focus',
+  'vane.main.viewSavedResearchExample': 'View saved research example',
+  'vane.main.exploreASavedResearchExample': 'Explore a saved research example',
+  'vane.preview.notice':
+    'Static product preview · a saved research example with illustrative sources. No web search or AI request is sent.',
+} as const;

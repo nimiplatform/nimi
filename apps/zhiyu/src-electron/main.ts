@@ -45,10 +45,10 @@ let resourcePackPlacementHost: ZhiyuElectronResourcePackPlacementHost | undefine
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 
-app.setName('织羽 Zhiyu');
+app.setName('织羽');
 const applicationMenu = Menu.buildFromTemplate(
   createNimiElectronStandardApplicationMenuTemplate({
-    appName: '织羽 Zhiyu',
+    appName: '织羽',
   }),
 );
 Menu.setApplicationMenu(applicationMenu);
@@ -151,7 +151,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     minWidth: 360,
     minHeight: 720,
     icon: windowIconPath,
-    title: '织羽 Zhiyu',
+    title: '织羽',
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,

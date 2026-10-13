@@ -23,24 +23,23 @@ import {
 
 /** DeepTutor's warm-paper learning workspace, capability chooser, reading and mastery views. */
 export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [view, setView] = useState('home');
   const [mode, setMode] = useState('Chat');
   const [question, setQuestion] = useState(() =>
-    pData('How does a Fourier transform describe sound?'),
+    t('deeptutor.workspace.howDoesAFourierTransformDescribeSound'),
   );
   const [asked, setAsked] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const [answer, setAnswer] = useState<string | null>(null);
   const nav = [
-    { id: 'home', label: 'Home', Icon: House },
-    { id: 'reading', label: 'Immersive Reading', Icon: BookOpen },
-    { id: 'mastery', label: 'Mastery Path', Icon: Route },
-    { id: 'space', label: 'Learning Space', Icon: Library },
-    { id: 'settings', label: 'Settings', Icon: Settings },
+    { id: 'home', label: t('deeptutor.workspace.home'), Icon: House },
+    { id: 'reading', label: t('deeptutor.workspace.immersiveReading'), Icon: BookOpen },
+    { id: 'mastery', label: t('deeptutor.workspace.masteryPath'), Icon: Route },
+    { id: 'space', label: t('deeptutor.workspace.learningSpace'), Icon: Library },
+    { id: 'settings', label: t('deeptutor.workspace.settings'), Icon: Settings },
   ];
-  const explanation =
-    'A sound signal changes over time. A Fourier transform describes it in terms of frequencies: which tones are present, how strong they are, and their phase. A pure tone gives one prominent frequency; a chord combines several.';
+  const explanation = t('deeptutor.workspace.aSoundSignalChangesOverTimeA');
   return (
     <RemainingPreview content={content} kind="deeptutor">
       <div className="rp-shell">
@@ -51,7 +50,7 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
           onSelect={setView}
           footer={
             <>
-              <span>{pText('Recent sessions')}</span>
+              <span>{t('deeptutor.workspace.recentSessions')}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -59,9 +58,9 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
                   setAsked(true);
                 }}
               >
-                {pText('Understanding sound')}
+                {t('deeptutor.workspace.understandingSound')}
               </button>
-              <small>{pText('Sample learning workspace')}</small>
+              <small>{t('deeptutor.workspace.sampleLearningWorkspace')}</small>
             </>
           }
         />
@@ -71,45 +70,49 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
               <header className="dt-topline">
                 <span>
                   <GraduationCap size={17} />
-                  {pText('Learning, one question at a time')}
+                  {t('deeptutor.topline.learningOneQuestionAtATime')}
                 </span>
-                <span className="rp-badge">{pText('Sample session')}</span>
+                <span className="rp-badge">{t('deeptutor.topline.sampleSession')}</span>
               </header>
               {!asked ? (
                 <div className="dt-welcome">
                   <GraduationCap size={42} />
-                  <h1>{pText('What would you like to learn?')}</h1>
-                  <p>{pText('Bring a question, a document, or a little curiosity.')}</p>
+                  <h1>{t('deeptutor.main.whatWouldYouLikeToLearn')}</h1>
+                  <p>{t('deeptutor.main.bringAQuestionADocumentOrA')}</p>
                   <div className="dt-starters">
-                    {['Understand a concept', 'Work through a problem', 'Explore a reading'].map(
-                      (x) => (
-                        <button
-                          type="button"
-                          key={x}
-                          onClick={() => {
-                            setQuestion(
-                              x === pText('Work through a problem')
-                                ? pText('How do I find the derivative of x squared?')
-                                : pText('How does a Fourier transform describe sound?'),
-                            );
-                            setMode(x === 'Work through a problem' ? 'Deep Solve' : 'Chat');
-                          }}
-                        >
-                          {pText(x)}
-                        </button>
-                      ),
-                    )}
+                    {[
+                      t('deeptutor.main.understandAConcept'),
+                      'Work through a problem',
+                      t('deeptutor.main.exploreAReading'),
+                    ].map((x) => (
+                      <button
+                        type="button"
+                        key={x}
+                        onClick={() => {
+                          setQuestion(
+                            x === 'Work through a problem'
+                              ? t('deeptutor.main.howDoIFindTheDerivativeOf')
+                              : t('deeptutor.main.howDoesAFourierTransformDescribeSound'),
+                          );
+                          setMode(x === 'Work through a problem' ? 'Deep Solve' : 'Chat');
+                        }}
+                      >
+                        {x === 'Work through a problem' ? t('deeptutor.home.solveProblem') : x}
+                      </button>
+                    ))}
                   </div>
                 </div>
               ) : (
                 <article className="dt-answer">
-                  <div className="dt-question">{pText('Saved lesson: understanding sound')}</div>
-                  <h2>{pText('A different way to look at a signal')}</h2>
-                  <p>{pText(explanation)}</p>
+                  <div className="dt-question">
+                    {t('deeptutor.main.savedLessonUnderstandingSound')}
+                  </div>
+                  <h2>{t('deeptutor.main.aDifferentWayToLookAtA')}</h2>
+                  <p>{explanation}</p>
                   <div
                     className="dt-frequency"
                     role="img"
-                    aria-label={pText('Illustrative frequency spectrum')}
+                    aria-label={t('deeptutor.main.illustrativeFrequencySpectrum')}
                   >
                     <i style={{ height: '28%' }} />
                     <i style={{ height: '80%' }} />
@@ -119,17 +122,15 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
                   </div>
                   <div className="dt-study-steps">
                     <p>
-                      <strong>{pText('Time domain')}</strong>{' '}
-                      {pText(' — watch the waveform change.')}
+                      <strong>{t('deeptutor.main.timeDomain')}</strong>{' '}
+                      {t('deeptutor.main.watchTheWaveformChange')}
                     </p>
                     <p>
-                      <strong>{pText('Frequency domain')}</strong>{' '}
-                      {pText(' — inspect the tones that make it up.')}
+                      <strong>{t('deeptutor.main.frequencyDomain')}</strong>{' '}
+                      {t('deeptutor.main.inspectTheTonesThatMake')}
                     </p>
                   </div>
-                  <small>
-                    {pText('Prewritten lesson example; your input is not sent to a model.')}
-                  </small>
+                  <small>{t('deeptutor.main.prewrittenLessonExampleYourInputIsNot')}</small>
                   <PreviewButton
                     onClick={() => {
                       setNotes((v) => (v.includes(explanation) ? v : [...v, explanation]));
@@ -137,16 +138,21 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
                     }}
                   >
                     <NotebookPen size={15} />
-                    {pText('Save example to notebook')}
+                    {t('deeptutor.main.saveExampleToNotebook')}
                   </PreviewButton>
                 </article>
               )}
               <div className="dt-composer">
                 <PreviewTabs
-                  items={['Chat', 'Deep Solve', 'Research', 'Quiz']}
+                  items={[
+                    { value: 'Chat', label: t('deeptutor.main.chat') },
+                    { value: 'Deep Solve', label: t('deeptutor.main.deepSolve') },
+                    { value: 'Research', label: t('deeptutor.main.research') },
+                    { value: 'Quiz', label: t('deeptutor.tabs.quiz') },
+                  ]}
                   value={mode}
                   onChange={setMode}
-                  label={pText('Learning mode')}
+                  label={t('deeptutor.main.learningMode')}
                 />
                 <form
                   onSubmit={(e) => {
@@ -156,17 +162,17 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
                   }}
                 >
                   <textarea
-                    aria-label={pText('Learning question')}
+                    aria-label={t('deeptutor.main.learningQuestion')}
                     value={question}
                     rows={2}
                     onChange={(e) => {
                       setQuestion(e.target.value);
                     }}
-                    placeholder={pText('Ask a question…')}
+                    placeholder={t('deeptutor.main.askAQuestion')}
                   />
                   <button
                     type="submit"
-                    aria-label={pText('Open saved lesson')}
+                    aria-label={t('deeptutor.main.openSavedLesson')}
                     disabled={!question.trim()}
                   >
                     <ArrowUp size={19} />
@@ -174,39 +180,33 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
                 </form>
                 <div>
                   <FileText size={14} />
-                  {pText('Signals and sound · sample source')}
+                  {t('deeptutor.main.signalsAndSoundSampleSource')}
                 </div>
               </div>
             </>
           ) : view === 'reading' ? (
             <>
               <PreviewHeading
-                title={pText('Immersive Reading')}
-                description={pText('Read a source with a question in mind.')}
+                title={t('deeptutor.main.immersiveReading')}
+                description={t('deeptutor.main.readASourceWithAQuestionIn')}
               />
               <div className="dt-reading">
                 <article>
-                  <span>{pText('Sample document · 1 / 3')}</span>
-                  <h2>{pText('Listening to the shape of sound')}</h2>
-                  <p>{pText(explanation)}</p>
-                  <p>
-                    {pText(
-                      'The same signal can be represented in time or frequency. Each view answers a different question.',
-                    )}
-                  </p>
+                  <span>{t('deeptutor.main.sampleDocument13')}</span>
+                  <h2>{t('deeptutor.main.listeningToTheShapeOfSound')}</h2>
+                  <p>{explanation}</p>
+                  <p>{t('deeptutor.main.theSameSignalCanBeRepresentedIn')}</p>
                 </article>
                 <aside>
-                  <h3>{pText('Reading companion')}</h3>
-                  <p>
-                    {pText('What changes when you switch from a waveform to a frequency spectrum?')}
-                  </p>
+                  <h3>{t('deeptutor.main.readingCompanion')}</h3>
+                  <p>{t('deeptutor.main.whatChangesWhenYouSwitchFromA')}</p>
                   <PreviewButton
                     onClick={() => {
                       setView('home');
                       setAsked(true);
                     }}
                   >
-                    {pText('Explore this concept')}
+                    {t('deeptutor.main.exploreThisConcept')}
                   </PreviewButton>
                 </aside>
               </div>
@@ -214,27 +214,29 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
           ) : view === 'mastery' ? (
             <>
               <PreviewHeading
-                title={pText('Mastery Path')}
-                description={pText('Build understanding through small, connected steps.')}
+                title={t('deeptutor.main.masteryPath')}
+                description={t('deeptutor.main.buildUnderstandingThroughSmallConnectedSteps')}
               />
               <div className="dt-path">
-                {['Signals in time', 'Frequency and amplitude', 'Combining simple waves'].map(
-                  (x, i) => (
-                    <div key={x}>
-                      <span>{i === 0 ? <Check size={16} /> : i + 1}</span>
-                      <h3>{pText(x)}</h3>
-                      <small>{pText('Sample lesson')}</small>
-                    </div>
-                  ),
-                )}
+                {[
+                  t('deeptutor.main.signalsInTime'),
+                  t('deeptutor.main.frequencyAndAmplitude'),
+                  t('deeptutor.main.combiningSimpleWaves'),
+                ].map((x, i) => (
+                  <div key={x}>
+                    <span>{i === 0 ? <Check size={16} /> : i + 1}</span>
+                    <h3>{x}</h3>
+                    <small>{t('deeptutor.main.sampleLesson')}</small>
+                  </div>
+                ))}
               </div>
               <section className="dt-quiz">
-                <h2>{pText('Check your understanding')}</h2>
-                <p>{pText('What does a frequency spectrum help you see?')}</p>
+                <h2>{t('deeptutor.quiz.checkYourUnderstanding')}</h2>
+                <p>{t('deeptutor.quiz.whatDoesAFrequencySpectrumHelpYou')}</p>
                 {[
                   'The tones present in a signal',
-                  'Only the length of a recording',
-                  'The name of the speaker',
+                  t('deeptutor.quiz.onlyTheLengthOfARecording'),
+                  t('deeptutor.quiz.theNameOfTheSpeaker'),
                 ].map((x) => (
                   <button
                     type="button"
@@ -242,16 +244,14 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
                     key={x}
                     onClick={() => setAnswer(x)}
                   >
-                    {pText(x)}
+                    {x}
                   </button>
                 ))}
                 {answer && (
                   <p role="status">
-                    {pText(
-                      answer === 'The tones present in a signal'
-                        ? 'Correct — it shows frequency content.'
-                        : 'Try again. Think about which tones make up the sound.',
-                    )}
+                    {answer === 'The tones present in a signal'
+                      ? t('deeptutor.quiz.correctItShowsFrequencyContent')
+                      : t('deeptutor.quiz.tryAgainThinkAboutWhichTonesMake')}
                   </p>
                 )}
               </section>
@@ -259,29 +259,29 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
           ) : view === 'space' ? (
             <>
               <PreviewHeading
-                title={pText('Learning Space')}
-                description={pText('Keep the sources and notes that help an idea stay with you.')}
+                title={t('deeptutor.main.learningSpace')}
+                description={t('deeptutor.main.keepTheSourcesAndNotesThatHelp')}
               />
               <div className="dt-space">
                 <section>
                   <h2>
                     <FileText size={18} />
-                    {pText('Sources')}
+                    {t('deeptutor.main.sources')}
                   </h2>
-                  <p>{pText('Signals and sound · Sample document')}</p>
+                  <p>{t('deeptutor.main.signalsAndSoundSampleDocument')}</p>
                   <PreviewButton onClick={() => setView('reading')}>
-                    {pText('Read source')}
+                    {t('deeptutor.main.readSource')}
                   </PreviewButton>
                 </section>
                 <section>
                   <h2>
                     <NotebookPen size={18} />
-                    {pText('Notebook')}
+                    {t('deeptutor.main.notebook')}
                   </h2>
                   {notes.length ? (
-                    notes.map((n, i) => <p key={i}>{pText(n)}</p>)
+                    notes.map((n, i) => <p key={i}>{n}</p>)
                   ) : (
-                    <p>{pText('No notes yet. Save the example explanation from a lesson.')}</p>
+                    <p>{t('deeptutor.main.noNotesYetSaveTheExampleExplanation')}</p>
                   )}
                 </section>
               </div>
@@ -289,16 +289,14 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
           ) : (
             <>
               <PreviewHeading
-                title={pText('Settings')}
-                description={pText(
-                  'The installed App manages learning preferences and Nimi AI configuration here.',
-                )}
+                title={t('deeptutor.main.settings')}
+                description={t('deeptutor.main.theInstalledAppManagesLearningPreferencesAnd')}
               />
               <label>
-                {pText('Example response style')}
+                {t('deeptutor.main.exampleResponseStyle')}
                 <select defaultValue="Step by step">
-                  <option value={'Step by step'}>{pText('Step by step')}</option>
-                  <option value={'Concise'}>{pText('Concise')}</option>
+                  <option value="Step by step">{t('deeptutor.main.stepByStep')}</option>
+                  <option value="Concise">{t('deeptutor.main.concise')}</option>
                 </select>
               </label>
             </>

@@ -100,9 +100,9 @@ function fill(template: string, count: number): string {
 }
 
 export function DemoShijingAsk({ content }: { content: AskContent }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [question, setQuestion] = useState(() => pData(''));
-  const [search, setSearch] = useState(() => pData(''));
+  const { t } = useAppPreviewLocale();
+  const [question, setQuestion] = useState(() => '');
+  const [search, setSearch] = useState(() => '');
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterConcerns, setFilterConcerns] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -262,9 +262,9 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
       className="shijing-ask__composer"
       data-chat-composer={chatActive ? 'true' : 'false'}
       onSubmit={handleSubmit}
-      aria-label={pText(content.composerAria)}
+      aria-label={content.composerAria}
     >
-      <h2 className="shijing-ask__composer-title">{pText(content.composerTitle)}</h2>
+      <h2 className="shijing-ask__composer-title">{content.composerTitle}</h2>
       <textarea
         ref={composerRef}
         className="shijing-ask__textarea"
@@ -274,30 +274,30 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
           setQuestion(event.currentTarget.value);
         }}
         onKeyDown={handleKeyDown}
-        placeholder={pText(chatActive ? '' : content.placeholderLines.join('\n'))}
-        aria-label={pText(content.questionAria)}
+        placeholder={chatActive ? '' : content.placeholderLines.join('\n')}
+        aria-label={content.questionAria}
       />
       <div className="shijing-ask__toolbar">
         {chatActive ? null : (
-          <section className="shijing-ctx" aria-label={pText(content.contextTitle)}>
+          <section className="shijing-ctx" aria-label={content.contextTitle}>
             <div className="shijing-ctx__lead">
               <span className="shijing-ctx__icon" aria-hidden="true">
-                {pText('✦')}
+                {'✦'}
               </span>
               <div className="shijing-ctx__text">
-                <p className="shijing-ctx__title">{pText(content.contextTitle)}</p>
-                <p className="shijing-ctx__desc">{pText(content.contextDescription)}</p>
+                <p className="shijing-ctx__title">{content.contextTitle}</p>
+                <p className="shijing-ctx__desc">{content.contextDescription}</p>
               </div>
             </div>
             <div className="shijing-ctx__focus">
               <ul className="shijing-ctx__chips">
                 {content.concerns.length === 0 ? (
-                  <li className="shijing-ctx__empty">{pText(content.contextEmpty)}</li>
+                  <li className="shijing-ctx__empty">{content.contextEmpty}</li>
                 ) : (
                   content.concerns.map((concern) => (
                     <li key={concern} className="shijing-ctx__chip">
-                      {pText('#')}
-                      {pText(concern)}
+                      {'#'}
+                      {concern}
                     </li>
                   ))
                 )}
@@ -309,8 +309,8 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                   aria-haspopup="dialog"
                   aria-expanded={false}
                 >
-                  {pText('✎ ')}
-                  {pText(content.contextManage)}
+                  {'✎ '}
+                  {content.contextManage}
                 </button>
               </span>
             </div>
@@ -324,7 +324,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
               disabled={!canAsk}
               aria-busy={pending || undefined}
               data-busy={pending ? 'true' : 'false'}
-              title={pText(submitTitle)}
+              title={submitTitle}
             >
               {pending ? (
                 <span className="shijing-generating-button__spinner" aria-hidden="true" />
@@ -334,7 +334,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                 </span>
               )}
               <span className="shijing-generating-button__label shijing-ask__submit-text">
-                {pText(submitLabel)}
+                {submitLabel}
               </span>
             </button>
           </div>
@@ -344,7 +344,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   );
 
   const result = chatActive ? (
-    <article className="shijing-ask__result" aria-label={pText(content.resultAria)}>
+    <article className="shijing-ask__result" aria-label={content.resultAria}>
       <ol className="shijing-ask__thread">
         {thread.map((turn) => (
           <li
@@ -354,7 +354,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
             data-pending={turn.pending ? 'true' : undefined}
           >
             <span className="shijing-ask__turn-role">
-              {pText(turn.role === 'user' ? content.roleUser : content.roleAi)}
+              {turn.role === 'user' ? content.roleUser : content.roleAi}
             </span>
             <div className="shijing-ask__turn-body" aria-live={turn.pending ? 'polite' : undefined}>
               {turn.pending ? (
@@ -364,53 +364,51 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                     <span />
                     <span />
                   </span>
-                  <span>{pText(content.thinking)}</span>
+                  <span>{content.thinking}</span>
                 </>
               ) : turn.role === 'ai' ? (
                 turn.followUp ? (
                   <div className="shijing-ask__answer shijing-ask__answer--plain">
                     {content.followUpAnswer.map((paragraph) => (
-                      <p key={paragraph}>{pText(paragraph)}</p>
+                      <p key={paragraph}>{paragraph}</p>
                     ))}
                   </div>
                 ) : (
                   <div className="shijing-ask__answer">
-                    <h3 className="shijing-ask__answer-title">{pText(content.answer.title)}</h3>
-                    <p className="shijing-ask__answer-conclusion">
-                      {pText(content.answer.conclusion)}
-                    </p>
+                    <h3 className="shijing-ask__answer-title">{content.answer.title}</h3>
+                    <p className="shijing-ask__answer-conclusion">{content.answer.conclusion}</p>
                     <div className="shijing-ask__answer-cards">
                       {content.answer.cards.map((card) => (
                         <article key={card.title} className="shijing-ask__answer-card">
-                          <h4 className="shijing-ask__answer-card-title">{pText(card.title)}</h4>
+                          <h4 className="shijing-ask__answer-card-title">{card.title}</h4>
                           <p className="shijing-ask__answer-risk" data-risk={card.risk}>
                             <span className="shijing-ask__answer-field-label">
-                              {pText(content.fields.riskLevel)}
+                              {content.fields.riskLevel}
                             </span>
-                            <span>{pText(card.risk)}</span>
+                            <span>{card.risk}</span>
                           </p>
                           <p className="shijing-ask__answer-field">
                             <span className="shijing-ask__answer-field-label">
-                              {pText(content.fields.why)}
+                              {content.fields.why}
                             </span>
-                            <span>{pText(card.why)}</span>
+                            <span>{card.why}</span>
                           </p>
                           <p className="shijing-ask__answer-field">
                             <span className="shijing-ask__answer-field-label">
-                              {pText(content.fields.suggestion)}
+                              {content.fields.suggestion}
                             </span>
-                            <span>{pText(card.suggestion)}</span>
+                            <span>{card.suggestion}</span>
                           </p>
                           <p className="shijing-ask__answer-field">
                             <span className="shijing-ask__answer-field-label">
-                              {pText(content.fields.avoid)}
+                              {content.fields.avoid}
                             </span>
-                            <span>{pText(card.avoid)}</span>
+                            <span>{card.avoid}</span>
                           </p>
                         </article>
                       ))}
                     </div>
-                    <p className="shijing-ask__answer-summary">{pText(content.answer.summary)}</p>
+                    <p className="shijing-ask__answer-summary">{content.answer.summary}</p>
                   </div>
                 )
               ) : (
@@ -419,7 +417,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
             </div>
             {turn.role === 'ai' && !turn.pending && !turn.followUp ? (
               <small className="shijing-ask__turn-cite">
-                {pText(fill(content.citedFormat, content.answer.cited))}
+                {fill(content.citedFormat, content.answer.cited)}
               </small>
             ) : null}
           </li>
@@ -432,20 +430,20 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
     <section
       className="shijing-tab shijing-shijing shijing-ask"
       data-mirror-kind="shijing"
-      aria-label={pText(content.title)}
+      aria-label={content.title}
     >
       <div className="shijing-ask__layout">
-        <aside className="shijing-ask__rail" aria-label={pText(content.railAria)}>
+        <aside className="shijing-ask__rail" aria-label={content.railAria}>
           <div className="shijing-ask__rail-head">
             <button
               type="button"
               className="shijing-ask__new-question"
-              aria-label={pText(content.newQuestionAria)}
+              aria-label={content.newQuestionAria}
               aria-current={drafting && selected === null ? 'true' : undefined}
               onClick={startNewQuestion}
             >
-              <span aria-hidden="true">{pText('+')}</span>
-              {pText(content.newQuestion)}
+              <span aria-hidden="true">{'+'}</span>
+              {content.newQuestion}
             </button>
             <div className="shijing-ask__search">
               <div className="shijing-ask__search-row">
@@ -457,16 +455,16 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                     onChange={(event) => {
                       setSearch(event.currentTarget.value);
                     }}
-                    placeholder={pText(content.searchPlaceholder)}
-                    aria-label={pText(content.searchPlaceholder)}
+                    placeholder={content.searchPlaceholder}
+                    aria-label={content.searchPlaceholder}
                   />
                 </div>
                 <span className="shijing-ask__filter" ref={filterRef}>
                   <button
                     type="button"
                     className="shijing-ask__filter-button"
-                    aria-label={pText(filterLabel)}
-                    title={pText(filterLabel)}
+                    aria-label={filterLabel}
+                    title={filterLabel}
                     aria-expanded={filterOpen}
                     aria-haspopup="menu"
                     data-active={filterConcerns.length > 0 ? 'true' : 'false'}
@@ -478,7 +476,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                     <div
                       className="shijing-ask__filter-menu"
                       role="menu"
-                      aria-label={pText(content.filterMenuAria)}
+                      aria-label={content.filterMenuAria}
                     >
                       <button
                         type="button"
@@ -487,7 +485,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                         aria-checked={filterConcerns.length === 0}
                         onClick={() => setFilterConcerns([])}
                       >
-                        <span>{pText(content.filterAll)}</span>
+                        <span>{content.filterAll}</span>
                       </button>
                       {content.concerns.map((concern) => (
                         <button
@@ -504,7 +502,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                             )
                           }
                         >
-                          <span>{pText(concern)}</span>
+                          <span>{concern}</span>
                         </button>
                       ))}
                     </div>
@@ -517,18 +515,18 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
           {groups.length === 0 ? (
             <div className="shijing-ask__rail-empty">
               <span className="shijing-ask__rail-empty-icon" aria-hidden="true">
-                {pText('✎')}
+                {'✎'}
               </span>
               <p className="shijing-ask__rail-empty-title">
-                {pText(sessions.length === 0 ? content.railEmptyTitle : content.emptySearch)}
+                {sessions.length === 0 ? content.railEmptyTitle : content.emptySearch}
               </p>
-              <p className="shijing-ask__rail-empty-desc">{pText(content.railEmptyBody)}</p>
+              <p className="shijing-ask__rail-empty-desc">{content.railEmptyBody}</p>
             </div>
           ) : (
             <div className="shijing-ask__sessions">
               {groups.map((group) => (
                 <div key={group.group} className="shijing-ask__session-group">
-                  <p className="shijing-ask__session-group-label">{pText(group.label)}</p>
+                  <p className="shijing-ask__session-group-label">{group.label}</p>
                   <ul>
                     {group.items.map((entry) => (
                       <li key={entry.id}>
@@ -538,8 +536,8 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                           aria-current={chatActive && selected === entry.id ? 'true' : undefined}
                           onClick={() => selectSession(entry.id)}
                         >
-                          <span className="shijing-ask__session-q">{pText(entry.question)}</span>
-                          <span className="shijing-ask__session-time">{pText(entry.date)}</span>
+                          <span className="shijing-ask__session-q">{entry.question}</span>
+                          <span className="shijing-ask__session-time">{entry.date}</span>
                         </button>
                       </li>
                     ))}
@@ -553,27 +551,27 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
         <div className="shijing-ask__main" data-chat-active={chatActive ? 'true' : 'false'}>
           {chatActive ? (
             <>
-              {pText(result)}
-              {pText(composer)}
+              {result}
+              {composer}
             </>
           ) : (
             <div className="shijing-ask__welcome">
               <header className="shijing-ask__hero">
                 <h1 className="shijing-ask__title">
-                  {pText(content.title)}
+                  {content.title}
                   <span className="shijing-ask__title-dot" aria-hidden="true" />
                 </h1>
-                <p className="shijing-ask__subtitle">{pText(content.subtitle)}</p>
+                <p className="shijing-ask__subtitle">{content.subtitle}</p>
                 <span className="shijing-ask__hero-rule" aria-hidden="true" />
               </header>
-              {pText(composer)}
+              {composer}
               {recall.length > 0 ? (
-                <section className="shijing-recall" aria-label={pText(content.recallAria)}>
+                <section className="shijing-recall" aria-label={content.recallAria}>
                   <div className="shijing-recall__lead">
                     <span className="shijing-recall__icon" aria-hidden="true">
-                      {pText('+')}
+                      {'+'}
                     </span>
-                    <span className="shijing-recall__title">{pText(content.recallTitle)}</span>
+                    <span className="shijing-recall__title">{content.recallTitle}</span>
                   </div>
                   <ul className="shijing-recall__list">
                     {recall.map((entry) => (
@@ -583,11 +581,9 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                           className="shijing-recall__item"
                           onClick={() => selectSession(entry.id)}
                         >
-                          <span className="shijing-recall__question">{pText(entry.question)}</span>
+                          <span className="shijing-recall__question">{entry.question}</span>
                           <span className="shijing-recall__meta">
-                            {pText(
-                              entry.concerns.length > 0 ? entry.concerns.join(' / ') : entry.date,
-                            )}
+                            {entry.concerns.length > 0 ? entry.concerns.join(' / ') : entry.date}
                           </span>
                         </button>
                       </li>

@@ -1,0 +1,71 @@
+/** realmWorld preview copy. Keys identify UI roles and stay stable when copy changes. */
+export const realmWorldMessagesZh = {
+  'realmWorld.workspace.betweenTheTides': '潮汐之间',
+  'realmWorld.workspace.harborEverydayLifeGentleFantasy': '海港 · 日常 · 轻奇幻',
+  'realmWorld.workspace.aSmallTownBreathingWithTheTides':
+    '一座与潮汐一起呼吸的小城。灯塔、旧书店和每周到港的渡轮，连接着居民各自的故事。',
+  'realmWorld.workspace.lighthouseKeeper': '灯塔守望者',
+  'realmWorld.workspace.lightsTheLighthouseEveryEveningAndListens':
+    '每天黄昏点亮灯塔，也倾听来往旅人的故事。',
+  'realmWorld.workspace.glassGarden': '玻璃花园',
+  'realmWorld.workspace.natureGrowthComfort': '自然 · 成长 · 治愈',
+  'realmWorld.workspace.allFourSeasonsStayInOneGarden':
+    '四季同时停留在一座花园里。来访者沿着自己的小径，遇见不同季节的朋友。',
+  'realmWorld.workspace.fourSeasonGardener': '四季园丁',
+  'realmWorld.workspace.tendsEveryPathAndHelpsVisitorsDiscover':
+    '照看每一条小径，陪伴来访者发现属于自己的季节。',
+  'realmWorld.workspace.aSeasideTownWhereEveryResidentKeeps':
+    '一座靠海的小城，每个居民都收藏着一个与潮汐有关的故事。',
+  'realmWorld.workspace.worldLibrary': '世界库',
+  'realmWorld.workspace.newWorld': '新建世界',
+  'realmWorld.workspace.newWorldDraft': '新的世界草稿',
+  'realmWorld.workspace.waitingForDetails': '等待补充',
+  'realmWorld.workspace.sampleCreatorSpace': '示例创作者空间',
+  'realmWorld.main.backToWorldLibrary': '返回世界库',
+  'realmWorld.main.sampleWorldCover': '示例世界封面',
+  'realmWorld.main.sampleDraft': '示例草稿',
+  'realmWorld.main.sampleDraftKept': '示例草稿已保留',
+  'realmWorld.main.saveSampleDraft': '保存示例草稿',
+  'realmWorld.main.placesAndRelationships': '地点与关系',
+  'realmWorld.main.worldEditingArea': '世界编辑区域',
+  'realmWorld.main.worldName': '世界名称',
+  'realmWorld.main.genreAndThemes': '类型与主题',
+  'realmWorld.main.worldOverview': '世界概述',
+  'realmWorld.main.sampleWorldRules': '世界规则示例',
+  'realmWorld.main.theTownSBellsChangeWithTheTides':
+    '小城的钟声随着潮汐而变化。居民可以远行，但每年会在同一天回到码头。',
+  'realmWorld.character.maintainCharacterSettings': '维护角色设定',
+  'realmWorld.character.characterName': '角色名称',
+  'realmWorld.character.characterRoleAndStory': '角色职责与故事',
+  'realmWorld.character.theseAreCharacterSettingsWithinASample':
+    '这是示例世界中的角色设定，不会创建对话或本地 AI。',
+  'realmWorld.locations.lighthouse': '灯塔',
+  'realmWorld.locations.sampleCharacter': '示例角色',
+  'realmWorld.locations.worksHereWhereTheTownSConnection': '在这里工作，也是小城与远方联系的起点。',
+  'realmWorld.locations.dock': '码头',
+  'realmWorld.locations.ferriesBringNewStoriesResidentsMeetAgain':
+    '渡轮带来新的故事，居民在这里迎来重逢与告别。',
+  'realmWorld.locations.lighthouseKeeper': '灯塔守望者 ',
+  'realmWorld.locations.looksAfter': '照看 ',
+  'realmWorld.locations.oldHarborLighthouse': '旧港灯塔',
+  'realmWorld.main.startWithAnIdea': '从一个想法开始',
+  'realmWorld.main.creativeDrafts': '创作草稿',
+  'realmWorld.main.yourWorldUnfoldingYourWay': '你的世界，由你展开。',
+  'realmWorld.main.buildSettingsAndCharactersAndOrganizeImagination':
+    '构建设定、塑造角色，把想象整理成一个可以继续生长的世界。',
+  'realmWorld.idea.whatKindOfWorldWouldYouLike': '你想创造怎样的世界？',
+  'realmWorld.idea.worldIdea': '世界灵感',
+  'realmWorld.idea.startWithAnIdeaSampleDraft': '从一句灵感开始 · 示例草稿',
+  'realmWorld.idea.exploreThisIdea': '探索这个想法',
+  'realmWorld.main.worldLibrary': '世界库',
+  'realmWorld.main.worldCollection': '世界集合',
+  'realmWorld.main.searchWorlds': '搜索世界',
+  'realmWorld.main.searchWorlds2': '搜索世界…',
+  'realmWorld.main.noMatchingSampleWorlds': '没有匹配的示例世界。',
+  'realmWorld.tabs.worldSetting': '世界设定',
+  'realmWorld.tabs.character': '角色',
+  'realmWorld.tabs.drafts': '草稿',
+  'realmWorld.navigation.drafts': '草稿',
+  'realmWorld.preview.notice':
+    '静态产品预览 · 世界与角色设定均为示例，编辑仅在本次预览中保留，不写入 Realm。',
+} as const;

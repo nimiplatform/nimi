@@ -22,15 +22,24 @@ type PreviewNote = { title: string; time: string; duration: string; text: string
 
 /** Replica of OpenWhispr's ControlPanelSidebar, dictation history, note editor and chat. */
 export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewContent }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
-  const [view, setView] = useState('首页');
-  const [query, setQuery] = useState(() => pData(''));
+  const { previewLang, t } = useAppPreviewLocale();
+  const navigationLabels: Record<string, string> = {
+    home: content.navigation[0],
+    statistics: content.navigation[1],
+    chat: content.navigation[2],
+    notes: content.navigation[3],
+    uploads: content.navigation[4],
+    dictionary: content.navigation[5],
+    settings: content.navigation[6],
+  };
+  const [view, setView] = useState('home');
+  const [query, setQuery] = useState(() => '');
   const [selected, setSelected] = useState(0);
-  const [notes, setNotes] = useState<PreviewNote[]>(() => pData([...content.notes]));
-  const [prompt, setPrompt] = useState<string>(() => pData(content.chatPrompt));
+  const [notes, setNotes] = useState<PreviewNote[]>(() => [...content.notes]);
+  const [prompt, setPrompt] = useState<string>(() => content.chatPrompt);
   const [sentPrompt, setSentPrompt] = useState<string | null>(null);
   const [raw, setRaw] = useState(false);
-  const [dictionary, setDictionary] = useState(() => pData('OpenWhispr\nNimi'));
+  const [dictionary, setDictionary] = useState(() => t('openwhispr.workspace.openWhisprNimi'));
   const note = notes[selected]!;
   const updateNote = (patch: Partial<PreviewNote>) =>
     setNotes((previous) =>
@@ -38,49 +47,52 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
     );
   const openNote = (index: number) => {
     setSelected(index);
-    setView('笔记');
+    setView('notes');
   };
   return (
     <div className="tp-preview openwhispr-preview" data-demo-openwhispr-root lang={previewLang}>
       <div className="ow-layout">
         <aside className="ow-sidebar">
           <div className="ow-brand">
-            <img src="/demo/openwhispr-icon.png" alt={pText('')} />
-            <strong>{pText('OpenWhispr')}</strong>
+            <img src="/demo/openwhispr-icon.png" alt={''} />
+            <strong>{t('openwhispr.sidebar.openWhispr')}</strong>
           </div>
-          <nav aria-label={pText('主导航')}>
-            {content.navigation.map((label, index) => {
-              const Icon = NAV_ICONS[index]!;
-              return (
-                <button
-                  type="button"
-                  key={label}
-                  aria-label={pText(label)}
-                  aria-current={view === label ? 'page' : undefined}
-                  onClick={() => setView(label)}
-                >
-                  <Icon size={17} />
-                  <span>{pText(label)}</span>
-                </button>
-              );
-            })}
+          <nav aria-label={t('openwhispr.sidebar.primaryNavigation')}>
+            {['home', 'statistics', 'chat', 'notes', 'uploads', 'dictionary', 'settings'].map(
+              (value, index) => {
+                const Icon = NAV_ICONS[index]!;
+                const label = navigationLabels[value]!;
+                return (
+                  <button
+                    type="button"
+                    key={label}
+                    aria-label={label}
+                    aria-current={view === value ? 'page' : undefined}
+                    onClick={() => setView(value)}
+                  >
+                    <Icon size={17} />
+                    <span>{label}</span>
+                  </button>
+                );
+              },
+            )}
           </nav>
           <div className="ow-profile">
-            <span>{pText('H')}</span>
+            <span>{t('openwhispr.sidebar.h')}</span>
             <div>
-              {pText('示例工作区')}
-              <small>{pText('个人')}</small>
+              {t('openwhispr.sidebar.sampleWorkspace')}
+              <small>{t('openwhispr.sidebar.personal')}</small>
             </div>
           </div>
         </aside>
         <div className="ow-panel">
           <header className="ow-topbar">
-            <h1>{pText(view)}</h1>
+            <h1>{navigationLabels[view]}</h1>
             <div>
               <Search size={15} />
               <input
-                aria-label={pText('搜索示例笔记和转录')}
-                placeholder={pText('搜索笔记和转录…')}
+                aria-label={t('openwhispr.topbar.searchSampleNotesAndTranscripts')}
+                placeholder={t('openwhispr.topbar.searchNotesAndTranscripts')}
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);
@@ -92,34 +104,34 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                 setNotes((previous) => [
                   ...previous,
                   {
-                    title: pText('无标题笔记'),
+                    title: t('openwhispr.topbar.untitledNote'),
                     text: '',
                     raw: '',
                     duration: '00:00',
-                    time: pText('刚刚'),
+                    time: t('openwhispr.topbar.justNow'),
                   },
                 ]);
                 setSelected(notes.length);
-                setView('笔记');
+                setView('notes');
               }}
             >
               <Plus size={15} />
-              <span>{pText('新建笔记')}</span>
+              <span>{t('openwhispr.topbar.newNote')}</span>
             </PreviewButton>
           </header>
-          {view === '首页' ? (
+          {view === 'home' ? (
             <main className="ow-home">
-              <h2>{pText('欢迎回来')}</h2>
+              <h2>{t('openwhispr.home.welcomeBack')}</h2>
               <div className="ow-welcome">
                 <Mic size={22} />
                 <div>
-                  <strong>{pText('从一句话开始')}</strong>
-                  <p>{pText('按住右 Ctrl，说出你的想法。')}</p>
+                  <strong>{t('openwhispr.home.startWithASentence')}</strong>
+                  <p>{t('openwhispr.home.holdRightCtrlAndSpeakYourThoughts')}</p>
                 </div>
-                <kbd>{pText('右 Ctrl')}</kbd>
+                <kbd>{t('openwhispr.home.rightCtrl')}</kbd>
               </div>
               <div className="ow-history-heading">
-                <h3>{pText('今天')}</h3>
+                <h3>{t('openwhispr.home.today')}</h3>
                 <label>
                   <input
                     type="checkbox"
@@ -128,7 +140,7 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                       setRaw(event.target.checked);
                     }}
                   />
-                  {pText('原始转录')}
+                  {t('openwhispr.home.originalTranscript')}
                 </label>
               </div>
               {notes.map(
@@ -144,7 +156,7 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                           ) : (
                             <AudioLines size={14} />
                           )}
-                          {pText(item.duration === '00:00' ? pText('笔记') : item.duration)}
+                          {item.duration === '00:00' ? t('openwhispr.home.notes') : item.duration}
                         </span>
                         <p>{raw && item.raw ? item.raw : item.text}</p>
                         <small>{item.title}</small>
@@ -155,12 +167,12 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
               {query &&
                 !notes.some((item) =>
                   `${item.title}${item.text}`.toLowerCase().includes(query.toLowerCase()),
-                ) && <p className="tp-empty">{pText('没有匹配的示例记录。')}</p>}
+                ) && <p className="tp-empty">{t('openwhispr.home.noMatchingSampleRecords')}</p>}
             </main>
-          ) : view === '笔记' ? (
+          ) : view === 'notes' ? (
             <main className="ow-notes">
               <aside>
-                <h3>{pText('私人笔记')}</h3>
+                <h3>{t('openwhispr.notes.privateNote')}</h3>
                 {notes.map((item, index) => (
                   <button
                     type="button"
@@ -176,15 +188,15 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
               <section>
                 <input
                   className="ow-note-title"
-                  aria-label={pText('笔记标题')}
+                  aria-label={t('openwhispr.notes.noteTitle')}
                   value={note.title}
                   onChange={(event) => {
                     updateNote({ title: event.target.value });
                   }}
                 />
-                <p>{pText('今天 · 个人')}</p>
+                <p>{t('openwhispr.notes.todayPersonal')}</p>
                 <textarea
-                  aria-label={pText('笔记正文')}
+                  aria-label={t('openwhispr.notes.noteBody')}
                   value={note.text}
                   onChange={(event) => {
                     updateNote({ text: event.target.value });
@@ -193,24 +205,24 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                 />
                 <span className="tp-muted">
                   <Check size={13} />
-                  {pText('编辑只在本次预览中保留')}
+                  {t('openwhispr.notes.editsLastOnlyInThisPreview')}
                 </span>
               </section>
             </main>
-          ) : view === '聊天' ? (
+          ) : view === 'chat' ? (
             <main className="ow-chat">
               <div className="ow-chat-conversation">
                 <span className="ow-chat-mark">
                   <AudioLines size={30} />
                 </span>
-                <h2>{pText('让想法，连成线。')}</h2>
-                <p>{pText('从你的笔记与转录中找回灵感。')}</p>
+                <h2>{t('openwhispr.chat.letIdeasConnect')}</h2>
+                <p>{t('openwhispr.chat.rediscoverIdeasInYourNotesAndTranscripts')}</p>
                 {sentPrompt && (
                   <>
-                    <div className="ow-chat-user">{pText(sentPrompt)}</div>
+                    <div className="ow-chat-user">{sentPrompt}</div>
                     <div className="ow-chat-answer">
-                      <small>{pText('示例回复 · 引用示例笔记')}</small>
-                      <p>{pText(content.chatReply)}</p>
+                      <small>{t('openwhispr.chat.sampleReplyReferencesASampleNote')}</small>
+                      <p>{content.chatReply}</p>
                       <PreviewButton onClick={() => openNote(0)}>
                         <BookOpen size={14} />
                         {notes[0]!.title}
@@ -227,37 +239,41 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                 }}
               >
                 <input
-                  aria-label={pText('随便问点什么')}
+                  aria-label={t('openwhispr.chat.askAQuestion')}
                   value={prompt}
                   maxLength={600}
                   onChange={(event) => {
                     setPrompt(event.target.value);
                   }}
                 />
-                <button type="submit" aria-label={pText('查看示例回复')} disabled={!prompt.trim()}>
+                <button
+                  type="submit"
+                  aria-label={t('openwhispr.chat.viewSampleReply')}
+                  disabled={!prompt.trim()}
+                >
                   <ArrowUp size={19} />
                 </button>
               </form>
             </main>
           ) : (
             <main className="ow-home">
-              <h2>{pText(view === '统计' ? pText('把想法说出来') : view)}</h2>
-              {view === '统计' ? (
+              <h2>{view === 'statistics' ? t('openwhispr.home.sayWhatYouReThinking') : view}</h2>
+              {view === 'statistics' ? (
                 <div className="ow-statistics">
                   <div>
-                    <strong>{pText('3')}</strong>
-                    <span>{pText('示例转录')}</span>
+                    <strong>{'3'}</strong>
+                    <span>{t('openwhispr.home.sampleTranscripts')}</span>
                   </div>
                   <div>
-                    <strong>{pText('39 秒')}</strong>
-                    <span>{pText('示例录音总时长')}</span>
+                    <strong>{t('openwhispr.home.39Seconds')}</strong>
+                    <span>{t('openwhispr.home.totalSampleRecordingTime')}</span>
                   </div>
                 </div>
-              ) : view === '词典' ? (
+              ) : view === 'dictionary' ? (
                 <>
-                  <p>{pText('为经常使用的专有名词保留正确写法。')}</p>
+                  <p>{t('openwhispr.home.keepTheRightSpellingForTermsYou')}</p>
                   <label>
-                    {pText('示例词典')}
+                    {t('openwhispr.home.sampleDictionary')}
                     <textarea
                       value={dictionary}
                       onChange={(event) => {
@@ -267,30 +283,32 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                     />
                   </label>
                 </>
-              ) : view === '上传' ? (
+              ) : view === 'uploads' ? (
                 <div className="ow-upload">
                   <Upload size={32} />
-                  <h3>{pText('把录音变成笔记')}</h3>
-                  <p>{pText('探索一段预设的录音转录。')}</p>
-                  <PreviewButton onClick={() => openNote(0)}>{pText('打开示例转录')}</PreviewButton>
+                  <h3>{t('openwhispr.home.turnRecordingsIntoNotes')}</h3>
+                  <p>{t('openwhispr.home.exploreASavedRecordingTranscript')}</p>
+                  <PreviewButton onClick={() => openNote(0)}>
+                    {t('openwhispr.home.openSampleTranscript')}
+                  </PreviewButton>
                 </div>
               ) : (
                 <>
                   <label>
-                    {pText('听写快捷键')}
+                    {t('openwhispr.home.dictationShortcut')}
                     <select defaultValue="按住右 Ctrl">
-                      <option value={'按住右 Ctrl'}>{pText('按住右 Ctrl')}</option>
-                      <option value={'按下切换'}>{pText('按下切换')}</option>
+                      <option value="按住右 Ctrl">{t('openwhispr.home.holdRightCtrl')}</option>
+                      <option value="按下切换">{t('openwhispr.home.pressToToggle')}</option>
                     </select>
                   </label>
-                  <p>{pText('在完整 App 中，可配置语种、听写清理和 Nimi AI 模型。')}</p>
+                  <p>{t('openwhispr.home.theFullAppLetsYouConfigureLanguage')}</p>
                 </>
               )}
             </main>
           )}
         </div>
       </div>
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }

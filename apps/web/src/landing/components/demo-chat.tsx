@@ -17,7 +17,9 @@ const AGENT_GRADIENTS = [
   'bg-gradient-to-br from-[#94a3b8] to-[#475569] text-white',
 ] as const;
 
-export function materializeAgentMessages(chat: DemoChat): Record<string, ConversationCanonicalMessage[]> {
+export function materializeAgentMessages(
+  chat: DemoChat,
+): Record<string, ConversationCanonicalMessage[]> {
   const now = Date.now();
   const result: Record<string, ConversationCanonicalMessage[]> = {};
   for (const agent of chat.agents) {
@@ -69,7 +71,8 @@ function DemoAgentRail({
               onClick={() => onOpenAgent(agent.id)}
               className={cn(
                 'flex items-center justify-center rounded-full transition hover:-translate-y-0.5',
-                active && 'ring-2 ring-[var(--nimi-action-primary-bg)] ring-offset-2 ring-offset-transparent',
+                active &&
+                  'ring-2 ring-[var(--nimi-action-primary-bg)] ring-offset-2 ring-offset-transparent',
               )}
             >
               <Avatar
@@ -105,11 +108,14 @@ export function DemoChatSurface({
 }) {
   const activeAgent = chat.agents.find((agent) => agent.id === activeAgentId) ?? null;
 
-  const composerAdapter = useMemo<ChatComposerAdapter>(() => ({
-    submit: ({ text }) => {
-      onSubmit(text);
-    },
-  }), [onSubmit]);
+  const composerAdapter = useMemo<ChatComposerAdapter>(
+    () => ({
+      submit: ({ text }) => {
+        onSubmit(text);
+      },
+    }),
+    [onSubmit],
+  );
 
   const formatDateLabel = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(chat.dateLocale, {
@@ -132,7 +138,12 @@ export function DemoChatSurface({
     <div className="flex h-full min-h-0 gap-1">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="md:hidden">
-          <DemoAgentRail chat={chat} activeAgentId={activeAgentId} onOpenAgent={onOpenAgent} orientation="horizontal" />
+          <DemoAgentRail
+            chat={chat}
+            activeAgentId={activeAgentId}
+            onOpenAgent={onOpenAgent}
+            orientation="horizontal"
+          />
         </div>
         {activeAgent ? (
           <>
@@ -171,7 +182,7 @@ export function DemoChatSurface({
             emptyEyebrow=""
             emptyTitle={chat.greeting}
             emptyDescription=""
-            emptyStateContent={(
+            emptyStateContent={
               <CanonicalComposer
                 adapter={composerAdapter}
                 layout="stacked"
@@ -179,15 +190,22 @@ export function DemoChatSurface({
                 sendLabel={chat.sendLabel}
                 widthClassName="w-full"
               />
-            )}
+            }
             formatDateLabel={formatDateLabel}
             widthClassName="w-full"
           />
         )}
-        <p className="shrink-0 px-6 pb-2 text-[11px] leading-5 text-[var(--nimi-text-muted)]">{chat.inputNote}</p>
+        <p className="shrink-0 px-6 pb-2 text-[11px] leading-5 text-[var(--nimi-text-muted)]">
+          {chat.inputNote}
+        </p>
       </div>
       <div className="hidden md:flex">
-        <DemoAgentRail chat={chat} activeAgentId={activeAgentId} onOpenAgent={onOpenAgent} orientation="vertical" />
+        <DemoAgentRail
+          chat={chat}
+          activeAgentId={activeAgentId}
+          onOpenAgent={onOpenAgent}
+          orientation="vertical"
+        />
       </div>
     </div>
   );

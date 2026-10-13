@@ -94,7 +94,6 @@ function Cd({
   style?: CSSProperties;
   material?: 'glass-regular' | 'glass-thick';
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <Surface
       as="div"
@@ -104,13 +103,12 @@ function Cd({
       className={`max-md:col-span-8 p-5 transition-transform hover:-translate-y-0.5 sm:p-7 ${cls}`}
       style={style}
     >
-      {pText(children)}
+      {children}
     </Surface>
   );
 }
 
 function Hdr({ title, link, onClick }: { title: string; link?: string; onClick?: () => void }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <div className="mb-5 flex items-center justify-between">
       <h3 className="text-[16px] font-semibold" style={{ color: textMain }}>
@@ -123,7 +121,7 @@ function Hdr({ title, link, onClick }: { title: string; link?: string; onClick?:
           className="text-[13px] font-medium transition-colors hover:text-[#1e293b]"
           style={{ color: textMuted }}
         >
-          {pText(link)}
+          {link}
         </button>
       ) : null}
     </div>
@@ -131,8 +129,7 @@ function Hdr({ title, link, onClick }: { title: string; link?: string; onClick?:
 }
 
 function ChildAvatar({ src, name, className }: { src: string; name: string; className?: string }) {
-  const { pText } = useAppPreviewLocale();
-  return <img src={src} alt={pText(name)} className={className} draggable={false} />;
+  return <img src={src} alt={name} className={className} draggable={false} />;
 }
 
 /* ── 首页 ─────────────────────────────────────────────────────────────── */
@@ -144,7 +141,6 @@ function ChildContextCard({
   content: HeroDemoParentosPreview;
   onOpenProfile: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   const mesh = [
     'radial-gradient(at 22% 18%, rgba(255, 207, 226, 0.38) 0px, transparent 55%)',
     'radial-gradient(at 82% 22%, rgba(221, 214, 254, 0.32) 0px, transparent 55%)',
@@ -192,11 +188,11 @@ function ChildContextCard({
             className="truncate text-[24px] font-semibold tracking-tight"
             style={{ color: '#1d1d1f', letterSpacing: '-0.3px' }}
           >
-            {pText(content.child.name)}
+            {content.child.name}
           </h2>
           <p className="mt-1.5 text-[14px]" style={{ color: '#86868b' }}>
-            {pText(content.child.ageLabel)} {pText(' · ')}
-            {pText(content.child.genderLabel)}
+            {content.child.ageLabel} {' · '}
+            {content.child.genderLabel}
           </p>
         </div>
         <div className="relative mt-auto flex w-full flex-col items-center gap-3 pt-6">
@@ -208,7 +204,7 @@ function ChildContextCard({
               className="mr-1.5 inline-block h-[6px] w-[6px] rounded-full"
               style={{ background: '#34c759' }}
             />
-            {pText(content.child.nurtureMode)}
+            {content.child.nurtureMode}
           </span>
           <button
             type="button"
@@ -216,7 +212,7 @@ function ChildContextCard({
             className="flex w-full items-center justify-center whitespace-nowrap rounded-xl px-4 py-2.5 text-[14px] font-medium transition-colors hover:bg-black/[0.04]"
             style={{ color: '#1d1d1f' }}
           >
-            {pText(content.home.viewFullProfile)}
+            {content.home.viewFullProfile}
             <ChevronRight size={14} className="ml-1 opacity-60" aria-hidden="true" />
           </button>
         </div>
@@ -236,7 +232,6 @@ function StageInsightGroup({
   overflow: number;
   overflowFormat: string;
 }) {
-  const { pText } = useAppPreviewLocale();
   const [expanded, setExpanded] = useState<string | null>(null);
   return (
     <div className="dashboard-inset rounded-[18px] p-5">
@@ -258,7 +253,7 @@ function StageInsightGroup({
                 className="flex w-full items-center justify-between gap-2 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-[rgba(15,23,42,0.04)]"
               >
                 <span className="text-[14px] font-semibold" style={{ color: textMain }}>
-                  {pText(item.title)}
+                  {item.title}
                 </span>
                 <ChevronDown
                   size={15}
@@ -273,7 +268,7 @@ function StageInsightGroup({
                   className="px-2 pb-2 pt-0.5 text-[13px] leading-relaxed"
                   style={{ color: textMuted }}
                 >
-                  {pText(item.description)}
+                  {item.description}
                 </p>
               ) : null}
             </div>
@@ -282,7 +277,7 @@ function StageInsightGroup({
       </div>
       {overflow > 0 ? (
         <span className="mt-4 inline-block text-[13px] font-medium" style={{ color: textMuted }}>
-          {pText(overflowFormat.replace('{{count}}', String(overflow)))}
+          {overflowFormat.replace('{{count}}', String(overflow))}
         </span>
       ) : null}
     </div>
@@ -298,6 +293,7 @@ function MiniTrend({
   stroke: string;
   fill: string;
 }) {
+  const { t } = useAppPreviewLocale();
   const min = Math.min(...points);
   const max = Math.max(...points);
   const range = max - min || 1;
@@ -333,7 +329,7 @@ function TimelinePage({
   navigate: (route: ParentosRoute) => void;
   notice: (text: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const home = content.home;
   const outdoorPercent = Math.min(
     100,
@@ -367,13 +363,13 @@ function TimelinePage({
                   className="text-[13px] font-medium tracking-[0.08em]"
                   style={{ color: textSoft }}
                 >
-                  {pText(home.stageFocusTitle)}
+                  {home.stageFocusTitle}
                 </p>
                 <h2
                   className="mt-1.5 text-[24px] font-semibold tracking-tight"
                   style={{ color: textMain, letterSpacing: '-0.5px' }}
                 >
-                  {pText(content.child.ageLabel)}
+                  {content.child.ageLabel}
                 </h2>
               </div>
               <button
@@ -382,18 +378,18 @@ function TimelinePage({
                 style={{ color: textMuted }}
                 onClick={() => notice(content.notices.hostOnly)}
               >
-                {pText(home.viewAllReminders)}
+                {home.viewAllReminders}
               </button>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <StageInsightGroup
-                title={pText(home.healthGroup)}
+                title={home.healthGroup}
                 items={home.health}
                 overflow={home.healthOverflow}
                 overflowFormat={home.overflowFormat}
               />
               <StageInsightGroup
-                title={pText(home.devGroup)}
+                title={home.devGroup}
                 items={home.development}
                 overflow={0}
                 overflowFormat={home.overflowFormat}
@@ -403,7 +399,7 @@ function TimelinePage({
         </div>
         <div className="grid auto-rows-min grid-cols-8 gap-4 md:gap-6">
           <Cd cls="col-span-8">
-            <Hdr title={pText(home.quickLinksTitle)} />
+            <Hdr title={home.quickLinksTitle} />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
               {home.quickLinks.map((item) => {
                 const meta = QUICK_LINK_ICONS[item.id] ?? QUICK_LINK_ICONS.growth!;
@@ -427,7 +423,7 @@ function TimelinePage({
                       <Icon size={22} strokeWidth={1.75} />
                     </div>
                     <p className="text-[13px] font-semibold" style={{ color: textMain }}>
-                      {pText(item.label)}
+                      {item.label}
                     </p>
                   </button>
                 );
@@ -439,16 +435,16 @@ function TimelinePage({
             <div className="min-w-0 flex-1 [&>div]:h-full">
               <Cd cls="col-span-4 flex flex-col">
                 <Hdr
-                  title={pText(home.growthSnapshotTitle)}
+                  title={home.growthSnapshotTitle}
                   link={home.viewCurves}
                   onClick={() => navigate('profile')}
                 />
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-[14px] font-semibold" style={{ color: textMain }}>
-                    {pText(home.latestMeasurement)}
+                    {home.latestMeasurement}
                   </p>
                   <span className="text-[12px]" style={{ color: '#64748b' }}>
-                    {pText(home.updatedLabel)}
+                    {home.updatedLabel}
                   </span>
                 </div>
                 <div className="flex flex-1 flex-col gap-3">
@@ -465,18 +461,18 @@ function TimelinePage({
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-[13px] font-medium" style={{ color: textMuted }}>
-                              {pText(trend.label)}
+                              {trend.label}
                             </p>
                             <p
                               className="mt-1 text-[12px] font-semibold"
                               style={{ color: '#22c55e' }}
                             >
-                              {pText('↑ ')}
-                              {pText(trend.delta)} {pText(trend.unit)}
+                              {'↑ '}
+                              {trend.delta} {trend.unit}
                               <span className="ml-1 font-normal" style={{ color: '#64748b' }}>
-                                {pText('(')}
-                                {pText(trend.deltaPercent)}
-                                {pText(')')}
+                                {'('}
+                                {trend.deltaPercent}
+                                {')'}
                               </span>
                             </p>
                           </div>
@@ -485,10 +481,10 @@ function TimelinePage({
                               className="text-[24px] font-semibold leading-none tracking-tight"
                               style={{ color: textMain }}
                             >
-                              {pText(trend.latestValue)}
+                              {trend.latestValue}
                             </span>
                             <span className="ml-1 text-[12px]" style={{ color: '#64748b' }}>
-                              {pText(trend.unit)}
+                              {trend.unit}
                             </span>
                           </div>
                         </div>
@@ -507,7 +503,7 @@ function TimelinePage({
               <div className="flex-1 [&>div]:h-full">
                 <Cd cls="col-span-4">
                   <Hdr
-                    title={pText(home.sleepTitle)}
+                    title={home.sleepTitle}
                     link={home.viewDetails}
                     onClick={() => navigate('profile')}
                   />
@@ -517,23 +513,23 @@ function TimelinePage({
                         className="text-[24px] font-semibold leading-none tracking-tight"
                         style={{ color: textMain, letterSpacing: '-0.5px' }}
                       >
-                        {pText(home.sleep.average)}
+                        {home.sleep.average}
                       </p>
                       <p className="mt-2 text-[13px]" style={{ color: textMuted }}>
-                        {pText(home.sleep.averageLabel)}
+                        {home.sleep.averageLabel}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-[13px]" style={{ color: textMuted }}>
-                        {pText(home.sleep.bedtimeLabel)}{' '}
+                        {home.sleep.bedtimeLabel}{' '}
                         <span className="font-semibold" style={{ color: textMain }}>
-                          {pText(home.sleep.bedtime)}
+                          {home.sleep.bedtime}
                         </span>
                       </p>
                       <p className="mt-0.5 text-[13px]" style={{ color: textMuted }}>
-                        {pText(home.sleep.wakeLabel)}{' '}
+                        {home.sleep.wakeLabel}{' '}
                         <span className="font-semibold" style={{ color: textMain }}>
-                          {pText(home.sleep.wake)}
+                          {home.sleep.wake}
                         </span>
                       </p>
                     </div>
@@ -550,9 +546,7 @@ function TimelinePage({
                         <div
                           key={point.date}
                           className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
-                          title={pText(
-                            `${point.date}: ${Math.floor(point.minutes / 60)}h${point.minutes % 60}m`,
-                          )}
+                          title={`${point.date}: ${Math.floor(point.minutes / 60)}h${point.minutes % 60}m`}
                         >
                           <div
                             className="w-full rounded-lg"
@@ -562,7 +556,7 @@ function TimelinePage({
                             className="whitespace-nowrap text-[10px] font-medium"
                             style={{ color: '#64748b' }}
                           >
-                            {pText(point.date.replace('-', '/'))}
+                            {point.date.replace('-', '/')}
                           </span>
                         </div>
                       );
@@ -573,7 +567,7 @@ function TimelinePage({
               <div className="flex-1 [&>div]:h-full">
                 <Cd cls="col-span-4">
                   <Hdr
-                    title={pText(home.visionTitle)}
+                    title={home.visionTitle}
                     link={home.viewDetails}
                     onClick={() => navigate('profile')}
                   />
@@ -592,20 +586,20 @@ function TimelinePage({
                           </div>
                           <div>
                             <p className="text-[12px]" style={{ color: textMuted }}>
-                              {pText(eye.label)}
+                              {eye.label}
                             </p>
                             <p
                               className="text-[24px] font-semibold leading-none tracking-tight"
                               style={{ color: textMain, letterSpacing: '-0.5px' }}
                             >
-                              {pText(eye.value)}
+                              {eye.value}
                             </p>
                           </div>
                         </div>
                       ))}
                     </div>
                     <span className="text-[12px]" style={{ color: '#64748b' }}>
-                      {pText(home.vision.measured)}
+                      {home.vision.measured}
                     </span>
                   </div>
                 </Cd>
@@ -614,22 +608,22 @@ function TimelinePage({
           </div>
 
           <Cd cls="col-span-4">
-            <Hdr title={pText(home.outdoorTitle)} />
+            <Hdr title={home.outdoorTitle} />
             <div className="space-y-3">
               <div className="flex items-end justify-between">
                 <p className="text-[18px] font-bold tabular-nums" style={{ color: textMain }}>
-                  {pText(home.outdoor.minutes)}{' '}
+                  {home.outdoor.minutes}{' '}
                   <span className="text-[14px] font-normal" style={{ color: textMuted }}>
-                    {pText('/ ')}
-                    {pText(home.outdoor.goal)} {pText(home.outdoor.unit)}
+                    {'/ '}
+                    {home.outdoor.goal} {home.outdoor.unit}
                   </span>
                 </p>
                 <span
                   className="text-[14px] font-medium tabular-nums"
                   style={{ color: outdoorColor }}
                 >
-                  {pText(outdoorPercent)}
-                  {pText('%')}
+                  {outdoorPercent}
+                  {'%'}
                 </span>
               </div>
               <div
@@ -642,17 +636,17 @@ function TimelinePage({
                 />
               </div>
               <p className="text-[14px]" style={{ color: textMuted }}>
-                {pText(home.outdoor.primary)}
+                {home.outdoor.primary}
               </p>
               <p className="text-[13px]" style={{ color: textMuted }}>
-                {pText(home.outdoor.secondary)}
+                {home.outdoor.secondary}
               </p>
             </div>
           </Cd>
 
           <Cd cls="col-span-4">
             <Hdr
-              title={pText(home.stageFocusTitle)}
+              title={home.stageFocusTitle}
               link={home.viewAllReminders}
               onClick={() => notice(content.notices.hostOnly)}
             />
@@ -661,14 +655,14 @@ function TimelinePage({
                 <div key={period.title} className="dashboard-inset rounded-[16px] p-5">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[12px] font-semibold text-amber-600">
-                      {pText(home.sensitiveBadge)}
+                      {home.sensitiveBadge}
                     </span>
                     <p className="text-[14px] font-semibold" style={{ color: textMain }}>
-                      {pText(period.title)}
+                      {period.title}
                     </p>
                   </div>
                   <p className="mt-2 text-[14px] leading-relaxed" style={{ color: textMuted }}>
-                    {pText(period.sign)}
+                    {period.sign}
                   </p>
                   <button
                     type="button"
@@ -676,7 +670,7 @@ function TimelinePage({
                     className="mt-3 inline-flex rounded-full px-4 py-1.5 text-[13px] font-medium text-white hover:-translate-y-0.5"
                     style={{ background: textMain, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
                   >
-                    {pText(home.recordAction)}
+                    {home.recordAction}
                   </button>
                 </div>
               ))}
@@ -685,7 +679,7 @@ function TimelinePage({
 
           <Cd cls="col-span-4">
             <Hdr
-              title={pText(home.milestoneTitle)}
+              title={home.milestoneTitle}
               link={home.viewAll}
               onClick={() => navigate('profile')}
             />
@@ -694,7 +688,7 @@ function TimelinePage({
                 className="mb-2 text-[12px] font-semibold uppercase tracking-wide"
                 style={{ color: '#4ECCA3' }}
               >
-                {pText(home.recentlyAchieved)}
+                {home.recentlyAchieved}
               </p>
               <div className="space-y-2">
                 {home.milestones.achieved.map((item) => (
@@ -706,14 +700,14 @@ function TimelinePage({
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px]"
                       style={{ background: 'rgba(78,204,163,0.15)', color: '#4ECCA3' }}
                     >
-                      {pText('✓')}
+                      {'✓'}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-semibold" style={{ color: textMain }}>
-                        {pText(item.title)}
+                        {item.title}
                       </p>
                       <p className="text-[12px]" style={{ color: textMuted }}>
-                        {pText(item.meta)}
+                        {item.meta}
                       </p>
                     </div>
                   </div>
@@ -725,7 +719,7 @@ function TimelinePage({
                 className="mb-2 text-[12px] font-semibold uppercase tracking-wide"
                 style={{ color: '#818CF8' }}
               >
-                {pText(home.upcoming)}
+                {home.upcoming}
               </p>
               <div className="space-y-2">
                 {home.milestones.upcoming.map((item) => (
@@ -737,14 +731,14 @@ function TimelinePage({
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px]"
                       style={{ background: 'rgba(129,140,248,0.15)', color: '#818CF8' }}
                     >
-                      {pText('●')}
+                      {'●'}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-semibold" style={{ color: textMain }}>
-                        {pText(item.title)}
+                        {item.title}
                       </p>
                       <p className="text-[12px]" style={{ color: textMuted }}>
-                        {pText(item.meta)}
+                        {item.meta}
                       </p>
                     </div>
                   </div>
@@ -755,7 +749,7 @@ function TimelinePage({
 
           <Cd cls="col-span-8">
             <Hdr
-              title={pText(home.recentLinesTitle)}
+              title={home.recentLinesTitle}
               link={home.viewAllRecords}
               onClick={() => navigate('journal')}
             />
@@ -776,24 +770,24 @@ function TimelinePage({
                           : { background: 'rgba(255,255,255,0.6)', color: textMuted }
                       }
                     >
-                      {pText(line.badge)}
+                      {line.badge}
                     </span>
                     <span className="text-[12px]" style={{ color: '#64748b' }}>
-                      {pText(line.when)}
+                      {line.when}
                     </span>
                   </div>
                   <p
                     className="mt-3 line-clamp-3 text-[14px] font-medium leading-relaxed"
                     style={{ color: textMain }}
                   >
-                    {pText(line.title)}
+                    {line.title}
                   </p>
                   <p className="mt-2 text-[12px]" style={{ color: textMuted }}>
-                    {pText(line.detail)}
+                    {line.detail}
                   </p>
                   {line.tag ? (
                     <p className="mt-2 text-[12px] font-medium" style={{ color: '#b45309' }}>
-                      {pText(line.tag)}
+                      {line.tag}
                     </p>
                   ) : null}
                 </button>
@@ -803,16 +797,14 @@ function TimelinePage({
 
           <Cd cls="col-span-4">
             <Hdr
-              title={pText(home.observationTitle)}
+              title={home.observationTitle}
               link={home.viewRecords}
               onClick={() => navigate('journal')}
             />
             <p className="mb-5 text-[13px]" style={{ color: textMuted }}>
-              {pText(
-                home.last30.replace(
-                  '{{count}}',
-                  String(home.observations.reduce((sum, item) => sum + item.count, 0)),
-                ),
+              {home.last30.replace(
+                '{{count}}',
+                String(home.observations.reduce((sum, item) => sum + item.count, 0)),
               )}
             </p>
             <div className="space-y-3.5">
@@ -820,12 +812,12 @@ function TimelinePage({
                 <div key={item.name}>
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[13px] font-semibold" style={{ color: textMain }}>
-                      {pText(item.name)}
+                      {item.name}
                     </span>
                     <span className="text-[12px]" style={{ color: '#64748b' }}>
-                      {pText(item.count)} {pText(' 条 · ')}
-                      {pText(Math.round(item.ratio * 100))}
-                      {pText('%')}
+                      {item.count} {t('parentos.timelinePage.records')}
+                      {Math.round(item.ratio * 100)}
+                      {'%'}
                     </span>
                   </div>
                   <div
@@ -844,22 +836,22 @@ function TimelinePage({
 
           <Cd cls="col-span-4">
             <Hdr
-              title={pText(home.monthlyReportTitle)}
+              title={home.monthlyReportTitle}
               link={home.viewFullReport}
               onClick={() => navigate('reports')}
             />
             <p className="text-[14px] leading-[1.8]" style={{ color: textMain }}>
-              {pText(home.teaser)}
+              {home.teaser}
             </p>
             <div className="dashboard-inset mt-4 rounded-[14px] p-4">
               <p
                 className="text-[12px] font-semibold uppercase tracking-wide"
                 style={{ color: textMuted }}
               >
-                {pText(home.todoTitle)}
+                {home.todoTitle}
               </p>
               <p className="mt-1.5 text-[14px] font-medium" style={{ color: textMain }}>
-                {pText(home.actionText)}
+                {home.actionText}
               </p>
             </div>
           </Cd>
@@ -896,12 +888,11 @@ function ReminderRow({
   completeLabel: string;
   onComplete: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <div className="group flex items-start gap-2.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-white">
       <button
         type="button"
-        title={pText(completeLabel)}
+        title={completeLabel}
         onClick={onComplete}
         className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-white"
         style={{ borderColor: tone.border }}
@@ -916,10 +907,10 @@ function ReminderRow({
       </button>
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>
-          {pText(item.title)}
+          {item.title}
         </p>
         <p className="mt-0.5 text-[12px]" style={{ color: tone.text }}>
-          {pText(item.status)}
+          {item.status}
         </p>
         <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
           <button
@@ -928,7 +919,7 @@ function ReminderRow({
             className={ACTION_PILL_CLASS}
             style={{ background: '#1e293b', color: '#fff' }}
           >
-            <span className={ACTION_LABEL_CLASS}>{pText(item.primary)}</span>
+            <span className={ACTION_LABEL_CLASS}>{item.primary}</span>
           </button>
           <button
             type="button"
@@ -936,7 +927,7 @@ function ReminderRow({
             className={`${ACTION_PILL_CLASS} hover:bg-white`}
             style={{ background: '#f1f5f9', color: '#475569' }}
           >
-            <span className={ACTION_LABEL_CLASS}>{pText(scheduleLabel)}</span>
+            <span className={ACTION_LABEL_CLASS}>{scheduleLabel}</span>
           </button>
         </div>
       </div>
@@ -981,8 +972,7 @@ function ScheduleDialog({
   onConfirm: (date: string) => void;
   onClose: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [date, setDate] = useState(() => pData(suggestedDate));
+  const [date, setDate] = useState(() => suggestedDate);
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= minDate;
   return (
     <div
@@ -1011,23 +1001,23 @@ function ScheduleDialog({
         padding="none"
         role="dialog"
         aria-modal="true"
-        aria-label={pText(copy.title)}
+        aria-label={copy.title}
         className="relative w-[380px] max-w-full rounded-[20px] border border-[var(--nimi-material-glass-thick-border)] p-5 shadow-[var(--nimi-elevation-floating)]"
         style={{ animation: 'customTodoSlideDown 160ms ease both' }}
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[18px]" aria-hidden="true">
-              {pText('📅')}
+              {'📅'}
             </span>
             <h2 className="text-[16px] font-bold" style={{ color: textMain }}>
-              {pText(copy.title)}
+              {copy.title}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label={pText(copy.close)}
+            aria-label={copy.close}
             className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/[0.06]"
             style={{ color: textMuted }}
           >
@@ -1035,10 +1025,10 @@ function ScheduleDialog({
           </button>
         </div>
         <p className="mb-1 text-[14px]" style={{ color: textMain }}>
-          {pText(reminderTitle)}
+          {reminderTitle}
         </p>
         <p className="mb-4 text-[13px] leading-relaxed" style={{ color: textMuted }}>
-          {pText(copy.description)}
+          {copy.description}
         </p>
         <TextField
           type="date"
@@ -1051,7 +1041,7 @@ function ScheduleDialog({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && valid) onConfirm(date);
           }}
-          aria-label={pText(copy.title)}
+          aria-label={copy.title}
           inputClassName="text-[14px]"
         />
         <div className="mt-4">
@@ -1062,7 +1052,7 @@ function ScheduleDialog({
             disabled={!valid}
             onClick={() => onConfirm(date)}
           >
-            {pText(copy.confirm)}
+            {copy.confirm}
           </Button>
         </div>
       </Surface>
@@ -1079,7 +1069,7 @@ function ReminderPanel({
   navigate: (route: ParentosRoute) => void;
   notice: (text: string) => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const panel = content.panel;
   const asideRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState<'today' | 'upcoming'>('today');
@@ -1089,9 +1079,9 @@ function ReminderPanel({
   const [scheduled, setScheduled] = useState<Record<string, string>>({});
   const [scheduleTarget, setScheduleTarget] = useState<ReminderItem | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(true);
-  const [todos, setTodos] = useState(() => pData(panel.todos));
+  const [todos, setTodos] = useState(() => panel.todos);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [todoDraft, setTodoDraft] = useState(() => pData(''));
+  const [todoDraft, setTodoDraft] = useState(() => '');
   const today = isoDate(new Date());
   const scheduledItems: ReminderItem[] = [...panel.reminders, ...panel.upcoming, ...panel.overdue]
     .filter((item) => scheduled[item.id] && !done[item.id])
@@ -1121,13 +1111,13 @@ function ReminderPanel({
       ref={asideRef}
       className="flex h-full w-[320px] shrink-0 flex-col overflow-y-auto border-l px-3 pb-6 pt-7"
       style={{ borderColor: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.32)' }}
-      aria-label={pText(panel.title)}
+      aria-label={panel.title}
     >
       <p
         className="mb-4 px-3 text-[18px] font-semibold tracking-tight"
         style={{ color: '#1e293b', letterSpacing: '-0.3px' }}
       >
-        {pText(panel.title)}
+        {panel.title}
       </p>
       <div className="mx-2 mb-3 flex gap-1 rounded-full bg-white/60 p-1">
         {(['today', 'upcoming'] as const).map((key) => {
@@ -1142,14 +1132,14 @@ function ReminderPanel({
                 tab === key ? 'bg-[#1e293b] text-white' : 'text-[#475569] hover:bg-white',
               )}
             >
-              {pText(key === 'today' ? panel.todayTab : panel.upcomingTab)}
+              {key === 'today' ? panel.todayTab : panel.upcomingTab}
               <span
                 className={cn(
                   'rounded-full px-1.5 text-[11px]',
                   tab === key ? 'bg-white/20' : 'bg-slate-200/80',
                 )}
               >
-                {pText(count)}
+                {count}
               </span>
             </button>
           );
@@ -1184,13 +1174,13 @@ function ReminderPanel({
             aria-hidden="true"
           />
           <span className="text-[12px] font-semibold" style={{ color: '#d97706' }}>
-            {pText(panel.overdueSummary)}
+            {panel.overdueSummary}
           </span>
           <span
             className="rounded-full px-1.5 py-[1px] text-[12px] font-medium"
             style={{ background: '#fef3c7', color: '#b45309' }}
           >
-            {pText(overdueItems.length)}
+            {overdueItems.length}
           </span>
         </button>
         {overdueOpen
@@ -1220,7 +1210,7 @@ function ReminderPanel({
               onClick={() => setTodos((current) => current.filter((entry) => entry.id !== todo.id))}
               className="mt-[2px] flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border-[1.5px] hover:bg-white"
               style={{ borderColor: '#94a3b8' }}
-              title={pText(panel.markComplete)}
+              title={panel.markComplete}
             >
               <Check
                 size={8}
@@ -1235,7 +1225,7 @@ function ReminderPanel({
                 {todo.title}
               </p>
               <p className="text-[11.5px]" style={{ color: '#94a3b8' }}>
-                {pText(todo.due)}
+                {todo.due}
               </p>
             </div>
           </div>
@@ -1250,7 +1240,7 @@ function ReminderPanel({
               if (!title) return;
               setTodos((current) => [
                 ...current,
-                { id: `todo-${Date.now()}`, title, due: pText('今天') },
+                { id: `todo-${Date.now()}`, title, due: t('parentos.reminderPanel.today2') },
               ]);
               setTodoDraft('');
               setComposerOpen(false);
@@ -1261,7 +1251,7 @@ function ReminderPanel({
               onChange={(event) => {
                 setTodoDraft(event.target.value);
               }}
-              placeholder={pText(panel.customTodoTitlePlaceholder)}
+              placeholder={panel.customTodoTitlePlaceholder}
               rows={2}
               className="w-full resize-none rounded-[8px] border-0 bg-transparent px-2 py-1 text-[13px] outline-none"
             />
@@ -1271,7 +1261,7 @@ function ReminderPanel({
                 className="rounded-full px-3 py-1 text-[12px] font-medium text-white"
                 style={{ background: '#1e293b' }}
               >
-                {pText(panel.add)}
+                {panel.add}
               </button>
             </div>
           </form>
@@ -1283,7 +1273,7 @@ function ReminderPanel({
             style={{ color: '#94a3b8' }}
           >
             <Plus size={14} aria-hidden="true" />
-            {pText(panel.customTodoPlaceholder)}
+            {panel.customTodoPlaceholder}
           </button>
         )}
       </div>
@@ -1293,7 +1283,7 @@ function ReminderPanel({
           className="mb-5 px-3 text-[18px] font-semibold tracking-tight"
           style={{ color: '#1e293b', letterSpacing: '-0.3px' }}
         >
-          {pText(panel.observationNudges)}
+          {panel.observationNudges}
         </p>
         {panel.nudges.map((nudge) => (
           <div
@@ -1302,10 +1292,10 @@ function ReminderPanel({
           >
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>
-                {pText(nudge.text)}
+                {nudge.text}
               </p>
               <p className="mt-0.5 text-[12px]" style={{ color: '#475569' }}>
-                {pText(nudge.question)}
+                {nudge.question}
               </p>
             </div>
             <button
@@ -1314,7 +1304,7 @@ function ReminderPanel({
               className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:-translate-y-0.5"
               style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
             >
-              {pText(panel.observe)}
+              {panel.observe}
             </button>
           </div>
         ))}
@@ -1323,7 +1313,7 @@ function ReminderPanel({
       {scheduleTarget && scheduleHost
         ? createPortal(
             <ScheduleDialog
-              copy={pData(panel.scheduleDialog)}
+              copy={panel.scheduleDialog}
               reminderTitle={scheduleTarget.title}
               suggestedDate={scheduled[scheduleTarget.id] ?? isoDate(addDays(new Date(), 1))}
               minDate={today}
@@ -1356,7 +1346,6 @@ function renderInline(text: string) {
 }
 
 function AdvisorContent({ content }: { content: string }) {
-  const {} = useAppPreviewLocale();
   const blocks = content
     .replace(/\r/g, '')
     .split(/\n{2,}/)
@@ -1406,22 +1395,20 @@ function AdvisorPage({
   content: HeroDemoParentosPreview;
   notice: (text: string) => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const advisor = content.advisor;
   const [conversations, setConversations] = useState<AdvisorConversation[]>(() =>
-    pData(
-      (() =>
-        advisor.conversations.map((conversation) => ({
-          ...conversation,
-          messages: conversation.messages.map((message, index) => ({
-            id: `${conversation.id}-${index}`,
-            ...message,
-          })),
-        })))(),
-    ),
+    (() =>
+      advisor.conversations.map((conversation) => ({
+        ...conversation,
+        messages: conversation.messages.map((message, index) => ({
+          id: `${conversation.id}-${index}`,
+          ...message,
+        })),
+      })))(),
   );
   const [activeId, setActiveId] = useState<string | null>(advisor.conversations[0]?.id ?? null);
-  const [draft, setDraft] = useState(() => pData(''));
+  const [draft, setDraft] = useState(() => '');
   const [streaming, setStreaming] = useState<{ conversationId: string; text: string } | null>(null);
   const replyCursor = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1464,7 +1451,12 @@ function AdvisorPage({
     if (!conversationId) {
       conversationId = `c-${Date.now()}`;
       setConversations((current) => [
-        { id: conversationId!, title: body.slice(0, 24), when: pText('刚刚'), messages: [] },
+        {
+          id: conversationId!,
+          title: body.slice(0, 24),
+          when: t('parentos.advisorPage.justNow'),
+          messages: [],
+        },
         ...current,
       ]);
       setActiveId(conversationId);
@@ -1500,7 +1492,7 @@ function AdvisorPage({
           className="mb-3 flex min-h-10 w-full items-center justify-center gap-2 parentos-radius-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-surface-panel))] px-3 text-[14px] font-semibold text-[var(--nimi-text-primary)] transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-base)]"
         >
           <Plus size={15} aria-hidden="true" />
-          {pText(advisor.newConversation)}
+          {advisor.newConversation}
         </button>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           <div className="flex flex-col gap-1">
@@ -1523,10 +1515,10 @@ function AdvisorPage({
                       isActive && 'font-semibold text-[var(--nimi-text-primary)]',
                     )}
                   >
-                    {pText(conversation.title)}
+                    {conversation.title}
                   </p>
                   <span className="text-[11px] text-[var(--nimi-text-muted)]">
-                    {pText(conversation.when)}
+                    {conversation.when}
                   </span>
                 </button>
               );
@@ -1559,7 +1551,7 @@ function AdvisorPage({
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <span className="text-[12px] font-semibold text-[var(--nimi-text-muted)]">
-                        {pText(message.role === 'user' ? advisor.user : advisor.assistant)}
+                        {message.role === 'user' ? advisor.user : advisor.assistant}
                       </span>
                     </div>
                     <AdvisorContent content={message.content} />
@@ -1570,14 +1562,14 @@ function AdvisorPage({
                 <div className="flex w-full justify-start">
                   <article className="advisor-message-card advisor-message-card--assistant">
                     <div className="mb-2 text-[12px] font-semibold text-[var(--nimi-text-muted)]">
-                      {pText(advisor.assistant)}
+                      {advisor.assistant}
                     </div>
                     {streaming.text ? (
                       <AdvisorContent content={streaming.text} />
                     ) : (
                       <div className="flex items-center gap-2 text-[13px] text-[var(--nimi-text-muted)]">
                         <span className="advisor-thinking-dot" aria-hidden="true" />
-                        {pText(advisor.thinking)}
+                        {advisor.thinking}
                       </div>
                     )}
                     <button
@@ -1586,7 +1578,7 @@ function AdvisorPage({
                       className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-white/70 px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-secondary)]"
                     >
                       <Square size={11} aria-hidden="true" />
-                      {pText(advisor.stop)}
+                      {advisor.stop}
                     </button>
                   </article>
                 </div>
@@ -1596,13 +1588,13 @@ function AdvisorPage({
         ) : (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-              {pText(advisor.emptyEyebrow)}
+              {advisor.emptyEyebrow}
             </p>
             <h2 className="mt-2 text-[22px] font-semibold text-[var(--nimi-text-primary)]">
-              {pText(advisor.emptyTitle)}
+              {advisor.emptyTitle}
             </h2>
             <p className="mt-2 text-[14px] text-[var(--nimi-text-secondary)]">
-              {pText(advisor.emptyDescription)}
+              {advisor.emptyDescription}
             </p>
           </div>
         )}
@@ -1617,7 +1609,7 @@ function AdvisorPage({
                   onClick={() => send(suggestion)}
                   className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[14px] text-slate-600 transition-all hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {pText(suggestion)}
+                  {suggestion}
                 </button>
               ))}
             </div>
@@ -1632,7 +1624,7 @@ function AdvisorPage({
                 className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-white/70 px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-secondary)]"
               >
                 <Plus size={14} aria-hidden="true" />
-                {pText(advisor.recordData)}
+                {advisor.recordData}
               </button>
             </div>
             <div className="advisor-composer-box">
@@ -1652,7 +1644,7 @@ function AdvisorPage({
                       send();
                     }
                   }}
-                  placeholder={pText(advisor.placeholder)}
+                  placeholder={advisor.placeholder}
                   disabled={Boolean(streaming)}
                   rows={1}
                   className="advisor-composer-textarea min-h-[48px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden border-0 bg-transparent px-3 py-3 text-[14px] leading-[1.6] text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
@@ -1661,7 +1653,7 @@ function AdvisorPage({
                   <button
                     type="button"
                     onClick={() => finish(streaming.conversationId, streaming.text)}
-                    aria-label={pText(advisor.stop)}
+                    aria-label={advisor.stop}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-text-primary)] text-white"
                   >
                     <Square size={14} aria-hidden="true" />
@@ -1671,7 +1663,7 @@ function AdvisorPage({
                     type="button"
                     onClick={() => send()}
                     disabled={!draft.trim()}
-                    aria-label={pText(advisor.send)}
+                    aria-label={advisor.send}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-white transition-opacity disabled:opacity-40"
                   >
                     <Send size={15} aria-hidden="true" />
@@ -1695,11 +1687,11 @@ function JournalPage({
   content: HeroDemoParentosPreview;
   notice: (text: string) => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const journal = content.journal;
-  const [entries, setEntries] = useState(() => pData(journal.entries));
+  const [entries, setEntries] = useState(() => journal.entries);
   const [mode, setMode] = useState<'text' | 'voice'>('text');
-  const [text, setText] = useState(() => pData(''));
+  const [text, setText] = useState(() => '');
   const [keepsake, setKeepsake] = useState(false);
   const [filter, setFilter] = useState<'all' | 'keepsake'>('all');
   const counts = {
@@ -1728,12 +1720,12 @@ function JournalPage({
     setEntries((current) => [
       {
         id: `j-${Date.now()}`,
-        dateLabel: pText('今天'),
+        dateLabel: t('parentos.journalPage.today'),
         time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
         text: body,
         dimension: null,
         keepsake,
-        recorder: pText('你'),
+        recorder: t('parentos.journalPage.you'),
       },
       ...current,
     ]);
@@ -1747,17 +1739,17 @@ function JournalPage({
         <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
           <div className="min-w-0 flex-1">
             <h1 className="parentos-journal-hero-title parentos-journal-hero-title__bold text-[44px] leading-[1.05] tracking-tight text-[var(--nimi-text-primary)]">
-              {pText(journal.heroLead)}
+              {journal.heroLead}
               <span className="parentos-journal-hero-title__tail">
-                {pText(journal.heroTail)}
+                {journal.heroTail}
                 <span className="parentos-journal-hero-title__dot" aria-hidden="true" />
               </span>
             </h1>
             <p className="mt-3 text-[14px] leading-relaxed">
               <span className="font-semibold text-[var(--nimi-text-primary)]">
-                {pText(journal.subtitleLead)}
+                {journal.subtitleLead}
               </span>
-              <span className="text-[var(--nimi-text-muted)]">{pText(journal.subtitleTail)}</span>
+              <span className="text-[var(--nimi-text-muted)]">{journal.subtitleTail}</span>
             </p>
           </div>
           <dl className="flex shrink-0 items-end gap-7">
@@ -1768,9 +1760,9 @@ function JournalPage({
             ].map(([label, value]) => (
               <div key={String(label)} className="text-right">
                 <dd className="text-[28px] font-semibold leading-none tracking-tight text-[var(--nimi-text-primary)]">
-                  {pText(value)}
+                  {value}
                 </dd>
-                <dt className="mt-1 text-[12px] text-[var(--nimi-text-muted)]">{pText(label)}</dt>
+                <dt className="mt-1 text-[12px] text-[var(--nimi-text-muted)]">{label}</dt>
               </div>
             ))}
           </dl>
@@ -1806,7 +1798,7 @@ function JournalPage({
                   ) : (
                     <Mic size={13} aria-hidden="true" />
                   )}
-                  {pText(key === 'text' ? journal.captureText : journal.captureVoice)}
+                  {key === 'text' ? journal.captureText : journal.captureVoice}
                 </button>
               ))}
             </div>
@@ -1817,7 +1809,7 @@ function JournalPage({
                   setText(event.target.value);
                 }}
                 rows={4}
-                placeholder={pText(journal.placeholder)}
+                placeholder={journal.placeholder}
                 className="w-full resize-none rounded-[16px] border border-[var(--nimi-border-subtle)] bg-white/70 px-4 py-3 text-[15px] leading-relaxed text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)]"
               />
             ) : (
@@ -1835,7 +1827,7 @@ function JournalPage({
                 >
                   <Mic size={22} aria-hidden="true" />
                 </span>
-                {pText('点击开始录音，说完自动转写')}
+                {t('parentos.journalPage.clickToStartRecordingSpeechIsTranscribed')}
               </button>
             )}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -1851,7 +1843,7 @@ function JournalPage({
                 )}
               >
                 <Star size={13} aria-hidden="true" />
-                {pText(journal.keepsakeToggle)}
+                {journal.keepsakeToggle}
               </button>
               <button
                 type="button"
@@ -1860,7 +1852,7 @@ function JournalPage({
                 className="rounded-full px-5 py-2 text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
               >
-                {pText(journal.save)}
+                {journal.save}
               </button>
             </div>
           </Surface>
@@ -1879,7 +1871,7 @@ function JournalPage({
                   : 'bg-white/60 text-[var(--nimi-text-secondary)] hover:bg-white',
               )}
             >
-              {pText(key === 'all' ? journal.filterAll : journal.filterKeepsake)}
+              {key === 'all' ? journal.filterAll : journal.filterKeepsake}
             </button>
           ))}
         </div>
@@ -1890,7 +1882,7 @@ function JournalPage({
                 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em]"
                 style={{ color: textSoft }}
               >
-                {pText(group.label)}
+                {group.label}
               </p>
               <div className="space-y-2">
                 {group.items.map((entry) => (
@@ -1907,21 +1899,21 @@ function JournalPage({
                         className="flex items-center gap-2 text-[12px]"
                         style={{ color: textMuted }}
                       >
-                        <span className="tabular-nums">{pText(entry.time)}</span>
+                        <span className="tabular-nums">{entry.time}</span>
                         {entry.dimension ? (
                           <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-2 py-0.5 text-[11px] font-medium text-[#0f6b80]">
-                            {pText(entry.dimension)}
+                            {entry.dimension}
                           </span>
                         ) : null}
                         {entry.keepsake ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
                             <Star size={10} aria-hidden="true" />
-                            {pText(journal.keepsakeBadge)}
+                            {journal.keepsakeBadge}
                           </span>
                         ) : null}
                       </div>
                       <span className="text-[12px]" style={{ color: textSoft }}>
-                        {pText(entry.recorder)}
+                        {entry.recorder}
                       </span>
                     </div>
                     <p className="mt-2 text-[14px] leading-relaxed" style={{ color: textMain }}>
@@ -1947,7 +1939,7 @@ function ProfilePage({
   content: HeroDemoParentosPreview;
   notice: (text: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const profile = content.profile;
   return (
     <div className="hide-scrollbar h-full overflow-y-auto px-6 pb-10 pt-8 sm:px-10">
@@ -1969,28 +1961,28 @@ function ProfilePage({
               className="text-[12px] font-semibold uppercase tracking-[0.12em]"
               style={{ color: textSoft }}
             >
-              {pText(profile.title)}
+              {profile.title}
             </p>
             <h1
               className="mt-1 text-[28px] font-semibold tracking-tight"
               style={{ color: textMain, letterSpacing: '-0.5px' }}
             >
-              {pText(content.child.name)}
+              {content.child.name}
             </h1>
             <p className="mt-1 text-[14px]" style={{ color: textMuted }}>
-              {pText(content.child.ageLabel)} {pText(' · ')}
-              {pText(content.child.genderLabel)} {pText(' · ')}
-              {pText(profile.recordSummary)}
+              {content.child.ageLabel} {' · '}
+              {content.child.genderLabel} {' · '}
+              {profile.recordSummary}
             </p>
             <div className="mt-4 max-w-sm">
               <div
                 className="mb-1.5 flex items-center justify-between text-[12px]"
                 style={{ color: textMuted }}
               >
-                <span>{pText(profile.completenessLabel)}</span>
+                <span>{profile.completenessLabel}</span>
                 <span className="font-semibold" style={{ color: textMain }}>
-                  {pText(profile.completeness)}
-                  {pText('%')}
+                  {profile.completeness}
+                  {'%'}
                 </span>
               </div>
               <div
@@ -2011,7 +2003,7 @@ function ProfilePage({
               className="rounded-full px-5 py-2.5 text-[14px] font-medium text-white"
               style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
             >
-              {pText(profile.addData)}
+              {profile.addData}
             </button>
             <button
               type="button"
@@ -2019,12 +2011,12 @@ function ProfilePage({
               className="rounded-full border border-[var(--nimi-border-subtle)] bg-white/70 px-5 py-2.5 text-[14px] font-medium"
               style={{ color: textMain }}
             >
-              {pText(profile.editChild)}
+              {profile.editChild}
             </button>
           </div>
         </Surface>
         <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>
-          {pText(profile.archiveTitle)}
+          {profile.archiveTitle}
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {profile.groups.map((group) => (
@@ -2038,7 +2030,7 @@ function ProfilePage({
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-[15px] font-semibold" style={{ color: textMain }}>
-                  {pText(group.name)}
+                  {group.name}
                 </h3>
                 <button
                   type="button"
@@ -2046,18 +2038,18 @@ function ProfilePage({
                   style={{ color: textMuted }}
                   onClick={() => notice(content.notices.hostOnly)}
                 >
-                  {pText('查看全部')}
+                  {t('parentos.profilePage.viewAllRecords')}
                 </button>
               </div>
               <p className="mt-1 text-[12px]" style={{ color: textMuted }}>
-                {pText(group.summary)}
+                {group.summary}
               </p>
               <dl className="mt-4 space-y-2">
                 {group.metrics.map((metric) => (
                   <div key={metric.label} className="flex items-center justify-between text-[13px]">
-                    <dt style={{ color: textMuted }}>{pText(metric.label)}</dt>
+                    <dt style={{ color: textMuted }}>{metric.label}</dt>
                     <dd className="font-semibold" style={{ color: textMain }}>
-                      {pText(metric.value)}
+                      {metric.value}
                     </dd>
                   </div>
                 ))}
@@ -2077,7 +2069,6 @@ function ReportsPage({
   content: HeroDemoParentosPreview;
   notice: (text: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   const reports = content.reports;
   const [preset, setPreset] = useState(0);
   return (
@@ -2089,10 +2080,10 @@ function ReportsPage({
               className="text-[28px] font-semibold tracking-tight"
               style={{ color: textMain, letterSpacing: '-0.5px' }}
             >
-              {pText(reports.title)}
+              {reports.title}
             </h1>
             <p className="mt-1 text-[14px]" style={{ color: textMuted }}>
-              {pText(reports.subtitle)}
+              {reports.subtitle}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -2108,7 +2099,7 @@ function ReportsPage({
                     : 'bg-white/60 text-[var(--nimi-text-secondary)] hover:bg-white',
                 )}
               >
-                {pText(label)}
+                {label}
               </button>
             ))}
             <button
@@ -2117,7 +2108,7 @@ function ReportsPage({
               className="rounded-full px-4 py-1.5 text-[13px] font-medium text-white"
               style={{ background: '#45B8D6' }}
             >
-              {pText(reports.generate)}
+              {reports.generate}
             </button>
           </div>
         </header>
@@ -2131,22 +2122,22 @@ function ReportsPage({
           <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-semibold text-amber-700">
               <Star size={12} aria-hidden="true" />
-              {pText(reports.letter.badge)}
+              {reports.letter.badge}
             </span>
             <span className="text-[12px]" style={{ color: textMuted }}>
-              {pText(reports.letter.period)}
+              {reports.letter.period}
             </span>
           </div>
           <p
             className="parentos-journal-hero-title mt-6 text-[20px] font-semibold"
             style={{ color: textMain }}
           >
-            {pText(reports.letter.greeting)}
+            {reports.letter.greeting}
           </p>
           <div className="mt-4 space-y-4">
             {reports.letter.paragraphs.map((paragraph) => (
               <p key={paragraph} className="text-[15px] leading-[1.9]" style={{ color: textMain }}>
-                {pText(paragraph)}
+                {paragraph}
               </p>
             ))}
           </div>
@@ -2155,7 +2146,7 @@ function ReportsPage({
               className="text-[12px] font-semibold uppercase tracking-wide"
               style={{ color: textMuted }}
             >
-              {pText(reports.letter.actionsTitle)}
+              {reports.letter.actionsTitle}
             </p>
             <ol className="mt-3 space-y-2">
               {reports.letter.actions.map((action, index) => (
@@ -2168,9 +2159,9 @@ function ReportsPage({
                     className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold"
                     style={{ background: 'rgba(78,204,163,0.16)', color: '#059669' }}
                   >
-                    {pText(index + 1)}
+                    {index + 1}
                   </span>
-                  {pText(action)}
+                  {action}
                 </li>
               ))}
             </ol>
@@ -2211,7 +2202,7 @@ function SettingsPage({
   content: HeroDemoParentosPreview;
   notice: (text: string) => void;
 }) {
-  const { pText, previewLocale } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const settings = content.settings;
   return (
     <div className="hide-scrollbar h-full overflow-y-auto px-6 pb-10 pt-8 sm:px-10">
@@ -2220,7 +2211,7 @@ function SettingsPage({
           className="mb-6 text-[28px] font-semibold tracking-tight"
           style={{ color: textMain, letterSpacing: '-0.5px' }}
         >
-          {pText(settings.title)}
+          {settings.title}
         </h1>
         <Surface
           as="section"
@@ -2230,14 +2221,14 @@ function SettingsPage({
           className="mb-6 flex items-center gap-4 rounded-[20px] p-5"
         >
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#2fc79a] to-[#22cce7] text-[16px] font-bold text-slate-950">
-            {pText(Array.from(settings.account.name)[0])}
+            {Array.from(settings.account.name)[0]}
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold" style={{ color: textMain }}>
-              {pText(settings.account.name)}
+              {settings.account.name}
             </p>
             <p className="text-[12px]" style={{ color: textMuted }}>
-              {pText(settings.account.note)}
+              {settings.account.note}
             </p>
           </div>
         </Surface>
@@ -2245,7 +2236,7 @@ function SettingsPage({
           className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1em]"
           style={{ color: textSoft }}
         >
-          {pText(settings.general)}
+          {settings.general}
         </p>
         <Surface
           as="section"
@@ -2260,14 +2251,16 @@ function SettingsPage({
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-semibold" style={{ color: textMain }}>
-                {pText(settings.languageTitle)}
+                {settings.languageTitle}
               </p>
               <p className="text-[12px]" style={{ color: textMuted }}>
-                {pText('预览语言跟随页面顶部的语言选择。')}
+                {t('parentos.settingsPage.thePreviewFollowsTheLanguageSelectedAt')}
               </p>
             </div>
             <span className="rounded-full bg-white/70 px-3 py-1 text-[12px] font-medium">
-              {previewLocale === 'zh' ? pText('中文') : 'English'}
+              {previewLocale === 'zh'
+                ? t('parentos.settingsPage.chinese')
+                : t('parentos.settingsPage.english')}
             </span>
           </div>
           {settings.sections.map((section) => {
@@ -2290,10 +2283,10 @@ function SettingsPage({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-semibold" style={{ color: textMain }}>
-                    {pText(section.label)}
+                    {section.label}
                   </p>
                   <p className="text-[12px]" style={{ color: textMuted }}>
-                    {pText(section.desc)}
+                    {section.desc}
                   </p>
                 </div>
                 <ChevronRight size={16} style={{ color: textSoft }} aria-hidden="true" />
@@ -2305,7 +2298,7 @@ function SettingsPage({
           className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1em]"
           style={{ color: textSoft }}
         >
-          {pText(settings.other)}
+          {settings.other}
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {settings.info.map((card, index) => (
@@ -2329,10 +2322,10 @@ function SettingsPage({
               </span>
               <div>
                 <p className="text-[14px] font-semibold" style={{ color: textMain }}>
-                  {pText(card.label)}
+                  {card.label}
                 </p>
                 <p className="mt-0.5 text-[12px]" style={{ color: textMuted }}>
-                  {pText(card.desc)}
+                  {card.desc}
                 </p>
               </div>
             </Surface>
@@ -2354,7 +2347,6 @@ function ChildAppMenu({
   onNavigate: (route: ParentosRoute) => void;
   onNotice: (text: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   const [open, setOpen] = useState(false);
   const [activeChild, setActiveChild] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
@@ -2384,7 +2376,7 @@ function ChildAppMenu({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={pText(content.childMenuLabel)}
+        aria-label={content.childMenuLabel}
         className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full shadow-[var(--nimi-elevation-base)] ring-1 ring-[var(--nimi-border-subtle)] transition-all hover:-translate-y-0.5"
       >
         <ChildAvatar
@@ -2403,7 +2395,7 @@ function ChildAppMenu({
           className="absolute bottom-12 left-0 z-50 w-64 origin-bottom-left overflow-y-auto rounded-xl border-[var(--nimi-material-glass-thick-border)] py-2 shadow-[var(--nimi-elevation-floating)]"
         >
           <div className="px-3.5 pb-1 pt-1 text-[12px] font-medium text-[var(--nimi-text-muted)]">
-            {pText(content.childSwitcherLabel)}
+            {content.childSwitcherLabel}
           </div>
           <div className="px-1.5">
             {children.map((child, index) => {
@@ -2442,7 +2434,7 @@ function ChildAppMenu({
                         />
                       ) : (
                         <span className="flex h-full w-full items-center justify-center bg-sky-100 text-[12px] font-semibold text-sky-700">
-                          {pText(Array.from(child.name)[0])}
+                          {Array.from(child.name)[0]}
                         </span>
                       )}
                     </span>
@@ -2455,10 +2447,10 @@ function ChildAppMenu({
                             : 'text-[var(--nimi-text-primary)]',
                         )}
                       >
-                        {pText(child.name)}
+                        {child.name}
                       </span>
                       <span className="block text-[12px] text-[var(--nimi-text-muted)]">
-                        {pText(child.ageLabel)}
+                        {child.ageLabel}
                       </span>
                     </div>
                   </div>
@@ -2491,7 +2483,7 @@ function ChildAppMenu({
                 />
               </span>
               <span className="text-[14px] font-medium text-[var(--nimi-text-muted)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">
-                {pText(content.addFamilyMember)}
+                {content.addFamilyMember}
               </span>
             </button>
           </div>
@@ -2519,7 +2511,7 @@ function ChildAppMenu({
                   className="text-[var(--nimi-text-muted)]"
                   aria-hidden="true"
                 />
-                {pText(content.nav[route])}
+                {content.nav[route]}
               </button>
             ))}
           </div>
@@ -2530,7 +2522,7 @@ function ChildAppMenu({
 }
 
 export function DemoParentosPreview({ content }: { content: HeroDemoParentosPreview }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [route, setRoute] = useState<ParentosRoute>('timeline');
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2573,12 +2565,12 @@ export function DemoParentosPreview({ content }: { content: HeroDemoParentosPrev
       <AmbientBackground variant="mesh" className="isolate flex h-full overflow-hidden">
         <nav
           className="relative z-30 flex w-[62px] shrink-0 flex-col items-center overflow-visible bg-transparent pb-5 pt-6"
-          aria-label={pText(content.appName)}
+          aria-label={content.appName}
         >
           <div className="flex h-[60px] w-full shrink-0 items-center justify-center">
             <img
               src="/demo/parentos-icon.png"
-              alt={pText(content.logoAlt)}
+              alt={content.logoAlt}
               className="h-7 w-7 shrink-0 rounded-[7px] object-contain"
             />
           </div>
@@ -2590,14 +2582,14 @@ export function DemoParentosPreview({ content }: { content: HeroDemoParentosPrev
                 <button
                   key={item.id}
                   type="button"
-                  aria-label={pText(label)}
+                  aria-label={label}
                   aria-current={isActive ? 'page' : undefined}
                   onClick={() => setRoute(item.id)}
                   className={`group relative flex h-[40px] w-[40px] items-center justify-center rounded-xl transition-all duration-150 ${isActive ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'}`}
                 >
                   <item.Icon size={19} strokeWidth={1.8} aria-hidden="true" />
                   <span className="nimi-material-glass-thick pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-2xl border border-[var(--nimi-material-glass-thick-border)] bg-[var(--nimi-material-glass-thick-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-floating)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] transition-opacity duration-100 group-hover:opacity-100">
-                    {pText(label)}
+                    {label}
                   </span>
                 </button>
               );
@@ -2610,14 +2602,14 @@ export function DemoParentosPreview({ content }: { content: HeroDemoParentosPrev
         <div className="relative flex min-w-0 flex-1 flex-col">
           {notice ? (
             <div className="demo-parentos-notice" role="status" data-demo-parentos-notice="true">
-              <span>{pText(notice)}</span>
+              <span>{notice}</span>
               <button type="button" onClick={() => setNotice(null)}>
-                {pText(content.notices.dismiss)}
+                {content.notices.dismiss}
               </button>
             </div>
           ) : null}
           <main className="relative z-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="h-full">{pText(page)}</div>
+            <div className="h-full">{page}</div>
           </main>
         </div>
       </AmbientBackground>

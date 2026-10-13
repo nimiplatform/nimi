@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import {
@@ -17,21 +18,21 @@ import { PreviewButton } from './demo-third-party-shared.js';
 import { PreviewTabs, RemainingPreview } from './demo-remaining-shared.js';
 
 type DiagramNode = { label: string; color: string };
-const INITIAL: DiagramNode[] = [
-  { label: 'An idea', color: '#e8f0fc' },
-  { label: 'Create a draft', color: '#e5f1e7' },
-  { label: 'Review together', color: '#fff2d7' },
-  { label: 'Share the result', color: '#e8f0fc' },
+const createInitialDiagram = (t: PreviewTranslate): DiagramNode[] => [
+  { label: t('drawio.workspace.anIdea'), color: '#e8f0fc' },
+  { label: t('drawio.workspace.createADraft'), color: '#e5f1e7' },
+  { label: t('drawio.workspace.reviewTogether'), color: '#fff2d7' },
+  { label: t('drawio.workspace.shareTheResult'), color: '#e8f0fc' },
 ];
 
 /** A local SVG replica of the draw.io canvas and the adjacent Next AI Draw.io assistant. */
 export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }) {
-  const { pText, pData, pFormat } = useAppPreviewLocale();
-  const [history, setHistory] = useState<DiagramNode[][]>(() => pData([INITIAL]));
+  const { t } = useAppPreviewLocale();
+  const [history, setHistory] = useState<DiagramNode[][]>(() => [createInitialDiagram(t)]);
   const [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState(0);
-  const [label, setLabel] = useState(() => pData(INITIAL[0]!.label));
-  const [prompt, setPrompt] = useState(() => pData('Add a review step before sharing the result.'));
+  const [label, setLabel] = useState(() => createInitialDiagram(t)[0]!.label);
+  const [prompt, setPrompt] = useState(() => t('drawio.workspace.addAReviewStepBeforeSharingThe'));
   const [reply, setReply] = useState(false);
   const [panel, setPanel] = useState('Diagram');
   const [zoom, setZoom] = useState(100);
@@ -55,20 +56,20 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
     <RemainingPreview content={content} kind="drawio">
       <header className="dio-header">
         <div>
-          <img src={content.icon} alt={pText('')} />
-          <strong>{pText('Next AI Draw.io')}</strong>
-          <span>{pText('Untitled diagram · sample')}</span>
+          <img src={content.icon} alt={''} />
+          <strong>{t('drawio.header.nextAiDrawIo')}</strong>
+          <span>{t('drawio.header.untitledDiagramSample')}</span>
         </div>
         <div>
           <PreviewButton
-            aria-label={pText('Undo diagram edit')}
+            aria-label={t('drawio.header.undoDiagramEdit')}
             disabled={revision === 0}
             onClick={() => move(revision - 1)}
           >
             <Undo2 size={16} />
           </PreviewButton>
           <PreviewButton
-            aria-label={pText('Redo diagram edit')}
+            aria-label={t('drawio.header.redoDiagramEdit')}
             disabled={revision === history.length - 1}
             onClick={() => move(revision + 1)}
           >
@@ -76,16 +77,19 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
           </PreviewButton>
           <PreviewButton onClick={() => setShowHistory(!showHistory)}>
             <History size={15} />
-            {pText('History')}
+            {t('drawio.header.history')}
           </PreviewButton>
         </div>
       </header>
       <div className="dio-mobile-tabs">
         <PreviewTabs
-          items={['Diagram', 'Assistant']}
+          items={[
+            { value: 'Diagram', label: t('drawio.tabs.diagram') },
+            { value: 'Assistant', label: t('drawio.tabs.assistant') },
+          ]}
           value={panel}
           onChange={setPanel}
-          label={pText('Editor panels')}
+          label={t('drawio.workspace.editorPanels')}
         />
       </div>
       <div className="dio-layout">
@@ -93,35 +97,38 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
           <div className="dio-canvas-tools">
             <span>
               <Shapes size={16} />
-              {pText('General')}
+              {t('drawio.editor.general')}
             </span>
             <PreviewButton
               disabled={nodes.length >= 6}
               onClick={() =>
                 commit([
                   ...nodes,
-                  { label: pFormat('Step {0}', nodes.length + 1), color: '#e5f1e7' },
+                  {
+                    label: t('drawio.editor.step', { nodesLength1: nodes.length + 1 }),
+                    color: '#e5f1e7',
+                  },
                 ])
               }
             >
               <Plus size={14} />
-              {pText('Add sample step')}
+              {t('drawio.editor.addSampleStep')}
             </PreviewButton>
             <div>
               <button
                 type="button"
-                aria-label={pText('Zoom out')}
+                aria-label={t('drawio.editor.zoomOut')}
                 onClick={() => setZoom(Math.max(60, zoom - 20))}
               >
                 <ZoomOut size={16} />
               </button>
               <span>
-                {pText(zoom)}
-                {pText('%')}
+                {zoom}
+                {'%'}
               </span>
               <button
                 type="button"
-                aria-label={pText('Zoom in')}
+                aria-label={t('drawio.editor.zoomIn')}
                 onClick={() => setZoom(Math.min(140, zoom + 20))}
               >
                 <ZoomIn size={16} />
@@ -133,7 +140,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
               viewBox="0 0 680 540"
               style={{ width: `${zoom}%`, minWidth: `${zoom * 5.4}px` }}
               role="group"
-              aria-label={pText('Sample workflow diagram')}
+              aria-label={t('drawio.editor.sampleWorkflowDiagram')}
             >
               <defs>
                 <marker
@@ -169,7 +176,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
                     <g
                       role="button"
                       tabIndex={0}
-                      aria-label={pFormat('Select {0}', node.label)}
+                      aria-label={t('drawio.editor.select', { nodeLabel: node.label })}
                       onClick={() => select(index)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -199,7 +206,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
           </div>
           <div className="dio-selection">
             <label>
-              {pText('Selected node label')}
+              {t('drawio.editor.selectedNodeLabel')}
               <input
                 value={label}
                 maxLength={50}
@@ -219,32 +226,24 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
               }
             >
               <Check size={14} />
-              {pText('Apply label')}
+              {t('drawio.editor.applyLabel')}
             </PreviewButton>
           </div>
         </section>
         <aside className="dio-assistant" data-active={panel === 'Assistant'}>
           <h2>
             <MessageSquare size={18} />
-            {pText('Diagram assistant')}
+            {t('drawio.assistant.diagramAssistant')}
           </h2>
-          <p>{pText('Describe a change, then explore a saved example.')}</p>
+          <p>{t('drawio.assistant.describeAChangeThenExploreASaved')}</p>
           <div className="dio-chat">
-            <span className="rp-badge">{pText('Sample conversation')}</span>
-            <h3>{pText('A clear flow, from idea to result')}</h3>
-            <p>
-              {pText(
-                'The canvas contains four editable steps. Select a shape to change its label, or add a sample step from the toolbar.',
-              )}
-            </p>
+            <span className="rp-badge">{t('drawio.assistant.sampleConversation')}</span>
+            <h3>{t('drawio.assistant.aClearFlowFromIdeaToResult')}</h3>
+            <p>{t('drawio.assistant.theCanvasContainsFourEditableStepsSelect')}</p>
             {reply && (
               <article>
-                <strong>{pText('Saved suggestion')}</strong>
-                <p>
-                  {pText(
-                    'A review step belongs between creating the draft and sharing it. This example already includes that step; you can rename it on the canvas.',
-                  )}
-                </p>
+                <strong>{t('drawio.assistant.savedSuggestion')}</strong>
+                <p>{t('drawio.assistant.aReviewStepBelongsBetweenCreatingThe')}</p>
               </article>
             )}
           </div>
@@ -255,7 +254,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
             }}
           >
             <textarea
-              aria-label={pText('Diagram request')}
+              aria-label={t('drawio.assistant.diagramRequest')}
               value={prompt}
               rows={3}
               onChange={(e) => {
@@ -264,7 +263,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
             />
             <button
               type="submit"
-              aria-label={pText('Show example diagram suggestion')}
+              aria-label={t('drawio.assistant.showExampleDiagramSuggestion')}
               disabled={!prompt.trim()}
             >
               <ArrowUp size={18} />
@@ -272,11 +271,11 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
           </form>
           {showHistory && (
             <section className="dio-history">
-              <h3>{pText('Local example history')}</h3>
+              <h3>{t('drawio.history.localExampleHistory')}</h3>
               {history.map((_, i) => (
                 <button type="button" key={i} aria-pressed={revision === i} onClick={() => move(i)}>
-                  {pText('Revision ')}
-                  {pText(i + 1)}
+                  {t('drawio.history.revision')}
+                  {i + 1}
                 </button>
               ))}
             </section>
@@ -285,9 +284,9 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
       </div>
       {showHistory && (
         <div className="dio-history-status" role="status">
-          {pText('Revision ')}
-          {pText(revision + 1)} {pText(' of ')}
-          {pText(history.length)} {pText(' · switch to Assistant to inspect the history.')}
+          {t('drawio.workspace.revision')}
+          {revision + 1} {t('drawio.workspace.of')}
+          {history.length} {t('drawio.workspace.switchToAssistantToInspect')}
         </div>
       )}
     </RemainingPreview>

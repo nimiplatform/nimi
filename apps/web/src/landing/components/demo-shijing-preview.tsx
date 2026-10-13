@@ -1,3 +1,4 @@
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
@@ -87,19 +88,18 @@ function GeneratingButton({
   onClick: () => void;
   ariaLabel?: string;
 }) {
-  const { pText } = useAppPreviewLocale();
   return (
     <button
       type="button"
       className={`shijing-generating-button${className ? ` ${className}` : ''}`}
       data-busy={busy ? 'true' : undefined}
       aria-busy={busy}
-      aria-label={pText(ariaLabel)}
+      aria-label={ariaLabel}
       disabled={busy}
       onClick={onClick}
     >
       {busy ? <span className="shijing-generating-button__spinner" aria-hidden="true" /> : null}
-      <span className="shijing-generating-button__label">{pText(busy ? busyLabel : children)}</span>
+      <span className="shijing-generating-button__label">{busy ? busyLabel : children}</span>
     </button>
   );
 }
@@ -109,13 +109,13 @@ function GeneratingButton({
 /* ------------------------------------------------------------------------ */
 
 function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
+  const { previewLang, t } = useAppPreviewLocale();
   const [generating, setGenerating] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
   const [riteOpen, setRiteOpen] = useState(false);
   const [lens, setLens] = useState<string>('__all__');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [draft, setDraft] = useState(() => pData(''));
+  const [draft, setDraft] = useState(() => '');
   const [references, setReferences] = useState<readonly string[]>(content.eventInput.references);
   const [savedHint, setSavedHint] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,21 +156,21 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
     <section
       className="shijing-tab shijing-rijing"
       data-mirror-kind="rijing"
-      aria-label={pText(content.title)}
+      aria-label={content.title}
     >
       <header className="shijing-mirror-header">
         <div className="shijing-mirror-header__titles">
-          <h1 id="shijing-rijing-heading">{pText(content.title)}</h1>
+          <h1 id="shijing-rijing-heading">{content.title}</h1>
           <div className="shijing-mirror-header__meta" aria-hidden="true">
-            <span className="shijing-rijing__date-main">{pText(dateLabel.date)}</span>
-            <span className="shijing-rijing__date-sep">{pText('·')}</span>
-            <span>{pText(dateLabel.weekday)}</span>
+            <span className="shijing-rijing__date-main">{dateLabel.date}</span>
+            <span className="shijing-rijing__date-sep">{'·'}</span>
+            <span>{dateLabel.weekday}</span>
           </div>
         </div>
         <div className="shijing-mirror-header__actions">
           <div className="shijing-mirror-header__buttons">
             <button type="button" className="shijing-import-to-consultation">
-              {pText(content.importLabel)}
+              {content.importLabel}
             </button>
             <GeneratingButton
               className="shijing-rijing__generate"
@@ -179,16 +179,16 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
               onClick={generate}
               ariaLabel={content.refreshLabel}
             >
-              {pText(content.refreshLabel)}
+              {content.refreshLabel}
             </GeneratingButton>
           </div>
         </div>
       </header>
 
-      {generating ? <p role="status">{pText(content.refreshingLabel)}</p> : null}
+      {generating ? <p role="status">{content.refreshingLabel}</p> : null}
       {refreshed && !generating ? (
         <p className="shijing-rijing__refreshed" role="status">
-          {pText(content.refreshedHint)}
+          {content.refreshedHint}
         </p>
       ) : null}
 
@@ -201,11 +201,11 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
           type="button"
           className="shijing-rijing__hero-flip"
           aria-pressed={riteOpen}
-          aria-label={pText(riteOpen ? hero.flipToOverview : hero.flipToRite)}
+          aria-label={riteOpen ? hero.flipToOverview : hero.flipToRite}
           onClick={() => setRiteOpen((open) => !open)}
         >
           <span className="shijing-rijing__hero-flip-text">
-            {pText(riteOpen ? hero.flipToOverview : hero.flipToRite)}
+            {riteOpen ? hero.flipToOverview : hero.flipToRite}
           </span>
           <span className="shijing-rijing__hero-flip-icon" aria-hidden="true">
             <CalendarDays size={14} />
@@ -219,15 +219,18 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
           >
             <div className="shijing-rijing__hero-eyebrow" aria-hidden="true">
               <span className="shijing-rijing__hero-eyebrow-dash" />
-              <span>{pText(hero.eyebrow)}</span>
+              <span>{hero.eyebrow}</span>
               <span className="shijing-rijing__hero-eyebrow-dash" />
             </div>
             <h3 id="shijing-rijing__hero-headline" className="shijing-rijing__hero-headline">
-              {pText(hero.headline)}
+              {hero.headline}
             </h3>
             <div className="shijing-rijing__hero-subtitle-row">
-              <p className="shijing-rijing__hero-subtitle">{pText(hero.subtitle)}</p>
-              <div className="shijing-rijing__hero-leanings" aria-label={pText('今日倾向')}>
+              <p className="shijing-rijing__hero-subtitle">{hero.subtitle}</p>
+              <div
+                className="shijing-rijing__hero-leanings"
+                aria-label={t('shijing.riJingTab.todayTendency')}
+              >
                 {hero.leanings.map((leaning) => (
                   <span
                     key={leaning.label}
@@ -235,12 +238,15 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                     data-tone={leaning.tone}
                   >
                     <span className="shijing-rijing__hero-pill-dot" aria-hidden="true" />
-                    {pText(leaning.label)}
+                    {leaning.label}
                   </span>
                 ))}
               </div>
             </div>
-            <div className="shijing-rijing__meter" aria-label={pText('旺衰与阶段能量条')}>
+            <div
+              className="shijing-rijing__meter"
+              aria-label={t('shijing.riJingTab.strengthAndStageEnergyMeter')}
+            >
               <div className="shijing-rijing__meter-track">
                 <span
                   className="shijing-rijing__meter-dot"
@@ -249,34 +255,29 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                 />
               </div>
               <div className="shijing-rijing__meter-axis" aria-hidden="true">
-                <span>{pText(hero.meterAxisStart)}</span>
-                <span>{pText(hero.meterAxisEnd)}</span>
+                <span>{hero.meterAxisStart}</span>
+                <span>{hero.meterAxisEnd}</span>
               </div>
               <div className="shijing-rijing__meter-caption">
-                {pText(hero.meterStrengthLabel)} <b>{pText(meter.band)}</b>{' '}
-                {pText(hero.meterStageConnector)}
-                {pText(' ')}
-                <b>{pText(meter.stage)}</b> {pText(hero.meterStageSuffix)}
-                {pText(meter.guidance)}
+                {hero.meterStrengthLabel} <b>{meter.band}</b> {hero.meterStageConnector}{' '}
+                <b>{meter.stage}</b> {hero.meterStageSuffix}
+                {meter.guidance}
               </div>
             </div>
             <p className="shijing-rijing__hero-confidence">
-              {pText(hero.confidencePrefix)}
-              {pText(' ')}
-              <b className="shijing-rijing__hero-confidence-value">{pText(hero.confidenceLabel)}</b>
-              {pText(' ')}
-              {pText('· ')}
-              {pText(hero.confidenceNote)}
+              {hero.confidencePrefix}{' '}
+              <b className="shijing-rijing__hero-confidence-value">{hero.confidenceLabel}</b> {'· '}
+              {hero.confidenceNote}
             </p>
             <div className="shijing-rijing__hero-full">
-              <section className="shijing-rijing__hero-block" aria-label={pText(hero.eventTitle)}>
+              <section className="shijing-rijing__hero-block" aria-label={hero.eventTitle}>
                 <h4 className="shijing-rijing__hero-block-title shijing-rijing__hero-block-title--muted">
-                  {pText(hero.eventTitle)}
+                  {hero.eventTitle}
                 </h4>
-                <p className="shijing-rijing__hero-block-body">{pText(hero.eventBody)}</p>
-                <p className="shijing-rijing__hero-block-body">{pText(hero.eventGuidance)}</p>
+                <p className="shijing-rijing__hero-block-body">{hero.eventBody}</p>
+                <p className="shijing-rijing__hero-block-body">{hero.eventGuidance}</p>
                 <p className="shijing-rijing__hero-block-body shijing-rijing__hero-block-body--soft">
-                  {pText(hero.eventAction)}
+                  {hero.eventAction}
                 </p>
               </section>
             </div>
@@ -286,54 +287,49 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                 <Heart size={18} />
               </span>
               <div className="shijing-rijing__hero-wish-copy">
-                <span className="shijing-rijing__hero-wish-label">{pText(hero.closingLabel)}</span>
-                <p>{pText(hero.closingWish)}</p>
+                <span className="shijing-rijing__hero-wish-label">{hero.closingLabel}</span>
+                <p>{hero.closingWish}</p>
               </div>
             </div>
           </div>
 
           <section
             className="shijing-rijing__hero-face shijing-rijing__hero-face--back"
-            aria-label={pText(hero.rite.eyebrow)}
+            aria-label={hero.rite.eyebrow}
             aria-hidden={!riteOpen}
           >
             <div className="shijing-rijing__hero-eyebrow" aria-hidden="true">
               <span className="shijing-rijing__hero-eyebrow-dash" />
-              <span>{pText(hero.rite.eyebrow)}</span>
+              <span>{hero.rite.eyebrow}</span>
               <span className="shijing-rijing__hero-eyebrow-dash" />
             </div>
-            <h3 className="shijing-rijing__rite-title">{pText(hero.rite.lunarTitle)}</h3>
-            <p className="shijing-rijing__rite-summary">{pText(hero.rite.ganzhiLine)}</p>
+            <h3 className="shijing-rijing__rite-title">{hero.rite.lunarTitle}</h3>
+            <p className="shijing-rijing__rite-summary">{hero.rite.ganzhiLine}</p>
             <div className="shijing-rijing__almanac-recommends">
               <div className="shijing-rijing__almanac-line" data-kind="recommend">
-                <span>{pText(hero.rite.suitableTitle)}</span>
-                <p>{pText(hero.rite.suitable.join(' '))}</p>
+                <span>{hero.rite.suitableTitle}</span>
+                <p>{hero.rite.suitable.join(' ')}</p>
               </div>
               <div className="shijing-rijing__almanac-line" data-kind="avoid">
-                <span>{pText(hero.rite.unsuitableTitle)}</span>
-                <p>{pText(hero.rite.unsuitable.join(' '))}</p>
+                <span>{hero.rite.unsuitableTitle}</span>
+                <p>{hero.rite.unsuitable.join(' ')}</p>
               </div>
             </div>
             <div className="shijing-rijing__almanac-grid">
               {hero.rite.cells.map((cell) => (
                 <div key={cell.label} className="shijing-rijing__almanac-cell">
-                  <span>{pText(cell.label)}</span>
-                  <strong>{pText(cell.value)}</strong>
+                  <span>{cell.label}</span>
+                  <strong>{cell.value}</strong>
                 </div>
               ))}
             </div>
             <div className="shijing-rijing__almanac-hours-panel">
-              <span className="shijing-rijing__almanac-hours-heading">
-                {pText(hero.rite.hoursTitle)}
-              </span>
-              <div
-                className="shijing-rijing__almanac-hours"
-                aria-label={pText(hero.rite.hoursTitle)}
-              >
+              <span className="shijing-rijing__almanac-hours-heading">{hero.rite.hoursTitle}</span>
+              <div className="shijing-rijing__almanac-hours" aria-label={hero.rite.hoursTitle}>
                 {hero.rite.hours.map((hour) => (
                   <span key={hour.branch} data-luck={hour.luck}>
-                    <b>{pText(hour.branch)}</b>
-                    {pText(hour.luck)}
+                    <b>{hour.branch}</b>
+                    {hour.luck}
                   </span>
                 ))}
               </div>
@@ -342,13 +338,14 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
         </div>
       </article>
 
-      <section
-        className="shijing-rijing__projections"
-        aria-label={pText(content.projections.title)}
-      >
+      <section className="shijing-rijing__projections" aria-label={content.projections.title}>
         <header className="shijing-rijing__projections-head">
-          <h2 className="shijing-rijing__projections-title">{pText(content.projections.title)}</h2>
-          <div className="shijing-rijing__lens" role="group" aria-label={pText('按关注视角筛选')}>
+          <h2 className="shijing-rijing__projections-title">{content.projections.title}</h2>
+          <div
+            className="shijing-rijing__lens"
+            role="group"
+            aria-label={t('shijing.riJingTab.filterByReadingLens')}
+          >
             <button
               type="button"
               className="shijing-rijing__lens-chip"
@@ -356,7 +353,7 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
               aria-pressed={lens === '__all__'}
               onClick={() => setLens('__all__')}
             >
-              {pText(content.projections.allLabel)}
+              {content.projections.allLabel}
             </button>
             {content.projections.rows.map((row) => (
               <button
@@ -367,12 +364,12 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                 aria-pressed={lens === row.id}
                 onClick={() => setLens(row.id)}
               >
-                {pText(row.name)}
+                {row.name}
               </button>
             ))}
             <button type="button" className="shijing-rijing__lens-manage" aria-haspopup="dialog">
-              {pText('✎ ')}
-              {pText(content.projections.manageLabel)}
+              {'✎ '}
+              {content.projections.manageLabel}
             </button>
           </div>
         </header>
@@ -388,7 +385,7 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                   type="button"
                   className="shijing-rijing__frame-row"
                   aria-expanded={open}
-                  aria-label={pText(`展开「${row.name}」分镜`)}
+                  aria-label={t('shijing.riJingTab.expandTheStoryboard', { rowName: row.name })}
                   onClick={() => setExpanded((current) => ({ ...current, [row.id]: !open }))}
                 >
                   <span
@@ -396,15 +393,15 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                     data-tone={row.tone}
                     aria-hidden="true"
                   >
-                    {pText(concernIcon(row.name))}
+                    {concernIcon(row.name)}
                   </span>
                   <span className="shijing-rijing__frame-meta">
-                    <span className="shijing-rijing__frame-name">{pText(row.name)}</span>
+                    <span className="shijing-rijing__frame-name">{row.name}</span>
                     <span className="shijing-rijing__frame-pill" data-tone={row.tone}>
-                      {pText(row.tendencyLabel)}
+                      {row.tendencyLabel}
                     </span>
                   </span>
-                  <span className="shijing-rijing__frame-takeaway">{pText(row.takeaway)}</span>
+                  <span className="shijing-rijing__frame-takeaway">{row.takeaway}</span>
                   <span
                     className="shijing-rijing__frame-chevron"
                     data-open={open}
@@ -416,7 +413,7 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                 {open ? (
                   <div className="shijing-rijing__frame-detail">
                     <div className="shijing-rijing__frame-detail-divider" aria-hidden="true" />
-                    <p className="shijing-rijing__frame-detail-body">{pText(row.detail)}</p>
+                    <p className="shijing-rijing__frame-detail-body">{row.detail}</p>
                   </div>
                 ) : null}
               </li>
@@ -425,20 +422,21 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
         </ul>
       </section>
 
-      <aside className="shijing-rijing__event-input" aria-label={pText(content.eventInput.title)}>
+      <aside className="shijing-rijing__event-input" aria-label={content.eventInput.title}>
         <header className="shijing-rijing__event-input-head">
-          <h3 className="shijing-rijing__event-input-title">{pText(content.eventInput.title)}</h3>
-          <p className="shijing-rijing__event-input-intro">{pText(content.eventInput.intro)}</p>
+          <h3 className="shijing-rijing__event-input-title">{content.eventInput.title}</h3>
+          <p className="shijing-rijing__event-input-intro">{content.eventInput.intro}</p>
         </header>
         {references.length > 0 ? (
-          <ul className="shijing-rijing__refs" aria-label={pText('今日已参照的事件')}>
+          <ul
+            className="shijing-rijing__refs"
+            aria-label={t('shijing.riJingTab.eventsReferencedToday')}
+          >
             {references.map((reference, index) => (
               <li key={`${index}-${reference}`} className="shijing-rijing__ref">
                 <span className="shijing-rijing__ref-dot" aria-hidden="true" />
-                <span className="shijing-rijing__ref-text">{pText(reference)}</span>
-                <span className="shijing-rijing__ref-badge">
-                  {pText(content.eventInput.refsBadge)}
-                </span>
+                <span className="shijing-rijing__ref-text">{reference}</span>
+                <span className="shijing-rijing__ref-badge">{content.eventInput.refsBadge}</span>
               </li>
             ))}
           </ul>
@@ -447,8 +445,8 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
           className="shijing-rijing__event-input-textarea"
           value={draft}
           rows={3}
-          placeholder={pText(content.eventInput.placeholder)}
-          aria-label={pText(content.eventInput.title)}
+          placeholder={content.eventInput.placeholder}
+          aria-label={content.eventInput.title}
           onChange={(event) => {
             setDraft(event.target.value);
             setSavedHint(false);
@@ -458,7 +456,7 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
           {savedHint ? (
             <div className="shijing-rijing__event-input-hint-slot" role="status">
               <span className="shijing-rijing__event-input-hint">
-                {pText(content.eventInput.successHint)}
+                {content.eventInput.successHint}
               </span>
             </div>
           ) : null}
@@ -468,14 +466,14 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
             disabled={draft.trim().length === 0}
             onClick={addReference}
           >
-            <span>{pText(content.eventInput.submit)}</span>
+            <span>{content.eventInput.submit}</span>
           </button>
         </div>
       </aside>
 
-      <section className="shijing-rijing__actions" aria-label={pText(content.actions.title)}>
+      <section className="shijing-rijing__actions" aria-label={content.actions.title}>
         <header className="shijing-rijing__actions-head">
-          <h2 className="shijing-rijing__actions-title">{pText(content.actions.title)}</h2>
+          <h2 className="shijing-rijing__actions-title">{content.actions.title}</h2>
         </header>
         <ul className="shijing-rijing__actions-grid">
           {content.actions.groups.map((group) => (
@@ -484,13 +482,13 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                 <span className="shijing-rijing__action-badge" aria-hidden="true">
                   <Sparkles size={16} />
                 </span>
-                <span className="shijing-rijing__action-eyebrow">{pText(group.name)}</span>
+                <span className="shijing-rijing__action-eyebrow">{group.name}</span>
               </div>
               <ul className="shijing-rijing__action-list">
                 {group.recommendations.map((item) => (
                   <li key={item} className="shijing-rijing__action-item">
                     <span className="shijing-rijing__action-dot" aria-hidden="true" />
-                    <span>{pText(item)}</span>
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
@@ -499,12 +497,12 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
         </ul>
       </section>
 
-      <section className="shijing-rijing__evidence" aria-label={pText(content.evidence.title)}>
-        <h2>{pText(content.evidence.title)}</h2>
+      <section className="shijing-rijing__evidence" aria-label={content.evidence.title}>
+        <h2>{content.evidence.title}</h2>
         <div className="shijing-rijing__evidence-chips">
           {content.evidence.chips.map((chip) => (
             <span key={chip.label} className="shijing-rijing__evidence-chip">
-              {pText(chip.label)} <b>{pText(chip.value)}</b>
+              {chip.label} <b>{chip.value}</b>
             </span>
           ))}
         </div>
@@ -559,9 +557,20 @@ function yuejingWeekdayIndex(iso: string): number {
   return (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;
 }
 
-function yuejingShortMonthDay(iso: string): string {
+function yuejingShortMonthDay(iso: string, t: PreviewTranslate): string {
   const [, month, day] = iso.split('-');
-  return `${Number(month)}月${Number(day)}日`;
+  const labels: Record<string, string> = {
+    '9-17': t('shijing.calendar.month9Day17'),
+    '9-15': t('shijing.calendar.month9Day15'),
+    '9-20': t('shijing.calendar.month9Day20'),
+    '10-19': t('shijing.calendar.month10Day19'),
+    '9-16': t('shijing.calendar.month9Day16'),
+    '8-30': t('shijing.calendar.month8Day30'),
+  };
+  return (
+    labels[`${Number(month)}-${Number(day)}`] ??
+    t('shijing.calendar.monthDay', { month: Number(month), day: Number(day) })
+  );
 }
 
 function yuejingClassifyDay(date: string, today: string): YueJingDayKind {
@@ -633,7 +642,6 @@ function yuejingConcernStyle(name: string): { bg: string; fg: string; icon: Reac
 }
 
 function YueJingConcernIcon({ name }: { name: string }) {
-  const { pText } = useAppPreviewLocale();
   const style = yuejingConcernStyle(name);
   return (
     <span
@@ -641,7 +649,7 @@ function YueJingConcernIcon({ name }: { name: string }) {
       style={{ background: style.bg, color: style.fg }}
       aria-hidden="true"
     >
-      {pText(style.icon)}
+      {style.icon}
     </span>
   );
 }
@@ -683,7 +691,7 @@ function YueJingTab({
   content: YueJingContent;
   onAskInShijing: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const today = content.startDate;
   const labels = content.tendencyLabels;
   const dates = useMemo(
@@ -776,12 +784,12 @@ function YueJingTab({
     <section
       className="shijing-tab shijing-yuejing"
       data-mirror-kind="yuejing"
-      aria-label={pText(content.title)}
+      aria-label={content.title}
     >
       <header className="shijing-mirror-header">
         <div className="shijing-mirror-header__titles">
-          <h1>{pText(content.title)}</h1>
-          <div className="shijing-mirror-header__meta">{pText(content.generatedAgo)}</div>
+          <h1>{content.title}</h1>
+          <div className="shijing-mirror-header__meta">{content.generatedAgo}</div>
         </div>
         <div className="shijing-mirror-header__actions">
           <div className="shijing-mirror-header__buttons">
@@ -790,14 +798,14 @@ function YueJingTab({
               className="shijing-import-to-consultation"
               onClick={onAskInShijing}
             >
-              {pText(content.importLabel)}
+              {content.importLabel}
             </button>
             <button
               type="button"
               className="shijing-generating-button shijing-yuejing__generate"
               disabled
             >
-              {pText(content.generateLabel)}
+              {content.generateLabel}
             </button>
           </div>
         </div>
@@ -806,28 +814,28 @@ function YueJingTab({
       <article
         className="shijing-yuejing__hero"
         data-tendency={todayTone}
-        aria-label={pText(content.hero.ariaLabel)}
+        aria-label={content.hero.ariaLabel}
       >
         <div className="shijing-yuejing__hero-headline">
-          <span className="shijing-yuejing__hero-eyebrow">{pText(content.hero.eyebrow)}</span>
+          <span className="shijing-yuejing__hero-eyebrow">{content.hero.eyebrow}</span>
           <div className="shijing-yuejing__hero-tendency">
-            <strong>{pText(labels[todayTone])}</strong>
+            <strong>{labels[todayTone]}</strong>
             <small>
-              {pText(yuejingShortMonthDay(today))} {pText(' · ')}
-              {pText(content.weekdayShort[yuejingWeekdayIndex(today)])}
+              {yuejingShortMonthDay(today, t)} {' · '}
+              {content.weekdayShort[yuejingWeekdayIndex(today)]}
             </small>
           </div>
-          <p className="shijing-yuejing__hero-body">{pText(content.todayBodyByTone[todayTone])}</p>
+          <p className="shijing-yuejing__hero-body">{content.todayBodyByTone[todayTone]}</p>
         </div>
-        <ul className="shijing-yuejing__hero-rows" aria-label={pText(content.hero.rowsAriaLabel)}>
+        <ul className="shijing-yuejing__hero-rows" aria-label={content.hero.rowsAriaLabel}>
           {scoped.map((concern) => {
             const tone = concern.tones?.[0];
             return (
               <li key={concern.id} data-pending={tone ? undefined : 'true'}>
-                <span className="shijing-yuejing__hero-row-label">{pText(concern.name)}</span>
+                <span className="shijing-yuejing__hero-row-label">{concern.name}</span>
                 <span className="shijing-yuejing__hero-row-chip" data-tendency={tone ?? 'pending'}>
                   <span className="shijing-yuejing__hero-row-chip-dot" aria-hidden="true" />
-                  {pText(tone ? labels[tone] : content.hero.pending)}
+                  {tone ? labels[tone] : content.hero.pending}
                 </span>
               </li>
             );
@@ -841,7 +849,7 @@ function YueJingTab({
                 setMonthOpen(true);
               }}
             >
-              {pText(content.hero.detailButton)}
+              {content.hero.detailButton}
             </button>
           </li>
         </ul>
@@ -858,16 +866,16 @@ function YueJingTab({
         onAdd={addConcern}
       />
 
-      <section className="shijing-yuejing__calendar" aria-label={pText(content.calendar.ariaLabel)}>
+      <section className="shijing-yuejing__calendar" aria-label={content.calendar.ariaLabel}>
         <ol className="shijing-yuejing__weekday-row" aria-hidden="true">
           {content.weekdayHeaders.map((label) => (
-            <li key={label}>{pText(label)}</li>
+            <li key={label}>{label}</li>
           ))}
         </ol>
         <div
           className="shijing-yuejing__grid"
           role="grid"
-          aria-label={pText(content.calendar.gridAriaLabel)}
+          aria-label={content.calendar.gridAriaLabel}
         >
           {Array.from({ length: leadingBlanks }, (_, index) => (
             <div key={`lead-${index}`} className="shijing-yuejing__blank" role="presentation" />
@@ -896,42 +904,40 @@ function YueJingTab({
                   className="shijing-yuejing__day-face"
                   onClick={() => setSelectedDate(selected ? null : day.date)}
                   aria-expanded={selected}
-                  aria-label={pText(
-                    [day.date, marker.label, day.tone ? labels[day.tone] : null]
-                      .filter(Boolean)
-                      .join(' · '),
-                  )}
+                  aria-label={[day.date, marker.label, day.tone ? labels[day.tone] : null]
+                    .filter(Boolean)
+                    .join(' · ')}
                 >
                   <span className="shijing-yuejing__day-weekday">
-                    {pText(content.weekdayShort[yuejingWeekdayIndex(day.date)])}
+                    {content.weekdayShort[yuejingWeekdayIndex(day.date)]}
                   </span>
                   {kind === 'today' ? (
                     <span className="shijing-yuejing__day-today-badge">
-                      {pText(content.calendar.todayBadge)}
+                      {content.calendar.todayBadge}
                     </span>
                   ) : hasRecord ? (
                     <span
                       className="shijing-yuejing__day-edit-mark"
-                      aria-label={pText(content.calendar.hasRecordAriaLabel)}
+                      aria-label={content.calendar.hasRecordAriaLabel}
                     >
-                      {pText('✎')}
+                      {'✎'}
                     </span>
                   ) : null}
                   <span className="shijing-yuejing__day-number">
                     <span className="shijing-yuejing__day-number-value">
-                      {pText(Number(day.date.slice(-2)))}
+                      {Number(day.date.slice(-2))}
                     </span>
                     {marker.label ? (
                       <span
                         className="shijing-yuejing__day-lunisolar"
                         data-marker-kind={marker.kind}
                       >
-                        {pText(marker.label)}
+                        {marker.label}
                       </span>
                     ) : null}
                   </span>
                   {day.tone ? (
-                    <span className="shijing-yuejing__day-tendency">{pText(labels[day.tone])}</span>
+                    <span className="shijing-yuejing__day-tendency">{labels[day.tone]}</span>
                   ) : null}
                 </button>
               </article>
@@ -945,13 +951,13 @@ function YueJingTab({
 
       {filterId === null ? (
         <details className="shijing-yuejing__details">
-          <summary>{pText(content.details.summary)}</summary>
-          <p className="shijing-yuejing__summary">{pText(content.details.body)}</p>
+          <summary>{content.details.summary}</summary>
+          <p className="shijing-yuejing__summary">{content.details.body}</p>
           <div className="shijing-yuejing__details-evidence">
-            <h3>{pText(content.details.evidenceTitle)}</h3>
+            <h3>{content.details.evidenceTitle}</h3>
             <ul>
               {content.details.evidence.map((item) => (
-                <li key={item}>{pText(item)}</li>
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
@@ -1021,21 +1027,20 @@ function YueJingFilterRow({
   onActivate: (id: string) => void;
   onAdd: (name: string, subtitle: string) => void;
 }) {
-  const { pText } = useAppPreviewLocale();
   const [editorOpen, setEditorOpen] = useState(false);
   return (
     <div
       className="shijing-yuejing__filter-row"
       role="toolbar"
-      aria-label={pText(content.filter.toolbarAriaLabel)}
+      aria-label={content.filter.toolbarAriaLabel}
     >
       <div
         className="shijing-yuejing__filter"
         role="group"
-        aria-label={pText(content.filter.concernAriaLabel)}
+        aria-label={content.filter.concernAriaLabel}
       >
         <span className="shijing-yuejing__filter-label" aria-hidden="true">
-          {pText(content.filter.concernLabel)}
+          {content.filter.concernLabel}
         </span>
         <button
           type="button"
@@ -1043,7 +1048,7 @@ function YueJingFilterRow({
           aria-pressed={filterId === null}
           onClick={() => onFilterChange(null)}
         >
-          {pText(content.filter.all)}
+          {content.filter.all}
         </button>
         {concerns.map((concern) => (
           <button
@@ -1053,7 +1058,7 @@ function YueJingFilterRow({
             aria-pressed={filterId === concern.id}
             onClick={() => onFilterChange(concern.id)}
           >
-            {pText(concern.name)}
+            {concern.name}
           </button>
         ))}
         <span className="shijing-yuejing__editor-anchor">
@@ -1064,7 +1069,7 @@ function YueJingFilterRow({
             aria-haspopup="dialog"
             onClick={() => setEditorOpen((open) => !open)}
           >
-            {pText(content.filter.manage)}
+            {content.filter.manage}
           </button>
           {editorOpen ? (
             <YueJingConcernEditor
@@ -1079,11 +1084,11 @@ function YueJingFilterRow({
           ) : null}
         </span>
       </div>
-      <ul className="shijing-yuejing__legend" aria-label={pText(content.filter.legendAriaLabel)}>
+      <ul className="shijing-yuejing__legend" aria-label={content.filter.legendAriaLabel}>
         {YUEJING_TONE_CLASSES.map((tone) => (
           <li key={tone} data-tendency={tone}>
             <span className="shijing-yuejing__legend-dot" aria-hidden="true" />
-            {pText(content.tendencyLabels[tone])}
+            {content.tendencyLabels[tone]}
           </li>
         ))}
       </ul>
@@ -1108,8 +1113,8 @@ function YueJingConcernEditor({
   onAdd: (name: string, subtitle: string) => void;
   onClose: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
-  const [draft, setDraft] = useState(() => pData(''));
+  const { t } = useAppPreviewLocale();
+  const [draft, setDraft] = useState(() => '');
   const popoverRef = useRef<HTMLDivElement>(null);
   const atLimit = concerns.length >= content.concernLimit;
 
@@ -1152,40 +1157,42 @@ function YueJingConcernEditor({
         activate: () => onAdd(preset.name, preset.subtitle),
       })),
   ];
-  const addTitle = atLimit ? `已达激活上限 ${content.concernLimit}` : content.concernEditor.add;
+  const addTitle = atLimit
+    ? t('shijing.concerns.activationLimit', { count: content.concernLimit })
+    : content.concernEditor.add;
 
   return (
     <div
       ref={popoverRef}
       className="shijing-yuejing__editor"
       role="dialog"
-      aria-label={pText(content.concernEditor.ariaLabel)}
+      aria-label={content.concernEditor.ariaLabel}
     >
       <header className="shijing-yuejing__editor-head">
-        <strong>{pText(content.concernEditor.title)}</strong>
+        <strong>{content.concernEditor.title}</strong>
         <span className="shijing-yuejing__editor-count">
-          {pText(concerns.length)}
-          {pText('/')}
-          {pText(content.concernLimit)}
+          {concerns.length}
+          {'/'}
+          {content.concernLimit}
         </span>
       </header>
-      <p className="shijing-yuejing__editor-subtitle">{pText(content.concernEditor.subtitle)}</p>
+      <p className="shijing-yuejing__editor-subtitle">{content.concernEditor.subtitle}</p>
       {concerns.length > 0 ? (
         <section className="shijing-yuejing__editor-section">
-          <h4>{pText(content.concernEditor.activeHeading)}</h4>
+          <h4>{content.concernEditor.activeHeading}</h4>
           <ul>
             {concerns.map((concern) => (
               <li key={concern.id}>
                 <div className="shijing-yuejing__editor-row-text">
-                  <strong>{pText(concern.name)}</strong>
-                  <small>{pText(concern.subtitle)}</small>
+                  <strong>{concern.name}</strong>
+                  <small>{concern.subtitle}</small>
                 </div>
                 <button
                   type="button"
                   className="shijing-yuejing__editor-remove"
                   onClick={() => onArchive(concern.id)}
                 >
-                  {pText(content.concernEditor.remove)}
+                  {content.concernEditor.remove}
                 </button>
               </li>
             ))}
@@ -1194,22 +1201,22 @@ function YueJingConcernEditor({
       ) : null}
       {suggestions.length > 0 ? (
         <section className="shijing-yuejing__editor-section">
-          <h4>{pText(content.concernEditor.addableHeading)}</h4>
+          <h4>{content.concernEditor.addableHeading}</h4>
           <ul>
             {suggestions.map((suggestion) => (
               <li key={suggestion.key}>
                 <div className="shijing-yuejing__editor-row-text">
-                  <strong>{pText(suggestion.name)}</strong>
-                  <small>{pText(suggestion.subtitle)}</small>
+                  <strong>{suggestion.name}</strong>
+                  <small>{suggestion.subtitle}</small>
                 </div>
                 <button
                   type="button"
                   className="shijing-yuejing__editor-add"
                   disabled={atLimit}
-                  title={pText(addTitle)}
+                  title={addTitle}
                   onClick={suggestion.activate}
                 >
-                  {pText(content.concernEditor.add)}
+                  {content.concernEditor.add}
                 </button>
               </li>
             ))}
@@ -1223,7 +1230,7 @@ function YueJingConcernEditor({
           onChange={(event) => {
             setDraft(event.currentTarget.value);
           }}
-          placeholder={pText(content.concernEditor.customPlaceholder)}
+          placeholder={content.concernEditor.customPlaceholder}
           disabled={atLimit}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !atLimit && draft.trim().length > 0) {
@@ -1242,7 +1249,7 @@ function YueJingConcernEditor({
             setDraft('');
           }}
         >
-          {pText(content.concernEditor.add)}
+          {content.concernEditor.add}
         </button>
       </div>
     </div>
@@ -1274,11 +1281,11 @@ function YueJingDayPanel({
   onDelete: (id: string) => void;
   onAsk: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const copy = content.dayPanel;
-  const [draft, setDraft] = useState(() => pData(''));
+  const [draft, setDraft] = useState(() => '');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState(() => pData(''));
+  const [editDraft, setEditDraft] = useState(() => '');
   const isPlan = kind === 'future';
   const weekday = content.weekdayShort[yuejingWeekdayIndex(date)] ?? '';
   const marker = content.calendar.markers[date];
@@ -1310,56 +1317,59 @@ function YueJingDayPanel({
         className="shijing-yuejing__panel"
         role="dialog"
         aria-modal="true"
-        aria-label={pText(`${yuejingShortMonthDay(date)} ${weekday} 详情`)}
+        aria-label={t('shijing.yueJingDayPanel.details', {
+          date: yuejingShortMonthDay(date, t),
+          weekday: weekday,
+        })}
         data-day-kind={kind}
       >
         <button
           type="button"
           className="shijing-yuejing__panel-close"
           onClick={onClose}
-          aria-label={pText(copy.close)}
+          aria-label={copy.close}
         >
           <X size={20} strokeWidth={1.8} aria-hidden="true" />
         </button>
         <header className="shijing-yuejing__panel-head">
-          <strong>{pText(yuejingShortMonthDay(date))}</strong>
+          <strong>{yuejingShortMonthDay(date, t)}</strong>
           <small>
-            {pText(weekday)} {pText(' · ')}
-            {pText(copy.kindLabels[kind])}
+            {weekday} {' · '}
+            {copy.kindLabels[kind]}
           </small>
         </header>
 
         <section
           className="shijing-yuejing__panel-section shijing-yuejing__panel-calendar"
-          aria-label={pText(copy.calendarTitle)}
+          aria-label={copy.calendarTitle}
         >
-          <h3>{pText(copy.calendarTitle)}</h3>
+          <h3>{copy.calendarTitle}</h3>
           <dl className="shijing-yuejing__panel-calendar-grid">
             <div>
-              <dt>{pText(copy.lunarLabel)}</dt>
-              <dd>{pText(copy.lunar[index])}</dd>
+              <dt>{copy.lunarLabel}</dt>
+              <dd>{copy.lunar[index]}</dd>
             </div>
             <div>
-              <dt>{pText(copy.ganzhiLabel)}</dt>
-              <dd>{pText(copy.ganzhi[index])}</dd>
+              <dt>{copy.ganzhiLabel}</dt>
+              <dd>{copy.ganzhi[index]}</dd>
             </div>
             {marker?.kind === 'solar_term' ? (
               <div>
-                <dt>{pText(copy.solarTermLabel)}</dt>
-                <dd>{pText(marker.label)}</dd>
+                <dt>{copy.solarTermLabel}</dt>
+                <dd>{marker.label}</dd>
               </div>
             ) : null}
             {marker?.kind === 'festival' ? (
               <div>
-                <dt>{pText(copy.festivalsLabel)}</dt>
-                <dd>{pText(marker.label)}</dd>
+                <dt>{copy.festivalsLabel}</dt>
+                <dd>{marker.label}</dd>
               </div>
             ) : null}
           </dl>
         </section>
 
         <section className="shijing-yuejing__panel-section">
-          <h3>{pText(copy.currentTendency)}</h3>
+          <h3>{copy.currentTendency}</h3>
           <ul className="shijing-yuejing__panel-tendencies">
             {cells.map((cell) => {
               const detail = cell.concern.details[date];
@@ -1367,12 +1377,12 @@ function YueJingDayPanel({
                 <li key={cell.concern.id} data-tendency={cell.tone}>
                   <YueJingConcernIcon name={cell.concern.name} />
                   <div className="shijing-yuejing__panel-tend-text">
-                    <strong>{pText(cell.concern.name)}</strong>
-                    {detail ? <p>{pText(detail)}</p> : null}
+                    <strong>{cell.concern.name}</strong>
+                    {detail ? <p>{detail}</p> : null}
                   </div>
                   <span className="shijing-yuejing__panel-tend-chip" data-tendency={cell.tone}>
                     <span className="shijing-yuejing__panel-tend-dot" aria-hidden="true" />
-                    {pText(content.tendencyLabels[cell.tone])}
+                    {content.tendencyLabels[cell.tone]}
                   </span>
                 </li>
               );
@@ -1381,14 +1391,14 @@ function YueJingDayPanel({
         </section>
 
         <section className="shijing-yuejing__panel-section">
-          <h3>{pText(copy.entryHeadings[kind])}</h3>
+          <h3>{copy.entryHeadings[kind]}</h3>
           <textarea
             className="shijing-yuejing__panel-entry"
             value={draft}
             onChange={(event) => {
               setDraft(event.currentTarget.value);
             }}
-            placeholder={pText(isPlan ? copy.placeholders.plan : copy.placeholders.memory)}
+            placeholder={isPlan ? copy.placeholders.plan : copy.placeholders.memory}
           />
           <div className="shijing-yuejing__panel-entry-foot">
             <button
@@ -1401,28 +1411,28 @@ function YueJingDayPanel({
               }}
             >
               <Pencil size={15} strokeWidth={1.6} aria-hidden="true" />
-              <span>{pText(isPlan ? copy.saveLabels.plan : copy.saveLabels.memory)}</span>
+              <span>{isPlan ? copy.saveLabels.plan : copy.saveLabels.memory}</span>
             </button>
           </div>
         </section>
 
         <section className="shijing-yuejing__panel-section">
           <h3>
-            {pText(copy.recordsTitle)} {pText(' (')}
-            {pText(records.length)}
-            {pText(')')}
+            {copy.recordsTitle} {' ('}
+            {records.length}
+            {')'}
           </h3>
           {records.length === 0 ? (
             <div className="shijing-yuejing__panel-records-empty" role="status">
               <span className="shijing-yuejing__panel-records-empty-icon" aria-hidden="true">
                 <ClipboardList size={22} strokeWidth={1.6} />
               </span>
-              <p>{pText(copy.recordsEmpty)}</p>
+              <p>{copy.recordsEmpty}</p>
             </div>
           ) : (
             <ul
               className="shijing-yuejing__panel-records"
-              aria-label={pText(`已记录的${recordKind}`)}
+              aria-label={t('shijing.yueJingDayPanel.recorded', { recordKind: recordKind })}
             >
               {records.map((record) => {
                 const editing = editingId === record.id;
@@ -1443,7 +1453,7 @@ function YueJingDayPanel({
                             }
                           }}
                           autoFocus
-                          aria-label={pText(copy.editRecordContent)}
+                          aria-label={copy.editRecordContent}
                         />
                         <div className="shijing-yuejing__panel-record-edit-actions">
                           <button
@@ -1451,7 +1461,7 @@ function YueJingDayPanel({
                             className="shijing-yuejing__panel-record-cancel"
                             onClick={() => setEditingId(null)}
                           >
-                            {pText(copy.cancel)}
+                            {copy.cancel}
                           </button>
                           <button
                             type="button"
@@ -1464,21 +1474,19 @@ function YueJingDayPanel({
                               setEditingId(null);
                             }}
                           >
-                            {pText(copy.save)}
+                            {copy.save}
                           </button>
                         </div>
                       </>
                     ) : (
                       <>
-                        <span className="shijing-yuejing__panel-record-body">
-                          {pText(record.body)}
-                        </span>
+                        <span className="shijing-yuejing__panel-record-body">{record.body}</span>
                         <div className="shijing-yuejing__panel-record-actions">
                           <button
                             type="button"
                             data-action="ask"
-                            aria-label={pText(copy.askThisRecord)}
-                            title={pText(copy.askThisRecord)}
+                            aria-label={copy.askThisRecord}
+                            title={copy.askThisRecord}
                             onClick={onAsk}
                           >
                             <MessageCircle size={14} strokeWidth={1.6} aria-hidden="true" />
@@ -1486,8 +1494,10 @@ function YueJingDayPanel({
                           <button
                             type="button"
                             data-action="edit"
-                            aria-label={pText(`编辑这条${recordKind}`)}
-                            title={pText(copy.edit)}
+                            aria-label={t('shijing.yueJingDayPanel.editThis', {
+                              recordKind: recordKind,
+                            })}
+                            title={copy.edit}
                             onClick={() => {
                               setEditingId(record.id);
                               setEditDraft(record.body);
@@ -1498,8 +1508,10 @@ function YueJingDayPanel({
                           <button
                             type="button"
                             data-action="delete"
-                            aria-label={pText(`删除这条${recordKind}`)}
-                            title={pText(copy.delete)}
+                            aria-label={t('shijing.yueJingDayPanel.deleteThis', {
+                              recordKind: recordKind,
+                            })}
+                            title={copy.delete}
                             onClick={() => onDelete(record.id)}
                           >
                             <Trash2 size={14} strokeWidth={1.6} aria-hidden="true" />
@@ -1533,7 +1545,7 @@ function YueJingMonthPanel({
   onSelectDate: (date: string) => void;
   onClose: () => void;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const copy = content.monthPanel;
   const labels = content.tendencyLabels;
 
@@ -1577,48 +1589,45 @@ function YueJingMonthPanel({
         className="shijing-yuejing__panel shijing-yuejing__month-panel"
         role="dialog"
         aria-modal="true"
-        aria-label={pText(`${copy.rangeLabel} ${copy.title}`)}
+        aria-label={`${copy.rangeLabel} ${copy.title}`}
         data-panel-kind="month"
       >
         <button
           type="button"
           className="shijing-yuejing__panel-close"
           onClick={onClose}
-          aria-label={pText(copy.close)}
+          aria-label={copy.close}
         >
           <X size={20} strokeWidth={1.8} aria-hidden="true" />
         </button>
         <header className="shijing-yuejing__panel-head shijing-yuejing__month-head">
-          <strong>{pText(copy.title)}</strong>
+          <strong>{copy.title}</strong>
           <small>
-            {pText(copy.rangeLabel)} {pText(' · ')}
-            {pText(copy.generatedPrefix)}
-            {pText(generatedCount)}
-            {pText(copy.generatedSuffix)} {pText(' · ')}
-            {pText(concerns.length)} {pText(copy.concernsSuffix)}
+            {copy.rangeLabel} {' · '}
+            {copy.generatedPrefix}
+            {generatedCount}
+            {copy.generatedSuffix} {' · '}
+            {concerns.length} {copy.concernsSuffix}
           </small>
         </header>
 
         {generatedCount === 0 ? (
-          <div className="shijing-yuejing__month-empty">{pText(copy.empty)}</div>
+          <div className="shijing-yuejing__month-empty">{copy.empty}</div>
         ) : (
           <>
             <p className="shijing-yuejing__month-action-notice">
               <span aria-hidden="true">
                 <YueJingWindowGlyph index={0} />
               </span>
-              {pText(copy.actionNotice)}
+              {copy.actionNotice}
             </p>
 
-            <section
-              className="shijing-yuejing__month-section"
-              aria-label={pText(copy.conclusionTitle)}
-            >
+            <section className="shijing-yuejing__month-section" aria-label={copy.conclusionTitle}>
               <h3>
                 <span className="shijing-yuejing__month-num" aria-hidden="true">
-                  {pText('1')}
+                  {'1'}
                 </span>
-                {pText(copy.conclusionTitle)}
+                {copy.conclusionTitle}
               </h3>
               <div className="shijing-yuejing__month-conclusion">
                 <article className="shijing-yuejing__month-primary" data-tendency={primary}>
@@ -1627,38 +1636,38 @@ function YueJingMonthPanel({
                       <YueJingTendencyGlyph tone={primary} />
                     </span>
                     <strong className="shijing-yuejing__month-primary-label">
-                      {pText(labels[primary])}
+                      {labels[primary]}
                     </strong>
                   </div>
-                  <p className="shijing-yuejing__month-primary-body">{pText(language.body)}</p>
+                  <p className="shijing-yuejing__month-primary-body">{language.body}</p>
                   <div className="shijing-yuejing__month-tag-groups">
                     <div>
-                      <span>{pText(copy.bestForLabel)}</span>
+                      <span>{copy.bestForLabel}</span>
                       <ul>
                         {language.bestFor.map((item) => (
-                          <li key={item}>{pText(item)}</li>
+                          <li key={item}>{item}</li>
                         ))}
                       </ul>
                     </div>
                     <div data-kind="avoid">
-                      <span>{pText(copy.avoidLabel)}</span>
+                      <span>{copy.avoidLabel}</span>
                       <ul>
                         {language.avoid.map((item) => (
-                          <li key={item}>{pText(item)}</li>
+                          <li key={item}>{item}</li>
                         ))}
                       </ul>
                     </div>
                   </div>
                 </article>
                 <article className="shijing-yuejing__month-distribution">
-                  <h4>{pText(copy.distributionTitle)}</h4>
+                  <h4>{copy.distributionTitle}</h4>
                   <ul>
                     {YUEJING_TONE_CLASSES.map((tone) => (
                       <li key={tone} data-tendency={tone}>
                         <span className="shijing-yuejing__month-stat-dot" aria-hidden="true" />
-                        <span>{pText(labels[tone])}</span>
+                        <span>{labels[tone]}</span>
                         <strong>
-                          {pText(dayCounts[tone])} {pText(copy.dayUnit)}
+                          {dayCounts[tone]} {copy.dayUnit}
                         </strong>
                       </li>
                     ))}
@@ -1667,15 +1676,12 @@ function YueJingMonthPanel({
               </div>
             </section>
 
-            <section
-              className="shijing-yuejing__month-section"
-              aria-label={pText(copy.windowsTitle)}
-            >
+            <section className="shijing-yuejing__month-section" aria-label={copy.windowsTitle}>
               <h3>
                 <span className="shijing-yuejing__month-num" aria-hidden="true">
-                  {pText('2')}
+                  {'2'}
                 </span>
-                {pText(copy.windowsTitle)}
+                {copy.windowsTitle}
               </h3>
               <ul className="shijing-yuejing__month-windows-grid">
                 {copy.windows.map((window, index) => (
@@ -1683,20 +1689,18 @@ function YueJingMonthPanel({
                     <button
                       type="button"
                       onClick={() => highlightRange(window.ranges)}
-                      aria-label={pText(
-                        `${window.title} ${window.ranges.map((range) => range.label).join('、')}`,
-                      )}
+                      aria-label={`${window.title} ${window.ranges.map((range) => range.label).join('、')}`}
                     >
                       <span className="shijing-yuejing__month-window-icon" aria-hidden="true">
                         <YueJingWindowGlyph index={index} />
                       </span>
-                      <strong>{pText(window.title)}</strong>
+                      <strong>{window.title}</strong>
                       <span className="shijing-yuejing__month-window-dates">
                         {window.ranges.map((range) => (
-                          <span key={range.label}>{pText(range.label)}</span>
+                          <span key={range.label}>{range.label}</span>
                         ))}
                       </span>
-                      <p>{pText(window.brief)}</p>
+                      <p>{window.brief}</p>
                     </button>
                   </li>
                 ))}
@@ -1705,13 +1709,13 @@ function YueJingMonthPanel({
 
             <section
               className="shijing-yuejing__month-section"
-              aria-label={pText(copy.concernActionsTitle)}
+              aria-label={copy.concernActionsTitle}
             >
               <h3>
                 <span className="shijing-yuejing__month-num" aria-hidden="true">
-                  {pText('3')}
+                  {'3'}
                 </span>
-                {pText(copy.concernActionsTitle)}
+                {copy.concernActionsTitle}
               </h3>
               <ul className="shijing-yuejing__month-concerns">
                 {concerns.map((concern) => {
@@ -1726,29 +1730,27 @@ function YueJingMonthPanel({
                       <div className="shijing-yuejing__month-concern-head">
                         <YueJingConcernIcon name={concern.name} />
                         <div>
-                          <strong>{pText(concern.name)}</strong>
+                          <strong>{concern.name}</strong>
                           {concernPrimary ? (
                             <span className="shijing-yuejing__month-concern-axis">
-                              {pText(copy.primaryAxisPrefix)}
-                              {pText(labels[concernPrimary])}
+                              {copy.primaryAxisPrefix}
+                              {labels[concernPrimary]}
                             </span>
                           ) : (
                             <span
                               className="shijing-yuejing__month-concern-axis"
                               data-pending="true"
                             >
-                              {pText(copy.notGenerated)}
+                              {copy.notGenerated}
                             </span>
                           )}
                         </div>
                       </div>
                       {concernPrimary && action ? (
                         <>
-                          <p className="shijing-yuejing__month-concern-summary">
-                            {pText(action.summary)}
-                          </p>
+                          <p className="shijing-yuejing__month-concern-summary">{action.summary}</p>
                           <div className="shijing-yuejing__month-concern-checklist">
-                            <h5>{pText(copy.checklistTitle)}</h5>
+                            <h5>{copy.checklistTitle}</h5>
                             <ul>
                               {action.checklist.map((item) => (
                                 <li key={`${item.window}-${item.label}`}>
@@ -1760,8 +1762,8 @@ function YueJingMonthPanel({
                                       <Check size={11} strokeWidth={2} />
                                     </span>
                                     <span>
-                                      <strong>{pText(item.window)}</strong>
-                                      {pText(item.label)}
+                                      <strong>{item.window}</strong>
+                                      {item.label}
                                     </span>
                                   </button>
                                 </li>
@@ -1770,16 +1772,16 @@ function YueJingMonthPanel({
                           </div>
                           <ul
                             className="shijing-yuejing__month-reminders"
-                            aria-label={pText(`${concern.name} ${copy.remindersSuffix}`)}
+                            aria-label={`${concern.name} ${copy.remindersSuffix}`}
                           >
                             {action.reminders.map((item) => (
-                              <li key={item}>{pText(item)}</li>
+                              <li key={item}>{item}</li>
                             ))}
                           </ul>
                         </>
                       ) : (
                         <p className="shijing-yuejing__month-concern-summary">
-                          {pText(copy.pendingConcernBody)}
+                          {copy.pendingConcernBody}
                         </p>
                       )}
                     </li>
@@ -1790,7 +1792,7 @@ function YueJingMonthPanel({
 
             <section
               className="shijing-yuejing__month-section shijing-yuejing__month-more"
-              aria-label={pText(copy.supplementaryAriaLabel)}
+              aria-label={copy.supplementaryAriaLabel}
             >
               <div className="shijing-yuejing__month-accordion-list">
                 <details className="shijing-yuejing__month-accordion">
@@ -1798,9 +1800,9 @@ function YueJingMonthPanel({
                     <span className="shijing-yuejing__month-accordion-icon" aria-hidden="true">
                       <YueJingPhaseGlyph index={0} />
                     </span>
-                    {pText(copy.rhythmTitle)}
+                    {copy.rhythmTitle}
                     <span className="shijing-yuejing__month-accordion-chevron" aria-hidden="true">
-                      {pText('›')}
+                      {'›'}
                     </span>
                   </summary>
                   <ol className="shijing-yuejing__month-timeline">
@@ -1822,26 +1824,26 @@ function YueJingMonthPanel({
                           <div className="shijing-yuejing__month-timeline-card">
                             <header>
                               <strong>
-                                {pText(phase.title)} {pText(phase.name)}
+                                {phase.title} {phase.name}
                               </strong>
                               <span>
-                                {pText(yuejingShortMonthDay(phase.from))}
-                                {pText('–')}
-                                {pText(yuejingShortMonthDay(phase.to))}
+                                {yuejingShortMonthDay(phase.from, t)}
+                                {'–'}
+                                {yuejingShortMonthDay(phase.to, t)}
                               </span>
                             </header>
                             <dl className="shijing-yuejing__month-timeline-meta">
                               <div>
-                                <dt>{pText(copy.themeLabel)}</dt>
-                                <dd>{pText(phase.theme)}</dd>
+                                <dt>{copy.themeLabel}</dt>
+                                <dd>{phase.theme}</dd>
                               </div>
                               <div>
-                                <dt>{pText(copy.suitableLabel)}</dt>
-                                <dd>{pText(phase.suitable)}</dd>
+                                <dt>{copy.suitableLabel}</dt>
+                                <dd>{phase.suitable}</dd>
                               </div>
                               <div data-kind="avoid">
-                                <dt>{pText(copy.unsuitableLabel)}</dt>
-                                <dd>{pText(phase.unsuitable)}</dd>
+                                <dt>{copy.unsuitableLabel}</dt>
+                                <dd>{phase.unsuitable}</dd>
                               </div>
                             </dl>
                           </div>
@@ -1856,22 +1858,19 @@ function YueJingMonthPanel({
                     <span className="shijing-yuejing__month-accordion-icon" aria-hidden="true">
                       <YueJingTendencyGlyph tone={primary} />
                     </span>
-                    {pText(copy.dailyDistributionTitle)}
+                    {copy.dailyDistributionTitle}
                     <span className="shijing-yuejing__month-accordion-chevron" aria-hidden="true">
-                      {pText('›')}
+                      {'›'}
                     </span>
                   </summary>
-                  <ul
-                    className="shijing-yuejing__month-stats"
-                    aria-label={pText(copy.distributionTitle)}
-                  >
+                  <ul className="shijing-yuejing__month-stats" aria-label={copy.distributionTitle}>
                     {YUEJING_TONE_CLASSES.map((tone) => (
                       <li key={tone} data-tendency={tone}>
                         <span className="shijing-yuejing__month-stat-head">
                           <span className="shijing-yuejing__month-stat-dot" aria-hidden="true" />
-                          {pText(labels[tone])}
+                          {labels[tone]}
                           <strong>
-                            {pText(dayCounts[tone])} {pText(copy.dayUnit)}
+                            {dayCounts[tone]} {copy.dayUnit}
                           </strong>
                         </span>
                         <span className="shijing-yuejing__month-stat-bar" aria-hidden="true">
@@ -1886,15 +1885,13 @@ function YueJingMonthPanel({
                   </ul>
                   <ol
                     className="shijing-yuejing__month-rhythm-grid"
-                    aria-label={pText(`${copy.rangeLabel} ${copy.rhythmAriaLabel}`)}
+                    aria-label={`${copy.rangeLabel} ${copy.rhythmAriaLabel}`}
                   >
                     {days.map((day) => (
                       <li
                         key={day.date}
                         data-tendency={day.tone ?? 'empty'}
-                        title={pText(
-                          `${Number(day.date.slice(5, 7))}/${Number(day.date.slice(8, 10))} · ${day.tone ? labels[day.tone] : copy.pending}`,
-                        )}
+                        title={`${Number(day.date.slice(5, 7))}/${Number(day.date.slice(8, 10))} · ${day.tone ? labels[day.tone] : copy.pending}`}
                       >
                         <span className="shijing-yuejing__month-rhythm-cell">
                           <span aria-hidden="true" />
@@ -1903,8 +1900,8 @@ function YueJingMonthPanel({
                     ))}
                   </ol>
                   <div className="shijing-yuejing__month-rhythm-axis" aria-hidden="true">
-                    <span>{pText(copy.startLabel)}</span>
-                    <span>{pText(copy.endLabel)}</span>
+                    <span>{copy.startLabel}</span>
+                    <span>{copy.endLabel}</span>
                   </div>
                 </details>
 
@@ -1913,24 +1910,21 @@ function YueJingMonthPanel({
                     <span className="shijing-yuejing__month-accordion-icon" aria-hidden="true">
                       <Check size={16} strokeWidth={1.6} />
                     </span>
-                    {pText(copy.evidenceTitle)}
+                    {copy.evidenceTitle}
                     <span className="shijing-yuejing__month-accordion-chevron" aria-hidden="true">
-                      {pText('›')}
+                      {'›'}
                     </span>
                   </summary>
                   <ul className="shijing-yuejing__month-evidence-list">
                     {copy.evidence.map((item) => (
-                      <li key={item}>{pText(item)}</li>
+                      <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <ul
-                    className="shijing-yuejing__month-counts"
-                    aria-label={pText(copy.countsAriaLabel)}
-                  >
+                  <ul className="shijing-yuejing__month-counts" aria-label={copy.countsAriaLabel}>
                     {YUEJING_TONE_CLASSES.filter((tone) => cellCounts[tone] > 0).map((tone) => (
                       <li key={tone} data-tendency={tone}>
                         <span className="shijing-yuejing__panel-tend-dot" aria-hidden="true" />
-                        {pText(labels[tone])} {pText(cellCounts[tone])} {pText(copy.countUnit)}
+                        {labels[tone]} {cellCounts[tone]} {copy.countUnit}
                       </li>
                     ))}
                   </ul>
@@ -1964,7 +1958,7 @@ const TONE_COLOR: Record<HeroDemoShijingTone, string> = {
 };
 
 function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [selected, setSelected] = useState(content.years[0]?.year ?? 0);
   const current = content.years.find((entry) => entry.year === selected) ?? content.years[0];
   const points = content.years.map((entry, index) => ({
@@ -1980,15 +1974,15 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
     <section
       className="shijing-tab shijing-nianjing"
       data-mirror-kind="nianjing"
-      aria-label={pText(content.title)}
+      aria-label={content.title}
     >
       <header className="shijing-mirror-header">
         <div className="shijing-mirror-header__titles">
-          <h1>{pText(content.title)}</h1>
-          <div className="shijing-mirror-header__meta">{pText(content.subtitle)}</div>
+          <h1>{content.title}</h1>
+          <div className="shijing-mirror-header__meta">{content.subtitle}</div>
         </div>
       </header>
-      <section className="sjd-glass" aria-label={pText(content.subtitle)}>
+      <section className="sjd-glass" aria-label={content.subtitle}>
         <svg className="sjd-nianjing__chart" viewBox="0 0 800 120" aria-hidden="true">
           <path d={path} fill="none" stroke="#4ecca3" strokeWidth="2" strokeLinejoin="round" />
           {points.map((point) => (
@@ -2014,34 +2008,32 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
               aria-pressed={entry.year === selected}
               onClick={() => setSelected(entry.year)}
             >
-              <b>{pText(entry.year)}</b>
-              <small>{pText(entry.label)}</small>
+              <b>{entry.year}</b>
+              <small>{entry.label}</small>
             </button>
           ))}
         </div>
       </section>
       {current ? (
-        <section className="sjd-glass" aria-label={pText(content.selectedYearEyebrow)}>
+        <section className="sjd-glass" aria-label={content.selectedYearEyebrow}>
           <div className="sjd-nianjing__summary">
             <div>
-              <span className="sjd-eyebrow">{pText(content.selectedYearEyebrow)}</span>
+              <span className="sjd-eyebrow">{content.selectedYearEyebrow}</span>
               <h2>
-                {pText(current.year)} {pText(' 年')}
+                {current.year} {t('shijing.nianJingTab.year')}
                 <span className="sjd-pill sjd-tone" data-tone={current.tone}>
-                  {pText(current.label)}
+                  {current.label}
                 </span>
               </h2>
               <p>
-                {pText(
-                  current.year === content.years[0]?.year
-                    ? content.summaryBody
-                    : `${current.year} 年整体节奏为「${current.label}」；点击右上角刷新可按当前关注生成完整年度解读。`,
-                )}
+                {current.year === content.years[0]?.year
+                  ? content.summaryBody
+                  : t('shijing.nianjing.yearSummary', { year: current.year, tone: current.label })}
               </p>
             </div>
             <div className="sjd-nianjing__lead sjd-tone" data-tone={current.tone}>
-              <span className="sjd-eyebrow">{pText(content.yearLeadLabel)}</span>
-              <strong>{pText(current.label)}</strong>
+              <span className="sjd-eyebrow">{content.yearLeadLabel}</span>
+              <strong>{current.label}</strong>
               <div className="sjd-bar">
                 <span style={{ width: `${TONE_SCORE[current.tone] * 25}%` }} />
               </div>
@@ -2049,7 +2041,7 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
           </div>
         </section>
       ) : null}
-      <section className="sjd-glass" aria-label={pText('关注')}>
+      <section className="sjd-glass" aria-label={t('shijing.nianJingTab.concerns')}>
         <div className="sjd-nianjing__concerns">
           {content.concerns.map((concern) => (
             <article
@@ -2058,13 +2050,13 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
               data-tone={concern.tone}
             >
               <header>
-                <span>{pText(concern.name)}</span>
-                <span className="sjd-pill">{pText(concern.label)}</span>
+                <span>{concern.name}</span>
+                <span className="sjd-pill">{concern.label}</span>
               </header>
               <div className="sjd-bar">
                 <span style={{ width: `${TONE_SCORE[concern.tone] * 25}%` }} />
               </div>
-              <p>{pText(concern.body)}</p>
+              <p>{concern.body}</p>
             </article>
           ))}
         </div>
@@ -2088,38 +2080,37 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
 // onboarding/immersive-intake-gate.css). The app shows this until the first
 // relationship person exists; the demo keeps it as the 合镜 entry screen.
 function HeJingTab({ content }: { content: HeroDemoShijingPreview['hejing'] }) {
-  const { pText } = useAppPreviewLocale();
   return (
-    <section className="shijing-hejing" data-mirror-kind="hejing" aria-label={pText(content.title)}>
+    <section className="shijing-hejing" data-mirror-kind="hejing" aria-label={content.title}>
       <section
         className="shijing-intake-hero"
         data-mirror-kind="hejing"
-        aria-label={pText(content.ariaLabel)}
+        aria-label={content.ariaLabel}
         style={{
           backgroundImage: `url(${content.heroImage}), linear-gradient(150deg, #14241a 0%, #20382a 100%)`,
         }}
       >
         <div className="shijing-intake-hero__content">
-          <p className="shijing-intake-hero__eyebrow">{pText(content.eyebrow)}</p>
+          <p className="shijing-intake-hero__eyebrow">{content.eyebrow}</p>
           <h1 className="shijing-intake-hero__title">
-            {pText(content.titleLead)}
+            {content.titleLead}
             <br />
-            {pText(content.titleEmphasis)}
+            {content.titleEmphasis}
           </h1>
           <span className="shijing-intake-hero__divider" aria-hidden="true" />
-          <p className="shijing-intake-hero__body">{pText(content.body)}</p>
+          <p className="shijing-intake-hero__body">{content.body}</p>
           <div className="shijing-intake-hero__actions">
             <button type="button" className="shijing-intake-hero__action">
-              {pText(content.primaryAction)}
+              {content.primaryAction}
               <span className="shijing-intake-hero__action-arrow" aria-hidden="true">
-                {pText('→')}
+                {'→'}
               </span>
             </button>
           </div>
-          <p className="shijing-intake-hero__subnote">{pText(content.stepsHint)}</p>
+          <p className="shijing-intake-hero__subnote">{content.stepsHint}</p>
         </div>
         <p className="shijing-intake-hero__footer">
-          {pText(content.footer)}
+          {content.footer}
           <span className="shijing-intake-hero__footer-rule" aria-hidden="true" />
         </p>
       </section>
@@ -2142,7 +2133,7 @@ export function DemoShijingPreview({
   initialTab?: HeroDemoShijingTabId;
   initialMethodProfile?: HeroDemoShijingMethodId;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [activeTab, setActiveTab] = useState<HeroDemoShijingTabId>(initialTab);
   const [methodProfile, setMethodProfile] = useState<HeroDemoShijingMethodId>(
     initialMethodProfile ?? content.methodProfiles[0]?.id ?? 'bazi_ziping_v1',
@@ -2178,12 +2169,12 @@ export function DemoShijingPreview({
       <div className="shijing-shell" data-active-tab={activeTab}>
         <header className="shijing-topbar">
           <div className="shijing-topbar__brand">
-            <span className="shijing-topbar__wordmark">{pText(content.brandName)}</span>
+            <span className="shijing-topbar__wordmark">{content.brandName}</span>
             <span className="shijing-topbar__tagline" aria-hidden="true">
-              {pText(content.brandTagline)}
+              {content.brandTagline}
             </span>
           </div>
-          <nav className="shijing-primary-tabbar" aria-label={pText(content.navAriaLabel)}>
+          <nav className="shijing-primary-tabbar" aria-label={content.navAriaLabel}>
             {content.tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -2192,7 +2183,7 @@ export function DemoShijingPreview({
                 data-mirror-kind={tab.id}
                 onClick={() => setActiveTab(tab.id)}
               >
-                {pText(tab.label)}
+                {tab.label}
               </button>
             ))}
           </nav>
@@ -2200,13 +2191,13 @@ export function DemoShijingPreview({
             <select
               id="shijing-global-method-profile"
               className="shijing-topbar__method-select"
-              aria-label={pText('推演方法')}
+              aria-label={t('shijing.shijingTopbar.calculationMethod')}
               value={methodProfile}
               onChange={(event) => setMethodProfile(event.target.value as HeroDemoShijingMethodId)}
             >
               {content.methodProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
-                  {pText(profile.label)}
+                  {profile.label}
                 </option>
               ))}
             </select>
@@ -2217,24 +2208,33 @@ export function DemoShijingPreview({
               className="shijing-topbar__avatar-button"
               aria-expanded={menuOpen}
               aria-haspopup="menu"
-              aria-label={pText(`${content.accountMenuLabel} - ${content.accountName}`)}
+              aria-label={`${content.accountMenuLabel} - ${content.accountName}`}
               onClick={() => setMenuOpen((open) => !open)}
             >
               <span className="shijing-topbar__avatar" aria-hidden="true">
-                {pText(initial)}
+                {initial}
               </span>
-              <span className="shijing-topbar__account-name">{pText(content.accountName)}</span>
+              <span className="shijing-topbar__account-name">{content.accountName}</span>
             </button>
             {menuOpen ? (
-              <div className="shijing-account-menu" role="menu" aria-label={pText('设置')}>
-                {['档案', '关注', '重要经历', '设置'].map((label) => (
+              <div
+                className="shijing-account-menu"
+                role="menu"
+                aria-label={t('shijing.shijingTopbar.settings')}
+              >
+                {[
+                  t('shijing.shijingTopbar.profile'),
+                  t('shijing.shijingTopbar.concerns'),
+                  t('shijing.shijingTopbar.lifeEvents'),
+                  t('shijing.shijingTopbar.settings'),
+                ].map((label) => (
                   <button
                     key={label}
                     type="button"
                     role="menuitem"
                     onClick={() => setMenuOpen(false)}
                   >
-                    {pText(label)}
+                    {label}
                   </button>
                 ))}
               </div>

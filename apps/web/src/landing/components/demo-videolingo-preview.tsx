@@ -19,7 +19,7 @@ import {
 
 /** Replica of VideoLingo/src-component's project library, stage controls and subtitle review. */
 export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewContent }) {
-  const { pText, previewLang } = useAppPreviewLocale();
+  const { previewLang, t } = useAppPreviewLocale();
   const settingsId = useId();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [page, setPage] = useState('视频翻译');
@@ -38,71 +38,77 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
       <div className="vl-demo-workspace">
         <header className="vl-demo-header">
           <div>
-            <img src="/demo/videolingo-icon.png" alt={pText('')} />
-            <h1>{pText('VideoLingo')}</h1>
-            <span className="tp-chip">{pText('示例工作区')}</span>
+            <img src="/demo/videolingo-icon.png" alt={''} />
+            <h1>{t('videoLingo.demoHeader.videoLingo')}</h1>
+            <span className="tp-chip">{t('videoLingo.demoHeader.sampleWorkspace')}</span>
           </div>
           <PreviewButton onClick={() => setConfig(!config)}>
             <SlidersHorizontal size={15} />
-            {pText('AI 配置')}
+            {t('videoLingo.demoHeader.aiConfiguration')}
           </PreviewButton>
         </header>
-        <nav className="vl-demo-navigation" aria-label={pText('工作区')}>
+        <nav className="vl-demo-navigation" aria-label={t('videoLingo.demoNavigation.workspaces')}>
           {['视频翻译', '批量处理'].map((item) => (
             <PreviewButton key={item} primary={page === item} onClick={() => setPage(item)}>
-              {pText(item)}
+              {item === '批量处理'
+                ? t('videoLingo.navigation.batch')
+                : t('videoLingo.demoNavigation.videoTranslation')}
             </PreviewButton>
           ))}
         </nav>
         {config && (
           <section className="vl-demo-config">
-            <h3>{pText('AI 配置')}</h3>
-            <p>{pText('完整 App 通过 Nimi 选择语音识别、字幕翻译、声音创建和语音合成模型。')}</p>
-            <PreviewButton onClick={() => setConfig(false)}>{pText('返回项目')}</PreviewButton>
+            <h3>{t('videoLingo.demoConfig.aiConfiguration')}</h3>
+            <p>{t('videoLingo.demoConfig.theFullAppUsesNimiToChoose')}</p>
+            <PreviewButton onClick={() => setConfig(false)}>
+              {t('videoLingo.demoConfig.backToProject')}
+            </PreviewButton>
           </section>
         )}
         {page === '批量处理' ? (
           <section className="vl-demo-batch">
-            <h2>{pText('批量媒体任务')}</h2>
-            <p>{pText('在完整 App 中，可从任务表导入并管理多个视频项目。')}</p>
+            <h2>{t('videoLingo.demoBatch.batchMediaTasks')}</h2>
+            <p>{t('videoLingo.demoBatch.theFullAppCanImportATask')}</p>
             <table>
               <thead>
                 <tr>
-                  <th>{pText('项目')}</th>
-                  <th>{pText('源语种')}</th>
-                  <th>{pText('目标语种')}</th>
-                  <th>{pText('示例状态')}</th>
+                  <th>{t('videoLingo.demoBatch.projects')}</th>
+                  <th>{t('videoLingo.demoBatch.sourceLanguage')}</th>
+                  <th>{t('videoLingo.demoBatch.targetLanguage')}</th>
+                  <th>{t('videoLingo.demoBatch.sampleStatus')}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>{pText(content.project)}</td>
-                  <td>{pText('English')}</td>
-                  <td>{pText(target)}</td>
-                  <td>{pText('字幕已校对')}</td>
+                  <td>{content.project}</td>
+                  <td>{t('videoLingo.demoBatch.english')}</td>
+                  <td>{target}</td>
+                  <td>{t('videoLingo.demoBatch.subtitlesReviewed')}</td>
                 </tr>
                 <tr>
-                  <td>{pText('A walk through the city')}</td>
-                  <td>{pText('English')}</td>
-                  <td>{pText('简体中文')}</td>
-                  <td>{pText('待开始')}</td>
+                  <td>{t('videoLingo.demoBatch.aWalkThroughTheCity')}</td>
+                  <td>{t('videoLingo.demoBatch.english')}</td>
+                  <td>{t('videoLingo.demoBatch.simplifiedChinese')}</td>
+                  <td>{t('videoLingo.demoBatch.notStarted')}</td>
                 </tr>
               </tbody>
             </table>
             <PreviewButton onClick={() => setPage('视频翻译')}>
-              {pText('查看示例项目')}
+              {t('videoLingo.demoBatch.viewSampleProject')}
               <ChevronRight size={15} />
             </PreviewButton>
           </section>
         ) : (
           <div className="vl-demo-product">
             <aside className="vl-demo-library">
-              <h2>{pText('项目')}</h2>
+              <h2>{t('videoLingo.demoLibrary.projects')}</h2>
               <label>
-                {pText('当前项目')}
+                {t('videoLingo.demoLibrary.currentProject')}
                 <select value={title} onChange={(event) => setTitle(event.target.value)}>
-                  <option value={content.project}>{pText(content.project)}</option>
-                  <option value={'城市漫步 · 示例项目'}>{pText('城市漫步 · 示例项目')}</option>
+                  <option value={content.project}>{content.project}</option>
+                  <option value="城市漫步 · 示例项目">
+                    {t('videoLingo.demoLibrary.cityWalkSampleProject')}
+                  </option>
                 </select>
               </label>
               <PreviewButton
@@ -112,7 +118,7 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                 }}
               >
                 <Plus size={15} />
-                {pText('新媒体任务')}
+                {t('videoLingo.demoLibrary.newMediaTask')}
               </PreviewButton>
               <hr />
               <PreviewButton
@@ -121,28 +127,34 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                 aria-controls={settingsId}
                 onClick={() => setSettingsOpen(!settingsOpen)}
               >
-                {pText('处理设置 · ')}
-                {pText(settingsOpen ? pText('收起') : pText('展开'))}
+                {t('videoLingo.demoLibrary.processingSettings')}
+                {settingsOpen
+                  ? t('videoLingo.demoLibrary.collapse')
+                  : t('videoLingo.demoLibrary.expand')}
               </PreviewButton>
               <div
                 id={settingsId}
                 className="vl-demo-processing"
                 data-mobile-expanded={settingsOpen}
               >
-                <h3>{pText('处理设置')}</h3>
+                <h3>{t('videoLingo.demoLibrary.processingSettings2')}</h3>
                 <label>
-                  {pText('源语言')}
+                  {t('videoLingo.demoLibrary.source')}
                   <select defaultValue="English">
-                    <option value={'English'}>{pText('English')}</option>
-                    <option value={'自动检测'}>{pText('自动检测')}</option>
+                    <option value="English">{t('videoLingo.demoLibrary.english')}</option>
+                    <option value="自动检测">{t('videoLingo.demoLibrary.autoDetect')}</option>
                   </select>
                 </label>
                 <label>
-                  {pText('目标语言')}
+                  {t('videoLingo.demoLibrary.target')}
                   <select value={target} onChange={(event) => setTarget(event.target.value)}>
-                    <option value={'简体中文'}>{pText('简体中文')}</option>
-                    <option value={'繁體中文'}>{pText('繁體中文')}</option>
-                    <option value={'日本語'}>{pText('日本語')}</option>
+                    <option value="简体中文">
+                      {t('videoLingo.demoLibrary.simplifiedChinese')}
+                    </option>
+                    <option value="繁體中文">
+                      {t('videoLingo.demoLibrary.traditionalChinese')}
+                    </option>
+                    <option value="日本語">{t('videoLingo.demoLibrary.japanese')}</option>
                   </select>
                 </label>
                 <label className="tp-check">
@@ -153,21 +165,25 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                       setPolish(event.target.checked);
                     }}
                   />
-                  {pText('忠实翻译后反思润色')}
+                  {t('videoLingo.demoLibrary.faithfulTranslationThenReviewAndPolish')}
                 </label>
-                <p className="tp-muted">{pText('示例字幕保持中英对照；语言选择仅演示配置。')}</p>
+                <p className="tp-muted">
+                  {t(
+                    'videoLingo.demoLibrary.sampleSubtitlesStayBilingualLanguageChoicesDemonstrate',
+                  )}
+                </p>
               </div>
             </aside>
             <main className="vl-demo-main">
               <div className="vl-demo-project-title">
                 <div>
-                  <h2>{pText(title)}</h2>
+                  <h2>{title}</h2>
                   <p>
                     <FileVideo size={14} />
-                    {pText(content.file)} {pText(' · 00:09')}
+                    {content.file} {' · 00:09'}
                   </p>
                 </div>
-                <span className="tp-chip">{pText('示例项目')}</span>
+                <span className="tp-chip">{t('videoLingo.demoMain.sampleProject')}</span>
               </div>
               <PreviewSteps
                 steps={content.stages}
@@ -179,29 +195,31 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
               />
               {stage === 0 ? (
                 <section className="vl-demo-stage">
-                  <h3>{pText('a. 下载或上传媒体')}</h3>
+                  <h3>{t('videoLingo.demoStage.aDownloadOrUploadMedia')}</h3>
                   <div className="vl-demo-import">
                     <FileVideo size={34} />
-                    <strong>{pText(content.file)}</strong>
-                    <p>{pText('预设的海边短片 · 9 秒')}</p>
+                    <strong>{content.file}</strong>
+                    <p>{t('videoLingo.demoStage.savedSeasideClip9Seconds')}</p>
                     <PreviewButton primary onClick={() => setStage(1)}>
-                      {pText('载入示例媒体')}
+                      {t('videoLingo.demoStage.loadSampleMedia')}
                     </PreviewButton>
                   </div>
                 </section>
               ) : stage === 1 ? (
                 <section className="vl-demo-stage">
-                  <h3>{pText('b. 识别语音')}</h3>
-                  <PreviewWaveform label={pText('示例音轨示意')} />
-                  <p className="tp-muted">{pText('预设识别结果 · English · 3 段')}</p>
+                  <h3>{t('videoLingo.demoStage.bTranscribeSpeech')}</h3>
+                  <PreviewWaveform label={t('videoLingo.demoStage.sampleAudioTrackIllustration')} />
+                  <p className="tp-muted">
+                    {t('videoLingo.demoStage.savedTranscriptEnglish3Segments')}
+                  </p>
                   {content.subtitles.map((cue) => (
                     <div className="vl-demo-recognition" key={cue.time}>
-                      <code>{pText(cue.time)}</code>
+                      <code>{cue.time}</code>
                       <p>{cue.source}</p>
                     </div>
                   ))}
                   <PreviewButton primary onClick={() => setStage(2)}>
-                    {pText('查看示例翻译')}
+                    {t('videoLingo.demoStage.viewSampleTranslation')}
                   </PreviewButton>
                 </section>
               ) : stage === 2 ? (
@@ -209,26 +227,30 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                   <div className="vl-demo-section-title">
                     <h3>
                       <Languages size={18} />
-                      {pText('翻译与制作字幕')}
+                      {t('videoLingo.demoStage.translateAndPrepareSubtitles')}
                     </h3>
                     <PreviewButton onClick={() => setExportOpen(!exportOpen)}>
                       <Subtitles size={15} />
-                      {pText(exportOpen ? pText('收起 SRT 示例') : pText('查看 SRT 示例'))}
+                      {exportOpen
+                        ? t('videoLingo.demoStage.hideSrtExample')
+                        : t('videoLingo.demoStage.viewSrtExample')}
                     </PreviewButton>
                   </div>
                   <p className="tp-muted">
-                    {pText('逐段核对原文与译文。你可以直接编辑示例字幕。')}
+                    {t('videoLingo.demoStage.compareTheOriginalAndTranslationSegmentBy')}
                   </p>
                   <div className="vl-demo-subtitle-head">
-                    <span>{pText('原文 · English')}</span>
-                    <span>{pText('译文 · 简体中文（示例）')}</span>
+                    <span>{t('videoLingo.demoStage.originalEnglish')}</span>
+                    <span>{t('videoLingo.demoStage.translationSimplifiedChineseSample')}</span>
                   </div>
                   {content.subtitles.map((cue, index) => (
                     <div className="vl-demo-subtitle" key={cue.time}>
-                      <code>{pText(cue.time)}</code>
+                      <code>{cue.time}</code>
                       <p>{cue.source}</p>
                       <textarea
-                        aria-label={pText(`第 ${index + 1} 段译文`)}
+                        aria-label={t('videoLingo.demoStage.translationSegment', {
+                          index1: index + 1,
+                        })}
                         value={translations[index]}
                         rows={2}
                         onChange={(event) => {
@@ -242,7 +264,10 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                     </div>
                   ))}
                   {exportOpen && (
-                    <pre className="vl-demo-srt" aria-label={pText('SRT 字幕示例')}>
+                    <pre
+                      className="vl-demo-srt"
+                      aria-label={t('videoLingo.demoStage.srtSubtitleExample')}
+                    >
                       {content.subtitles
                         .map(
                           (cue, index) =>
@@ -254,41 +279,48 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                   <div className="tp-inline">
                     <span>
                       <Check size={14} />
-                      {pText('编辑仅在本次预览中保留')}
+                      {t('videoLingo.demoStage.editsStayInThisPreview')}
                     </span>
                     <PreviewButton primary onClick={() => setStage(3)}>
-                      {pText('查看示例配音')}
+                      {t('videoLingo.demoStage.viewSampleDubbing')}
                       <ChevronRight size={15} />
                     </PreviewButton>
                   </div>
                 </section>
               ) : (
                 <section className="vl-demo-stage">
-                  <h3>{pText('c. 配音')}</h3>
+                  <h3>{t('videoLingo.demoStage.cDubbing')}</h3>
                   <label>
-                    {pText('声音')}
+                    {t('videoLingo.demoStage.voice')}
                     <select value={voice} onChange={(event) => setVoice(event.target.value)}>
-                      <option value={'温暖叙述者'}>{pText('温暖叙述者')}</option>
-                      <option value={'明亮旁白'}>{pText('明亮旁白')}</option>
+                      <option value="温暖叙述者">{t('videoLingo.demoStage.warmNarrator')}</option>
+                      <option value="明亮旁白">{t('videoLingo.demoStage.brightVoiceover')}</option>
                     </select>
                   </label>
                   <div className="vl-demo-poster">
-                    <img src="/demo/storybook/harbor.jpg" alt={pText('示例海港画面')} />
+                    <img
+                      src="/demo/storybook/harbor.jpg"
+                      alt={t('videoLingo.demoStage.sampleHarborScene')}
+                    />
                     <p>{translations[1]}</p>
-                    <span>{pText('配音与字幕画面示意')}</span>
+                    <span>{t('videoLingo.demoStage.illustrativeDubbingAndSubtitleFrame')}</span>
                   </div>
-                  <PreviewWaveform label={pText('示例配音轨道示意')} />
+                  <PreviewWaveform
+                    label={t('videoLingo.demoStage.sampleDubbingTrackIllustration')}
+                  />
                   <p className="tp-muted">
-                    {pText(voice)} {pText(' · 配音与背景混合 · 示例结果')}
+                    {voice} {t('videoLingo.demoStage.voiceAndBackgroundMix')}
                   </p>
-                  <PreviewButton onClick={() => setStage(2)}>{pText('返回字幕校对')}</PreviewButton>
+                  <PreviewButton onClick={() => setStage(2)}>
+                    {t('videoLingo.demoStage.backToSubtitleReview')}
+                  </PreviewButton>
                 </section>
               )}
             </main>
           </div>
         )}
       </div>
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }

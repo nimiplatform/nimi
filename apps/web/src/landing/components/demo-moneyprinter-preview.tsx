@@ -17,10 +17,16 @@ import { PreviewButton, PreviewNotice, PreviewSteps } from './demo-third-party-s
 
 /** Landing-owned port of MoneyPrinterTurbo/src/production/Studio's paper-and-green workbench. */
 export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPreviewContent }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
+  const { previewLang, t } = useAppPreviewLocale();
+  const navigationLabels: Record<string, string> = {
+    创作: t('moneyPrinter.navigation.create'),
+    制作记录: t('moneyPrinter.navigation.productionHistory'),
+    'AI 配置': t('moneyPrinter.navigation.aiConfiguration'),
+    应用设置: t('moneyPrinter.rail.appSettings'),
+  };
   const [view, setView] = useState('创作');
-  const [topic, setTopic] = useState<string>(() => pData(content.subject));
-  const [script, setScript] = useState<string>(() => pData(content.script));
+  const [topic, setTopic] = useState<string>(() => content.subject);
+  const [script, setScript] = useState<string>(() => content.script);
   const [aspect, setAspect] = useState('9:16');
   const [stage, setStage] = useState(0);
   const [result, setResult] = useState(false);
@@ -33,16 +39,16 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
           <div className="mpt-brand">
             <Film size={28} />
             <strong>
-              {pText('MoneyPrinter')}
-              <small>{pText('Turbo for Nimi')}</small>
+              {t('moneyPrinter.rail.moneyPrinter')}
+              <small>{t('moneyPrinter.rail.turboForNimi')}</small>
             </strong>
           </div>
-          <nav aria-label={pText('主导航')}>
+          <nav aria-label={t('moneyPrinter.rail.primaryNavigation')}>
             {[
               { label: '创作', Icon: Plus },
               { label: '制作记录', Icon: History },
               { label: 'AI 配置', Icon: SlidersHorizontal },
-              { label: '业务设置', Icon: Settings },
+              { label: '应用设置', Icon: Settings },
             ].map(({ label, Icon }) => (
               <button
                 type="button"
@@ -51,29 +57,35 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                 key={label}
               >
                 <Icon size={17} />
-                {pText(label)}
+                {navigationLabels[label] ?? label}
               </button>
             ))}
           </nav>
           <p className="mpt-rail-bottom">
-            {pText('从一个故事开始。')}
+            {t('moneyPrinter.rail.startWithAStory')}
             <br />
-            <span>{pText('静态演示工作区')}</span>
+            <span>{t('moneyPrinter.rail.staticDemoWorkspace')}</span>
           </p>
         </aside>
         <div className="mpt-body">
           <header className="mpt-topbar">
             <div>
-              <h1>{pText(view === '创作' ? pText('新视频') : view)}</h1>
+              <h1>
+                {view === '创作'
+                  ? t('moneyPrinter.topbar.newVideo')
+                  : (navigationLabels[view] ?? view)}
+              </h1>
               <p>
-                {pText(aspect)} {pText(' · 1 条 · 到成片')}
+                {aspect} {t('moneyPrinter.topbar.1RecordFinalVideo')}
               </p>
             </div>
             {view === '创作' && (
               <div>
                 <PreviewButton onClick={() => setSaved(true)}>
                   <FolderOpen size={15} />
-                  {pText(saved ? pText('示例参数已保留') : pText('保存创作参数'))}
+                  {saved
+                    ? t('moneyPrinter.topbar.sampleParametersKept')
+                    : t('moneyPrinter.topbar.saveCreativeParameters')}
                 </PreviewButton>
                 <PreviewButton
                   primary
@@ -84,7 +96,7 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                   }}
                 >
                   <Film size={16} />
-                  {pText('制作视频')}
+                  {t('moneyPrinter.topbar.createVideo')}
                 </PreviewButton>
               </div>
             )}
@@ -95,10 +107,10 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                 <section>
                   <h2>
                     <FileText size={18} />
-                    {pText('脚本')}
+                    {t('moneyPrinter.editor.script')}
                   </h2>
                   <label>
-                    {pText('视频主题')}
+                    {t('moneyPrinter.editor.videoTopic')}
                     <input
                       value={topic}
                       maxLength={200}
@@ -108,7 +120,7 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                     />
                   </label>
                   <label>
-                    {pText('手工脚本')}
+                    {t('moneyPrinter.editor.manualScript')}
                     <textarea
                       rows={5}
                       value={script}
@@ -120,19 +132,23 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                   </label>
                   <div className="tp-inline">
                     <PreviewButton onClick={() => setScript(content.script)}>
-                      {pText('恢复示例脚本')}
+                      {t('moneyPrinter.editor.restoreSampleScript')}
                     </PreviewButton>
                     <span>
-                      {script.length} {pText(' 字')}
+                      {script.length} {t('moneyPrinter.editor.characters')}
                     </span>
                   </div>
                 </section>
                 <section>
                   <h2>
                     <Film size={18} />
-                    {pText('画面与素材')}
+                    {t('moneyPrinter.editor.visualsAndMedia')}
                   </h2>
-                  <div className="mpt-aspects" role="group" aria-label={pText('输出画幅')}>
+                  <div
+                    className="mpt-aspects"
+                    role="group"
+                    aria-label={t('moneyPrinter.editor.outputFormat')}
+                  >
                     {['9:16', '16:9', '1:1'].map((value) => (
                       <button
                         type="button"
@@ -141,21 +157,21 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                         onClick={() => setAspect(value)}
                       >
                         <i style={{ aspectRatio: value.replace(':', '/') }} />
-                        {pText(value)}
+                        {value}
                       </button>
                     ))}
                   </div>
                   <label>
-                    {pText('搜索关键词')}
-                    <input defaultValue={pText(content.terms)} />
+                    {t('moneyPrinter.editor.searchKeywords')}
+                    <input defaultValue={content.terms} />
                   </label>
                   <ol className="mpt-materials">
                     {content.materials.map((file, index) => (
                       <li key={file}>
-                        <span>{pText(index + 1)}</span>
+                        <span>{index + 1}</span>
                         <Film size={15} />
-                        <span>{pText(file)}</span>
-                        <small>{pText('示例素材')}</small>
+                        <span>{file}</span>
+                        <small>{t('moneyPrinter.editor.sampleMedia')}</small>
                       </li>
                     ))}
                   </ol>
@@ -163,22 +179,22 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                 <section>
                   <h2>
                     <Mic size={18} />
-                    {pText('配音')}
+                    {t('moneyPrinter.editor.dub')}
                   </h2>
                   <div className="tp-fields">
                     <label>
-                      {pText('声音')}
+                      {t('moneyPrinter.editor.voice')}
                       <select defaultValue="温暖叙述者">
-                        <option value={'温暖叙述者'}>{pText('温暖叙述者')}</option>
-                        <option value={'明亮旁白'}>{pText('明亮旁白')}</option>
+                        <option value="温暖叙述者">{t('moneyPrinter.editor.warmNarrator')}</option>
+                        <option value="明亮旁白">{t('moneyPrinter.editor.brightVoiceover')}</option>
                       </select>
                     </label>
                     <label>
-                      {pText('语速')}
+                      {t('moneyPrinter.editor.speed')}
                       <select defaultValue="自然">
-                        <option value={'自然'}>{pText('自然')}</option>
-                        <option value={'舒缓'}>{pText('舒缓')}</option>
-                        <option value={'轻快'}>{pText('轻快')}</option>
+                        <option value="自然">{t('moneyPrinter.editor.natural')}</option>
+                        <option value="舒缓">{t('moneyPrinter.editor.soothing')}</option>
+                        <option value="轻快">{t('moneyPrinter.editor.light')}</option>
                       </select>
                     </label>
                   </div>
@@ -186,7 +202,7 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                 <section>
                   <h2>
                     <Subtitles size={18} />
-                    {pText('字幕')}
+                    {t('moneyPrinter.editor.subtitles')}
                   </h2>
                   <label className="tp-check">
                     <input
@@ -196,43 +212,50 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                         setSubtitles(event.target.checked);
                       }}
                     />
-                    {pText('启用字幕')}
+                    {t('moneyPrinter.editor.enableSubtitles')}
                   </label>
                 </section>
               </main>
               <aside className="mpt-result">
-                <h2>{pText('制作与预览')}</h2>
+                <h2>{t('moneyPrinter.result.productionAndPreview')}</h2>
                 <PreviewSteps steps={content.stages} active={stage} onSelect={setStage} />
                 <div className="mpt-poster" style={{ aspectRatio: aspect.replace(':', '/') }}>
-                  <img src="/demo/storybook/harbor.jpg" alt={pText('示例海港画面')} />
+                  <img
+                    src="/demo/storybook/harbor.jpg"
+                    alt={t('moneyPrinter.result.sampleHarborScene')}
+                  />
                   <div>
-                    {subtitles && <p>{pText('留一点时间，给风和自己。')}</p>}
-                    <span>{pText(result ? pText('示例成片') : pText('画面预览 · 示例素材'))}</span>
+                    {subtitles && <p>{t('moneyPrinter.result.leaveALittleTimeForTheBreeze')}</p>}
+                    <span>
+                      {result
+                        ? t('moneyPrinter.result.sampleFinalVideo')
+                        : t('moneyPrinter.result.visualPreviewSampleMedia')}
+                    </span>
                   </div>
                 </div>
                 <p className="mpt-result-caption">
                   {result ? (
                     <>
                       <Check size={15} />
-                      {pText('已打开预设制作记录')}
+                      {t('moneyPrinter.result.savedProductionExampleOpened')}
                     </>
                   ) : (
-                    pText('选择画幅、调整文案，再探索示例成片。')
+                    t('moneyPrinter.result.chooseAFormatAdjustTheScriptAnd')
                   )}
                 </p>
                 {result && (
                   <div className="mpt-artifacts">
-                    <strong>{pText('示例输出')}</strong>
-                    <span>{pText('final.mp4 · 00:18')}</span>
-                    <span>{pText('subtitle.srt · 双语字幕')}</span>
-                    <p>{pText('此预览不生成或下载文件。')}</p>
+                    <strong>{t('moneyPrinter.result.sampleOutput')}</strong>
+                    <span>{t('moneyPrinter.result.finalMp40018')}</span>
+                    <span>{t('moneyPrinter.result.subtitleSrtBilingualSubtitles')}</span>
+                    <p>{t('moneyPrinter.result.thisPreviewDoesNotGenerateOrDownload')}</p>
                   </div>
                 )}
               </aside>
             </div>
           ) : view === '制作记录' ? (
             <main className="mpt-simple">
-              <h2>{pText('已保存的任务')}</h2>
+              <h2>{t('moneyPrinter.simple.savedTasks')}</h2>
               <button
                 type="button"
                 className="mpt-history-row"
@@ -244,36 +267,36 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
               >
                 <Film size={21} />
                 <span>
-                  {pText(content.subject)}
-                  <small>{pText('示例制作记录 · 9:16 · 18 秒')}</small>
+                  {content.subject}
+                  <small>{t('moneyPrinter.simple.sampleProductionRecord91618')}</small>
                 </span>
                 <Check size={17} />
-                {pText('查看')}
+                {t('moneyPrinter.simple.view')}
               </button>
             </main>
           ) : (
             <main className="mpt-simple">
-              <h2>{pText(view)}</h2>
+              <h2>{navigationLabels[view]}</h2>
               <p>
-                {pText(
-                  view === 'AI 配置'
-                    ? pText('在完整 App 中，通过 Nimi 选择文案、配音和图像模型。')
-                    : pText('素材、字幕样式与输出偏好在完整 App 的业务设置中管理。'),
-                )}
+                {view === 'AI 配置'
+                  ? t('moneyPrinter.simple.inTheFullAppChooseTextVoice')
+                  : t('moneyPrinter.simple.manageMediaSubtitleStylesAndOutputPreferences')}
               </p>
               <label>
-                {pText('示例输出语言')}
+                {t('moneyPrinter.simple.sampleOutputLanguage')}
                 <select defaultValue="中文">
-                  <option value={'中文'}>{pText('中文')}</option>
-                  <option value={'English'}>{pText('English')}</option>
+                  <option value="中文">{t('moneyPrinter.simple.chinese')}</option>
+                  <option value="English">{t('moneyPrinter.simple.english')}</option>
                 </select>
               </label>
-              <PreviewButton onClick={() => setView('创作')}>{pText('返回创作')}</PreviewButton>
+              <PreviewButton onClick={() => setView('创作')}>
+                {t('moneyPrinter.simple.backToCreation')}
+              </PreviewButton>
             </main>
           )}
         </div>
       </div>
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }

@@ -1,12 +1,15 @@
-import { remainingAppPreviewContent } from './landing-content.remaining-apps.js';
+import { createPreviewTranslate } from '../i18n/preview-messages.js';
+import { createRemainingAppPreviewContent } from './landing-content.remaining-apps.js';
 import { appPreviewMessagesEn } from './app-preview-messages.en.js';
 import type { LandingContent } from './landing-content.js';
-import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
-import { shijingPreviewContent } from './landing-content.shijing.js';
-import { parentosPreviewContent } from './landing-content.parentos.js';
-import { storybookPreviewContent } from './landing-content.storybook.js';
-import { oddBureauPreviewContent } from './landing-content.odd-bureau.js';
-import { jevSearchPreviewContent, jevUltrafastPreviewContent, moneyPrinterPreviewContent, openwhisprPreviewContent, videoLingoPreviewContent, voiceStudioPreviewContent } from './landing-content.third-party.js';
+import { createZhiyuPreviewContent } from './landing-content.zhiyu.js';
+import { createShijingPreviewContent } from './landing-content.shijing.js';
+import { createParentosPreviewContent } from './landing-content.parentos.js';
+import { createStorybookPreviewContent } from './landing-content.storybook.js';
+import { createOddBureauPreviewContent } from './landing-content.odd-bureau.js';
+import { createJevSearchPreviewContent, createJevUltrafastPreviewContent, createMoneyPrinterPreviewContent, createOpenwhisprPreviewContent, createVideoLingoPreviewContent, createVoiceStudioPreviewContent } from './landing-content.third-party.js';
+
+const t = createPreviewTranslate(appPreviewMessagesEn);
 
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
@@ -148,18 +151,18 @@ export const landingContentEn: LandingContent = {
       appPreview: {
         locale: 'en',
         messages: appPreviewMessagesEn,
-        remainingApps: remainingAppPreviewContent,
-        zhiyu: zhiyuPreviewContent,
-        shijing: shijingPreviewContent,
-        parentos: parentosPreviewContent,
-        storybook: storybookPreviewContent,
-        oddBureau: oddBureauPreviewContent,
-        jevSearch: jevSearchPreviewContent,
-        jevUltrafast: jevUltrafastPreviewContent,
-        moneyPrinter: moneyPrinterPreviewContent,
-        openwhispr: openwhisprPreviewContent,
-        videoLingo: videoLingoPreviewContent,
-        voiceStudio: voiceStudioPreviewContent,
+        remainingApps: createRemainingAppPreviewContent(t),
+        zhiyu: createZhiyuPreviewContent(t),
+        shijing: createShijingPreviewContent(t),
+        parentos: createParentosPreviewContent(t),
+        storybook: createStorybookPreviewContent(t),
+        oddBureau: createOddBureauPreviewContent(t),
+        jevSearch: createJevSearchPreviewContent(t),
+        jevUltrafast: createJevUltrafastPreviewContent(t),
+        moneyPrinter: createMoneyPrinterPreviewContent(t),
+        openwhispr: createOpenwhisprPreviewContent(t),
+        videoLingo: createVideoLingoPreviewContent(t),
+        voiceStudio: createVoiceStudioPreviewContent(t),
       },
       runtime: {
         title: 'Runtime',

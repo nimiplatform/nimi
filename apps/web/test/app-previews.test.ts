@@ -1,15 +1,21 @@
+import { createPreviewTranslate } from '../src/landing/i18n/preview-messages.js';
+import { appPreviewMessagesZh } from '../src/landing/content/app-preview-messages.zh.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderAppPreview as renderToStaticMarkup } from './helpers/render-app-preview.js';
 import { DemoShijingPreview } from '../src/landing/components/demo-shijing-preview.js';
 import { DemoParentosPreview } from '../src/landing/components/demo-parentos-preview.js';
 import { DemoStorybookPreview } from '../src/landing/components/demo-storybook-preview.js';
 import { DEMO_PREVIEW_APP_IDS } from '../src/landing/components/demo-app-preview.js';
-import { shijingPreviewContent } from '../src/landing/content/landing-content.shijing.js';
-import { parentosPreviewContent } from '../src/landing/content/landing-content.parentos.js';
-import { storybookPreviewContent } from '../src/landing/content/landing-content.storybook.js';
+import { createShijingPreviewContent } from '../src/landing/content/landing-content.shijing.js';
+import { createParentosPreviewContent } from '../src/landing/content/landing-content.parentos.js';
+import { createStorybookPreviewContent } from '../src/landing/content/landing-content.storybook.js';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
+
+const shijingPreviewContent = createShijingPreviewContent(createPreviewTranslate(appPreviewMessagesZh));
+const parentosPreviewContent = createParentosPreviewContent(createPreviewTranslate(appPreviewMessagesZh));
+const storybookPreviewContent = createStorybookPreviewContent(createPreviewTranslate(appPreviewMessagesZh));
 
 test('both locales provide localized App previews and list every previewable App', async () => {
   for (const locale of ['en', 'zh'] as const) {
@@ -243,7 +249,7 @@ test('Storybook preview mounts the sidebar shell on the 发现故事 library wit
   assert.ok(html.includes('设置与 AI'));
   assert.ok(html.includes(content.settings.accountName));
   // Library page: eyebrow, heading, count, featured hero, book grid.
-  assert.ok(html.includes('A LITTLE ESCAPE, A DIFFERENT YOU'));
+  assert.ok(html.includes('暂别日常，遇见不同的自己'));
   assert.ok(html.includes('下一页，由你决定。'));
   assert.ok(html.includes(`${content.stories.length.toString().padStart(2, '0')} <span>个等待发生的世界</span>`));
   const featured = content.stories[0];
@@ -257,7 +263,7 @@ test('Storybook preview mounts the sidebar shell on the 发现故事 library wit
     assert.ok(html.includes(`<h3>${story.title}</h3>`), story.title);
     assert.ok(html.includes(story.role));
   }
-  assert.ok(html.includes('STORYBOOK ORIGINAL'));
+  assert.ok(html.includes('STORYBOOK 原创'));
   // Seeded runs surface as footprints on the library.
   assert.ok(html.includes('故事还在等你'));
   assert.ok(html.includes('继续故事'));

@@ -1,0 +1,75 @@
+/** overtone preview copy. Keys identify UI roles and stay stable when copy changes. */
+export const overtoneMessagesEn = {
+  'overtone.workspace.musicForAWalkAfterRainLight':
+    'Music for a walk after rain: light, warm, with a little city rhythm.',
+  'overtone.workspace.aWalkAfterRain': 'A walk after rain',
+  'overtone.workspace.verseStreetlightsHoldTheWarmthOfRain':
+    '[Verse]\nStreetlights hold the warmth of rain\nSoft footsteps leave the rush behind\n\n[Chorus]\nLet the wind slow down\nLet the heart roam farther',
+  'overtone.workspace.rainWashedStreetsLightFootstepsAndWarmLight':
+    'Rain-washed streets, light footsteps, and warm light',
+  'overtone.workspace.30Seconds': '30 seconds',
+  'overtone.workspace.instrumental': 'Instrumental',
+  'overtone.workspace.softKeysLightDrumsAndRoomTo':
+    'Soft keys, light drums, and room to breathe, like an unhurried walk.',
+  'overtone.workspace.neonEchoes': 'Neon echoes',
+  'overtone.workspace.cleanSynthsAndALightGrooveBring':
+    'Clean synths and a light groove bring the city to life.',
+  'overtone.workspace.afternoonByTheWindow': 'Afternoon by the window',
+  'overtone.workspace.acousticGuitarAndWarmVocalsQuietBut':
+    'Acoustic guitar and warm vocals, quiet but full.',
+  'overtone.demoMasthead.overtone': 'OVERTONE',
+  'overtone.demoMasthead.turnIdeasIntoSound': 'Turn ideas into sound.',
+  'overtone.demoMasthead.creativeSettings': 'Creative settings',
+  'overtone.workspace.trackDuration': 'Track duration',
+  'overtone.workspace.60Seconds': '60 seconds',
+  'overtone.workspace.creationMode': 'Creation mode',
+  'overtone.workspace.withLyrics': 'With lyrics',
+  'overtone.workspace.sampleCandidatesDoNotChangeWithModel':
+    'Sample candidates do not change with model configuration.',
+  'overtone.demoComposer.writeASong': 'Write a song',
+  'overtone.demoComposer.creationStage': 'Creation stage',
+  'overtone.demoComposer.whatWouldYouLikeToHear': 'What would you like to hear?',
+  'overtone.demoComposer.musicIdea': 'Music idea',
+  'overtone.demoComposer.startWithAnIdea': 'Start with an idea',
+  'overtone.demoComposer.viewSampleDirections': 'View sample directions',
+  'overtone.demoComposer.threeDirectionsDifferentPossibilities':
+    'Three directions, different possibilities',
+  'overtone.demoComposer.savedExamples': 'Saved examples',
+  'overtone.demoComposer.currentDirection': 'Current direction',
+  'overtone.demoComposer.exploreThisDirection': 'Explore this direction',
+  'overtone.demoNotebook.creativeNotebook': 'Creative notebook',
+  'overtone.demoNotebook.soundImagery': 'Sound imagery',
+  'overtone.demoComposer.writeYourIdeaIntoASong': 'Write your idea into a song',
+  'overtone.demoComposer.direction': 'Direction:',
+  'overtone.demoComposer.sampleSongStructure': ' · sample song structure',
+  'overtone.demoComposer.lyrics': 'Lyrics',
+  'overtone.demoComposer.songLyrics': 'Song lyrics',
+  'overtone.demoComposer.intro': 'Intro',
+  'overtone.demoComposer.verse': 'Verse',
+  'overtone.demoComposer.chorus': 'Chorus',
+  'overtone.demoComposer.outro': 'Outro',
+  'overtone.demoComposer.viewSampleTakes': 'View sample takes',
+  'overtone.demoTakes.candidateTracks': 'Candidate tracks',
+  'overtone.demoTakes.lighterVersion': 'Lighter version',
+  'overtone.demoTakes.warmerVersion': 'Warmer version',
+  'overtone.demoTakes.take': 'TAKE ',
+  'overtone.demoTakes.favorite': 'Favorite {name}',
+  'overtone.demoTakes.trackIllustration': '{name} track illustration',
+  'overtone.demoTakes.0030SampleTrackNoPlaybackFile': '00:30 · sample track, no playback file',
+  'overtone.demoTakes.hideComparison': 'Hide comparison',
+  'overtone.demoTakes.aBComparison': 'A / B comparison',
+  'overtone.demoTakes.aLighter': 'A · lighter',
+  'overtone.demoTakes.aForwardRhythmForTheOpeningOf':
+    'A forward rhythm for the opening of a short film.',
+  'overtone.demoTakes.bWarmer': 'B · warmer',
+  'overtone.demoTakes.moreSpaceForVoiceover': 'More space for voiceover.',
+  'overtone.demoTakes.chooseADirectionToExploreSampleTakes':
+    'Choose a direction to explore sample takes.',
+  'overtone.workspace.lighterVersion': 'Lighter version',
+  'overtone.workspace.warmerVersion': 'Warmer version',
+  'overtone.workspace.noTrackSelected': 'No track selected',
+  'overtone.workspace.staticTrackIllustration': 'Static track illustration',
+  'overtone.tabs.exploreDirections': 'Explore directions',
+  'overtone.preview.notice':
+    'Static product preview · sample directions, lyrics, and tracks. No model is called and no music is generated.',
+} as const;

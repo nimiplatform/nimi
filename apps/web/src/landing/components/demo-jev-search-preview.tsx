@@ -13,8 +13,8 @@ import { PreviewButton, PreviewNotice } from './demo-third-party-shared.js';
 
 /** Landing-owned replica of jev-search's routes/index, search-box, filters and results. */
 export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewContent }) {
-  const { pText, previewLang, pData } = useAppPreviewLocale();
-  const [query, setQuery] = useState<string>(() => pData(content.query));
+  const { previewLang, t } = useAppPreviewLocale();
+  const [query, setQuery] = useState<string>(() => content.query);
   const [searched, setSearched] = useState(false);
   const [source, setSource] = useState('All sources');
   const [settings, setSettings] = useState(false);
@@ -26,25 +26,24 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
     <div className="tp-preview jev-search-preview" data-demo-jev-search-root lang={previewLang}>
       <header className="jev-search-header">
         <button type="button" className="jev-wordmark" onClick={() => setSearched(false)}>
-          {pText('Jev ')}
-          <span>{pText('Search')}</span>
+          {t('jevSearch.searchHeader.jev')}
+          <span>{t('jevSearch.searchHeader.search')}</span>
         </button>
-        <PreviewButton aria-label={pText('Search settings')} onClick={() => setSettings(!settings)}>
+        <PreviewButton
+          aria-label={t('jevSearch.searchHeader.searchSettings')}
+          onClick={() => setSettings(!settings)}
+        >
           <Settings2 size={17} />
         </PreviewButton>
       </header>
       <main className={`jev-search-main${searched ? ' jev-search-main--results' : ''}`}>
         {settings ? (
           <section className="jev-settings">
-            <h2>{pText('Search settings')}</h2>
-            <p>
-              {pText(
-                'In the installed App, connect your Search1API account and choose your AI in Nimi.',
-              )}
-            </p>
-            <p>{pText('This preview uses a saved example and needs no API key.')}</p>
+            <h2>{t('jevSearch.settings.searchSettings')}</h2>
+            <p>{t('jevSearch.settings.inTheInstalledAppConnectYourSearch1api')}</p>
+            <p>{t('jevSearch.settings.thisPreviewUsesASavedExampleAnd')}</p>
             <PreviewButton onClick={() => setSettings(false)}>
-              {pText('Back to search')}
+              {t('jevSearch.settings.backToSearch')}
             </PreviewButton>
           </section>
         ) : (
@@ -52,10 +51,10 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
             {!searched && (
               <>
                 <h1 className="jev-wordmark">
-                  {pText('Jev ')}
-                  <span>{pText('Search')}</span>
+                  {t('jevSearch.workspace.jev')}
+                  <span>{t('jevSearch.workspace.search')}</span>
                 </h1>
-                <p className="jev-tagline">{pText(content.tagline)}</p>
+                <p className="jev-tagline">{content.tagline}</p>
               </>
             )}
             <form
@@ -68,8 +67,8 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
             >
               <Search size={20} aria-hidden="true" />
               <input
-                aria-label={pText('Search')}
-                placeholder={pText('Ask in plain language…')}
+                aria-label={t('jevSearch.workspace.search')}
+                placeholder={t('jevSearch.workspace.askInPlainLanguage')}
                 value={query}
                 maxLength={300}
                 onChange={(event) => {
@@ -78,7 +77,7 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
               />
               <button
                 type="submit"
-                aria-label={pText('Show example search results')}
+                aria-label={t('jevSearch.workspace.showExampleSearchResults')}
                 disabled={!query.trim()}
               >
                 <ArrowUpRight size={21} />
@@ -86,7 +85,7 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
             </form>
             {!searched ? (
               <>
-                <ul className="jev-examples" aria-label={pText('Example searches')}>
+                <ul className="jev-examples" aria-label={t('jevSearch.workspace.exampleSearches')}>
                   {content.examples.map((example) => (
                     <li key={example}>
                       <button
@@ -96,7 +95,7 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
                           setSearched(true);
                         }}
                       >
-                        {pText(example)}
+                        {example}
                         <ArrowUpRight size={14} aria-hidden="true" />
                       </button>
                     </li>
@@ -105,11 +104,11 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
                 <div className="jev-engine-strip">
                   <span>
                     <Globe2 size={14} />
-                    {pText('Google')}
+                    {t('jevSearch.workspace.google')}
                   </span>
-                  <span>{pText('Reddit')}</span>
-                  <span>{pText('Hacker News')}</span>
-                  <span>{pText('arXiv')}</span>
+                  <span>{t('jevSearch.workspace.reddit')}</span>
+                  <span>{t('jevSearch.workspace.hackerNews')}</span>
+                  <span>{t('jevSearch.workspace.arXiv')}</span>
                 </div>
               </>
             ) : (
@@ -117,65 +116,67 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
                 <div className="jev-filter-row">
                   <SlidersHorizontal size={15} aria-hidden="true" />
                   <label>
-                    <span className="tp-sr-only">{pText('Source')}</span>
+                    <span className="tp-sr-only">{t('jevSearch.workspace.source')}</span>
                     <select value={source} onChange={(event) => setSource(event.target.value)}>
                       {['All sources', 'Hacker News', 'Google'].map((item) => (
                         <option value={item} key={item}>
-                          {pText(item)}
+                          {item}
                         </option>
                       ))}
                     </select>
                   </label>
                   <label>
-                    <span className="tp-sr-only">{pText('Time range')}</span>
+                    <span className="tp-sr-only">{t('jevSearch.workspace.timeRange')}</span>
                     <select value={range} onChange={(event) => setRange(event.target.value)}>
-                      {['Past month', 'Any time', 'Past year'].map((item) => (
+                      {[
+                        t('jevSearch.workspace.pastMonth'),
+                        t('jevSearch.workspace.anyTime'),
+                        t('jevSearch.workspace.pastYear'),
+                      ].map((item) => (
                         <option value={item} key={item}>
-                          {pText(item)}
+                          {item}
                         </option>
                       ))}
                     </select>
                   </label>
                   <span>
-                    {pText(results.length)} {pText(' example links')}
+                    {results.length} {t('jevSearch.workspace.exampleLinks')}
                   </span>
                 </div>
                 <p className="jev-example-note">
-                  {pText(
-                    'Saved example results · filters explore this sample, independently of your query.',
-                  )}
+                  {t('jevSearch.workspace.savedExampleResultsFiltersExploreThis')}
                 </p>
                 <ol className="jev-results">
                   {results.map((result) => (
                     <li key={result.title}>
                       <div>
                         <Globe2 size={13} aria-hidden="true" />
-                        {pText(result.url)}
+                        {result.url}
                         <span>
-                          {pText('· ')}
-                          {pText(result.source)}
+                          {'· '}
+                          {result.source}
                         </span>
                       </div>
-                      <h2>{pText(result.title)}</h2>
-                      <p>{pText(result.description)}</p>
+                      <h2>{result.title}</h2>
+                      <p>{result.description}</p>
                       <small>
                         <i />
-                        {pText(result.relevance)}
-                        {pText('% on topic · illustrative score')}
+                        {result.relevance}
+                        {t('jevSearch.workspace.onTopicIllustrativeScore')}
                       </small>
                     </li>
                   ))}
                 </ol>
                 <PreviewButton onClick={() => setSearched(false)}>
                   <ArrowLeft size={15} />
-                  {pText('Back to examples')}
+                  {t('jevSearch.workspace.backToExamples')}
                 </PreviewButton>
               </>
             )}
           </>
         )}
       </main>
-      <PreviewNotice>{pText(content.notice)}</PreviewNotice>
+      <PreviewNotice>{content.notice}</PreviewNotice>
     </div>
   );
 }

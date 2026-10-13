@@ -5,7 +5,7 @@ import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
 
 export const appId = 'nimi.zhiyu';
-export const appTitle = '织羽 Zhiyu';
+export const appTitle = '织羽';
 export const runtimeAccountLoginEnabled = false;
 
 export type RuntimeAuthMode = 'local-app';

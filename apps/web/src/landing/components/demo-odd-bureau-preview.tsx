@@ -1,3 +1,5 @@
+import { PreviewMessageError } from '../i18n/preview-messages.js';
+import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import {
   useCallback,
@@ -58,12 +60,9 @@ import {
   initialMachine,
   interpretProposalLocally,
   machineChallenge,
-  NOTE_NAMES,
-  OP_COPY,
   runMachine,
   simulateMachine,
   strikeReady,
-  TASK_NAMES,
   TASKS,
   type MachineRound,
   type Note,
@@ -99,11 +98,24 @@ type Session = {
   accusation: string | null;
 };
 
-const MOODS = [
-  { id: 'missing', name: '离奇失窃', hint: '谁动了大家的宝贝？' },
-  { id: 'strike', name: '集体罢工', hint: '总有一个带头搞事的。' },
-  { id: 'party', name: '秘密派对', hint: '主人不在，谁最会玩？' },
-] as const;
+const createMysteryMoods = (t: PreviewTranslate) =>
+  [
+    {
+      id: 'missing',
+      name: t('oddBureau.workspace.aStrangeTheft'),
+      hint: t('oddBureau.workspace.whoTookEveryoneSTreasure'),
+    },
+    {
+      id: 'strike',
+      name: t('oddBureau.workspace.aCollectiveStrike'),
+      hint: t('oddBureau.workspace.someoneAlwaysStartsTheTrouble'),
+    },
+    {
+      id: 'party',
+      name: t('oddBureau.workspace.aSecretParty'),
+      hint: t('oddBureau.workspace.whoSTheLifeOfThePartyWhen'),
+    },
+  ] as const;
 
 const LOCATE_STEP_MS = 320;
 const WRITE_MS = 1100;
@@ -125,8 +137,12 @@ const sleep = (ms: number, signal: AbortSignal) =>
       { once: true },
     );
   });
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : '这次操作没有完成，请重试。';
+function errorMessage(error: unknown, t: PreviewTranslate): string {
+  return error instanceof PreviewMessageError
+    ? t(error.key)
+    : error instanceof Error
+      ? error.message
+      : t('oddBureau.errorMessage.thisActionDidNotCompleteTryAgain');
 }
 const canAccuse = (session: Session) => session.evidence.length >= 2;
 
@@ -143,7 +159,7 @@ class TonePlayer {
     if (this.context !== context) return false;
     if (context.state !== 'running') {
       this.stop();
-      throw new Error('声音没有开始播放，请再点一次试听。');
+      throw new PreviewMessageError('oddBureau.workspace.audioDidNotStartTryThePreview');
     }
     const pitches = [261.626, 293.665, 329.628, 391.995, 440];
     let time = context.currentTime + 0.025;
@@ -195,14 +211,13 @@ function ObjectPortrait({
   photo: Photo;
   className?: string;
 }) {
-  const { pText } = useAppPreviewLocale();
   const b = prop.box;
   return (
     <svg
       className={`prop-portrait ${className}`}
       viewBox={`${b.x1 * photo.width} ${b.y1 * photo.height} ${(b.x2 - b.x1) * photo.width} ${(b.y2 - b.y1) * photo.height}`}
       role="img"
-      aria-label={pText(prop.label)}
+      aria-label={prop.label}
     >
       <image href={photo.src} width={photo.width} height={photo.height} />
     </svg>
@@ -238,19 +253,19 @@ function PhotoStage({
   children?: ReactNode;
   markerId: string;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const centers = path
     .map((id) => objects.find((p) => p.id === id))
     .filter((p): p is Prop => !!p)
     .map((p) => ({ x: (p.box.x1 + p.box.x2) * 500, y: (p.box.y1 + p.box.y2) * 500 }));
   return (
-    <section className="play-scene" aria-label={pText('照片游乐场')}>
+    <section className="play-scene" aria-label={t('oddBureau.photoStage.photoPlayground')}>
       <div className="scene-top">
         <span>
           <span className="live-dot" />
-          {pText(instruction)}
+          {instruction}
         </span>
-        <span>{pText(photo.name)}</span>
+        <span>{photo.name}</span>
       </div>
       <div className="play-image-wrap">
         <div
@@ -264,7 +279,9 @@ function PhotoStage({
         >
           <img
             src={photo.src}
-            alt={pText(`照片舞台：${photo.name}。AI 创作的试玩照片。`)}
+            alt={t('oddBureau.photoStage.photoStageAiCreatedSamplePhoto', {
+              photoName: photo.name,
+            })}
             draggable={false}
           />
           {!!centers.length && (
@@ -311,7 +328,10 @@ function PhotoStage({
                 width: `${(prop.box.x2 - prop.box.x1) * 100}%`,
                 height: `${(prop.box.y2 - prop.box.y1) * 100}%`,
               }}
-              aria-label={pText(`选择${prop.label}：${badges[prop.id] ?? '物品'}`)}
+              aria-label={t('oddBureau.photoStage.choose', {
+                propLabel: prop.label,
+                badgesPropId: badges[prop.id] ?? '物品',
+              })}
               onClick={() => onSelect?.(prop.id)}
               disabled={!onSelect}
               draggable={!!onConnect}
@@ -333,22 +353,24 @@ function PhotoStage({
               }}
             >
               <span className="play-object-number">
-                {pText(path.includes(prop.id) ? path.indexOf(prop.id) + 1 : i + 1)}
+                {path.includes(prop.id) ? path.indexOf(prop.id) + 1 : i + 1}
               </span>
               <span className="play-object-label">
-                {pText(prop.label)}
-                <small>{pText(badges[prop.id])}</small>
+                {prop.label}
+                <small>{badges[prop.id]}</small>
               </span>
             </button>
           ))}
           {!objects.length && (
-            <div className="sample-tag">{pText('AI 创作的试玩照片 · 开玩后，物品就会登场')}</div>
+            <div className="sample-tag">
+              {t('oddBureau.photoStage.aiCreatedSamplePhotoObjectsAppearWhen')}
+            </div>
           )}
-          {pText(children)}
+          {children}
         </div>
       </div>
       {!!objects.length && (
-        <div className="play-cast" aria-label={pText('物品按钮')}>
+        <div className="play-cast" aria-label={t('oddBureau.photoStage.objectButtons')}>
           {objects.map((prop) => (
             <button
               key={prop.id}
@@ -356,11 +378,11 @@ function PhotoStage({
               onClick={() => onSelect?.(prop.id)}
               disabled={!onSelect}
               className={selected === prop.id ? 'selected' : ''}
-              aria-label={pText(`选择${prop.label}`)}
+              aria-label={t('oddBureau.photoStage.choose2', { propLabel: prop.label })}
             >
               <ObjectPortrait prop={prop} photo={photo} />
-              <span>{pText(prop.label)}</span>
-              <small>{pText(badges[prop.id] ?? '')}</small>
+              <span>{prop.label}</span>
+              <small>{badges[prop.id] ?? ''}</small>
             </button>
           ))}
         </div>
@@ -374,16 +396,25 @@ function PhotoStage({
 /* ------------------------------------------------------------------------ */
 
 function Notes({ notes, label }: { notes: readonly Note[]; label?: string }) {
-  const { pText, pFormat } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
+  const noteLabels = [
+    t('oddBureau.notes.thump'),
+    t('oddBureau.notes.ding'),
+    t('oddBureau.notes.ring'),
+    t('oddBureau.notes.pop'),
+    t('oddBureau.notes.clang'),
+  ];
   return (
     <div
       className="note-strip"
       role="img"
       aria-label={
         label
-          ? pText(label)
+          ? label
           : notes
-              .map((n) => pFormat('{0} · {1}拍', pText(NOTE_NAMES[n.pitch]!), n.beats))
+              .map((n) =>
+                t('oddBureau.notes.beats', { note: noteLabels[n.pitch]!, beats: n.beats }),
+              )
               .join(', ')
       }
     >
@@ -391,18 +422,18 @@ function Notes({ notes, label }: { notes: readonly Note[]; label?: string }) {
         <span
           key={i}
           className={`note note-${n.pitch}`}
-          title={pFormat('{0} · {1}拍', pText(NOTE_NAMES[n.pitch]!), n.beats)}
+          title={t('oddBureau.notes.beats', { note: noteLabels[n.pitch]!, beats: n.beats })}
         >
-          <span>{pText(NOTE_NAMES[n.pitch]!)}</span>
+          <span>{noteLabels[n.pitch]!}</span>
           {n.beats > 1 && (
             <small>
-              {pText('×')}
-              {pText(n.beats)}
+              {'×'}
+              {n.beats}
             </small>
           )}
         </span>
       ))}
-      {!notes.length && <span className="empty-notes">{pText('还没有声音')}</span>}
+      {!notes.length && <span className="empty-notes">{t('oddBureau.notes.noSoundYet')}</span>}
     </div>
   );
 }
@@ -420,7 +451,33 @@ function MachineGame({
   onChange: (round: MachineRound) => void;
   markerId: string;
 }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
+  const operationCopy = {
+    source: {
+      name: t('oddBureau.machine.operations.source.name'),
+      rule: t('oddBureau.machine.operations.source.rule'),
+    },
+    echo: {
+      name: t('oddBureau.machine.operations.echo.name'),
+      rule: t('oddBureau.machine.operations.echo.rule'),
+    },
+    reverse: {
+      name: t('oddBureau.machine.operations.reverse.name'),
+      rule: t('oddBureau.machine.operations.reverse.rule'),
+    },
+    raise: {
+      name: t('oddBureau.machine.operations.raise.name'),
+      rule: t('oddBureau.machine.operations.raise.rule'),
+    },
+    slow: {
+      name: t('oddBureau.machine.operations.slow.name'),
+      rule: t('oddBureau.machine.operations.slow.rule'),
+    },
+    store: {
+      name: t('oddBureau.machine.operations.store.name'),
+      rule: t('oddBureau.machine.operations.store.rule'),
+    },
+  };
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [playing, setPlaying] = useState(false);
@@ -440,12 +497,12 @@ function MachineGame({
   const { plan, state } = round;
   const goal = useMemo(() => machineChallenge(plan, objects), [plan, objects]);
   let preview: ReturnType<typeof simulateMachine> | null = null;
-  let pathHint = '从一个发声物品开始，再接改造器和容器。';
+  let pathHint = t('oddBureau.machineGame.startWithASoundSourceThenAdd');
   try {
     preview = simulateMachine(plan, objects, state.path);
     pathHint = '';
   } catch (e) {
-    if (state.path.length) pathHint = errorMessage(e);
+    if (state.path.length) pathHint = errorMessage(e, t);
   }
   const node = plan.nodes.find((n) => n.objectId === selected);
   const prop = objects.find((p) => p.id === selected);
@@ -462,7 +519,7 @@ function MachineGame({
     try {
       return await player.current!.play(notes);
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
       return false;
     } finally {
       if (playId.current === id) setPlaying(false);
@@ -476,7 +533,7 @@ function MachineGame({
     try {
       onChange({ ...round, state: { ...state, path: editMachinePath(plan, state.path, id) } });
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     }
   }
   function connect(from: string, to: string) {
@@ -487,7 +544,7 @@ function MachineGame({
       const path = editMachinePath(plan, editMachinePath(plan, state.path, from), to);
       onChange({ ...round, state: { ...state, path } });
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     }
   }
   function run() {
@@ -497,7 +554,7 @@ function MachineGame({
       onChange({ ...round, state: next });
       if (sound) void listen(next.lastRun!.notes);
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     }
   }
   async function pour(id: string) {
@@ -518,24 +575,24 @@ function MachineGame({
           <div className="device-heading">
             <ObjectPortrait prop={prop} photo={photo} />
             <div>
-              <h3>{pText(prop.label)}</h3>
-              <span>{pText(OP_COPY[node.op].name)}</span>
+              <h3>{prop.label}</h3>
+              <span>{operationCopy[node.op].name}</span>
             </div>
           </div>
           <p className="character-line">
-            {pText('“')}
-            {pText(node.line)}
-            {pText('”')}
+            {'“'}
+            {node.line}
+            {'”'}
           </p>
-          <p className="fixed-rule">{pText(OP_COPY[node.op].rule)}</p>
+          <p className="fixed-rule">{operationCopy[node.op].rule}</p>
           {node.op === 'source' && (
             <Notes notes={node.melody.map((pitch) => ({ pitch, beats: 1 }))} />
           )}
         </>
       ) : (
         <>
-          <h3>{pText('这些家伙，各有一招。')}</h3>
-          <p>{pText('点照片里的物品查看规则。它们今天的本领已经确定，反复试也不会偷偷改口。')}</p>
+          <h3>{t('oddBureau.machineGame.eachOfThemHasATrick')}</h3>
+          <p>{t('oddBureau.machineGame.clickObjectsInThePhotoToSee')}</p>
         </>
       )}
     </div>
@@ -545,25 +602,23 @@ function MachineGame({
       <div className="play-left">
         <div className="mobile-machine-goal">
           <strong>
-            {pText(
-              state.solved
-                ? pText('挑战完成，继续自由发明。')
-                : `把这段声音送进${label(goal.receiver)}`,
-            )}
+            {state.solved
+              ? t('oddBureau.machineGame.challengeCompleteKeepInventingFreely')
+              : t('oddBureau.machine.sendSound', { receiver: label(goal.receiver) })}
           </strong>
           <div>
             <Notes notes={goal.notes} />
             <button
               type="button"
               onClick={() => void listen(goal.notes)}
-              aria-label={pText('试听目标旋律')}
+              aria-label={t('oddBureau.machineGame.previewTheTargetMelody')}
             >
               <Volume2 size={19} />
             </button>
           </div>
           <small>
-            {pText('本次挑战的线长预算：')}
-            {pText(goal.cost)}
+            {t('oddBureau.machineGame.wireLengthBudgetForThisChallenge')}
+            {goal.cost}
           </small>
         </div>
         <PhotoStage
@@ -572,18 +627,18 @@ function MachineGame({
           selected={selected}
           path={state.path}
           flowing={playing}
-          badges={Object.fromEntries(plan.nodes.map((n) => [n.objectId, OP_COPY[n.op].name]))}
+          badges={Object.fromEntries(plan.nodes.map((n) => [n.objectId, operationCopy[n.op].name]))}
           onSelect={select}
           onConnect={connect}
-          instruction="点选连线，也可以把一件物品拖向另一件"
+          instruction={t('oddBureau.machine.connectInstruction')}
           markerId={markerId}
         />
         <div className="mobile-device-detail" aria-live="polite">
-          {pText(deviceDetail)}
+          {deviceDetail}
         </div>
         <div className="route-bench">
           <div className="route-heading">
-            <strong>{pText('我的线路')}</strong>
+            <strong>{t('oddBureau.machineGame.myCircuit')}</strong>
             <button
               type="button"
               onClick={() => {
@@ -593,7 +648,7 @@ function MachineGame({
               disabled={!state.path.length}
             >
               <RotateCcw size={14} />
-              {pText('拆掉线路')}
+              {t('oddBureau.machineGame.removeTheCircuit')}
             </button>
           </div>
           <div className="route-chips">
@@ -601,10 +656,12 @@ function MachineGame({
               <span className="route-chip-wrap" key={id}>
                 {i > 0 && <ChevronRight size={15} />}
                 <span className="route-chip">
-                  {pText(label(id))}
+                  {label(id)}
                   <button
                     type="button"
-                    aria-label={pText(`从线路移除${label(id)}`)}
+                    aria-label={t('oddBureau.machineGame.removeFromTheCircuit', {
+                      labelId: label(id),
+                    })}
                     onClick={() => {
                       stop();
                       onChange({
@@ -618,25 +675,27 @@ function MachineGame({
                 </span>
               </span>
             ))}
-            {!state.path.length && <p>{pText('先找带着「发声」标签的物品。')}</p>}
+            {!state.path.length && (
+              <p>{t('oddBureau.machineGame.startWithAnObjectTaggedSoundSource')}</p>
+            )}
           </div>
           {preview ? (
             <div className="run-preview">
               <div>
-                <span>{pText('照这条线，会得到')}</span>
+                <span>{t('oddBureau.machineGame.thisCircuitProduces')}</span>
                 <Notes notes={preview.notes} />
               </div>
               <span className="wire-cost">
-                {pText('线长 ')}
-                {pText(preview.cost)}
+                {t('oddBureau.machineGame.wireLength')}
+                {preview.cost}
                 <small>
-                  {pText('挑战预算 ')}
-                  {pText(goal.cost)}
+                  {t('oddBureau.machineGame.challengeBudget')}
+                  {goal.cost}
                 </small>
               </span>
             </div>
           ) : (
-            <p className="path-hint">{pText(pathHint)}</p>
+            <p className="path-hint">{pathHint}</p>
           )}
           <div className="machine-run-actions">
             <Button
@@ -645,24 +704,28 @@ function MachineGame({
               onClick={run}
               disabled={!preview || playing}
             >
-              {pText('启动这台怪机器')}
+              {t('oddBureau.machineGame.startThisStrangeMachine')}
             </Button>
             <IconButton
               icon={playing ? <Square size={17} /> : <Volume2 size={18} />}
-              aria-label={pText(
-                playing ? pText('停止声音') : sound ? pText('关闭运行声音') : pText('开启运行声音'),
-              )}
+              aria-label={
+                playing
+                  ? t('oddBureau.machineGame.stopSound')
+                  : sound
+                    ? t('oddBureau.machineGame.muteRunningAudio')
+                    : t('oddBureau.machineGame.enableRunningAudio')
+              }
               onClick={playing ? stop : () => setSound((v) => !v)}
               className={`sound-key ${sound ? 'enabled' : ''}`}
             />
           </div>
         </div>
         {state.lastRun && (
-          <div className="machine-trace" aria-label={pText('刚才的运行过程')}>
-            <strong>{pText('刚才，声音经过了这里')}</strong>
+          <div className="machine-trace" aria-label={t('oddBureau.machineGame.lastRun')}>
+            <strong>{t('oddBureau.machineGame.theSoundJustPassedThroughHere')}</strong>
             {state.lastRun.trace.map((step) => (
               <div key={step.objectId}>
-                <span>{pText(label(step.objectId))}</span>
+                <span>{label(step.objectId)}</span>
                 <Notes notes={step.notes} />
               </div>
             ))}
@@ -675,27 +738,31 @@ function MachineGame({
             {state.solved ? <Check size={25} /> : <Volume2 size={25} />}
           </span>
           <h2>
-            {pText(state.solved ? pText('成了！再胡思乱想一次？') : pText('先造出这一小段声音'))}
+            {state.solved
+              ? t('oddBureau.machineGame.itWorkedInventSomethingElse')
+              : t('oddBureau.machineGame.makeThisShortSoundFirst')}
           </h2>
           <p>
-            {pText('送进')}
-            <strong>{pText(label(goal.receiver))}</strong>
-            {pText('，线长不超过 ')}
-            {pText(goal.cost)}
-            {pText('。')}
+            {t('oddBureau.machineGame.sendInto')}
+            <strong>{label(goal.receiver)}</strong>
+            {t('oddBureau.machineGame.withWireLengthAtMost')}
+            {goal.cost}
+            {t('oddBureau.machineGame.label')}
           </p>
           <Notes notes={goal.notes} />
           <button type="button" className="text-action" onClick={() => void listen(goal.notes)}>
-            {pText('听听目标旋律 ')}
+            {t('oddBureau.machineGame.listenToTheTargetMelody')}
             <Play size={13} />
           </button>
           {state.solved && (
-            <p className="success-caption">{pText('目标已完成。换一条线，看看它还能变出什么。')}</p>
+            <p className="success-caption">
+              {t('oddBureau.machineGame.targetCompleteTryAnotherCircuitAndSee')}
+            </p>
           )}
         </div>
-        {pText(deviceDetail)}
+        {deviceDetail}
         <div className="sound-shelves">
-          <h3>{pText('装起来的声音')}</h3>
+          <h3>{t('oddBureau.machineGame.storedSound')}</h3>
           {plan.nodes
             .filter((n) => n.op === 'store')
             .map((n) => {
@@ -703,9 +770,9 @@ function MachineGame({
               return (
                 <div className="sound-shelf" key={n.objectId}>
                   <div>
-                    <strong>{pText(label(n.objectId))}</strong>
+                    <strong>{label(n.objectId)}</strong>
                     <span>
-                      {pText(notes.length)} {pText(' / 32 个音')}
+                      {notes.length} {t('oddBureau.machineGame.32Notes')}
                     </span>
                   </div>
                   <Notes notes={notes} />
@@ -716,7 +783,7 @@ function MachineGame({
                       onClick={() => void pour(n.objectId)}
                     >
                       <Volume2 size={14} />
-                      {pText('倒出来听')}
+                      {t('oddBureau.machineGame.pourItOutAndListen')}
                     </button>
                     <button
                       type="button"
@@ -729,7 +796,7 @@ function MachineGame({
                       }
                     >
                       <Trash2 size={14} />
-                      {pText('清空')}
+                      {t('oddBureau.machineGame.clear')}
                     </button>
                   </div>
                 </div>
@@ -738,7 +805,7 @@ function MachineGame({
         </div>
         {error && (
           <p className="play-error" role="alert">
-            {pText(error)}
+            {error}
           </p>
         )}
       </aside>
@@ -769,7 +836,12 @@ function StrikeGame({
   onVoice: () => void;
   markerId: string;
 }) {
-  const { pText, pFormat } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
+  const taskLabels = {
+    story: t('oddBureau.tasks.writeStory'),
+    reading: t('oddBureau.tasks.readAloud'),
+    stage: t('oddBureau.tasks.setTheStage'),
+  };
   const [selected, setSelected] = useState(objects[0]!.id);
   const [message, setMessage] = useState('');
   const [proposal, setProposal] = useState<{ reply: string; actions: PromiseAction[] } | null>(
@@ -790,27 +862,34 @@ function StrikeGame({
   const person = plan.people.find((p) => p.objectId === selected)!;
   const prop = objects.find((p) => p.id === selected)!;
   const label = (id: string | null | undefined) =>
-    objects.find((p) => p.id === id)?.label ?? pText('还没有人');
+    objects.find((p) => p.id === id)?.label ?? t('oddBureau.strikeGame.nobodyYet');
   const describeAction = (action: PromiseAction) =>
     action.kind === 'rest'
-      ? pFormat('批准{0}休息', label(action.objectId))
+      ? t('oddBureau.strikeGame.grantARest', { labelActionObjectId: label(action.objectId) })
       : action.kind === 'credit'
-        ? pFormat('把唯一署名给{0}', label(action.objectId))
-        : pFormat('请{0}{1}', label(action.objectId), pText(TASK_NAMES[action.task]).toLowerCase());
+        ? t('oddBureau.strikeGame.giveTheSoleCreditTo', {
+            labelActionObjectId: label(action.objectId),
+          })
+        : t('oddBureau.strikeGame.askTo', {
+            name: label(action.objectId),
+            task: taskLabels[action.task].toLowerCase(),
+          });
   const describeOffer = (offer: StrikeOffer) =>
     [
-      offer.needsCredit ? pText('要有我的署名') : '',
-      offer.needsRest ? pFormat('先让{0}休息', label(offer.needsRest)) : '',
+      offer.needsCredit ? t('oddBureau.strikeGame.iNeedACredit') : '',
+      offer.needsRest
+        ? t('oddBureau.strikeGame.letRestFirst', { labelOfferNeedsRest: label(offer.needsRest) })
+        : '',
     ]
       .filter(Boolean)
-      .join('; ') || pText('我愿意直接帮忙');
+      .join('; ') || t('oddBureau.strikeGame.iMWillingToHelpDirectly');
   let preview: ReturnType<typeof commitPromises> | null = null;
   let proposalError = '';
   if (proposal?.actions.length) {
     try {
       preview = commitPromises(plan, state.promises, proposal.actions);
     } catch (e) {
-      proposalError = errorMessage(e);
+      proposalError = errorMessage(e, t);
     }
   }
   const proposalEndsRound = preview ? !findStrikeSolution(plan, preview.promises) : false;
@@ -825,7 +904,10 @@ function StrikeGame({
   }, [proposal]);
   function propose(action: PromiseAction) {
     setError('');
-    setProposal({ reply: '先看看这份安排的影响，确认后才算承诺。', actions: [action] });
+    setProposal({
+      reply: t('oddBureau.propose.reviewTheEffectsOfThisArrangementIt'),
+      actions: [action],
+    });
   }
   function confirm() {
     if (!proposal?.actions.length || !preview) return;
@@ -837,7 +919,9 @@ function StrikeGame({
         promises: next.promises,
         journal: [
           ...state.journal,
-          ...proposal.actions.map((a) => pFormat('已兑现：{0}', describeAction(a))),
+          ...proposal.actions.map((a) =>
+            t('oddBureau.confirm.fulfilled', { describeActionA: describeAction(a) }),
+          ),
         ].slice(-12),
       },
     });
@@ -853,9 +937,9 @@ function StrikeGame({
     setProposal(null);
     try {
       await sleep(PROPOSAL_MS, controller.signal);
-      setProposal(interpretProposalLocally(plan, objects, message.trim()));
+      setProposal(interpretProposalLocally(plan, objects, message.trim(), t));
     } catch (e) {
-      if (!controller.signal.aborted) setError(errorMessage(e));
+      if (!controller.signal.aborted) setError(errorMessage(e, t));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -876,7 +960,7 @@ function StrikeGame({
         state: { ...state, performance: [...content.performance], curtain: 0 },
       });
     } catch (e) {
-      if (!controller.signal.aborted) setError(errorMessage(e));
+      if (!controller.signal.aborted) setError(errorMessage(e, t));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -888,11 +972,14 @@ function StrikeGame({
     objects.map((p) => [
       p.id,
       current.rest === p.id
-        ? '获准休息'
+        ? t('oddBureau.strikeGame.grantedARest')
         : [
-            ...TASKS.filter((t) => current.tasks[t] === p.id).map((t) => TASK_NAMES[t]),
-            ...(current.credit === p.id ? ['署名'] : []),
-          ].join(' · ') || (performance ? '观众席' : '等你来谈'),
+            ...TASKS.filter((t) => current.tasks[t] === p.id).map((t) => taskLabels[t]),
+            ...(current.credit === p.id ? [t('oddBureau.strikeGame.credit')] : []),
+          ].join(' · ') ||
+          (performance
+            ? t('oddBureau.strikeGame.audience')
+            : t('oddBureau.strikeGame.waitingToNegotiate')),
     ]),
   );
   return (
@@ -911,17 +998,17 @@ function StrikeGame({
           instruction={
             performance
               ? state.curtain === 3
-                ? pText('故事会已谢幕，每一份承诺都算数')
-                : pText('故事会开场了')
-              : pText('点一位伙伴，听听它愿意做什么')
+                ? t('oddBureau.strikeGame.theStoryHasEndedEveryPromiseStill')
+                : t('oddBureau.strikeGame.theStorytellingBegins')
+              : t('oddBureau.strikeGame.chooseACompanionToHearWhatThey')
           }
           markerId={markerId}
         />
         <div className="promise-board">
           <div className="route-heading">
-            <strong>{pText('已经答应的事')}</strong>
+            <strong>{t('oddBureau.strikeGame.promisesMade')}</strong>
             <span>
-              {pText(state.promises.length)} {pText(' 份承诺')}
+              {state.promises.length} {t('oddBureau.strikeGame.promises')}
             </span>
           </div>
           {state.promises.length ? (
@@ -934,46 +1021,47 @@ function StrikeGame({
               ))}
             </ol>
           ) : (
-            <p>{pText('先聊条件，再确认。许出的约定，这一局会一直遵守。')}</p>
+            <p>{t('oddBureau.strikeGame.discussConditionsThenConfirmEveryPromiseIs')}</p>
           )}
         </div>
       </div>
       <aside className="activity-panel">
         <div className="strike-mission">
           <h2>
-            {pText(
-              performance
-                ? state.curtain === 3
-                  ? pText('说到做到，故事落幕。')
-                  : pText('今晚的故事会')
-                : pText('让故事会开得成。'),
-            )}
+            {performance
+              ? state.curtain === 3
+                ? t('oddBureau.strikeGame.promisesKeptCurtainDown')
+                : t('oddBureau.strikeGame.tonightSStorytelling')
+              : t('oddBureau.strikeGame.makeTheStorytellingPossible')}
           </h2>
           <p>
-            {pText(
-              performance
-                ? `署名：${label(current.credit)} · 朗读：${label(current.tasks.reading)}`
-                : plan.situation,
-            )}
+            {performance
+              ? t('oddBureau.strike.credits', {
+                  credit: label(current.credit),
+                  reader: label(current.tasks.reading),
+                })
+              : plan.situation}
           </p>
           <div className="allocation-row">
             <span>
               <Moon size={16} />
-              {pText(current.rest ? `${label(current.rest)}休息` : pText('一份休假'))}
+              {current.rest
+                ? t('oddBureau.strike.resting', { name: label(current.rest) })
+                : t('oddBureau.strikeGame.oneRestSlot')}
             </span>
             <span>
               <Feather size={16} />
-              {pText(current.credit ? `${label(current.credit)}署名` : pText('一份署名'))}
+              {current.credit
+                ? t('oddBureau.strike.credited', { name: label(current.credit) })
+                : t('oddBureau.strikeGame.oneCreditSlot')}
             </span>
           </div>
-          <p className="strike-limits">
-            {pText('每件最多两份工作；休假伙伴不工作，署名留给工作者。')}
-          </p>
+          <p className="strike-limits">{t('oddBureau.strikeGame.eachObjectCanDoAtMostTwo')}</p>
           <div className="task-slots">
             {TASKS.map((task) => (
               <div key={task} className={current.tasks[task] ? 'filled' : ''}>
-                <span>{pText(TASK_NAMES[task])}</span>
-                <strong>{pText(label(current.tasks[task]))}</strong>
+                <span>{taskLabels[task]}</span>
+                <strong>{label(current.tasks[task])}</strong>
                 {current.tasks[task] && <Check size={14} />}
               </div>
             ))}
@@ -983,23 +1071,25 @@ function StrikeGame({
           <div className="performance">
             <p className="leave-note">
               <Moon size={16} />
-              {pText(label(current.rest))}
-              {pText('安心休息，所有安排照约定进行。')}
+              {label(current.rest)}
+              {t('oddBureau.strikeGame.restEasyEveryArrangementFollowsTheAgreement')}
             </p>
             {state.curtain < 3 ? (
               <>
                 <span className="act-number">
-                  {pText(label(current.tasks.story))}
-                  {pText('的童话 · 第 ')}
-                  {pText(state.curtain + 1)} {pText(' 幕 / 3')}
+                  {label(current.tasks.story)}
+                  {t('oddBureau.strikeGame.sTaleAct')}
+                  {state.curtain + 1} {t('oddBureau.strikeGame.3')}
                 </span>
-                <p className="story-part">{pText(performance[state.curtain])}</p>
+                <p className="story-part">{performance[state.curtain]}</p>
                 <Button
                   className="upload-key"
                   leadingIcon={<Volume2 size={17} />}
                   onClick={onVoice}
                 >
-                  {pText(`听${label(current.tasks.reading)}读这一幕`)}
+                  {t('oddBureau.strikeGame.hearReadThisAct', {
+                    labelCurrentTasksReading: label(current.tasks.reading),
+                  })}
                 </Button>
                 <Button
                   className="primary-key"
@@ -1008,7 +1098,9 @@ function StrikeGame({
                     onChange({ ...round, state: { ...state, curtain: state.curtain + 1 } })
                   }
                 >
-                  {pText(state.curtain === 2 ? pText('谢幕') : pText('下一幕'))}
+                  {state.curtain === 2
+                    ? t('oddBureau.strikeGame.curtainCall')
+                    : t('oddBureau.strikeGame.nextAct')}
                 </Button>
               </>
             ) : (
@@ -1017,11 +1109,11 @@ function StrikeGame({
                   <Check size={35} />
                 </div>
                 <p className="story-part">
-                  {pText('有人得到了休息，有人终于被写进名字里。这场故事会，是你安排出来的。')}
+                  {t('oddBureau.strikeGame.someoneFoundRestAndSomeoneFinallyReceived')}
                 </p>
                 {performance.map((part, i) => (
                   <p className="recap-part" key={i}>
-                    {pText(part)}
+                    {part}
                   </p>
                 ))}
               </>
@@ -1029,13 +1121,13 @@ function StrikeGame({
           </div>
         ) : deadlocked ? (
           <div className="performance round-failed">
-            <h2>{pText('这一次，没能开场。')}</h2>
+            <h2>{t('oddBureau.strikeGame.thisTimeTheShowCannotBegin')}</h2>
             <p className="story-part">
-              {pText('已经许出的约定不会被收回，但它们让剩下的工作无法安排齐。')}
+              {t('oddBureau.strikeGame.promisesAlreadyMadeStayInForceBut')}
             </p>
-            <p>{pText('看看左边的承诺，下一轮可以换一种选择。')}</p>
+            <p>{t('oddBureau.strikeGame.reviewThePromisesOnTheLeftAnd')}</p>
             <Button className="primary-key" onClick={onRestart}>
-              {pText('另开一轮谈判')}
+              {t('oddBureau.strikeGame.startAnotherNegotiation')}
             </Button>
           </div>
         ) : (
@@ -1044,8 +1136,8 @@ function StrikeGame({
               <div className="device-heading">
                 <ObjectPortrait prop={prop} photo={photo} />
                 <div>
-                  <h3>{pText(prop.label)}</h3>
-                  <span>{pText(person.persona)}</span>
+                  <h3>{prop.label}</h3>
+                  <span>{person.persona}</span>
                 </div>
               </div>
               <div className="allocation-actions">
@@ -1055,7 +1147,7 @@ function StrikeGame({
                   disabled={busy || !!current.rest}
                   onClick={() => propose({ kind: 'rest', objectId: selected })}
                 >
-                  {pText('提议让它休息')}
+                  {t('oddBureau.strikeGame.proposeARest')}
                 </Button>
                 <Button
                   size="sm"
@@ -1063,7 +1155,7 @@ function StrikeGame({
                   disabled={busy || !!current.credit}
                   onClick={() => propose({ kind: 'credit', objectId: selected })}
                 >
-                  {pText('提议给它署名')}
+                  {t('oddBureau.strikeGame.proposeACredit')}
                 </Button>
               </div>
               <div className="offer-list">
@@ -1077,7 +1169,7 @@ function StrikeGame({
                     }
                   >
                     <span>
-                      <strong>{pText(TASK_NAMES[offer.task])}</strong>
+                      <strong>{taskLabels[offer.task]}</strong>
                       <small>{describeOffer(offer)}</small>
                     </span>
                     {current.tasks[offer.task] ? <Check size={16} /> : <ArrowRight size={16} />}
@@ -1088,16 +1180,16 @@ function StrikeGame({
             {proposal && (
               <div className="proposal-review" ref={proposalPanel}>
                 <div>
-                  <strong>{pText('还没许出口的提议')}</strong>
+                  <strong>{t('oddBureau.strikeGame.anUnspokenProposal')}</strong>
                   <button
                     type="button"
-                    aria-label={pText('收起提议')}
+                    aria-label={t('oddBureau.strikeGame.withdrawProposal')}
                     onClick={() => setProposal(null)}
                   >
                     <X size={16} />
                   </button>
                 </div>
-                <p>{pText(proposal.reply)}</p>
+                <p>{proposal.reply}</p>
                 {proposal.actions.length > 0 && (
                   <ol>
                     {proposal.actions.map((a, i) => (
@@ -1107,31 +1199,34 @@ function StrikeGame({
                 )}
                 {proposalError ? (
                   <p className="proposal-problem" role="status">
-                    {pText(proposalError)}
+                    {proposalError}
                   </p>
                 ) : (
                   preview && (
                     <p className="proposal-impact">
-                      {pText('确认后：')}
-                      {' '}
-                      {pText(TASKS.filter((t) => preview!.tasks[t]).length)}
-                      {pText('/3 份工作已落实，休假')}
-                      {' '}
-                      {pText(preview.rest ? pText('已许出') : pText('还在'))}
-                      {pText('，署名')}
-                      {' '}
-                      {pText(preview.credit ? pText('已许出') : pText('还在'))}
-                      {pText('。')}
+                      {t('oddBureau.strikeGame.afterConfirmation')}{' '}
+                      {TASKS.filter((t) => preview!.tasks[t]).length}
+                      {t('oddBureau.strikeGame.3JobsArrangedRest')}{' '}
+                      {preview.rest
+                        ? t('oddBureau.strikeGame.promised')
+                        : t('oddBureau.strikeGame.available')}
+                      {t('oddBureau.strikeGame.credit2')}{' '}
+                      {preview.credit
+                        ? t('oddBureau.strikeGame.promised')
+                        : t('oddBureau.strikeGame.available')}
+                      {t('oddBureau.strikeGame.label')}
                     </p>
                   )
                 )}
                 {proposalEndsRound && (
                   <p className="proposal-problem">
-                    {pText('这份承诺会让本局无法完成故事会。确认后，将以未开场结束。')}
+                    {t('oddBureau.strikeGame.thisPromiseMakesTheStorytellingImpossibleIn')}
                   </p>
                 )}
                 <Button className="primary-key" disabled={!preview || busy} onClick={confirm}>
-                  {pText(proposalEndsRound ? pText('接受这次散场') : pText('确认这份承诺'))}
+                  {proposalEndsRound
+                    ? t('oddBureau.strikeGame.acceptThisEnding')
+                    : t('oddBureau.strikeGame.confirmThisPromise')}
                 </Button>
               </div>
             )}
@@ -1139,7 +1234,7 @@ function StrikeGame({
               <div className="ready-to-perform">
                 <p>
                   <Check size={17} />
-                  {pText('安排齐了。让大家把故事演出来。')}
+                  {t('oddBureau.strikeGame.everythingIsArrangedLetThemPerformThe')}
                 </p>
                 <Button
                   className="primary-key"
@@ -1147,19 +1242,23 @@ function StrikeGame({
                   disabled={busy}
                   onClick={() => void perform()}
                 >
-                  {pText(busy ? pText('正在写今晚的故事…') : pText('故事会，开场'))}
+                  {busy
+                    ? t('oddBureau.strikeGame.writingTonightSStory')
+                    : t('oddBureau.strikeGame.beginTheStorytelling')}
                 </Button>
               </div>
             ) : (
               <div className="proposal-composer">
-                <label htmlFor="strike-proposal">{pText('也可以直接说出你的安排')}</label>
+                <label htmlFor="strike-proposal">
+                  {t('oddBureau.strikeGame.orDescribeYourArrangementDirectly')}
+                </label>
                 <TextareaField
                   id="strike-proposal"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   maxLength={400}
                   rows={2}
-                  placeholder={pText('比如：先让一位伙伴休息，再安排大家的工作…')}
+                  placeholder={t('oddBureau.strikeGame.forExampleLetOneCompanionRestThen')}
                   disabled={busy}
                 />
                 <Button
@@ -1167,7 +1266,9 @@ function StrikeGame({
                   disabled={busy || !message.trim()}
                   onClick={() => void ask()}
                 >
-                  {pText(busy ? pText('正在整理你的提议…') : pText('让管家整理提议'))}
+                  {busy
+                    ? t('oddBureau.strikeGame.organizingYourProposal')
+                    : t('oddBureau.strikeGame.askTheStewardToOrganizeTheProposal')}
                 </Button>
               </div>
             )}
@@ -1177,14 +1278,14 @@ function StrikeGame({
                 className="text-action cancel-proposal"
                 onClick={() => request.current?.abort()}
               >
-                {pText('取消这次生成')}
+                {t('oddBureau.strikeGame.cancelThisGeneration')}
               </button>
             )}
           </>
         )}
         {error && (
           <p className="play-error" role="alert">
-            {pText(error)}
+            {error}
           </p>
         )}
       </aside>
@@ -1209,7 +1310,7 @@ function Mystery({
   onVoice: () => void;
   onHostOnly: () => void;
 }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const photo = content.photo;
   const [session, setSession] = useState<Session | null>(null);
   const [mood, setMood] = useState<HeroDemoOddBureauMoodId>('missing');
@@ -1217,7 +1318,7 @@ function Mystery({
   const [foundProps, setFoundProps] = useState<Prop[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [panel, setPanel] = useState<'witness' | 'notebook'>('witness');
-  const [question, setQuestion] = useState(() => pData(''));
+  const [question, setQuestion] = useState(() => '');
   const [streaming, setStreaming] = useState('');
   const [talking, setTalking] = useState(false);
   const [error, setError] = useState('');
@@ -1278,7 +1379,7 @@ function Mystery({
         accusation: null,
       });
     } catch (e) {
-      if (!controller.signal.aborted) setError(errorMessage(e));
+      if (!controller.signal.aborted) setError(errorMessage(e, t));
     } finally {
       if (operation.current === controller) {
         operation.current = null;
@@ -1315,7 +1416,7 @@ function Mystery({
         ...current.messages,
         [characterId]: [
           ...messages,
-          { who: 'player', text: '案发时，你注意到了什么？' },
+          { who: 'player', text: t('oddBureau.collect.whatDidYouNoticeWhenItHappened') },
           { who: 'object', text: character.testimony },
         ],
       },
@@ -1355,7 +1456,7 @@ function Mystery({
       });
       setQuestion('');
     } catch (e) {
-      if (!controller.signal.aborted) setError(errorMessage(e));
+      if (!controller.signal.aborted) setError(errorMessage(e, t));
     } finally {
       if (operation.current === controller) {
         operation.current = null;
@@ -1396,30 +1497,30 @@ function Mystery({
           type="button"
           className="wordmark"
           onClick={() => setShowHelp((value) => !value)}
-          aria-label={pText('奇物局，查看玩法')}
+          aria-label={t('oddBureau.mystery.oddBureauViewPlayOptions')}
         >
           <Fingerprint size={33} strokeWidth={1.7} />
           <span>
-            {pText('奇物局')}
-            <span className="wordmark-en">{pText('ODD BUREAU')}</span>
+            {t('oddBureau.mystery.oddBureau')}
+            <span className="wordmark-en">{t('oddBureau.mystery.oddBureau2')}</span>
           </span>
         </button>
         <Button className="quiet-button" onClick={onExit} disabled={busy}>
-          {pText('返回游乐场')}
+          {t('oddBureau.mystery.backToThePlayground')}
         </Button>
         <div className="header-actions">
-          <span className="nimi-credit">{pText('POWERED BY NIMI')}</span>
+          <span className="nimi-credit">{t('oddBureau.mystery.poweredByNimi')}</span>
           <IconButton
             className="help-button"
             icon={<Settings2 size={20} />}
-            aria-label={pText('能力设置')}
+            aria-label={t('oddBureau.mystery.capabilitySettings')}
             onClick={onSettings}
             disabled={busy}
           />
           <IconButton
             className="help-button"
             icon={<CircleHelp size={21} />}
-            aria-label={pText('怎么玩')}
+            aria-label={t('oddBureau.mystery.howToPlay')}
             onClick={() => setShowHelp((value) => !value)}
           />
         </div>
@@ -1427,21 +1528,13 @@ function Mystery({
       {showHelp && (
         <div className="how-to">
           <div>
-            <strong>{pText('一张照片，一桩荒诞小案。')}</strong>
-            <p>
-              {pText(
-                '选一张至少有 3 件独立物品的照片。开案后点击照片里的物品，听它们说话，收集关键证词，最后指认嫌疑物。所有故事均为 AI 创作的虚构故事。',
-              )}
-            </p>
-            <p>
-              {pText(
-                '物品位置由 Nimi 视觉定位；文字和可选语音使用 Nimi 中已配置的能力。照片会交给所选能力处理。',
-              )}
-            </p>
+            <strong>{t('oddBureau.mystery.onePhotoOneAbsurdLittleMystery')}</strong>
+            <p>{t('oddBureau.mystery.chooseAPhotoWithAtLeastThree')}</p>
+            <p>{t('oddBureau.mystery.nimiLocatesTheObjectsVisuallyTextAnd')}</p>
           </div>
           <IconButton
             icon={<X size={18} />}
-            aria-label={pText('关闭玩法说明')}
+            aria-label={t('oddBureau.mystery.closePlayInstructions')}
             onClick={() => setShowHelp(false)}
           />
         </div>
@@ -1451,17 +1544,17 @@ function Mystery({
           <div className="intro-line">
             <div>
               <h1>
-                {pText('照片里的家伙，')}
+                {t('oddBureau.mystery.theObjectsInYourPhoto')}
                 <br />
-                {pText('有')}
-                <span className="trouble-word">{pText('事')}</span>
-                {pText('瞒着你。')}
+                {t('oddBureau.mystery.have')}
+                <span className="trouble-word">{t('oddBureau.mystery.something')}</span>
+                {t('oddBureau.mystery.toHide')}
               </h1>
-              <p>{pText('给日常拍张照。让物品开口，破一桩只有你能遇见的怪案。')}</p>
+              <p>{t('oddBureau.mystery.photographEverydayLifeLetObjectsSpeakAnd')}</p>
             </div>
             <div className="play-note">
-              <span className="play-note-title">{pText('今日营业')}</span>
-              <span>{pText('荒诞推理 / 一张照片 / 无限可能')}</span>
+              <span className="play-note-title">{t('oddBureau.mystery.openToday')}</span>
+              <span>{t('oddBureau.mystery.absurdDeductionOnePhotoEndless')}</span>
               <MousePointer2 size={23} />
             </div>
           </div>
@@ -1469,8 +1562,8 @@ function Mystery({
         {session && (
           <div className="case-heading">
             <div>
-              <h1>{pText(session.mystery.title)}</h1>
-              <p>{pText(session.mystery.incident)}</p>
+              <h1>{session.mystery.title}</h1>
+              <p>{session.mystery.incident}</p>
             </div>
             <Button
               className="quiet-button"
@@ -1478,24 +1571,22 @@ function Mystery({
               onClick={newCase}
               disabled={busy}
             >
-              {pText('换个案件')}
+              {t('oddBureau.mystery.changeCase')}
             </Button>
           </div>
         )}
         <div className="arcade">
-          <section className="scene-column" aria-label={pText('照片现场')}>
+          <section className="scene-column" aria-label={t('oddBureau.mystery.photoScene')}>
             <div className="scene-top">
               <span>
                 <span className="live-dot" />
-                {pText(
-                  session
-                    ? complete
-                      ? pText('案件已揭晓')
-                      : pText('现场调查中')
-                    : pText('一切都从这张照片开始'),
-                )}
+                {session
+                  ? complete
+                    ? t('oddBureau.mystery.caseRevealed')
+                    : t('oddBureau.mystery.investigationInProgress')
+                  : t('oddBureau.mystery.itAllBeginsWithThisPhoto')}
               </span>
-              <span>{pText(photo.name)}</span>
+              <span>{photo.name}</span>
             </div>
             <div className={`photo-frame ${accusing ? 'accusing' : ''}`}>
               <div
@@ -1519,17 +1610,17 @@ function Mystery({
                 <img
                   className="scene-photo"
                   src={photo.src}
-                  alt={pText(
+                  alt={
                     session
-                      ? `本案现场：${photo.name}。可用下方角色按钮探索每件物品。`
-                      : `已选照片：${photo.name}。AI 创作的试玩场景。`,
-                  )}
+                      ? t('oddBureau.mystery.sceneLabel', { photoName: photo.name })
+                      : t('oddBureau.mystery.selectedPhotoLabel', { photoName: photo.name })
+                  }
                   draggable={false}
                 />
                 {!session && !stage && (
                   <div className="sample-tag">
                     <ImagePlus size={14} />
-                    {pText('AI 创作的试玩照片 · 实时开案')}
+                    {t('oddBureau.mystery.aiCreatedSamplePhotoOpenACase')}
                   </div>
                 )}
                 {session &&
@@ -1547,9 +1638,7 @@ function Mystery({
                           width: `${(prop.box.x2 - prop.box.x1) * 100}%`,
                           height: `${(prop.box.y2 - prop.box.y1) * 100}%`,
                         }}
-                        aria-label={pText(
-                          `${accusing ? pText('指认') : pText('调查')}${prop.label}`,
-                        )}
+                        aria-label={`${accusing ? t('oddBureau.mystery.accuse') : t('oddBureau.mystery.investigate')}${prop.label}`}
                         disabled={busy}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -1563,7 +1652,7 @@ function Mystery({
                             String(index + 1).padStart(2, '0')
                           )}
                         </span>
-                        <span className="hotspot-label">{pText(prop.label)}</span>
+                        <span className="hotspot-label">{prop.label}</span>
                       </button>
                     );
                   })}
@@ -1571,16 +1660,14 @@ function Mystery({
                   <div className="scene-verdict">
                     <Fingerprint size={38} />
                     <span>
-                      {pText(
-                        session!.accusation === session!.mystery.culpritId
-                          ? pText('漂亮，破案了！')
-                          : pText('真相另有其物。'),
-                      )}
+                      {session!.accusation === session!.mystery.culpritId
+                        ? t('oddBureau.mystery.nicelySolved')
+                        : t('oddBureau.mystery.theTruthLiesWithAnotherObject')}
                     </span>
                     <p>
-                      {pText('原来是')}
-                      {pText(nameOf(culprit?.objectId ?? ''))}
-                      {pText('在搞鬼。')}
+                      {t('oddBureau.mystery.itWas')}
+                      {nameOf(culprit?.objectId ?? '')}
+                      {t('oddBureau.mystery.behindIt')}
                     </p>
                   </div>
                 )}
@@ -1590,23 +1677,21 @@ function Mystery({
                       <Search size={36} />
                     </div>
                     <h2>
-                      {pText(
-                        stage === 'locating'
-                          ? pText('嘘，看看谁在现场…')
-                          : pText('物品们正在串供…'),
-                      )}
+                      {stage === 'locating'
+                        ? t('oddBureau.mystery.quietWhoSAtTheScene')
+                        : t('oddBureau.mystery.theObjectsAreGettingTheirStoriesStraight')}
                     </h2>
                     <p>
-                      {pText(
-                        stage === 'locating'
-                          ? foundProps.length
-                            ? `已找到：${foundProps.map((prop) => prop.label).join('、')}。继续寻找下一位…`
-                            : pText('正在逐个寻找可以登场的物品，首次运行可能需要一点时间')
-                          : pText('正在编织角色、证词和一个说得通的真相'),
-                      )}
+                      {stage === 'locating'
+                        ? foundProps.length
+                          ? t('oddBureau.mystery.locating', {
+                              names: foundProps.map((prop) => prop.label).join('、'),
+                            })
+                          : t('oddBureau.mystery.findingObjectsToBringIntoPlayThe')
+                        : t('oddBureau.mystery.weavingCharactersTestimonyAndACoherentExplanation')}
                     </p>
                     <Button className="cancel-key" onClick={() => operation.current?.abort()}>
-                      {pText('取消开案')}
+                      {t('oddBureau.mystery.cancelCaseOpening')}
                     </Button>
                   </div>
                 )}
@@ -1614,17 +1699,15 @@ function Mystery({
             </div>
             <div className="scene-bottom">
               <span>
-                {pText(
-                  session
-                    ? accusing
-                      ? pText('点击你认为的嫌疑物')
-                      : complete
-                        ? pText('同一张照片，还能发生下一桩怪案。')
-                        : miss
-                          ? pText('这里暂时没有角色。亮起的物品可以调查。')
-                          : pText('试着点点照片里的物品。它们都有话说。')
-                    : pText('桌面、客厅、书架… 越日常，越意想不到。'),
-                )}
+                {session
+                  ? accusing
+                    ? t('oddBureau.mystery.chooseTheObjectYouSuspect')
+                    : complete
+                      ? t('oddBureau.mystery.theSamePhotoCanHoldAnotherMystery')
+                      : miss
+                        ? t('oddBureau.mystery.noCharactersHereYetHighlightedObjectsCan')
+                        : t('oddBureau.mystery.tryClickingObjectsInThePhotoThey')
+                  : t('oddBureau.mystery.aDeskALivingRoomABookshelf')}
               </span>
               {session && !complete && (
                 <button
@@ -1637,12 +1720,15 @@ function Mystery({
                   disabled={busy}
                 >
                   <Lightbulb size={15} />
-                  {pText(showHint ? pText('收起提示') : pText('找不到？'))}
+                  {showHint ? t('oddBureau.mystery.hideHints') : t('oddBureau.mystery.canTFindIt')}
                 </button>
               )}
             </div>
             {session && (
-              <div className="cast-strip" aria-label={pText('可调查物品，亦可用键盘选择')}>
+              <div
+                className="cast-strip"
+                aria-label={t('oddBureau.mystery.objectsToInvestigateAlsoSelectableByKeyboard')}
+              >
                 {session.props.map((prop, index) => {
                   const known = session.discovered.includes(prop.id) || complete;
                   return (
@@ -1652,18 +1738,20 @@ function Mystery({
                       className={`cast-key ${selected === prop.id ? 'active' : ''}`}
                       onClick={() => discover(prop)}
                       disabled={busy || complete}
-                      aria-label={pText(`调查${prop.label}`)}
+                      aria-label={t('oddBureau.mystery.investigate2', { propLabel: prop.label })}
                     >
                       <ObjectPortrait prop={prop} photo={photo} />
-                      <span>{pText(known ? prop.label : `物品 ${index + 1}`)}</span>
+                      <span>
+                        {known
+                          ? prop.label
+                          : t('oddBureau.mystery.objectNumber', { number: index + 1 })}
+                      </span>
                       <small>
-                        {pText(
-                          session.evidence.includes(prop.id)
-                            ? pText('已记证词')
-                            : known
-                              ? pText('继续盘问')
-                              : pText('还没聊过'),
-                        )}
+                        {session.evidence.includes(prop.id)
+                          ? t('oddBureau.mystery.testimonyRecorded')
+                          : known
+                            ? t('oddBureau.mystery.keepQuestioning')
+                            : t('oddBureau.mystery.notInterviewed')}
                       </small>
                     </button>
                   );
@@ -1673,27 +1761,35 @@ function Mystery({
           </section>
           <aside
             className={`case-panel ${!session ? 'start-panel' : ''}`}
-            aria-label={pText(session ? pText('调查手记') : pText('开始新案件'))}
+            aria-label={
+              session
+                ? t('oddBureau.mystery.investigationJournal')
+                : t('oddBureau.mystery.startANewCase')
+            }
           >
             {!session ? (
               <>
                 <div className="welcome-stamp">
                   <Fingerprint size={43} strokeWidth={1.4} />
                   <span>
-                    {pText('奇物调查员')}
+                    {t('oddBureau.mystery.oddObjectInvestigator')}
                     <br />
-                    <b>{pText('入局邀请')}</b>
+                    <b>{t('oddBureau.mystery.yourInvitation')}</b>
                   </span>
                   <Sparkles className="stamp-spark" size={19} />
                 </div>
-                <h2>{pText('今天，查点什么？')}</h2>
+                <h2>{t('oddBureau.mystery.whatShallWeInvestigateToday')}</h2>
                 <p className="panel-intro">
-                  {pText('物品们有自己的小秘密。')}
+                  {t('oddBureau.mystery.theObjectsHaveLittleSecretsOfTheir')}
                   <br />
-                  {pText('挑一种故事，让它们露出马脚。')}
+                  {t('oddBureau.mystery.chooseAStoryAndLetThemSlip')}
                 </p>
-                <div className="mood-options" role="group" aria-label={pText('选择案件风格')}>
-                  {MOODS.map((item, index) => (
+                <div
+                  className="mood-options"
+                  role="group"
+                  aria-label={t('oddBureau.mystery.chooseACaseStyle')}
+                >
+                  {createMysteryMoods(t).map((item, index) => (
                     <button
                       type="button"
                       key={item.id}
@@ -1706,8 +1802,8 @@ function Mystery({
                         {index === 0 ? <Search /> : index === 1 ? <AudioLines /> : <Sparkles />}
                       </span>
                       <span>
-                        <b>{pText(item.name)}</b>
-                        <small>{pText(item.hint)}</small>
+                        <b>{item.name}</b>
+                        <small>{item.hint}</small>
                       </span>
                       <span className="mood-check">
                         {mood === item.id ? <Check size={15} /> : null}
@@ -1723,7 +1819,9 @@ function Mystery({
                     onClick={() => void startCase()}
                     disabled={busy}
                   >
-                    {pText(stage ? pText('正在开案…') : pText('就用这张，开案'))}
+                    {stage
+                      ? t('oddBureau.mystery.openingTheCase')
+                      : t('oddBureau.mystery.useThisPhotoAndOpenTheCase')}
                   </Button>
                   <Button
                     className="upload-key"
@@ -1731,13 +1829,13 @@ function Mystery({
                     onClick={onHostOnly}
                     disabled={busy}
                   >
-                    {pText('换成我的照片')}
+                    {t('oddBureau.mystery.useMyOwnPhoto')}
                   </Button>
                 </div>
                 <p className="first-play-note">
-                  {pText('第一次？直接用这张照片玩。')}
+                  {t('oddBureau.mystery.firstVisitPlayWithThisPhoto')}
                   <br />
-                  {pText('无需写提示词，也不需要先想一个故事。')}
+                  {t('oddBureau.mystery.noPromptOrStoryIdeaNeeded')}
                 </p>
               </>
             ) : complete ? (
@@ -1746,27 +1844,25 @@ function Mystery({
                   <CheckCheck size={31} />
                 </div>
                 <h2>
-                  {pText(
-                    session.accusation === session.mystery.culpritId
-                      ? pText('日常，果然不简单。')
-                      : pText('这次被它骗到了。'),
-                  )}
+                  {session.accusation === session.mystery.culpritId
+                    ? t('oddBureau.mystery.everydayLifeIsnTSoSimple')
+                    : t('oddBureau.mystery.thisTimeItFooledYou')}
                 </h2>
                 <p className="culprit-name">
-                  {pText('幕后搞事的：')}
-                  <strong>{pText(nameOf(culprit?.objectId ?? ''))}</strong>
+                  {t('oddBureau.mystery.behindTheTrouble')}
+                  <strong>{nameOf(culprit?.objectId ?? '')}</strong>
                 </p>
-                <p className="resolution">{pText(session.mystery.resolution)}</p>
+                <p className="resolution">{session.mystery.resolution}</p>
                 <div className="reasoning">
-                  <h3>{pText('把这几句话连起来')}</h3>
+                  <h3>{t('oddBureau.mystery.connectTheseStatements')}</h3>
                   {session.mystery.decisiveEvidenceIds.map((id) => {
                     const c = session.mystery.characters.find((c) => c.objectId === id)!;
                     return (
                       <p key={id}>
-                        <b>{pText(nameOf(id))}</b>
-                        <span>{pText(c.testimony)}</span>
+                        <b>{nameOf(id)}</b>
+                        <span>{c.testimony}</span>
                         {!session.evidence.includes(id) && (
-                          <small>{pText('这条证词，本局还没收集')}</small>
+                          <small>{t('oddBureau.mystery.thisTestimonyHasNotBeenCollectedIn')}</small>
                         )}
                       </p>
                     );
@@ -1781,22 +1877,28 @@ function Mystery({
                   }}
                   disabled={busy}
                 >
-                  {pText('同一张照片，再来一案')}
+                  {t('oddBureau.mystery.anotherCaseWithThisPhoto')}
                 </Button>
                 <Button className="upload-key" onClick={newCase}>
-                  {pText('用新照片开案')}
+                  {t('oddBureau.mystery.openACaseWithANewPhoto')}
                 </Button>
-                <p className="fiction-note">{pText('这是一桩 AI 创作的虚构小案。')}</p>
+                <p className="fiction-note">
+                  {t('oddBureau.mystery.thisIsAFictionalMysteryCreatedBy')}
+                </p>
               </div>
             ) : (
               <>
-                <div className="panel-tabs" role="group" aria-label={pText('调查面板')}>
+                <div
+                  className="panel-tabs"
+                  role="group"
+                  aria-label={t('oddBureau.mystery.investigationPanel')}
+                >
                   <button
                     type="button"
                     aria-pressed={panel === 'witness'}
                     onClick={() => setPanel('witness')}
                   >
-                    {pText('物品来话')}
+                    {t('oddBureau.mystery.objectTestimony')}
                     <MessageCircle size={16} />
                   </button>
                   <button
@@ -1804,8 +1906,8 @@ function Mystery({
                     aria-pressed={panel === 'notebook'}
                     onClick={() => setPanel('notebook')}
                   >
-                    {pText('线索本')}
-                    <span>{pText(session.evidence.length)}</span>
+                    {t('oddBureau.mystery.clueNotebook')}
+                    <span>{session.evidence.length}</span>
                   </button>
                 </div>
                 <div className="panel-body">
@@ -1813,17 +1915,17 @@ function Mystery({
                     <div className="accusation-panel">
                       <Fingerprint size={44} />
                       <h2>
-                        {pText('就是')}
-                        {pText(nameOf(accused.objectId))}
-                        {pText('？')}
+                        {t('oddBureau.mystery.itS')}
+                        {nameOf(accused.objectId)}
+                        {t('oddBureau.mystery.label')}
                       </h2>
                       <p>
-                        {pText('确认后会揭晓本案真相。')}
+                        {t('oddBureau.mystery.confirmToRevealTheTruthOfThis')}
                         <br />
-                        {pText('还有疑问的话，可以回去再问两句。')}
+                        {t('oddBureau.mystery.stillUnsureGoBackAndAskA')}
                       </p>
                       <Button className="primary-key" onClick={finishCase}>
-                        {pText('确认指认，揭晓真相')}
+                        {t('oddBureau.mystery.confirmAccusationAndRevealTheTruth')}
                       </Button>
                       <Button
                         className="upload-key"
@@ -1832,15 +1934,15 @@ function Mystery({
                           setAccusing(false);
                         }}
                       >
-                        {pText('再调查一下')}
+                        {t('oddBureau.mystery.investigateFurther')}
                       </Button>
                     </div>
                   ) : panel === 'notebook' ? (
                     <div className="notebook">
                       <h2>
-                        {pText('听他们说，')}
+                        {t('oddBureau.mystery.listenToTheirWords')}
                         <br />
-                        {pText('也听话外之音。')}
+                        {t('oddBureau.mystery.andWhatLiesBetweenThem')}
                       </h2>
                       {session.evidence.length ? (
                         session.evidence.map((id, index) => {
@@ -1848,11 +1950,11 @@ function Mystery({
                           return (
                             <article className="evidence-note" key={id}>
                               <span className="evidence-number">
-                                {pText(String(index + 1).padStart(2, '0'))}
+                                {String(index + 1).padStart(2, '0')}
                               </span>
                               <div>
-                                <h3>{pText(c.clueTitle)}</h3>
-                                <p>{pText(c.testimony)}</p>
+                                <h3>{c.clueTitle}</h3>
+                                <p>{c.testimony}</p>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1860,7 +1962,7 @@ function Mystery({
                                     setPanel('witness');
                                   }}
                                 >
-                                  {pText(nameOf(id))}
+                                  {nameOf(id)}
                                   <ChevronRight size={14} />
                                 </button>
                               </div>
@@ -1871,9 +1973,9 @@ function Mystery({
                         <div className="no-clues">
                           <Search size={32} />
                           <p>
-                            {pText('空白也没关系。')}
+                            {t('oddBureau.mystery.anEmptyPageIsFine')}
                             <br />
-                            {pText('点一个物品，问问它案发时看到了什么。')}
+                            {t('oddBureau.mystery.chooseAnObjectAndAskWhatIt')}
                           </p>
                         </div>
                       )}
@@ -1883,22 +1985,24 @@ function Mystery({
                       <div className="witness-profile">
                         <ObjectPortrait prop={selectedProp} photo={photo} />
                         <div>
-                          <h2>{pText(selectedProp.label)}</h2>
-                          <p>{pText(character.persona)}</p>
+                          <h2>{selectedProp.label}</h2>
+                          <p>{character.persona}</p>
                         </div>
                         <IconButton
                           className="voice-key"
                           icon={<Volume2 size={19} />}
-                          aria-label={pText('听它说话')}
+                          aria-label={t('oddBureau.mystery.hearItsAccount')}
                           onClick={onVoice}
                           disabled={talking}
                         />
                       </div>
                       <div
                         className="conversation"
-                        aria-label={pText(`${selectedProp.label}的对话`)}
+                        aria-label={t('oddBureau.mystery.conversationWith', {
+                          selectedPropLabel: selectedProp.label,
+                        })}
                       >
-                        <p className="object-message">{pText(character.greeting)}</p>
+                        <p className="object-message">{character.greeting}</p>
                         {(session.messages[character.objectId] ?? []).map((message, index) => (
                           <p
                             key={index}
@@ -1906,12 +2010,12 @@ function Mystery({
                               message.who === 'player' ? 'player-message' : 'object-message'
                             }
                           >
-                            {pText(message.text)}
+                            {message.text}
                           </p>
                         ))}
                         {talking && (
                           <p className="object-message streaming" role="status">
-                            {pText(streaming || '它想了想，准备开口…')}
+                            {streaming || t('oddBureau.mystery.itSThinkingReadyToSpeak')}
                           </p>
                         )}
                         <div ref={chatBottom} />
@@ -1924,13 +2028,13 @@ function Mystery({
                           disabled={talking}
                         >
                           <Search size={18} />
-                          <span>{pText('问问案发时，它看到了什么')}</span>
+                          <span>{t('oddBureau.mystery.askWhatItSawWhenTheIncident')}</span>
                           <ArrowRight size={17} />
                         </button>
                       ) : (
                         <div className="collected-tag">
                           <Check size={16} />
-                          {pText('关键证词已记入线索本')}
+                          {t('oddBureau.mystery.keyTestimonyAddedToTheClueNotebook')}
                         </div>
                       )}
                       <div className="question-area">
@@ -1940,7 +2044,7 @@ function Mystery({
                           onClick={() => void ask(character.suggestedQuestion)}
                           disabled={talking}
                         >
-                          {pText(character.suggestedQuestion)}
+                          {character.suggestedQuestion}
                           <ArrowRight size={14} />
                         </button>
                         <form
@@ -1950,8 +2054,8 @@ function Mystery({
                           }}
                         >
                           <TextField
-                            aria-label={pText('自由盘问这个物品')}
-                            placeholder={pText('也可以直接问它…')}
+                            aria-label={t('oddBureau.mystery.questionThisObjectFreely')}
+                            placeholder={t('oddBureau.mystery.orAskItDirectly')}
                             maxLength={350}
                             value={question}
                             onChange={(event) => {
@@ -1962,7 +2066,11 @@ function Mystery({
                           <IconButton
                             className="send-key"
                             icon={talking ? <Square size={15} /> : <Send size={17} />}
-                            aria-label={pText(talking ? pText('停止盘问') : pText('发送问题'))}
+                            aria-label={
+                              talking
+                                ? t('oddBureau.mystery.stopQuestioning')
+                                : t('oddBureau.mystery.sendQuestion')
+                            }
                             type={talking ? 'button' : 'submit'}
                             disabled={!talking && !question.trim()}
                             onClick={talking ? () => operation.current?.abort() : undefined}
@@ -1975,14 +2083,14 @@ function Mystery({
                       <div className="opening-symbol">
                         <MessageCircle size={39} />
                       </div>
-                      <h2>{pText('现场交给你了。')}</h2>
-                      <p>{pText(session.mystery.opening)}</p>
+                      <h2>{t('oddBureau.mystery.theSceneIsYours')}</h2>
+                      <p>{session.mystery.opening}</p>
                       <div className="opening-tip">
                         <MousePointer2 size={20} />
                         <span>
-                          {pText('点点照片里的物品，')}
+                          {t('oddBureau.mystery.clickTheObjectsInThePhoto')}
                           <br />
-                          {pText('听听谁的故事对不上。')}
+                          {t('oddBureau.mystery.andHearWhoseStoryDoesnTFit')}
                         </span>
                       </div>
                     </div>
@@ -1990,9 +2098,9 @@ function Mystery({
                 </div>
                 <div className="accuse-bar">
                   <span>
-                    {pText('已收集 ')}
-                    <b>{pText(session.evidence.length)}</b> {pText(' / ')}
-                    {pText(session.props.length)} {pText(' 份证词')}
+                    {t('oddBureau.mystery.collected')}
+                    <b>{session.evidence.length}</b> {' / '}
+                    {session.props.length} {t('oddBureau.mystery.statements')}
                   </span>
                   <Button
                     className="accuse-key"
@@ -2003,10 +2111,14 @@ function Mystery({
                     }}
                     disabled={!canAccuse(session) || busy}
                   >
-                    {pText(accusing ? pText('取消指认') : pText('我知道是谁了'))}
+                    {accusing
+                      ? t('oddBureau.mystery.cancelAccusation')
+                      : t('oddBureau.mystery.iKnowWhoDidIt')}
                   </Button>
                   {!canAccuse(session) && (
-                    <small>{pText('先收集 2 份证词，再提出你的猜想。')}</small>
+                    <small>
+                      {t('oddBureau.mystery.collectTwoStatementsBeforeMakingYourGuess')}
+                    </small>
                   )}
                 </div>
               </>
@@ -2016,19 +2128,19 @@ function Mystery({
         {error && (
           <div className="bureau-error" role="alert">
             <div>
-              <strong>{pText('这一步还没完成')}</strong>
-              <p>{pText(error)}</p>
+              <strong>{t('oddBureau.mystery.thisStepIsNotComplete')}</strong>
+              <p>{error}</p>
             </div>
             <IconButton
               icon={<X size={18} />}
-              aria-label={pText('收起提示')}
+              aria-label={t('oddBureau.mystery.hideHints')}
               onClick={() => setError('')}
             />
           </div>
         )}
         <footer className="bureau-footer">
-          <span>{pText('物品的故事由 AI 创作，纯属虚构。')}</span>
-          <span>{pText('发现 → 盘问 → 连起线索 → 揭晓')}</span>
+          <span>{t('oddBureau.mystery.objectStoriesAreAiCreatedFiction')}</span>
+          <span>{t('oddBureau.mystery.discoverQuestionConnectClues')}</span>
         </footer>
       </main>
     </div>
@@ -2052,19 +2164,19 @@ const DEMO_IMPLEMENTATION = {
   driverId: 'demo',
   driverDialect: 'demo/local/v1',
 } as const;
-const LOCAL_LABELS: Record<string, string> = {
-  'vision.locate': '本机视觉定位',
-  'text.generate': '本机文字模型',
-  'audio.synthesize': '本机语音合成',
-};
-const CLOUD_LABELS: Record<string, string> = {
-  'vision.locate': '云端视觉定位',
-  'text.generate': '云端文字模型',
-  'audio.synthesize': '云端语音合成',
-};
-const localLoadout = (capability: string) => ({
+const LOCAL_LABELS = (t: PreviewTranslate): Record<string, string> => ({
+  'vision.locate': t('oddBureau.workspace.localVisualLocalization'),
+  'text.generate': t('oddBureau.workspace.localTextModel'),
+  'audio.synthesize': t('oddBureau.workspace.localSpeechSynthesis'),
+});
+const CLOUD_LABELS = (t: PreviewTranslate): Record<string, string> => ({
+  'vision.locate': t('oddBureau.workspace.cloudVisualLocalization'),
+  'text.generate': t('oddBureau.workspace.cloudTextModel'),
+  'audio.synthesize': t('oddBureau.workspace.cloudSpeechSynthesis'),
+});
+const localLoadout = (capability: string, t: PreviewTranslate) => ({
   loadoutRef: `demo-loadout:${capability}`,
-  label: LOCAL_LABELS[capability] ?? capability,
+  label: LOCAL_LABELS(t)[capability] ?? capability,
   capabilityContract: capability,
   implementation: DEMO_IMPLEMENTATION,
   implementationSupportedFeatures: [],
@@ -2073,16 +2185,16 @@ const localLoadout = (capability: string) => ({
   state: 'ready' as const,
   reasons: [],
 });
-const cloudConnector = () => ({
+const cloudConnector = (t: PreviewTranslate) => ({
   connectorRef: DEMO_CLOUD_CONNECTOR_REF,
-  label: 'Nimi Cloud',
+  label: t('oddBureau.workspace.nimiCloud'),
   provider: 'demo',
   state: 'ready' as const,
   reasons: [],
 });
-const cloudTarget = (capability: string) => ({
+const cloudTarget = (capability: string, t: PreviewTranslate) => ({
   connectorRef: DEMO_CLOUD_CONNECTOR_REF,
-  label: CLOUD_LABELS[capability] ?? capability,
+  label: CLOUD_LABELS(t)[capability] ?? capability,
   capabilityContract: capability,
   implementation: DEMO_IMPLEMENTATION,
   providerModelTarget: { model: `demo-${capability}` },
@@ -2090,7 +2202,10 @@ const cloudTarget = (capability: string) => ({
   state: 'ready' as const,
   reasons: [],
 });
-const effectiveSelectionsFor = (intents: readonly AIConfigIntent[]): EffectiveSelection[] =>
+const effectiveSelectionsFor = (
+  intents: readonly AIConfigIntent[],
+  t: PreviewTranslate,
+): EffectiveSelection[] =>
   intents.map((intent) => ({
     capabilityContract: intent.capabilityContract,
     state: 'ready',
@@ -2098,14 +2213,17 @@ const effectiveSelectionsFor = (intents: readonly AIConfigIntent[]): EffectiveSe
       intent.route.oneofKind === 'cloud'
         ? {
             oneofKind: 'cloud',
-            cloud: { connector: cloudConnector(), target: cloudTarget(intent.capabilityContract) },
+            cloud: {
+              connector: cloudConnector(t),
+              target: cloudTarget(intent.capabilityContract, t),
+            },
           }
-        : { oneofKind: 'local', local: localLoadout(intent.capabilityContract) },
+        : { oneofKind: 'local', local: localLoadout(intent.capabilityContract, t) },
     reasons: [],
   }));
 
 function Setup({ onBack }: { onBack: () => void }) {
-  const { pText, pData } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const [intents, setIntents] = useState<AIConfigIntent[]>(() => [
     {
       capabilityContract: 'vision.locate',
@@ -2123,26 +2241,32 @@ function Setup({ onBack }: { onBack: () => void }) {
   const listOptions = useCallback<ListOptions>(async (query): Promise<OptionsResult> => {
     switch (query.kind) {
       case 'cloud-connectors':
-        return { kind: 'cloud-connectors', options: [cloudConnector()], truncated: false };
+        return { kind: 'cloud-connectors', options: [cloudConnector(t)], truncated: false };
       case 'cloud-targets':
         return {
           kind: 'cloud-targets',
           options:
             query.connectorRef === DEMO_CLOUD_CONNECTOR_REF
-              ? [cloudTarget(query.capabilityContract)]
+              ? [cloudTarget(query.capabilityContract, t)]
               : [],
           truncated: false,
         };
       case 'local-loadouts':
         return {
           kind: 'local-loadouts',
-          options: [localLoadout(query.capabilityContract)],
+          options: [localLoadout(query.capabilityContract, t)],
           truncated: false,
         };
       case 'preset-voices':
         return {
           kind: 'preset-voices',
-          options: [{ voiceId: 'demo-voice-zh', name: '桌边旁白', supportedLangs: ['zh'] }],
+          options: [
+            {
+              voiceId: 'demo-voice-zh',
+              name: t('oddBureau.setup.tabletopNarrator'),
+              supportedLangs: ['zh'],
+            },
+          ],
           truncated: false,
         };
     }
@@ -2166,107 +2290,105 @@ function Setup({ onBack }: { onBack: () => void }) {
   return (
     <main className="setup-page" data-density="regular">
       <Button className="quiet-button" leadingIcon={<ArrowLeft size={16} />} onClick={onBack}>
-        {pText('回到现场')}
+        {t('oddBureau.setup.backToTheScene')}
       </Button>
-      <h1>{pText('给游乐场接通 AI')}</h1>
-      <p>
-        {pText(
-          '这些玩法需要「看见物品」和「创作玩法」两项能力。「让物品开口」可选，稍后也能开启。',
-        )}
-      </p>
+      <h1>{t('oddBureau.setup.connectAiToThePlayground')}</h1>
+      <p>{t('oddBureau.setup.playNeedsObjectDetectionAndPlayCreation')}</p>
       <div className="setup-surface">
         <ModelConfigAIConfigSurface
           context={{ owner: 'app-ai-config', appId: 'nimi.odd-bureau' }}
           capabilityContracts={CONTRACTS}
           capabilities={intents}
           revision={revision}
-          effectiveSelections={effectiveSelectionsFor(intents)}
+          effectiveSelections={effectiveSelectionsFor(intents, t)}
           listOptions={listOptions}
           onOverwrite={overwrite}
           language="zh"
-          copy={pData({
-            title: '奇物局的能力',
-            description: '只为这间事务所选择能力，不会改变 Nimi 中其他 App 的设置。',
-            backLabel: '返回能力总览',
-            activeModelLabel: '使用的模型',
-            activeModelHint: '选择本机或云端能力',
-            detailTitle: (label) => `${label}设置`,
-            activeModelConfiguredLabel: '已配置',
-            activeModelSetupPendingLabel: '需要准备',
-            configuredSummary: '能力已配置',
-            emptySummary: '尚未选择模型',
-            modelPickerTitle: '选择能力来源',
-            modelPickerSearchPlaceholder: '搜索模型',
-            modelPickerLoadingLabel: '正在读取模型…',
-            modelPickerEmptyLabel: '还没有可用的模型',
-            configuredLabel: '已配置',
-            notConfiguredLabel: '尚未配置',
-            localLabel: '本机',
-            cloudLabel: '云端',
-            routeLabel: '能力来源',
-            saveLocalLabel: '使用本机模型',
-            saveCloudLabel: '使用此云端模型',
-            savingLabel: '正在保存…',
-            clearLabel: '清除此项配置',
-            cancelLabel: '取消',
-            confirmSelectionLabel: '确认选择',
-            advancedLabel: '高级选项',
-            advancedHint: '调整此能力的参数',
-            retryLabel: '重试',
-            technicalDetailsLabel: '技术详情',
-            defaultsLabel: '默认参数',
-            defaultsPlaceholder: '留空以使用模型默认值。',
-            defaultsUnsetLabel: '未设置',
-            defaultsTrueLabel: '是',
-            defaultsFalseLabel: '否',
-            defaultsListPlaceholder: '每行一项',
-            defaultsLocalEffectivePlaceholder: (value) => `未设置 · 本机默认 ${value}`,
-            defaultsCloudEffectivePlaceholder: '未设置 · 使用服务默认值',
-            defaultsRandomValue: '随机',
-            localChoiceDescription: '使用 Nimi 当前选择的本机模型。',
-            localSelectedLabel: '本机当前选择',
-            localMissingLabel: '本机尚未为此能力选择模型。',
-            localBrokenLabel: '本机选中的模型需要处理。',
-            localUnavailableLabel: '暂时无法读取本机模型。',
-            localMismatchLabel: (features) => `本机模型尚不支持：${features}`,
-            openMachineLabel: '管理本机模型',
-            cloudConnectorPickerLabel: '选择已连接的服务',
-            cloudConnectorPickerPlaceholder: '选择一个服务',
-            cloudNoConnectorsLabel: '尚未连接云端服务',
-            cloudConnectorSelectionRequired: '先选择一个已连接的服务，再选择模型。',
-            cloudNoticeLabel: '通过云端处理',
-            cloudNoticeDescription: '文字内容会发送到所选服务，并可能产生该服务的费用。',
-            cloudImplementationLabel: '云端服务',
-            cloudTargetLabel: '云端模型',
-            cloudConnectorLabel: '已连接的服务',
-            cloudLoadFailed: '暂时无法读取云端模型，请重试。',
-            loadFailed: '暂时无法读取能力设置。',
-            saveFailed: '能力设置没有保存成功。',
-            conflictLabel: '配置已在别处更新',
-            conflictDescription: '请检查最新配置，再保存你的选择。',
-            clearingLabel: '正在清除…',
-            selectionRequiredLabel: '请选择模型',
-            blockedLabel: '需要处理',
-            unavailableLabel: '暂不可用',
-            mismatchLabel: '能力不匹配',
+          copy={{
+            title: t('oddBureau.setup.oddBureauCapabilities'),
+            description: t('oddBureau.setup.chooseCapabilitiesForThisBureauOnlyOther'),
+            backLabel: t('oddBureau.setup.backToCapabilityOverview'),
+            activeModelLabel: t('oddBureau.setup.modelInUse'),
+            activeModelHint: t('oddBureau.setup.chooseALocalOrCloudCapability'),
+            detailTitle: (label) => t('oddBureau.settings.capabilityTitle', { capability: label }),
+            activeModelConfiguredLabel: t('oddBureau.setup.configured'),
+            activeModelSetupPendingLabel: t('oddBureau.setup.needsPreparation'),
+            configuredSummary: t('oddBureau.setup.capabilityConfigured'),
+            emptySummary: t('oddBureau.setup.noModelSelected'),
+            modelPickerTitle: t('oddBureau.setup.chooseCapabilitySource'),
+            modelPickerSearchPlaceholder: t('oddBureau.setup.searchModels'),
+            modelPickerLoadingLabel: t('oddBureau.setup.loadingModels'),
+            modelPickerEmptyLabel: t('oddBureau.setup.noModelsAvailable'),
+            configuredLabel: t('oddBureau.setup.configured'),
+            notConfiguredLabel: t('oddBureau.setup.notConfigured'),
+            localLabel: t('oddBureau.setup.onDevice'),
+            cloudLabel: t('oddBureau.setup.cloud'),
+            routeLabel: t('oddBureau.setup.capabilitySource'),
+            saveLocalLabel: t('oddBureau.setup.useLocalModel'),
+            saveCloudLabel: t('oddBureau.setup.useThisCloudModel'),
+            savingLabel: t('oddBureau.setup.saving'),
+            clearLabel: t('oddBureau.setup.clearThisConfiguration'),
+            cancelLabel: t('oddBureau.setup.cancel'),
+            confirmSelectionLabel: t('oddBureau.setup.confirmSelection'),
+            advancedLabel: t('oddBureau.setup.advancedOptions'),
+            advancedHint: t('oddBureau.setup.adjustThisCapabilitySParameters'),
+            retryLabel: t('oddBureau.setup.retry'),
+            technicalDetailsLabel: t('oddBureau.setup.technicalDetails'),
+            defaultsLabel: t('oddBureau.setup.defaultParameters'),
+            defaultsPlaceholder: t('oddBureau.setup.leaveBlankToUseModelDefaults'),
+            defaultsUnsetLabel: t('oddBureau.setup.notSet'),
+            defaultsTrueLabel: t('oddBureau.setup.yes'),
+            defaultsFalseLabel: t('oddBureau.setup.no'),
+            defaultsListPlaceholder: t('oddBureau.setup.oneItemPerLine'),
+            defaultsLocalEffectivePlaceholder: (value) =>
+              t('oddBureau.settings.localDefault', { model: value }),
+            defaultsCloudEffectivePlaceholder: t('oddBureau.setup.notSetServiceDefault'),
+            defaultsRandomValue: t('oddBureau.setup.random'),
+            localChoiceDescription: t('oddBureau.setup.useNimiSCurrentlySelectedLocalModel'),
+            localSelectedLabel: t('oddBureau.setup.currentLocalSelection'),
+            localMissingLabel: t('oddBureau.setup.noLocalModelSelectedForThisCapability'),
+            localBrokenLabel: t('oddBureau.setup.theSelectedLocalModelNeedsAttention'),
+            localUnavailableLabel: t('oddBureau.setup.couldNotReadLocalModels'),
+            localMismatchLabel: (features) =>
+              t('oddBureau.settings.unsupportedFeatures', { features: features }),
+            openMachineLabel: t('oddBureau.setup.manageLocalModels'),
+            cloudConnectorPickerLabel: t('oddBureau.setup.chooseAConnectedService'),
+            cloudConnectorPickerPlaceholder: t('oddBureau.setup.chooseAService'),
+            cloudNoConnectorsLabel: t('oddBureau.setup.noCloudServicesConnected'),
+            cloudConnectorSelectionRequired: t('oddBureau.setup.chooseAConnectedServiceThenAModel'),
+            cloudNoticeLabel: t('oddBureau.setup.processInTheCloud'),
+            cloudNoticeDescription: t('oddBureau.setup.textIsSentToTheSelectedService'),
+            cloudImplementationLabel: t('oddBureau.setup.cloudService'),
+            cloudTargetLabel: t('oddBureau.setup.cloudModel'),
+            cloudConnectorLabel: t('oddBureau.setup.connectedServices'),
+            cloudLoadFailed: t('oddBureau.setup.couldNotReadCloudModelsTryAgain'),
+            loadFailed: t('oddBureau.setup.couldNotReadCapabilitySettings'),
+            saveFailed: t('oddBureau.setup.capabilitySettingsCouldNotBeSaved'),
+            conflictLabel: t('oddBureau.setup.configurationChangedElsewhere'),
+            conflictDescription: t('oddBureau.setup.reviewTheLatestConfigurationBeforeSavingYour'),
+            clearingLabel: t('oddBureau.setup.clearing'),
+            selectionRequiredLabel: t('oddBureau.setup.chooseAModel'),
+            blockedLabel: t('oddBureau.setup.needsAttention'),
+            unavailableLabel: t('oddBureau.setup.unavailable'),
+            mismatchLabel: t('oddBureau.setup.featureMismatch'),
             capabilityLabel: (id) =>
               id === 'vision.locate'
-                ? pText('看见物品')
+                ? t('oddBureau.setup.seeTheObjects')
                 : id === 'text.generate'
-                  ? pText('创作玩法')
-                  : pText('让物品开口'),
+                  ? t('oddBureau.setup.createThePlay')
+                  : t('oddBureau.setup.giveObjectsAVoice'),
             capabilityDescription: (id) =>
               id === 'vision.locate'
-                ? pText('必需 · 找出照片里的角色和它们的位置')
+                ? t('oddBureau.setup.requiredIdentifyTheObjectsAndTheir')
                 : id === 'text.generate'
-                  ? pText('必需 · 创作器件规则、角色诉求、故事和提议')
-                  : pText('可选 · 把物品的台词读给你听'),
-          })}
+                  ? t('oddBureau.setup.requiredCreateDeviceRulesCharacterRequests')
+                  : t('oddBureau.setup.optionalReadObjectDialogueAloud'),
+          }}
         />
       </div>
       {configured && (
         <Button className="setup-return" trailingIcon={<ArrowRight size={17} />} onClick={onBack}>
-          {pText('配置好了，回去开玩')}
+          {t('oddBureau.setup.configuredBackToPlay')}
         </Button>
       )}
     </main>
@@ -2278,7 +2400,7 @@ function Setup({ onBack }: { onBack: () => void }) {
 /* ------------------------------------------------------------------------ */
 
 export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPreview }) {
-  const { pText } = useAppPreviewLocale();
+  const { t } = useAppPreviewLocale();
   const photo = content.photo;
   const [route, setRoute] = useState<'home' | 'round' | 'setup' | 'mystery'>('home');
   const [kind, setKind] = useState<PlayRound['kind']>('machine');
@@ -2321,7 +2443,7 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
     setBusy(true);
     setFound([]);
     setError('');
-    setStatus('正在认领照片里的物品…');
+    setStatus(t('oddBureau.begin.identifyingObjectsInThePhoto'));
     try {
       const props: Prop[] = [];
       for (const prop of content.props) {
@@ -2329,7 +2451,11 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
         props.push({ ...prop, box: { ...prop.box } });
         setFound([...props]);
       }
-      setStatus(kind === 'machine' ? '给每件物品一条奇怪又讲理的规则…' : '听听大家为什么不肯开工…');
+      setStatus(
+        kind === 'machine'
+          ? t('oddBureau.begin.givingEachObjectAStrangeButConsistent')
+          : t('oddBureau.begin.hearingWhyNobodyWantsToWork'),
+      );
       await sleep(WRITE_MS, controller.signal);
       const round: PlayRound =
         kind === 'machine'
@@ -2355,7 +2481,7 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
       setSave({ id: mintId(), props, round });
       setRoute('round');
     } catch (e) {
-      if (!controller.signal.aborted) setError(errorMessage(e));
+      if (!controller.signal.aborted) setError(errorMessage(e, t));
     } finally {
       if (operation.current === controller) {
         operation.current = null;
@@ -2378,9 +2504,9 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
       <AmbientBackground variant="mesh" className="app-shell" data-testid="nimi-app-shell">
         {noticeText && (
           <div className="demo-odd-bureau-notice" role="status" data-demo-odd-bureau-notice="true">
-            <span>{pText(noticeText)}</span>
+            <span>{noticeText}</span>
             <button type="button" onClick={() => setNoticeText(null)}>
-              {pText(content.demo.dismiss)}
+              {content.demo.dismiss}
             </button>
           </div>
         )}
@@ -2400,15 +2526,17 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                 className="wordmark"
                 onClick={() => setRoute('home')}
                 disabled={unavailable}
-                aria-label={pText('回到玩法选择')}
+                aria-label={t('oddBureau.bureauHeader.backToPlaySelection')}
               >
                 <Fingerprint size={33} strokeWidth={1.7} />
                 <span>
-                  {pText('奇物局')}
-                  <span className="wordmark-en">{pText('ODD BUREAU')}</span>
+                  {t('oddBureau.bureauHeader.oddBureau')}
+                  <span className="wordmark-en">{t('oddBureau.bureauHeader.oddBureau2')}</span>
                 </span>
               </button>
-              <p className="header-motto">{pText('让日常，出一点意外。')}</p>
+              <p className="header-motto">
+                {t('oddBureau.bureauHeader.letTheEverydaySurpriseYou')}
+              </p>
               <div className="header-actions">
                 <button
                   type="button"
@@ -2417,12 +2545,12 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                   onClick={() => setRoute('mystery')}
                 >
                   <Search size={15} />
-                  {pText('照片探案')}
+                  {t('oddBureau.bureauHeader.photoMystery')}
                 </button>
                 <IconButton
                   className="help-button"
                   icon={<Settings2 size={20} />}
-                  aria-label={pText('能力设置')}
+                  aria-label={t('oddBureau.bureauHeader.capabilitySettings')}
                   disabled={unavailable}
                   onClick={settings}
                 />
@@ -2440,17 +2568,19 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                       ) : (
                         <MessageCircle size={17} />
                       )}{' '}
-                      {pText(save.round.kind === 'machine' ? pText('怪机器') : pText('罢工谈判'))}
+                      {save.round.kind === 'machine'
+                        ? t('oddBureau.bureauMain.strangeMachine')
+                        : t('oddBureau.bureauMain.strikeNegotiation')}
                     </span>
-                    <h1>{pText(save.round.plan.title)}</h1>
-                    {save.round.kind === 'machine' && <p>{pText(save.round.plan.invitation)}</p>}
+                    <h1>{save.round.plan.title}</h1>
+                    {save.round.kind === 'machine' && <p>{save.round.plan.invitation}</p>}
                   </div>
                   <Button
                     className="quiet-button"
                     leadingIcon={<ArrowLeft size={16} />}
                     onClick={() => setRoute('home')}
                   >
-                    {pText('换个玩法')}
+                    {t('oddBureau.bureauMain.changePlayMode')}
                   </Button>
                 </div>
                 {save.round.kind === 'machine' ? (
@@ -2481,13 +2611,13 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                 <div className="intro-line">
                   <div>
                     <h1>
-                      {pText('这张桌子，')}
+                      {t('oddBureau.bureauMain.thisTable')}
                       <br />
-                      {pText('有点')}
-                      <span className="trouble-word">{pText('想法')}</span>
-                      {pText('。')}
+                      {t('oddBureau.bureauMain.has')}
+                      <span className="trouble-word">{t('oddBureau.bureauMain.ideas')}</span>
+                      {t('oddBureau.bureauMain.label')}
                     </h1>
-                    <p>{pText('把身边的物品，变成你能亲手改变的小世界。')}</p>
+                    <p>{t('oddBureau.bureauMain.turnNearbyObjectsIntoALittleWorld')}</p>
                   </div>
                   <Sparkles className="lobby-spark" size={36} />
                 </div>
@@ -2495,35 +2625,41 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                   <PhotoStage
                     photo={photo}
                     objects={busy ? found : []}
-                    badges={Object.fromEntries(found.map((p) => [p.id, '已找到']))}
-                    instruction="同一张照片，可以有不一样的玩法"
+                    badges={Object.fromEntries(
+                      found.map((p) => [p.id, t('oddBureau.bureauMain.found')]),
+                    )}
+                    instruction={t('oddBureau.home.photoInstruction')}
                     markerId={markerId}
                   >
                     {busy && (
                       <div className="play-preparing" role="status" aria-live="polite">
                         <Fingerprint size={38} />
-                        <h2>{pText(status)}</h2>
+                        <h2>{status}</h2>
                         <p>
-                          {pText(
-                            found.length
-                              ? `${found.map((p) => p.label).join('、')} 已经到场。`
-                              : pText('先看看照片里都有谁。'),
-                          )}
+                          {found.length
+                            ? t('oddBureau.home.arrivals', {
+                                names: found.map((p) => p.label).join('、'),
+                              })
+                            : t('oddBureau.bureauMain.firstSeeWhoSInThePhoto')}
                         </p>
                         <Button className="cancel-key" onClick={() => operation.current?.abort()}>
-                          {pText('取消，照片留着')}
+                          {t('oddBureau.bureauMain.cancelAndKeepThePhoto')}
                         </Button>
                       </div>
                     )}
                   </PhotoStage>
                   <aside className="activity-panel lobby-panel">
-                    <h2>{pText('今天，怎么闹？')}</h2>
+                    <h2>{t('oddBureau.activityPanel.howShallWeCauseTroubleToday')}</h2>
                     <p className="lobby-description">
-                      {pText('每件物品都会有自己的本领和脾气。')}
+                      {t('oddBureau.activityPanel.everyObjectHasAbilitiesAndATemperament')}
                       <br />
-                      {pText('这次由你来改变局面。')}
+                      {t('oddBureau.activityPanel.thisTimeYouChangeTheSituation')}
                     </p>
-                    <div className="activity-choices" role="group" aria-label={pText('选择玩法')}>
+                    <div
+                      className="activity-choices"
+                      role="group"
+                      aria-label={t('oddBureau.activityPanel.chooseAPlayMode')}
+                    >
                       <button
                         type="button"
                         className={kind === 'machine' ? 'selected' : ''}
@@ -2533,9 +2669,11 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                       >
                         <AudioLines size={26} />
                         <span>
-                          <strong>{pText('怪机器')}</strong>
-                          <b>{pText('把滴答装进杯子。')}</b>
-                          <small>{pText('连起物品，听听你的发明。')}</small>
+                          <strong>{t('oddBureau.activityPanel.strangeMachine')}</strong>
+                          <b>{t('oddBureau.activityPanel.putATickTockInACup')}</b>
+                          <small>
+                            {t('oddBureau.activityPanel.connectObjectsAndHearYourInvention')}
+                          </small>
                         </span>
                         <ArrowRight size={18} />
                       </button>
@@ -2548,9 +2686,11 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                       >
                         <MessageCircle size={26} />
                         <span>
-                          <strong>{pText('罢工谈判')}</strong>
-                          <b>{pText('这张桌子不干了。')}</b>
-                          <small>{pText('谈条件、许承诺，把故事会办起来。')}</small>
+                          <strong>{t('oddBureau.activityPanel.strikeNegotiation')}</strong>
+                          <b>{t('oddBureau.activityPanel.thisTableIsOnStrike')}</b>
+                          <small>
+                            {t('oddBureau.activityPanel.negotiateMakePromisesAndGetTheStory')}
+                          </small>
                         </span>
                         <ArrowRight size={18} />
                       </button>
@@ -2562,13 +2702,11 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                         disabled={unavailable}
                         onClick={() => void begin()}
                       >
-                        {pText(
-                          busy
-                            ? pText('正在让物品登场…')
-                            : kind === 'machine'
-                              ? pText('用这张照片，造台怪机器')
-                              : pText('用这张照片，谈一场罢工'),
-                        )}
+                        {busy
+                          ? t('oddBureau.activityPanel.bringingTheObjectsIntoPlay')
+                          : kind === 'machine'
+                            ? t('oddBureau.activityPanel.buildAStrangeMachineWithThisPhoto')
+                            : t('oddBureau.activityPanel.negotiateAStrikeWithThisPhoto')}
                       </Button>
                       <Button
                         className="upload-key"
@@ -2576,7 +2714,7 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                         disabled={unavailable}
                         onClick={hostOnly}
                       >
-                        {pText('换成我的照片')}
+                        {t('oddBureau.activityPanel.useMyOwnPhoto')}
                       </Button>
                       {save && (
                         <button
@@ -2585,16 +2723,18 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                           disabled={unavailable}
                           onClick={() => setRoute('round')}
                         >
-                          {pText('继续上次的')}
-                          {pText(save.round.kind === 'machine' ? pText('怪机器') : pText('故事会'))}
+                          {t('oddBureau.activityPanel.continueThePrevious')}
+                          {save.round.kind === 'machine'
+                            ? t('oddBureau.activityPanel.strangeMachine')
+                            : t('oddBureau.activityPanel.storytelling')}
                           <ArrowRight size={14} />
                         </button>
                       )}
                     </div>
                     <p className="lobby-footnote">
-                      {pText('先用这张试玩照片体验。')}
+                      {t('oddBureau.activityPanel.startWithThisSamplePhoto')}
                       <br />
-                      {pText('自己的杯子、书、灯，也能成为主角。')}
+                      {t('oddBureau.activityPanel.yourOwnCupBookAndLampCan')}
                     </p>
                   </aside>
                 </div>
@@ -2603,18 +2743,18 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
             {error && (
               <div className="play-notices">
                 <div className="bureau-error" role="alert">
-                  <p>{pText(error)}</p>
+                  <p>{error}</p>
                   <IconButton
                     icon={<X size={17} />}
-                    aria-label={pText('收起错误')}
+                    aria-label={t('oddBureau.workspace.hideError')}
                     onClick={() => setError('')}
                   />
                 </div>
               </div>
             )}
             <footer className="bureau-footer playground-footer">
-              <span>{pText('照片是舞台，想象有自己的规则。')}</span>
-              <span>{pText('POWERED BY NIMI')}</span>
+              <span>{t('oddBureau.bureauFooter.aPhotoIsTheStageImaginationHas')}</span>
+              <span>{t('oddBureau.bureauFooter.poweredByNimi')}</span>
             </footer>
           </div>
         )}

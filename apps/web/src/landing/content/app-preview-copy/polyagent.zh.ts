@@ -1,0 +1,68 @@
+/** polyagent preview copy. Keys identify UI roles and stay stable when copy changes. */
+export const polyagentMessagesZh = {
+  'polyagent.workspace.workbench': '工作台',
+  'polyagent.workspace.positions': '持仓',
+  'polyagent.workspace.orders': '订单',
+  'polyagent.workspace.researchAndDecisions': '研究与决定',
+  'polyagent.workspace.runSettings': '运行设置',
+  'polyagent.workspace.sampleMarketAWillTheExhibition': '示例市场 A · 展览会在计划日期开幕吗？',
+  'polyagent.workspace.monitoring': '观察中',
+  'polyagent.workspace.sampleMarketBWillTheCommunity': '示例市场 B · 社区项目会按期完成吗？',
+  'polyagent.workspace.awaitingChecks': '等待检查',
+  'polyagent.workspace.sampleMarketCWillTheNew': '示例市场 C · 新版本会在本月发布吗？',
+  'polyagent.workspace.constraintsUnmet': '约束未满足',
+  'polyagent.workspace.sampleResearchAssistant': '示例研究助理',
+  'polyagent.workspace.paperWorkspaceExperimental': '模拟工作区 · 实验版',
+  'polyagent.main.turnMarketChangesIntoBoundedActions': '把市场变化，变成有边界的行动。',
+  'polyagent.main.fictionalDataPaperTrading': '虚构数据 · 模拟交易',
+  'polyagent.main.pauseSample': '暂停示例',
+  'polyagent.main.runSample': '运行示例',
+  'polyagent.demoSettings.setBoundariesBeforeStarting': '先确定边界，再开始工作',
+  'polyagent.demoSettings.paperFundingLimit': '模拟资金上限',
+  'polyagent.demoSettings.researchAssistant': '研究助理',
+  'polyagent.demoSettings.sampleResearchAssistant': '示例研究助理',
+  'polyagent.demoSettings.runMode': '运行方式',
+  'polyagent.demoSettings.staticSimulationNoTradingConnection': '静态模拟 · 无交易连接',
+  'polyagent.demoSettings.thisPreviewHasNoRealAccountsPrivate':
+    '此预览不提供真实账户、私钥、钱包或订单签名入口。',
+  'polyagent.demoSettings.backToWorkbench': '返回工作台',
+  'polyagent.main.showingASampleRunningState': '正在展示示例运行状态',
+  'polyagent.main.samplePaused': '示例已暂停',
+  'polyagent.main.thisStatusChangesOnlyOnThisPage':
+    '运行状态只在当前页面切换，不会启动交易或计划任务。',
+  'polyagent.main.paperFundsAvailable': '模拟可用资金',
+  'polyagent.main.usd': 'USD',
+  'polyagent.main.paperPositions': '模拟持仓',
+  'polyagent.main.records': '条记录',
+  'polyagent.main.watchlist': '观察列表',
+  'polyagent.main.fictionalMarkets': '个虚构市场',
+  'polyagent.demoMarkets.candidateMarkets': '候选市场',
+  'polyagent.demoMarkets.sampleSnapshot': '示例快照',
+  'polyagent.demoMarkets.paperPrice': '纸面价格 ',
+  'polyagent.demoMarkets.sampleVolume': ' · 示例成交量 ',
+  'polyagent.demoDecision.sampleResearchRecordCheckMarketRulesExpiry':
+    '示例研究记录：核对市场规则、到期时间与流动性。当前没有真实市场数据，不产生交易建议。',
+  'polyagent.demoDecision.viewSampleResearchRecord': '查看示例研究记录',
+  'polyagent.demoDecision.keepTheFactsAndDecisionsFromThat': '保留当时看到的事实与决定',
+  'polyagent.demoDecision.readTheFictionalSnapshotAndConfirmIts':
+    '读取虚构市场快照，确认记录时间。',
+  'polyagent.demoDecision.checkStrategyConditionsFundingLimitsAndPerOrder':
+    '核对策略条件、资金上限和单笔约束。',
+  'polyagent.demoDecision.sampleDecisionKeepObservingTakeNoReal':
+    '示例决定：继续观察，不执行真实操作。',
+  'polyagent.demoDecision.aQuotedPriceIsNotAGuaranteed':
+    '价格是市场报价，不是获利保证；这里的数值仅用于界面演示。',
+  'polyagent.demoLedger.ordersAndFills': '订单与成交',
+  'polyagent.demoLedger.currentPositions': '当前持仓',
+  'polyagent.demoLedger.market': '市场',
+  'polyagent.demoLedger.side': '方向',
+  'polyagent.demoLedger.quantity': '数量',
+  'polyagent.demoLedger.status': '状态',
+  'polyagent.demoLedger.sampleMarketA': '示例市场 A',
+  'polyagent.demoLedger.yesSample': 'Yes · 示例',
+  'polyagent.demoLedger.paperRecord': '模拟记录',
+  'polyagent.demoLedger.thisSavedLedgerDoesNotRepresentExchange':
+    '这份预设账本不代表交易所订单或真实持仓。',
+  'polyagent.preview.notice':
+    '静态产品预览 · 市场、资金与订单均为虚构的模拟示例；不连接钱包、不提供投资建议、不执行交易。',
+} as const;
