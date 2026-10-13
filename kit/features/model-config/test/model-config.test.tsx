@@ -354,7 +354,7 @@ describe('public Model Config contract', () => {
     await flush();
 
     expect(document.body.textContent).not.toContain('Cloud');
-    expect(listOptions).toHaveBeenCalledTimes(1);
+    expect(listOptions).toHaveBeenCalledTimes(2);
     expect(listOptions).toHaveBeenCalledWith({ kind: 'local-loadouts', capabilityContract: 'text.generate' });
     expect(node.querySelector('[data-testid="model-config-current-machine-local-action"]')).toBeTruthy();
   });
@@ -1097,7 +1097,7 @@ describe('public Model Config contract', () => {
     await flush();
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
 
-    expect(listOptions).not.toHaveBeenCalled();
+    expect(listOptions).toHaveBeenCalledExactlyOnceWith({ kind: 'local-loadouts', capabilityContract: 'text.generate' });
     const trigger = node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement;
     expect(trigger.textContent).toContain('set up');
     expect(trigger.textContent).not.toContain('setup needed');

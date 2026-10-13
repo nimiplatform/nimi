@@ -3,6 +3,7 @@ import type { ModelConfigCurrentMachineLocalActionCopy } from './types.js';
 const ENGLISH_CURRENT_MACHINE_LOCAL_ACTION_COPY: ModelConfigCurrentMachineLocalActionCopy = Object.freeze({
   title: 'On-device models',
   label: 'Apply',
+  appliedLabel: 'Applied',
   hint: 'Apply this device\'s selected models to this app.',
   loadingLabel: 'Checking on-device models…',
   retryLabel: 'Retry',
@@ -23,6 +24,7 @@ const ENGLISH_CURRENT_MACHINE_LOCAL_ACTION_COPY: ModelConfigCurrentMachineLocalA
 const CHINESE_CURRENT_MACHINE_LOCAL_ACTION_COPY: ModelConfigCurrentMachineLocalActionCopy = Object.freeze({
   title: '本机模型',
   label: '一键应用',
+  appliedLabel: '已应用',
   hint: '将本机已选的模型应用到此 App。',
   loadingLabel: '正在检查本机模型…',
   retryLabel: '重试',

@@ -126,10 +126,26 @@ describe('Model Config current-machine Local action candidate', () => {
       ...baseProps({ listOptions, onOverwrite }),
       capabilityContracts: [' text.generate ', 'text.generate', 'image.generate'],
     });
+    // Mount checks the current selection without writing. A click reads it
+    // again so the mutation never relies on the earlier presentation snapshot.
+    listOptions.mockClear();
     await clickAction(node);
     expect(listOptions).toHaveBeenCalledTimes(2);
     expect(onOverwrite).toHaveBeenCalledTimes(1);
     expect(node.textContent).toContain('Selected on-device models are now in use.');
+    const button = node.querySelector('button')!;
+    expect(button.textContent).toBe('Applied');
+    expect(button.disabled).toBe(false);
+    await rerenderAction({
+      ...baseProps({ listOptions, onOverwrite }),
+      capabilityContracts: ['text.generate', 'image.generate'],
+      capabilities: ['text.generate', 'image.generate'].map((capabilityContract) => ({
+        capabilityContract, requiredFeatures: [], route: { oneofKind: 'local' as const, local: {} },
+      })),
+      revision: '2',
+    });
+    await clickAction(node);
+    expect(onOverwrite).toHaveBeenCalledTimes(1);
   });
 
   it('presents no-selection without mutation', async () => {
@@ -152,6 +168,8 @@ describe('Model Config current-machine Local action candidate', () => {
     });
     const onOverwrite = committedOverwrite();
     const node = await renderAction(baseProps({ listOptions, onOverwrite }));
+    attempts = 0;
+    listOptions.mockClear();
     await clickAction(node);
     expect(node.textContent).toContain('Selected on-device models could not be applied.');
     expect(node.textContent).toContain('Retry');
@@ -182,7 +200,9 @@ describe('Model Config current-machine Local action candidate', () => {
 
   it('fences an old owner epoch before CAS when the surface rebinds during reads', async () => {
     let resolveOldRead!: (result: NimiAIConfigOptionsResult) => void;
-    const listOptionsA = vi.fn<ModelConfigListOptions>(() => new Promise((resolve) => { resolveOldRead = resolve; }));
+    const listOptionsA = vi.fn<ModelConfigListOptions>()
+      .mockResolvedValueOnce(selectedResult('text.generate'))
+      .mockImplementation(() => new Promise((resolve) => { resolveOldRead = resolve; }));
     const overwriteA = committedOverwrite();
     const listOptionsB = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(localLoadoutCapabilityContract(query)));
     const overwriteB = committedOverwrite();
@@ -211,10 +231,163 @@ describe('Model Config current-machine Local action candidate', () => {
     const otherList = vi.fn<ModelConfigListOptions>();
     const otherOverwrite = committedOverwrite();
     const node = await renderAction(baseProps({ listOptions: activeList, onOverwrite: activeOverwrite, ownerKey }));
+    activeList.mockClear();
     await clickAction(node);
     expect(activeList).toHaveBeenCalledTimes(1);
     expect(activeOverwrite).toHaveBeenCalledTimes(1);
     expect(otherList).not.toHaveBeenCalled();
     expect(otherOverwrite).not.toHaveBeenCalled();
+  });
+
+  it('derives applied state after reload even when another capability has no local selection', async () => {
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => (
+      localLoadoutCapabilityContract(query) === 'text.generate'
+        ? selectedResult('text.generate')
+        : { kind: 'local-loadouts', options: [], truncated: false }
+    ));
+    const onOverwrite = committedOverwrite();
+    const props = {
+      ...baseProps({ listOptions, onOverwrite }),
+      capabilityContracts: ['text.generate', 'audio.synthesize'],
+      capabilities: [{ capabilityContract: 'text.generate', requiredFeatures: [], route: { oneofKind: 'local' as const, local: {} } }],
+      language: 'zh-CN',
+    };
+    const node = await renderAction(props);
+    expect(node.querySelector('button')!.textContent).toBe('已应用');
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(onOverwrite).not.toHaveBeenCalled();
+
+    await rerenderAction({ ...props, capabilities: [], revision: '2' });
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(node.querySelector('button')!.textContent).toBe('一键应用');
+    await clickAction(node);
+    expect(onOverwrite).toHaveBeenCalledTimes(1);
+
+    await rerenderAction({ ...props, revision: '3' });
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(node.querySelector('button')!.textContent).toBe('已应用');
+  });
+
+  it('rechecks an applied action and applies a new machine selection without an owner revision change', async () => {
+    let imageSelected = false;
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
+      const contract = localLoadoutCapabilityContract(query);
+      return contract === 'text.generate' || imageSelected
+        ? selectedResult(contract)
+        : { kind: 'local-loadouts', options: [], truncated: false };
+    });
+    const onOverwrite = committedOverwrite();
+    const props = {
+      ...baseProps({ listOptions, onOverwrite }),
+      capabilityContracts: ['text.generate', 'image.generate'],
+      capabilities: [{ capabilityContract: 'text.generate', requiredFeatures: [], route: { oneofKind: 'local' as const, local: {} } }],
+    };
+    const node = await renderAction(props);
+    expect(node.querySelector('button')!.textContent).toBe('Applied');
+    await clickAction(node);
+    expect(listOptions).toHaveBeenCalledTimes(4);
+    expect(onOverwrite).not.toHaveBeenCalled();
+
+    // A machine-level selection changes independently of this app's AIConfig.
+    // Host refreshes therefore retain the same owner, intents and revision.
+    imageSelected = true;
+    await rerenderAction({ ...props, capabilities: structuredClone(props.capabilities) });
+    await clickAction(node);
+    expect(listOptions).toHaveBeenCalledTimes(6);
+    expect(onOverwrite).toHaveBeenCalledExactlyOnceWith({
+      expectedRevision: '1',
+      capabilities: expect.arrayContaining([
+        props.capabilities[0],
+        expect.objectContaining({ capabilityContract: 'image.generate', route: { oneofKind: 'local', local: {} } }),
+      ]),
+    });
+    expect(node.textContent).toContain('Selected on-device models are now in use.');
+  });
+
+  it('clears the applied label when an explicit recheck cannot confirm the machine selection', async () => {
+    const listOptions = vi.fn<ModelConfigListOptions>()
+      .mockResolvedValueOnce(selectedResult('text.generate'))
+      .mockRejectedValueOnce(new Error('Runtime unavailable'));
+    const onOverwrite = committedOverwrite();
+    const node = await renderAction({
+      ...baseProps({ listOptions, onOverwrite }),
+      capabilities: [{ capabilityContract: 'text.generate', requiredFeatures: [], route: { oneofKind: 'local', local: {} } }],
+    });
+    expect(node.querySelector('button')!.textContent).toBe('Applied');
+    await clickAction(node);
+    expect(node.querySelector('button')!.textContent).toBe('Retry');
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(onOverwrite).not.toHaveBeenCalled();
+  });
+
+  it('does not infer applied state from partial or failed local selection reads', async () => {
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
+      if (localLoadoutCapabilityContract(query) === 'image.generate') throw new Error('unavailable');
+      return selectedResult('text.generate');
+    });
+    const onOverwrite = committedOverwrite();
+    const node = await renderAction({
+      ...baseProps({ listOptions, onOverwrite }),
+      capabilityContracts: ['text.generate', 'image.generate'],
+      capabilities: [{ capabilityContract: 'text.generate', requiredFeatures: [], route: { oneofKind: 'local', local: {} } }],
+    });
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(node.querySelector('button')!.textContent).toBe('Apply');
+    await clickAction(node);
+    expect(onOverwrite).not.toHaveBeenCalled();
+    expect(node.querySelector('button')!.textContent).toBe('Retry');
+  });
+
+  it('keeps applied state stable across host refreshes without rereading local selections', async () => {
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(localLoadoutCapabilityContract(query)));
+    const onOverwrite = committedOverwrite();
+    const props = {
+      ...baseProps({ listOptions, onOverwrite }),
+      capabilities: [{ capabilityContract: 'text.generate', requiredFeatures: [], route: { oneofKind: 'local' as const, local: {} } }],
+    };
+    const node = await renderAction(props);
+    expect(listOptions).toHaveBeenCalledTimes(1);
+    for (let refresh = 0; refresh < 3; refresh += 1) {
+      await rerenderAction({
+        ...props,
+        capabilityContracts: [...props.capabilityContracts],
+        capabilities: structuredClone(props.capabilities),
+        listOptions: (query) => listOptions(query),
+        onOverwrite: (input) => onOverwrite(input),
+      });
+      expect(node.querySelector('button')!.textContent).toBe('Applied');
+      expect(node.querySelector('button')!.disabled).toBe(false);
+    }
+    // A real configuration update recomputes the button from the observed
+    // intents, without restarting the machine-selection read or its spinner.
+    await rerenderAction({ ...props, capabilities: [], revision: '2' });
+    expect(node.querySelector('button')!.textContent).toBe('Apply');
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(listOptions).toHaveBeenCalledTimes(1);
+    expect(onOverwrite).not.toHaveBeenCalled();
+  });
+
+  it('does not cancel an explicit apply when only host callback identities change', async () => {
+    let resolveRead!: (result: NimiAIConfigOptionsResult) => void;
+    const listOptions = vi.fn<ModelConfigListOptions>()
+      .mockResolvedValueOnce(selectedResult('text.generate'))
+      .mockImplementation(() => new Promise((resolve) => { resolveRead = resolve; }));
+    const onOverwrite = committedOverwrite();
+    const props = baseProps({ listOptions, onOverwrite });
+    const node = await renderAction(props);
+    await act(async () => { node.querySelector('button')!.click(); });
+    await rerenderAction({
+      ...props,
+      capabilities: [],
+      capabilityContracts: [...props.capabilityContracts],
+      listOptions: (query) => listOptions(query),
+      onOverwrite: (input) => onOverwrite(input),
+    });
+    expect(node.querySelector('button')!.textContent).toBe('Checking on-device models…');
+    await act(async () => { resolveRead(selectedResult('text.generate')); });
+    expect(node.querySelector('button')!.textContent).toBe('Applied');
+    expect(node.querySelector('button')!.disabled).toBe(false);
+    expect(listOptions).toHaveBeenCalledTimes(2);
+    expect(onOverwrite).toHaveBeenCalledTimes(1);
   });
 });

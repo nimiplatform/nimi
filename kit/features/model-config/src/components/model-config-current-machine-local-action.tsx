@@ -5,6 +5,7 @@ import {
   resolveModelConfigCurrentMachineLocalActionCopy,
 } from '../current-machine-local-action-copy.js';
 import {
+  readModelConfigCurrentMachineLocalSelections,
   runModelConfigCurrentMachineLocalAction,
   type ModelConfigCurrentMachineLocalActionResult,
 } from '../current-machine-local-action.js';
@@ -75,7 +76,14 @@ export function ModelConfigCurrentMachineLocalAction(
     && typeof props.listOptions === 'function'
     && typeof props.onOverwrite === 'function';
   const busy = status.state === 'loading' || status.state === 'saving';
+  // Host query refreshes recreate arrays and callbacks. Only actual owner/config
+  // changes invalidate an action; object identity is not a configuration change.
+  const contextKey = JSON.stringify([
+    props.ownerKey, explicitContracts, props.capabilities, props.revision, eligible,
+  ]);
+  const selectionKey = JSON.stringify([props.ownerKey, explicitContracts, eligible]);
   const contextRef = useRef({
+    key: contextKey,
     ownerKey: props.ownerKey,
     contracts: explicitContracts,
     capabilities: props.capabilities,
@@ -84,13 +92,9 @@ export function ModelConfigCurrentMachineLocalAction(
     onOverwrite: props.onOverwrite,
     epoch: 0,
   });
-  if (contextRef.current.ownerKey !== props.ownerKey
-    || contextRef.current.contracts !== explicitContracts
-    || contextRef.current.capabilities !== props.capabilities
-    || contextRef.current.revision !== props.revision
-    || contextRef.current.listOptions !== props.listOptions
-    || contextRef.current.onOverwrite !== props.onOverwrite) {
+  if (contextRef.current.key !== contextKey) {
     contextRef.current = {
+      key: contextKey,
       ownerKey: props.ownerKey,
       contracts: explicitContracts,
       capabilities: props.capabilities,
@@ -100,14 +104,47 @@ export function ModelConfigCurrentMachineLocalAction(
       epoch: contextRef.current.epoch + 1,
     };
   }
+  contextRef.current.listOptions = props.listOptions;
+  contextRef.current.onOverwrite = props.onOverwrite;
   const contextEpoch = contextRef.current.epoch;
+  const [selection, setSelection] = useState<{
+    readonly key: string;
+    readonly contracts: readonly string[] | null;
+  } | null>(null);
 
   useEffect(() => {
     setStatus({ state: 'idle' });
   }, [contextEpoch]);
 
+  useEffect(() => {
+    if (!eligible) return;
+    let cancelled = false;
+    const context = contextRef.current;
+    void readModelConfigCurrentMachineLocalSelections(context.contracts, context.listOptions!).then(
+      (contracts) => {
+        if (!cancelled) setSelection({ key: selectionKey, contracts });
+      },
+      () => {
+        // An unavailable read cannot establish an applied state. The explicit
+        // action still performs its own fresh reads and exposes retryable errors.
+        if (!cancelled) setSelection({ key: selectionKey, contracts: null });
+      },
+    );
+    return () => { cancelled = true; };
+  }, [selectionKey, eligible]);
+
+  const checking = eligible && selection?.key !== selectionKey;
+  const applied = eligible && (status.state === 'committed'
+    || (selection?.key === selectionKey && Boolean(selection.contracts?.length)
+      && selection.contracts!.every((contract) => props.capabilities?.some((intent) => (
+        intent.capabilityContract === contract && intent.route.oneofKind === 'local'
+      )))));
+
   const execute = async () => {
-    if (!eligible || busy) return;
+    // The applied label describes the last observed machine selection. Machine
+    // Loadouts can change without changing this owner's AIConfig revision, so
+    // keep the action available and re-read the selection on every explicit use.
+    if (!eligible || props.disabled || busy || checking) return;
     const actionEpoch = contextRef.current.epoch;
     const isCurrent = () => contextRef.current.epoch === actionEpoch;
     setStatus({ state: 'loading' });
@@ -127,6 +164,7 @@ export function ModelConfigCurrentMachineLocalAction(
         isCurrent,
       });
       if (!isCurrent()) return;
+      setSelection({ key: selectionKey, contracts: result.selectedCapabilityContracts });
       if (result.outcome === 'conflict') {
         setStatus({ state: 'conflict', result });
       } else if (result.outcome === 'no-selection') {
@@ -136,6 +174,7 @@ export function ModelConfigCurrentMachineLocalAction(
       }
     } catch (error) {
       if (!isCurrent()) return;
+      setSelection({ key: selectionKey, contracts: null });
       setStatus({
         state: 'failed',
         error: defaultFormatError(error, copy.failedLabel),
@@ -174,7 +213,7 @@ export function ModelConfigCurrentMachineLocalAction(
           tone="secondary"
           size="sm"
           className="shrink-0"
-          disabled={!eligible || Boolean(props.disabled) || busy}
+          disabled={!eligible || Boolean(props.disabled) || busy || checking}
           loading={busy}
           onClick={() => { void execute(); }}
           data-testid="model-config-current-machine-local-action"
@@ -183,7 +222,7 @@ export function ModelConfigCurrentMachineLocalAction(
             ? copy.loadingLabel
             : status.state === 'saving'
               ? copy.savingLabel
-              : status.state === 'failed' ? copy.retryLabel : copy.label}
+              : applied ? copy.appliedLabel : status.state === 'failed' ? copy.retryLabel : copy.label}
         </Button>
       </div>
       {showFeedback ? (

@@ -156,6 +156,7 @@ export type ModelConfigListOptions = (
 export type ModelConfigCurrentMachineLocalActionCopy = Readonly<{
   readonly title: string;
   readonly label: string;
+  readonly appliedLabel: string;
   readonly hint: string;
   readonly loadingLabel: string;
   readonly retryLabel: string;

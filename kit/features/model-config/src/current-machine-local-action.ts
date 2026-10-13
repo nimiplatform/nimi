@@ -147,6 +147,23 @@ async function readCurrentLocalSelection(
   return true;
 }
 
+export async function readModelConfigCurrentMachineLocalSelections(
+  explicitContracts: readonly string[],
+  listOptions: ModelConfigListOptions,
+): Promise<readonly string[]> {
+  const reads = await Promise.allSettled(explicitContracts.map(async (capabilityContract) => ({
+    capabilityContract,
+    selected: await readCurrentLocalSelection(listOptions, capabilityContract),
+  })));
+  const failedRead = reads.find((entry): entry is PromiseRejectedResult => entry.status === 'rejected');
+  if (failedRead) throw failedRead.reason;
+  return Object.freeze(reads
+    .filter((entry): entry is PromiseFulfilledResult<{ readonly capabilityContract: string; readonly selected: boolean }> => entry.status === 'fulfilled')
+    .map((entry) => entry.value)
+    .filter((entry) => entry.selected)
+    .map((entry) => entry.capabilityContract));
+}
+
 function isRouteOnlyLocal(intent: NimiPortableAppAIConfigIntent): boolean {
   return intent.route.oneofKind === 'local';
 }
@@ -193,18 +210,8 @@ export async function runModelConfigCurrentMachineLocalAction(
   }
   const current = freezeCurrentCapabilities(input.capabilities);
   const revision = input.revision;
-  const reads = await Promise.allSettled(explicitContracts.map(async (capabilityContract) => ({
-    capabilityContract,
-    selected: await readCurrentLocalSelection(input.listOptions, capabilityContract),
-  })));
-  const failedRead = reads.find((entry): entry is PromiseRejectedResult => entry.status === 'rejected');
-  if (failedRead) throw failedRead.reason;
-  const selected = reads
-    .filter((entry): entry is PromiseFulfilledResult<{ readonly capabilityContract: string; readonly selected: boolean }> => entry.status === 'fulfilled')
-    .map((entry) => entry.value)
-    .filter((entry) => entry.selected)
-    .map((entry) => entry.capabilityContract);
-  const selectedCapabilityContracts = Object.freeze(selected);
+  const selected = await readModelConfigCurrentMachineLocalSelections(explicitContracts, input.listOptions);
+  const selectedCapabilityContracts = selected;
   if (selected.length === 0) {
     return Object.freeze({ outcome: 'no-selection', selectedCapabilityContracts });
   }

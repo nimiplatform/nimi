@@ -17,6 +17,14 @@
   them. Migration: stop passing the diagnostics and eyebrow props. All other
   additions are optional and backward compatible.
 
+## Current-machine Local action (next minor, development)
+
+- The current-machine Local action shows an applied label from observed
+  configuration and keeps that action available for an explicit recheck.
+  Machine selections can change independently of the App AIConfig revision;
+  each click reads them again, skips unchanged routes, and applies newly
+  selected capabilities with the existing compare-and-swap operation.
+
 ## 0.19.3 — 2026-10-12
 
 Unpackaged Windows Electron Apps supervised by the fixed Nimi service now load
