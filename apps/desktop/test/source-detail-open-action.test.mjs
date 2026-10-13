@@ -16,7 +16,7 @@ const { resolveAgentTargetSnapshotForSourceRef } = await load('features/agents/a
 const { localAgentListQueryKey } = await load('features/agents/local-agent-list-model.ts');
 const { characterSourceRefKey, characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage } = await load('features/explore/character-source-materialization.ts');
 const { launchAgentConversationFromDisplay } = await load('features/chat/agent-conversation-launcher.ts');
-const { EMPTY_AGENT_CONVERSATION_SELECTION } = await load('features/chat/chat-shell-types.ts');
+const { createHomeNavigation } = await load('app-shell/providers/home-navigation.ts');
 
 function loadHandler(file, names, env) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -45,6 +45,8 @@ async function run(surface, posture = 'missing', action = 'open') {
   let auth = { status: 'authenticated' };
   const currentAction = { current: { ownerUserId: 'owner-1', sourceKey: characterSourceRefKey(sourceRef) } };
   const events = [];
+  const navigation = createHomeNavigation();
+  if (surface === 'world-detail') await navigation.push({ id: 'world-detail', worldId: 'world-1', search: '' });
   let materialized = false;
   const localAgent = {
     localAgentRef: 'local-agent:new-empty-partner', ownerUserId: 'owner-1',
@@ -88,6 +90,7 @@ async function run(surface, posture = 'missing', action = 'open') {
     } }),
   };
   const env = {
+    navigation, world: { id: 'world-1' }, peopleQueryText: 'Partner',
     source, ownerUserId: 'owner-1', currentAction, currentSourceKey: characterSourceRefKey(sourceRef),
     appStore: { getState: () => ({ auth }) },
     sourceMaterialization: { sourceKey: characterSourceRefKey(sourceRef), phase: 'ready' },
@@ -97,19 +100,16 @@ async function run(surface, posture = 'missing', action = 'open') {
     ensureCharacterSourceMaterialized, localAgentListQueryKey,
     characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage,
     resolveAgentTargetSnapshotForSourceRef, characterSourceRefKey, launchAgentConversationFromDisplay,
-    EMPTY_AGENT_CONVERSATION_SELECTION,
     logRendererEvent: () => {},
-    setActiveTab: (tab) => events.push(`navigate:${tab}`), setChatMode: () => {},
-    setSelectedTargetForSource: () => {}, setAgentConversationSelection: () => {},
     setAgentConversationTargetSnapshot: () => {}, setPendingAgentComposerPrefill: () => {},
     setFeedback: (feedback) => events.push(`feedback:${feedback.kind}`),
   };
   const handler = surface === 'source-detail'
     ? loadHandler(path.join(renderer, 'features/source-detail/source-detail-panel.tsx'), ['ensureCharacterSourceReady', action === 'create' ? 'handlePrimaryAction' : 'handleStartChat'], env)
-    : loadHandler(path.join(renderer, 'features/world/world-detail.tsx'), ['handleOpenCharacterConversation'], env);
+    : loadHandler(path.join(renderer, 'features/world/world-detail.tsx'), ['handleViewCharacter'], env);
   if (surface === 'source-detail' && action === 'select') await handler(undefined, 'local-agent:second');
   else await handler(surface === 'source-detail' ? undefined : source);
-  return { surface, posture, events, materialized, opened: events.some((event) => event.startsWith('OPEN_CONVERSATION:')) };
+  return { surface, posture, events, materialized, navigation, opened: events.some((event) => event.startsWith('OPEN_CONVERSATION:')) };
 }
 
 for (const posture of ['missing', 'ambiguous', 'denied', 'stale', 'unavailable', 'switch-account', 'switch-source']) {
@@ -125,6 +125,8 @@ test('Source Detail Open uses the sole current target without creation', async (
   assert.equal(result.materialized, false);
   assert.equal(result.opened, true);
   assert.equal(result.events.filter((event) => event.startsWith('OPEN_CONVERSATION:')).length, 1);
+  assert.equal(result.events.includes('feedback:error'), false);
+  assert.equal(result.navigation.getSnapshot().current.destination.chat.conversationAnchorId, 'anchor-new');
 });
 test('explicit instance selection resolves only the chosen current partner when source matches are ambiguous', async () => {
   const result = await run('source-detail', 'ambiguous', 'select');
@@ -138,8 +140,11 @@ test('explicit creation materializes a missing partner without opening a convers
   assert.equal(result.materialized, true);
   assert.equal(result.opened, false);
 });
-test('World Detail Open also refuses missing targets without creation', async () => {
+test('World Detail views the character source without creating or opening a partner', async () => {
   const result = await run('world-detail');
   assert.equal(result.materialized, false);
   assert.equal(result.opened, false);
+  assert.deepEqual(result.navigation.getSnapshot().current.destination, { id: 'source-detail', sourceRef });
+  await result.navigation.back();
+  assert.deepEqual(result.navigation.getSnapshot().current.destination, { id: 'world-detail', worldId: 'world-1', search: 'Partner' });
 });

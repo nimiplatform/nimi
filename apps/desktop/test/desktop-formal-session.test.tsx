@@ -88,10 +88,11 @@ test('failed technical readiness stays closed and an explicit retry coalesces wi
     assert.equal(fixture.handle().status, 'failed');
     assert.equal(fixture.handle().reasonCode, 'local-app-snapshot-unavailable');
     assert.deepEqual(fixture.business, []);
-    await act(async () => fixture.store.getState().setActiveTab('integrations'));
+    await act(async () => { await fixture.store.navigation.push({ id: 'home', homeSection: 'integrations' }); });
+    assert.deepEqual(fixture.store.navigation.getSnapshot().current.destination, { id: 'home', homeSection: 'integrations' });
     await act(async () => { fixture.handle().retry(); fixture.handle().retry(); });
     assert.equal(fixture.probes.length, 2);
-    assert.equal(fixture.store.getState().activeTab, 'home');
+    assert.deepEqual(fixture.store.navigation.getSnapshot().current.destination, { id: 'home', homeSection: 'overview' });
     assert.equal(fixture.handle().status, 'checking');
     await act(async () => fixture.probes[1]!.resolve(ready));
     assert.equal(fixture.handle().status, 'ready');

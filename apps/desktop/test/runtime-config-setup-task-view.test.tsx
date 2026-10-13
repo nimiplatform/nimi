@@ -529,11 +529,12 @@ test('the capability page offers the customize tab only when a current model exi
     </TooltipProvider>
     </AppStoreProvider>,
   );
-  // Nothing to customize: no tab, and a section left on it shows the overview.
+  // Nothing to customize: no tab; a visited section reports its missing
+  // configuration without silently rewriting navigation to the overview.
   const unset = detail(undefined);
   assert.doesNotMatch(unset, /runtimeConfig\.capabilities\.tabs\.advanced/);
   assert.doesNotMatch(unset, /runtimeConfig\.product\.editModelAndOptions/);
-  assert.match(unset, /runtimeConfig\.product\.currentOnDevice/);
+  assert.match(unset, /runtimeConfig\.localModels\.configurationMissing/);
 
   const current = detail({
     loadoutId: 'loadout-1', recipeId: 'recipe-en', capabilityContract: 'text.annotate',
