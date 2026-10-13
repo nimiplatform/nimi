@@ -510,8 +510,9 @@ describe('App composition state machine', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+      // The same surface is already mounted while bootstrap is loading.
+      expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('error_bootstrap_fatal');
     });
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('error_bootstrap_fatal');
   });
 
   it('restart from a degraded bootstrap tears down the prior handle before revalidation', async () => {
