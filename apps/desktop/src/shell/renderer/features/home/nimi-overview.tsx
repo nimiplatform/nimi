@@ -266,7 +266,7 @@ export function NimiOverview() {
       </div>
       {messages ? (
         <div className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:min-h-0 xl:self-stretch">
-          <ScrollArea className="xl:h-full" viewportClassName="bg-transparent">
+          <ScrollArea className="xl:h-full" viewportClassName="bg-transparent [&>div]:!block">
             <HomeMessagesColumn
               messages={messages}
               context={cardContext(messages)}
@@ -281,7 +281,7 @@ export function NimiOverview() {
       <div className="min-w-0 xl:col-start-1 xl:row-start-2 xl:min-h-0 xl:self-stretch">
         <ScrollArea
           className="xl:h-full"
-          viewportClassName="bg-transparent"
+          viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >
         <section className="rounded-[24px] bg-[var(--nimi-surface-panel)] px-5 py-3.5 shadow-[var(--nimi-elevation-base)]" data-testid="home-integrations">
@@ -400,7 +400,7 @@ export function NimiOverview() {
       {view === 'center' && messages ? (
         <ScrollArea
           className="min-h-0 flex-1"
-          viewportClassName="bg-transparent"
+          viewportClassName="bg-transparent [&>div]:!block"
           contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
         >
           <HomeMessageCenter
@@ -429,7 +429,7 @@ export function NimiOverview() {
       ) : (
         <ScrollArea
           className="min-h-0 flex-1"
-          viewportClassName="bg-transparent"
+          viewportClassName="bg-transparent [&>div]:!block"
           contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
         >
           <p className="px-2 pb-4 text-[13px] text-[var(--nimi-text-muted)]" data-testid="home-date">

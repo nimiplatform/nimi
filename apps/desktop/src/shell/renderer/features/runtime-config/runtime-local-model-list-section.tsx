@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import { ModelFamilyLogoTile } from '../../components/provider-logo-tile.js';
-import { formatRelativeLocaleTime } from '../../i18n/index.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { CAPABILITY_INVENTORY_KEY, type CapabilityInventory, type CapabilityPreparationState } from './runtime-capability-inventory.js';
 import { modelFamilySeed } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
@@ -164,6 +164,7 @@ function VariantCard(props: {
   readonly onOpenTask?: (taskId: string) => void;
 }) {
   const { t } = useTranslation();
+  const i18n = useDesktopI18nResource();
   const { variant } = props;
   const [expanded, setExpanded] = useState(false);
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
@@ -260,7 +261,7 @@ function VariantCard(props: {
           </span>
           {Number.isFinite(addedAt) ? (
             <span className="text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.localModels.addedAt', { time: formatRelativeLocaleTime(variant.addedAt) })}
+              {t('runtimeConfig.localModels.addedAt', { time: i18n.formatRelativeTime(variant.addedAt) })}
             </span>
           ) : null}
         </div>
