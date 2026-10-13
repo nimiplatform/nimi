@@ -66,7 +66,7 @@ units:
     kind: rule
     title: World detail presents bounded typed product facts
     modality: must
-    statement: World detail presents WorldCore overview, semantic or world summary, scenes, locations and entry points, featured WorldCharacter or PersonaCharacter sources with typed source-detail routing, public activity, relevant local materialization availability, and useful governance or status only when corresponding typed data exists; Desktop shell authority retains ordering and responsive layout, and ordinary Explore exposes no Desktop-local source creation entry.
+    statement: World detail presents WorldCore overview, semantic or world summary, scenes, locations and entry points, WorldCharacter or PersonaCharacter sources with typed source-detail routing, public activity, and useful governance or status only when corresponding typed data exists; Realm people discovery does not depend on Runtime LocalAgent inventory, source detail owns materialization and partner actions, Desktop shell authority retains ordering and responsive layout, and ordinary Explore exposes no Desktop-local source creation entry.
     condition: Whenever Explore opens or composes World detail.
     failure: Shrink sections lacking typed data and reject untyped facts, product-surface-owned layout authority, or ordinary Explore authoring controls.
     relations:
@@ -76,7 +76,7 @@ units:
     kind: rule
     title: Character and persona source cards are source-typed
     modality: must
-    statement: PersonaCharacter and WorldCharacter source cards present only displayName or avatar, worldOrigin, sourceKind and supplied role or category, concept or short description, supplied Realm activitySignal, sourceState, and the primaryAction derived from sourceState; Personas enter through Personas, WorldCharacters through World detail and source detail, and sourceState comes only from typed core source data plus bounded Runtime or SDK LocalAgentSourceContextStatus and opaque local-agent inventory or provenance projection, with unknown or partial status unavailable.
+    statement: PersonaCharacter and WorldCharacter source cards present only displayName or avatar, worldOrigin, sourceKind and supplied role or category, concept or short description, supplied traits or topics, and supplied Realm activitySignal; World people discovery offers View character through canonical source-detail routing without LocalAgent-dependent grouping or actions, while surfaces that expose materialization or partner actions derive sourceState only from typed core source data plus bounded Runtime or SDK LocalAgentSourceContextStatus and opaque local-agent inventory or provenance projection, with unknown or partial status unavailable; Personas enter through Personas and WorldCharacters through World detail and source detail.
     condition: Whenever Explore renders or routes a PersonaCharacter or WorldCharacter source card.
     failure: Reject local or guessed source state, a new Explore source section, relationship or quota state as source truth, bare-source chat, and local conversation readiness as PersonaCharacter truth.
     relations:

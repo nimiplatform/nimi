@@ -144,11 +144,11 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r011
     kind: rule
-    title: World Detail section order is fixed
+    title: World Detail prioritizes Realm people discovery
     modality: must
-    statement: World Detail renders Hero, Dashboard, Core Rules, Recommended, Scenes, Timeline, Agents, and Extended in that order, keeps Recommended distinct from the full Agents area, and keeps Scenes before Timeline.
+    statement: World Detail renders a bounded world overview followed by the Realm people catalog, then compact world-setting and scene discovery; full description, settings and history open in an independently scrollable reader, and Runtime LocalAgents never define the World population, card grouping or catalog order.
     condition: Whenever Desktop renders World Detail.
-    failure: Reject reordered, merged, or new page-level sections that alter the admitted sequence.
+    failure: Reject long-form setting content above the people catalog, local-partner-based population or grouping, and a reader that expands the homepage instead of scrolling independently.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
@@ -156,9 +156,9 @@ units:
     kind: rule
     title: World Detail layout is section-deterministic
     modality: must
-    statement: World Detail uses fixed DOM order and explicit section-local templates, contracts missing data without empty placeholders, keeps Dashboard, Core Rules, and Extended in their admitted controlled arrangements, and never uses dense or masonry reordering across sections.
+    statement: World Detail keeps the same semantic DOM order at every width, separates banner imagery from text, bounds overview and card previews with explicit full-content navigation, contracts absent optional data, and uses section-local responsive grids without dense or masonry reordering.
     condition: Whenever World Detail selects a responsive layout.
-    failure: Fall back to the prescribed single-column or section-local template rather than reorder content automatically.
+    failure: Reject content-driven banner height, inaccessible clipped content, empty optional placeholders, or automatic cross-section reordering.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
@@ -166,9 +166,9 @@ units:
     kind: rule
     title: World Detail cards consume bounded existing data
     modality: must
-    statement: World Detail visual cards consume only existing world detail projections, keep event statistics in Timeline, bound power levels to twelve and realms to eight, render rule items as title and value, and keep mutation type, target path, and reason out of the primary maintenance presentation.
+    statement: World Detail cards consume only typed world and character projections and server-backed search and cursor pagination; descriptions, roles and supplied traits remain bounded previews, source cards navigate through canonical source references, and the full reader preserves supplied description, rules, systems, topology, language and history content without inferred character relationships or source-owned Runtime actions.
     condition: Whenever a World Detail visual card is built.
-    failure: Omit unavailable cards or excess items and reject new card-owned product truth.
+    failure: Omit unavailable optional facts and reject invented descriptions, topics, counts, relationships, page-local population claims, or unreadable long text used as a card heading.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
@@ -1059,24 +1059,14 @@ units:
         target: definition.nimi.desktop.shell-ui.telemetry
   - id: rule.nimi.desktop.shell-ui.r098
     kind: rule
+    lifecycle: removed
     title: World Detail internal section templates are fixed
-    modality: must
-    statement: World Detail Dashboard places the score matrix and time-flow ring in its primary row and remaining data in lower text cards; Core Rules places the rule summary first, core-system cards in a fixed six-and-six arrangement, and only present support-rule cards in shrinking templates; Extended places World Knowledge Highlights before Runtime and governance content and keeps Runtime and governance at the bottom using only fixed five-and-seven, six-and-six, eight-and-four, or single-column templates.
-    condition: Whenever Desktop composes the internal Dashboard, Core Rules, or Extended layout.
-    failure: Reject reordered semantic groups, automatic dense placement, empty support-card slots, and an unlisted internal template.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.shell-plane
+    reason: World detail now prioritizes Realm people discovery with bounded previews and an independent full-content reader under r011 through r013; the Dashboard, Core Rules and Extended templates are no longer product sections.
   - id: rule.nimi.desktop.shell-ui.r099
     kind: rule
+    lifecycle: removed
     title: World Detail power and realm cards have fixed source selection
-    modality: must
-    statement: World Detail Power System uses semantic.powerSystems[0], falls back to semantic.standaloneLevels, omits the card when no levels exist, truncates levels at twelve, and renders additional power systems as compact text; Realm Constellation uses semantic.topology, truncates realms at eight, omits the card when neither realms nor topology metadata exist, and renders metadata with an empty state when only metadata exists; both card families remain inside Core Rules.
-    condition: Whenever Desktop builds the Power System or Realm Constellation visual card.
-    failure: Omit unavailable content, truncate excess content, and reject alternate source truth or a new page-level section.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.shell-plane
+    reason: The obsolete power-ring and realm-constellation card selection is replaced by a complete world-setting reader under r013, which does not truncate full content.
   - id: rule.nimi.desktop.shell-ui.r100
     kind: rule
     title: Menu-bar header states are closed

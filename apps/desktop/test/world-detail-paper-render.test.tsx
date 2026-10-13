@@ -17,7 +17,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
-import { WORLD_DETAIL_PAPER_CONTENT_PADDING } from '../src/shell/renderer/features/world/world-detail-layout';
+import { JSDOM } from 'jsdom';
+import { worldReadingEntries } from '../src/shell/renderer/features/world/world-detail-reading-model';
 import { worldTimeDisplay } from '../src/shell/renderer/features/world/world-detail-paper-model';
 import { derivedScenes } from '../src/shell/renderer/features/world/world-detail-template-model';
 import {
@@ -30,16 +31,12 @@ import {
 } from '../src/shell/renderer/features/world/world-detail-resource-references';
 import { WorldRelationshipExplorer } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
 import {
-  NarrativeWorldDetailPage,
+  WorldDetailPage,
   worldDetailRootSectionScrollTop,
 } from '../src/shell/renderer/features/world/world-detail-template';
 import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
 import { readyPeopleCatalog } from './world-people-catalog-fixture';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 const world: WorldDetailData = {
   id: 'world-1',
@@ -285,77 +282,7 @@ test('derived scenes never place characters from tag or topic text', () => {
   assert.equal(scenes[0]?.counts.relatedCharacterCount, 0);
 });
 
-test('paper world detail renders narrative sections without the duplicate settings block', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(NarrativeWorldDetailPage, {
-      world,
-      characters,
-      peopleCharacters: characters,
-      peopleCatalog: readyPeopleCatalog(characters.length),
-      history,
-      semantic,
-      audits: [],
-      publicAssets,
-      onBack: () => {},
-      onViewCharacter: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
 
-  // Layout + sections present.
-  assert.match(markup, /data-testid="world-detail-paper-layout"/);
-  assert.match(markup, new RegExp(`padding:${escapeRegExp(WORLD_DETAIL_PAPER_CONTENT_PADDING)}`));
-  assert.doesNotMatch(markup, /pointer-events:none;background:radial-gradient\(60% 50% at 0% 0%/);
-  assert.match(markup, /data-testid="world-detail-paper-characters"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-materials"/);
-  assert.match(markup, /data-testid="world-detail-paper-scenes"/);
-  assert.match(markup, /data-testid="world-detail-paper-paths"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-timeline"/);
-  // The right rail is removed — world detail is a single left column.
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-rail"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-settings"/);
-
-  // Resolved copy from the active locale — no raw i18n keys leak through.
-  assert.match(markup, /Recommended paths/);
-  assert.match(markup, /People you can meet/);
-  assert.match(markup, /Add character/);
-  assert.doesNotMatch(markup, /Say hi/);
-  assert.doesNotMatch(markup, /Popular records/);
-  assert.doesNotMatch(markup, /River of time/);
-  assert.match(markup, /Start with 姚燧/);
-  assert.doesNotMatch(markup, /Primary language/);
-  assert.doesNotMatch(markup, /Everything is traceable/);
-  assert.doesNotMatch(markup, /WorldDetail\.paper\./);
-
-  // Real data wired in (names, event year, scene title).
-  assert.match(markup, /姚燧/);
-  assert.doesNotMatch(markup, /1238/);
-  assert.match(markup, /书院讲堂/);
-  assert.match(markup, /aria-label="Open 姚燧 profile"/);
-});
-
-test('paper world detail hides the major events metric when history has no events', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(NarrativeWorldDetailPage, {
-      world,
-      characters,
-      peopleCharacters: characters,
-      peopleCatalog: readyPeopleCatalog(characters.length),
-      history: emptyHistory,
-      semantic,
-      audits: [],
-      publicAssets,
-      onBack: () => {},
-      onViewCharacter: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  assert.doesNotMatch(markup, /Major events/);
-  assert.doesNotMatch(markup, /Key moments of this world/);
-  assert.match(markup, /People you can meet/);
-  assert.match(markup, /Explorable scenes/);
-});
 
 test('semantic lore library derives grouped entries from world semantic data', () => {
   const entries = buildWorldLoreEntries(semantic);
@@ -384,104 +311,8 @@ test('semantic lore overview derives reusable card fields from world systems', (
   assert.deepEqual((entries[1] as { keywords?: readonly string[] } | undefined)?.keywords, ['科举', '荐举', '荫补']);
 });
 
-test('paper world detail surfaces semantic lore on the root page', async () => {
-  await changeLocale('zh');
-  try {
-    const markup = renderToStaticMarkup(
-      React.createElement(NarrativeWorldDetailPage, {
-        world,
-        characters,
-        peopleCharacters: characters,
-        peopleCatalog: readyPeopleCatalog(characters.length),
-        history,
-        semantic,
-        audits: [],
-        publicAssets,
-        onBack: () => {},
-        onViewCharacter: () => {},
-        onMaterializeSource: () => {},
-      }),
-    );
 
-    assert.match(markup, /data-testid="world-detail-paper-lore-overview"/);
-    assert.match(markup, /世界设定概览/);
-    assert.doesNotMatch(markup, /查看全部设定/);
-    assert.doesNotMatch(markup, /制度与体系/);
-    assert.match(markup, /文人交游体系/);
-    assert.doesNotMatch(markup, /人物之间通过书信、拜访、诗文唱和形成关系网络。/);
-    assert.doesNotMatch(markup, /交游关系必须来自公开资料。/);
-    assert.match(markup, /书院讲学/);
-    assert.doesNotMatch(markup, /data-testid="world-detail-lore-library-page"/);
-    assert.doesNotMatch(markup, /WorldDetail\.paper\.loreOverview/);
-  } finally {
-    await changeLocale('en');
-  }
-});
 
-test('paper world detail renders lore overview as title-only two-column cards', async () => {
-  await changeLocale('zh');
-  try {
-    const markup = renderToStaticMarkup(
-      React.createElement(NarrativeWorldDetailPage, {
-        world,
-        characters,
-        peopleCharacters: characters,
-        peopleCatalog: readyPeopleCatalog(characters.length),
-        history,
-        semantic: institutionSemantic,
-        audits: [],
-        publicAssets,
-        onBack: () => {},
-        onViewCharacter: () => {},
-        onMaterializeSource: () => {},
-      }),
-    );
-
-    assert.match(markup, /世界设定概览/);
-    assert.match(markup, /理解这个世界如何运转，以及人物、事件和关系背后的规则。/);
-    assert.match(markup, /官制结构/);
-    assert.match(markup, /lucide-layers/);
-    assert.doesNotMatch(markup, /中央与地方官职体系/);
-    assert.doesNotMatch(markup, /涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。/);
-    assert.doesNotMatch(markup, /官职 · 仕宦 · 地方治理/);
-    assert.match(markup, /入仕制度/);
-    assert.doesNotMatch(markup, /lucide-stamp|lucide-milestone/);
-    assert.doesNotMatch(markup, /士人如何进入官场/);
-    assert.doesNotMatch(markup, /记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。/);
-    assert.doesNotMatch(markup, /科举 · 荐举 · 荫补/);
-    assert.doesNotMatch(markup, /制度与体系/);
-    assert.doesNotMatch(markup, /WorldDetail\.paper\.loreOverview/);
-  } finally {
-    await changeLocale('en');
-  }
-});
-
-test('paper world detail hides semantic lore overview when there are no lore records', async () => {
-  await changeLocale('zh');
-  try {
-    const markup = renderToStaticMarkup(
-      React.createElement(NarrativeWorldDetailPage, {
-        world,
-        characters,
-        peopleCharacters: characters,
-        peopleCatalog: readyPeopleCatalog(characters.length),
-        history,
-        semantic: emptySemantic,
-        audits: [],
-        publicAssets,
-        onBack: () => {},
-        onViewCharacter: () => {},
-        onMaterializeSource: () => {},
-      }),
-    );
-
-    assert.doesNotMatch(markup, /data-testid="world-detail-paper-lore-overview"/);
-    assert.doesNotMatch(markup, /世界设定概览/);
-    assert.match(markup, /data-testid="world-detail-paper-paths"/);
-  } finally {
-    await changeLocale('en');
-  }
-});
 
 test('world lore library page renders semantic groups as browseable records', async () => {
   await changeLocale('zh');
@@ -599,31 +430,6 @@ test('world relationship explorer lists people without inventing relationships f
   }
 });
 
-test('paper world detail renders scene entry cards without inline detail-page data', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(NarrativeWorldDetailPage, {
-      world,
-      characters,
-      peopleCharacters: characters,
-      peopleCatalog: readyPeopleCatalog(characters.length),
-      history,
-      semantic,
-      audits: [],
-      publicAssets,
-      onBack: () => {},
-      onViewCharacter: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  assert.match(markup, /data-testid="world-detail-paper-scene-entry-card"/);
-  assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-scene-card"/);
-  assert.doesNotMatch(markup, /Scene detail card/);
-  assert.doesNotMatch(markup, /Image Asset Ref/);
-  assert.doesNotMatch(markup, /Active entities/);
-  assert.doesNotMatch(markup, /Related events/);
-});
 
 test('world detail computes scene section centering inside the scroll viewport', () => {
   const scrollTop = worldDetailRootSectionScrollTop({
@@ -717,56 +523,7 @@ test('world scene detail page hides empty counters, provenance and resource chro
   assert.doesNotMatch(markup, /Before entering, note what is here/);
 });
 
-test('paper world detail hero hosts the world follow CTA without banner tags', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(NarrativeWorldDetailPage, {
-      world,
-      characters,
-      peopleCharacters: characters,
-      peopleCatalog: readyPeopleCatalog(characters.length),
-      history,
-      semantic,
-      audits: [],
-      publicAssets,
-      onBack: () => {},
-      onViewCharacter: () => {},
-      onMaterializeSource: () => {},
-      onFollowWorld: () => {},
-    }),
-  );
 
-  // World follow stays in the hero; low-value banner chips are omitted.
-  assert.match(markup, /data-testid="world-detail-hero-world-follow"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-hero-tags"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-rail"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-paper-world-follow"/);
-  // No recommended-friends rail CTA remains.
-  assert.doesNotMatch(markup, /Suggested friends/);
-  // Nonfunctional hero actions must not be exposed as clickable controls.
-  assert.doesNotMatch(markup, /Share world/);
-  assert.doesNotMatch(markup, /More world actions/);
-});
-
-test('paper world detail hides the hero follow CTA when world follow is unavailable', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(NarrativeWorldDetailPage, {
-      world,
-      characters,
-      peopleCharacters: characters,
-      peopleCatalog: readyPeopleCatalog(characters.length),
-      history,
-      semantic,
-      audits: [],
-      publicAssets,
-      onBack: () => {},
-      onViewCharacter: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  assert.doesNotMatch(markup, /data-testid="world-detail-hero-world-follow"/);
-  assert.doesNotMatch(markup, /data-testid="world-detail-hero-tags"/);
-});
 
 test('paper world detail hero omits banner tags even when metadata has display tags', () => {
   const noisyWorld: WorldDetailData = {
@@ -787,7 +544,7 @@ test('paper world detail hero omits banner tags even when metadata has display t
   };
 
   const markup = renderToStaticMarkup(
-    React.createElement(NarrativeWorldDetailPage, {
+    React.createElement(WorldDetailPage, {
       world: noisyWorld,
       characters,
       peopleCharacters: characters,
@@ -798,7 +555,6 @@ test('paper world detail hero omits banner tags even when metadata has display t
       publicAssets,
       onBack: () => {},
       onViewCharacter: () => {},
-      onMaterializeSource: () => {},
     }),
   );
 
@@ -832,4 +588,61 @@ test('paper world detail formats ISO wall-clock world time labels before renderi
   assert.notEqual(display, isoWorldTime);
   assert.doesNotMatch(display ?? '', /T03:32:40\.159Z/);
   assert.match(display ?? '', /2026/);
+});
+
+test('world discovery puts source profiles ahead of bounded setting previews', () => {
+  const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(105, { hasMore: true })} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
+  const document = new JSDOM(html).window.document;
+  const people = document.querySelector('#world-detail-characters')!;
+  const settings = document.querySelector('[data-testid="world-detail-settings-preview"]')!;
+  assert.ok(people.compareDocumentPosition(settings) & 4, 'people precede the setting');
+  assert.equal(people.querySelectorAll('[data-testid="world-character-card"]').length, characters.length);
+  assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, characters.length);
+  assert.ok(people.textContent?.includes('105 people'));
+  assert.ok(people.querySelector('[data-testid="world-detail-people-load-more"]'));
+  assert.doesNotMatch(document.body.textContent!, /Become my partner|Chat now|Recommended paths|WorldDetail\./);
+});
+
+test('long description and system paragraphs remain full prose in the reader and bounded on the homepage', () => {
+  const description = '世界中的每个人都有自己的日常。'.repeat(50);
+  const system = '这个世界的社会和生活运转规则。'.repeat(100);
+  const longWorld = { ...world, overview: null, description, bannerUrl: 'https://example.test/world.png' };
+  const longSemantic = { ...semantic, powerSystems: [{ name: system, description: system, levels: [], rules: [] }] };
+  const html = renderToStaticMarkup(<WorldDetailPage world={longWorld} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={history} semantic={longSemantic} audits={[]} publicAssets={publicAssets} />);
+  const document = new JSDOM(html).window.document;
+  const summary = document.querySelector('[data-testid="world-detail-summary"]')!;
+  assert.equal(summary.textContent, description);
+  assert.ok(summary.classList.contains('line-clamp-2'));
+  assert.equal(document.querySelector('[data-testid="world-detail-banner"]')?.tagName, 'IMG');
+  assert.ok(document.querySelector('[data-testid="world-detail-open-reader"]'));
+  assert.ok(Array.from(document.querySelectorAll('h1,h2,h3')).every((heading) => !heading.textContent?.includes(system)));
+  const entries = worldReadingEntries(longWorld, longSemantic, history);
+  assert.ok(entries.find((entry) => entry.section === 'description')?.text.includes(description));
+  assert.deepEqual(entries.find((entry) => entry.section === 'systems')?.text, [system]);
+});
+
+test('world following remains a single secondary action and disappears when unavailable', () => {
+  const render = (follow?: () => void) => new JSDOM(renderToStaticMarkup(<WorldDetailPage world={world} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} onFollowWorld={follow} worldFollowed />)).window.document;
+  const followed = render(() => {});
+  const button = followed.querySelector('[data-testid="world-detail-follow-world"]');
+  assert.equal(button?.getAttribute('aria-pressed'), 'true');
+  assert.equal(followed.querySelectorAll('[data-testid="world-detail-follow-world"]').length, 1);
+  assert.equal(render().querySelector('[data-testid="world-detail-follow-world"]'), null);
+});
+
+test('the full world reader does not lose levels or realms beyond old visual-card limits', () => {
+  const levels = Array.from({ length: 14 }, (_, index) => ({ name: `Level ${index}`, description: `Level description ${index}` }));
+  const realms = Array.from({ length: 10 }, (_, index) => ({ name: `Realm ${index}`, description: `Realm description ${index}`, accessibility: `Access ${index}` }));
+  const entries = worldReadingEntries(world, { ...emptySemantic, powerSystems: [{ name: 'System', levels, rules: ['System rule'] }], topology: { realms } }, emptyHistory);
+  const system = entries.find((entry) => entry.section === 'systems')!;
+  const topology = entries.find((entry) => entry.section === 'topology')!;
+  assert.ok(system.text.includes('Level 13\nLevel description 13'));
+  assert.ok(topology.text.includes('Realm 9\nRealm description 9\nAccess 9'));
+});
+
+test('failed supplemental content stays explicit while character discovery remains usable', () => {
+  const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={{ scenes: [], resourceRefs: [], externalRefs: [], intents: [] }} readingIncomplete publicAssetsIncomplete onRetryReading={() => {}} onViewCharacter={() => {}} />)).window.document;
+  assert.ok(document.body.textContent?.includes('Some world setting or history could not be loaded'));
+  assert.ok(document.body.textContent?.includes('Places and references could not be loaded'));
+  assert.equal(document.querySelectorAll('button[aria-label^="View "]').length, characters.length);
 });

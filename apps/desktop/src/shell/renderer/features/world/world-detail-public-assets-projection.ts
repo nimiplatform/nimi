@@ -127,7 +127,18 @@ function toWorldDisplaySceneItem(rawValue: unknown, index: number): WorldSceneIt
   const relatedEvents = readRecordArray(raw.relatedEvents)
     .map((event, eventIndex) => toWorldDisplayHistoryItem(event, eventIndex));
   const relatedResources = readRecordArray(raw.relatedResources)
-    .map(toWorldDisplaySceneResource);
+    .map(toWorldDisplaySceneResource)
+    .map((resource) => {
+      // A resource reference is an identity, not a display name. Resolve only
+      // from the matching public scene projections; never infer from the ID.
+      const references = [resource.id, ...resource.entityRefs, ...resource.eventRefs];
+      const character = relatedCharacters.find((item) => references.includes(item.id)
+        || (item.sourceRef.kind === 'worldCharacter' && references.includes(item.sourceRef.worldEntityRef.entityId)));
+      const entity = activeEntities.find((item) => references.includes(item.id));
+      const event = relatedEvents.find((item) => references.includes(item.id));
+      const titleIsReference = !resource.title || references.includes(resource.title);
+      return { ...resource, title: titleIsReference ? character?.name || entity?.label || event?.title || '' : resource.title };
+    });
   const media = readRecordArray(raw.media)
     .map(readPublicMediaAsset)
     .filter((asset): asset is WorldPublicMediaAsset => asset !== null);

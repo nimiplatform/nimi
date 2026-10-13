@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { initI18n } from '../src/shell/renderer/i18n';
 import {
-  NarrativeWorldDetailPage,
+  WorldDetailPage,
   WorldDetailLoadingState,
   type WorldDetailPageProps,
 } from '../src/shell/renderer/features/world/world-detail-template';
@@ -56,10 +56,10 @@ const loadingPageProps = {
   loading: true,
 } as unknown as WorldDetailPageProps;
 
-test('world detail page renders the paper skeleton while the composite query is loading', () => {
-  const markup = renderToStaticMarkup(<NarrativeWorldDetailPage {...loadingPageProps} />);
+test('world detail page renders shared Kit skeletons while the query is loading', () => {
+  const markup = renderToStaticMarkup(<WorldDetailPage {...loadingPageProps} />);
   assert.match(markup, /data-testid="world-detail-page-skeleton"/);
-  assert.match(markup, /animate-pulse/);
+  assert.match(markup, /nimi-skeleton/);
   assert.match(markup, /aria-busy="true"/);
 });
 

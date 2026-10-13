@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import {
   WORLD_DETAIL_PAPER_CONTENT_PADDING,
   worldDetailPaperContentFrameStyle,
@@ -38,40 +39,13 @@ function SkeletonBlock({
   );
 }
 
-function SkeletonSection({ cardHeights, columns }: { cardHeights: readonly number[]; columns?: string }) {
-  return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <SkeletonBlock height={20} width={176} radius={999} />
-      <div style={{ display: 'grid', gridTemplateColumns: columns, gap: 13 }}>
-        {cardHeights.map((height, index) => (
-          <SkeletonBlock key={index} height={height} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function WorldDetailPageSkeleton() {
   return (
-    <div
-      data-testid="world-detail-page-skeleton"
-      aria-busy="true"
-      aria-live="polite"
-      style={{ position: 'relative', minHeight: '100%' }}
-    >
-      <div style={worldDetailPaperContentFrameStyle()}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
-          <SkeletonBlock height={316} radius={24} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 13 }}>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <SkeletonBlock key={index} height={72} />
-            ))}
-          </div>
-          <SkeletonSection cardHeights={[128, 128, 128]} columns="repeat(auto-fit,minmax(232px,1fr))" />
-          <SkeletonSection cardHeights={[150, 150, 150, 150]} columns="repeat(auto-fit,minmax(232px,1fr))" />
-          <SkeletonSection cardHeights={[64, 64, 64]} />
-          <SkeletonSection cardHeights={[180, 180, 180]} columns="repeat(auto-fit,minmax(232px,1fr))" />
-        </div>
+    <div data-testid="world-detail-page-skeleton" aria-busy="true" className="@container mx-auto w-full max-w-[1440px] space-y-5 p-4">
+      <Surface tone="card" padding="lg"><LoadingSkeleton lines={5} /></Surface>
+      <LoadingSkeleton lines={1} className="max-w-64" />
+      <div className="grid grid-cols-1 gap-4 @min-[640px]:grid-cols-2 @min-[1120px]:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => <Surface key={index} tone="card" padding="lg"><LoadingSkeleton lines={5} /></Surface>)}
       </div>
     </div>
   );

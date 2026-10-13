@@ -5,11 +5,12 @@ import {
   PaperAvatar,
 } from './world-detail-paper-primitives.js';
 import { detailSceneBackground } from './world-detail-template-model.js';
-import type { WorldAssetExternalRef, WorldSceneItem } from './world-detail-types.js';
+import type { WorldAssetExternalRef, WorldCharacter, WorldSceneItem } from './world-detail-types.js';
 
 export function WorldSceneDetailPage({
   onBack,
   onSelectCharacter,
+  onViewCharacter,
   scene,
   sceneImageRef,
 }: {
@@ -17,6 +18,7 @@ export function WorldSceneDetailPage({
   oasisSceneActionLabel: string;
   onBack: () => void;
   onSelectCharacter: (characterId: string) => void;
+  onViewCharacter?: (character: WorldCharacter) => void;
   onViewCharacters: () => void;
   onViewEvents?: () => void;
   scene: WorldSceneItem;
@@ -90,7 +92,8 @@ export function WorldSceneDetailPage({
                           type="button"
                           onClick={() => {
                             if (character) {
-                              onSelectCharacter(character.id);
+                              if (onViewCharacter) onViewCharacter(character);
+                              else onSelectCharacter(character.id);
                             }
                           }}
                           disabled={!character}
@@ -124,7 +127,7 @@ export function WorldSceneDetailPage({
                       <button
                         key={`${scene.id}-character-${character.id}`}
                         type="button"
-                        onClick={() => onSelectCharacter(character.id)}
+                        onClick={() => onViewCharacter ? onViewCharacter(character) : onSelectCharacter(character.id)}
                         style={{ display: 'grid', gridTemplateColumns: '34px 1fr', alignItems: 'center', gap: 9, minWidth: 0, minHeight: 52, border: '1px solid var(--nimi-border-subtle)', borderRadius: 'var(--nimi-radius-md)', background: 'var(--nimi-surface-panel)', padding: 9, textAlign: 'left', cursor: 'pointer' }}
                       >
                         <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={34} />
@@ -161,8 +164,8 @@ export function WorldSceneDetailPage({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 9 }}>
                     {relatedResources.map((resource) => (
                       <div key={`${scene.id}-resource-${resource.id}`} style={{ border: '1px solid var(--nimi-border-subtle)', borderRadius: 'var(--nimi-radius-md)', padding: 10, background: 'var(--nimi-surface-panel)', minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--nimi-action-primary-bg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.kind}</span>
-                        <span style={{ display: 'block', marginTop: 4, fontSize: 13, fontWeight: 900, color: 'var(--nimi-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.title}</span>
+                        <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--nimi-action-primary-bg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t(`WorldDetail.sceneResourceKinds.${['entity', 'timelineEvent'].includes(resource.kind) ? resource.kind : 'resource'}`)}</span>
+                        <span style={{ display: 'block', marginTop: 4, fontSize: 13, fontWeight: 900, color: 'var(--nimi-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.title || t('WorldDetail.sceneResourceKinds.unnamed')}</span>
                         {resource.summary ? (
                           <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.5, color: 'var(--nimi-text-muted)' }}>{resource.summary}</span>
                         ) : null}

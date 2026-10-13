@@ -1,19 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '@nimiplatform/kit/ui';
+import { Button, EmptyState } from '@nimiplatform/kit/ui';
 import { formatNum } from './world-detail-template-model.js';
 import type { WorldPeopleCatalogState } from './world-detail-types.js';
-
-const actionButtonStyle = {
-  fontFamily: 'inherit',
-  fontSize: 13,
-  fontWeight: 600,
-  color: 'var(--nimi-action-primary-bg)',
-  border: '1px solid var(--nimi-border-subtle)',
-  borderRadius: 999,
-  background: 'var(--nimi-surface-card)',
-  padding: '8px 16px',
-  cursor: 'pointer',
-} as const;
 
 // Shown in place of the people list until the first page of the current query is ready: a
 // loading, offline or failed first page is never presented as an empty World.
@@ -46,9 +34,9 @@ export function PeopleCatalogFirstPageStatus({ catalog }: { readonly catalog: Wo
         role="alert"
         title={catalog.offline ? t('WorldDetail.paper.gallery.loadFailedOffline') : t('WorldDetail.paper.gallery.loadFailed')}
         action={(
-          <button type="button" onClick={catalog.onRetry} style={actionButtonStyle}>
+          <Button tone="secondary" size="sm" onClick={catalog.onRetry}>
             {t('WorldDetail.paper.gallery.retry')}
-          </button>
+          </Button>
         )}
         style={{ margin: '36px 20px' }}
       />
@@ -85,11 +73,10 @@ export function PeopleCatalogMoreControl({
           {failedOffline ? t('WorldDetail.paper.gallery.loadMoreOffline') : t('WorldDetail.paper.gallery.loadMoreError')}
         </span>
       ) : null}
-      <button
-        type="button"
+      <Button
+        tone="secondary" size="sm"
         disabled={catalog.loadingMore || catalog.loadMorePaused}
         onClick={catalog.onLoadMore}
-        style={{ ...actionButtonStyle, cursor: catalog.loadingMore || catalog.loadMorePaused ? 'default' : 'pointer' }}
       >
         {catalog.loadingMore
           ? t('WorldDetail.paper.gallery.loadingMore')
@@ -99,7 +86,7 @@ export function PeopleCatalogMoreControl({
               loaded: formatNum(loadedCount),
               total: formatNum(catalog.totalCount),
             })}
-      </button>
+      </Button>
     </div>
   );
 }

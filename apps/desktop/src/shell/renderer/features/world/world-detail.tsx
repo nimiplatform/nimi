@@ -1,20 +1,14 @@
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { WorldMaterializationContext, type WorldMaterializationState } from './world-materialization-context.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import { characterSourceMaterializationFailureMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from '../explore/character-source-materialization';
-import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
-import { localAgentListQueryKey } from '../agents/local-agent-list-model';
-import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 
-import { NarrativeWorldDetailPage, OasisWorldDetailPage } from './world-detail-template';
+import { WorldDetailPage } from './world-detail-template';
 import type { WorldCharacter } from './world-detail-types';
 import { useWorldPeopleCatalog } from './world-detail-people-catalog.js';
 import type { WorldListItem } from './world-list-model';
@@ -25,8 +19,7 @@ import { createRealmWorldData } from './data/realm-world-data.js';
 
 type WorldDetailProps = {
   world: WorldListItem;
-  // Embedded surfaces (e.g. the Explore worlds rail+detail layout) omit onBack;
-  // the detail templates hide the hero back control when it is absent.
+  // The canonical world destination returns through Home navigation.
   onBack?: () => void;
   initialSubpage?: 'people-archive' | 'relationship-explorer' | null;
 };
@@ -34,19 +27,12 @@ type WorldDetailProps = {
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
 
   const navigation = useHomeNavigation();
+  const destination = useHomeDestination();
   const bindings = useDesktopRendererBindings();
-  const appStore = useAppStoreApi();
-  const mounted = useRef(true);
-  const currentWorld = useRef(world.id);
-  currentWorld.current = world.id;
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
-  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
 
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const detailViewportRef = useRef<HTMLDivElement | null>(null);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const setFeedback = emitFeedbackToast;
@@ -87,7 +73,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
 
   // The detail's first bounded page seeds the unfiltered people catalog.
   const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
-  const [peopleQueryText, setPeopleQueryText] = useState('');
+  const [peopleQueryText, setPeopleQueryText] = useState(() => destination.id === 'world-detail' ? destination.search ?? '' : '');
   const peopleQuery = useDebouncedText(peopleQueryText);
   const primaryRecord = primaryDisplay?.primary;
   const seededCharacterPage = useMemo(() => {
@@ -133,39 +119,6 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const pageError = initialError;
   const worldData = primaryDisplay?.world ?? toWorldDisplayFallback(world);
   const characters: WorldCharacter[] = primaryDisplay?.characters ?? [];
-  // Realm does not know about device-local Runtime LocalAgents, so the realm
-  // payload's relation.state alone can never mark an already-added character as
-  // connected. Join the owner-scope runtime inventory here (same seam as
-  // Explore / SourceDetail) before rendering connect/chat actions.
-  const characterDiscoveryKey = useMemo(
-    () => characters.map((character) => characterSourceRefKey(character.sourceRef)).join('|'),
-    [characters],
-  );
-  const worldCharactersLocalAgentsQuery = useQuery({
-    queryKey: ['world-detail-local-agents', ownerUserId, world.id, characterDiscoveryKey],
-    queryFn: async () => (await Promise.all(
-      characters.map((character) => discoverCharacterSourceLocalAgents(character, ownerUserId, bindings.sdk)),
-    )).flat(),
-    enabled: isReady && Boolean(ownerUserId) && characters.length > 0,
-    staleTime: 10_000,
-  });
-  const charactersWithRelation = useMemo(() => {
-    const localAgents = worldCharactersLocalAgentsQuery.data;
-    if (!localAgents) {
-      return characters;
-    }
-    return characters.map((character) => {
-      const sourceState = resolveCharacterSourceState(character, localAgents);
-      const connected = sourceState === 'local_agent_available' || sourceState === 'local_agent_ambiguous';
-      if (!connected || character.relation?.state === 'connected') {
-        return character;
-      }
-      return {
-        ...character,
-        relation: { ...character.relation, state: 'connected' as const },
-      };
-    });
-  }, [characters, worldCharactersLocalAgentsQuery.data]);
   const safeHistory = supplementalDisplay?.history ?? { items: [], summary: null };
   const safeSemantic = supplementalDisplay?.semantic ?? {
     operationTitle: null,
@@ -268,10 +221,14 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     });
   }, [supplementalDisplay, world.id, worldSupplementalQuery.isSuccess]);
 
-  // World characters are not chat-reachable until Runtime creates a localAgent
-  // from a fresh Realm materialization packet on this device.
-  const handleViewCharacter = (character: WorldCharacter) => {
-    navigation.push({ id: 'source-detail', sourceRef: character.sourceRef });
+  const handleViewCharacter = async (character: WorldCharacter) => {
+    const position = navigation.getSnapshot().current.destination;
+    // Save the originating catalog query before leaving so Back returns to it.
+    if (position.id === 'world-detail' && position.worldId === world.id && position.search !== peopleQueryText) {
+      const saved = await navigation.replace({ ...position, search: peopleQueryText });
+      if (saved.status !== 'committed' && saved.status !== 'unchanged') return;
+    }
+    await navigation.push({ id: 'source-detail', sourceRef: character.sourceRef });
   };
 
   const followed = useFollowedWorlds();
@@ -289,142 +246,39 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     }
   };
 
-  const [materializingKeys, setMaterializingKeys] = useState<ReadonlySet<string>>(() => new Set());
-  const materializingRef = useRef(new Set<string>());
-  const isMaterializing = useCallback((character: WorldCharacter) => materializingKeys.has(characterSourceRefKey(character.sourceRef)), [materializingKeys]);
-  const materialization = useMemo<WorldMaterializationState>(() => ({
-    ready: worldCharactersLocalAgentsQuery.isSuccess,
-    isPending: isMaterializing,
-  }), [isMaterializing, worldCharactersLocalAgentsQuery.isSuccess]);
-
-  const handleMaterializeSource = async (character: WorldCharacter) => {
-    const auth = appStore.getState().auth;
-    const isCurrent = () => mounted.current && currentWorld.current === world.id && auth.status === 'authenticated' && appStore.getState().auth === auth;
-    if (!isCurrent() || !worldCharactersLocalAgentsQuery.isSuccess) return;
-    const sourceKey = characterSourceRefKey(character.sourceRef);
-    if (materializingRef.current.has(sourceKey)) return;
-    materializingRef.current.add(sourceKey);
-    setMaterializingKeys(new Set(materializingRef.current));
-    try {
-      await ensureCharacterSourceMaterialized({
-        ...character,
-        displayName: character.name,
-        sourceWorldId: character.sourceRef.worldId,
-        sourceKind: character.sourceRef.kind,
-        sourceId: character.sourceRef.id,
-        sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId, i18n.t, bindings.sdk, isCurrent);
-      await queryClient.invalidateQueries({ queryKey: ['world-detail-local-agents'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
-      if (!isCurrent()) return;
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Local agent created on this device.',
-        }),
-      });
-    } catch (error) {
-      if (!isCurrent()) return;
-      const message = characterSourceMaterializationFailureMessage(error, i18n.t);
-      setFeedback({ kind: 'error', message });
-    } finally {
-      materializingRef.current.delete(sourceKey);
-      if (mounted.current) setMaterializingKeys(new Set(materializingRef.current));
-    }
-  };
-
-  // Connected characters skip the materialize CTA and launch the canonical
-  // agent Conversation directly; any target-resolution miss fails closed to
-  // the agent chat list.
-  const handleOpenCharacterConversation = async (character: WorldCharacter) => {
-    const conversationTarget = await resolveAgentTargetSnapshotForSourceRef({
-      sourceRef: character.sourceRef,
-      ownerUserId,
-      sdk: bindings.sdk,
-    }).catch((error: unknown) => {
-      logRendererEvent({
-        level: 'warn',
-        area: 'world-detail',
-        message: 'action:character-conversation-resolve:failed',
-        details: { error: error instanceof Error ? error.message : String(error || '') },
-      });
-      return null;
-    });
-    if (conversationTarget) {
-      await launchAgentConversationFromDisplay({
-        target: conversationTarget,
-        navigation,
-
-        setAgentConversationTargetSnapshot,
-        setPendingAgentComposerPrefill,
-      });
-      return;
-    }
-    void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
-  };
-
   return (
-    <WorldMaterializationContext.Provider value={materialization}>
     <ScrollArea
       className="h-full bg-transparent"
       viewportClassName="bg-transparent"
       viewportRef={detailViewportRef}
     >
-      {worldData.type === 'OASIS' ? (
-        <OasisWorldDetailPage
-          world={worldData}
-          characters={charactersWithRelation}
-          peopleCharacters={peopleCharacters}
-          peopleCatalog={peopleCatalog}
-          history={safeHistory}
-          semantic={safeSemantic}
-          audits={safeAudits}
-          publicAssets={safePublicAssets}
-          loading={initialLoading}
-          error={pageError}
-          charactersLoading={primaryLoading}
-          historyLoading={supplementalLoading}
-          semanticLoading={supplementalLoading}
-          auditsLoading={false}
-          publicAssetsLoading={supplementalLoading}
-          onBack={onBack}
-          onViewCharacter={handleViewCharacter}
-          onMaterializeSource={handleMaterializeSource}
-          onOpenConversation={handleOpenCharacterConversation}
-          onFollowWorld={handleFollowWorld}
-          worldFollowed={worldFollowed}
-          initialSubpage={initialSubpage}
-          rootScrollViewportRef={detailViewportRef}
-        />
-      ) : (
-        <NarrativeWorldDetailPage
-          world={worldData}
-          characters={charactersWithRelation}
-          peopleCharacters={peopleCharacters}
-          peopleCatalog={peopleCatalog}
-          history={safeHistory}
-          semantic={safeSemantic}
-          audits={safeAudits}
-          publicAssets={safePublicAssets}
-          loading={initialLoading}
-          error={pageError}
-          charactersLoading={primaryLoading}
-          historyLoading={supplementalLoading}
-          semanticLoading={supplementalLoading}
-          auditsLoading={false}
-          publicAssetsLoading={supplementalLoading}
-          onBack={onBack}
-          onViewCharacter={handleViewCharacter}
-          onMaterializeSource={handleMaterializeSource}
-          onOpenConversation={handleOpenCharacterConversation}
-          onFollowWorld={handleFollowWorld}
-          worldFollowed={worldFollowed}
-          initialSubpage={initialSubpage}
-          rootScrollViewportRef={detailViewportRef}
-        />
-      )}
+      <WorldDetailPage
+        world={worldData}
+        characters={characters}
+        peopleCharacters={peopleCharacters}
+        peopleCatalog={peopleCatalog}
+        history={safeHistory}
+        semantic={safeSemantic}
+        audits={safeAudits}
+        publicAssets={safePublicAssets}
+        loading={initialLoading}
+        error={pageError}
+        charactersLoading={primaryLoading}
+        historyLoading={supplementalLoading}
+        semanticLoading={supplementalLoading}
+        auditsLoading={false}
+        publicAssetsLoading={supplementalLoading}
+        readingIncomplete={worldSupplementalQuery.isError || supplementalDisplay?.sections.semantic === 'error' || supplementalDisplay?.sections.history === 'error'}
+        publicAssetsIncomplete={worldSupplementalQuery.isError || supplementalDisplay?.sections.publicAssets === 'error'}
+        onRetryReading={() => { void worldSupplementalQuery.refetch(); }}
+        onBack={onBack}
+        onViewCharacter={handleViewCharacter}
+        onFollowWorld={followed.available ? handleFollowWorld : undefined}
+        worldFollowed={worldFollowed}
+        initialSubpage={initialSubpage}
+        rootScrollViewportRef={detailViewportRef}
+      />
     </ScrollArea>
-    </WorldMaterializationContext.Provider>
   );
 }
 

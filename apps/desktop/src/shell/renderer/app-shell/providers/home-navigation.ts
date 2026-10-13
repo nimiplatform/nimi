@@ -47,7 +47,7 @@ const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   activity: ['postId'], settings: ['settingsSection'], support: [], profile: ['profileId'],
-  'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage'],
+  'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
   notification: [], 'privacy-policy': [], 'terms-of-service': [],
 };
 const stringRef = (value: unknown): string => {

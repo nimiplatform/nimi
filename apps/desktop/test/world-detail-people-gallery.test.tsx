@@ -1,233 +1,53 @@
-/**
- * People gallery — grouping model + overlay render proof.
- *
- * Covers the "view all people you can meet" surface: the pure clustering model
- * (faction / tier / status axes, in-group sorting, search, default-axis pick)
- * and a static render of the overlay through the real i18n instance so every
- * group label and control resolves with no missing keys.
- */
-
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-
-// ScrollArea / radix CJS primitives expect a global `React`.
-(globalThis as { React?: typeof React }).React = React;
-
-import { initI18n } from '../src/shell/renderer/i18n';
-import worldDetailZh from '../src/shell/renderer/locales/zh/41-WorldDetail.json' with { type: 'json' };
+import { JSDOM } from 'jsdom';
+import { initI18n, changeLocale } from '../src/shell/renderer/i18n';
 import { WorldPeopleArchivePage } from '../src/shell/renderer/features/world/world-detail-people-gallery';
-import {
-  availableGroupBys,
-  buildPeopleGroups,
-  connectableCount,
-  defaultPeopleGroupBy,
-} from '../src/shell/renderer/features/world/world-detail-people-gallery-model';
 import type { WorldCharacter } from '../src/shell/renderer/features/world/world-detail-types';
 import { readyPeopleCatalog } from './world-people-catalog-fixture';
 
-function character(overrides: Partial<WorldCharacter> & Pick<WorldCharacter, 'id' | 'name'>): WorldCharacter {
-  return {
-    handle: `@${overrides.id}`,
-    bio: `${overrides.name} 的生平。`,
-    sourceRef: { kind: 'worldCharacter', worldId: 'w', characterId: overrides.id } as unknown as WorldCharacter['sourceRef'],
-    sourceKind: 'worldCharacter',
-    ownership: 'worldOwned',
-    relation: { state: 'connectable' },
-    createdAt: '2026-01-01T00:00:00.000Z',
-    importance: 'SECONDARY',
-    ...overrides,
-  };
-}
+(globalThis as { React?: typeof React }).React = React;
+const roster: WorldCharacter[] = ['姚燧', '同恕', '倪瓒'].map((name, index) => ({
+  id: `person-${index}`, name, handle: `person-${index}`, bio: `${name} 的生平。`,
+  sourceRef: { kind: 'worldCharacter', id: `person-${index}`, worldId: 'world-1', worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: `entity-${index}` }, sourceHash: 'a'.repeat(64) },
+  sourceKind: 'worldCharacter', relation: { state: index === 1 ? 'connected' : 'connectable' },
+  importance: 'SECONDARY', createdAt: '2026-01-01T00:00:00.000Z',
+}));
+const render = (catalog = readyPeopleCatalog(roster.length), characters = roster) => new JSDOM(renderToStaticMarkup(<WorldPeopleArchivePage characters={characters} catalog={catalog} onBack={() => {}} onSelect={() => {}} />)).window.document;
+test.before(async () => { await initI18n(); await changeLocale('en'); });
 
-const roster: WorldCharacter[] = [
-  character({ id: 'yao', name: '姚燧', faction: '文人交游圈', importance: 'PRIMARY', stats: { vitalityScore: 90 } }),
-  character({ id: 'tong', name: '同恕', faction: '文人交游圈', importance: 'SECONDARY', stats: { vitalityScore: 70 } }),
-  character({ id: 'ni', name: '倪瓒', faction: '隐逸画家', importance: 'SECONDARY', relation: { state: 'unavailable' } }),
-  character({ id: 'wu', name: '吴全节', faction: '道教交游枢纽', importance: 'BACKGROUND', relation: { state: 'connected' } }),
-  character({ id: 'li', name: '李存', importance: 'BACKGROUND' }),
-];
-
-test('default axis prefers faction when ≥2 factions exist', () => {
-  assert.equal(defaultPeopleGroupBy(roster), 'faction');
-  const noFaction = roster.map((c) => ({ ...c, faction: null }));
-  assert.equal(defaultPeopleGroupBy(noFaction), 'tier');
-  assert.deepEqual(availableGroupBys(roster), ['faction', 'tier', 'status']);
-  assert.deepEqual(availableGroupBys(noFaction), ['tier', 'status']);
+test('people browsing preserves Realm order without local-partner grouping or primary actions', () => {
+  const document = render();
+  assert.deepEqual(Array.from(document.querySelectorAll('h3')).map((heading) => heading.textContent), roster.map((person) => person.name));
+  assert.equal(document.querySelectorAll('button[aria-label^="View "]').length, roster.length);
+  assert.doesNotMatch(document.body.textContent!, /Become my partner|Chat now|Connected|WorldDetail\./);
 });
 
-test('faction grouping pins connected people above circles sorted by size', () => {
-  const groups = buildPeopleGroups(roster, 'faction');
-  // 吴全节 is already local → pinned to the leading connected group on every axis.
-  assert.equal(groups[0].labelKey, 'connected');
-  assert.deepEqual(groups[0].characters.map((c) => c.name), ['吴全节']);
-  // Largest real circle first; '李存' (no faction) lands in the trailing ungrouped bucket.
-  assert.equal(groups[1].label, '文人交游圈');
-  assert.equal(groups[groups.length - 1].id, 'ungrouped');
-  assert.equal(groups[groups.length - 1].labelKey, 'ungrouped');
-  assert.deepEqual(groups[1].characters.map((c) => c.name), ['姚燧', '同恕']);
+test('server population, query and next page remain distinct from loaded rows', () => {
+  const document = render(readyPeopleCatalog(105, { hasMore: true, query: '姚' }));
+  assert.ok(document.body.textContent?.includes('105 people'));
+  assert.ok(document.body.textContent?.includes('3 of 105 loaded'));
+  assert.equal(document.querySelector('input')?.value, '姚');
+  assert.ok(document.body.textContent?.includes('同恕'), 'do not filter a server page again');
 });
 
-test('tier grouping pins connected first, then core → active → background', () => {
-  const groups = buildPeopleGroups(roster, 'tier');
-  assert.deepEqual(groups.map((g) => g.labelKey), ['connected', 'PRIMARY', 'SECONDARY', 'BACKGROUND']);
-  assert.equal(groups[1].characters[0].name, '姚燧');
+test('first-page loading, offline and failure never claim an empty world', () => {
+  for (const status of ['loading', 'offline', 'error'] as const) {
+    const document = render(readyPeopleCatalog(0, { status, offline: status === 'offline' }), []);
+    assert.ok(document.querySelector(`[data-testid="world-people-catalog-${status}"]`));
+    assert.doesNotMatch(document.body.textContent!, /No public characters|0 people/);
+  }
+  assert.ok(render(readyPeopleCatalog(0), []).body.textContent?.includes('No public characters'));
+  assert.ok(render(readyPeopleCatalog(0, { query: 'absent' }), []).body.textContent?.includes('No characters match'));
 });
 
-test('status grouping splits connectable / connected / unavailable', () => {
-  const groups = buildPeopleGroups(roster, 'status');
-  assert.deepEqual(groups.map((g) => g.labelKey), ['connected', 'connectable', 'unavailable']);
-  const byKey = Object.fromEntries(groups.map((g) => [g.labelKey, g.characters.length]));
-  assert.equal(byKey.connectable, 3);
-  assert.equal(byKey.connected, 1);
-  assert.equal(byKey.unavailable, 1);
-  assert.equal(connectableCount(roster), 3);
-});
-
-test.before(async () => {
-  await initI18n();
-});
-
-test('archive page renders the grouped roster with resolved copy', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(WorldPeopleArchivePage, {
-      characters: roster,
-      catalog: readyPeopleCatalog(roster.length),
-      onBack: () => {},
-      onSelect: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  // Default faction axis → faction group titles surface.
-  assert.match(markup, /文人交游圈/);
-  assert.match(markup, /隐逸画家/);
-  assert.match(markup, /姚燧/);
-  assert.match(markup, /李存/);
-  // Connected people pin to the leading group and get a compact chat pill.
-  assert.match(markup, /Local agent ready/);
-  assert.match(markup, /Chat now/);
-  assert.doesNotMatch(markup, /WorldDetail\.paper\.gallery\./);
-});
-
-test('archive page renders as an in-page drill-down without the modal backdrop', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(WorldPeopleArchivePage, {
-      characters: roster,
-      catalog: readyPeopleCatalog(roster.length),
-      onBack: () => {},
-      onSelect: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  assert.match(markup, /data-testid="world-detail-people-archive-page"/);
-  assert.match(markup, /People you can meet/);
-  assert.match(markup, /Add character/);
-  assert.match(markup, /Back to world detail/);
-  assert.doesNotMatch(markup, /position:fixed;inset:0/);
-  assert.doesNotMatch(markup, /background:rgba\(38,32,23,.5\)/);
-});
-
-test('people archive Chinese add action uses character language', () => {
-  assert.equal(worldDetailZh.paper.characters.connect, '添加角色');
-});
-
-test('archive page keeps only the leading back control', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(WorldPeopleArchivePage, {
-      characters: roster,
-      catalog: readyPeopleCatalog(roster.length),
-      onBack: () => {},
-      onSelect: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  assert.equal(markup.match(/Back to world detail/g)?.length, 1);
-});
-
-test('archive page with a server catalog shows the population total and offers the next page', async () => {
-  await initI18n();
-  const markup = renderToStaticMarkup(
-    React.createElement(WorldPeopleArchivePage, {
-      characters: roster,
-      catalog: readyPeopleCatalog(105, { hasMore: true, query: '姚' }),
-      onBack: () => {},
-      onSelect: () => {},
-    }),
-  );
-
-  assert.match(markup, /105 characters/);
-  assert.match(markup, /data-testid="world-detail-people-load-more"/);
-  assert.match(markup, /5 of 105 loaded/);
-  // Server search already filtered the loaded people; the page does not filter them again.
-  assert.match(markup, /同恕/);
-  assert.match(markup, /倪瓒/);
-});
-
-test('archive page never presents a loading or failed first page as an empty World', async () => {
-  await initI18n();
-  const render = (catalog: ReturnType<typeof readyPeopleCatalog>) => renderToStaticMarkup(
-    React.createElement(WorldPeopleArchivePage, {
-      characters: [],
-      catalog,
-      onBack: () => {},
-      onSelect: () => {},
-    }),
-  );
-
-  const loading = render(readyPeopleCatalog(0, { status: 'loading' }));
-  assert.match(loading, /data-testid="world-people-catalog-loading"/);
-  assert.match(loading, /Loading people…/);
-  assert.doesNotMatch(loading, /No matching characters/);
-  assert.doesNotMatch(loading, /0 characters/);
-
-  const failed = render(readyPeopleCatalog(0, { status: 'error' }));
-  assert.match(failed, /data-testid="world-people-catalog-error"/);
-  assert.match(failed, /Couldn&#x27;t load this World&#x27;s people\./);
-  assert.match(failed, /Try again/);
-  assert.doesNotMatch(failed, /No matching characters/);
-  assert.doesNotMatch(failed, /data-testid="world-detail-people-load-more"/);
-
-  const offline = render(readyPeopleCatalog(0, { status: 'error', offline: true }));
-  assert.match(offline, /Couldn&#x27;t connect to load this World&#x27;s people\. Check your connection and try again\./);
-  assert.match(offline, /Try again/);
-
-  // A first page waiting for the connection loads by itself: no loading, failure or retry.
-  const waiting = render(readyPeopleCatalog(0, { status: 'offline', offline: true }));
-  assert.match(waiting, /data-testid="world-people-catalog-offline"/);
-  assert.match(waiting, /You&#x27;re offline\. This World&#x27;s people will load when you&#x27;re back online\./);
-  assert.doesNotMatch(waiting, /Loading people…|Try again|No matching characters/);
-
-  const empty = render(readyPeopleCatalog(0));
-  assert.match(empty, /No matching characters/);
-});
-
-test('a failed next page keeps the loaded people and offers the page again', async () => {
-  await initI18n();
-  const render = (overrides: Parameters<typeof readyPeopleCatalog>[1]) => renderToStaticMarkup(
-    React.createElement(WorldPeopleArchivePage, {
-      characters: roster,
-      catalog: readyPeopleCatalog(105, { hasMore: true, loadMoreFailed: true, ...overrides }),
-      onBack: () => {},
-      onSelect: () => {},
-    }),
-  );
-
-  const failed = render({});
-  assert.match(failed, /姚燧/);
-  assert.match(failed, /Couldn&#x27;t load more people\. Try again\./);
-  assert.match(failed, /Try again<\/button>/);
-
-  const offline = render({ offline: true });
-  assert.match(offline, /Couldn&#x27;t connect to load more people\. Check your connection and try again\./);
-
-  // A next page waiting for the connection continues by itself; the control cannot be pressed.
-  const waiting = render({ loadMoreFailed: false, loadMorePaused: true, offline: true });
-  assert.match(waiting, /姚燧/);
-  assert.match(waiting, /You&#x27;re offline\. More people will load when you&#x27;re back online\./);
-  assert.match(waiting, /<button type="button" disabled=""/);
-  assert.doesNotMatch(waiting, /Try again/);
+test('next-page failures retain people and waiting pages disable the action', () => {
+  const failed = render(readyPeopleCatalog(105, { hasMore: true, loadMoreFailed: true }));
+  assert.equal(failed.querySelectorAll('[data-testid="world-character-card"]').length, roster.length);
+  assert.equal(failed.querySelector('[data-testid="world-detail-people-load-more"] button')?.textContent?.trim(), 'Try again');
+  const waiting = render(readyPeopleCatalog(105, { hasMore: true, loadMorePaused: true, offline: true }));
+  assert.equal(waiting.querySelector('[data-testid="world-detail-people-load-more"] button')?.hasAttribute('disabled'), true);
+  assert.ok(waiting.body.textContent?.includes('More people will load when'));
 });

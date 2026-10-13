@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { WORLD_EXPLORER_THEME, WORLD_NEUTRAL_COVER_BACKGROUND } from './world-list-theme';
 import type { WorldListItem } from './world-list-model';
 
-type WorldCoverVariant = 'thumb' | 'featured' | 'panel' | 'row' | 'banner';
+type WorldCoverVariant = 'thumb' | 'featured' | 'panel' | 'row' | 'banner' | 'catalog';
 
 // A World without a banner gets one neutral abstract cover. The cover never
 // classifies the World from its name, genre, era, themes, or entity kinds,
@@ -16,6 +16,7 @@ function coverBackground(world: WorldListItem): string {
 }
 
 const variantClassName: Record<WorldCoverVariant, string> = {
+  catalog: 'relative block h-44 w-full shrink-0 overflow-hidden',
   thumb: 'relative block h-[86px] w-[86px] shrink-0 overflow-hidden rounded-[16px]',
   featured: 'absolute inset-0 block overflow-hidden rounded-[18px]',
   panel: 'relative block h-[232px] shrink-0 overflow-hidden rounded-[24px]',
