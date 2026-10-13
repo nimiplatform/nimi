@@ -51,9 +51,9 @@ export const zhiyuMessagesEn = {
   'zhiyu.copy.chat.markdownCopyLabel': 'Duplicate',
   'zhiyu.copy.chat.markdownCopiedLabel': 'Copied',
   'zhiyu.demo.runtimeSettingsNotice':
-    'Runtime settings open in Nimi Desktop. This preview uses sample data only.',
+    'Runtime settings open in Nimi. This preview uses sample data only.',
   'zhiyu.demo.avatarLaunchNotice':
-    'Nimi Desktop launches companion appearances. This preview does not open an appearance window.',
+    'Nimi launches companion appearances. This preview does not open an appearance window.',
   'zhiyu.demo.noticeDismissLabel': 'Got it',
   'zhiyu.demo.voiceTranscriptSample': 'Please note the main points from our conversation.',
   'zhiyu.demo.resourcePackFileName': 'Zhiyu-Spring.nimipack',

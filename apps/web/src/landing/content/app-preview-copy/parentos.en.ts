@@ -332,7 +332,7 @@ export const parentosMessagesEn = {
   'parentos.settings.info.item2.label': 'About ParentOS',
   'parentos.settings.info.item2.desc': 'Version 0.1.6 · sample data',
   'parentos.notices.hostOnly':
-    'This preview uses sample data. Files, camera, and AI models are available in Nimi Desktop.',
+    'This preview uses sample data. Files, camera, and AI models are available in Nimi.',
   'parentos.notices.dismiss': 'Got it',
   'parentos.timelinePage.records': ' records · ',
   'parentos.reminderPanel.today2': 'Today',
