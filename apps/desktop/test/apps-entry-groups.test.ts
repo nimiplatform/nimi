@@ -118,6 +118,17 @@ function installedEntry(overrides: {
   };
 }
 
+test('merged rail uses declared project artwork without replacing installed release information or launch target', () => {
+  const installed = { ...installedEntry(), iconUrl: 'data:image/png;base64,installed' };
+  const dev = devEntry({ iconUrl: 'data:image/png;base64,project' });
+  const group = groupAppsEntries([installed, dev])[0]!;
+  assert.equal(group.iconUrl, dev.iconUrl);
+  assert.equal(group.primary, installed);
+  assert.equal(group.primary.iconUrl, 'data:image/png;base64,installed');
+  assert.equal(group.primary.committedRelease?.version, '1.0.0');
+  assert.equal(groupAppsEntries([installed, devEntry()])[0]!.iconUrl, installed.iconUrl);
+});
+
 test('sources of one App merge into a single group with the live run as primary', () => {
   const dev = devEntry({ updatedAtUnixMs: 1_722_000_000_000 });
   const runningDev = devEntry({ selector: 'dev-nimi.lab-2', runState: 'running', updatedAtUnixMs: 1_721_000_000_000 });

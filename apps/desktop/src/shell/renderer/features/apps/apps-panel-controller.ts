@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import type { AppCardActionId, AppsPendingAction } from './apps-card-actions.js';
 import { appsActionsLocked, appsStopLocked, canRequestCatalogInstall, canRequestCatalogUpdate, isLocalDevelopmentRunActive } from './apps-card-actions.js';
@@ -69,6 +70,10 @@ export interface AppsPanelControllerDeps {
 }
 
 type AppsPanelReloadLane = 'lifecycle' | 'ai-config';
+
+const projectionKey = ['desktop', 'apps-panel'] as const;
+const catalogKey = ['desktop', 'apps-panel-catalog'] as const;
+const catalogRefreshMs = 60_000;
 
 export interface AppsPanelProjectionReloader {
   reload(refreshAIConfig?: boolean): Promise<void>;
@@ -159,11 +164,12 @@ export function requestAppsUpdateFromDetail(entry: DesktopAppsEntry, controller:
 
 export function createAppsPanelProjectionReloader(input: {
   readonly source: DesktopAppsProjectionSource;
+  readonly initialCatalog?: DesktopAppsCatalogProjection;
   readonly getCurrent: () => DesktopAppsPanelProjection | null;
   readonly commit: (projection: DesktopAppsPanelProjection) => void;
 }): AppsPanelProjectionReloader {
   let disposed = false;
-  let catalog: DesktopAppsCatalogProjection = {
+  let catalog: DesktopAppsCatalogProjection = input.initialCatalog ?? {
     status: input.source.listApprovedCatalogTargets ? 'loading' : 'not-implemented', targets: [],
   };
   let catalogInFlight: Promise<void> | null = null;
@@ -176,6 +182,7 @@ export function createAppsPanelProjectionReloader(input: {
     'ai-config': 0,
   };
   const reload = (refreshAIConfig = true): Promise<void> => {
+    if (disposed) return Promise.resolve();
     const lane: AppsPanelReloadLane = refreshAIConfig ? 'ai-config' : 'lifecycle';
     const existing = inFlight[lane];
     if (existing) return existing;
@@ -238,10 +245,19 @@ export function visibleAppsActionError(failure: AppsActionFailure | null, detail
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanelController {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
-  const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
-  const projectionRef = useRef<DesktopAppsPanelProjection | null>(null);
+  // Keep the completed projection across route unmounts. The existing session
+  // lifecycle clears this QueryClient on logout, account change and recovery.
+  const { data: projection = null } = useQuery<DesktopAppsPanelProjection | null>({
+    queryKey: projectionKey, queryFn: skipToken, gcTime: Infinity,
+  });
+  const projectionRef = useRef<DesktopAppsPanelProjection | null>(projection);
+  const setProjection = useCallback((next: DesktopAppsPanelProjection | null) => {
+    projectionRef.current = next;
+    queryClient.setQueryData(projectionKey, next);
+  }, [queryClient]);
   const [detailEntryKey, setDetailEntryKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   // A failure belongs to the entry it happened on. Opening or polling details
@@ -266,9 +282,23 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, []);
   const [installConfirmation, setInstallConfirmation] = useState<AppsInstallIntentSnapshot | null>(null);
   const reloader = useMemo(() => createAppsPanelProjectionReloader({
+    // A failed query retains its last successful data. Do not restore those
+    // previous install targets when navigating back while a retry is pending.
+    initialCatalog: queryClient.getQueryState(catalogKey)?.status === 'error'
+      ? { status: 'unavailable', targets: [] }
+      : queryClient.getQueryData<DesktopAppsCatalogProjection>(catalogKey),
     source: {
       ...liveBridge,
-      listApprovedCatalogTargets: deps.listApprovedCatalogTargets,
+      listApprovedCatalogTargets: deps.listApprovedCatalogTargets ? async () => {
+        const targets = await queryClient.fetchQuery({
+          queryKey: catalogKey,
+          queryFn: async (): Promise<DesktopAppsCatalogProjection> => ({
+            status: 'loaded', targets: await deps.listApprovedCatalogTargets!(),
+          }),
+          staleTime: 0, gcTime: Infinity, retry: false, networkMode: 'always',
+        });
+        return targets.targets;
+      } : undefined,
       listCommittedReleases: deps.listCommittedReleases,
       listPackageJobs: deps.listPackageJobs,
       readAppAIConfig: deps.readAppAIConfig,
@@ -282,7 +312,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       projectionRef.current = next;
       setProjection(next);
     },
-  }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, deps.readPackageInfo, liveBridge]);
+  }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, deps.readPackageInfo, liveBridge, queryClient, setProjection]);
   const reload = useCallback(
     (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
     [reloader],
@@ -292,12 +322,18 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     : undefined, [deps.startInstall, deps.startUpdate, reloader]);
 
   useEffect(() => {
-    void reload(true);
-    void reloader.refreshCatalog();
-  }, [reload, reloader]);
+    // Reconcile local membership and run state first; AI summaries must not
+    // delay artwork or keep an old cached lifecycle projection on screen.
+    void reload(false).then(() => reload(true));
+    const cachedCatalog = queryClient.getQueryState(catalogKey);
+    if (cachedCatalog?.status !== 'success' || cachedCatalog.isInvalidated
+      || Date.now() - cachedCatalog.dataUpdatedAt >= catalogRefreshMs) {
+      void reloader.refreshCatalog();
+    }
+  }, [reload, reloader, queryClient]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => void reloader.refreshCatalog(), 60_000);
+    const interval = window.setInterval(() => void reloader.refreshCatalog(), catalogRefreshMs);
     return () => window.clearInterval(interval);
   }, [reloader]);
 
@@ -415,7 +451,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, [beginPendingAction, deps.cancelPackageJob, deps.uninstall, failAction, failActionWith, installIntentController, liveBridge, projection, reload, t]);
 
   const retryProjection = useCallback((): void => {
-    setProjection(null);
     setActionFailure(null);
     void reload(true);
     void reloader.refreshCatalog();
@@ -432,7 +467,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       setProjection(acknowledged);
     }
     void reload(true);
-  }, [reload]);
+  }, [reload, setProjection]);
 
   const confirmInstall = useCallback((): void => {
     if (!installConfirmation || !installIntentController) return;

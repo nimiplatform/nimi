@@ -11,6 +11,7 @@ import { appRunVisualState, entryNeedsAttention, isEntryRunActive, type AppsSort
 export interface DesktopAppGroup {
   readonly appId: string;
   readonly displayName: string;
+  /** Artwork for the merged rail identity; source-specific rows use their own icon. */
   readonly iconUrl: string | null;
   /** The entry the row acts on: live run first, then installed, dev, catalog. */
   readonly primary: DesktopAppsEntry;
@@ -74,7 +75,11 @@ export function groupAppsEntries(entries: readonly DesktopAppsEntry[]): readonly
     return {
       appId: primary.identity.appId,
       displayName: realDisplayName(primary) ?? ordered.map(realDisplayName).find((name) => name !== null) ?? primary.identity.displayName,
-      iconUrl: primary.iconUrl ?? ordered.find((entry) => entry.iconUrl !== null)?.iconUrl ?? null,
+      // A registered project's artwork can change independently of an installed
+      // release. Reflect it in the merged rail without changing the primary
+      // launch target or the exact release information on source-specific rows.
+      iconUrl: ordered.find((entry) => entry.localDevelopment && entry.iconUrl !== null)?.iconUrl
+        ?? primary.iconUrl ?? ordered.find((entry) => entry.iconUrl !== null)?.iconUrl ?? null,
       primary,
       entries: ordered,
       sourceClasses,
