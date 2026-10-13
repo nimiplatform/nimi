@@ -1,5 +1,7 @@
 app_id: nimi.lab
 display_name: Nimi Lab
+metadata:
+  icon: assets/app-icon-256.png
 profile: standalone
 manifest_role: submitted-input
 app_access:

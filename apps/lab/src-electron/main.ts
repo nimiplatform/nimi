@@ -29,6 +29,7 @@ let worldTourLaunch: { manifestPath: string; token: string; senderId: number } |
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
+const appIconPath = path.join(appRoot, 'assets', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
@@ -44,6 +45,7 @@ configureLabElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
+  app.dock?.setIcon(appIconPath);
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
@@ -109,6 +111,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
 function createLabWindow(title: string, width: number, height: number, minWidth: number, minHeight: number): BrowserWindow {
   const window = new BrowserWindow({
     width, height, minWidth, minHeight, title,
+    icon: appIconPath,
     backgroundColor: '#f6f8fb',
     autoHideMenuBar: true,
     webPreferences: {

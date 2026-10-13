@@ -1,6 +1,8 @@
 schema_version: 1
 app_id: nimi.zhiyu
 display_name: 织羽 Zhiyu
+metadata:
+  icon: src/shell/assets/app-icon.png
 app_access:
   - agent.local
   - agent.configure
