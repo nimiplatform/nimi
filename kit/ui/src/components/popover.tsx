@@ -57,6 +57,7 @@ type PopoverContentProps = {
   onMouseLeave?: MouseEventHandler<HTMLDivElement>;
   onOpenAutoFocus?: (event: Event) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  onInteractOutside?: React.ComponentProps<typeof PopoverPrimitive.Content>['onInteractOutside'];
 };
 
 export function PopoverContent({

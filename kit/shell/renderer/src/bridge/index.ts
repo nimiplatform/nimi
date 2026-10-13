@@ -9,6 +9,11 @@ export {
   listenTauri,
 } from './tauri-api.js';
 export type { NimiShellRuntimeBridgeResult } from './tauri-api.js';
+export {
+  bindNimiAppChrome, updateNimiAppChromeState, executeNimiAppChromeCommand,
+  unbindNimiAppChrome, subscribeNimiAppChromeCommands, subscribeNimiAppChromeState,
+  parseNimiChromeState,
+} from './app-chrome.js';
 export { installNimiShellRuntimeBridge } from '../bootstrap/runtime-bridge.js';
 export { hasElectronInvoke, hasShellHostInvoke, hasTauriInvoke } from './env.js';
 export { invoke, invokeChecked, BridgeError } from './invoke.js';

@@ -94,6 +94,7 @@ The current package publishes its public subpath exports through
   `./ui/themes/nimi-density-compact.css`)
 - 4 auth entries (`./auth`, `./auth/shell`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
 - Core entries (`./core/shell-mode`, `./core/oauth`, `./core/audio`,
+  `./core/navigation`, `./core/app-commands`,
   `./core/storage-json`, `./core/json-value`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/desktop-open`,
   `./core/runtime-capabilities`, and `./core/sdk-contract`)

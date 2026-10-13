@@ -16,6 +16,7 @@ surfaces:
   - agent-center
   - desktop-open
   - local-app
+  - shell-ui
 authority:
   id: platform.standard-shell-capabilities
   owner: platform
@@ -61,6 +62,35 @@ error_envelope:
     - resource-exhausted
     - invalid-payload
     - host-internal-error
+
+chrome_payload_policy:
+  source_rule: P-KIT-app-chrome-host
+  profiles: [electron-full-standard-shell-explicit, local-app-standard-shell-v1]
+  sender_binding: exact_registered_window_webcontents_and_main_frame_object
+  generation_owner: host_document_and_renderer_scope_binding
+  renderer_forbidden_fields: [windowId, nativeHandle, processId, role, label, url, script, endpoint, token]
+  locales: [en, zh]
+  native_commands: [undo, redo, cut, copy, paste, select-all, zoom-in, zoom-out, zoom-reset, toggle-fullscreen, close-window, quit-app]
+  operations:
+    chromeBind:
+      request_fields: [locale]
+      result_fields: [generation, menuPlacement, windowDrag, geometry, zoomFactor, fullscreen, nativeCommands, shortcuts]
+      shortcut_fields: [commandId, keys, owner]
+      shortcut_owners: [renderer, host, native-edit]
+    chromeStateSet:
+      request_fields: [generation, locale, commands, suppressMenuShortcuts]
+      command_fields: [id, enabled, visible, checked]
+      command_id_source: main_registered_static_command_catalog
+      result_fields: [updated]
+    chromeCommand:
+      request_fields: [generation, command]
+      result_fields: [executed]
+    chromeUnbind:
+      request_fields: [generation]
+      result_fields: [released]
+  events:
+    command: { name: nimi.shell.ui.chromeCommand, fields: [generation, commandId] }
+    state: { name: nimi.shell.ui.chromeState, fields: [generation, menuPlacement, windowDrag, geometry, zoomFactor, fullscreen, nativeCommands, shortcuts] }
 
 storage_payload_policy:
   root_source: host_owned_runtime_app_storage_root
@@ -374,6 +404,10 @@ capability_sets:
       - agent-center.resourcePackOpenZhiyu
       - desktop-open.openIntent
       - avatar.hostHandoff
+      - shell-ui.chromeBind
+      - shell-ui.chromeStateSet
+      - shell-ui.chromeCommand
+      - shell-ui.chromeUnbind
     planned_operations:
       - data.pathResolve
       - config.get
@@ -1563,6 +1597,18 @@ capabilities:
         negative_states:
           - capability-unavailable
           - host-internal-error
+      - id: chromeBind
+        command: nimi.shell.ui.chromeBind
+        negative_states: [capability-unavailable, invalid-payload, forbidden-renderer-access, session-invalid, host-internal-error]
+      - id: chromeStateSet
+        command: nimi.shell.ui.chromeStateSet
+        negative_states: [capability-unavailable, invalid-payload, forbidden-renderer-access, session-invalid, host-internal-error]
+      - id: chromeCommand
+        command: nimi.shell.ui.chromeCommand
+        negative_states: [capability-unavailable, invalid-payload, forbidden-renderer-access, session-invalid, host-internal-error]
+      - id: chromeUnbind
+        command: nimi.shell.ui.chromeUnbind
+        negative_states: [capability-unavailable, invalid-payload, forbidden-renderer-access, session-invalid, host-internal-error]
   - id: diagnostics
     host_contract: NimiStandardShellCapabilityHost
     operations:

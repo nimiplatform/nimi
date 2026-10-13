@@ -231,6 +231,10 @@ describe('Electron standard shell capability catalog', () => {
       'agent-center.resourcePackOpenZhiyu',
       'desktop-open.openIntent',
       'avatar.hostHandoff',
+      'shell-ui.chromeBind',
+      'shell-ui.chromeStateSet',
+      'shell-ui.chromeCommand',
+      'shell-ui.chromeUnbind',
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
@@ -373,6 +377,10 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.agentCenter.resourcePackOpenZhiyu',
       'nimi.shell.desktopOpen.openIntent',
       'nimi.shell.avatar.hostHandoff',
+      'nimi.shell.ui.chromeBind',
+      'nimi.shell.ui.chromeStateSet',
+      'nimi.shell.ui.chromeCommand',
+      'nimi.shell.ui.chromeUnbind',
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
       'data.pathResolve',

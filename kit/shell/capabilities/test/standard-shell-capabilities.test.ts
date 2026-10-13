@@ -322,6 +322,10 @@ describe('standard shell capabilities', () => {
       'agent-center.resourcePackOpenZhiyu',
       'desktop-open.openIntent',
       'avatar.hostHandoff',
+      'shell-ui.chromeBind',
+      'shell-ui.chromeStateSet',
+      'shell-ui.chromeCommand',
+      'shell-ui.chromeUnbind',
     ]);
     expect(localAppSet?.authorityStatus).toBe('app_access_declarations_with_protected_operations_unavailable_until_admission');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');

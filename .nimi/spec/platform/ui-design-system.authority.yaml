@@ -906,7 +906,7 @@ units:
     kind: rule
     title: P-KIT-030 pure core logic boundary
     modality: must
-    statement: Kit core provides shared environment, capability detection, OAuth, Desktop Open Intent and bounded canonical PCM helpers as pure TypeScript logic with no UI, styling, or rendering dependencies, consumes the SDK only through the single kit-core SDK contract boundary module, parameterizes external effects through typed ports, and detects shell mode from injected environment values without app-name assumptions.
+    statement: Kit core provides shared environment, capability detection, OAuth, Desktop Open Intent and bounded canonical PCM helpers, window-local navigation and App command composition as pure TypeScript logic with no UI, styling, or rendering dependencies, consumes the SDK only through the single kit-core SDK contract boundary module, parameterizes external effects through typed ports, and detects shell mode from injected environment values without app-name assumptions.
     condition: Whenever a shared core helper is implemented or consumed.
     failure: Reject a visual or rendering dependency, an SDK import outside the contract boundary module, a host-specific import, or hardcoded app identity.
     relations:
@@ -1274,3 +1274,67 @@ units:
         target: definition.nimi.platform.ui-design-system.nimi-ui-compositions-expressive-density
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.nimi-ui-compositions-regular-density
+  - id: definition.nimi.platform.ui-design-system.app-navigation
+    kind: definition
+    title: Window-local App navigation
+    meaning: A single Kit core in-memory controller owns the current validated App destination and bounded linear position history for one window and local invalidation generation; destinations and business state remain App-owned and the generation is never Runtime authorization.
+  - id: definition.nimi.platform.ui-design-system.app-chrome
+    kind: definition
+    title: Standard App chrome
+    meaning: Kit UI composes navigation, optional sidebar visibility and one App command model into accessible chrome; the exact native Host supplies bounded window and edit mechanics while App-owned close, quit, data and task lifecycles retain ownership.
+  - id: rule.nimi.platform.ui-design-system.p-kit-navigation
+    kind: rule
+    title: Single standard navigation controller
+    modality: must
+    statement: Kit core exposes only push, replace, back, forward, reset, readonly snapshot, subscribe and dispose for App-validated finite copyable destinations. Unknown IDs, extra fields, invalid parameters and non-position payloads fail closed. Equal normalized pushes are no-ops, replace adds no entry, push after back truncates forward history, and history retains at most 100 entries. No Router backend, activeTab mirror, custom back/forward callback, URL authority, cross-window history or persisted history is admitted.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.app-navigation
+  - id: rule.nimi.platform.ui-design-system.p-kit-navigation-lifecycle
+    kind: rule
+    title: Atomic navigation and scope invalidation
+    modality: must
+    statement: One optional App-owned leave guard admits at most one pending transition; additional requests return busy without queuing. Cancellation or failure preserves current and both sides of history. Reset and dispose invalidate pending results synchronously. Active scope switching first resolves the same leave policy before committing business scope and reset together; forced permission or session invalidation clears stale navigation immediately. History stores references only and never replays sending, generating, saving, exporting or other business work; unavailable referenced objects remain explicit unavailable destinations.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.app-navigation
+  - id: rule.nimi.platform.ui-design-system.p-kit-app-chrome
+    kind: rule
+    title: Standard chrome composition and optional panel
+    modality: must
+    statement: Kit UI owns the navigation provider, hooks, link, App chrome, keyboard-accessible menubar, About and shortcut help. Buttons, menus and shortcuts use one command declaration and current readonly enabled, visible, checked and busy states; duplicate IDs, unknown references and shortcut conflicts are rejected. Optional sidebar visibility changes layout only; absent sidebar capability or a current page without a sidebar hides its button, menu and shortcut help together. Chrome and basic window/help operations remain outside authentication and business readiness gates; business destinations remain gated by their App.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.app-chrome
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-public-surface
+  - id: rule.nimi.platform.ui-design-system.p-kit-app-chrome-host
+    kind: rule
+    title: Exact window chrome Host binding
+    modality: must
+    statement: Standard Electron chrome operations bind an actual Host-registered BrowserWindow and WebContents, validate exact renderer location, allowed Host profile, liveness and senderFrame object equality with sender.mainFrame on every call, and accept no renderer-selected window or native authority. Main-frame navigation revokes old document bindings. Bind rotates a Host-generated generation; state, commands and events accept only that generation. Renderer scope reset synchronously disables old handlers and serializes binding to the latest scope. Destroy, dispose and Host session invalidation revoke bindings; cancelled close or hide preserves them. Renderer submits only registered command booleans, supported locale and bounded edit context, never arbitrary labels, roles, URLs, scripts or IPC.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.app-chrome
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-public-surface
+  - id: rule.nimi.platform.ui-design-system.p-kit-app-chrome-native
+    kind: rule
+    title: Native menu, editing and window mechanics
+    modality: must
+    statement: Windows uses one shared chrome row and native caption overlay, with no Alt-revealed default Electron menu; macOS uses native traffic lights and one native application/menu declaration, retains system Edit roles without click callbacks, and dispatches custom commands through one native accelerator owner with acceleratorWorksWhenHidden false. Host honors IME and editor shortcut suppression. Copy supports readonly document selection; modifying edits require a current writable target. Windows restores input or connected document Range selection before bounded Host edit dispatch and rejects stale selection. Every bound WebContents uses isolated zoom; drag uses Host-admitted drag regions with interactive and overlay exclusions and current overlay geometry. Close and quit call the App existing lifecycle, never process.exit or Runtime stop. Unsupported Hosts return typed unavailable and use non-draggable web-content presentation.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.app-chrome
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-public-surface

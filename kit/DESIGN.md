@@ -133,6 +133,15 @@ components:
   button-tone-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
+  nimi-app-chrome:
+    backgroundColor: "{colors.surface-panel}"
+    height: "{spacing.9}"
+    padding: "{spacing.3}"
+    textColor: "{colors.secondary}"
+  nimi-menubar-slot-item:
+    padding: "{spacing.2}"
+    rounded: "{rounded.sm}"
+    textColor: "{colors.secondary}"
   overlay-shell-kind-panel-drawer:
     rounded: "{rounded.xl}"
   overlay-shell-slot-backdrop:
@@ -325,6 +334,7 @@ Components map the Google DESIGN.md `components` object to the admitted Nimi pri
 - `Button` (`primitive.action`): family `action`, source `P-DESIGN-012`; variants compound:3, modifier:1, size:3, state:7, tone:4.
 - `ActionMenu` (`primitive.action_menu`): family `overlay`, source `P-DESIGN-013`; variants tone:1.
 - `AmbientBackground` (`primitive.ambient_background`): family `surface`, source `P-DESIGN-023`; variants variant:3.
+- `NimiAppChrome` (`primitive.app_chrome`): family `navigation`, source `P-KIT-APP-CHROME`; variants behavior:1.
 - `Avatar` (`primitive.avatar`): family `avatar`, source `P-DESIGN-010`; variants shape:2, size:3, tone:2.
 - `Breadcrumb` (`primitive.breadcrumb`): family `navigation`, source `P-DESIGN-014`.
 - `Checkbox` (`primitive.checkbox`): family `field`, source `P-DESIGN-015`.
@@ -337,6 +347,7 @@ Components map the Google DESIGN.md `components` object to the admitted Nimi pri
 - `IconButton` (`primitive.icon_action`): family `action`, source `P-DESIGN-012`; variants modifier:1.
 - `InlineAlert` (`primitive.inline_alert`): family `feedback`, source `P-DESIGN-010`; variants tone:5.
 - `LoadingSkeleton` (`primitive.loading_skeleton`): family `feedback`, source `P-DESIGN-010`.
+- `NimiMenubar` (`primitive.menubar`): family `navigation`, source `P-KIT-APP-CHROME`; variants state:2.
 - `NumberStepper` (`primitive.number_stepper`): family `field`, source `P-DESIGN-015`.
 - `OverlayShell` (`primitive.overlay`): family `overlay`, source `P-DESIGN-013`; variants kind_backdrop:3, kind_panel:3, size:5.
 - `Pagination` (`primitive.pagination`): family `navigation`, source `P-DESIGN-014`; variants state:1.
@@ -370,6 +381,8 @@ Official component token aliases:
 - `button-state-hover-primary`: backgroundColor `{colors.primary-hover}`.
 - `button-tone-ghost`: textColor `{colors.secondary}`.
 - `button-tone-primary`: backgroundColor `{colors.primary}`, textColor `{colors.on-primary}`.
+- `nimi-app-chrome`: backgroundColor `{colors.surface-panel}`, height `{spacing.9}`, padding `{spacing.3}`, textColor `{colors.secondary}`.
+- `nimi-menubar-slot-item`: padding `{spacing.2}`, rounded `{rounded.sm}`, textColor `{colors.secondary}`.
 - `overlay-shell-kind-panel-drawer`: rounded `{rounded.xl}`.
 - `overlay-shell-slot-backdrop`: padding `{spacing.5}`.
 - `overlay-shell-slot-content`: padding `{spacing.5}`.

@@ -314,6 +314,38 @@
         "$value": "{colors.on-primary}"
       }
     },
+    "nimi-app-chrome": {
+      "backgroundColor": {
+        "$type": "string",
+        "$value": "{colors.surface-panel}"
+      },
+      "height": {
+        "$type": "string",
+        "$value": "{spacing.9}"
+      },
+      "padding": {
+        "$type": "string",
+        "$value": "{spacing.3}"
+      },
+      "textColor": {
+        "$type": "string",
+        "$value": "{colors.secondary}"
+      }
+    },
+    "nimi-menubar-slot-item": {
+      "padding": {
+        "$type": "string",
+        "$value": "{spacing.2}"
+      },
+      "rounded": {
+        "$type": "string",
+        "$value": "{rounded.sm}"
+      },
+      "textColor": {
+        "$type": "string",
+        "$value": "{colors.secondary}"
+      }
+    },
     "overlay-shell-kind-panel-drawer": {
       "rounded": {
         "$type": "string",

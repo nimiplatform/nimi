@@ -153,6 +153,18 @@ invalid for processing or that a Runtime AI capability is unavailable.
 
 ## Boundary
 
+For standard chrome, create `createNimiElectronAppChromeHost` in main with the
+App metadata, exact renderer URLs and injected Electron `app`/`Menu` adapters.
+Pass it as `chromeHost` to the App bridge (or Home's standard shell host), then
+call `bindWindow(window)` on each actual BrowserWindow before loading it. Spread
+`createNimiElectronAppChromeWindowOptions()` into the App's existing window
+options; keep security and lifecycle options App-owned. The binding requires the
+exact WebContents/mainFrame objects and current document. Real destruction,
+document navigation, Host session invalidation and unregister revoke it; a
+cancelled close or hide does not. Close/quit call the App's existing lifecycle.
+macOS Edit items use native roles with no renderer callbacks; other shortcuts
+have one declared owner. Every registered WebContents uses isolated zoom.
+
 - Main process code owns app-scoped IPC command registration, origin
   allowlisting, Runtime gRPC proxying, stream forwarding, and artifact URL
   serving.

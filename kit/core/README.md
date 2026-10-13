@@ -11,6 +11,12 @@ presentation helpers.
 - `@nimiplatform/kit/core/storage-json`
 - `@nimiplatform/kit/core/offline-coordinator`
 - `@nimiplatform/kit/core/notifications`
+- `@nimiplatform/kit/core/navigation`: typed window-local destination, snapshot,
+  `createNimiNavigation` with immutable snapshots, push/replace/back/forward,
+  one pending App leave policy, forced reset/dispose and a fixed 100-entry bound.
+- `@nimiplatform/kit/core/app-commands`: standard command IDs and App declaration
+  types and `createNimiAppCommandSet`. App IDs cannot use the reserved `nimi.`
+  prefix; duplicate IDs, unknown references and conflicting shortcuts are refused.
 - `@nimiplatform/kit/core/audio`: bounded float32 WAV frames, min/max waveforms,
   same-rate/channel mixing and streaming WAV output, with an explicit Worker port.
 - Current surfaces:

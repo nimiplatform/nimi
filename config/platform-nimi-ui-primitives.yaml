@@ -39,3 +39,5 @@ surfaces:
   - primitive.pagination
   - primitive.breadcrumb
   - primitive.steps
+  - primitive.app_chrome
+  - primitive.menubar

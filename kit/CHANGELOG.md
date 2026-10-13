@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.21.0 — 2026-10-13
+
+Standard App navigation and chrome add `core/navigation`, `core/app-commands`
+and `ui/app-chrome`, with typed renderer bridge and Electron main bindings.
+Use SDK 0.21.0 and the matching Kit 0.21.0 native npm package; native ABI and
+Rust crate versions remain unchanged. This is a breaking 0.x minor.
+
+Create one in-memory controller per window/scope. Move page references into
+its App-validated destination; render from its immutable snapshot and use
+push/replace/back/forward for every entry. Remove writable activeTab/router
+history mirrors and persisted navigation restoration. Keep business data,
+drafts, effects and leave decisions in the App. Reset on forced scope loss;
+complete an App leave decision before a voluntary account/child switch.
+
+Create and inject the main chrome Host, bind each actual BrowserWindow before
+loading it, and render `NimiAppChrome` outside business gates. Declare a
+sidebar only when one exists. Host operations require the current binding
+generation, exact WebContents/mainFrame and document; hidden accelerators stop,
+native macOS Edit uses system roles, and zoom is isolated per WebContents.
+
+Home removes its old global tab/back-stack and duplicate detail/conversation/
+settings positions. Old generated activeViewId/localStorage paths and external
+App routers must be manually cut to App-owned destinations alongside matching
+managed Host glue. There are no compatibility aliases or automatic history
+migrations. App Tools provides the complete scaffold contract and migration
+instructions with its matching release.
+
 ## 0.20.0 — 2026-10-13
 
 This release includes breaking 0.x API changes. Keep SDK 0.21.0 and upgrade

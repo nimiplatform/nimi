@@ -165,6 +165,17 @@
       "backgroundColor": "{colors.primary}",
       "textColor": "{colors.on-primary}"
     },
+    "nimi-app-chrome": {
+      "backgroundColor": "{colors.surface-panel}",
+      "height": "{spacing.9}",
+      "padding": "{spacing.3}",
+      "textColor": "{colors.secondary}"
+    },
+    "nimi-menubar-slot-item": {
+      "padding": "{spacing.2}",
+      "rounded": "{rounded.sm}",
+      "textColor": "{colors.secondary}"
+    },
     "overlay-shell-kind-panel-drawer": {
       "rounded": "{rounded.xl}"
     },
@@ -2637,6 +2648,31 @@
         }
       },
       {
+        "id": "primitive.app_chrome",
+        "family": "navigation",
+        "component": "NimiAppChrome",
+        "sourceRule": "P-KIT-APP-CHROME",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-app-chrome"
+          },
+          {
+            "id": "controls",
+            "className": "nimi-app-chrome__controls"
+          }
+        ],
+        "variants": {
+          "behavior": [
+            {
+              "id": "drag",
+              "className": "nimi-app-chrome--drag",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
         "id": "primitive.avatar",
         "family": "avatar",
         "component": "Avatar",
@@ -3072,6 +3108,40 @@
           }
         ],
         "variants": {}
+      },
+      {
+        "id": "primitive.menubar",
+        "family": "navigation",
+        "component": "NimiMenubar",
+        "sourceRule": "P-KIT-APP-CHROME",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-menubar"
+          },
+          {
+            "id": "panel",
+            "className": "nimi-menubar__panel"
+          },
+          {
+            "id": "item",
+            "className": "nimi-menubar__item"
+          }
+        ],
+        "variants": {
+          "state": [
+            {
+              "id": "focused",
+              "className": "nimi-menubar__item--focused",
+              "selector": ".nimi-menubar__item:hover, .nimi-menubar__item:focus-visible"
+            },
+            {
+              "id": "disabled",
+              "className": "nimi-menubar__item--disabled",
+              "selector": ".nimi-menubar__item:disabled"
+            }
+          ]
+        }
       },
       {
         "id": "primitive.number_stepper",

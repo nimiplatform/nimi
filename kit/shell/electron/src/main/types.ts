@@ -83,6 +83,7 @@ export type NimiElectronIpcMainInvokeEvent = {
     readonly url?: string;
   } | null;
   readonly sender?: {
+    readonly mainFrame?: object;
     readonly id?: number;
     readonly send?: (channel: string, payload: unknown) => void;
     readonly on?: {
@@ -344,6 +345,7 @@ export type NimiElectronStandardStorageRoots = {
 };
 
 export type NimiElectronStandardShellHost = {
+  readonly chromeHost?: import('./app-chrome.js').NimiElectronAppChromeHost;
   readonly capabilitySetRef?: string;
   readonly allowAllStandardShellCommands?: boolean;
   readonly localAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;

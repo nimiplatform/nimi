@@ -8,3 +8,17 @@ The machine authority for this module is
 `config/platform-standard-shell-capabilities.yaml`.
 Human guides, acceptance matrices, and gate descriptions may reference that
 table, but they do not create a parallel source of truth.
+
+The chrome contract is exported from this entry: `NimiChromeBindRequest`,
+`NimiChromeState`, `NimiChromeStateSetRequest`, `NimiChromeCommandRequest` and
+`NimiChromeUnbindRequest`. Its four operations use the existing standard bridge.
+Every non-bind operation and command/state event carries the current Host-issued
+generation. Locale selects a registered `en`/`zh` catalog; state updates carry
+only registered command IDs and booleans. Renderer code cannot select a window,
+inject a role, label, URL or script, or receive native handles or clipboard text.
+Chrome state projects independent UI behavior: menu placement, drag availability,
+geometry, supported native commands and shortcut execution ownership. Consumers
+use each fact directly; the facade exposes no OS identifier or combined Host
+presentation mode. Native platform selection remains in Electron main.
+Declaring this contract does not establish a working Host implementation;
+unsupported or unbound Hosts return typed unavailable.

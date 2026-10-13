@@ -322,6 +322,7 @@ export function registerNimiElectronRuntimeBridge(
   };
   // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
   const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(async () => {
+    input.standardShellHost?.chromeHost?.invalidateAll();
     for (const stream of desktopStreams.values()) stream.cancel();
     desktopStreams.clear();
     cancelRuntimeUnaries(desktopUnaries, 'Desktop renderer was invalidated during Runtime unary');
@@ -594,6 +595,14 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']) {
       return focusElectronMainWindow({ host: effectiveStandardShellHost, command, event, appId: effectiveAppId, runtimeEndpoint });
     }
+    const chromeOperation = (['chromeBind', 'chromeStateSet', 'chromeCommand', 'chromeUnbind'] as const)
+      .find(operation => command === NIMI_STANDARD_SHELL_COMMANDS[`shell-ui.${operation}`]);
+    if (chromeOperation) {
+      const chromeHost = effectiveStandardShellHost?.chromeHost;
+      if (!chromeHost || !event.sender?.send) throw createElectronCapabilityUnavailableError(command);
+      return chromeHost.invoke(chromeOperation, standardPayload, event,
+        (eventName, eventPayload) => event.sender!.send!(`${eventChannelPrefix}${eventName}`, eventPayload));
+    }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return runDataRootOperation(() => resolveElectronStandardLocalAssetUrl(effectiveStandardShellHost, standardPayload, command));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open']) return openElectronShellFileDialog(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return runDataRootOperation(() => revealElectronShellFile(effectiveStandardShellHost, standardPayload, command));
@@ -706,6 +715,7 @@ export function registerNimiElectronRuntimeBridge(
         }
       : {}),
     unregister: () => {
+      input.standardShellHost?.chromeHost?.dispose();
       rendererAssetStreams.dispose();
       input.ipcMain.removeHandler?.(invokeChannel);
       for (const stream of desktopStreams.values()) stream.cancel();

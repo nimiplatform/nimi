@@ -146,6 +146,10 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'agent-center.resourcePackOpenZhiyu',
   'desktop-open.openIntent',
   'avatar.hostHandoff',
+  'shell-ui.chromeBind',
+  'shell-ui.chromeStateSet',
+  'shell-ui.chromeCommand',
+  'shell-ui.chromeUnbind',
 ] as const;
 
 describe('local-app public capability behavior', () => {

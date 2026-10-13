@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "The product-grade cross-app toolkit for Nimi apps.",
   "license": "MIT",
   "private": false,
@@ -29,6 +29,21 @@
   ],
   "type": "module",
   "exports": {
+    "./ui/app-chrome": {
+      "types": "./dist/ui/app-chrome/index.d.ts",
+      "import": "./dist/ui/app-chrome/index.js",
+      "default": "./dist/ui/app-chrome/index.js"
+    },
+    "./core/navigation": {
+      "types": "./dist/core/navigation.d.ts",
+      "import": "./dist/core/navigation.js",
+      "default": "./dist/core/navigation.js"
+    },
+    "./core/app-commands": {
+      "types": "./dist/core/app-commands.d.ts",
+      "import": "./dist/core/app-commands.js",
+      "default": "./dist/core/app-commands.js"
+    },
     "./core/audio": {
       "types": "./dist/core/audio/index.d.ts",
       "import": "./dist/core/audio/index.js",

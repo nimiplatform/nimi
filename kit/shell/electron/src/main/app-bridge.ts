@@ -24,7 +24,7 @@ import {
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'assetMediaPlatform', 'ipcMain'] as const;
-const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers', 'onSessionInvalidated', 'onSessionReady'] as const;
+const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers', 'onSessionInvalidated', 'onSessionReady', 'chromeHost'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 const DESKTOP_PARENT_POLL_MS = 250;
 /** Mirrors the 2 s a Desktop stop gives a Host between SIGTERM and SIGKILL. */
@@ -32,6 +32,8 @@ export const DESKTOP_PARENT_LOSS_EXIT_BUDGET_MS = 2_000;
 let desktopParentMonitor: NodeJS.Timeout | undefined;
 
 export type RegisterNimiElectronAppBridgeInput = {
+  /** Main-only finite chrome binding; register each real window before loading. */
+  readonly chromeHost?: import('./app-chrome.js').NimiElectronAppChromeHost;
   readonly appId: string;
   readonly allowedRendererUrls: readonly string[];
   readonly assetMediaPlatform: NimiElectronAppAssetMediaPlatform;
@@ -96,6 +98,7 @@ export function registerNimiElectronAppBridge(
     businessInvalidated = true;
     readyDelivered = false;
     localAppAssetMediaHost?.invalidateAll();
+    input.chromeHost?.invalidateAll();
     business?.close();
     input.onSessionInvalidated?.();
   };
@@ -129,6 +132,7 @@ export function registerNimiElectronAppBridge(
       });
     },
     standardShellHost: {
+      chromeHost: input.chromeHost,
       capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       localAppHost,
       localAppAssetMediaHost,
@@ -151,6 +155,7 @@ export function registerNimiElectronAppBridge(
     business?.close();
     input.onSessionInvalidated?.();
     localAppAssetMediaHost.close();
+    input.chromeHost?.dispose();
     registered.unregister();
   };
   maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost, undefined, invalidate);

@@ -24,3 +24,9 @@ code, app stores, navigation, or product UI.
   Missing providers or targets fail closed; there is no global host fallback.
 - Host-specific implementation remains in `kit/shell/tauri` or
   `kit/shell/electron`.
+
+The bridge exports typed chrome bind/state/command/unbind functions and
+generation-bound event subscriptions. Their responses are checked against the
+closed shell contract. UI consumes `menuPlacement`, `windowDrag`, caption
+geometry and shortcut ownership independently; these facts are not an OS
+discriminator. An unsupported Tauri or content host stays typed unavailable.

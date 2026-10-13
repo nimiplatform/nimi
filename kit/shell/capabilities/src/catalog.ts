@@ -125,6 +125,10 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'confirmDialog', command: 'nimi.shell.ui.confirmDialog', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
       { id: 'startWindowDrag', command: 'nimi.shell.ui.startWindowDrag', negativeStates: ['capability-unavailable', 'host-internal-error'] },
       { id: 'focusMainWindow', command: 'nimi.shell.ui.focusMainWindow', negativeStates: ['capability-unavailable', 'host-internal-error'] },
+      { id: 'chromeBind', command: 'nimi.shell.ui.chromeBind', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
+      { id: 'chromeStateSet', command: 'nimi.shell.ui.chromeStateSet', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
+      { id: 'chromeCommand', command: 'nimi.shell.ui.chromeCommand', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
+      { id: 'chromeUnbind', command: 'nimi.shell.ui.chromeUnbind', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
     ],
   },
   {
@@ -515,6 +519,10 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'agent-center.resourcePackOpenZhiyu',
   'desktop-open.openIntent',
   'avatar.hostHandoff',
+  'shell-ui.chromeBind',
+  'shell-ui.chromeStateSet',
+  'shell-ui.chromeCommand',
+  'shell-ui.chromeUnbind',
 ];
 
 const LOCAL_APP_FORBIDDEN_OPERATIONS = [

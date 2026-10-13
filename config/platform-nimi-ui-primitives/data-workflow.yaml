@@ -12,8 +12,87 @@ surfaces:
   - primitive.pagination
   - primitive.breadcrumb
   - primitive.steps
+  - primitive.app_chrome
+  - primitive.menubar
 
 primitives:
+  - id: primitive.app_chrome
+    family: navigation
+    component: NimiAppChrome
+    slots:
+      - id: root
+        class_name: nimi-app-chrome
+        styles:
+          display: flex
+          align-items: center
+          flex-shrink: "0"
+          min-width: "0"
+          height: var(--nimi-space-9)
+          gap: var(--nimi-space-2)
+          padding-inline: var(--nimi-space-3)
+          background: var(--nimi-surface-panel)
+          color: var(--nimi-text-secondary)
+          border-bottom: var(--nimi-border-width-default) solid var(--nimi-border-subtle)
+          box-sizing: border-box
+      - id: controls
+        class_name: nimi-app-chrome__controls
+        styles:
+          display: flex
+          align-items: center
+          gap: var(--nimi-space-2)
+          -webkit-app-region: no-drag
+    class_groups:
+      behavior:
+        - id: drag
+          class_name: nimi-app-chrome--drag
+          styles:
+            -webkit-app-region: drag
+    source_rule: P-KIT-APP-CHROME
+  - id: primitive.menubar
+    family: navigation
+    component: NimiMenubar
+    slots:
+      - id: root
+        class_name: nimi-menubar
+        styles:
+          display: flex
+          align-items: center
+          gap: var(--nimi-space-1)
+          -webkit-app-region: no-drag
+      - id: panel
+        class_name: nimi-menubar__panel
+        styles:
+          max-height: calc(100vh - var(--nimi-space-10))
+          max-width: calc(100vw - var(--nimi-space-5))
+          overflow-y: auto
+          -webkit-app-region: no-drag
+      - id: item
+        class_name: nimi-menubar__item
+        styles:
+          display: flex
+          align-items: center
+          gap: var(--nimi-space-3)
+          width: 100%
+          min-height: var(--nimi-sizing-action-sm-height)
+          padding: var(--nimi-space-2) var(--nimi-space-4)
+          border-radius: var(--nimi-radius-sm)
+          color: var(--nimi-text-secondary)
+          font-size: var(--nimi-type-body-sm-size)
+    class_groups:
+      state:
+        - id: focused
+          class_name: nimi-menubar__item--focused
+          selector: .nimi-menubar__item:hover, .nimi-menubar__item:focus-visible
+          styles:
+            outline: var(--nimi-border-width-default) solid var(--nimi-border-focus)
+            background: var(--nimi-action-ghost-hover)
+        - id: disabled
+          class_name: nimi-menubar__item--disabled
+          selector: .nimi-menubar__item:disabled
+          styles:
+            opacity: var(--nimi-opacity-disabled)
+            cursor: not-allowed
+    source_rule: P-KIT-APP-CHROME
   - id: primitive.action_menu
     family: overlay
     component: ActionMenu

@@ -30,3 +30,17 @@ Foundation design system for shared tokens, primitives, themes, and generated vi
 - `pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-ui-pattern`
 - `pnpm check:nimi-ui-lib-drift`
+
+## Standard App chrome
+
+`@nimiplatform/kit/ui/app-chrome` exports `NimiAppChrome`,
+`NimiNavigationProvider`, navigation hooks and `NimiNavigationLink`. The App
+creates one core controller and defines its destination validator and leave
+policy. Render content from its snapshot, and route every entry through that
+controller. Supply real App metadata, `locale`, and an optional `sidebar` layout
+description; omitting the sidebar hides its button, menu item and shortcut help.
+`scopeKey` is local UI invalidation, never a Host credential. Help and window
+commands belong outside business/login gates; disable navigation while those
+gates are closed. The chrome restores the original writable or readonly selection
+before an edit menu action. Business data, drafts and one-shot effects stay in the
+App; history carries references only.
