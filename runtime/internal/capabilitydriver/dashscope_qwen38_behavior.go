@@ -2,12 +2,14 @@ package capabilitydriver
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
+	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 	"google.golang.org/grpc/codes"
 )
 
@@ -95,33 +97,80 @@ func DashscopeQwen38NonStreamParser(payload []byte, spec *runtimev1.TextGenerate
 }
 
 func parseStrictChatJSONSchema(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
-	invalid := func() error { return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID) }
+	invalid := func(stage string) error {
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			grpcerr.ReasonOptions{Metadata: map[string]string{"diagnostic_stage": stage}})
+	}
 	format := spec.GetResponseFormat()
 	if len(spec.GetTools()) != 0 || format.GetJsonSchema() == nil || !format.GetStrict() {
-		return textbehavior.NormalizedResult{}, invalid()
+		return textbehavior.NormalizedResult{}, invalid("text_json_schema_request")
 	}
 	value, err := decodeDeepseekJSONEnvelope(payload)
 	if err != nil || len(value.Choices) != 1 || value.Choices[0].Index == nil || *value.Choices[0].Index != 0 {
-		return textbehavior.NormalizedResult{}, invalid()
+		return textbehavior.NormalizedResult{}, invalid("text_json_schema_envelope")
 	}
 	choice := value.Choices[0]
 	if err := deepseekJSONFinish(choice.FinishReason); err != nil {
+		if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+			return textbehavior.NormalizedResult{}, invalid("text_json_schema_finish_reason")
+		}
 		return textbehavior.NormalizedResult{}, err
 	}
 	answer, err := deepseekJSONMessageText(choice.Message)
 	if err != nil {
+		if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+			return textbehavior.NormalizedResult{}, invalid("text_json_schema_message_content")
+		}
 		return textbehavior.NormalizedResult{}, err
 	}
 	var instance any
 	decoder := json.NewDecoder(strings.NewReader(answer))
 	decoder.UseNumber()
 	if decoder.Decode(&instance) != nil || decoder.Decode(new(any)) != io.EOF {
-		return textbehavior.NormalizedResult{}, invalid()
+		return textbehavior.NormalizedResult{}, invalid("text_json_schema_json_decode")
 	}
 	schema, err := textbehavior.CompileJSONSchema(format.GetJsonSchema().AsMap())
-	if err != nil || schema.Validate(instance) != nil {
-		return textbehavior.NormalizedResult{}, invalid()
+	if err != nil {
+		return textbehavior.NormalizedResult{}, invalid("text_json_schema_compile")
+	}
+	if err := schema.Validate(instance); err != nil {
+		return textbehavior.NormalizedResult{}, invalid(strictChatSchemaDiagnosticStage(err))
 	}
 	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: answer}},
 		FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: deepseekJSONUsage(value)}, nil
+}
+
+// Report a finite validation category through the existing public diagnostic
+// slot. JSON Schema error strings, instance paths and values may contain App
+// content, so none of them cross the protected error boundary.
+func strictChatSchemaDiagnosticStage(err error) string {
+	var validation *jsonschema.ValidationError
+	if !errors.As(err, &validation) {
+		return "text_json_schema_validation"
+	}
+	for len(validation.Causes) > 0 {
+		validation = validation.Causes[0]
+	}
+	if validation.ErrorKind != nil {
+		path := validation.ErrorKind.KeywordPath()
+		if len(path) == 1 {
+			switch path[0] {
+			case "minLength":
+				return "text_json_schema_min_length"
+			case "maxLength":
+				return "text_json_schema_max_length"
+			case "minItems":
+				return "text_json_schema_min_items"
+			case "maxItems":
+				return "text_json_schema_max_items"
+			case "type":
+				return "text_json_schema_type"
+			case "required":
+				return "text_json_schema_required"
+			case "additionalProperties":
+				return "text_json_schema_additional_properties"
+			}
+		}
+	}
+	return "text_json_schema_validation"
 }

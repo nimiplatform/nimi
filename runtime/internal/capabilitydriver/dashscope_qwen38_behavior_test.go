@@ -2,6 +2,7 @@ package capabilitydriver
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -38,6 +39,86 @@ func TestDashscopeQwen38RequestCapturesNonThinkingOptions(t *testing.T) {
 	_, err = DashscopeQwen38RequestSerializer(spec, false)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
 		t.Fatalf("unverified sampling control reason=%v present=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestStrictChatSchemaDiagnosticsKeepFailureCategoriesWithoutContent(t *testing.T) {
+	response := func(content, finish string) []byte {
+		payload, err := json.Marshal(map[string]any{"choices": []any{map[string]any{
+			"index": 0, "finish_reason": finish, "message": map[string]any{"content": content},
+		}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return payload
+	}
+	for _, tt := range []struct {
+		name    string
+		schema  map[string]any
+		payload []byte
+		stage   string
+	}{
+		{"envelope", map[string]any{"type": "object"}, []byte(`{"private-sentinel":true}`), "envelope"},
+		{"finish", map[string]any{"type": "object"}, response(`{"private-sentinel":true}`, "unknown"), "finish_reason"},
+		{"message", map[string]any{"type": "object"}, []byte(`{"choices":[{"index":0,"finish_reason":"stop","message":{"content":"{}","reasoning_content":"private-sentinel"}}]}`), "message_content"},
+		{"json", map[string]any{"type": "object"}, response("private-sentinel", "stop"), "json_decode"},
+		{"schema", map[string]any{"type": "private-sentinel"}, response(`{}`, "stop"), "compile"},
+		{"short Chinese", map[string]any{"type": "string", "minLength": 100}, response(`"中文"`, "stop"), "min_length"},
+		{"long text", map[string]any{"type": "string", "maxLength": 2}, response(`"private-sentinel"`, "stop"), "max_length"},
+		{"few items", map[string]any{"type": "array", "minItems": 2}, response(`["private-sentinel"]`, "stop"), "min_items"},
+		{"many items", map[string]any{"type": "array", "maxItems": 1}, response(`["private-sentinel",2]`, "stop"), "max_items"},
+		{"type", map[string]any{"type": "boolean"}, response(`"private-sentinel"`, "stop"), "type"},
+		{"required", map[string]any{"type": "object", "required": []any{"private-sentinel"}}, response(`{}`, "stop"), "required"},
+		{"extra property", map[string]any{"type": "object", "additionalProperties": false}, response(`{"private-sentinel":true}`, "stop"), "additional_properties"},
+		{"enum", map[string]any{"enum": []any{"private-sentinel"}}, response(`"other"`, "stop"), "validation"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			schema, err := structpb.NewStruct(tt.schema)
+			if err != nil {
+				t.Fatal(err)
+			}
+			spec := &runtimev1.TextGenerateScenarioSpec{ResponseFormat: &runtimev1.ResponseFormat{
+				Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA, JsonSchema: schema, Strict: true}}
+			result, err := DashscopeQwen38NonStreamParser(tt.payload, spec)
+			if len(result.Items) != 0 {
+				t.Fatal("invalid result exposed content")
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+				t.Fatalf("reason=%v err=%v", reason, err)
+			}
+			metadata, _ := grpcerr.ExtractReasonMetadata(err)
+			if metadata["diagnostic_stage"] != "text_json_schema_"+tt.stage {
+				t.Fatalf("metadata=%v", metadata)
+			}
+			encoded, _ := json.Marshal(metadata)
+			if strings.Contains(string(encoded)+err.Error(), "private-sentinel") {
+				t.Fatal("diagnostic exposed content")
+			}
+			normalized := (providerCloudTextDriver{}).NormalizeReason(err)
+			preserved, _ := grpcerr.ExtractReasonMetadata(normalized)
+			if preserved["diagnostic_stage"] != metadata["diagnostic_stage"] {
+				t.Fatal("driver lost diagnostic stage")
+			}
+		})
+	}
+}
+
+func TestStrictChatSchemaDiagnosticsPreserveFilteredAndIncompleteReasons(t *testing.T) {
+	schema, _ := structpb.NewStruct(map[string]any{"type": "object"})
+	spec := &runtimev1.TextGenerateScenarioSpec{ResponseFormat: &runtimev1.ResponseFormat{
+		Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA, JsonSchema: schema, Strict: true}}
+	for _, tt := range []struct {
+		finish string
+		reason runtimev1.ReasonCode
+	}{
+		{"length", runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE},
+		{"content_filter", runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED},
+	} {
+		payload := []byte(`{"choices":[{"index":0,"finish_reason":"` + tt.finish + `","message":{"content":"{}"}}]}`)
+		_, err := DashscopeQwen38NonStreamParser(payload, spec)
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != tt.reason {
+			t.Fatalf("reason=%v want=%v", reason, tt.reason)
+		}
 	}
 }
 
