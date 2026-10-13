@@ -4,6 +4,44 @@ import { createAppBusinessServices } from '../src/main/app-business-services.js'
 import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
 
 describe('App-owned Node services on the existing protected Host', () => {
+  it('projects the public preset voice query to the native Host input without App-owned selectors', async () => {
+    const requests: unknown[] = [];
+    const voices = [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'] }];
+    const owner = createAppBusinessServices({
+      aiConfigLocalOptions: async (input: Record<string, unknown>) => {
+        requests.push(input);
+        // NativeAIConfigLocalOptionsInput requires this string even for the
+        // owner-free SDK query, whose only public field is kind.
+        if (typeof input.capabilityContract !== 'string') throw new TypeError('Missing native capabilityContract');
+        return { kind: 'preset-voices', options: voices, truncated: false };
+      },
+    } as unknown as NimiElectronLocalAppHost);
+    await expect(owner.services.aiConfig.listOptions({ kind: 'preset-voices' })).resolves.toEqual({
+      kind: 'preset-voices', options: voices, truncated: false,
+    });
+    expect(requests).toEqual([{ kind: 'preset-voices', capabilityContract: '', search: '' }]);
+    owner.close();
+  });
+
+  it('preserves AIConfig option scopes and an explicit search while filling an omitted search', async () => {
+    const requests: unknown[] = [];
+    const owner = createAppBusinessServices({
+      aiConfigLocalOptions: async (input: Record<string, unknown>) => {
+        requests.push(input);
+        return { kind: input.kind, options: [], truncated: false };
+      },
+    } as unknown as NimiElectronLocalAppHost);
+    await owner.services.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'audio.synthesize' });
+    await owner.services.aiConfig.listOptions({ kind: 'cloud-connectors', capabilityContract: 'audio.synthesize', search: 'speech' });
+    await owner.services.aiConfig.listOptions({ kind: 'cloud-targets', capabilityContract: 'audio.synthesize', connectorRef: 'connector-1' });
+    expect(requests).toEqual([
+      { kind: 'local-loadouts', capabilityContract: 'audio.synthesize', search: '' },
+      { kind: 'cloud-connectors', capabilityContract: 'audio.synthesize', search: 'speech' },
+      { kind: 'cloud-targets', capabilityContract: 'audio.synthesize', connectorRef: 'connector-1', search: '' },
+    ]);
+    owner.close();
+  });
+
   it('preserves generic action identity through submit and pure lookup', async () => {
     const calls: unknown[] = [];
     const job = { jobId: 'locate-job', scenarioType: 'vision-locate', status: 'submitted', submissionOutcome: 'not-dispatched',

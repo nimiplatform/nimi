@@ -261,7 +261,9 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
     aiConfig: createNimiLocalAppAIConfigClient({
       get: () => request('aiConfigGet'),
       overwrite: (input) => request('aiConfigOverwrite', input),
-      listOptions: (input) => request('aiConfigLocalOptions', input),
+      listOptions: (input) => request('aiConfigLocalOptions', input.kind === 'preset-voices'
+        ? { kind: input.kind, capabilityContract: '', search: '' }
+        : { ...input, search: input.search ?? '' }),
     }),
     storage: Object.freeze({
       ...createNimiAppRuntimeStorageClient({

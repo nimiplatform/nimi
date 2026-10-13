@@ -35,6 +35,13 @@ API change for the next release; the shipped version is unchanged here.
   Machine selections can change independently of the App AIConfig revision;
   each click reads them again, skips unchanged routes, and applies newly
   selected capabilities with the existing compare-and-swap operation.
+## Host AIConfig option projection (next release, development)
+
+Electron App-owned Node services now project the public preset-voice query to
+the native AIConfig input. `services.aiConfig.listOptions({ kind: 'preset-voices' })`
+no longer fails on a missing native capability field. Other option queries
+retain their capability, connector and search values. The public API and native
+ABI are unchanged; Apps do not supply native-only fields.
 
 ## 0.19.3 — 2026-10-12
 
