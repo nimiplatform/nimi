@@ -41,6 +41,9 @@ export function errorText(error: unknown): string {
   if (!error || typeof error !== 'object') return String(error);
   const record = error as { message?: string; reasonCode?: string; code?: string };
   const reason = record.reasonCode || record.code || '';
+  const normalized = reason.replaceAll('_', '-').toLowerCase();
+  if (normalized === 'ai-local-configuration-not-configured') return '这项任务还没有就绪的本地模型。请到 Nimi 的「AI 能力」完成对应能力的设置后重试。';
+  if (normalized === 'ai-text-behavior-unsupported') return '当前模型不支持这项工作需要的行为。请到 Nimi 的「AI 能力」选择支持该任务的配置后重试。';
   const messages: Record<string, string> = { 'avatar-host-mechanic-failed': '这次未能在桌面上叫出搭档，请在 Nimi 检查这位 Agent 的形象配置后重试。', 'local-app-access-denied': '这次执行的访问已结束或失效。已有成果保留，请重新打开工作区确认状态。', 'runtime-unauthenticated': 'Nimi 连接已变化，请重新打开同一工作区后重试。', 'local-app-operation-unsupported': '当前 Nimi Runtime 尚不支持这项操作，请更新运行环境后重试。', 'agent-busy': '这位搭档正在别处工作，请稍后重试。', 'AI_STREAM_BROKEN': '这次执行没有完整返回。已保存的成果仍然保留，请查看后决定是否重试。', 'LOCAL_APP_ACCESS_DENIED': '当前授权不可用，请在 Nimi 检查此应用的 Agent 访问。', 'AGENT_TURN_ALREADY_ACTIVE': '这位 Agent 正在处理另一项工作，请稍后重试。', 'AI_PROVIDER_TIMEOUT': 'Agent 等待模型超时，已保存的成果仍然保留。', 'AI_OUTPUT_INVALID': 'Agent 本次返回不符合执行契约，请查看已有成果后重试。', 'agent-turn-already-active': '这位 Agent 正忙，请稍后重试。' };
   return messages[reason] || [...new Set([record.message || '操作未完成', reason].filter(Boolean))].join(' · ');
 }
@@ -49,6 +52,7 @@ const AI_SETUP_REASONS = new Set([
   'ai-config-invalid', 'ai-config-not-found', 'ai-connector-not-found', 'ai-model-not-found', 'ai-model-not-ready',
   'ai-local-configuration-not-configured', 'ai-local-model-unavailable', 'ai-local-model-profile-missing',
   'ai-local-selection-not-found', 'ai-provider-auth-failed', 'ai-route-unsupported',
+  'ai-text-behavior-unsupported',
 ]);
 export function errorReasonOf(error: unknown): string {
   const record = error as { reasonCode?: unknown; code?: unknown } | null;
