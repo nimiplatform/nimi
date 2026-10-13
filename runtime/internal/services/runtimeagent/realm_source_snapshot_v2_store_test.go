@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"log/slog"
 	"path/filepath"
@@ -50,6 +51,14 @@ func TestRealmSourceSnapshotV2StoreReloadsOfficialVectorsAcrossRestart(t *testin
 			}
 			if err := restartStore.validatePersistedSnapshots(context.Background()); err != nil {
 				t.Fatalf("restart SnapshotV2 validation: %v", err)
+			}
+			restarted, err := NewWithBackend(slog.New(slog.NewTextHandler(io.Discard, nil)), statePath, reopened)
+			if err != nil {
+				t.Fatalf("restart Agent with validated source bindings: %v", err)
+			}
+			defer restarted.Close()
+			if view := restarted.turnSourceViews[localAgentRef]; view.SnapshotHash != before.SnapshotHash {
+				t.Fatal("restart did not hydrate the committed source view")
 			}
 			after, found, err := restartStore.sourceSnapshot(context.Background(), localAgentRef)
 			if err != nil || !found {
@@ -132,7 +141,38 @@ func TestRealmSourceSnapshotV2StoreRejectsHashAndProvenanceTamper(t *testing.T) 
 		if err := store.validatePersistedSnapshots(context.Background()); err == nil {
 			t.Fatal("restart gate admitted provenance-tampered SnapshotV2")
 		}
+		previousView := svc.turnSourceViews[localAgentRef]
+		if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err == nil {
+			t.Fatal("combined restart binding gate admitted provenance-tampered SnapshotV2")
+		}
+		if svc.turnSourceViews[localAgentRef].SnapshotHash != previousView.SnapshotHash {
+			t.Fatal("failed restart validation published a partial source view")
+		}
 	})
+}
+
+func TestRealmSourceSnapshotV2RestartBindingsRejectMissingAndOrphanedMembership(t *testing.T) {
+	for _, orphanSnapshot := range []bool{false, true} {
+		t.Run(fmt.Sprintf("orphan-snapshot-%t", orphanSnapshot), func(t *testing.T) {
+			statePath := filepath.Join(t.TempDir(), "runtime-state.json")
+			svc, localAgentRef, closeService := persistRealmSourceSnapshotV2StoreTestProduct(t, statePath, "world-character")
+			defer closeService()
+			if orphanSnapshot {
+				delete(svc.agents, localAgentRef)
+			} else {
+				extra := cloneLocalAgentRecord(svc.agents[localAgentRef].Agent)
+				extra.LocalAgentRef = realmSourceMaterializationProductTestLocalAgentRef("missing-snapshot")
+				svc.agents[extra.LocalAgentRef] = &agentEntry{Agent: extra}
+			}
+			previousView := svc.turnSourceViews[localAgentRef]
+			if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err == nil {
+				t.Fatal("restart admitted a non-bijective Agent/snapshot membership")
+			}
+			if svc.turnSourceViews[localAgentRef].SnapshotHash != previousView.SnapshotHash {
+				t.Fatal("failed restart validation published a partial source view")
+			}
+		})
+	}
 }
 
 func persistRealmSourceSnapshotV2StoreTestProduct(t *testing.T, statePath, vectorName string) (*Service, string, func()) {

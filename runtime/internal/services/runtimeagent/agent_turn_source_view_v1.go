@@ -36,6 +36,13 @@ func localAgentTurnSourceViewFromSnapshotV1(snapshot localAgentSourceSnapshotV2)
 	if err := validateLocalAgentSourceSnapshotV2(snapshot); err != nil {
 		return localAgentTurnSourceViewV1{}, fmt.Errorf("hydrate LocalAgent turn source view: %w", err)
 	}
+	return localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot)
+}
+
+// Only callers that just completed full snapshot validation may use this
+// projection. The restart store validates payload, columns and provenance
+// before invoking its visitor, so that path needs no second full hash pass.
+func localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot localAgentSourceSnapshotV2) (localAgentTurnSourceViewV1, error) {
 	partitionRaw, err := canonicalizeSourceMaterializationRealmV3(snapshot.Partition)
 	if err != nil {
 		return localAgentTurnSourceViewV1{}, fmt.Errorf("encode LocalAgent turn partition binding: %w", err)

@@ -548,6 +548,12 @@ func localAgentRealmSourceProvenanceKeyV3(snapshot localAgentSourceSnapshotV2) (
 	if err := validateLocalAgentSourceSnapshotV2(snapshot); err != nil {
 		return "", err
 	}
+	return localAgentRealmSourceProvenanceKeyForValidatedSnapshotV3(snapshot)
+}
+
+// The store calls this immediately after the canonical snapshot decoder has
+// validated all semantics and hashes. It still checks the exact provenance key.
+func localAgentRealmSourceProvenanceKeyForValidatedSnapshotV3(snapshot localAgentSourceSnapshotV2) (string, error) {
 	canonicalRef, err := canonicalizeSourceMaterializationRealmV3(snapshot.Semantic.SourceRef)
 	if err != nil {
 		return "", err

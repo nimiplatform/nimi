@@ -27,7 +27,7 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 	}
 	s.mu.RUnlock()
 
-	materializedCount := 0
+	materialized := make(map[string]*runtimev1.LocalAgentRecord)
 	turnSourceViews := make(map[string]localAgentTurnSourceViewV1)
 	for _, agent := range agents {
 		runtimeSourceRef := strings.TrimSpace(agent.GetRuntimeSourceRef())
@@ -40,34 +40,37 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 			}
 			continue
 		}
-		materializedCount++
-		snapshot, found, err := s.realmSourceSnapshotStoreV2.sourceSnapshot(ctx, agent.GetLocalAgentRef())
-		if err != nil {
-			return err
+		materialized[agent.GetLocalAgentRef()] = agent
+	}
+
+	snapshotCount := 0
+	err := s.realmSourceSnapshotStoreV2.visitValidatedSnapshots(ctx, func(snapshot localAgentSourceSnapshotV2) error {
+		snapshotCount++
+		agent := materialized[snapshot.LocalAgentRef]
+		if agent == nil {
+			return fmt.Errorf("Realm source SnapshotV2 %s has no matching Realm-derived LocalAgent", snapshot.LocalAgentRef)
 		}
-		if !found {
-			return fmt.Errorf("Realm-derived LocalAgent %s has no immutable SnapshotV2", agent.GetLocalAgentRef())
-		}
+		runtimeSourceRef := strings.TrimSpace(agent.GetRuntimeSourceRef())
 		expectedRuntimeSourceRef, err := runtimeSourceRefForRealmSourceV3(snapshot.Semantic.SourceRef)
 		if err != nil || runtimeSourceRef != expectedRuntimeSourceRef {
 			return fmt.Errorf("Realm-derived LocalAgent %s source identity does not match SnapshotV2", agent.GetLocalAgentRef())
 		}
-		if !proto.Equal(agent.GetSourceContextStatus(), localAgentSourceContextStatusV2(snapshot)) {
-			return fmt.Errorf("Realm-derived LocalAgent %s bounded source status does not match SnapshotV2", agent.GetLocalAgentRef())
-		}
-		view, err := localAgentTurnSourceViewFromSnapshotV1(snapshot)
+		view, err := localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot)
 		if err != nil {
 			return fmt.Errorf("hydrate Realm-derived LocalAgent %s turn source view: %w", agent.GetLocalAgentRef(), err)
 		}
+		lorebookReady, itemCount, estimatedTokens := localAgentLorebookStatusFromTurnSourceViewV1(view)
+		if !proto.Equal(agent.GetSourceContextStatus(), localAgentSourceContextStatusWithLorebookV2(snapshot, lorebookReady, itemCount, estimatedTokens)) {
+			return fmt.Errorf("Realm-derived LocalAgent %s bounded source status does not match SnapshotV2", agent.GetLocalAgentRef())
+		}
 		turnSourceViews[agent.GetLocalAgentRef()] = view
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("validate persisted Realm source SnapshotV2 bindings: %w", err)
 	}
-
-	var snapshotCount int
-	if err := s.backend.DB().QueryRowContext(ctx, `SELECT COUNT(*) FROM runtime_local_agent_source_snapshot_v2`).Scan(&snapshotCount); err != nil {
-		return fmt.Errorf("count persisted Realm source SnapshotV2 records: %w", err)
-	}
-	if snapshotCount != materializedCount {
-		return fmt.Errorf("Realm source SnapshotV2 1:1 count mismatch: agents=%d snapshots=%d", materializedCount, snapshotCount)
+	if snapshotCount != len(materialized) {
+		return fmt.Errorf("Realm source SnapshotV2 1:1 count mismatch: agents=%d snapshots=%d", len(materialized), snapshotCount)
 	}
 	s.mu.Lock()
 	s.turnSourceViews = turnSourceViews

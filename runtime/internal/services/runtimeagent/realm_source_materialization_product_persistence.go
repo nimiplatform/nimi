@@ -202,8 +202,12 @@ func readLocalAgentSourceSnapshotV2Tx(tx *sql.Tx, localAgentRef string) (localAg
 }
 
 func localAgentSourceContextStatusV2(snapshot localAgentSourceSnapshotV2) *runtimev1.LocalAgentSourceContextStatus {
-	capturedAt, _ := time.Parse(time.RFC3339Nano, snapshot.CapturedAt)
 	lorebookReady, lorebookItemCount, lorebookEstimatedTokens := localAgentLorebookStatusProjectionV1(snapshot)
+	return localAgentSourceContextStatusWithLorebookV2(snapshot, lorebookReady, lorebookItemCount, lorebookEstimatedTokens)
+}
+
+func localAgentSourceContextStatusWithLorebookV2(snapshot localAgentSourceSnapshotV2, lorebookReady bool, lorebookItemCount uint32, lorebookEstimatedTokens uint64) *runtimev1.LocalAgentSourceContextStatus {
+	capturedAt, _ := time.Parse(time.RFC3339Nano, snapshot.CapturedAt)
 	return &runtimev1.LocalAgentSourceContextStatus{
 		SchemaVersion: runtimev1.AgentLocalSourceContextSchemaVersion_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2,
 		Ready:         true, State: runtimev1.AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY,
@@ -226,6 +230,10 @@ func localAgentLorebookStatusProjectionV1(snapshot localAgentSourceSnapshotV2) (
 	if err != nil {
 		return false, 0, 0
 	}
+	return localAgentLorebookStatusFromTurnSourceViewV1(view)
+}
+
+func localAgentLorebookStatusFromTurnSourceViewV1(view localAgentTurnSourceViewV1) (bool, uint32, uint64) {
 	lanes, err := compileAgentTurnLorebookViewV1(view)
 	if err != nil {
 		return false, 0, 0

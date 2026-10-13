@@ -72,6 +72,13 @@ func (s *realmSourceSnapshotV2Store) sourceSnapshot(
 // read-only transaction. A missing membership, orphan membership, corrupt
 // typed payload, or hash/column drift fails the whole gate.
 func (s *realmSourceSnapshotV2Store) validatePersistedSnapshots(ctx context.Context) error {
+	return s.visitValidatedSnapshots(ctx, nil)
+}
+
+// visitValidatedSnapshots exposes each fully checked immutable snapshot within
+// the same read-only restart transaction. Consumers can check Agent bindings
+// and hydrate their compact views without decoding and hashing it again.
+func (s *realmSourceSnapshotV2Store) visitValidatedSnapshots(ctx context.Context, visit func(localAgentSourceSnapshotV2) error) error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("Realm source SnapshotV2 store is unavailable")
 	}
@@ -91,7 +98,8 @@ func (s *realmSourceSnapshotV2Store) validatePersistedSnapshots(ctx context.Cont
 	}
 	validated := 0
 	for rows.Next() {
-		if _, found, scanErr := scanRealmSourceSnapshotV2Row(rows); scanErr != nil {
+		snapshot, found, scanErr := scanRealmSourceSnapshotV2Row(rows)
+		if scanErr != nil {
 			_ = rows.Close()
 			return fmt.Errorf("validate Realm source SnapshotV2 restart state: %w", scanErr)
 		} else if !found {
@@ -99,6 +107,12 @@ func (s *realmSourceSnapshotV2Store) validatePersistedSnapshots(ctx context.Cont
 			return fmt.Errorf("Realm source SnapshotV2 disappeared during restart validation")
 		}
 		validated++
+		if visit != nil {
+			if err := visit(snapshot); err != nil {
+				_ = rows.Close()
+				return err
+			}
+		}
 	}
 	if err := rows.Err(); err != nil {
 		_ = rows.Close()
@@ -174,7 +188,7 @@ func scanRealmSourceSnapshotV2Row(
 		!provenanceSnapshotHash.Valid || !provenanceContextHash.Valid {
 		return localAgentSourceSnapshotV2{}, false, fmt.Errorf("Realm source SnapshotV2 has no provenance v3 membership")
 	}
-	expectedProvenanceKey, err := localAgentRealmSourceProvenanceKeyV3(snapshot)
+	expectedProvenanceKey, err := localAgentRealmSourceProvenanceKeyForValidatedSnapshotV3(snapshot)
 	if err != nil {
 		return localAgentSourceSnapshotV2{}, false, fmt.Errorf("derive Realm source provenance v3 key: %w", err)
 	}

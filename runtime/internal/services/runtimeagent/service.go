@@ -271,9 +271,6 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 	if err := svc.recoverPresentationAssetStore(context.Background()); err != nil {
 		return nil, fmt.Errorf("recover presentation asset store: %w", err)
 	}
-	if err := realmSourceSnapshotStoreV2.validatePersistedSnapshots(context.Background()); err != nil {
-		return nil, fmt.Errorf("validate persisted Realm source SnapshotV2 state: %w", err)
-	}
 	if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate loaded source snapshot bindings: %w", err)
 	}
