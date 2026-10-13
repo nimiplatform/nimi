@@ -136,6 +136,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
   const unreadCount = unreadCountQuery.data?.total ?? 0;
   const unreadBadge = unreadCount > 99 ? '99+' : String(unreadCount);
+  const integrationsRailActive = props.activeTab === 'home' && homeEntryDestination === 'integrations';
 
   const updateSettingsMenuPosition = useCallback(() => {
     const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
@@ -333,6 +334,14 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                       onClick={() => props.onNav(item.id)}
                     />
                   ))}
+                  {/* Integrations keeps its Home-owned destination below Cloud. */}
+                  <NavLink
+                    item={{ id: 'integrations', label: t('Integrations.title'), icon: <Plug size={18} /> }}
+                    active={integrationsRailActive}
+                    collapsed
+                    testId="integrations-rail-entry"
+                    onClick={() => setActiveTab('home', 'integrations')}
+                  />
                   {quickNavItems.map((item) => (
                     <NavLink
                       key={item.id}
@@ -347,31 +356,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             </nav>
             <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
               <GlobalDownloadsNavigation onOpen={() => props.onNav('downloads')} />
-              {/* Integrations is a Home-owned view, so this stays a rail
-                  utility entry and never joins the closed ordinary primary
-                  navigation set. */}
-              <Tooltip
-                content={t('Integrations.title')}
-                placement="right"
-                contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
-              >
-                <motion.button
-                  type="button"
-                  data-testid="integrations-rail-entry"
-                  onClick={() => setActiveTab('home', 'integrations')}
-                  whileHover={interactiveMotion.whileHover}
-                  whileTap={interactiveMotion.whileTap}
-                  transition={interactiveMotion.transition}
-                  className={`flex h-11 w-11 items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
-                    props.activeTab === 'home' && homeEntryDestination === 'integrations'
-                      ? 'text-[var(--nimi-action-primary-bg)]'
-                      : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
-                  }`}
-                  aria-label={t('Integrations.title')}
-                >
-                  <Plug size={20} />
-                </motion.button>
-              </Tooltip>
               <Tooltip
                 content={t('Navigation.notifications')}
                 placement="right"
@@ -503,7 +487,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         title={
           pendingAccountAction === 'switch-account'
             ? t('Menu.switchAccountConfirmTitle', { defaultValue: 'Switch account?' })
-            : t('Menu.logoutConfirmTitle', { defaultValue: 'Log out?' })
+            : t('Menu.logoutConfirmTitle', { defaultValue: 'Log out of your current account?' })
         }
         message={
           pendingAccountAction === 'switch-account'
@@ -511,9 +495,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 defaultValue:
                   'You will be signed out of the current account and returned to the sign-in screen.',
               })
-            : t('Menu.logoutConfirmBody', {
-                defaultValue: 'You will need to sign in again to continue using Nimi.',
-              })
+            : null
         }
         confirmLabel={
           pendingAccountAction === 'switch-account'

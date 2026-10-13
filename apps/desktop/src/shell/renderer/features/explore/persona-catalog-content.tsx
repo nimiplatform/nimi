@@ -66,18 +66,20 @@ export function PersonaCatalogContent({
   const content = (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:flex-row">
       <SidebarShell className="min-h-0 w-full lg:w-[272px]" data-testid="persona-rail">
-        <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center gap-2.5 px-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
-              {t('Explore.sectionPersonas')}
-            </h1>
-            {!loading && !error ? (
-              <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]" data-testid="persona-rail-count">
-                {t('Explore.personaCount', { count: totalCount ?? personas.length })}
-              </p>
-            ) : null}
+        <div className="shrink-0 px-4 pb-3 pt-5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-lg font-semibold text-[var(--nimi-text-primary)]">
+                {t('Explore.sectionPersonas')}
+              </h1>
+              {!loading && !error ? (
+                <p className="truncate text-xs text-[var(--nimi-text-secondary)]" data-testid="persona-rail-count">
+                  {t('Explore.personaCount', { count: totalCount ?? personas.length })}
+                </p>
+              ) : null}
+            </div>
+            {railFlap}
           </div>
-          {railFlap}
         </div>
 
         <div className="flex shrink-0 items-center gap-1 px-2 pb-2" data-testid="persona-rail-search">

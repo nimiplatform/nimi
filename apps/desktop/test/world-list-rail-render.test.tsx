@@ -146,9 +146,10 @@ test('world rail search renders a clear button only when the query is non-empty'
   assert.doesNotMatch(emptyQuery, /data-testid="world-rail-search-clear"/);
 });
 
-test('world rail distinguishes loaded from total and offers the next server page', () => {
+test('world rail shows the total world count and offers the next server page', () => {
   const markup = renderRail({ paging: { totalCount: 137, hasMore: true } });
-  assert.match(markup, /已加载 1 \/ 共 137 个世界/);
+  assert.match(markup, /137 个世界/);
+  assert.doesNotMatch(markup, /已加载/);
   assert.match(markup, /data-testid="world-rail-load-more"/);
   assert.match(markup, /加载更多世界/);
 

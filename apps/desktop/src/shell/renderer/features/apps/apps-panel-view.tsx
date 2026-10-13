@@ -394,12 +394,12 @@ function AppsRail({
   );
   return (
     <SidebarShell className="h-56 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="apps-sidebar">
-      <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-3 px-4">
-        <div className="min-w-0">
-          <h1 className="text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+      <div className="shrink-0 px-4 pb-3 pt-5">
+        <div className="flex items-end justify-between gap-2">
+          <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
             {t('Navigation.apps', { defaultValue: 'Apps' })}
           </h1>
-          <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">
+          <p className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">
             {projection?.status === 'loaded'
               ? t('Apps.inventoryCount', { count: groupsCount })
               : t('Apps.sidebar.subtitle')}

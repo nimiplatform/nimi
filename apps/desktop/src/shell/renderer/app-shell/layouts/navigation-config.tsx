@@ -183,12 +183,14 @@ export function NavLink({
   onClick,
   collapsed = false,
   badge,
+  testId,
 }: {
   item: NavItem;
   active: boolean;
   onClick: () => void;
   collapsed?: boolean;
   badge?: ReactNode;
+  testId?: string;
 }) {
   const { t } = useTranslation();
   const reducedMotion = useDesktopReducedMotion();
@@ -197,7 +199,7 @@ export function NavLink({
   const button = (
       <motion.button
         type="button"
-        data-testid={E2E_IDS.navTab(String(item.id))}
+        data-testid={testId ?? E2E_IDS.navTab(String(item.id))}
         onClick={onClick}
         layout
         whileHover={interactiveMotion.whileHover}

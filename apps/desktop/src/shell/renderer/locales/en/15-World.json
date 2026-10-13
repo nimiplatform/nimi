@@ -122,7 +122,6 @@
         "recent": "Meet first: {{names}}"
       }
     },
-    "loadedCount": "{{loaded}} of {{total}} worlds loaded",
     "loadMore": "Load more worlds",
     "loadingMore": "Loading…",
     "loadMoreError": "Couldn't load more worlds. Try again.",

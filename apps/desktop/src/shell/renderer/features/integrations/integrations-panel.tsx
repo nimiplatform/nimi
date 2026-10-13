@@ -97,6 +97,7 @@ export function IntegrationsPanel({
     setup && setup.setupId !== expiredSetupId && integrationSetupPending(setup.status),
   );
   const [refreshRef, setRefreshRef] = useState('');
+  const refreshingFeishu = adapter === 'feishu' && Boolean(refreshRef);
   const verificationCode = useRef<HTMLInputElement>(null);
   const setupRef = useRef<NimiIntegrationConnectionSetup | null>(null);
   setupRef.current = setup;
@@ -821,7 +822,13 @@ export function IntegrationsPanel({
         }
         description={
           <p className="text-sm font-normal text-[var(--nimi-text-secondary)]">
-            {t(setupActive ? 'Integrations.closeSetupHelp' : 'Integrations.connectionSetupHelp')}
+            {t(
+              setupActive
+                ? 'Integrations.closeSetupHelp'
+                : refreshingFeishu
+                  ? 'Integrations.feishuRefreshHelp'
+                  : 'Integrations.connectionSetupHelp',
+            )}
           </p>
         }
         panelClassName="flex flex-col"
@@ -835,12 +842,18 @@ export function IntegrationsPanel({
             <>
               {adapter !== 'weixin' ? (
                 <div className="mt-3">
-                  <InlineAlert tone="info">{t('Integrations.stopOperationsHelp')}</InlineAlert>
+                  <InlineAlert tone="info">
+                    {t(refreshingFeishu ? 'Integrations.feishuRefreshStopHelp' : 'Integrations.stopOperationsHelp')}
+                  </InlineAlert>
                 </div>
               ) : null}
               <p className="mt-2 text-sm">
                 {t(
-                  adapter === 'weixin' ? 'Integrations.weixinRefreshHelp' : 'Integrations.refreshIdentityHelp',
+                  adapter === 'weixin'
+                    ? 'Integrations.weixinRefreshHelp'
+                    : refreshingFeishu
+                      ? 'Integrations.feishuChangeAppHelp'
+                      : 'Integrations.refreshIdentityHelp',
                 )}
               </p>
               <Button
@@ -909,7 +922,7 @@ export function IntegrationsPanel({
                 />
               </label>
             ) : null}
-            {adapter === 'feishu' ? (
+            {adapter === 'feishu' && !refreshRef ? (
               <label className="flex flex-col gap-1.5 text-sm">
                 {t('Integrations.feishuSetup')}
                 <SelectField
@@ -932,7 +945,7 @@ export function IntegrationsPanel({
             ) : null}
             {(adapter === 'feishu' && feishuMode === 'manual') || adapter === 'qq-official' ? (
               <label className="flex flex-col gap-1.5 text-sm">
-                {t('Integrations.appId')}
+                {t(refreshingFeishu ? 'Integrations.feishuOriginalAppId' : 'Integrations.appId')}
                 <input
                   className={fieldClass}
                   value={appId}
@@ -972,13 +985,15 @@ export function IntegrationsPanel({
             {adapter !== 'weixin' && !(adapter === 'feishu' && feishuMode === 'create') ? (
               <label className="flex flex-col gap-1.5 text-sm">
                 {t(
-                  adapter === 'telegram'
-                    ? 'Integrations.botToken'
-                    : ['feishu', 'qq-official'].includes(adapter)
-                      ? 'Integrations.appSecret'
-                      : adapter === 'onebot-v11'
-                        ? 'Integrations.requiredToken'
-                        : 'Integrations.bearerToken',
+                  refreshingFeishu
+                    ? 'Integrations.feishuNewAppSecret'
+                    : adapter === 'telegram'
+                      ? 'Integrations.botToken'
+                      : ['feishu', 'qq-official'].includes(adapter)
+                        ? 'Integrations.appSecret'
+                        : adapter === 'onebot-v11'
+                          ? 'Integrations.requiredToken'
+                          : 'Integrations.bearerToken',
                 )}
                 <input
                   key={`${adapter}:${feishuMode}:${refreshRef}`}
@@ -993,9 +1008,12 @@ export function IntegrationsPanel({
             ) : null}
             {adapter === 'feishu' ? (
               <div className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
-                <p>{t('Integrations.feishuManualHelp')}</p>
+                {!refreshingFeishu ? <p>{t('Integrations.feishuManualHelp')}</p> : null}
                 <details className="mt-2">
-                  <summary>{t('Integrations.operationDetails')}</summary>
+                  <summary>
+                    {t(refreshingFeishu ? 'Integrations.feishuConfigurationDetails' : 'Integrations.operationDetails')}
+                  </summary>
+                  {refreshingFeishu ? <p className="mt-2">{t('Integrations.feishuManualHelp')}</p> : null}
                   <ul className="mt-2 flex flex-col gap-1.5">
                     {(
                       t('Integrations.feishuScopeHelp', { returnObjects: true }) as unknown as readonly {

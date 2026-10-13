@@ -287,7 +287,7 @@ function LocalDevelopmentAppsDetailView({
             appId={identity.appId}
             displayName={identity.displayName}
             iconUrl={entry.iconUrl}
-            size="lg"
+            size="detail"
           />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -664,7 +664,7 @@ function InstalledAppsDetailView({
             appId={entry.identity.appId}
             displayName={entry.identity.displayName}
             iconUrl={entry.iconUrl}
-            size="lg"
+            size="detail"
           />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">

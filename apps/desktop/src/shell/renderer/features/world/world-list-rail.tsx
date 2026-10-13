@@ -63,18 +63,18 @@ export function WorldCatalogRail({
 
   return (
     <SidebarShell className="min-h-0 w-full lg:w-[272px]" data-testid="world-rail">
-      <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center gap-2.5 px-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
-            {t('World.atlas.discovery.title')}
-          </h1>
-          <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]" data-testid="world-rail-count">
-            {worlds.length < totalCount
-              ? t('World.atlas.loadedCount', { loaded: formatNum(worlds.length), total: formatNum(totalCount) })
-              : t('World.atlas.worldCount', { value: formatNum(totalCount) })}
-          </p>
+      <div className="shrink-0 px-4 pb-3 pt-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-semibold text-[var(--nimi-text-primary)]">
+              {t('World.atlas.discovery.title')}
+            </h1>
+            <p className="truncate text-xs text-[var(--nimi-text-secondary)]" data-testid="world-rail-count">
+              {t('World.atlas.worldCount', { value: formatNum(totalCount) })}
+            </p>
+          </div>
+          {flap}
         </div>
-        {flap}
       </div>
 
       <div className="flex shrink-0 items-center gap-1 px-2 pb-2" data-testid="world-rail-search">

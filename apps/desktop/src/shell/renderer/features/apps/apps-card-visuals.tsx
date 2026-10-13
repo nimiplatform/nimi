@@ -25,6 +25,7 @@ const ICON_SIZE_CLASS = Object.freeze({
   sm: 'h-8 w-8 rounded-lg text-sm',
   md: 'h-10 w-10 rounded-xl text-base',
   lg: 'h-16 w-16 rounded-2xl text-2xl',
+  detail: 'h-14 w-14 rounded-2xl text-xl',
   xl: 'h-12 w-12 rounded-xl text-lg',
 } as const);
 

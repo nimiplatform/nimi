@@ -214,6 +214,12 @@
     "awaiting-new-target": "平台返回了新的机器人，请确认是否创建新连接"
   },
   "refreshConnection": "更新认证信息",
+  "feishuRefreshHelp": "填写原应用 ID 和新密钥。验证通过后，已有应用授权保持不变。",
+  "feishuRefreshStopHelp": "更新前，请在相关应用中停止消息接收和待发送任务。可在「应用授权」查看相关应用。",
+  "feishuChangeAppHelp": "如需更换飞书应用，请新建连接。",
+  "feishuOriginalAppId": "原应用 ID（App ID）",
+  "feishuNewAppSecret": "新应用密钥（App Secret）",
+  "feishuConfigurationDetails": "飞书后台配置与权限",
   "refreshIdentityHelp": "请重新填写原 App ID，或原 OneBot self_id 和监听地址，并输入新凭据。Nimi 核验身份与配置一致后，保留此连接和已有应用许可。请先停止现有操作；不同身份或配置需另建连接。",
   "addInstead": "新建连接",
   "verificationCode": "微信中显示的验证码",

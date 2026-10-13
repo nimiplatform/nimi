@@ -214,6 +214,12 @@
     "awaiting-new-target": "WeChat returned a new bot. Confirm whether to create a new connection."
   },
   "refreshConnection": "Update authentication",
+  "feishuRefreshHelp": "Enter the original App ID and new App Secret. Existing app permissions stay unchanged after verification.",
+  "feishuRefreshStopHelp": "Before updating, stop message receiving and pending sends in the connected apps. Find them under App permissions.",
+  "feishuChangeAppHelp": "To use a different Feishu app, create a new connection.",
+  "feishuOriginalAppId": "Original App ID",
+  "feishuNewAppSecret": "New App Secret",
+  "feishuConfigurationDetails": "Feishu configuration and permissions",
   "refreshIdentityHelp": "Re-enter the original App ID, or OneBot self ID and listener, with the new credential. Nimi verifies the same identity and configuration and retains this connection and its app permissions. Stop existing operations first; a different identity or configuration requires a new connection.",
   "addInstead": "Create a new connection",
   "verificationCode": "Verification code shown in WeChat",

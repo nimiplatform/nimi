@@ -123,10 +123,7 @@ test('service navigation preserves every connection, instance grant, and unavail
     assert.equal(document.querySelectorAll('[data-testid=integration-permissions] tbody tr').length, 2);
     const permissionList = document.querySelector('[data-testid=integration-permissions]')!;
     assert.doesNotMatch(permissionList.textContent || '', /Full operation description|One choice permits/u);
-    const instanceDetails = [...permissionList.querySelectorAll('details')];
-    assert.equal(instanceDetails.length, 2);
-    assert.deepEqual(instanceDetails.map(detail => detail.querySelector('code')?.textContent), consumers.map(app => app.consumerRef));
-    assert.ok(instanceDetails.every(detail => !detail.open), 'instance identifiers remain available without cluttering the list');
+    assert.equal(permissionList.querySelectorAll('details').length, 0);
     assert.match(permissionList.textContent || '', /Reply to a received message/u);
     const connection = document.querySelector<HTMLElement>('[data-testid=integration-target]')!;
     await act(async () => connection.click());

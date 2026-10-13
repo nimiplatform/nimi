@@ -122,7 +122,6 @@
         "recent": "可先认识：{{names}}"
       }
     },
-    "loadedCount": "已加载 {{loaded}} / 共 {{total}} 个世界",
     "loadMore": "加载更多世界",
     "loadingMore": "正在加载…",
     "loadMoreError": "没能加载更多世界，请重试。",

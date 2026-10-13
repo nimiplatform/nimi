@@ -75,10 +75,10 @@ export function IntegrationSidebar({
     `flex min-h-9 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${active ? 'bg-[var(--nimi-surface-active)] font-medium' : 'hover:bg-[var(--nimi-surface-hover)]'}`;
   return (
     <SidebarShell className="h-64 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="integrations-sidebar">
-      <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center px-4">
-        <div>
-          <h1 className="text-base font-semibold">{t('Integrations.title')}</h1>
-          <p className="text-[11px] text-[var(--nimi-text-muted)]">
+      <div className="shrink-0 px-4 pb-3 pt-5">
+        <div className="flex items-end justify-between gap-2">
+          <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
+          <p className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">
             {t('Integrations.serviceCount', { count: services.length })}
           </p>
         </div>

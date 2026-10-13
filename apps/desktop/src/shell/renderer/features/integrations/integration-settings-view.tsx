@@ -1,5 +1,4 @@
 import { Button } from '@nimiplatform/kit/ui';
-import { LockKeyhole } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { NimiIntegrationTarget } from '@nimiplatform/sdk/app';
 
@@ -78,7 +77,7 @@ export function IntegrationSettingsView({
       ) : null}
       {target.kind !== 'app' ? (
         <section aria-labelledby="integration-management-heading">
-          <h2 id="integration-management-heading" className="text-sm font-semibold">
+          <h2 id="integration-management-heading" className="text-xl font-semibold">
             {t('Integrations.connectionManagement')}
           </h2>
           <div className="mt-2 divide-y divide-[var(--nimi-border-subtle)]">
@@ -119,10 +118,6 @@ export function IntegrationSettingsView({
         </dl>
         {target.skill ? <p className="mt-3 whitespace-pre-wrap break-words">{target.skill}</p> : null}
       </details>
-      <p className="flex gap-2 text-xs leading-5 text-[var(--nimi-text-muted)]">
-        <LockKeyhole size={15} className="shrink-0" aria-hidden="true" />
-        {t('Integrations.custody')}
-      </p>
     </section>
   );
 }
