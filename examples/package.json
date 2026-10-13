@@ -9,10 +9,10 @@
   "dependencies": {
     "@nimiplatform/sdk-adapter-vercel-ai": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
-    "ai": "7.0.130"
+    "ai": "7.0.137"
   },
   "devDependencies": {
-    "@types/node": "24.19.1",
+    "@types/node": "24.19.2",
     "typescript": "6.0.3"
   }
 }
