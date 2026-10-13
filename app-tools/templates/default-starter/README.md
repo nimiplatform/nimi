@@ -4,7 +4,7 @@ This standalone App was generated as an identity-neutral base plus the explicitl
 
 Profile: `standalone`.
 
-- App-owned product code: `src/workbench-core/**`, selected `src/capabilities/**`, and subsequent product edits.
+- App-owned product code: `src/workbench-core/**`, selected `src/capabilities/**`, `src/shell/routes/app-navigation.tsx`, and subsequent product edits. Extend the App-owned destination catalog and use its single Kit controller for position; keep drafts, business records and one-time actions in their business owners. With no selected feature, the base has no sidebar or fold command.
 - App-owned license: `LICENSE` starts as an MIT license naming the package author, or the App title when no author was given. Replace it with the App's own terms as needed and declare the matching `license` identifier in `package.json` before packaging; `sync` never rewrites it.
 - Scaffold-managed code: carrier/auth wiring, identity, manifests, build/release inputs, managed workflow, generated composition glue, and the template's own license notice in `licenses/nimi-app-template.txt`.
 - Package-owned projections: `.nimi/{config,contracts,methodology}/**`, materialized by the pinned local `nimicoding` package during `init`.

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   buildAppScaffoldSnapshotFromIntent,
+  assertStandardNavigationKit,
   managedAppReleaseWorkflowSource,
   SCAFFOLD_APP_OWNED_HANDOVER_PATHS,
   SCAFFOLD_INTENT_PATH,
@@ -139,7 +140,7 @@ function assertSupportedLock(lock) {
     throw new Error(`Unsupported scaffold lock version: ${String(lock?.lockVersion || 'missing')}`);
   }
   if (lock?.scaffoldVersion !== SCAFFOLD_VERSION) {
-    throw new Error(`Unsupported scaffold version: ${String(lock?.scaffoldVersion || 'missing')}`);
+    throw new Error(`Unsupported scaffold version: ${String(lock?.scaffoldVersion || 'missing')}. Complete the manual App-owned navigation, managed Host, Kit and scaffold contract migration together before sync; no files were written.`);
   }
   if (!SUPPORTED_APP_SCAFFOLD_PROFILES.includes(lock?.profile)) {
     throw new Error(`Unsupported scaffold profile: ${String(lock?.profile || 'missing')}`);
@@ -626,10 +627,10 @@ function validateAppProjectState(targetDir, versions, runners = {}) {
     assertLifecycleGuidanceCurrent(targetDir);
     return validateExistingSubmittedApp(targetDir);
   }
-  assertLifecycleGuidanceCurrent(targetDir);
   const lock = readLock(targetDir);
   const intent = readIntent(targetDir);
   const snapshot = expectedSnapshotFromLock(lock, versions, intent, targetDir);
+  assertLifecycleGuidanceCurrent(targetDir);
   assertNoPendingAppOwnedHandover(lock, snapshot);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
   assertRequiredSupportFiles(targetDir, snapshot);
@@ -857,6 +858,7 @@ export function planManagedAppSync(cwd, options = {}, versions) {
   const intent = readIntent(targetDir);
   const currentManifest = readCurrentAppManifest(targetDir);
   const packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json');
+  assertStandardNavigationKit(packageJson.dependencies?.['@nimiplatform/kit']);
   const versionedIntent = {
     ...intent,
     version: packageJson.version,

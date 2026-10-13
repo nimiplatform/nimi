@@ -52,6 +52,11 @@ export function buildDefaultStarterFiles(identity) {
       content: renderDefaultProductArea(identity),
       mutationClass: 'app-owned product code',
     },
+    {
+      path: 'src/shell/routes/app-navigation.tsx',
+      content: renderDefaultAppNavigation(),
+      mutationClass: 'app-owned product code',
+    },
     ...buildGeneratedModuleCompositionFiles(identity),
     {
       path: 'src-tauri/src/main.rs',
@@ -422,35 +427,24 @@ function renderDefaultProductArea(_identity) {
     "import { appTitle } from '../auth/app-identity.js';",
     "import { GeneratedModuleHost, GeneratedRouteRegistry } from '../../scaffold/generated/route-registry.js';",
     'import {',
-    '  generatedInitialViewId,',
     '  generatedNavigationGroups,',
     '  hasGeneratedViews,',
-    '  isGeneratedViewId,',
     "} from '../../scaffold/generated/navigation.js';",
-    "import { useCallback, useState } from 'react';",
-    '',
-    "const VIEW_STORAGE_KEY = 'nimi.app.workbench-view.v1';",
-    '',
-    'function readInitialViewId(): string | null {',
-    '  try {',
-    '    const stored = globalThis.localStorage?.getItem(VIEW_STORAGE_KEY);',
-    '    return stored && isGeneratedViewId(stored) ? stored : generatedInitialViewId;',
-    '  } catch {',
-    '    return generatedInitialViewId;',
-    '  }',
-    '}',
+    "import { useCallback } from 'react';",
+    "import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';",
+    "import { useAppNavigation } from './app-navigation.js';",
     '',
     'export function ProductArea() {',
-    '  const [activeViewId, setActiveViewId] = useState<string | null>(readInitialViewId);',
-    '  const selectView = useCallback((viewId: string) => {',
-    '    if (!isGeneratedViewId(viewId)) return;',
-    '    setActiveViewId(viewId);',
-    '    try { globalThis.localStorage?.setItem(VIEW_STORAGE_KEY, viewId); } catch { /* UI state remains session-local. */ }',
-    '  }, []);',
+    '  const { navigation, sidebarVisible } = useAppNavigation();',
+    '  const activeViewId = useNimiNavigationSnapshot().current.destination.id;',
+    '  const selectView = useCallback((viewId: string, runId?: string) => {',
+    '    void navigation.push({ id: viewId, ...(runId ? { runId } : {}) });',
+    '  }, [navigation]);',
     '  return (',
     '    <GeneratedModuleHost onSelectView={selectView}>',
     '      <WorkbenchCore<string>',
     '      activeViewId={activeViewId}',
+    '      sidebarVisible={hasGeneratedViews && sidebarVisible}',
     '      navigationLabel="App modules"',
     '      navigationGroups={generatedNavigationGroups}',
     '      onSelectView={selectView}',
@@ -473,6 +467,58 @@ function renderDefaultProductArea(_identity) {
     '}',
     '',
   ].join('\n');
+}
+
+function renderDefaultAppNavigation() {
+  return `import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createNimiNavigation } from '@nimiplatform/kit/core/navigation';
+import { NimiNavigationProvider } from '@nimiplatform/kit/ui/app-chrome';
+import { generatedInitialViewId, hasGeneratedViews, isGeneratedViewId, generatedHistoryViewIds } from '../../scaffold/generated/navigation.js';
+
+// App-owned destinations: extend this catalog when adding product screens.
+export function createAppNavigation() {
+  return createNimiNavigation<{ id: string; runId?: string }>({
+    initial: { id: generatedInitialViewId ?? 'welcome' },
+    validate(value: unknown) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid App destination.');
+      const input = value as Record<string, unknown>;
+      if (Object.keys(input).some(key => key !== 'id' && key !== 'runId') || typeof input.id !== 'string'
+        || !(isGeneratedViewId(input.id) || !hasGeneratedViews && input.id === 'welcome')) throw new Error('Unknown App destination.');
+      if (input.runId !== undefined && (!generatedHistoryViewIds.includes(input.id) || typeof input.runId !== 'string' || !input.runId.trim() || input.runId.length > 512)) throw new Error('Invalid run reference.');
+      return { id: input.id, ...(input.runId === undefined ? {} : { runId: input.runId as string }) };
+    },
+  });
+}
+type NavigationOwner = {
+  navigation: ReturnType<typeof createAppNavigation>;
+  ready: boolean; setReady: (value: boolean) => void;
+  sidebarVisible: boolean; setSidebarVisible: (value: boolean) => void;
+};
+const Context = createContext<NavigationOwner | null>(null);
+export function useAppNavigation(): NavigationOwner {
+  const owner = useContext(Context);
+  if (!owner) throw new Error('App navigation owner is missing.');
+  return owner;
+}
+export function AppNavigationProvider({ children }: { children: ReactNode }) {
+  const [navigation] = useState(createAppNavigation);
+  const [ready, updateReady] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const lifetime = useRef(0);
+  useEffect(() => {
+    const generation = ++lifetime.current;
+    return () => {
+      navigation.reset({ id: generatedInitialViewId ?? 'welcome' });
+      queueMicrotask(() => { if (lifetime.current === generation) navigation.dispose(); });
+    };
+  }, [navigation]);
+  const setReady = useCallback((value: boolean) => {
+    if (!value) navigation.reset({ id: generatedInitialViewId ?? 'welcome' });
+    updateReady(value);
+  }, [navigation]);
+  return <Context.Provider value={{ navigation, ready, sidebarVisible, setSidebarVisible, setReady }}><NimiNavigationProvider controller={navigation}>{children}</NimiNavigationProvider></Context.Provider>;
+}
+`;
 }
 
 function buildGeneratedModuleCompositionFiles(identity) {
@@ -637,6 +683,9 @@ function renderGeneratedNavigation(resolution) {
     'export const generatedNavigationGroups: readonly WorkbenchNavigationGroup<string>[] = Object.freeze([',
     ...groups,
     ']);',
+    aiStudioFeatureModules(resolution).length > 0
+      ? 'export const generatedHistoryViewIds: readonly string[] = Object.freeze(generatedAIStudioModules.flatMap(module => module.capabilities.map(registration => registration.descriptor.id)));'
+      : 'export const generatedHistoryViewIds: readonly string[] = Object.freeze([]);',
     'export const generatedInitialViewId = generatedNavigationGroups[0]?.items[0]?.id ?? null;',
     'export const hasGeneratedViews = generatedInitialViewId !== null;',
     'export function isGeneratedViewId(viewId: string): boolean {',
@@ -703,7 +752,7 @@ function renderGeneratedRouteRegistry(resolution) {
     '  onSelectView,',
     '  children,',
     '}: {',
-    '  readonly onSelectView: (viewId: string) => void;',
+    '  readonly onSelectView: (viewId: string, runId?: string) => void;',
     '  readonly children: ReactNode;',
     '}) {',
     ...(aiModules.length > 0
@@ -716,7 +765,7 @@ function renderGeneratedRouteRegistry(resolution) {
     '  onSelectView,',
     '}: {',
     '  readonly activeViewId: string;',
-    '  readonly onSelectView: (viewId: string) => void;',
+    '  readonly onSelectView: (viewId: string, runId?: string) => void;',
     '}) {',
     '  const rootRef = useRef<HTMLDivElement>(null);',
     '  useEffect(() => { rootRef.current?.focus(); }, [activeViewId]);',
@@ -795,6 +844,7 @@ function renderGeneratedAIStudioHostAdapter(resolution) {
   const workspaceExport = core.productEntry.componentExport;
   return [
     "import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';",
+    "import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';",
     "import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';",
     "import { createNimiClientId } from '@nimiplatform/sdk/types';",
     "import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';",
@@ -1204,9 +1254,10 @@ function renderGeneratedAIStudioHostAdapter(resolution) {
     '  onSelectCapability,',
     '  children,',
     '}: {',
-    '  readonly onSelectCapability: (capabilityId: string) => void;',
+    '  readonly onSelectCapability: (capabilityId: string, runId?: string) => void;',
     '  readonly children: ReactNode;',
     '}) {',
+    '  const snapshot = useNimiNavigationSnapshot<{ id: string; runId?: string }>();',
     '  const [runtime, setRuntime] = useState<StudioRuntimeInspection | null>(null);',
     '  useEffect(() => {',
     '    let active = true;',
@@ -1217,6 +1268,7 @@ function renderGeneratedAIStudioHostAdapter(resolution) {
     '    historyRepository,',
     '    registrations: generatedAIStudioRegistrations,',
     '    onSelectCapability,',
+    '    historyPosition: snapshot.current.destination.runId ? { runId: snapshot.current.destination.runId, entryKey: snapshot.current.key, capabilityId: snapshot.current.destination.id } : undefined,',
     '    translate,',
     '  });',
     '  const state = useMemo(() => ({ runtime, controller }), [controller, runtime]);',
@@ -1302,7 +1354,8 @@ function renderDefaultElectronMain(identity) {
     '}',
     '',
     'const {',
-    '  createNimiElectronStandardApplicationMenuTemplate,',
+    '  createNimiElectronAppChromeHost,',
+    '  createNimiElectronAppChromeWindowOptions,',
     '  isAllowedElectronRendererUrl,',
     '  registerNimiElectronAppAssetProtocolScheme,',
     '  registerNimiElectronAppBridge,',
@@ -1324,14 +1377,16 @@ function renderDefaultElectronMain(identity) {
     '',
     `app.setName(${JSON.stringify(identity.appTitle)});`,
     'app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);',
-    '// macOS routes Cmd+C/V/X/A/Z and Cmd+Q through application menu roles.',
-    'Menu.setApplicationMenu(Menu.buildFromTemplate(',
-    `  createNimiElectronStandardApplicationMenuTemplate({ appName: ${JSON.stringify(identity.appTitle)} }),`,
-    '));',
+    'const chromeHost = createNimiElectronAppChromeHost({',
+    `  metadata: { name: ${JSON.stringify(identity.appTitle)}, version: ${JSON.stringify(identity.version)} },`,
+    '  allowedRendererUrls, app,',
+    '  menu: { buildFromTemplate: template => Menu.buildFromTemplate(template as Electron.MenuItemConstructorOptions[]), setApplicationMenu: menu => Menu.setApplicationMenu(menu as Electron.Menu | null) },',
+    '});',
     'registerNimiElectronAppAssetProtocolScheme(protocol);',
     '',
     'void app.whenReady().then(async () => {',
     '  registerNimiElectronAppBridge({',
+    '    chromeHost,',
     '    appId: APP_ID,',
     '    allowedRendererUrls,',
     '    assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },',
@@ -1365,6 +1420,7 @@ function renderDefaultElectronMain(identity) {
     '',
     'async function createMainWindow(): Promise<void> {',
     '  const window = new BrowserWindow({',
+    '    ...createNimiElectronAppChromeWindowOptions(),',
     '    width: 1180,',
     '    height: 780,',
     '    minWidth: 360,',
@@ -1378,6 +1434,7 @@ function renderDefaultElectronMain(identity) {
     '      sandbox: true,',
     '    },',
     '  });',
+    '  chromeHost.bindWindow(window);',
     '  window.webContents.setWindowOpenHandler(() => ({ action: \'deny\' }));',
     "  window.webContents.on('will-navigate', (event, url) => {",
     '    if (!isAllowedElectronRendererUrl(url, allowedRendererUrls)) event.preventDefault();',

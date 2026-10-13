@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import YAML from 'yaml';
+import { gte, minVersion } from 'semver';
 import { lifecycleSkillFiles } from './app-lifecycle-guidance.mjs';
 import {
   WORKBENCH_CORE_SOURCE_ROOT,
@@ -29,7 +30,14 @@ const DEFAULT_APP_VERSION = '0.1.0';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
 export const SCAFFOLD_INTENT_VERSION = 4;
 export const SCAFFOLD_LOCK_VERSION = 4;
-export const SCAFFOLD_VERSION = '2026-08-31.app-lifecycle-v1';
+export const SCAFFOLD_VERSION = '2026-10-13.standard-app-navigation-v1';
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-021
+export function assertStandardNavigationKit(spec) {
+  const minimum = typeof spec === 'string' ? minVersion(spec) : null;
+  if (!minimum || !gte(minimum, '0.21.0')) {
+    throw new Error('Standard App navigation requires Kit >=0.21.0. Complete the manual navigation, managed Host, Kit and scaffold contract migration together before sync; no files were written.');
+  }
+}
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -661,6 +669,7 @@ function buildPackageJson(profile, versions, identity) {
 }
 
 function buildRuntimeDependencies(profile, versions, capabilityResolution) {
+  assertStandardNavigationKit(versions.kitVersion);
   const dependencies = {
     '@nimiplatform/sdk': versions.sdkVersion,
     '@nimiplatform/kit': versions.kitVersion,

@@ -1,16 +1,25 @@
 # Platform upgrade
 
-Before first fresh init, an App may explicitly select another combination listed
-by the installed tool in package.json. Init verifies the original generated
-sources, preserves immutable identity and direct features, and projects the
-selected pair into derived intent, glue and lock. Fresh create still uses the
-tool default; do not edit intent or lock by hand. Unlisted pairs fail before
-owner mutations.
+Fresh App Tools 0.13 scaffolds require Kit `^0.21.0` or a later admitted pair
+with the standard navigation contract. The combination list also contains
+existing-adoption pairs; those do not permit older Kit in a new scaffold.
+Init verifies generated sources and immutable identity/direct features before
+owner calls. Ordinary current-contract sync preserves a supported selection.
 
-App Tools 0.9 requires the Host-profile contract in Kit 0.13: select SDK
-`^0.16.0` and Kit `^0.13.0` before sync. Older combinations are rejected before
-files or owner projections change. There is no old-template or default-profile
-fallback. Use the selected package's matrix for later versions.
+The `2026-10-13.standard-app-navigation-v1` contract is a hard cut. An older
+managed scaffold fails init/sync/check before any file write or owner mutation,
+even after only the tool or only Kit is upgraded. It has no automatic migration.
+Prepare a fresh reference with the same App identity, version and direct features
+using the complete target packages. Migrate the App-owned product to its own
+catalog and one `createNimiNavigation` controller, remove Router/active-view/history
+writers and persisted position, and preserve business data, drafts and leave rules.
+Review and replace the managed Host/glue and complete reference intent/lock as
+the same explicit migration; add the App-owned navigation seed and retain the
+App-owned product and license. Do not graft new glue onto an old lock or mark an
+old router as the new contract. Then run the target tool's check, sync dry-run,
+normal sync, installed dependency checks, build/tests and real supervised journey.
+This contract replacement is the bounded exception to ordinary immutable intent
+editing; it is an author-performed migration, never a sync fallback.
 
 Read the current and selected target app-tools version matrix plus SDK/Kit migration notes. App-side package consumption uses complete npm tarballs through explicit pnpm-workspace overrides, without depending on the Nimi source checkout or requiring publication. For an authorized platform repair or extension, follow [Platform gaps](platform-gaps.md). Sync preserves package selections; check validates installed identities/versions and lock resolutions. Use normal dev/test/build/pack during iteration. Public release preflight is a later step using registry resolutions, after development acceptance.
 

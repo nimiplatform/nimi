@@ -55,7 +55,7 @@ const versions = {
   sdkVersion: '0.0.0-sdk',
   appToolsVersion: '0.0.0-app-tools',
   nimicodingVersion: '0.0.0-nimicoding',
-  kitVersion: '0.0.0-kit',
+  kitVersion: '^0.21.0',
   reactVersion: '19.0.0',
   reactDomVersion: '19.0.0',
   i18nextVersion: '25.0.0',
@@ -549,9 +549,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronMain, /isAllowedElectronRendererUrl\(url, allowedRendererUrls\)/);
     assert.equal(electronMain.match(/\[rendererUrl\]/g)?.length, 1);
     assert.match(electronMain, /registerNimiElectronAppAssetProtocolScheme\(protocol\)/);
-    // The Host installs Kit's standard menu so macOS edit shortcuts and Quit work.
-    assert.doesNotMatch(electronMain, /setApplicationMenu\(null\)/u);
-    assert.match(electronMain, /Menu\.setApplicationMenu\(Menu\.buildFromTemplate\(\n  createNimiElectronStandardApplicationMenuTemplate\(\{ appName: "Acme Widget" \}\),\n\)\);/u);
+    assert.match(electronMain, /createNimiElectronAppChromeHost/);
+    assert.match(electronMain, /chromeHost\.bindWindow\(window\)/);
     assert.match(electronMain, /app\.setAppUserModelId\(NATIVE_BUNDLE_IDENTIFIER\)/);
     assert.match(electronMain, /declare const __NIMI_ELECTRON_PRODUCTION__: boolean/);
     assert.match(electronMain, /IS_PRODUCTION_BUNDLE && hasDevelopmentRendererArgument/);
@@ -1702,7 +1701,8 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(read('src/scaffold/generated/route-registry.tsx'), /export function GeneratedModuleHost/);
   assert.match(read('src/scaffold/generated/route-registry.tsx'), /<GeneratedAIStudioHost onSelectCapability=\{onSelectView\}>\{children\}/);
   assert.match(read('src/scaffold/generated/route-registry.tsx'), /tabIndex=\{-1\}/);
-  assert.match(read('src/shell/routes/product-area.tsx'), /VIEW_STORAGE_KEY/);
+  assert.doesNotMatch(read('src/shell/routes/product-area.tsx'), /VIEW_STORAGE_KEY|setActiveViewId|localStorage/);
+  assert.match(read('src/shell/routes/product-area.tsx'), /useNimiNavigationSnapshot\(\)\.current\.destination\.id/);
   assert.match(read('src/shell/routes/product-area.tsx'), /<GeneratedModuleHost onSelectView=\{selectView\}>/);
   assert.match(read('src/scaffold/generated/navigation.ts'), /translateGeneratedMessage\(registration\.descriptor\.labelKey\)/);
   assert.match(read('src/scaffold/generated/i18n.ts'), /generatedAIStudioMessageBundles/);
@@ -3377,30 +3377,31 @@ test('generated Host destroys old renderer state on invalidation before creating
     destroy() { this.oldBusinessState = null; windows.splice(windows.indexOf(this), 1); order.push('destroy'); this.abortLoad?.(new Error('ERR_ABORTED')); if (!windows.length) events.get('window-all-closed')?.(); }
   }
   const app = { setName() {}, setAppUserModelId() {}, exit() {}, quit() { quits++; }, whenReady: async () => {}, on: (name, listener) => events.set(name, listener) };
-  const standardMenuTemplate = [{ label: 'Edit', submenu: [{ role: 'copy' }, { role: 'paste' }] }];
-  const menuRequests = []; const builtTemplates = []; const installedMenus = [];
+  const chromeRequests = [], boundWindows = [];
+  const chromeHost = { bindWindow(window) { boundWindows.push(window); } };
   const Menu = {
-    buildFromTemplate(template) { builtTemplates.push(template); return { template }; },
-    setApplicationMenu(menu) { installedMenus.push(menu); },
+    buildFromTemplate(template) { return { template }; },
+    setApplicationMenu() {},
   };
   await vm.runInNewContext(`(async () => {${source}})()`, {
     path, fileURLToPath, app, BrowserWindow: Window, ipcMain: {}, Menu, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
     configureNimiElectronAppHostProfile() {}, URL, process: { platform: 'win32', argv: [], stderr: { write() {} } },
     pathToFileURL,
     kitMain: {
-      createNimiElectronStandardApplicationMenuTemplate(options) { menuRequests.push(options); return standardMenuTemplate; },
-      isAllowedElectronRendererUrl: () => true, registerNimiElectronAppAssetProtocolScheme() {}, registerNimiElectronAppBridge(input) { invalidated = input.onSessionInvalidated; },
+      createNimiElectronAppChromeHost(options) { chromeRequests.push(options); return chromeHost; },
+      createNimiElectronAppChromeWindowOptions() { return {}; },
+      isAllowedElectronRendererUrl: () => true, registerNimiElectronAppAssetProtocolScheme() {}, registerNimiElectronAppBridge(input) { assert.equal(input.chromeHost, chromeHost); invalidated = input.onSessionInvalidated; },
     },
   });
   await new Promise(resolve => setImmediate(resolve));
   // Options are created inside the vm realm; compare their plain fields.
-  assert.deepEqual(menuRequests.map((options) => JSON.stringify(options)), ['{"appName":"Scope App"}'], 'the Host asks Kit for its standard menu once, named for the App');
-  assert.deepEqual(builtTemplates, [standardMenuTemplate]);
-  assert.deepEqual(installedMenus, [{ template: standardMenuTemplate }], 'the Kit menu, not null, becomes the application menu');
+  assert.equal(chromeRequests[0].metadata.name, 'Scope App');
+  assert.deepEqual(boundWindows, windows, 'each actual Host window is bound before loading');
   assert.equal(windows.length, 1); const old = windows[0]; old.oldBusinessState = { dirty: 'account A private' };
   assert.equal(typeof invalidated, 'function'); invalidated();
   assert.equal(old.oldBusinessState, null); assert.notEqual(windows[0], old);
   assert.deepEqual(order, ['create', 'destroy', 'create']); assert.equal(quits, 0);
+  assert.equal(boundWindows[1], windows[0], 'the replacement has its own exact binding');
   await new Promise(resolve => setImmediate(resolve));
   events.get('before-quit')(); invalidated();
   assert.equal(order.length, 3, 'quitting must not resurrect a renderer');

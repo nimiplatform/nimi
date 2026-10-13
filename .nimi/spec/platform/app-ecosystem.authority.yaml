@@ -2158,3 +2158,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-introduction
+  - id: rule.nimi.platform.app-ecosystem.p-scaf-021
+    kind: rule
+    title: Standard chrome scaffold hard cut
+    modality: must
+    statement: Fresh App Tools scaffolds compose public Kit navigation and chrome, App-owned destinations and product content, and scaffold-managed Host/provider glue using a supported package combination that actually exports these APIs. No selected feature means no sidebar. Existing scaffold locks from an earlier chrome contract are rejected by sync and direct managed plan/apply entrypoints before any derived write, even after only Kit is upgraded; one explicit Git migration must replace App-owned destinations and writers, managed glue, package combination and the existing contract lock together before normal sync. Existing adoption preserves App-owned Host and product source and does not fabricate a scaffold lock or convert its navigation. No legacy template backend, automatic business/history migration or partial managed upgrade is admitted.
+    condition: Whenever App Tools creates, synchronizes, checks or directly plans/applies scaffold-managed glue.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.scaffold-custody

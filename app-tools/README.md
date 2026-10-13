@@ -2,12 +2,20 @@
 
 `app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. It owns repository scaffolding, dependency and managed-file synchronization, local validation, Desktop-supervised development, App-declared test/build orchestration, deterministic packaging, and managed GitHub workflow setup.
 
-The prepared App Tools 0.12.0 default is SDK 0.21.0 and Kit/native 0.19.0 for
-the complete Nimi Beta production Runtime, with Nimi Coding 0.6.5 and Electron 44.
-Existing Apps explicitly select that combination before syncing. The previously
-published SDK 0.21.0 / Kit 0.18.1 D2 combination remains admitted for existing
-source-development projects; updating the tool alone preserves their dependencies.
+The App Tools 0.13.0 candidate defaults to SDK 0.21.0 and Kit/native npm 0.21.0,
+with native ABI 0.10.0, Nimi Coding 0.6.5 and Electron 44. New scaffolds use one
+Kit navigation controller, shared App chrome, and an App-owned destination catalog.
+With no selected feature there is no sidebar or fold control. AI Studio history
+positions carry record references; drafts and saved results remain business data.
 Candidate manifest versions do not establish registry publication.
+
+The scaffold contract is `2026-10-13.standard-app-navigation-v1`. An older
+managed scaffold cannot upgrade only its tool, Kit, or Host glue: init/sync/check
+refuse the old contract before file writes or owner calls. Complete the explicit
+App-owned navigation, managed Host, Kit and intent/lock migration described in
+[Platform upgrade](skills/nimi-app-lifecycle/references/upgrade-platform.md).
+Existing adoption preserves App-owned Host and product files and creates no
+fresh scaffold intent or lock; its author performs the navigation integration.
 
 It does not own GitHub publisher or repository truth, registry review/main, Runtime installed state, Desktop process state, or Nimi Access. Nimi Account and the private Nimi backend are not publisher credentials or App-release infrastructure.
 
