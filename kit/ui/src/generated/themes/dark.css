@@ -160,7 +160,7 @@
   --nimi-opacity-hover-overlay: 0.12;
   --nimi-opacity-backdrop: 0.64;
   --nimi-opacity-subtle-fill: 0.16;
-  --nimi-focus-ring-width: 3px;
+  --nimi-focus-ring-width: 2px;
   --nimi-focus-ring-offset: 1px;
   --nimi-scrollbar-thumb: rgba(148,163,184,0.18);
   --nimi-scrollbar-thumb-hover: rgba(148,163,184,0.35);

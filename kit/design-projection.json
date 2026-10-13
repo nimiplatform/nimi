@@ -702,8 +702,8 @@
           "themeLayer": "foundation",
           "sourceRule": "P-DESIGN-018",
           "values": {
-            "nimi-dark": "3px",
-            "nimi-light": "3px"
+            "nimi-dark": "2px",
+            "nimi-light": "2px"
           }
         }
       },
