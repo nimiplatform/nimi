@@ -5,14 +5,15 @@ import (
 	"fmt"
 )
 
-// This exact data-length marker is observed in completed CosyVoice WORD and
-// DashScope voice-design preview WAVs.
+// This exact data-length marker is observed in completed CosyVoice WORD,
+// Qwen synthesis downloads and DashScope voice-design preview WAVs.
 // RIFF's matching marker includes the actual prefix chunk headers/padding.
 const dashScopeStreamingWAVDataSize uint32 = 2147483547
 
 // finishCompletedDashScopeWAV requires native completion evidence: a valid
 // CosyVoice SSE stop or a successful voice-design JSON result with a created
-// handle and its complete inline preview.
+// handle and its complete inline preview, or a Qwen unary stop and the complete
+// audio downloaded from its native final URL.
 // A streaming data chunk ends at EOF. Only its known length marker and its
 // structurally matching RIFF marker can be finalized; arbitrary mismatches fail.
 // PCM and all actual chunk bytes are retained, without resampling or estimating.

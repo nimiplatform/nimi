@@ -220,11 +220,20 @@ func ExecuteAlibabaNative(
 			return nil, nil, "", err
 		}
 		artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
+		if err := ctx.Err(); err != nil {
+			return nil, nil, "", MapProviderRequestError(err)
+		}
 		if len(artifactBytes) == 0 {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
 			mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
+		}
+		if ttsContract == dashScopeTTSRequestContractQwenMultimodal {
+			artifactBytes, err = finishQwenSynthesisWAV(body, artifactBytes)
+			if err != nil {
+				return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
 			"adapter":          AdapterAlibabaNative,

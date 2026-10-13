@@ -57,7 +57,7 @@ func TestAlibabaQwenTTSRetainsNativeReportedUsage(t *testing.T) {
 		{name: "non_integer", report: map[string]any{"input_tokens": 1.5, "output_tokens": 2}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			audio := []byte("RIFF....WAVEfmt original provider audio")
+			audio, _ := cosyVoiceWAVForTest(false, false)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				response := map[string]any{

@@ -1,11 +1,43 @@
 package nimillm
 
 import (
+	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.dashscope-voice-preview
+func finishQwenSynthesisWAV(body *JSONOrBinaryBody, audio []byte) ([]byte, error) {
+	// Other formats retain their existing artifact handling. Validate finite
+	// WAVs too, so a finite RIFF length cannot hide a mismatched data marker.
+	if len(audio) < 12 || string(audio[:4]) != "RIFF" || string(audio[8:12]) != "WAVE" {
+		return audio, nil
+	}
+	if uint64(binary.LittleEndian.Uint32(audio[4:8]))+8 == uint64(len(audio)) {
+		return finishCompletedDashScopeWAV(audio)
+	}
+	var completion struct {
+		Code   string `json:"code"`
+		Output struct {
+			FinishReason string `json:"finish_reason"`
+			Audio        struct {
+				URL  string `json:"url"`
+				Data string `json:"data"`
+			} `json:"audio"`
+		} `json:"output"`
+	}
+	// Qwen's non-streaming response returns the complete file by URL. Inline
+	// chunks or a successful HTTP status alone do not prove synthesis finished.
+	if body == nil || json.Unmarshal(body.Bytes, &completion) != nil || completion.Code != "" ||
+		completion.Output.FinishReason != "stop" || strings.TrimSpace(completion.Output.Audio.URL) == "" ||
+		completion.Output.Audio.Data != "" {
+		return nil, fmt.Errorf("Qwen synthesis WAV completion is unconfirmed")
+	}
+	return finishCompletedDashScopeWAV(audio)
+}
 
 type dashScopeTTSRequestContract int
 
