@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleIconButton } from './auth-menu-header.js';
+import { capsuleBar, capsuleBarIconButton, capsuleBarInput, capsuleBarSubmitButton } from '../types/auth-types.js';
 
 export type AuthViewMainTestIds = {
   emailInput?: string;
@@ -43,7 +44,7 @@ export function AuthViewMain(props: {
   return (
     <form onSubmit={onContinue} noValidate className="relative w-full">
       {/* Capsule input bar */}
-      <div className="nimi-auth-capsule flex items-center">
+      <div className={capsuleBar}>
         {/* Left: alternatives dropdown trigger */}
         <button
           type="button"
@@ -51,7 +52,7 @@ export function AuthViewMain(props: {
           onClick={onAlternativeToggle}
           disabled={pending}
           aria-label={t('Auth.alternative')}
-          className="nimi-auth-capsule-icon ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-50"
+          className={capsuleBarIconButton}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
             <circle cx="5" cy="5" r="1.5" />
@@ -67,7 +68,7 @@ export function AuthViewMain(props: {
           value={email}
           data-testid={testIds?.emailInput}
           onChange={(event) => onEmailChange(event.target.value)}
-          className="nimi-auth-capsule-input flex-1 min-w-0 bg-transparent px-3 text-[15px] outline-none"
+          className={capsuleBarInput}
           placeholder={t('Auth.emailPlaceholder')}
           required
           autoFocus
@@ -79,9 +80,8 @@ export function AuthViewMain(props: {
           <button
             type="submit"
             data-testid={testIds?.emailSubmitArrow}
-            data-has-content={email.trim() ? 'true' : undefined}
             disabled={pending || !email.trim()}
-            className="nimi-auth-capsule-submit flex items-center justify-center rounded-full disabled:cursor-not-allowed"
+            className={capsuleBarSubmitButton}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3.5 8h9M8.5 4l4 4-4 4" />

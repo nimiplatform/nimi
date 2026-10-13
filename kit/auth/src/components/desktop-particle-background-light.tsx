@@ -112,7 +112,7 @@ export function DesktopParticleBackgroundLight(
     const container = containerRef.current;
     let width = container.clientWidth;
     let height = container.clientHeight;
-    const particleColor = readResolvedColorToken(container, '--nimi-status-info');
+    const particleColor = readResolvedColorToken(container, '--nimi-action-primary-bg');
     const lineColor = readResolvedColorToken(container, '--nimi-text-inverse');
     if (!particleColor || !lineColor) {
       return;

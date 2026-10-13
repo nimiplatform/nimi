@@ -193,9 +193,19 @@ export type WebAccountAuthPageProps = {
 // ---------------------------------------------------------------------------
 
 export const buttonBase =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-[var(--nimi-action-primary-bg)] focus-visible:ring-[var(--nimi-action-primary-bg)]/50 focus-visible:ring-[3px]';
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]';
 export const buttonDefault = 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] shadow-md';
 export const buttonOutline = 'border border-[var(--nimi-field-border)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-sm hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]';
 export const buttonGhost = 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]';
 export const inputBase =
-  'placeholder:text-[var(--nimi-text-muted)] selection:bg-[var(--nimi-action-primary-bg)] selection:text-white w-full min-w-0 rounded-md border border-[var(--nimi-field-border)] bg-transparent text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-[var(--nimi-action-primary-bg)] focus-visible:ring-[var(--nimi-action-primary-bg)]/50 focus-visible:ring-[3px]';
+  'placeholder:text-[var(--nimi-text-muted)] selection:bg-[var(--nimi-action-primary-bg)] selection:text-white w-full min-w-0 rounded-md border border-[var(--nimi-field-border)] bg-transparent text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]';
+
+// Shared capsule input bar (email entry and password entry must not drift)
+export const capsuleBar =
+  'flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]';
+export const capsuleBarIconButton =
+  'ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50';
+export const capsuleBarInput =
+  'flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] outline-none';
+export const capsuleBarSubmitButton =
+  'flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50';

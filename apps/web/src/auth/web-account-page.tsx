@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
@@ -12,6 +12,20 @@ import {
   isFreshOauthContinuation,
   readValidatedOauthNext,
 } from './oauth-continuation.js';
+
+// Sign-in field surfaces share the landing homepage neutral palette
+// (apps/web/src/landing/styles.css); accent tokens keep the kit auth blue.
+const webHomeAuthPalette = {
+  '--nimi-text-primary': '#0f172a',
+  '--nimi-text-secondary': '#334155',
+  '--nimi-text-muted': '#64748b',
+  '--nimi-field-bg': '#ffffff',
+  '--nimi-field-border': '#e2e8f0',
+  '--nimi-border-subtle': '#e2e8f0',
+  '--nimi-elevation-base': '0 6px 18px rgba(15, 23, 42, 0.08)',
+  '--nimi-elevation-raised': '0 12px 28px rgba(15, 23, 42, 0.12)',
+  '--nimi-elevation-floating': '0 18px 44px rgba(15, 23, 42, 0.16)',
+} as CSSProperties;
 
 export function WebAccountPage() {
   const { t } = useTranslation();
@@ -80,6 +94,7 @@ export function WebAccountPage() {
       appearance={{
         theme: 'custom',
         footerPlacement: 'inside-content',
+        rootStyle: webHomeAuthPalette,
       }}
     />
   );

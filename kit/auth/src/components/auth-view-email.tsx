@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react';
-import { buttonBase, buttonDefault, inputBase } from '../types/auth-types.js';
+import { buttonBase, buttonDefault, capsuleBar, capsuleBarIconButton, capsuleBarInput, capsuleBarSubmitButton, inputBase } from '../types/auth-types.js';
 
 export type AuthViewEmailTestIds = {
   passwordInput?: string;
@@ -41,14 +41,14 @@ export function AuthViewEmailLogin(props: {
       <p className="mb-3 text-center text-sm text-[var(--nimi-text-muted)]">{email}</p>
 
       <form onSubmit={onSubmit}>
-        <div className="flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)]">
+        <div className={capsuleBar}>
           <button
             type="button"
             data-testid={testIds?.otpButton}
             onClick={() => setShowOtpConfirm(true)}
             disabled={pending}
             aria-label={t('Auth.useEmailCodeInstead')}
-            className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            className={capsuleBarIconButton}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -61,7 +61,7 @@ export function AuthViewEmailLogin(props: {
             value={password}
             data-testid={testIds?.passwordInput}
             onChange={(event) => onPasswordChange(event.target.value)}
-            className="flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] outline-none"
+            className={capsuleBarInput}
             placeholder={t('Auth.passwordPlaceholder')}
             required
             autoFocus
@@ -85,7 +85,7 @@ export function AuthViewEmailLogin(props: {
             <button
               type="submit"
               disabled={pending || !password}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className={capsuleBarSubmitButton}
             >
               {pending ? (
                 <svg width="16" height="16" viewBox="0 0 16 16" className="animate-spin">

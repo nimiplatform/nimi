@@ -70,7 +70,7 @@ export function OtpInput(props: {
           maxLength={1}
           value={digit || ''}
           disabled={disabled}
-          className="h-12 w-10 rounded-lg border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-center text-xl font-bold text-[var(--nimi-text-primary)] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[var(--nimi-action-primary-bg)]/50 disabled:opacity-50"
+          className="h-12 w-10 rounded-lg border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-center text-xl font-bold text-[var(--nimi-text-primary)] outline-none transition focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50"
           onChange={(e) => handleChange(index, e.target.value.slice(-1))}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}

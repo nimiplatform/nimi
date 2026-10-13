@@ -151,8 +151,11 @@ export default defineConfig(({ mode }) => {
           privacy: path.resolve(import.meta.dirname, 'privacy.html'),
         },
         output: {
-          codeSplitting: { groups: [{ name: chunkName }] },
-          onlyExplicitManualChunks: true,
+          strictExecutionOrder: true,
+          codeSplitting: {
+            includeDependenciesRecursively: false,
+            groups: [{ name: chunkName }],
+          },
         },
       },
     },
