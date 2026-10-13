@@ -38,7 +38,6 @@ export type LabPreferences = {
   draftPersistence: boolean;
   verboseConsole: boolean;
   historyPanel: LabHistoryPanelPreferences;
-  lastCapabilityId: string | null;
 };
 
 export type LabPreferenceStoreState =
@@ -121,7 +120,6 @@ export function defaultLabPreferences(): LabPreferences {
     draftPersistence: true,
     verboseConsole: false,
     historyPanel: defaultLabHistoryPanelPreferences(),
-    lastCapabilityId: null,
   };
 }
 
@@ -173,9 +171,6 @@ function parseLabPreferences(value: unknown): LabPreferences {
     draftPersistence: parsed.draftPersistence,
     verboseConsole: parsed.verboseConsole,
     historyPanel: parseHistoryPanelPreferences(parsed.historyPanel),
-    lastCapabilityId: typeof parsed.lastCapabilityId === 'string' && parsed.lastCapabilityId.trim()
-      ? parsed.lastCapabilityId
-      : null,
   };
 }
 
@@ -248,9 +243,6 @@ export function saveLabPreferences(
     draftPersistence: Boolean(preferences.draftPersistence),
     verboseConsole: Boolean(preferences.verboseConsole),
     historyPanel: parseHistoryPanelPreferences(preferences.historyPanel),
-    lastCapabilityId: typeof preferences.lastCapabilityId === 'string' && preferences.lastCapabilityId.trim()
-      ? preferences.lastCapabilityId
-      : null,
   };
 
   try {

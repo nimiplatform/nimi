@@ -1,3 +1,5 @@
+import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
+import { useZhiyuNavigationOwner, type ZhiyuDestination } from '../app/navigation.js';
 import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
 import { useAgentIntroduction } from '@nimiplatform/kit/features/chat/runtime';
 import type { NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
@@ -111,6 +113,9 @@ export function ZhiyuAgentChatSurface({
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
+  const { navigation, sidebarVisible } = useZhiyuNavigationOwner();
+  const destination = useNimiNavigationSnapshot<ZhiyuDestination>().current.destination;
+  const openPanel = (panel?: AgentPanelTab) => { const current = navigation.getSnapshot().current.destination; void navigation.push({ ...current, panel }); };
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const currentPartnerAvatar = currentPartnerAvatarUrl(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
@@ -410,14 +415,13 @@ export function ZhiyuAgentChatSurface({
       ))}
     </>
   );
-  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
-  const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
+  const rightPanelMode: RightPanelMode = destination.panel ? 'agent' : 'closed';
+  const activeAgentTab: AgentPanelTab = destination.panel ?? 'overview';
   const acknowledgedPlacementKeyRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (!resourcePackPlacementKey) return;
     acknowledgedPlacementKeyRef.current = null;
-    setRightPanelMode('agent');
-    setActiveAgentTab('appearance');
+    openPanel('appearance');
   }, [resourcePackPlacementKey]);
   useLayoutEffect(() => {
     if (!resourcePackPlacementKey
@@ -468,16 +472,13 @@ export function ZhiyuAgentChatSurface({
     chatTranscriptViewportRef.current?.querySelector<HTMLElement>('[data-canonical-transcript-root="true"]') ?? null
   ), []);
   const openAppearanceConfig = () => {
-    setRightPanelMode('agent');
-    setActiveAgentTab('appearance');
+    openPanel('appearance');
   };
   const openBehaviorConfig = () => {
-    setRightPanelMode('agent');
-    setActiveAgentTab('behavior');
+    openPanel('behavior');
   };
   const openAgentOverview = () => {
-    setRightPanelMode('agent');
-    setActiveAgentTab('overview');
+    openPanel('overview');
   };
   const handleDesktopOpenSelectPartner = async () => {
     if (desktopOpenPending) {
@@ -526,9 +527,10 @@ export function ZhiyuAgentChatSurface({
       <div
         className={`zhiyu-agent-chat__layout${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
         data-zhiyu-side-panel-state={rightPanelMode}
+        data-zhiyu-rail-visible={sidebarVisible && hasLocalPartners}
         data-zhiyu-relationship-rail-state={hasLocalPartners ? 'available' : 'empty'}
       >
-        <DesktopPresenceRail
+        {sidebarVisible && hasLocalPartners ? <DesktopPresenceRail
           agents={evidence.inventory.localAgents.map((agent) => ({
             itemKey: agent.agentHandle,
             agentHandle: agent.agentHandle,
@@ -539,14 +541,12 @@ export function ZhiyuAgentChatSurface({
           currentPartnerName={currentPartnerName}
           hasCurrentPartner={hasCurrentPartner}
           onOpenCurrentAgent={() => {
-            setRightPanelMode('agent');
-            setActiveAgentTab('overview');
+            openPanel('overview');
           }}
           onSelectAgent={(agentHandle) => {
-            setActiveAgentTab('overview');
             onSelectLocalAgent(agentHandle);
           }}
-        />
+        /> : null}
 
         <ZhiyuResourcePackSurface
           className="zhiyu-chat-canvas"
@@ -644,11 +644,10 @@ export function ZhiyuAgentChatSurface({
                     open={rightPanelMode === 'agent'}
                     onToggleAgentPanel={() => {
                       if (rightPanelMode === 'agent') {
-                        setRightPanelMode('closed');
+                        openPanel();
                         return;
                       }
-                      setRightPanelMode('agent');
-                      setActiveAgentTab('overview');
+                      openPanel('overview');
                     }}
                   />
                 )}
@@ -680,8 +679,8 @@ export function ZhiyuAgentChatSurface({
             evidence={evidence}
             currentPartnerName={currentPartnerName}
             activeTab={activeAgentTab}
-            onActiveTabChange={setActiveAgentTab}
-            onClose={() => setRightPanelMode('closed')}
+            onActiveTabChange={openPanel}
+            onClose={() => openPanel()}
             onOpenDesktopRuntimeSettings={() => { void onDesktopOpenRuntimeSettings(); }}
             onRetryAgentCenter={onRetryAgentCenter}
             onAvatarLaunch={onAvatarLaunch}

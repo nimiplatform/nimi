@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useZhiyuNavigationOwner } from '../app/navigation.js';
 import { OfflineCoordinator } from '@nimiplatform/kit/core/offline-coordinator';
 import {
   getRuntimePlatformProjection,
@@ -64,6 +65,8 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   const [offlineCoordinator] = useState(() => new OfflineCoordinator());
   const [state, setState] = useState<GateState>({ kind: 'checking' });
   const latestCheckRef = useRef(0);
+  const { setReady } = useZhiyuNavigationOwner();
+  useEffect(() => { setReady(state.kind === 'ready'); }, [state.kind, setReady]);
 
   // Checks never swap the page for a loading screen; the newest one wins, so a
   // slow background probe cannot overwrite a later manual retry.

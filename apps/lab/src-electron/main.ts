@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, ipcMain, Menu, protocol, session, webContents } from 'electron';
 import { configureNimiElectronAppHostProfile } from '@nimiplatform/kit/shell/electron/host-profile';
@@ -16,7 +17,8 @@ try {
 }
 
 const {
-  createNimiElectronStandardApplicationMenuTemplate,
+  createNimiElectronAppChromeHost,
+  createNimiElectronAppChromeWindowOptions,
   isAllowedElectronRendererUrl,
   registerNimiElectronAppAssetProtocolScheme,
   registerNimiElectronAppBridge,
@@ -35,22 +37,27 @@ const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readDevelopmentRendererUrl()
   || normalizeText(process.env.NIMI_LAB_ELECTRON_RENDERER_URL);
+const appPackage = JSON.parse(readFileSync(path.join(appRoot, 'package.json'), 'utf8')) as { version: string };
+const chromeHost = createNimiElectronAppChromeHost({
+  metadata: { name: 'Nimi Lab', version: appPackage.version }, allowedRendererUrls: allowedRendererUrls(), app, menu: Menu,
+  appCommands: [{ id: 'lab.open-settings', menu: 'file', labels: { en: 'Settings', zh: '设置' } }],
+});
+let resettingRenderer = false;
+let quitting = false;
 
 app.setName('Nimi Lab');
-// macOS routes Cmd+C/V/X/A/Z and Cmd+Q through application menu roles.
-Menu.setApplicationMenu(Menu.buildFromTemplate(
-  createNimiElectronStandardApplicationMenuTemplate({ appName: 'Nimi Lab' }),
-));
 configureLabElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
   app.dock?.setIcon(appIconPath);
   registerNimiElectronAppBridge({
+    chromeHost,
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
+    onSessionInvalidated: resetAccountScopedRenderer,
     appCommandHandlers: {
       open_world_tour_window: async ({ payload }) => {
         const value = worldTourPayload(payload, ['manifestPath']);
@@ -97,10 +104,23 @@ function configureLabElectronChromiumRuntime(): void {
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && !resettingRenderer) {
     app.quit();
   }
 });
+app.on('before-quit', () => { quitting = true; });
+app.on('will-quit', () => chromeHost.dispose());
+
+function resetAccountScopedRenderer(): void {
+  const windows = BrowserWindow.getAllWindows();
+  if (quitting || !windows.length) return;
+  resettingRenderer = true;
+  try {
+    for (const window of windows) window.destroy();
+    worldTourWindow = null; worldTourLaunch = null;
+    void createMainWindow().catch(error => process.stderr.write(`[lab-session-reset] ${String(error)}\n`));
+  } finally { resettingRenderer = false; }
+}
 
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = createLabWindow('Nimi Lab', 1440, 940, 360, 640);
@@ -110,6 +130,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
 
 function createLabWindow(title: string, width: number, height: number, minWidth: number, minHeight: number): BrowserWindow {
   const window = new BrowserWindow({
+    ...createNimiElectronAppChromeWindowOptions(),
     width, height, minWidth, minHeight, title,
     icon: appIconPath,
     backgroundColor: '#f6f8fb',
@@ -121,7 +142,7 @@ function createLabWindow(title: string, width: number, height: number, minWidth:
       sandbox: true,
     },
   });
-  hardenLabWindowChrome(window);
+  chromeHost.bindWindow(window);
   secureLabWindow(window);
   return window;
 }
@@ -152,12 +173,6 @@ async function loadRendererRoute(window: BrowserWindow, route: string): Promise<
     return;
   }
   await window.loadURL(hash ? `${rendererDistUrl}#${hash}` : rendererDistUrl);
-}
-
-function hardenLabWindowChrome(window: BrowserWindow): void {
-  window.setAutoHideMenuBar(true);
-  window.setMenuBarVisibility(false);
-  window.removeMenu();
 }
 
 function secureLabWindow(window: BrowserWindow): void {

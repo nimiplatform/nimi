@@ -466,9 +466,16 @@ function TextStudioShell({
     setActiveRun(null);
   }
 
+  const historyPreviewId = useRef<string | null>(null);
   useEffect(() => {
     const record = historySelectionRequest?.record;
-    if (!record || record.capabilityId !== capability.id) return;
+    if (!record || record.capabilityId !== capability.id) {
+      const previous = historyPreviewId.current;
+      if (previous) setActiveRun(current => current?.id === previous ? null : current);
+      historyPreviewId.current = null;
+      return;
+    }
+    historyPreviewId.current = record.id;
     selectHistoryRun(record);
   }, [historySelectionRequest?.requestId, capability.id]);
 

@@ -272,14 +272,14 @@ test('Agent and handle changes dispose the old Manager Session and clear Agent-s
   );
   assert.match(selection, /agentCenterSession\?\.invalidate\(\);\s*agentCenterSession\?\.dispose\(\);/u);
   assert.match(selection, /setEvidence\(\(current\) => \(\{\s*\.\.\.initial,\s*runtime: current\.runtime,\s*auth: current\.auth,\s*inventory: current\.inventory,/u);
-  assert.ok(selection.indexOf('agentCenterSession?.dispose()') < selection.indexOf('setSelectedAgentHandle(agentHandle)'));
+  assert.ok(selection.indexOf('agentCenterSession?.dispose()') < selection.indexOf("navigation.push({ id: 'partner', agentHandle })"));
   assert.match(source, /createZhiyuCanonicalAgentCenterSession\([\s\S]*agentCenterBinding,[\s\S]*resourcePackController,[\s\S]*\)/u);
 
   const homeLoad = source.slice(
     source.indexOf('const home = await bindings.app.projection.loadHome'),
-    source.indexOf('}, [bindings, selectedAgentHandle, selectedLocalAgentRefreshKey])'),
+    source.indexOf('}, [bindings, navigation, selectedAgentHandle'),
   );
-  assert.match(homeLoad, /if \(!active\) \{\s*return;\s*\}/u);
+  assert.match(homeLoad, /if \(!isCurrent\(\)\) \{\s*return;\s*\}/u);
 });
 
 function authorizedEvidence() {

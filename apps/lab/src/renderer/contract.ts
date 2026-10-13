@@ -126,7 +126,6 @@ export interface LabRendererRouteView {
 export interface LabRendererRoutePort {
   get(): LabRendererRouteView;
   subscribe(listener: () => void): () => void;
-  navigate(next: LabRendererRouteView): Promise<void>;
 }
 
 export interface LabRendererClockView {

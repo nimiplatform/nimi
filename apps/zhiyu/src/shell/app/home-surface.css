@@ -856,3 +856,26 @@
 }
 
 }
+
+@scope (.nimi-ui-module--zhiyu) {
+  .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"] {
+    grid-template-columns: minmax(0, 1fr) 500px;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "conversation side";
+  }
+  .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"].is-side-closed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "conversation";
+  }
+  @container nimi-ui-module-zhiyu-surface (max-width: 640px) {
+    .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"] {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-areas: "conversation" "side";
+    }
+    .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"].is-side-closed {
+      grid-template-rows: minmax(0, 1fr);
+      grid-template-areas: "conversation";
+    }
+  }
+}

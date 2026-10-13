@@ -236,3 +236,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-introduction
+  - id: rule.nimi.zhiyu.local-partner-surface.r027
+    kind: rule
+    title: Partner navigation is ephemeral position
+    modality: must
+    statement: Zhiyu consumes standard Kit window-local navigation for explicit partner and settings-panel positions, storing only current-session opaque references and revalidating them through Runtime inventory and Conversation reads. The left partner rail alone participates in optional fold; right Agent configuration is a separate business panel. Navigation and fold neither construct continuity nor send a turn; drafts and resource-pack placement acknowledgement remain Zhiyu-owned, and scope invalidation clears old history before new work.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-surface

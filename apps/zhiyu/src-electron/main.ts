@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   app,
@@ -12,7 +13,8 @@ import {
   type OpenDialogOptions,
 } from 'electron';
 import {
-  createNimiElectronStandardApplicationMenuTemplate,
+  createNimiElectronAppChromeHost,
+  createNimiElectronAppChromeWindowOptions,
   isAllowedElectronRendererUrl,
   registerNimiElectronAppAssetProtocolScheme,
   registerNimiElectronAppBridge,
@@ -40,18 +42,18 @@ const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
+const appPackage = JSON.parse(readFileSync(path.join(appRoot, 'package.json'), 'utf8')) as { version: string };
+const chromeHost = createNimiElectronAppChromeHost({ metadata: { name: '织羽', version: appPackage.version }, allowedRendererUrls: allowedRendererUrls(), app, menu: Menu });
+let registeredAppBridge: ReturnType<typeof registerNimiElectronAppBridge> | undefined;
+let resettingRenderer = false;
+let quitting = false;
+let scopeReset: Promise<void> | undefined;
 let mainWindow: BrowserWindow | undefined;
 let resourcePackPlacementHost: ZhiyuElectronResourcePackPlacementHost | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 
 app.setName('织羽');
-const applicationMenu = Menu.buildFromTemplate(
-  createNimiElectronStandardApplicationMenuTemplate({
-    appName: '织羽',
-  }),
-);
-Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
@@ -81,21 +83,35 @@ const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = as
 };
 
 void app.whenReady().then(async () => {
-  const registeredAppBridge = registerNimiElectronAppBridge({
+  registeredAppBridge = registerNimiElectronAppBridge({
+    chromeHost,
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     agentCenterOpenFileDialog: openZhiyuAgentCenterFileDialog,
     ipcMain,
+    onSessionInvalidated: resetAccountScopedRenderer,
   });
 
   await createMainWindow();
+  await startResourcePackPlacementHost();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0 && !resettingRenderer) {
+      void createMainWindow();
+    }
+  });
+});
+
+async function startResourcePackPlacementHost(): Promise<void> {
+  if (!registeredAppBridge) throw new Error('zhiyu-host-not-ready');
+  const localAppHost = registeredAppBridge.localAppHost;
   resourcePackPlacementHost = await createZhiyuElectronResourcePackPlacementHost({
     homeDirectory: app.getPath('home'),
     focusMainWindow: focusZhiyuMainWindow,
     redeemPlacement: (correlationRef) => redeemDesktopZhiyuResourcePackPlacement({ correlationRef }),
     resolveDestinationAgent: (conversationAnchorId) => resolveZhiyuResourcePackPlacementAgentHandle(
-      registeredAppBridge.localAppHost,
+      localAppHost,
       conversationAnchorId,
     ),
     emitPlacement: (event) => {
@@ -106,25 +122,34 @@ void app.whenReady().then(async () => {
       window.webContents.send(ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL, event);
     },
   });
+}
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      void createMainWindow();
-    }
-  });
-});
+function resetAccountScopedRenderer(): void {
+  if (quitting || scopeReset || !BrowserWindow.getAllWindows().length) return;
+  resettingRenderer = true;
+  const placementHost = resourcePackPlacementHost;
+  resourcePackPlacementHost = undefined;
+  for (const window of BrowserWindow.getAllWindows()) window.destroy();
+  scopeReset = (async () => {
+    await placementHost?.shutdown();
+    if (quitting) return;
+    await createMainWindow();
+    await startResourcePackPlacementHost();
+  })().catch(error => { process.stderr.write(`[zhiyu-session-reset] ${String(error)}\n`); }).finally(() => { scopeReset = undefined; resettingRenderer = false; });
+}
 
 function configureZhiyuElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && !resettingRenderer) {
     app.quit();
   }
 });
 
 app.on('before-quit', (event) => {
+  quitting = true;
   if (quitCleanupComplete || !resourcePackPlacementHost) return;
   event.preventDefault();
   quitCleanup ??= resourcePackPlacementHost.shutdown()
@@ -143,9 +168,11 @@ app.on('before-quit', (event) => {
       quitCleanup = undefined;
     });
 });
+app.on('will-quit', () => chromeHost.dispose());
 
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
+    ...createNimiElectronAppChromeWindowOptions(),
     width: 1280,
     height: 860,
     minWidth: 360,
@@ -161,8 +188,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     },
   });
   mainWindow = window;
-  window.setAutoHideMenuBar(true);
-  window.setMenuBarVisibility(false);
+  chromeHost.bindWindow(window);
   window.on('closed', () => {
     if (mainWindow === window) {
       mainWindow = undefined;

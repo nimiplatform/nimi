@@ -10,7 +10,8 @@
     "noEmit": true,
     "types": [
       "vite/client"
-    ]
+    ],
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*.ts",

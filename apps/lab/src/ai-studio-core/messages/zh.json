@@ -12,6 +12,8 @@
     "assetRevealFailed": "无法显示 {{path}} 所在的文件夹。文件未被修改，请在宿主可用后重试。"
   },
   "History": {
+    "positionLoading": "正在读取这条已保存的结果…",
+    "positionUnavailable": "这条已保存的结果不可用。可以重试读取，或后退到其他页面。",
     "title": "历史",
     "panelAriaLabel": "Runtime 测试历史",
     "filterAriaLabel": "筛选历史",

@@ -8,6 +8,7 @@ import {
   getRuntimePlatformProjection,
 } from './runtime-platform.js';
 import { subscribeLabLocalAppSessionLoss } from './session-loss.js';
+import { useLabNavigationOwner } from '../routes/app-navigation.js';
 
 // A fresh session rereads AIConfig views that failed on the stale one.
 function refreshAIConfigViews(): void {
@@ -16,9 +17,12 @@ function refreshAIConfigViews(): void {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const { setReady } = useLabNavigationOwner();
+  const revalidate = useCallback((onLoss: () => void) => subscribeLabLocalAppSessionLoss(() => { setReady(false); onLoss(); }), [setReady]);
   const resolve = useCallback(async (): Promise<WorkbenchRuntimeGateProjection> => {
     const projection = await getRuntimePlatformProjection();
-    if (projection.status === 'ready') return { status: 'ready' };
+    if (projection.status === 'ready') { setReady(true); return { status: 'ready' }; }
+    setReady(false);
     const body = (projection.messageKey ? t(projection.messageKey) : projection.message)
       || t('Auth.runtime.projectionNotReady');
     return {
@@ -31,7 +35,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         ...(projection.actionHint ? [{ label: t('Auth.runtime.details.actionHint'), value: projection.actionHint }] : []),
       ],
     };
-  }, [t]);
+  }, [t, setReady]);
   const toErrorMessage = useCallback((error: unknown) => (
     error instanceof Error ? error.message : String(error || t('Auth.runtime.checkFailed'))
   ), [t]);
@@ -52,7 +56,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       resolve={resolve}
       clear={clearRuntimePlatformProjection}
       toErrorMessage={toErrorMessage}
-      revalidate={subscribeLabLocalAppSessionLoss}
+      revalidate={revalidate}
       onRevalidated={refreshAIConfigViews}
     >
       {children}

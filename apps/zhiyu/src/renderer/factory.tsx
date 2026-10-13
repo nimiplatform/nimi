@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from 'react';
-import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 
 import { ZhiyuCanonicalApp } from '../shell/app/App.js';
 import type { ZhiyuCanonicalRendererBindings } from './contract.js';
@@ -12,14 +11,12 @@ function ZhiyuMainSurface(props: { readonly bindings: ZhiyuCanonicalRendererBind
     props.bindings.surfaceLifecycle.reportReadyCandidate();
   }, [props.bindings]);
   return (
-    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
       <div
         className="nimi-ui-module--zhiyu"
         data-nimi-semantic-id="zhiyu-main-root"
       >
         <ZhiyuCanonicalApp bindings={props.bindings} />
       </div>
-    </NimiThemeProvider>
   );
 }
 

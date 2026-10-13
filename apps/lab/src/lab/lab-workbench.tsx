@@ -1,4 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
+import { useLabNavigationOwner, type LabDestination } from '../shell/routes/app-navigation.js';
 import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
 import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare } from 'lucide-react';
 
@@ -23,12 +25,6 @@ import {
   type WorkbenchView,
 } from './workbench/workbench-context.js';
 const initialCapabilityId: LabCapabilityId = 'text.generate';
-
-function restoredInitialCapabilityId(preferences: LabPreferences): LabCapabilityId {
-  const saved = preferences.lastCapabilityId;
-  if (!saved) return initialCapabilityId;
-  return labCapabilities.some((item) => item.id === saved) ? saved as LabCapabilityId : initialCapabilityId;
-}
 
 const SettingsRoute = lazy(async () => ({
   default: (await import('../shell/routes/settings-route.js')).SettingsRoute,
@@ -80,43 +76,29 @@ type LabWorkbenchNavigationId = LabCapabilityId
 export function LabWorkbench(_props: LabWorkbenchProps) {
   const rendererHost = useLabRendererHost();
   const { t } = useTranslation();
-  const initialPreferences = rendererHost.app.projection.preferences();
-  const [preferences, setPreferences] = useState<LabPreferences>(initialPreferences);
-  const [view, setView] = useState<WorkbenchView>(() => ({
-    kind: 'capability',
-    capabilityId: restoredInitialCapabilityId(initialPreferences),
-  }));
+  const preferences: LabPreferences = rendererHost.app.projection.preferences();
+  const owner = useLabNavigationOwner();
+  const snapshot = useNimiNavigationSnapshot<LabDestination>();
+  const destination = snapshot.current.destination;
+  const view: WorkbenchView = labCapabilities.some(item => item.id === destination.id)
+    ? { kind: 'capability', capabilityId: destination.id as LabCapabilityId }
+    : { kind: destination.id as Exclude<WorkbenchView['kind'], 'capability'> };
   const activeCapabilityId: LabCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<LabAIConfigSummary | null>(null);
   const [ecosystemReference, setEcosystemReference] = useState<LabEcosystemReferenceProjection | null>(
     () => rendererHost.app.projection.ecosystemReference(),
   );
 
-  const updatePreferences = useCallback((patch: Partial<LabPreferences>) => {
-    setPreferences(() => {
-      const next = { ...rendererHost.app.projection.preferences(), ...patch };
-      void rendererHost.app.commands.savePreferences(next).catch((error: unknown) => {
-        void rendererHost.app.commands.runtimeLog({
-          level: 'warn',
-          area: 'lab-preferences',
-          message: 'preferences-save-failed',
-          details: { error: error instanceof Error ? error.message : String(error || 'Preferences save failed.') },
-        });
-      });
-      return next;
-    });
-  }, [rendererHost]);
-
   const selectCapabilityView = useCallback((capabilityId: LabCapabilityId) => {
-    setView({ kind: 'capability', capabilityId });
-    updatePreferences({ lastCapabilityId: capabilityId });
-  }, [updatePreferences]);
+    void owner.navigation.push({ id: capabilityId });
+  }, [owner.navigation]);
 
   const historyRepository = useLabAIStudioHistoryRepository();
   const studioController = useAIStudioWorkspaceController({
     historyRepository,
     registrations: labStudioComposition.capabilities,
-    onSelectCapability: (capabilityId) => selectCapabilityView(capabilityId as LabCapabilityId),
+    onSelectCapability: (capabilityId, runId) => { void owner.navigation.push({ id: capabilityId as LabCapabilityId, ...(runId ? { runId } : {}) }); },
+    historyPosition: destination.runId ? { runId: destination.runId, entryKey: snapshot.current.key, capabilityId: destination.id } : undefined,
     translate: t,
   });
 
@@ -197,7 +179,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       || id === 'agent-center'
       || id === 'agent-conversation'
       || id === 'agent-realtime') {
-      setView({ kind: id });
+      void owner.navigation.push({ id });
       return;
     }
     selectCapabilityView(id);
@@ -205,6 +187,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
 
   return (
     <WorkbenchCore
+      sidebarVisible={owner.sidebarVisible}
       activeViewId={activeNavigationId}
       navigationLabel={t('Workbench.sideNavAriaLabel')}
       navigationPresentation="catalog"
@@ -214,7 +197,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       bottomNavigationItems={bottomNavigationItems}
       bottomNavigationLabel={t('Workbench.groups.workspace')}
       onSelectView={selectNavigationView}
-      accountSlot={<NimiLabAccountMenu onOpenSettings={() => setView({ kind: 'settings' })} />}
+      accountSlot={<NimiLabAccountMenu onOpenSettings={() => { void owner.navigation.push({ id: 'settings' }); }} />}
       rootTestId={labTestIds.root}
     >
       {view.kind === 'settings' ? (

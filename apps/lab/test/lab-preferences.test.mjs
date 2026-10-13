@@ -154,18 +154,18 @@ test('legacy stored preferences gain history panel defaults and keep saved panel
   assert.equal(legacy.status.state, 'ready');
   assert.equal(legacy.preferences.draftPersistence, false);
   assert.deepEqual(legacy.preferences.historyPanel, { collapsed: true, scope: 'capability', hideFailures: false });
-  assert.equal(legacy.preferences.lastCapabilityId, null);
+  assert.equal('lastCapabilityId' in legacy.preferences, false);
 
   const saved = saveLabPreferences({
     ...legacy.preferences,
     historyPanel: { collapsed: false, scope: 'media', hideFailures: true },
-    lastCapabilityId: 'image.generate',
+
   }, storage);
   assert.equal(saved.status.state, 'ready');
 
   const loaded = loadLabPreferences(storage);
   assert.deepEqual(loaded.preferences.historyPanel, { collapsed: false, scope: 'media', hideFailures: true });
-  assert.equal(loaded.preferences.lastCapabilityId, 'image.generate');
+  assert.equal('lastCapabilityId' in loaded.preferences, false);
 
   const invalidScope = createStorage({
     [LAB_PREFERENCES_STORAGE_KEY]: JSON.stringify({
@@ -179,7 +179,7 @@ test('legacy stored preferences gain history panel defaults and keep saved panel
   const recovered = loadLabPreferences(invalidScope);
   assert.equal(recovered.status.state, 'ready');
   assert.deepEqual(recovered.preferences.historyPanel, { collapsed: true, scope: 'capability', hideFailures: false });
-  assert.equal(recovered.preferences.lastCapabilityId, null);
+  assert.equal('lastCapabilityId' in recovered.preferences, false);
 });
 
 test('reset removes only the preference key and leaves unrelated app state untouched', () => {

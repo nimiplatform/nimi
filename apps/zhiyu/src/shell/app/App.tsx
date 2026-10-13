@@ -1,5 +1,7 @@
+import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
+import { useZhiyuNavigationOwner, type ZhiyuDestination } from './navigation.js';
 import { isZhiyuAgentBusyReason } from './direct-local-app-submit-gate';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
 import {
   appendSubmittedUserMessage,
@@ -9,7 +11,6 @@ import {
   chatStatusFromSubmitRefreshFailure,
   ensureSubmittedUserMessageInChat,
   mergeChatTranscript,
-  shouldPreserveZhiyuDraftOnPartnerReselection,
   turnStatusFromChat,
 } from './app-evidence-transitions';
 import {
@@ -47,11 +48,33 @@ const readNoAgentCenterSnapshot = () => null;
 export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
   const { bindings } = props;
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
-  const [selectedAgentHandle, setSelectedAgentHandle] = useState<NimiLocalAppAgentHandle | null>(null);
+  const owner = useZhiyuNavigationOwner();
+  const { navigation } = owner;
+  const snapshot = useNimiNavigationSnapshot<ZhiyuDestination>();
+  const destination = snapshot.current.destination;
+  const selectedAgentHandle = destination.agentHandle ?? null;
+  const draftByPartner = useRef(new Map<string, string>());
+  const draftRef = useRef('');
+  const previousPosition = useRef<ZhiyuDestination | null>(null);
+  const draftKey = destination.agentHandle ?? 'unselected';
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const [pendingResourcePackPlacement, setPendingResourcePackPlacement] = useState<PendingResourcePackPlacement | null>(null);
   const activeChatAbortRef = useRef<AbortController | null>(null);
+  draftRef.current = draft;
+  useLayoutEffect(() => {
+    const previous = previousPosition.current;
+    const previousKey = previous?.agentHandle ?? 'unselected';
+    if (previous) draftByPartner.current.set(previousKey, draftRef.current);
+    const samePartner = previous && (previous.conversationAnchorId && previous.conversationAnchorId === destination.conversationAnchorId || previous.agentHandle && previous.agentHandle === destination.agentHandle);
+    setDraft(samePartner ? draftRef.current : draftByPartner.current.get(draftKey) ?? '');
+    previousPosition.current = destination;
+  }, [draftKey]);
+  useLayoutEffect(() => {
+    activeChatAbortRef.current?.abort('zhiyu_navigation_partner_changed');
+    setEvidence(current => ({ ...createInitialZhiyuEvidence(), runtime: current.runtime, auth: current.auth, inventory: current.inventory }));
+  }, [selectedAgentHandle]);
+  useEffect(() => { owner.setHasSidebar(evidence.inventory.localAgents.length > 0); }, [evidence.inventory.localAgents.length, owner.setHasSidebar]);
   const resourcePackPlacementGenerationRef = useRef(0);
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = evidence;
@@ -124,7 +147,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           activeChatAbortRef.current?.abort('zhiyu_resource_pack_placement_target_changed');
           agentCenterSessionRef.current?.invalidate();
           agentCenterSessionRef.current?.dispose();
-          setSelectedAgentHandle(target.agentHandle as NimiLocalAppAgentHandle);
+          void navigation.push({ id: 'partner', agentHandle: target.agentHandle as NimiLocalAppAgentHandle, conversationAnchorId: target.conversationAnchorId, panel: 'appearance' });
           setSelectedLocalAgentRefreshKey((current) => current + 1);
           setEvidence((current) => {
             const initial = createInitialZhiyuEvidence();
@@ -154,7 +177,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       resourcePackPlacementGenerationRef.current += 1;
       unsubscribe();
     };
-  }, [bindings]);
+  }, [bindings, navigation]);
 
   useEffect(() => {
     const pending = pendingResourcePackPlacement;
@@ -178,19 +201,23 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
 
   useEffect(() => {
     let active = true;
+    const entry = navigation.getSnapshot();
+    const isCurrent = () => active && navigation.getSnapshot().generation === entry.generation && navigation.getSnapshot().current.key === entry.current.key;
     void (async () => {
       const home = await bindings.app.projection.loadHome({
         selectedAgentHandle,
-        previousConversationAnchorId: latestConversationIdentityRef.current.conversationAnchorId,
-        isCurrent: () => active,
+        previousConversationAnchorId: destination.conversationAnchorId ?? null,
+        isCurrent,
       });
-      if (!active) {
+      if (!isCurrent()) {
         return;
       }
       if (home.localAgent.ready && home.localAgent.agentHandle) {
-        setSelectedAgentHandle((current) => (
-          current === selectedAgentHandle ? home.localAgent.agentHandle : current
-        ));
+        const anchor = home.conversation.ready ? home.conversation.conversationAnchorId : destination.conversationAnchorId;
+        // Only Runtime proves a default/rotated opaque handle and Conversation anchor.
+        if (home.localAgent.agentHandle !== selectedAgentHandle || anchor !== destination.conversationAnchorId) {
+          void navigation.replace({ ...destination, agentHandle: home.localAgent.agentHandle, ...(anchor ? { conversationAnchorId: anchor } : {}) });
+        }
       }
       setEvidence((current) => {
         const turn = bindings.app.projection.projectTurnReadiness(home.conversation, home.inventory);
@@ -204,7 +231,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     return () => {
       active = false;
     };
-  }, [bindings, selectedAgentHandle, selectedLocalAgentRefreshKey]);
+  }, [bindings, navigation, selectedAgentHandle, destination.conversationAnchorId, snapshot.current.key, snapshot.generation, selectedLocalAgentRefreshKey]);
 
   useEffect(() => {
     let active = true;
@@ -320,7 +347,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     const activeChatAbort = new AbortController();
     activeChatAbortRef.current = activeChatAbort;
     const submittedConversation = zhiyuRuntimeChatApplyIdentity(evidence.conversation);
-    const submitStillCurrent = () => activeChatAbortRef.current === activeChatAbort
+    const submittedEntry = navigation.getSnapshot();
+    const submitStillCurrent = () => navigation.getSnapshot().generation === submittedEntry.generation && activeChatAbortRef.current === activeChatAbort
       && shouldContinueZhiyuRuntimeChatSubmit({
         currentConversation: latestConversationIdentityRef.current,
         submittedConversation,
@@ -537,10 +565,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     agentCenterSession?.invalidate();
     agentCenterSession?.dispose();
     const initial = createInitialZhiyuEvidence();
-    const preserveDraft = shouldPreserveZhiyuDraftOnPartnerReselection(evidence.chat);
-    setSelectedAgentHandle(agentHandle);
+    void navigation.push({ id: 'partner', agentHandle });
     setSelectedLocalAgentRefreshKey((current) => current + 1);
-    if (!preserveDraft) setDraft('');
     setEvidence((current) => ({
       ...initial,
       runtime: current.runtime,
@@ -593,7 +619,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       agentCenterSession={agentCenterSession}
       resourcePackPresentation={resourcePackPresentation}
       resourcePackPlacementKey={readyResourcePackPlacementKey}
-      onDraftChange={setDraft}
+      onDraftChange={value => { draftByPartner.current.set(draftKey, value); setDraft(value); }}
       onSubmit={handleSubmit}
       onTranscribeVoice={async (audioBytes, mimeType, signal) => {
         const agentHandle = evidence.conversation.agentHandle;

@@ -49,6 +49,10 @@
     min-height: 0;
   }
 
+  .workbench[data-sidebar-visible="false"] .workbench__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .workbench__main,
   .workbench__content,
   .workbench__content > * {

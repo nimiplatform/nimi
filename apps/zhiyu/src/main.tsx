@@ -7,12 +7,15 @@ import {
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
-import { NimiToaster } from '@nimiplatform/kit/ui';
+import { NimiToaster, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import './styles.css';
 import './renderer/styles.css';
 import { zhiyuCanonicalRendererFactory } from './renderer/factory';
 import { createZhiyuProductionBindings } from './production/renderer-bindings';
 import { AuthGate } from './shell/auth/auth-gate';
+import { NimiAppChrome } from '@nimiplatform/kit/ui/app-chrome';
+import appPackage from '../package.json';
+import { ZhiyuNavigationOwner, useZhiyuNavigationOwner } from './shell/app/navigation.js';
 
 installNimiShellRuntimeBridge();
 
@@ -62,13 +65,12 @@ function ZhiyuProductionSurface() {
   return canonical?.surfaces.main.render() ?? null;
 }
 
-createRoot(root).render(
-  <React.StrictMode>
-    <NimiRendererHostProvider binding={rendererHost}>
-      <AuthGate>
-        <ZhiyuProductionSurface />
-      </AuthGate>
-      <NimiToaster />
-    </NimiRendererHostProvider>
-  </React.StrictMode>,
-);
+function ZhiyuFrame() {
+  const owner = useZhiyuNavigationOwner();
+  return <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <NimiAppChrome metadata={{ name: '织羽', version: appPackage.version }} locale="zh" navigation={owner.navigation} navigationEnabled={owner.ready}
+      sidebar={owner.ready && owner.hasSidebar ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined} />
+    <div className="min-h-0 flex-1 overflow-hidden"><AuthGate><ZhiyuProductionSurface /></AuthGate></div><NimiToaster />
+  </div>;
+}
+createRoot(root).render(<React.StrictMode><NimiRendererHostProvider binding={rendererHost}><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider><ZhiyuNavigationOwner><ZhiyuFrame /></ZhiyuNavigationOwner></TooltipProvider></NimiThemeProvider></NimiRendererHostProvider></React.StrictMode>);

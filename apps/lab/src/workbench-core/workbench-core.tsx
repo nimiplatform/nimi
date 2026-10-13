@@ -24,6 +24,7 @@ export type WorkbenchNavigationGroup<TViewId extends string> = {
 };
 
 export type WorkbenchCoreProps<TViewId extends string> = {
+  readonly sidebarVisible?: boolean;
   readonly activeViewId: TViewId | null;
   readonly navigationLabel: string;
   readonly navigationPresentation?: 'rail' | 'catalog';
@@ -39,6 +40,7 @@ export type WorkbenchCoreProps<TViewId extends string> = {
 };
 
 export function WorkbenchCore<TViewId extends string>({
+  sidebarVisible = true,
   activeViewId,
   navigationLabel,
   navigationPresentation = 'rail',
@@ -53,9 +55,9 @@ export function WorkbenchCore<TViewId extends string>({
   children,
 }: WorkbenchCoreProps<TViewId>) {
   return (
-    <main className="workbench" data-testid={rootTestId} data-navigation-presentation={navigationPresentation}>
+    <main className="workbench" data-testid={rootTestId} data-navigation-presentation={navigationPresentation} data-sidebar-visible={sidebarVisible}>
       <div className="workbench__body">
-        <aside className="workbench-side-nav" aria-label={navigationLabel}>
+        {sidebarVisible ? <aside className="workbench-side-nav" aria-label={navigationLabel}>
           {navigationPresentation === 'catalog' && navigationTitle ? (
             <div className="workbench-side-nav__heading">
               <h1>{navigationTitle}</h1>
@@ -106,7 +108,7 @@ export function WorkbenchCore<TViewId extends string>({
               {accountSlot ? <div className="workbench-side-nav__account">{accountSlot}</div> : null}
             </div>
           ) : null}
-        </aside>
+        </aside> : null}
         <div className="workbench__main">
           <div className="workbench__content">{children}</div>
         </div>

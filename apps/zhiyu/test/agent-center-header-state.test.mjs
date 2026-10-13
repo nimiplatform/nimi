@@ -96,8 +96,8 @@ test('Zhiyu composer Agent Center action is a real open and close toggle', async
   const source = await readFile(path.join(appRoot, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'), 'utf8');
 
   assert.match(source, /onToggleAgentPanel=/);
-  assert.match(source, /if \(rightPanelMode === 'agent'\) \{\s*setRightPanelMode\('closed'\);\s*return;/u);
-  assert.match(source, /setRightPanelMode\('agent'\);\s*setActiveAgentTab\('overview'\);/u);
+  assert.match(source, /if \(rightPanelMode === 'agent'\) \{\s*openPanel\(\);\s*return;/u);
+  assert.match(source, /openPanel\('overview'\);/u);
 });
 
 test('Zhiyu Agent Center panel fails closed with typed owner-unavailable retry when the session is absent', async () => {

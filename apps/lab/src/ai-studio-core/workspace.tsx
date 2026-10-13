@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { nimiToast } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, nimiToast } from '@nimiplatform/kit/ui';
 
 import {
   StudioCapabilityParameterContext,
@@ -28,6 +28,7 @@ import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runti
 import { SectionAITesting } from './section-ai-testing.js';
 import type { StudioAIConfigPanelRenderInput } from './section-ai-testing-surface.js';
 import type { StudioTranslate } from './non-success-presentation.js';
+import { useAIStudioHost } from './host-context.js';
 
 export type AIStudioHistoryProjection = {
   readonly runHistory: StudioRunHistory;
@@ -100,7 +101,8 @@ export type AIStudioWorkspaceProps = {
 export type AIStudioWorkspaceControllerOptions = {
   readonly historyRepository: AIStudioHistoryRepository;
   readonly registrations: readonly StudioCapabilityRegistration[];
-  readonly onSelectCapability: (capabilityId: string) => void;
+  readonly onSelectCapability: (capabilityId: string, historyRunId?: string) => void;
+  readonly historyPosition?: { readonly runId: string; readonly entryKey: string; readonly capabilityId: string };
   readonly translate: StudioTranslate;
 };
 
@@ -118,6 +120,8 @@ export type AIStudioWorkspaceController = {
   readonly history: StudioRunHistory | null;
   readonly lastResult: StudioCapabilityRunResult | null;
   readonly historySelectionRequest: { readonly requestId: number; readonly record: StudioRunHistoryRecord } | null;
+  readonly historySelectionPending: boolean;
+  readonly historySelectionUnavailable: boolean;
   readonly selectHistoryRun: (record: StudioRunHistoryRecord) => void;
 };
 
@@ -134,6 +138,7 @@ export function useAIStudioWorkspaceController({
   historyRepository,
   registrations,
   onSelectCapability,
+  historyPosition,
   translate,
 }: AIStudioWorkspaceControllerOptions): AIStudioWorkspaceController {
   const [projection, setProjection] = useState<AIStudioHistoryProjection | null>(null);
@@ -348,16 +353,23 @@ export function useAIStudioWorkspaceController({
     }
   }, [historyIssue, historyRepository, refreshHistory]);
 
+  const selectionEntry = useRef<string | null>(null);
+  const selectedRecord = historyPosition ? Object.values(projection?.runHistory ?? {}).flat().find(item => item.id === historyPosition.runId && item.capabilityId === historyPosition.capabilityId) : undefined;
+  useEffect(() => {
+    if (!historyPosition) { selectionEntry.current = null; setHistorySelectionRequest(null); return; }
+    const record = selectedRecord;
+    if (!record) { setHistorySelectionRequest(null); return; }
+    if (selectionEntry.current === historyPosition.entryKey) return;
+    selectionEntry.current = historyPosition.entryKey;
+    setHistorySelectionRequest(current => ({ requestId: (current?.requestId ?? 0) + 1, record }));
+  }, [historyPosition?.runId, historyPosition?.entryKey, selectedRecord]);
+
   const selectHistoryRun = useCallback((record: StudioRunHistoryRecord) => {
     if (!registrations.some((entry) => entry.descriptor.id === record.capabilityId)) {
       nimiToast.warning(translate('History.unsupportedCapability'));
       return;
     }
-    onSelectCapability(record.capabilityId);
-    setHistorySelectionRequest((current) => ({
-      requestId: (current?.requestId ?? 0) + 1,
-      record,
-    }));
+    onSelectCapability(record.capabilityId, record.id);
   }, [onSelectCapability, registrations, translate]);
 
   return {
@@ -374,6 +386,8 @@ export function useAIStudioWorkspaceController({
     history: projection?.runHistory ?? null,
     lastResult,
     historySelectionRequest,
+    historySelectionPending: Boolean(historyPosition && !projection && !historyIssue),
+    historySelectionUnavailable: Boolean(historyPosition && ((projection && !selectedRecord) || (!projection && historyIssue))),
     selectHistoryRun,
   };
 }
@@ -389,6 +403,16 @@ export function AIStudioWorkspace({
   headerActions,
   rootTestId,
 }: AIStudioWorkspaceProps) {
+  const { translate } = useAIStudioHost();
+  if (controller.historySelectionPending) {
+    return <div className="p-5"><LoadingSkeleton lines={4} label={translate('History.positionLoading')} /></div>;
+  }
+  if (controller.historySelectionUnavailable) {
+    return <div className="p-5"><InlineAlert tone="warning">
+      <p>{controller.historyLoadState.error ?? translate('History.positionUnavailable')}</p>
+      <Button onClick={controller.historyLoadState.retry}>{translate('Common.retry')}</Button>
+    </InlineAlert></div>;
+  }
   return (
     <StudioCapabilityParameterContext.Provider value={controller.parameterStore}>
       <StudioHistoryLoadContext.Provider value={controller.historyLoadState}>

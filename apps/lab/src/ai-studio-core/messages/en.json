@@ -12,6 +12,8 @@
     "assetRevealFailed": "The folder could not be shown for {{path}}. The file has not been changed; try again when the host is available."
   },
   "History": {
+    "positionLoading": "Reading this saved result…",
+    "positionUnavailable": "This saved result is unavailable. Retry reading it or go back to another page.",
     "title": "History",
     "panelAriaLabel": "Runtime test History",
     "filterAriaLabel": "Filter history",

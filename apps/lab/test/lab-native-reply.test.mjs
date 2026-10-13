@@ -19,8 +19,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const{createElement,act,useState}=await import('react');const{createRoot}=await import('react-dom/client');
 const {TooltipProvider}=await import('@nimiplatform/kit/ui');
 mkdirSync(path.join(root,'.tmp'),{recursive:true});const dir=mkdtempSync(path.join(root,'.tmp','native-reply-'));
-await build({stdin:{contents:"export { NativeMessagePanel } from './src/lab/integrations/native-message-panel.tsx'; export { LabIntegrationsPanel } from './src/lab/integrations/integrations-panel.tsx'; export { LabWorkbench } from './src/lab/lab-workbench.tsx'; export { useAIStudioWorkspaceController } from './src/ai-studio-core/workspace.tsx'; export { createStudioRunHistoryRecord } from './src/ai-studio-core/history.ts'; export { LabRendererProvider } from './src/renderer/context.tsx'; export { observeLabLocalAppSessionLoss } from './src/shell/auth/session-loss.ts'; export { i18n } from './src/shell/i18n/index.ts';",resolveDir:root,loader:'ts'},outfile:path.join(dir,'view.mjs'),bundle:true,packages:'external',platform:'node',format:'esm',jsx:'automatic',loader:{'.css':'empty'},logLevel:'silent'});
-const{NativeMessagePanel,LabIntegrationsPanel,LabWorkbench,useAIStudioWorkspaceController,createStudioRunHistoryRecord,LabRendererProvider,observeLabLocalAppSessionLoss,i18n}=await import(pathToFileURL(path.join(dir,'view.mjs')).href);
+await build({stdin:{contents:"export { NativeMessagePanel } from './src/lab/integrations/native-message-panel.tsx'; export { LabIntegrationsPanel } from './src/lab/integrations/integrations-panel.tsx'; export { LabWorkbench } from './src/lab/lab-workbench.tsx'; export { LabNavigationOwner, LabNavigationScope, createLabNavigation } from './src/shell/routes/app-navigation.tsx'; export { useAIStudioWorkspaceController } from './src/ai-studio-core/workspace.tsx'; export { createStudioRunHistoryRecord } from './src/ai-studio-core/history.ts'; export { LabRendererProvider } from './src/renderer/context.tsx'; export { observeLabLocalAppSessionLoss } from './src/shell/auth/session-loss.ts'; export { i18n } from './src/shell/i18n/index.ts';",resolveDir:root,loader:'ts'},outfile:path.join(dir,'view.mjs'),bundle:true,packages:'external',platform:'node',format:'esm',jsx:'automatic',loader:{'.css':'empty'},logLevel:'silent'});
+const{NativeMessagePanel,LabIntegrationsPanel,LabWorkbench,LabNavigationOwner,LabNavigationScope,createLabNavigation,useAIStudioWorkspaceController,createStudioRunHistoryRecord,LabRendererProvider,observeLabLocalAppSessionLoss,i18n}=await import(pathToFileURL(path.join(dir,'view.mjs')).href);
 await i18n.changeLanguage('en');
 test.after(async()=>{dom.window.close();await rm(dir,{recursive:true,force:true})});
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return{promise,resolve}};
@@ -30,7 +30,7 @@ const fact=status=>({callId:'ic_actual',targetRef:'target',operation:'qq-officia
 const target={targetRef:'target',kind:'qq-official',displayName:'QQ',available:true,operations:[],permittedOperations:['qq-official.messages.reply']};
 function fixture({generate=async()=>result('reviewed fixture draft'),invoke=async()=>fact('unconfirmed')}={}){
  const calls={ai:[],aiRecords:[],messages:[],facts:[],cancels:[]};let id=0;
- const host={sdk:{aiConfig:{get:async()=>({config:{owner:{owner:{oneofKind:'app',app:{appId:'nimi.lab'}}},capabilities:[{capabilityContract:'text.generate',requiredFeatures:[],route:{oneofKind:'local',local:{}}}]}})},runCapability:request=>{calls.ai.push(request);return generate(request)},localAppClient:{auth:{status:async()=>({sessionBound:true})},storage:{assets:{list:async()=>({assets:[],nextCursor:''})}},integration:{invoke:request=>{calls.messages.push(request);return invoke(request)},getCall:()=>assert.fail('terminal fixture polled'),cancelCall:async request=>{calls.cancels.push(request);return fact('unconfirmed')}}}},app:{projection:{aiConfigSummary:async()=>({runtime:{status:'connected',mode:'local-app',detail:'Fixture carrier'}})},commands:{nextRunIdentity:async()=>({runId:`ai-${++id}`,createdAt:'2026-10-06T10:00:00Z'}),appendRunHistory:async record=>{calls.aiRecords.push(record);return{}}}}};
+ const host={sdk:{aiConfig:{get:async()=>({effectiveSelections:[],config:{owner:{owner:{oneofKind:'app',app:{appId:'nimi.lab'}}},capabilities:[{capabilityContract:'text.generate',requiredFeatures:[],route:{oneofKind:'local',local:{}}}]}})},runCapability:request=>{calls.ai.push(request);return generate(request)},localAppClient:{auth:{status:async()=>({sessionBound:true})},storage:{assets:{list:async()=>({assets:[],nextCursor:''})}},integration:{invoke:request=>{calls.messages.push(request);return invoke(request)},getCall:()=>assert.fail('terminal fixture polled'),cancelCall:async request=>{calls.cancels.push(request);return fact('unconfirmed')}}}},app:{projection:{aiConfigSummary:async()=>({runtime:{status:'connected',mode:'local-app',detail:'Fixture carrier'}})},commands:{nextRunIdentity:async()=>({runId:`ai-${++id}`,createdAt:'2026-10-06T10:00:00Z'}),appendRunHistory:async record=>{calls.aiRecords.push(record);return{}}}}};
  function Probe(){const[busy,setBusy]=useState(false);const[save,setSave]=useState(false);return createElement(NativeMessagePanel,{target,busy,events:[event('A'),event('B')],saveReceived:save,setSaveReceived:setSave,setAssetBusy:setBusy,saveEvent:()=>assert.fail('body save not selected'),invoke:()=>assert.fail('ordinary send is not AI send'),recordAI:async record=>{await host.app.commands.appendRunHistory(record)},recordReplyCall:async(_input,call)=>calls.facts.push(call),report:error=>{throw error}})}
  return{host,calls,Probe};
 }
@@ -89,7 +89,7 @@ test('mounted workbench shows Integration completion and cancellation in its exi
  host.sdk.localAppClient.integration.invoke=async request=>{assert.match(request.operation,/updates\.read/u);return{...fact('completed'),operation:request.operation,resultJson:JSON.stringify({cursor:'fixture',events:[event('A')],coverageGap:''})}};
  const renderer=createRoot(document.getElementById('root'));
  try{
-  await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(LabRendererProvider,{bindings:host},createElement(LabWorkbench,{title:'Nimi Lab'})))));
+  await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(LabNavigationOwner,null,createElement(LabNavigationScope,null,createElement(LabRendererProvider,{bindings:host},createElement(LabWorkbench,{title:'Nimi Lab'})))))));
   await click('Integrations');
   const choice=[...document.querySelectorAll('select')].find(e=>[...e.options].some(o=>o.value==='target'));
   await act(async()=>{choice.value='target';choice.dispatchEvent(new Event('change',{bubbles:true}))});
@@ -132,6 +132,27 @@ test('a pending Integration history append cannot publish into a replaced workbe
   await act(async()=>{held.resolve(projection({'chat.stream':[record]}));await pending});
   assert.equal(controller.history['chat.stream'][0].id,'scope-b');
   await act(async()=>appendA(record));assert.equal(appends,1,'stale scope cannot start another history write');
+ }finally{await act(async()=>renderer.unmount())}
+});
+
+test('an explicit saved-result reference waits for its read and never selects another capability record',async()=>{
+ const held=deferred();let controller;
+ const record=createStudioRunHistoryRecord({result:result('saved answer'),prompt:'input',runId:'selected',createdAt:'2026-10-06T10:00:00Z'});
+ const repository={load:()=>held.promise,loadPanelPreferences:()=>({collapsed:true,scope:'capability',hideFailures:false})};
+ const position={runId:'selected',entryKey:'entry-a',capabilityId:'text.generate'};
+ function Probe({historyPosition}){controller=useAIStudioWorkspaceController({historyRepository:repository,registrations:[],historyPosition,onSelectCapability:()=>assert.fail('reading history must not navigate'),translate:key=>key});return null}
+ const renderer=createRoot(document.getElementById('root'));
+ try{
+  await act(async()=>renderer.render(createElement(Probe,{historyPosition:position})));
+  assert.equal(controller.historySelectionPending,true);assert.equal(controller.historySelectionRequest,null);
+  await act(async()=>held.resolve({runHistory:{'chat.stream':[record]},mediaHistory:[]}));
+  assert.equal(controller.historySelectionUnavailable,true);assert.equal(controller.historySelectionRequest,null);
+  await act(async()=>renderer.render(createElement(Probe,{historyPosition:{...position,capabilityId:'chat.stream',entryKey:'entry-b'}})));
+  assert.equal(controller.historySelectionUnavailable,false);assert.equal(controller.historySelectionRequest.record.id,'selected');
+  await act(async()=>renderer.render(createElement(Probe,{historyPosition:{...position,runId:'missing',entryKey:'entry-c'}})));
+  assert.equal(controller.historySelectionUnavailable,true);assert.equal(controller.historySelectionRequest,null);
+  await act(async()=>renderer.render(createElement(Probe,{})));
+  assert.equal(controller.historySelectionUnavailable,false);assert.equal(controller.historySelectionRequest,null);
  }finally{await act(async()=>renderer.unmount())}
 });
 
@@ -361,3 +382,12 @@ test('the actual Integration refresh clears only its old recovery feedback and k
   assert.equal(reads,6);assert.equal(calls.ai.length,0);assert.equal(calls.messages.length,0);assert.equal(calls.facts.length,0);
  }finally{await act(async()=>renderer.unmount())}
 });
+
+ test('Lab history owns exact capability and record references without persisted page state', async () => {
+ const navigation=createLabNavigation();
+ await navigation.push({id:'image.generate',runId:'record-a'}); await navigation.push({id:'settings'}); await navigation.back();
+ assert.deepEqual(navigation.getSnapshot().current.destination,{id:'image.generate',runId:'record-a'});
+ await navigation.forward(); assert.equal(navigation.getSnapshot().current.destination.id,'settings');
+ assert.equal((await navigation.push({id:'settings',runId:'record-a'})).status,'invalid');
+ navigation.reset({id:'text.generate'}); assert.equal(navigation.getSnapshot().canGoBack,false); navigation.dispose();
+ });

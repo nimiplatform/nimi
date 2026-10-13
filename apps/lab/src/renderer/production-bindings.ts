@@ -79,11 +79,6 @@ function productionRoutePort(): LabRendererRoutePort {
         window.removeEventListener('hashchange', onRoute);
       };
     },
-    async navigate(next: LabRendererRouteView) {
-      const query = new URLSearchParams(next.search.map(({ key, value }) => [key, value])).toString();
-      window.history.pushState(null, '', `#${next.pathname}${query ? `?${query}` : ''}${next.fragment ? `#${next.fragment}` : ''}`);
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    },
   });
 }
 
@@ -107,6 +102,8 @@ export function createLabProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
 ): LabCanonicalRendererBindings {
   const labLocalAppClient = getLabLocalAppClient();
+  const promptDrafts = new Map<string, string>();
+  const draftKey = (key: Parameters<LabRendererCommandPort['savePromptDraft']>[0]) => JSON.stringify([key.surfaceId, key.capabilityId, key.scenarioId]);
   const bindings = createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
@@ -157,7 +154,10 @@ export function createLabProductionBindings(
         ecosystemReference: () => null,
         personaReference: () => null,
         preferences: () => loadLabPreferences().preferences,
-        promptDraft: loadLabPromptDraft,
+        promptDraft: (key: Parameters<typeof loadLabPromptDraft>[0], enabled: boolean) => {
+          const loaded = loadLabPromptDraft(key, enabled);
+          return { ...loaded, prompt: promptDrafts.get(draftKey(key)) ?? loaded.prompt };
+        },
       }),
       commands: Object.freeze({
         async nextRunIdentity() {
@@ -186,6 +186,7 @@ export function createLabProductionBindings(
           prompt: string,
           enabled: boolean,
         ) {
+          promptDrafts.set(draftKey(key), prompt);
           return saveLabPromptDraft(key, prompt, enabled);
         },
         async copyText(text: string) {
