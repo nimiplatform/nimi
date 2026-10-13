@@ -343,7 +343,8 @@ export function ZhiyuAgentChatSurface({
   const chatTurnNotices = (
     <>
       {evidence.chat.state === 'failed' ? (
-        <RuntimeChatFailureNotice chat={evidence.chat} />
+        <RuntimeChatFailureNotice chat={evidence.chat} onOpenSettings={onDesktopOpenRuntimeSettings}
+          onReopen={evidence.localAgent.agentHandle ? () => onSelectLocalAgent(evidence.localAgent.agentHandle!) : undefined} />
       ) : null}
       {evidence.chat.actionHint === 'reselect_local_partner' ? (
         <section

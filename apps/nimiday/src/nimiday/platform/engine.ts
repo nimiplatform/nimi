@@ -649,7 +649,7 @@ export function createDayEngine(deps: EngineDeps) {
       }
       queue.shift();
       if (!result.ok) {
-        deps.actions.patchRun(runId, { state: 'failed', finishedAt: now().toISOString(), error: { code: result.reason, message: result.message } });
+        deps.actions.patchRun(runId, { state: 'failed', finishedAt: now().toISOString(), error: { code: result.reasonCode || result.reason, message: result.message } });
       }
     } finally {
       pumping = false;

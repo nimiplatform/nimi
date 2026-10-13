@@ -7,6 +7,8 @@ import { toErrorMessage } from './chat-agent-shell-core';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
 import { chatGPTPlanManageUsageFeedbackAction } from './chat-chatgpt-plan-feedback.js';
 
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+
 export type AgentConversationHostErrorDetails = {
   error: string;
   action?: string;
@@ -22,6 +24,8 @@ export type ReportAgentConversationHostError = (
 
 export function useAgentConversationHostFeedback() {
   const { t } = useTranslation();
+
+  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const buildHostErrorDetails = useCallback((
     error: unknown,
@@ -57,9 +61,17 @@ export function useAgentConversationHostFeedback() {
     setHostFeedback({
       kind: 'error',
       message: userFacing.message,
+      ...(['AI_LOCAL_CONFIGURATION_NOT_CONFIGURED', 'AI_TEXT_BEHAVIOR_UNSUPPORTED'].includes(userFacing.code.toUpperCase().replaceAll('-', '_')) ? {
+        technicalDetail: userFacing.code,
+        actionLabel: t('Chat.openAiCapabilities', { defaultValue: 'Open AI Capabilities' }),
+        onAction: () => {
+
+          runtimeConfigNavigation.openPage('aiSettings');
+        },
+      } : {}),
       ...(userFacing.chatGPTPlanUsageLimited ? chatGPTPlanManageUsageFeedbackAction(t) : {}),
     });
-  }, [buildHostErrorDetails, t]);
+  }, [buildHostErrorDetails, runtimeConfigNavigation, t]);
 
   return {
     buildHostErrorDetails,

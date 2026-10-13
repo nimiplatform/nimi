@@ -133,9 +133,16 @@ export function ComposerAgentCenterButton({
 
 export function RuntimeChatFailureNotice({
   chat,
+  onOpenSettings,
+  onReopen,
 }: {
   readonly chat: ZhiyuEvidence['chat'];
+  readonly onOpenSettings?: () => void;
+  readonly onReopen?: () => void;
 }) {
+  const reason = chat.reasonCode?.toUpperCase().replaceAll('-', '_');
+  const configurationRequired = reason === 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED';
+  const unsupported = reason === 'AI_TEXT_BEHAVIOR_UNSUPPORTED';
   return (
     <section
       className="zhiyu-home__chat-failure-notice"
@@ -151,7 +158,14 @@ export function RuntimeChatFailureNotice({
       <div className="zhiyu-home__chat-failure-copy">
         <span>回复失败</span>
         <strong>回复暂时没有完成</strong>
-        <p>请稍后重试；如果问题持续，请打开诊断查看详情。</p>
+        <p>{configurationRequired
+          ? '这项任务还没有就绪的模型，请先到 Nimi 的「AI 能力」完成设置。'
+          : unsupported
+            ? '当前模型不支持这次任务需要的行为，请在 Nimi 的「AI 能力」选择支持该任务的配置。'
+            : '请重新打开会话后重试。已有消息会保留，重新打开不会自动发送。'}</p>
+        {(configurationRequired || unsupported) && onOpenSettings ? <button type="button" onClick={onOpenSettings}>打开 AI 能力</button> : null}
+        {onReopen ? <button type="button" onClick={onReopen}>重新打开会话</button> : null}
+        <details><summary>技术详情</summary><p>{chat.reasonCode}</p><p>{chat.message}</p></details>
       </div>
     </section>
   );

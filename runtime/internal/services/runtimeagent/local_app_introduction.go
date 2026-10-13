@@ -36,18 +36,22 @@ func (s *Service) GetLocalAppAgentIntroduction(ctx context.Context, req *runtime
 	snapshot, found, err := s.publicChatSourceSnapshotResolve(ctx, resolved.identity.LocalAgentRef)
 	if err != nil || !found || snapshot.LocalAgentRef != resolved.identity.LocalAgentRef || snapshot.Semantic.SourceRef.validate() != nil ||
 		localAppAgentCurrentSourceHash(resolved.entry) != snapshot.Semantic.SourceRef.SourceHash {
+		s.logger.WarnContext(ctx, "agent introduction source snapshot unavailable", "found", found, "error", err)
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	profile, err := decodeRealmSourceCompilerProfileV3(snapshot.Semantic.Source.Profile)
 	if err != nil {
+		s.logger.WarnContext(ctx, "agent introduction profile invalid", "error", err)
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	world, err := decodeRealmSourceCompilerWorldCoreV3(snapshot.Semantic.OwningWorld.Core)
 	if err != nil {
+		s.logger.WarnContext(ctx, "agent introduction world invalid", "error", err)
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	public, err := s.realmCharacterPublicIntroduction.ResolveRealmCharacterPublicIntroduction(ctx, resolved.decision.AccountID, accountRealmCharacterPublicAvatarSourceRef(snapshot.Semantic.SourceRef))
 	if err != nil || public == nil {
+		s.logger.WarnContext(ctx, "agent introduction public source unavailable", "error", err)
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	// Network reads may outlive admission or a source replacement. Revalidate

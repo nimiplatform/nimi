@@ -191,7 +191,7 @@ export function conversationMessagesForDisplay(
 }
 
 function isEmptyStreamingTranscriptPlaceholder(message: ZhiyuEvidence['chat']['messages'][number]): boolean {
-  const streaming = message.kind === 'streaming' || message.status === 'streaming';
+  const streaming = message.kind === 'streaming' || message.status === 'streaming' || message.status === 'error';
   return streaming && runtimeTextForDisplay(message.text).length === 0;
 }
 

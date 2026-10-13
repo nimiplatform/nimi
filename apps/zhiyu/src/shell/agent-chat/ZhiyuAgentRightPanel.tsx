@@ -83,6 +83,13 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
           ) : null}
         </div>
       ) : null}
+      {props.activeTab === 'advanced' && props.evidence.chat.state === 'failed' ? (
+        <section className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs text-[var(--nimi-text-primary)]" aria-label="最近一次回复失败">
+          <strong>最近一次回复失败</strong>
+          <p>{props.evidence.chat.reasonCode}</p>
+          <p>{props.evidence.chat.message}</p>
+        </section>
+      ) : null}
       {props.session ? <AgentCenter
         activeSection={props.activeTab}
         chrome="standalone"

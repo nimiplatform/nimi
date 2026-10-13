@@ -45,6 +45,17 @@ function reduceAll(events: readonly ConversationTurnEvent[]) {
 }
 
 describe('Runtime Agent chat turn projection', () => {
+  it('keeps a failure diagnostic out of the assistant response text', async () => {
+    const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
+      modeId: 'runtime-agent-chat-v1', threadId: 'thread-1', turnId: 'turn-ui-1',
+      parts: parts([{ type: 'turn-failed', error: { code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED', message: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' } }]),
+    }));
+    const state = reduceAll(events);
+    expect(state.status).toBe('failed');
+    expect(state.message).toBe('AI_TEXT_BEHAVIOR_UNSUPPORTED');
+    expect(state.messages[1]?.text).toBe('');
+    expect(state.messages[1]?.error).toBe('AI_TEXT_BEHAVIOR_UNSUPPORTED');
+  });
   it('maps Runtime Agent runner parts to canonical conversation events and transcript state', async () => {
     const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',

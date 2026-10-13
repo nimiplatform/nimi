@@ -1,5 +1,6 @@
 import {
   getNimiRuntimeReasonCodeMessage,
+  extractNimiRuntimeReasonCodeFromError,
   NIMI_CHATGPT_PLAN_MANAGE_USAGE_ACTION_HINT,
   NIMI_CHATGPT_PLAN_REAUTHORIZE_ACTION_HINT,
   toNimiRuntimeUserFacingError,
@@ -22,6 +23,13 @@ export function chatRuntimeReasonCodeMessage(
   reasonCode: string,
   t: TFunction,
 ): string | null {
+  reasonCode = reasonCode.trim().toUpperCase().replaceAll('-', '_');
+  if (reasonCode === 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED') {
+    return translateMessage(t, 'Chat.localConfigurationRequired', 'This task has no ready local model. Open AI Capabilities to finish its setup, then try again.');
+  }
+  if (reasonCode === 'AI_TEXT_BEHAVIOR_UNSUPPORTED') {
+    return translateMessage(t, 'Chat.textBehaviorUnsupported', 'The selected model does not support the behavior this task needs. Choose a compatible configuration in AI Capabilities, then try again.');
+  }
   if (reasonCode === 'AGENT_BUSY' || reasonCode === 'agent-busy') {
     return translateMessage(t, 'Chat.agentBusyRetry', 'This partner is busy with another request. Your input is saved here; try sending again shortly.');
   }
@@ -78,6 +86,11 @@ export function toChatUserFacingRuntimeError(
   context?: ChatRuntimeErrorContext,
 ): ChatUserFacingRuntimeError {
   const { reasonCode: reason, actionHint } = extractNimiErrorFields(error);
+  const reportedReason = reason || extractNimiRuntimeReasonCodeFromError(error);
+  const normalizedReason = reportedReason?.toUpperCase().replaceAll('-', '_');
+  if (normalizedReason === 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED' || normalizedReason === 'AI_TEXT_BEHAVIOR_UNSUPPORTED') {
+    return { code: reportedReason!, message: chatRuntimeReasonCodeMessage(normalizedReason, t)! };
+  }
   if (reason === 'AGENT_BUSY' || reason === 'agent-busy') {
     return { code: reason, message: chatRuntimeReasonCodeMessage(reason, t)! };
   }

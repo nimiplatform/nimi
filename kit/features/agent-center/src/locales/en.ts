@@ -45,7 +45,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.advanced.notProjectedValue": "no data yet",
   "AgentCenter.advanced.privateRecallFormat": "{{count}} this turn",
   "AgentCenter.advanced.privateRecallLabel": "Private recall",
-  "AgentCenter.advanced.runtimeErrorLabel": "Runtime error",
+  "AgentCenter.advanced.runtimeErrorLabel": "Partner settings read error",
   "AgentCenter.advanced.runtimeStreamLabel": "Runtime stream",
   "AgentCenter.advanced.runtimeTurnLabel": "Runtime turn",
   "AgentCenter.advanced.sourceContextBlockedValue": "Needs attention",

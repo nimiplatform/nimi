@@ -786,6 +786,7 @@ describe('AgentCenterSession', () => {
 
     expect(session.getSnapshot()).toMatchObject({
       phase: 'degraded',
+      state: { diagnostics: { runtimeError: 'Shared AIConfig: covered operation rejected' } },
       availability: {
         getSharedAIConfig: {
           state: 'unavailable',

@@ -1,5 +1,8 @@
 {
   "positionUnavailable": "This conversation is unavailable. You can retry or choose another conversation; its reference is kept here.",
+  "openAiCapabilities": "Open AI Capabilities",
+  "localConfigurationRequired": "This task has no ready local model. Open AI Capabilities to finish its setup, then try again.",
+  "textBehaviorUnsupported": "The selected model does not support the behavior this task needs. Choose a compatible configuration in AI Capabilities, then try again.",
   "appReferences": {
     "title": "App messages for this partner",
     "loading": "Loading App messages…",

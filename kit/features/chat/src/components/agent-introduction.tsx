@@ -33,7 +33,7 @@ export function AgentIntroduction({ introduction, displayName, avatarUrl, locale
         </> : null}
       </div>
       {unavailable ? <p role="status" className="text-sm text-[var(--nimi-text-muted)]">
-        {zh ? '人物介绍暂时无法加载。' : 'The introduction could not be loaded.'}
+        {zh ? '人物介绍暂时无法加载。仍可直接发消息开始对话。' : 'The introduction could not be loaded. You can still send a message to start chatting.'}
         {onRetry ? <button type="button" className="ml-2 underline underline-offset-4" onClick={onRetry}>{zh ? '重试' : 'Retry'}</button> : null}
       </p> : null}
       {rich ? <div className="flex w-full max-w-[420px] flex-col items-center">

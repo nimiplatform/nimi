@@ -47,7 +47,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.advanced.notProjectedValue": "暂无数据",
   "AgentCenter.advanced.privateRecallFormat": "本轮 {{count}} 次",
   "AgentCenter.advanced.privateRecallLabel": "私有召回",
-  "AgentCenter.advanced.runtimeErrorLabel": "运行时错误",
+  "AgentCenter.advanced.runtimeErrorLabel": "伙伴设置读取错误",
   "AgentCenter.advanced.runtimeStreamLabel": "运行时数据流",
   "AgentCenter.advanced.runtimeTurnLabel": "运行时回合",
   "AgentCenter.advanced.sourceContextBlockedValue": "需要处理",

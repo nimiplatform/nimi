@@ -1,5 +1,8 @@
 {
   "positionUnavailable": "这个会话暂时无法读取。可以重试或选择其他会话；当前位置会保留原会话引用。",
+  "openAiCapabilities": "打开 AI 能力",
+  "localConfigurationRequired": "这项任务还没有就绪的本地模型。请到「AI 能力」完成对应能力的设置后重试。",
+  "textBehaviorUnsupported": "当前模型不支持这项任务需要的行为。请到「AI 能力」选择支持该任务的配置后重试。",
   "appReferences": {
     "title": "与这位伙伴相关的应用消息",
     "loading": "正在读取应用消息…",

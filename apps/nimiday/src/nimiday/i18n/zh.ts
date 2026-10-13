@@ -517,7 +517,7 @@ export const zh = {
     earlier: '更早的消息没有显示',
     empty: (name: string) => `还没有和 ${name} 聊过。可以先问问：今天有什么需要我注意的？`,
     failed: (name: string) => `${name} 这次没有回复完，可以再说一次。`,
-    needsAiSetup: (name: string) => `${name} 还没有可用的 AI 模型，再说一次也不会回复。请先在 Nimi 的「AI 能力」里完成设置。`,
+    needsAiSetup: (name: string) => `${name} 当前的 AI 配置还不能完成这项任务。请在 Nimi 的「AI 能力」里检查模型与能力设置后重试。`,
     openAiSetup: '去 Nimi「AI 能力」设置',
     openAiSetupFailed: '没能打开 Nimi，请直接在 Nimi 的「AI 能力」中完成设置。',
     interrupted: '回复被中断了',

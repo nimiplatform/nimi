@@ -30,6 +30,17 @@ test('Agent busy gives a bounded retry explanation without business detail', () 
   assert.doesNotMatch(projected.message, /private business material/u);
 });
 
+test('local configuration and unsupported behavior failures explain the next action', async () => {
+  await changeLocale('zh');
+  try {
+    for (const reasonCode of ['AI_LOCAL_CONFIGURATION_NOT_CONFIGURED', 'ai-local-configuration-not-configured', 'AI_TEXT_BEHAVIOR_UNSUPPORTED']) {
+      const projected = toChatUserFacingRuntimeError({ reasonCode, message: reasonCode }, 'Agent response failed', i18n.t);
+      assert.match(projected.message, /AI 能力/u);
+      assert.doesNotMatch(projected.message, /AI_LOCAL_|AI_TEXT_|ai-local-/u);
+    }
+  } finally { await changeLocale('en'); }
+});
+
 test('Nimi Chat explains a stale saved model instead of showing its raw reason code', () => {
   const projected = toChatUserFacingRuntimeError(
     { reasonCode: 'AI_REMOTE_MODEL_CATALOG_STALE', message: 'AI_REMOTE_MODEL_CATALOG_STALE' },

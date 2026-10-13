@@ -396,7 +396,7 @@ export function reduceRuntimeAgentConversationProjectionEvent(
         events,
       }, now, (message) => ({
         ...message,
-        text: event.outputText || state.outputText || message.text || errorMessage,
+        text: event.outputText || state.outputText || message.text,
         status: 'error',
         error: errorMessage,
         kind: 'text',

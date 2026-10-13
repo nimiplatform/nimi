@@ -9,6 +9,7 @@ import { describeUndone, formatInstant } from '../i18n/index.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
 import { RunStateChip } from './common.js';
 import { useUi } from './ui-context.js';
+import { needsAiSetup, openNimiAiCapabilities } from '../platform/ai-setup.js';
 
 export function RunChanges({ run }: { readonly run: SkillRun }) {
   const { copy, store } = useNimiDay();
@@ -51,6 +52,7 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
   const today = toLocalDate(now);
   const agent = run.agentName ?? desk.agent?.displayName ?? copy.common.agentFallback;
   const liveTools = desk.liveTools.filter((tool) => tool.turnId === run.turnId && tool.lifecycle === 'started');
+  const setupRequired = run.state === 'failed' && needsAiSetup(run.error?.code);
 
   const start = async () => {
     // Scheduled runs start in place; a retry keeps the earlier record (and its undo) intact.
@@ -119,12 +121,13 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
                   ? copy.run.agentChanged(run.agentName ?? agent, run.changes.length > 0)
                 : run.state === 'interrupted'
                   ? (run.changes.length > 0 ? copy.run.interruptedReason : copy.run.interruptedClean)
-                  : copy.run.failedFriendly(agent)}
+                  : setupRequired ? copy.assistant.needsAiSetup(agent) : copy.run.failedFriendly(agent)}
               <details><summary>{copy.assistant.technical}</summary>{run.error.code}{run.error.message && run.error.message !== run.error.code ? ` · ${run.error.message}` : ''}</details>
             </div>
           ) : null}
           {run.changes.length > 0 || run.state === 'done' ? <RunChanges run={run} /> : null}
           <div className="nd-inline-actions" style={{ marginTop: 8 }}>
+            {setupRequired ? <Button tone="secondary" size="sm" onClick={() => { void openNimiAiCapabilities().then(opened => { if (!opened) nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed }); }).catch(() => nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed })); }}>{copy.assistant.openAiSetup}</Button> : null}
             {run.changes.length > 0 && !run.undone ? <Button tone="ghost" size="sm" onClick={undo}>{copy.run.undoAll}</Button> : null}
             {run.undone ? <span className="nd-faint">{describeUndone(copy, run, state.items)}</span> : null}
             {run.state !== 'done' && run.trigger !== 'chat' ? <Button tone="secondary" size="sm" onClick={() => { void start(); }}>{copy.run.retry}</Button> : null}

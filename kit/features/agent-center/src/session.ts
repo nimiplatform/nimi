@@ -1238,6 +1238,7 @@ export function createAppAgentCenterSession(
 
     return {
       state: {
+        runtimeError: errors.length ? errors.join('\n') : null,
         ...(sharedRead.status === 'fulfilled' ? {
           sharedAIConfig: sharedRead.value.sharedAIConfig,
           effectiveSelections: sharedRead.value.effectiveSelections,

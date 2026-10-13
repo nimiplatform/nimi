@@ -519,7 +519,7 @@ export const en: Copy = {
     earlier: 'Earlier messages are not shown',
     empty: (name: string) => `No messages with ${name} yet. Try: anything I should watch out for today?`,
     failed: (name: string) => `${name} didn't finish replying. You can say it again.`,
-    needsAiSetup: (name: string) => `${name} has no usable AI model yet, so saying it again won't help. Set one up in Nimi's AI Capabilities first.`,
+    needsAiSetup: (name: string) => `${name}'s current AI configuration cannot perform this task. Check the model and capability settings in Nimi's AI Capabilities, then try again.`,
     openAiSetup: 'Set up in Nimi AI Capabilities',
     openAiSetupFailed: "Couldn't open Nimi. Set up a model in Nimi's AI Capabilities directly.",
     interrupted: 'The reply was interrupted',

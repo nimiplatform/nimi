@@ -5,6 +5,7 @@ const AI_SETUP_REASONS = new Set([
   'ai-config-invalid', 'ai-config-not-found', 'ai-connector-not-found', 'ai-model-not-found', 'ai-model-not-ready',
   'ai-local-configuration-not-configured', 'ai-local-model-unavailable', 'ai-local-model-profile-missing',
   'ai-local-selection-not-found', 'ai-provider-auth-failed', 'ai-route-unsupported',
+  'ai-text-behavior-unsupported',
 ]);
 
 export function needsAiSetup(reasonCode: string | undefined): boolean {

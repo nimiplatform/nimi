@@ -269,7 +269,6 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		ctx,
 		agentInstanceID,
 		runtimeAgentAIConfigCapabilityTextGenerate,
-		runtimeAgentAIConfigCapabilityImageGenerate,
 	)
 	if err != nil {
 		return nil, 0, nil, err
@@ -288,6 +287,17 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	out := clonePublicChatExecutionBindings(bindings)
 	out[runtimeAgentAIConfigCapabilityTextGenerate] = resolvedTextBinding
 	return out, 0, release, nil
+}
+
+// Image generation is an optional post-turn action. Its configuration must not
+// prevent admission of a text turn; an unavailable binding never grants the action.
+func (s *Service) resolvePublicChatImageActionBinding(ctx context.Context, agentInstanceID string) (publicChatExecutionBinding, publicChatImageActionAvailability) {
+	bindings, _, err := s.machineExecutionBindingsForAgent(ctx, agentInstanceID, runtimeAgentAIConfigCapabilityImageGenerate)
+	if err != nil {
+		return publicChatExecutionBinding{}, publicChatImageActionUnavailable
+	}
+	binding, found := bindings[runtimeAgentAIConfigCapabilityImageGenerate]
+	return binding, s.deriveImageActionAvailability(agentInstanceID, 0, binding, found)
 }
 
 // resolvePublicChatTextExecutionBinding is the single canonical catalog

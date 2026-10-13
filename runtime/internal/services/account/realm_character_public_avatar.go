@@ -124,8 +124,8 @@ func (s *Service) resolveRealmCharacterPublicSource(
 	projected := projectRealmUnaryHTTPResult(result)
 	if !projected.GetAccepted() {
 		return nil, fmt.Errorf(
-			"resolve Realm character public avatar: Realm projection failed with %s",
-			projected.GetAccountReasonCode().String(),
+			"resolve Realm character public avatar: Realm projection failed with %s (HTTP %d): %s",
+			projected.GetAccountReasonCode().String(), projected.GetHttpStatus(), projected.GetErrorMessage(),
 		)
 	}
 	return decodeRealmCharacterPublicSource(projected.GetResponseJson(), expectedSourceRef)

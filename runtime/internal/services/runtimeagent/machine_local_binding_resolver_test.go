@@ -262,16 +262,35 @@ func TestPublicChatTurnAdmissionResolvesOnlyTurnExecutableSelections(t *testing.
 	}
 	wantCalls := []string{
 		textContract,
-		imageContract,
 	}
-	if len(source.calls) != len(wantCalls) || source.calls[0] != wantCalls[0] || source.calls[1] != wantCalls[1] {
+	if len(source.calls) != len(wantCalls) || source.calls[0] != wantCalls[0] {
 		t.Fatalf("turn admission resolved selections = %v, want %v", source.calls, wantCalls)
 	}
-	if len(bindings) != 2 || bindings[textContract].ModelID == "" || bindings[imageContract].ModelID == "" {
+	if len(bindings) != 1 || bindings[textContract].ModelID == "" {
 		t.Fatalf("turn execution bindings = %#v", bindings)
 	}
 	if capturedLoadoutID != "lcc_"+textContract {
 		t.Fatalf("context metadata received captured Loadout %q", capturedLoadoutID)
+	}
+	imageBinding, availability := service.resolvePublicChatImageActionBinding(context.Background(), testRuntimeAgentLocalRef("agent-alpha"))
+	if availability != publicChatImageActionAvailable || imageBinding.ModelID == "" {
+		t.Fatalf("configured image action = %v, %#v", availability, imageBinding)
+	}
+	delete(source.projections, imageContract)
+	_, availability = service.resolvePublicChatImageActionBinding(context.Background(), testRuntimeAgentLocalRef("agent-alpha"))
+	if availability != publicChatImageActionUnavailable {
+		t.Fatalf("missing image model must disable only the image action: %v", availability)
+	}
+	_, _, release, err = service.resolveExecutionBindingsFromConfig(context.Background(), testRuntimeAgentLocalRef("agent-alpha"), "user-1", publicChatTurnRequestPayload{})
+	if release != nil {
+		defer release()
+	}
+	if err != nil {
+		t.Fatalf("unconfigured image must not block text: %v", err)
+	}
+	delete(source.projections, textContract)
+	if _, _, _, err := service.resolveExecutionBindingsFromConfig(context.Background(), testRuntimeAgentLocalRef("agent-alpha"), "user-1", publicChatTurnRequestPayload{}); err == nil {
+		t.Fatal("unconfigured text must still fail closed")
 	}
 }
 
