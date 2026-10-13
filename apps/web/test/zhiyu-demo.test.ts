@@ -28,10 +28,12 @@ function session(seed: string | HeroDemoZhiyuPartner) {
   return { client, ...createDemoZhiyuAgentCenterSession(client) };
 }
 
-test('both locales share the zh Zhiyu preview content', async () => {
+test('Zhiyu localizes sample copy while preserving companion identities in both locales', async () => {
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    assert.equal(content.hero.demo.appPreview.zhiyu, zhiyuPreviewContent);
+    const preview = content.hero.demo.appPreview.zhiyu;
+    assert.deepEqual(preview.partners.map((entry) => entry.id), zhiyuPreviewContent.partners.map((entry) => entry.id));
+    assert.equal(preview.copy.sendLabel, locale === 'en' ? 'Send' : '发送');
   }
   assert.equal(zhiyuPreviewContent.partners.length, 4);
   assert.ok(zhiyuPreviewContent.partners.every((entry) => entry.replies.length >= 1));

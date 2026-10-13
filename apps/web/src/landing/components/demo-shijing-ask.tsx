@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type SVGProps } from 'react';
+import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type SVGProps,
+} from 'react';
 import type { HeroDemoShijingPreview } from '../content/landing-content.js';
 
 /**
@@ -14,14 +23,35 @@ import type { HeroDemoShijingPreview } from '../content/landing-content.js';
 const ASK_THINK_MS = 1_400;
 
 type AskContent = HeroDemoShijingPreview['ask'];
-type AskTurn = { id: string; role: 'user' | 'ai'; question?: string; pending?: boolean; followUp?: boolean };
-type Session = { id: string; question: string; group: 'today' | 'week' | 'earlier'; date: string; concerns: ReadonlyArray<string> };
+type AskTurn = {
+  id: string;
+  role: 'user' | 'ai';
+  question?: string;
+  pending?: boolean;
+  followUp?: boolean;
+};
+type Session = {
+  id: string;
+  question: string;
+  group: 'today' | 'week' | 'earlier';
+  date: string;
+  concerns: ReadonlyArray<string>;
+};
 
 type IconProps = SVGProps<SVGSVGElement>;
 
 function ArrowUpIcon(props: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
       <path d="M12 18V6" />
       <path d="M7 11l5-5 5 5" />
     </svg>
@@ -30,7 +60,16 @@ function ArrowUpIcon(props: IconProps) {
 
 function SearchIcon(props: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="m16 16 4 4" />
     </svg>
@@ -39,7 +78,16 @@ function SearchIcon(props: IconProps) {
 
 function FilterIcon(props: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
       <path d="M4 6h16" />
       <path d="M7 12h10" />
       <path d="M10 18h4" />
@@ -52,8 +100,9 @@ function fill(template: string, count: number): string {
 }
 
 export function DemoShijingAsk({ content }: { content: AskContent }) {
-  const [question, setQuestion] = useState('');
-  const [search, setSearch] = useState('');
+  const { pText, pData } = useAppPreviewLocale();
+  const [question, setQuestion] = useState(() => pData(''));
+  const [search, setSearch] = useState(() => pData(''));
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterConcerns, setFilterConcerns] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -63,7 +112,12 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const filterRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!filterOpen) return undefined;
@@ -76,7 +130,10 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
 
   // Newest first: questions asked in this session sit above the seeded history.
   const sessions: Session[] = useMemo(
-    () => [...localSessions, ...content.history.map((entry) => ({ ...entry, concerns: entry.concerns ?? [] }))],
+    () => [
+      ...localSessions,
+      ...content.history.map((entry) => ({ ...entry, concerns: entry.concerns ?? [] })),
+    ],
     [content.history, localSessions],
   );
   const chatActive = !drafting && selected !== null;
@@ -84,29 +141,50 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   const filtered = sessions.filter(
     (entry) =>
       (lookup.length === 0 || entry.question.includes(lookup)) &&
-      (filterConcerns.length === 0 || filterConcerns.some((concern) => entry.concerns.includes(concern))),
+      (filterConcerns.length === 0 ||
+        filterConcerns.some((concern) => entry.concerns.includes(concern))),
   );
   const groups = (['today', 'week', 'earlier'] as const)
-    .map((group) => ({ group, label: content.groups[group], items: filtered.filter((entry) => entry.group === group) }))
+    .map((group) => ({
+      group,
+      label: content.groups[group],
+      items: filtered.filter((entry) => entry.group === group),
+    }))
     .filter((entry) => entry.items.length > 0);
-  const recall = search.trim().length === 0 && !chatActive && question.trim().length > 0
-    ? sessions.filter((entry) => entry.question.includes(question.trim())).slice(0, 3)
-    : [];
+  const recall =
+    search.trim().length === 0 && !chatActive && question.trim().length > 0
+      ? sessions.filter((entry) => entry.question.includes(question.trim())).slice(0, 3)
+      : [];
 
   const thread: AskTurn[] = selected
-    ? threads[selected] ?? [{ id: `${selected}-q`, role: 'user', question: sessions.find((entry) => entry.id === selected)?.question ?? '' }, { id: `${selected}-a`, role: 'ai' }]
+    ? (threads[selected] ?? [
+        {
+          id: `${selected}-q`,
+          role: 'user',
+          question: sessions.find((entry) => entry.id === selected)?.question ?? '',
+        },
+        { id: `${selected}-a`, role: 'ai' },
+      ])
     : [];
   const pending = thread.some((turn) => turn.pending);
   const followUp = chatActive && !pending;
   const canAsk = question.trim().length > 0 && !pending;
-  const submitLabel = pending ? (followUp ? content.sending : content.generating) : followUp ? content.send : content.generate;
+  const submitLabel = pending
+    ? followUp
+      ? content.sending
+      : content.generating
+    : followUp
+      ? content.send
+      : content.generate;
   const submitTitle = followUp ? content.sendTitle : content.generateTitle;
 
   const finishAfterDelay = (id: string) => {
     timerRef.current = setTimeout(() => {
       setThreads((current) => ({
         ...current,
-        [id]: (current[id] ?? []).map((turn) => (turn.pending ? { ...turn, pending: false } : turn)),
+        [id]: (current[id] ?? []).map((turn) =>
+          turn.pending ? { ...turn, pending: false } : turn,
+        ),
       }));
     }, ASK_THINK_MS);
   };
@@ -119,15 +197,28 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
       const id = selected;
       setThreads((current) => ({
         ...current,
-        [id]: [...(current[id] ?? thread), { id: `${id}-q-${Date.now()}`, role: 'user', question: body, followUp: true }, { id: `${id}-a-${Date.now()}`, role: 'ai', pending: true, followUp: true }],
+        [id]: [
+          ...(current[id] ?? thread),
+          { id: `${id}-q-${Date.now()}`, role: 'user', question: body, followUp: true },
+          { id: `${id}-a-${Date.now()}`, role: 'ai', pending: true, followUp: true },
+        ],
       }));
       setQuestion('');
       finishAfterDelay(id);
       return;
     }
     const id = `ask-${Date.now()}`;
-    setThreads((current) => ({ ...current, [id]: [{ id: `${id}-q`, role: 'user', question: body }, { id: `${id}-a`, role: 'ai', pending: true }] }));
-    setLocalSessions((current) => [{ id, question: body, group: 'today', date: content.justNow, concerns: [] }, ...current]);
+    setThreads((current) => ({
+      ...current,
+      [id]: [
+        { id: `${id}-q`, role: 'user', question: body },
+        { id: `${id}-a`, role: 'ai', pending: true },
+      ],
+    }));
+    setLocalSessions((current) => [
+      { id, question: body, group: 'today', date: content.justNow, concerns: [] },
+      ...current,
+    ]);
     setSelected(id);
     setDrafting(false);
     setQuestion('');
@@ -135,7 +226,15 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey || event.nativeEvent.isComposing) return;
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.nativeEvent.isComposing
+    )
+      return;
     event.preventDefault();
     if (canAsk) event.currentTarget.form?.requestSubmit();
   };
@@ -153,45 +252,65 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
     setQuestion('');
   };
 
-  const filterLabel = filterConcerns.length > 0 ? fill(content.filterButtonActive, filterConcerns.length) : content.filterButton;
+  const filterLabel =
+    filterConcerns.length > 0
+      ? fill(content.filterButtonActive, filterConcerns.length)
+      : content.filterButton;
 
   const composer = (
     <form
       className="shijing-ask__composer"
       data-chat-composer={chatActive ? 'true' : 'false'}
       onSubmit={handleSubmit}
-      aria-label={content.composerAria}
+      aria-label={pText(content.composerAria)}
     >
-      <h2 className="shijing-ask__composer-title">{content.composerTitle}</h2>
+      <h2 className="shijing-ask__composer-title">{pText(content.composerTitle)}</h2>
       <textarea
         ref={composerRef}
         className="shijing-ask__textarea"
         rows={2}
         value={question}
-        onChange={(event) => setQuestion(event.currentTarget.value)}
+        onChange={(event) => {
+          setQuestion(event.currentTarget.value);
+        }}
         onKeyDown={handleKeyDown}
-        placeholder={chatActive ? '' : content.placeholderLines.join('\n')}
-        aria-label={content.questionAria}
+        placeholder={pText(chatActive ? '' : content.placeholderLines.join('\n'))}
+        aria-label={pText(content.questionAria)}
       />
       <div className="shijing-ask__toolbar">
         {chatActive ? null : (
-          <section className="shijing-ctx" aria-label={content.contextTitle}>
+          <section className="shijing-ctx" aria-label={pText(content.contextTitle)}>
             <div className="shijing-ctx__lead">
-              <span className="shijing-ctx__icon" aria-hidden="true">✦</span>
+              <span className="shijing-ctx__icon" aria-hidden="true">
+                {pText('✦')}
+              </span>
               <div className="shijing-ctx__text">
-                <p className="shijing-ctx__title">{content.contextTitle}</p>
-                <p className="shijing-ctx__desc">{content.contextDescription}</p>
+                <p className="shijing-ctx__title">{pText(content.contextTitle)}</p>
+                <p className="shijing-ctx__desc">{pText(content.contextDescription)}</p>
               </div>
             </div>
             <div className="shijing-ctx__focus">
               <ul className="shijing-ctx__chips">
-                {content.concerns.length === 0
-                  ? <li className="shijing-ctx__empty">{content.contextEmpty}</li>
-                  : content.concerns.map((concern) => <li key={concern} className="shijing-ctx__chip">#{concern}</li>)}
+                {content.concerns.length === 0 ? (
+                  <li className="shijing-ctx__empty">{pText(content.contextEmpty)}</li>
+                ) : (
+                  content.concerns.map((concern) => (
+                    <li key={concern} className="shijing-ctx__chip">
+                      {pText('#')}
+                      {pText(concern)}
+                    </li>
+                  ))
+                )}
               </ul>
               <span className="shijing-ctx__editor-anchor">
-                <button type="button" className="shijing-ctx__manage" aria-haspopup="dialog" aria-expanded={false}>
-                  ✎ {content.contextManage}
+                <button
+                  type="button"
+                  className="shijing-ctx__manage"
+                  aria-haspopup="dialog"
+                  aria-expanded={false}
+                >
+                  {pText('✎ ')}
+                  {pText(content.contextManage)}
                 </button>
               </span>
             </div>
@@ -205,12 +324,18 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
               disabled={!canAsk}
               aria-busy={pending || undefined}
               data-busy={pending ? 'true' : 'false'}
-              title={submitTitle}
+              title={pText(submitTitle)}
             >
-              {pending
-                ? <span className="shijing-generating-button__spinner" aria-hidden="true" />
-                : <span className="shijing-generating-button__icon" aria-hidden="true"><ArrowUpIcon className="shijing-ask__submit-icon" /></span>}
-              <span className="shijing-generating-button__label shijing-ask__submit-text">{submitLabel}</span>
+              {pending ? (
+                <span className="shijing-generating-button__spinner" aria-hidden="true" />
+              ) : (
+                <span className="shijing-generating-button__icon" aria-hidden="true">
+                  <ArrowUpIcon className="shijing-ask__submit-icon" />
+                </span>
+              )}
+              <span className="shijing-generating-button__label shijing-ask__submit-text">
+                {pText(submitLabel)}
+              </span>
             </button>
           </div>
         </div>
@@ -219,41 +344,73 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   );
 
   const result = chatActive ? (
-    <article className="shijing-ask__result" aria-label={content.resultAria}>
+    <article className="shijing-ask__result" aria-label={pText(content.resultAria)}>
       <ol className="shijing-ask__thread">
         {thread.map((turn) => (
-          <li key={turn.id} className="shijing-ask__turn" data-role={turn.role} data-pending={turn.pending ? 'true' : undefined}>
-            <span className="shijing-ask__turn-role">{turn.role === 'user' ? content.roleUser : content.roleAi}</span>
+          <li
+            key={turn.id}
+            className="shijing-ask__turn"
+            data-role={turn.role}
+            data-pending={turn.pending ? 'true' : undefined}
+          >
+            <span className="shijing-ask__turn-role">
+              {pText(turn.role === 'user' ? content.roleUser : content.roleAi)}
+            </span>
             <div className="shijing-ask__turn-body" aria-live={turn.pending ? 'polite' : undefined}>
               {turn.pending ? (
                 <>
-                  <span className="shijing-ask__thinking-dots" aria-hidden="true"><span /><span /><span /></span>
-                  <span>{content.thinking}</span>
+                  <span className="shijing-ask__thinking-dots" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  <span>{pText(content.thinking)}</span>
                 </>
               ) : turn.role === 'ai' ? (
                 turn.followUp ? (
                   <div className="shijing-ask__answer shijing-ask__answer--plain">
-                    {content.followUpAnswer.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                    {content.followUpAnswer.map((paragraph) => (
+                      <p key={paragraph}>{pText(paragraph)}</p>
+                    ))}
                   </div>
                 ) : (
                   <div className="shijing-ask__answer">
-                    <h3 className="shijing-ask__answer-title">{content.answer.title}</h3>
-                    <p className="shijing-ask__answer-conclusion">{content.answer.conclusion}</p>
+                    <h3 className="shijing-ask__answer-title">{pText(content.answer.title)}</h3>
+                    <p className="shijing-ask__answer-conclusion">
+                      {pText(content.answer.conclusion)}
+                    </p>
                     <div className="shijing-ask__answer-cards">
                       {content.answer.cards.map((card) => (
                         <article key={card.title} className="shijing-ask__answer-card">
-                          <h4 className="shijing-ask__answer-card-title">{card.title}</h4>
+                          <h4 className="shijing-ask__answer-card-title">{pText(card.title)}</h4>
                           <p className="shijing-ask__answer-risk" data-risk={card.risk}>
-                            <span className="shijing-ask__answer-field-label">{content.fields.riskLevel}</span>
-                            <span>{card.risk}</span>
+                            <span className="shijing-ask__answer-field-label">
+                              {pText(content.fields.riskLevel)}
+                            </span>
+                            <span>{pText(card.risk)}</span>
                           </p>
-                          <p className="shijing-ask__answer-field"><span className="shijing-ask__answer-field-label">{content.fields.why}</span><span>{card.why}</span></p>
-                          <p className="shijing-ask__answer-field"><span className="shijing-ask__answer-field-label">{content.fields.suggestion}</span><span>{card.suggestion}</span></p>
-                          <p className="shijing-ask__answer-field"><span className="shijing-ask__answer-field-label">{content.fields.avoid}</span><span>{card.avoid}</span></p>
+                          <p className="shijing-ask__answer-field">
+                            <span className="shijing-ask__answer-field-label">
+                              {pText(content.fields.why)}
+                            </span>
+                            <span>{pText(card.why)}</span>
+                          </p>
+                          <p className="shijing-ask__answer-field">
+                            <span className="shijing-ask__answer-field-label">
+                              {pText(content.fields.suggestion)}
+                            </span>
+                            <span>{pText(card.suggestion)}</span>
+                          </p>
+                          <p className="shijing-ask__answer-field">
+                            <span className="shijing-ask__answer-field-label">
+                              {pText(content.fields.avoid)}
+                            </span>
+                            <span>{pText(card.avoid)}</span>
+                          </p>
                         </article>
                       ))}
                     </div>
-                    <p className="shijing-ask__answer-summary">{content.answer.summary}</p>
+                    <p className="shijing-ask__answer-summary">{pText(content.answer.summary)}</p>
                   </div>
                 )
               ) : (
@@ -261,7 +418,9 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
               )}
             </div>
             {turn.role === 'ai' && !turn.pending && !turn.followUp ? (
-              <small className="shijing-ask__turn-cite">{fill(content.citedFormat, content.answer.cited)}</small>
+              <small className="shijing-ask__turn-cite">
+                {pText(fill(content.citedFormat, content.answer.cited))}
+              </small>
             ) : null}
           </li>
         ))}
@@ -270,19 +429,23 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   ) : null;
 
   return (
-    <section className="shijing-tab shijing-shijing shijing-ask" data-mirror-kind="shijing" aria-label={content.title}>
+    <section
+      className="shijing-tab shijing-shijing shijing-ask"
+      data-mirror-kind="shijing"
+      aria-label={pText(content.title)}
+    >
       <div className="shijing-ask__layout">
-        <aside className="shijing-ask__rail" aria-label={content.railAria}>
+        <aside className="shijing-ask__rail" aria-label={pText(content.railAria)}>
           <div className="shijing-ask__rail-head">
             <button
               type="button"
               className="shijing-ask__new-question"
-              aria-label={content.newQuestionAria}
+              aria-label={pText(content.newQuestionAria)}
               aria-current={drafting && selected === null ? 'true' : undefined}
               onClick={startNewQuestion}
             >
-              <span aria-hidden="true">+</span>
-              {content.newQuestion}
+              <span aria-hidden="true">{pText('+')}</span>
+              {pText(content.newQuestion)}
             </button>
             <div className="shijing-ask__search">
               <div className="shijing-ask__search-row">
@@ -291,17 +454,19 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                   <input
                     type="text"
                     value={search}
-                    onChange={(event) => setSearch(event.currentTarget.value)}
-                    placeholder={content.searchPlaceholder}
-                    aria-label={content.searchPlaceholder}
+                    onChange={(event) => {
+                      setSearch(event.currentTarget.value);
+                    }}
+                    placeholder={pText(content.searchPlaceholder)}
+                    aria-label={pText(content.searchPlaceholder)}
                   />
                 </div>
                 <span className="shijing-ask__filter" ref={filterRef}>
                   <button
                     type="button"
                     className="shijing-ask__filter-button"
-                    aria-label={filterLabel}
-                    title={filterLabel}
+                    aria-label={pText(filterLabel)}
+                    title={pText(filterLabel)}
                     aria-expanded={filterOpen}
                     aria-haspopup="menu"
                     data-active={filterConcerns.length > 0 ? 'true' : 'false'}
@@ -310,7 +475,11 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                     <FilterIcon className="shijing-ask__filter-icon" />
                   </button>
                   {filterOpen ? (
-                    <div className="shijing-ask__filter-menu" role="menu" aria-label={content.filterMenuAria}>
+                    <div
+                      className="shijing-ask__filter-menu"
+                      role="menu"
+                      aria-label={pText(content.filterMenuAria)}
+                    >
                       <button
                         type="button"
                         className="shijing-ask__filter-option"
@@ -318,7 +487,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                         aria-checked={filterConcerns.length === 0}
                         onClick={() => setFilterConcerns([])}
                       >
-                        <span>{content.filterAll}</span>
+                        <span>{pText(content.filterAll)}</span>
                       </button>
                       {content.concerns.map((concern) => (
                         <button
@@ -327,9 +496,15 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                           className="shijing-ask__filter-option"
                           role="menuitemcheckbox"
                           aria-checked={filterConcerns.includes(concern)}
-                          onClick={() => setFilterConcerns((current) => (current.includes(concern) ? current.filter((item) => item !== concern) : [...current, concern]))}
+                          onClick={() =>
+                            setFilterConcerns((current) =>
+                              current.includes(concern)
+                                ? current.filter((item) => item !== concern)
+                                : [...current, concern],
+                            )
+                          }
                         >
-                          <span>{concern}</span>
+                          <span>{pText(concern)}</span>
                         </button>
                       ))}
                     </div>
@@ -341,15 +516,19 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
 
           {groups.length === 0 ? (
             <div className="shijing-ask__rail-empty">
-              <span className="shijing-ask__rail-empty-icon" aria-hidden="true">✎</span>
-              <p className="shijing-ask__rail-empty-title">{sessions.length === 0 ? content.railEmptyTitle : content.emptySearch}</p>
-              <p className="shijing-ask__rail-empty-desc">{content.railEmptyBody}</p>
+              <span className="shijing-ask__rail-empty-icon" aria-hidden="true">
+                {pText('✎')}
+              </span>
+              <p className="shijing-ask__rail-empty-title">
+                {pText(sessions.length === 0 ? content.railEmptyTitle : content.emptySearch)}
+              </p>
+              <p className="shijing-ask__rail-empty-desc">{pText(content.railEmptyBody)}</p>
             </div>
           ) : (
             <div className="shijing-ask__sessions">
               {groups.map((group) => (
                 <div key={group.group} className="shijing-ask__session-group">
-                  <p className="shijing-ask__session-group-label">{group.label}</p>
+                  <p className="shijing-ask__session-group-label">{pText(group.label)}</p>
                   <ul>
                     {group.items.map((entry) => (
                       <li key={entry.id}>
@@ -359,8 +538,8 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                           aria-current={chatActive && selected === entry.id ? 'true' : undefined}
                           onClick={() => selectSession(entry.id)}
                         >
-                          <span className="shijing-ask__session-q">{entry.question}</span>
-                          <span className="shijing-ask__session-time">{entry.date}</span>
+                          <span className="shijing-ask__session-q">{pText(entry.question)}</span>
+                          <span className="shijing-ask__session-time">{pText(entry.date)}</span>
                         </button>
                       </li>
                     ))}
@@ -374,31 +553,42 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
         <div className="shijing-ask__main" data-chat-active={chatActive ? 'true' : 'false'}>
           {chatActive ? (
             <>
-              {result}
-              {composer}
+              {pText(result)}
+              {pText(composer)}
             </>
           ) : (
             <div className="shijing-ask__welcome">
               <header className="shijing-ask__hero">
                 <h1 className="shijing-ask__title">
-                  {content.title}<span className="shijing-ask__title-dot" aria-hidden="true" />
+                  {pText(content.title)}
+                  <span className="shijing-ask__title-dot" aria-hidden="true" />
                 </h1>
-                <p className="shijing-ask__subtitle">{content.subtitle}</p>
+                <p className="shijing-ask__subtitle">{pText(content.subtitle)}</p>
                 <span className="shijing-ask__hero-rule" aria-hidden="true" />
               </header>
-              {composer}
+              {pText(composer)}
               {recall.length > 0 ? (
-                <section className="shijing-recall" aria-label={content.recallAria}>
+                <section className="shijing-recall" aria-label={pText(content.recallAria)}>
                   <div className="shijing-recall__lead">
-                    <span className="shijing-recall__icon" aria-hidden="true">+</span>
-                    <span className="shijing-recall__title">{content.recallTitle}</span>
+                    <span className="shijing-recall__icon" aria-hidden="true">
+                      {pText('+')}
+                    </span>
+                    <span className="shijing-recall__title">{pText(content.recallTitle)}</span>
                   </div>
                   <ul className="shijing-recall__list">
                     {recall.map((entry) => (
                       <li key={entry.id}>
-                        <button type="button" className="shijing-recall__item" onClick={() => selectSession(entry.id)}>
-                          <span className="shijing-recall__question">{entry.question}</span>
-                          <span className="shijing-recall__meta">{entry.concerns.length > 0 ? entry.concerns.join(' / ') : entry.date}</span>
+                        <button
+                          type="button"
+                          className="shijing-recall__item"
+                          onClick={() => selectSession(entry.id)}
+                        >
+                          <span className="shijing-recall__question">{pText(entry.question)}</span>
+                          <span className="shijing-recall__meta">
+                            {pText(
+                              entry.concerns.length > 0 ? entry.concerns.join(' / ') : entry.date,
+                            )}
+                          </span>
                         </button>
                       </li>
                     ))}

@@ -1,0 +1,31 @@
+Third-party App preview artwork
+
+The six App icons are copied from the corresponding Nimi-adapted projects. Their original license texts are retained in ./third-party-licenses/. Product names and icons identify the demonstrated projects; they do not imply ownership by Nimi.
+
+Jev Search — ./third-party-licenses/jev-search.txt
+Jev Ultrafast — ./third-party-licenses/jev-ultrafast.txt
+MoneyPrinterTurbo — ./third-party-licenses/MoneyPrinterTurbo.txt
+OpenWhispr — ./third-party-licenses/openwhispr.txt
+VideoLingo — ./third-party-licenses/VideoLingo.txt
+VoiceStudio — ./third-party-licenses/VoiceStudio.txt
+
+The landing replicas are independently implemented for this website. Example text, rankings, browser actions, subtitles and tracks are illustrative, not live model results. The harbor image and pre-recorded voice clip reuse this landing page's existing Storybook and Zhiyu demonstration assets.
+
+Additional App previews (source icons and retained licenses):
+Inscape — ./third-party-licenses/inscape.txt
+Nimi Overtone — ./third-party-licenses/overtone.txt
+PolyAgent — ./third-party-licenses/polyagent.txt
+Realm Persona Studio — ./third-party-licenses/persona-studio.txt
+Realm World Studio — ./third-party-licenses/world-studio.txt
+DeepTutor — ./third-party-licenses/deeptutor.txt
+OpenMontage — ./third-party-licenses/openmontage.txt
+SillyTavern — ./third-party-licenses/sillytavern.txt
+Vane — ./third-party-licenses/vane.txt
+Next AI Draw.io — ./third-party-licenses/drawio.txt
+Open Notebook — ./third-party-licenses/open-notebook.txt
+Presenton — ./third-party-licenses/presenton.txt
+
+Inscape landscape: copied from nimiapp-inscape/public/images/inner-landscape.webp.
+Overtone display font: Archivo Black, retained OFL-ArchivoBlack.txt.
+Presenton display font: Syne, source bundled font; retained Syne license alongside the other notices.
+All preview content is illustrative. No models, Realm writes, browser agents or trades execute from these previews.

@@ -73,7 +73,7 @@ test('landing copy stays capability-first without provider names or deferred cap
     /Qwen/i,
     /Ollama/i,
     /vLLM/i,
-    /Cohere/i,
+    /\bCohere\b/i,
     /Bedrock/i,
     /world\.generate/i,
     /世界生成/,

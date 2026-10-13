@@ -11,12 +11,13 @@ import { parentosPreviewContent } from '../src/landing/content/landing-content.p
 import { storybookPreviewContent } from '../src/landing/content/landing-content.storybook.js';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 
-test('both locales share the zh ShiJing, ParentOS, and Storybook preview content and list them as previewable apps', async () => {
+test('both locales provide localized App previews and list every previewable App', async () => {
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    assert.equal(content.hero.demo.appPreview.shijing, shijingPreviewContent);
-    assert.equal(content.hero.demo.appPreview.parentos, parentosPreviewContent);
-    assert.equal(content.hero.demo.appPreview.storybook, storybookPreviewContent);
+    assert.equal(content.hero.demo.appPreview.locale, locale);
+    assert.equal(content.hero.demo.appPreview.shijing.tabs.length, shijingPreviewContent.tabs.length);
+    assert.equal(content.hero.demo.appPreview.storybook.stories.length, storybookPreviewContent.stories.length);
+    assert.equal(content.hero.demo.appPreview.parentos.nav.timeline, locale === 'zh' ? '首页' : 'Home');
     for (const appId of DEMO_PREVIEW_APP_IDS) {
       assert.ok(content.hero.demo.apps.items.some((item) => item.id === appId), `${locale} lists ${appId}`);
     }
@@ -249,8 +250,9 @@ test('Storybook preview mounts the sidebar shell on the 发现故事 library wit
   assert.ok(featured);
   assert.ok(html.includes(`background-image:url(${featured.cover})`));
   assert.ok(html.includes('从这里开始 · STORY NO. 01'));
-  assert.ok(html.includes(`${featured.nodes.length} 个场景`));
-  assert.ok(html.includes(`${featured.endings.length} 种结局`));
+  const renderedText = html.replace(/<[^>]*>/gu, '').replace(/\s+/gu, ' ');
+  assert.ok(renderedText.includes(`${featured.nodes.length} 个场景`));
+  assert.ok(renderedText.includes(`${featured.endings.length} 种结局`));
   for (const story of content.stories) {
     assert.ok(html.includes(`<h3>${story.title}</h3>`), story.title);
     assert.ok(html.includes(story.role));

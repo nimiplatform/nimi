@@ -1,9 +1,8 @@
 import type { HeroDemoZhiyuPreview } from './landing-content.js';
 
 /**
- * Zhiyu preview content. Zhiyu is a zh-CN-first app whose shell hardcodes its
- * Chinese copy, so the interactive preview intentionally stays zh in both
- * landing locales and both locale files import this one module.
+ * Zhiyu's authored Chinese sample content. The landing content loader supplies
+ * the selected language before this data reaches the interactive preview.
  *
  * `copy` mirrors the strings the real shell renders
  * (apps/zhiyu/src/shell/agent-chat/*); the partners are mock data shaped like

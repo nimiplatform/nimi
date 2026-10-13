@@ -186,16 +186,6 @@ export function findStrikeSolution(plan: StrikePlan, existing: readonly PromiseA
   return null;
 }
 
-export function actionText(action: PromiseAction, props: readonly Prop[]): string {
-  const name = props.find((p) => p.id === action.objectId)?.label ?? '物品';
-  return action.kind === 'rest' ? `批准${name}休息` : action.kind === 'credit' ? `把唯一署名给${name}` : `请${name}${TASK_NAMES[action.task]}`;
-}
-
-export function offerText(offer: StrikeOffer, props: readonly Prop[]): string {
-  const conditions = [offer.needsCredit ? '要有我的署名' : '', offer.needsRest ? `先让${props.find((p) => p.id === offer.needsRest)?.label}休息` : ''].filter(Boolean);
-  return conditions.length ? conditions.join('；') : '我愿意直接帮忙';
-}
-
 /** Image-stage clicks use the image's own aspect ratio, not an object-fit container. */
 export function hitProp(props: readonly Prop[], x: number, y: number): Prop | undefined {
   return props
@@ -213,13 +203,13 @@ export function interpretProposalLocally(plan: StrikePlan, props: readonly Prop[
   const actions: PromiseAction[] = [];
   const clauses = message.split(/[，,。；;、\n]+/).map((part) => part.trim()).filter(Boolean);
   for (const clause of clauses) {
-    const prop = props.find((p) => clause.includes(p.label));
+    const prop = props.find((p) => clause.toLocaleLowerCase().includes(p.label.toLocaleLowerCase()));
     if (!prop) continue;
-    if (/休息|休假|放假/.test(clause)) actions.push({ kind: 'rest', objectId: prop.id });
-    else if (/署名|挂名|名字/.test(clause)) actions.push({ kind: 'credit', objectId: prop.id });
-    else if (/写故事|写/.test(clause)) actions.push({ kind: 'assign', objectId: prop.id, task: 'story' });
-    else if (/朗读|读/.test(clause)) actions.push({ kind: 'assign', objectId: prop.id, task: 'reading' });
-    else if (/布置|现场|舞台/.test(clause)) actions.push({ kind: 'assign', objectId: prop.id, task: 'stage' });
+    if (/休息|休假|放假|\b(rest|break|time off)\b/iu.test(clause)) actions.push({ kind: 'rest', objectId: prop.id });
+    else if (/署名|挂名|名字|\b(credit|name)\b/iu.test(clause)) actions.push({ kind: 'credit', objectId: prop.id });
+    else if (/写故事|写|\b(write|story)\b/iu.test(clause)) actions.push({ kind: 'assign', objectId: prop.id, task: 'story' });
+    else if (/朗读|读|\b(read|narrate)\b/iu.test(clause)) actions.push({ kind: 'assign', objectId: prop.id, task: 'reading' });
+    else if (/布置|现场|舞台|\b(scene|stage|set)\b/iu.test(clause)) actions.push({ kind: 'assign', objectId: prop.id, task: 'stage' });
     if (actions.length === 5) break;
   }
   if (!actions.length) {

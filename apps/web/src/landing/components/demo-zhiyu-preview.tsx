@@ -1,3 +1,4 @@
+import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import {
   useCallback,
   useEffect,
@@ -28,7 +29,11 @@ import {
   type AgentCenterTranslationKey,
 } from '@nimiplatform/kit/features/agent-center';
 import { Globe2, Lightbulb, SlidersHorizontal, UserRound, X } from 'lucide-react';
-import type { HeroDemoZhiyuMessageSeed, HeroDemoZhiyuPartner, HeroDemoZhiyuPreview } from '../content/landing-content.js';
+import type {
+  HeroDemoZhiyuMessageSeed,
+  HeroDemoZhiyuPartner,
+  HeroDemoZhiyuPreview,
+} from '../content/landing-content.js';
 import {
   createDemoZhiyuAgentCenterSession,
   createDemoZhiyuAgentClient,
@@ -67,8 +72,9 @@ function partnerInitial(name: string): string {
 
 function formatZhiyuTranscriptDateLabel(
   copy: HeroDemoZhiyuPreview['copy'],
+  locale: string,
 ): ({ date, diffDays }: { date: Date; diffDays: number }) => string {
-  const formatter = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric' });
+  const formatter = new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' });
   return ({ date, diffDays }) => {
     if (diffDays === 0) return copy.dateLabels.today;
     if (diffDays === 1) return copy.dateLabels.yesterday;
@@ -83,7 +89,14 @@ function materializePartnerMessages(
   const result: Record<string, ConversationCanonicalMessage[]> = {};
   for (const partner of partners) {
     result[partner.id] = partner.messages.map((seed) => ({
-      ...buildMessage(partner, seed.role, seed.text, now - seed.minutesAgo * 60_000, 'complete', seedMedia(seed)),
+      ...buildMessage(
+        partner,
+        seed.role,
+        seed.text,
+        now - seed.minutesAgo * 60_000,
+        'complete',
+        seedMedia(seed),
+      ),
       id: seed.id,
     }));
   }
@@ -99,10 +112,16 @@ type MessageMedia = {
 // real shell: voice bubbles play `voiceUrl`, image cards show `mediaUrl`.
 function seedMedia(seed: HeroDemoZhiyuMessageSeed): MessageMedia {
   if (seed.kind === 'voice') {
-    return { kind: 'voice', metadata: { voiceUrl: seed.voiceUrl, voiceTranscript: seed.voiceTranscript } };
+    return {
+      kind: 'voice',
+      metadata: { voiceUrl: seed.voiceUrl, voiceTranscript: seed.voiceTranscript },
+    };
   }
   if (seed.kind === 'image') {
-    return { kind: 'image', metadata: { mediaUrl: seed.mediaUrl, ...(seed.caption ? { caption: seed.caption } : {}) } };
+    return {
+      kind: 'image',
+      metadata: { mediaUrl: seed.mediaUrl, ...(seed.caption ? { caption: seed.caption } : {}) },
+    };
   }
   return { kind: 'text' };
 }
@@ -149,10 +168,19 @@ function DemoPresenceRail({
   onOpenCurrentAgent: () => void;
   onSelectPartner: (partnerId: string) => void;
 }) {
+  const { pText } = useAppPreviewLocale();
   return (
-    <section className="zhiyu-agent-rail" data-zhiyu-region="presence" aria-label={copy.railLabel}>
-      <div className="zhiyu-agent-rail__logo" aria-label="Nimi" data-zhiyu-desktop-logo-image="nimi">
-        <img src="/logo.svg" alt="" aria-hidden="true" />
+    <section
+      className="zhiyu-agent-rail"
+      data-zhiyu-region="presence"
+      aria-label={pText(copy.railLabel)}
+    >
+      <div
+        className="zhiyu-agent-rail__logo"
+        aria-label={pText('Nimi')}
+        data-zhiyu-desktop-logo-image="nimi"
+      >
+        <img src="/logo.svg" alt={pText('')} aria-hidden="true" />
       </div>
       <div
         className="zhiyu-agent-rail__agents"
@@ -161,11 +189,17 @@ function DemoPresenceRail({
         data-zhiyu-relationship-rail-source="desktop-chat-relationship-rail"
         data-zhiyu-relationship-rail-empty={String(partners.length === 0)}
       >
-        {partners.length > 0 ? <div className="zhiyu-agent-rail__separator" aria-hidden="true" /> : null}
+        {partners.length > 0 ? (
+          <div className="zhiyu-agent-rail__separator" aria-hidden="true" />
+        ) : null}
         {partners.map((partner) => {
           const isCurrent = partner.id === currentPartnerId;
           return (
-            <div key={partner.id} className="zhiyu-agent-rail__agent-row" data-zhiyu-local-agent-row="true">
+            <div
+              key={partner.id}
+              className="zhiyu-agent-rail__agent-row"
+              data-zhiyu-local-agent-row="true"
+            >
               <span
                 className={`zhiyu-agent-rail__agent-indicator${isCurrent ? ' is-active' : ''}`}
                 aria-hidden="true"
@@ -173,9 +207,11 @@ function DemoPresenceRail({
               <button
                 type="button"
                 className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}`}
-                aria-label={`${isCurrent ? copy.currentPartnerAriaPrefix : copy.selectPartnerAriaPrefix}${partner.name}`}
+                aria-label={pText(
+                  `${isCurrent ? copy.currentPartnerAriaPrefix : copy.selectPartnerAriaPrefix}${partner.name}`,
+                )}
                 aria-pressed={isCurrent}
-                title={partner.name}
+                title={pText(partner.name)}
                 data-zhiyu-local-agent-candidate="true"
                 data-zhiyu-local-agent-candidate-active={String(isCurrent)}
                 data-zhiyu-agent-handle={partner.id}
@@ -188,8 +224,10 @@ function DemoPresenceRail({
                 }}
               >
                 {partner.avatarUrl ? (
-                  <img src={partner.avatarUrl} alt="" aria-hidden="true" />
-                ) : partnerInitial(partner.name)}
+                  <img src={partner.avatarUrl} alt={pText('')} aria-hidden="true" />
+                ) : (
+                  partnerInitial(partner.name)
+                )}
               </button>
             </div>
           );
@@ -222,6 +260,7 @@ function DemoAgentPanel({
   onOpenRuntimeSettings: () => void;
   onAvatarLaunch: () => void;
 }) {
+  const { pText, previewLocale } = useAppPreviewLocale();
   const i18n = useMemo(() => {
     const overrides: Partial<Record<AgentCenterTranslationKey, string>> = {
       'AgentCenter.chrome.title': copy.panelTitle,
@@ -231,12 +270,12 @@ function DemoAgentPanel({
       'AgentCenter.chrome.projectionLoadFailed': copy.panelLoadFailed,
     };
     return createAgentCenterI18n({
-      language: 'zh',
+      language: previewLocale,
       t(key) {
-        return overrides[key as AgentCenterTranslationKey] || key;
+        return pText(overrides[key as AgentCenterTranslationKey] || key);
       },
     });
-  }, [copy]);
+  }, [copy, pText, previewLocale]);
   const worldLabel: string | null = null;
   return (
     <aside
@@ -246,7 +285,7 @@ function DemoAgentPanel({
       data-zhiyu-agent-panel-mode="agent"
       data-zhiyu-agent-center-side-sheet="desktop"
       data-zhiyu-agent-panel-tab={activeTab}
-      aria-label={copy.panelAriaLabel}
+      aria-label={pText(copy.panelAriaLabel)}
     >
       {partner.hostMoodLabel || partner.hostActivityLabel || worldLabel ? (
         <div
@@ -254,19 +293,28 @@ function DemoAgentPanel({
           data-zhiyu-agent-center-host-context="true"
         >
           {partner.hostMoodLabel ? (
-            <span className="rounded-full bg-violet-500/10 px-2 py-px text-[10px] font-semibold text-violet-700" data-zhiyu-agent-center-state-chip="mood">
-              {partner.hostMoodLabel}
+            <span
+              className="rounded-full bg-violet-500/10 px-2 py-px text-[10px] font-semibold text-violet-700"
+              data-zhiyu-agent-center-state-chip="mood"
+            >
+              {pText(partner.hostMoodLabel)}
             </span>
           ) : null}
           {partner.hostActivityLabel ? (
-            <span className="rounded-full bg-sky-500/10 px-2 py-px text-[10px] font-semibold text-sky-700" data-zhiyu-agent-center-state-chip="activity">
-              {partner.hostActivityLabel}
+            <span
+              className="rounded-full bg-sky-500/10 px-2 py-px text-[10px] font-semibold text-sky-700"
+              data-zhiyu-agent-center-state-chip="activity"
+            >
+              {pText(partner.hostActivityLabel)}
             </span>
           ) : null}
           {worldLabel ? (
-            <span className="inline-flex min-w-0 items-center gap-1 text-[10.5px] text-[var(--nimi-text-secondary)]" data-zhiyu-agent-center-world-name={worldLabel}>
+            <span
+              className="inline-flex min-w-0 items-center gap-1 text-[10.5px] text-[var(--nimi-text-secondary)]"
+              data-zhiyu-agent-center-world-name={worldLabel}
+            >
               <Globe2 aria-hidden="true" size={12} />
-              <span className="truncate">{worldLabel}</span>
+              <span className="truncate">{pText(worldLabel)}</span>
             </span>
           ) : null}
         </div>
@@ -305,18 +353,21 @@ function ComposerAvatarButton({
   copy: HeroDemoZhiyuPreview['copy'];
   onOpenSettings: () => void;
 }) {
+  const { pText } = useAppPreviewLocale();
   const label = `${copy.avatarAriaPrefix}${partner.name}`;
   return (
     <button
       type="button"
       className="zhiyu-home__composer-avatar"
-      aria-label={label}
-      title={label}
+      aria-label={pText(label)}
+      title={pText(label)}
       onClick={onOpenSettings}
     >
       {partner.avatarUrl ? (
-        <img src={partner.avatarUrl} alt="" aria-hidden="true" />
-      ) : partnerInitial(partner.name)}
+        <img src={partner.avatarUrl} alt={pText('')} aria-hidden="true" />
+      ) : (
+        partnerInitial(partner.name)
+      )}
     </button>
   );
 }
@@ -334,13 +385,14 @@ function ComposerModeTools({
   onOpenAppearance: () => void;
   onOpenBehavior: () => void;
 }) {
+  const { pText } = useAppPreviewLocale();
   const avatarLabel = avatarReady ? copy.avatarLaunchLabel : copy.avatarConfigureLabel;
   return (
     <>
       <button
         type="button"
-        aria-label={avatarLabel}
-        title={avatarLabel}
+        aria-label={pText(avatarLabel)}
+        title={pText(avatarLabel)}
         data-zhiyu-composer-tool="avatar"
         data-zhiyu-avatar-launch-entry={avatarReady ? 'ready' : 'blocked'}
         onClick={avatarReady ? onAvatarLaunch : onOpenAppearance}
@@ -354,8 +406,8 @@ function ComposerModeTools({
       />
       <button
         type="button"
-        aria-label={copy.proactiveLabel}
-        title={copy.proactiveLabel}
+        aria-label={pText(copy.proactiveLabel)}
+        title={pText(copy.proactiveLabel)}
         data-zhiyu-composer-tool="proactive"
         onClick={onOpenBehavior}
       >
@@ -374,12 +426,13 @@ function ComposerAgentCenterButton({
   open: boolean;
   onToggleAgentPanel: () => void;
 }) {
+  const { pText } = useAppPreviewLocale();
   return (
     <button
       type="button"
-      aria-label={copy.agentCenterLabel}
+      aria-label={pText(copy.agentCenterLabel)}
       aria-pressed={open}
-      title={open ? copy.agentCenterCloseLabel : copy.agentCenterLabel}
+      title={pText(open ? copy.agentCenterCloseLabel : copy.agentCenterLabel)}
       data-nimi-semantic-id="zhiyu-primary-action"
       data-zhiyu-composer-tool="agent"
       data-zhiyu-composer-agent-center-state={open ? 'open' : 'closed'}
@@ -395,11 +448,20 @@ function ComposerAgentCenterButton({
 /* ------------------------------------------------------------------------ */
 
 export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview }) {
+  const { pText, pData, previewLang } = useAppPreviewLocale();
   const { copy } = content;
-  const [activePartnerId, setActivePartnerId] = useState<string | null>(content.partners[0]?.id ?? null);
-  const [localMessages, setLocalMessages] = useState<Readonly<Record<string, readonly ConversationCanonicalMessage[]>>>({});
-  const [stream, setStream] = useState<{ partnerId: string; partial: string; reasoning: string | null } | null>(null);
-  const [draft, setDraft] = useState('');
+  const [activePartnerId, setActivePartnerId] = useState<string | null>(
+    content.partners[0]?.id ?? null,
+  );
+  const [localMessages, setLocalMessages] = useState<
+    Readonly<Record<string, readonly ConversationCanonicalMessage[]>>
+  >({});
+  const [stream, setStream] = useState<{
+    partnerId: string;
+    partial: string;
+    reasoning: string | null;
+  } | null>(null);
+  const [draft, setDraft] = useState(() => pData(''));
   const [attachments, setAttachments] = useState<readonly BrowserDataUrlAttachment[]>([]);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle');
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
@@ -415,8 +477,14 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
   const transcriptViewportRef = useRef<HTMLDivElement>(null);
 
   const activePartner = content.partners.find((partner) => partner.id === activePartnerId) ?? null;
-  const baseMessages = useMemo(() => materializePartnerMessages(content.partners, Date.now()), [content]);
-  const formatDateLabel = useMemo(() => formatZhiyuTranscriptDateLabel(copy), [copy]);
+  const baseMessages = useMemo(
+    () => materializePartnerMessages(content.partners, Date.now()),
+    [content],
+  );
+  const formatDateLabel = useMemo(
+    () => formatZhiyuTranscriptDateLabel(copy, previewLang),
+    [copy, previewLang],
+  );
 
   // One mock Runtime client per partner for the lifetime of the preview, so
   // settings the visitor changes survive switching partners back and forth.
@@ -458,9 +526,13 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     agentCenter?.resourcePackController.getSnapshot ?? readNoSnapshot,
     readNoSnapshot,
   );
-  const committedAppearance = agentCenterSnapshot?.phase === 'ready' ? agentCenterSnapshot.state.appearance : null;
+  const committedAppearance =
+    agentCenterSnapshot?.phase === 'ready' ? agentCenterSnapshot.state.appearance : null;
   const avatarReady = committedAppearance
-    ? Boolean(committedAppearance.avatarAssetRef && (committedAppearance.backendKind === 'live2d' || committedAppearance.backendKind === 'vrm'))
+    ? Boolean(
+        committedAppearance.avatarAssetRef &&
+        (committedAppearance.backendKind === 'live2d' || committedAppearance.backendKind === 'vrm'),
+      )
     : Boolean(activePartner?.appearance.avatarAssetRef);
 
   const clearStreamTimer = useCallback(() => {
@@ -476,32 +548,39 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
   }, []);
   // Mirrors ZhiyuAgentChatSurface.playVoiceMessage: one <audio> at a time,
   // tapping the playing bubble pauses it.
-  const playVoiceMessage = useCallback((message: ConversationCanonicalMessage) => {
-    const voiceUrl = typeof message.metadata?.voiceUrl === 'string' ? message.metadata.voiceUrl : '';
-    if (!voiceUrl) return;
-    if (voicePlayingMessageId === message.id) {
-      stopVoicePlayback();
-      return;
-    }
-    voiceAudioRef.current?.pause();
-    const audio = new Audio(voiceUrl);
-    voiceAudioRef.current = audio;
-    setVoicePlayingMessageId(message.id);
-    const clear = () => {
-      if (voiceAudioRef.current === audio) voiceAudioRef.current = null;
-      setVoicePlayingMessageId((current) => (current === message.id ? null : current));
-    };
-    audio.addEventListener('ended', clear, { once: true });
-    audio.addEventListener('error', clear, { once: true });
-    void audio.play().catch(clear);
-  }, [stopVoicePlayback, voicePlayingMessageId]);
-  useEffect(() => () => {
-    clearStreamTimer();
-    voiceAudioRef.current?.pause();
-    voiceAudioRef.current = null;
-    if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
-    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
-  }, [clearStreamTimer]);
+  const playVoiceMessage = useCallback(
+    (message: ConversationCanonicalMessage) => {
+      const voiceUrl =
+        typeof message.metadata?.voiceUrl === 'string' ? message.metadata.voiceUrl : '';
+      if (!voiceUrl) return;
+      if (voicePlayingMessageId === message.id) {
+        stopVoicePlayback();
+        return;
+      }
+      voiceAudioRef.current?.pause();
+      const audio = new Audio(voiceUrl);
+      voiceAudioRef.current = audio;
+      setVoicePlayingMessageId(message.id);
+      const clear = () => {
+        if (voiceAudioRef.current === audio) voiceAudioRef.current = null;
+        setVoicePlayingMessageId((current) => (current === message.id ? null : current));
+      };
+      audio.addEventListener('ended', clear, { once: true });
+      audio.addEventListener('error', clear, { once: true });
+      void audio.play().catch(clear);
+    },
+    [stopVoicePlayback, voicePlayingMessageId],
+  );
+  useEffect(
+    () => () => {
+      clearStreamTimer();
+      voiceAudioRef.current?.pause();
+      voiceAudioRef.current = null;
+      if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    },
+    [clearStreamTimer],
+  );
 
   const appendMessage = useCallback((partnerId: string, message: ConversationCanonicalMessage) => {
     setLocalMessages((prev) => ({
@@ -510,63 +589,87 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     }));
   }, []);
 
-  const finishStream = useCallback((partner: HeroDemoZhiyuPartner, text: string, status: ConversationCanonicalMessage['status']) => {
-    clearStreamTimer();
-    setStream(null);
-    if (text.trim().length > 0) {
-      appendMessage(partner.id, buildMessage(partner, 'assistant', text, Date.now(), status));
-    }
-  }, [appendMessage, clearStreamTimer]);
-
-  const startStream = useCallback((partner: HeroDemoZhiyuPartner) => {
-    const cursor = replyCursorRef.current[partner.id] ?? 0;
-    const reply = partner.replies[cursor % Math.max(partner.replies.length, 1)] ?? '';
-    replyCursorRef.current[partner.id] = cursor + 1;
-    clearStreamTimer();
-    setStream({ partnerId: partner.id, partial: '', reasoning: partner.reasoning });
-    let offset = 0;
-    const tick = () => {
-      offset += STREAM_CHARS_PER_TICK;
-      if (offset >= reply.length) {
-        finishStream(partner, reply, 'complete');
-        return;
+  const finishStream = useCallback(
+    (
+      partner: HeroDemoZhiyuPartner,
+      text: string,
+      status: ConversationCanonicalMessage['status'],
+    ) => {
+      clearStreamTimer();
+      setStream(null);
+      if (text.trim().length > 0) {
+        appendMessage(partner.id, buildMessage(partner, 'assistant', text, Date.now(), status));
       }
-      setStream({ partnerId: partner.id, partial: reply.slice(0, offset), reasoning: partner.reasoning });
-      streamTimerRef.current = setTimeout(tick, STREAM_TICK_MS);
-    };
-    streamTimerRef.current = setTimeout(tick, STREAM_LEAD_MS);
-  }, [clearStreamTimer, finishStream]);
-
-  const attachmentAdapter = useMemo(() => createBrowserDataUrlAttachmentAdapter({
-    accept: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
-    maxAttachments: 1,
-    idPrefix: 'zhiyu-conversation-image',
-  }), []);
-
-  const composerAdapter = useMemo<ChatComposerAdapter<BrowserDataUrlAttachment>>(() => ({
-    submit: ({ text, attachments: submitted }) => {
-      if (!activePartner) return;
-      const attachment = submitted[0];
-      const body = text.trim();
-      if (!body && !attachment) return;
-      const stamp = Date.now();
-      appendMessage(activePartner.id, attachment
-        ? buildMessage(activePartner, 'user', body || attachment.name, stamp, 'complete', {
-          kind: 'image',
-          metadata: {
-            mediaUrl: attachment.dataUrl,
-            attachmentName: attachment.name,
-            attachmentMimeType: attachment.mimeType,
-            ...(body ? { caption: body } : {}),
-          },
-        })
-        : buildMessage(activePartner, 'user', body, stamp));
-      setDraft('');
-      setAttachments([]);
-      agentClient?.noteConversationTurn();
-      startStream(activePartner);
     },
-  }), [activePartner, agentClient, appendMessage, startStream]);
+    [appendMessage, clearStreamTimer],
+  );
+
+  const startStream = useCallback(
+    (partner: HeroDemoZhiyuPartner) => {
+      const cursor = replyCursorRef.current[partner.id] ?? 0;
+      const reply = partner.replies[cursor % Math.max(partner.replies.length, 1)] ?? '';
+      replyCursorRef.current[partner.id] = cursor + 1;
+      clearStreamTimer();
+      setStream({ partnerId: partner.id, partial: '', reasoning: partner.reasoning });
+      let offset = 0;
+      const tick = () => {
+        offset += STREAM_CHARS_PER_TICK;
+        if (offset >= reply.length) {
+          finishStream(partner, reply, 'complete');
+          return;
+        }
+        setStream({
+          partnerId: partner.id,
+          partial: reply.slice(0, offset),
+          reasoning: partner.reasoning,
+        });
+        streamTimerRef.current = setTimeout(tick, STREAM_TICK_MS);
+      };
+      streamTimerRef.current = setTimeout(tick, STREAM_LEAD_MS);
+    },
+    [clearStreamTimer, finishStream],
+  );
+
+  const attachmentAdapter = useMemo(
+    () =>
+      createBrowserDataUrlAttachmentAdapter({
+        accept: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+        maxAttachments: 1,
+        idPrefix: 'zhiyu-conversation-image',
+      }),
+    [],
+  );
+
+  const composerAdapter = useMemo<ChatComposerAdapter<BrowserDataUrlAttachment>>(
+    () => ({
+      submit: ({ text, attachments: submitted }) => {
+        if (!activePartner) return;
+        const attachment = submitted[0];
+        const body = text.trim();
+        if (!body && !attachment) return;
+        const stamp = Date.now();
+        appendMessage(
+          activePartner.id,
+          attachment
+            ? buildMessage(activePartner, 'user', body || attachment.name, stamp, 'complete', {
+                kind: 'image',
+                metadata: {
+                  mediaUrl: attachment.dataUrl,
+                  attachmentName: attachment.name,
+                  attachmentMimeType: attachment.mimeType,
+                  ...(body ? { caption: body } : {}),
+                },
+              })
+            : buildMessage(activePartner, 'user', body, stamp),
+        );
+        setDraft('');
+        setAttachments([]);
+        agentClient?.noteConversationTurn();
+        startStream(activePartner);
+      },
+    }),
+    [activePartner, agentClient, appendMessage, startStream],
+  );
 
   const stopVoice = useCallback(() => {
     if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
@@ -582,12 +685,19 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
       setVoiceStatus('transcribing');
       voiceTimerRef.current = setTimeout(() => {
         voiceTimerRef.current = null;
-        setDraft((current) => (current.trim() ? `${current.trimEnd()} ${content.demo.voiceTranscriptSample}` : content.demo.voiceTranscriptSample));
+        setDraft((current) =>
+          current.trim()
+            ? `${current.trimEnd()} ${content.demo.voiceTranscriptSample}`
+            : content.demo.voiceTranscriptSample,
+        );
         setVoiceStatus('idle');
       }, VOICE_TRANSCRIBE_MS);
     }
   }, [content.demo.voiceTranscriptSample, voiceStatus]);
-  const voiceState = useMemo(() => ({ status: voiceStatus, onToggle: toggleVoice, onCancel: stopVoice }), [stopVoice, toggleVoice, voiceStatus]);
+  const voiceState = useMemo(
+    () => ({ status: voiceStatus, onToggle: toggleVoice, onCancel: stopVoice }),
+    [stopVoice, toggleVoice, voiceStatus],
+  );
 
   const showNotice = useCallback((text: string) => {
     setNotice(text);
@@ -621,32 +731,40 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
   const composerState = streamingHere ? 'submitting' : 'ready';
 
   useLayoutEffect(() => {
-    const root = transcriptViewportRef.current?.querySelector<HTMLElement>('[data-canonical-transcript-root="true"]');
+    const root = transcriptViewportRef.current?.querySelector<HTMLElement>(
+      '[data-canonical-transcript-root="true"]',
+    );
     if (!root) return;
     root.scrollTop = root.scrollHeight;
   }, [messages.length, stream?.partial, activePartnerId]);
 
-  const chatFooter: ReactNode = streamingHere && stream ? (
-    <div className="zhiyu-chat-canvas__stream-footer" data-zhiyu-agent-chat-stop-state="available">
-      <ChatStreamStatus
-        mode="streaming"
-        partialText={stream.partial || copy.streamingPlaceholder}
-        reasoningText={stream.reasoning}
-        reasoningLabel={copy.reasoningLabel}
-      />
-      <button
-        type="button"
-        className="zhiyu-chat-canvas__stop-button"
-        data-zhiyu-chat-stop-action="true"
+  const chatFooter: ReactNode =
+    streamingHere && stream ? (
+      <div
+        className="zhiyu-chat-canvas__stream-footer"
         data-zhiyu-agent-chat-stop-state="available"
-        aria-label={copy.stopAriaLabel}
-        onClick={() => { if (activePartner) finishStream(activePartner, stream.partial, 'canceled'); }}
       >
-        <X size={16} aria-hidden="true" />
-        <span>{copy.stopLabel}</span>
-      </button>
-    </div>
-  ) : null;
+        <ChatStreamStatus
+          mode="streaming"
+          partialText={pText(stream.partial || copy.streamingPlaceholder)}
+          reasoningText={pText(stream.reasoning)}
+          reasoningLabel={pText(copy.reasoningLabel)}
+        />
+        <button
+          type="button"
+          className="zhiyu-chat-canvas__stop-button"
+          data-zhiyu-chat-stop-action="true"
+          data-zhiyu-agent-chat-stop-state="available"
+          aria-label={pText(copy.stopAriaLabel)}
+          onClick={() => {
+            if (activePartner) finishStream(activePartner, stream.partial, 'canceled');
+          }}
+        >
+          <X size={16} aria-hidden="true" />
+          <span>{pText(copy.stopLabel)}</span>
+        </button>
+      </div>
+    ) : null;
 
   return (
     <div
@@ -657,11 +775,15 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     >
       <main
         className="zhiyu-agent-chat"
-        aria-label={content.appName}
+        aria-label={pText(content.appName)}
         data-zhiyu-screen="home"
         data-zhiyu-agent-chat-shell="primary"
       >
-        <div className="zhiyu-agent-chat__workspace" data-zhiyu-product-shell="workspace" data-zhiyu-primary-ui="true">
+        <div
+          className="zhiyu-agent-chat__workspace"
+          data-zhiyu-product-shell="workspace"
+          data-zhiyu-primary-ui="true"
+        >
           <div
             className={`zhiyu-agent-chat__layout${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
             data-zhiyu-side-panel-state={rightPanelMode}
@@ -669,7 +791,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
           >
             <DemoPresenceRail
               partners={content.partners}
-              copy={copy}
+              copy={pData(copy)}
               currentPartnerId={activePartnerId}
               onOpenCurrentAgent={() => openAgentSection('overview')}
               onSelectPartner={handleSelectPartner}
@@ -690,8 +812,10 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
               />
               {notice ? (
                 <div className="demo-zhiyu-notice" role="status" data-demo-zhiyu-notice="true">
-                  <span>{notice}</span>
-                  <button type="button" onClick={() => setNotice(null)}>{content.demo.noticeDismissLabel}</button>
+                  <span>{pText(notice)}</span>
+                  <button type="button" onClick={() => setNotice(null)}>
+                    {pText(content.demo.noticeDismissLabel)}
+                  </button>
                 </div>
               ) : null}
               <div
@@ -702,22 +826,28 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
               >
                 <div ref={transcriptViewportRef} className="zhiyu-chat-canvas__transcript">
                   <CanonicalTranscriptView
-                    messages={messages}
+                    messages={messages.map((message) =>
+                      message.role === 'user' ? { ...message, senderName: pText('你') } : message,
+                    )}
                     activeConversationId={activePartner ? `zhiyu-${activePartner.id}` : null}
                     agentName={activePartner?.name}
-                    copy={copy.chat}
+                    copy={pData(copy.chat)}
                     voicePlayingMessageId={voicePlayingMessageId}
                     onPlayVoiceMessage={playVoiceMessage}
                     formatDateLabel={formatDateLabel}
                     emptyEyebrow={copy.emptyEyebrow}
                     emptyTitle={copy.emptyTitle}
                     emptyDescription={copy.emptyDescription}
-                    footerContent={(
+                    footerContent={
                       <>
-                        {chatFooter}
-                        <span data-zhiyu-transcript-end="true" aria-hidden="true" className="block h-px w-full" />
+                        {pText(chatFooter)}
+                        <span
+                          data-zhiyu-transcript-end="true"
+                          aria-hidden="true"
+                          className="block h-px w-full"
+                        />
                       </>
-                    )}
+                    }
                     widthClassName="w-full max-w-none"
                     widthPositionClassName="mx-0"
                     scrollViewportWidthClassName="w-full"
@@ -739,35 +869,35 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                         attachmentAdapter={attachmentAdapter}
                         attachments={attachments}
                         onAttachmentsChange={setAttachments}
-                        attachLabel={copy.attachLabel}
+                        attachLabel={pText(copy.attachLabel)}
                         voiceState={voiceState}
                         text={draft}
-                        onTextChange={setDraft}
+                        onTextChange={(value) => setDraft(value)}
                         disabled={streamingHere}
-                        placeholder={copy.composerPlaceholder}
-                        runtimeHint={streamingHere ? copy.streamingHint : null}
-                        sendHint={streamingHere ? copy.streamingSendHint : undefined}
-                        sendLabel={copy.sendLabel}
+                        placeholder={pText(copy.composerPlaceholder)}
+                        runtimeHint={pText(streamingHere ? copy.streamingHint : null)}
+                        sendHint={pText(streamingHere ? copy.streamingSendHint : undefined)}
+                        sendLabel={pText(copy.sendLabel)}
                         layout="stacked"
-                        leadingSlot={(
+                        leadingSlot={
                           <ComposerAvatarButton
                             partner={activePartner}
-                            copy={copy}
+                            copy={pData(copy)}
                             onOpenSettings={() => openAgentSection('appearance')}
                           />
-                        )}
-                        toolbarSlot={(
+                        }
+                        toolbarSlot={
                           <ComposerModeTools
-                            copy={copy}
+                            copy={pData(copy)}
                             avatarReady={avatarReady}
                             onAvatarLaunch={() => showNotice(content.demo.avatarLaunchNotice)}
                             onOpenAppearance={() => openAgentSection('appearance')}
                             onOpenBehavior={() => openAgentSection('behavior')}
                           />
-                        )}
-                        trailingSlot={(
+                        }
+                        trailingSlot={
                           <ComposerAgentCenterButton
-                            copy={copy}
+                            copy={pData(copy)}
                             open={rightPanelMode === 'agent'}
                             onToggleAgentPanel={() => {
                               if (rightPanelMode === 'agent') {
@@ -777,26 +907,54 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                               openAgentSection('overview');
                             }}
                           />
-                        )}
+                        }
                         className="zhiyu-chat-canvas__canonical-composer"
                       />
                     ) : null}
                   </div>
                   <div className="zhiyu-chat-canvas__status">
-                    <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="conversation">
-                      <span className="zhiyu-chat-canvas__chip-label">{copy.sessionChipLabel}</span>
-                      <StatusBadge tone="success" shape="dot">{copy.readyChipLabel}</StatusBadge>
+                    <span
+                      className="zhiyu-chat-canvas__labeled-chip"
+                      data-zhiyu-labeled-chip="conversation"
+                    >
+                      <span className="zhiyu-chat-canvas__chip-label">
+                        {pText(copy.sessionChipLabel)}
+                      </span>
+                      <StatusBadge tone="success" shape="dot">
+                        {pText(copy.readyChipLabel)}
+                      </StatusBadge>
                     </span>
-                    <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="chat">
-                      <span className="zhiyu-chat-canvas__chip-label">{copy.replyChipLabel}</span>
-                      <StatusBadge tone={streamingHere ? 'warning' : messages.length > 0 ? 'success' : 'neutral'} shape="dot">
-                        {streamingHere ? copy.streamingChipLabel : messages.length > 0 ? copy.readyChipLabel : copy.idleChipLabel}
+                    <span
+                      className="zhiyu-chat-canvas__labeled-chip"
+                      data-zhiyu-labeled-chip="chat"
+                    >
+                      <span className="zhiyu-chat-canvas__chip-label">
+                        {pText(copy.replyChipLabel)}
+                      </span>
+                      <StatusBadge
+                        tone={
+                          streamingHere ? 'warning' : messages.length > 0 ? 'success' : 'neutral'
+                        }
+                        shape="dot"
+                      >
+                        {pText(
+                          streamingHere
+                            ? copy.streamingChipLabel
+                            : messages.length > 0
+                              ? copy.readyChipLabel
+                              : copy.idleChipLabel,
+                        )}
                       </StatusBadge>
                     </span>
                     <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-region="companion">
-                      <span className="zhiyu-chat-canvas__chip-label">{copy.rapportChipLabel}</span>
-                      <StatusBadge tone={activePartner?.hostMoodLabel ? 'success' : 'neutral'} shape="dot">
-                        {activePartner?.moodLabel ?? ''}
+                      <span className="zhiyu-chat-canvas__chip-label">
+                        {pText(copy.rapportChipLabel)}
+                      </span>
+                      <StatusBadge
+                        tone={activePartner?.hostMoodLabel ? 'success' : 'neutral'}
+                        shape="dot"
+                      >
+                        {pText(activePartner?.moodLabel ?? '')}
                       </StatusBadge>
                     </span>
                   </div>
@@ -807,7 +965,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
             {rightPanelMode !== 'closed' && activePartner && session ? (
               <DemoAgentPanel
                 partner={activePartner}
-                copy={copy}
+                copy={pData(copy)}
                 session={session}
                 activeTab={activeAgentTab}
                 onActiveTabChange={setActiveAgentTab}

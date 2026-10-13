@@ -1,9 +1,12 @@
+import { remainingAppPreviewContent } from './landing-content.remaining-apps.js';
+import { appPreviewMessagesZh } from './app-preview-messages.zh.js';
 import type { LandingContent } from './landing-content.js';
 import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
 import { shijingPreviewContent } from './landing-content.shijing.js';
 import { parentosPreviewContent } from './landing-content.parentos.js';
 import { storybookPreviewContent } from './landing-content.storybook.js';
 import { oddBureauPreviewContent } from './landing-content.odd-bureau.js';
+import { jevSearchPreviewContent, jevUltrafastPreviewContent, moneyPrinterPreviewContent, openwhisprPreviewContent, videoLingoPreviewContent, voiceStudioPreviewContent } from './landing-content.third-party.js';
 
 export const landingContentZh: LandingContent = {
   skipToContent: '跳转到主要内容',
@@ -114,25 +117,49 @@ export const landingContentZh: LandingContent = {
         moreInfoLabel: '更多信息',
         previewBadge: '交互预览 · 演示数据',
         previewUnavailableTitle: '预览暂未接入',
-        previewUnavailableBody: '该 App 的交互预览尚未提供；当前提供演示的有织羽 Zhiyu、时镜 ShiJing、ParentOS、Storybook 与奇物局。',
+        previewUnavailableBody: '该 App 的交互预览尚未提供。请从应用库选择其他 App。',
         closeLabel: '关闭',
         items: [
           { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: '孵化本地 AI 伙伴：与它对话、陪伴与共同成长。', tags: ['文字生成', '语音合成'], updatedAt: '2026年9月17日', localDev: true },
           { id: 'nimi.parentos', name: 'ParentOS', task: '记录孩子的成长与家庭观察，整理成长档案。', tags: ['文字生成', '语音转写'], updatedAt: '2026年9月15日', localDev: true, iconSrc: '/demo/parentos-icon.png' },
-          { id: 'nimi.overtone', name: 'Nimi Overtone', task: '整理音乐项目、歌词与创作版本。', tags: ['文字生成', '音乐生成'], updatedAt: '2026年9月12日', localDev: true },
+          { id: "io.github.nimiplatform.jev-search", name: "Jev Search", task: "用自然语言搜索网页，筛选来源、整理相关链接。", tags: ["搜索","结果排序"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/jev-search-icon.png' },
+          { id: "io.github.nimiplatform.jev-ultrafast", name: "Jev Ultrafast", task: "给浏览器一个目标，逐步观察、选择和执行操作。", tags: ["浏览器任务","文字"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
+          { id: "moneyprinterturbo.studio", name: "MoneyPrinterTurbo", task: "从文案到素材、配音与字幕，制作短视频。", tags: ["文字","语音","视频"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/moneyprinter-icon.png' },
+          { id: "ai.nimi.openwhispr", name: "OpenWhispr", task: "说出想法，整理听写、笔记与录音。", tags: ["听写","笔记","搜索"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/openwhispr-icon.png' },
+          { id: "ai.nimi.videolingo", name: "VideoLingo", task: "转写视频，校对双语字幕，完成翻译与配音。", tags: ["转录","翻译","配音"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/videolingo-icon.png' },
+          { id: "nimiplatform.voicestudio", name: "VoiceStudio", task: "设计声音，创作旁白、故事与有声读物。", tags: ["声音设计","语音","转录"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/voicestudio-icon.png' },
+          {"id":"nimi.overtone","name":"Nimi Overtone","task":"从音乐灵感出发，探索方向、整理歌词与候选音轨。","tags":["音乐","歌词"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/overtone-icon.png"},
           { id: 'nimi.storybook', name: 'Storybook', task: '阅读和创作互动故事。', tags: ['文字生成'], updatedAt: '2026年9月10日', localDev: false, iconSrc: '/demo/storybook-icon.png' },
-          { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: '创建和管理自己的 Realm Persona。', tags: ['图像生成'], updatedAt: '2026年9月8日', localDev: true },
+          {"id":"nimi.realm-persona-studio","name":"Realm Persona Studio","task":"创造自己的 Realm Persona，维护角色资料、形象与创作草稿。","tags":["角色创作","图像"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/persona-studio-icon.png"},
           { id: 'nimi.shijing', name: '时镜 ShiJing', task: '个人节律观察与解读。', tags: ['文字生成'], updatedAt: '2026年9月5日', localDev: true },
           { id: 'nimi.odd-bureau', name: '奇物局', task: '把一张照片变成可以玩的物品小世界。', tags: ['图像生成', '文字生成', '语音合成'], updatedAt: '2026年9月18日', localDev: true },
-          { id: 'nimi.inscape', name: 'Inscape 心相', task: '性格探索与日常反思。', tags: ['文字生成'], updatedAt: '2026年9月1日', localDev: false },
+          {"id":"nimi.inscape","name":"Inscape 心相","task":"面向成年人的本地性格探索与日常反思。","tags":["自我探索","日常反思"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/inscape-icon.png"},
+          {"id":"nimi.polyagent","name":"PolyAgent","task":"观察预测市场，管理策略约束、研究记录与模拟账本。","tags":["市场观察","模拟交易"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/polyagent-icon.png"},
+          {"id":"nimi.realm-world-studio","name":"Realm World Studio","task":"从灵感到设定，创建并整理自己的世界与世界角色。","tags":["世界设定","角色创作"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/world-studio-icon.png"},
+          {"id":"org.nimiplatform.deeptutor","name":"DeepTutor","task":"围绕文档与问题学习，探索概念、练习并整理学习笔记。","tags":["学习","研究","笔记"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/deeptutor-icon.png"},
+          {"id":"openmontage.studio","name":"OpenMontage","task":"从材料、剧本与分镜出发，审阅并制作旁白视频。","tags":["分镜","视频","语音"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/openmontage-icon.png"},
+          {"id":"org.nimiplatform.sillytavern","name":"SillyTavern","task":"与虚构角色展开对话，管理角色、Persona 与世界书。","tags":["角色对话","世界书"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/sillytavern-icon.png"},
+          {"id":"nimiplatform.vane","name":"Vane","task":"从一个问题开始搜索与研究，结合来源阅读和整理发现。","tags":["搜索","研究"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/vane-icon.png"},
+          {"id":"io.github.nimiplatform.next-ai-draw-io","name":"Next AI Draw.io","task":"用自然语言构思图表，在画布中编辑并管理修订。","tags":["图表","文字"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/drawio-icon.png"},
+          {"id":"io.github.nimiplatform.open-notebook","name":"Open Notebook","task":"将资料、问答与笔记放在同一工作区，整理研究与播客。","tags":["资料研究","笔记","播客"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/open-notebook-icon.png"},
+          {"id":"io.github.nimiplatform.presenton","name":"Presenton","task":"创建演示文稿，编辑幻灯片、选择模板并展示内容。","tags":["演示文稿","编辑"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/presenton-icon.png"},
         ],
       },
       appPreview: {
+        locale: 'zh',
+        messages: appPreviewMessagesZh,
+        remainingApps: remainingAppPreviewContent,
         zhiyu: zhiyuPreviewContent,
         shijing: shijingPreviewContent,
         parentos: parentosPreviewContent,
         storybook: storybookPreviewContent,
         oddBureau: oddBureauPreviewContent,
+        jevSearch: jevSearchPreviewContent,
+        jevUltrafast: jevUltrafastPreviewContent,
+        moneyPrinter: moneyPrinterPreviewContent,
+        openwhispr: openwhisprPreviewContent,
+        videoLingo: videoLingoPreviewContent,
+        voiceStudio: voiceStudioPreviewContent,
       },
       runtime: {
         title: '运行时',

@@ -2657,6 +2657,7 @@
 .sb-import-invitation h2 { font-family: var(--sb-serif); font-size: 23px; font-weight: 500; color: #5b6b4b; margin: 10px 0 9px; }
 .sb-import-invitation p { font-size: 11px; line-height: 1.8; color: #879477; }
 .sb-import-invitation > button { flex-shrink: 0; }
+.sb-import-invitation > .sb-primary { color: #fffdf4; }
 
 /* ---- demo host additions (not in the app) ---- */
 
@@ -2690,6 +2691,19 @@
   color: var(--sb-green);
   font-size: 11px;
   font-weight: 600;
+}
+
+
+/* Keep localized library controls and the import invitation inside compact panes. */
+@container demo-storybook (max-width: 580px) {
+  .sb-sidebar { flex-wrap: wrap; }
+  .sb-nav { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  .sb-library-header { flex-wrap: wrap; gap: 16px; }
+  .sb-library-header-actions { min-width: 0; max-width: 100%; width: 100%; flex-wrap: wrap; gap: 10px; }
+  .sb-library-header-actions .sb-search { min-width: 0; width: auto; max-width: 100%; flex: 1 1 180px; }
+  .sb-import-invitation { flex-direction: column; align-items: flex-start; gap: 18px; padding: 22px; }
+  .sb-import-invitation > div { min-width: 0; width: 100%; }
+  .sb-import-invitation > button { max-width: 100%; height: auto; min-height: 40px; white-space: normal; }
 }
 
 }

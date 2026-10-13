@@ -1,9 +1,12 @@
+import { remainingAppPreviewContent } from './landing-content.remaining-apps.js';
+import { appPreviewMessagesEn } from './app-preview-messages.en.js';
 import type { LandingContent } from './landing-content.js';
 import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
 import { shijingPreviewContent } from './landing-content.shijing.js';
 import { parentosPreviewContent } from './landing-content.parentos.js';
 import { storybookPreviewContent } from './landing-content.storybook.js';
 import { oddBureauPreviewContent } from './landing-content.odd-bureau.js';
+import { jevSearchPreviewContent, jevUltrafastPreviewContent, moneyPrinterPreviewContent, openwhisprPreviewContent, videoLingoPreviewContent, voiceStudioPreviewContent } from './landing-content.third-party.js';
 
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
@@ -114,26 +117,49 @@ export const landingContentEn: LandingContent = {
         moreInfoLabel: 'More info',
         previewBadge: 'Interactive preview · sample data',
         previewUnavailableTitle: 'Preview not connected',
-        previewUnavailableBody: 'This App has no interactive preview yet; Zhiyu, ShiJing, ParentOS, Storybook, and Odd Bureau provide demos today.',
+        previewUnavailableBody: 'This App has no interactive preview yet. Choose another App from the library.',
         closeLabel: 'Close',
         items: [
-          { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: 'Incubate local AI companions: chat, companionship, and growing together.', tags: ['Text', 'Speech'], updatedAt: 'September 17, 2026', localDev: true },
+          { id: 'nimi.zhiyu', name: 'Zhiyu', task: 'Incubate local AI companions: chat, companionship, and growing together.', tags: ['Text', 'Speech'], updatedAt: 'September 17, 2026', localDev: true },
           { id: 'nimi.parentos', name: 'ParentOS', task: `Keep a child's growth journal and family observations.`, tags: ['Text', 'Transcription'], updatedAt: 'September 15, 2026', localDev: true, iconSrc: '/demo/parentos-icon.png' },
-          { id: 'nimi.overtone', name: 'Nimi Overtone', task: 'Organize music projects, lyrics, and versions.', tags: ['Text', 'Music'], updatedAt: 'September 12, 2026', localDev: true },
+          { id: "io.github.nimiplatform.jev-search", name: "Jev Search", task: "Search in plain language, choose sources, and explore ranked links.", tags: ["Search","Ranking"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/jev-search-icon.png' },
+          { id: "io.github.nimiplatform.jev-ultrafast", name: "Jev Ultrafast", task: "Give the browser a goal; observe, choose, and act one step at a time.", tags: ["Browser tasks","Text"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
+          { id: "moneyprinterturbo.studio", name: "MoneyPrinterTurbo", task: "Build a short video from a script, footage, narration, and subtitles.", tags: ["Text","Speech","Video"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/moneyprinter-icon.png' },
+          { id: "ai.nimi.openwhispr", name: "OpenWhispr", task: "Turn spoken ideas into dictation, notes, and searchable recordings.", tags: ["Dictation","Notes","Search"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/openwhispr-icon.png' },
+          { id: "ai.nimi.videolingo", name: "VideoLingo", task: "Transcribe video, review bilingual subtitles, translate, and dub.", tags: ["Transcription","Translation","Speech"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/videolingo-icon.png' },
+          { id: "nimiplatform.voicestudio", name: "VoiceStudio", task: "Design voices and create narration, stories, and audiobooks.", tags: ["Voice design","Speech","Transcription"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/voicestudio-icon.png' },
+          {"id":"nimi.overtone","name":"Nimi Overtone","task":"Explore musical directions, shape lyrics, and compare audio takes.","tags":["Music","Lyrics"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/overtone-icon.png"},
           { id: 'nimi.storybook', name: 'Storybook', task: 'Read and create interactive stories.', tags: ['Text'], updatedAt: 'September 10, 2026', localDev: false, iconSrc: '/demo/storybook-icon.png' },
-          { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: 'Create and manage your own Realm Personas.', tags: ['Image'], updatedAt: 'September 8, 2026', localDev: true },
+          {"id":"nimi.realm-persona-studio","name":"Realm Persona Studio","task":"Create Realm Personas and maintain their profiles, visual identity, and drafts.","tags":["Characters","Images"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/persona-studio-icon.png"},
           { id: 'nimi.shijing', name: 'ShiJing', task: 'Personal rhythm readings.', tags: ['Text'], updatedAt: 'September 5, 2026', localDev: true },
           { id: 'nimi.odd-bureau', name: 'Odd Bureau', task: 'Turn a photo into a playable world of everyday objects.', tags: ['Image', 'Text', 'Speech'], updatedAt: 'September 18, 2026', localDev: true },
-          { id: 'nimi.inscape', name: 'Inscape', task: 'Personality exploration and everyday reflection.', tags: ['Text'], updatedAt: 'September 1, 2026', localDev: false },
+          {"id":"nimi.inscape","name":"Inscape","task":"Local personality exploration and everyday reflection for adults.","tags":["Self-exploration","Reflection"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/inscape-icon.png"},
+          {"id":"nimi.polyagent","name":"PolyAgent","task":"Inspect prediction markets, strategy constraints, research, and paper ledgers.","tags":["Market research","Paper trading"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/polyagent-icon.png"},
+          {"id":"nimi.realm-world-studio","name":"Realm World Studio","task":"Develop world concepts, settings, and characters in your Realm worlds.","tags":["World building","Characters"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/world-studio-icon.png"},
+          {"id":"org.nimiplatform.deeptutor","name":"DeepTutor","task":"Study documents, understand concepts, practice, and keep learning notes.","tags":["Learning","Research","Notes"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/deeptutor-icon.png"},
+          {"id":"openmontage.studio","name":"OpenMontage","task":"Plan narrated videos through briefs, scripts, storyboards, and review.","tags":["Storyboards","Video","Speech"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/openmontage-icon.png"},
+          {"id":"org.nimiplatform.sillytavern","name":"SillyTavern","task":"Chat with fictional characters and organize personas and world information.","tags":["Character chat","World information"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/sillytavern-icon.png"},
+          {"id":"nimiplatform.vane","name":"Vane","task":"Research a question, explore its sources, and organize what you find.","tags":["Search","Research"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/vane-icon.png"},
+          {"id":"io.github.nimiplatform.next-ai-draw-io","name":"Next AI Draw.io","task":"Describe diagrams in natural language, edit the canvas, and manage revisions.","tags":["Diagrams","Text"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/drawio-icon.png"},
+          {"id":"io.github.nimiplatform.open-notebook","name":"Open Notebook","task":"Connect sources, questions, and notes in one research and podcast workspace.","tags":["Research","Notes","Podcasts"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/open-notebook-icon.png"},
+          {"id":"io.github.nimiplatform.presenton","name":"Presenton","task":"Create presentations, edit slides, select templates, and present your work.","tags":["Presentations","Editing"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/presenton-icon.png"},
         ],
       },
       appPreview: {
-        // Zhiyu is a zh-CN-first app; its in-preview UI intentionally stays zh.
+        locale: 'en',
+        messages: appPreviewMessagesEn,
+        remainingApps: remainingAppPreviewContent,
         zhiyu: zhiyuPreviewContent,
         shijing: shijingPreviewContent,
         parentos: parentosPreviewContent,
         storybook: storybookPreviewContent,
         oddBureau: oddBureauPreviewContent,
+        jevSearch: jevSearchPreviewContent,
+        jevUltrafast: jevUltrafastPreviewContent,
+        moneyPrinter: moneyPrinterPreviewContent,
+        openwhispr: openwhisprPreviewContent,
+        videoLingo: videoLingoPreviewContent,
+        voiceStudio: voiceStudioPreviewContent,
       },
       runtime: {
         title: 'Runtime',

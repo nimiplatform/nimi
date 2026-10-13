@@ -1,11 +1,10 @@
 import type { HeroDemoStorybookNode, HeroDemoStorybookPreview, HeroDemoStorybookStory } from './landing-content.js';
 
 /**
- * Storybook (nimi.storybook) preview content. Shared by both locales because
- * the app itself ships Chinese-only UI and the same authored library
- * (nimiapp-storybook src/storybook/content/library.ts CURATED_STORIES); the
- * preview mounts that library as its bookshelf so the demo reads as the real
- * product. Cover art is the app's own original illustrations copied under
+ * Storybook (nimi.storybook) preview seeds from the app's authored library
+ * (nimiapp-storybook src/storybook/content/library.ts CURATED_STORIES). Web
+ * localizes this bookshelf and its stories for the outer Landing locale.
+ * Cover art is the app's own original illustrations copied under
  * /demo/storybook/.
  */
 

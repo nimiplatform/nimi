@@ -1,8 +1,8 @@
 import type { HeroDemoOddBureauMystery, HeroDemoOddBureauPreview } from './landing-content.js';
 
 /**
- * Odd Bureau (nimi.odd-bureau, 奇物局) preview content. Shared by both locales
- * because the app ships Chinese-only UI. The photo is the app's own sample
+ * Odd Bureau (nimi.odd-bureau, 奇物局) preview seeds, localized by Web for the
+ * outer Landing locale. The photo is the app's own sample
  * scene (public/breakfast-scene.png, an AI-created sample per PRODUCT.md),
  * re-encoded as JPEG under /demo/odd-bureau/. The six objects follow the
  * app's vision.locate query order (杯子, 书本, 灯, 盆栽, 时钟, 水果) with boxes

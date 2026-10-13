@@ -73,7 +73,7 @@
 .shijing-shell {
   display: grid;
   grid-template-rows: auto 1fr;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "head"
     "main";
@@ -9821,6 +9821,38 @@
     justify-content: flex-start;
     border-right: 0;
   }
+}
+
+
+/* Localized copy needs shrinkable tracks and a compact reading layout. */
+:scope:lang(en) .shijing-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+}
+:scope:lang(en) .shijing-primary-tabbar { min-width: 0; max-width: 100%; margin: 0; overflow-x: auto; }
+:scope:lang(en) .shijing-primary-tabbar button { flex-shrink: 0; white-space: nowrap; }
+.shijing-topbar, .shijing-shell__main, .shijing-tab, .shijing-mirror-header, .shijing-rijing__hero-stage, .shijing-rijing__hero-face { min-width: 0; max-width: 100%; }
+.shijing-rijing__hero-stage { grid-template-columns: minmax(0, 1fr); }
+.shijing-mirror-header { grid-template-columns: minmax(0, 1fr) auto; }
+:scope:lang(en) .shijing-rijing .shijing-rijing__hero-headline { letter-spacing: 0; overflow-wrap: anywhere; text-align: center; }
+@container demo-shijing (max-width: 900px) {
+  :scope:lang(en) .shijing-topbar { display: flex; flex-wrap: wrap; padding: 12px 16px; }
+  :scope:lang(en) .shijing-topbar__brand { flex: 1 1 130px; }
+  :scope:lang(en) .shijing-primary-tabbar { flex: 1 0 100%; }
+  :scope:lang(en) .shijing-topbar__method { max-width: 180px; min-width: 0; }
+  :scope:lang(en) .shijing-topbar__method select { max-width: 100%; }
+}
+@container demo-shijing (max-width: 600px) {
+  .shijing-mirror-header { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .shijing-mirror-header__meta { flex-wrap: wrap; white-space: normal; }
+  .shijing-mirror-header__actions { flex-wrap: wrap; justify-self: start; max-width: 100%; }
+  :scope:lang(en) .shijing-topbar__tagline { display: none; }
+  :scope:lang(en) .shijing-mirror-header__titles h1 { font-size: 26px; letter-spacing: 0; }
+  :scope:lang(en) .shijing-rijing .shijing-rijing__hero-headline { font-size: clamp(28px, 8cqi, 42px); line-height: 1.2; }
+  :scope:lang(en) .shijing-rijing .shijing-rijing__hero { padding: 24px 18px; }
+  :scope:lang(en) .shijing-rijing .shijing-rijing__hero-flip { position: static; align-self: flex-end; }
+  .shijing-rijing__hero-subtitle, .shijing-rijing__hero-subtitle-row { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 }
 
 }

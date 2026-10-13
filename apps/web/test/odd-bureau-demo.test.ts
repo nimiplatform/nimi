@@ -25,13 +25,27 @@ const props = content.props as unknown as Prop[];
 const machine = { ...content.machine, nodes: content.machine.nodes.map((n) => ({ ...n, melody: [...n.melody] })) };
 const strike = { ...content.strike, people: content.strike.people.map((p) => ({ ...p, offers: p.offers.map((o) => ({ ...o })) })) };
 
-test('both locales share the Odd Bureau preview content and list 奇物局 as a previewable app', async () => {
+test('Odd Bureau localizes content while preserving the playable objects and App identity', async () => {
   assert.ok(DEMO_PREVIEW_APP_IDS.includes('nimi.odd-bureau'));
   for (const locale of ['en', 'zh'] as const) {
     const landing = await loadLandingContent(locale);
-    assert.equal(landing.hero.demo.appPreview.oddBureau, content);
+    const preview = landing.hero.demo.appPreview.oddBureau;
+    assert.deepEqual(preview.props.map((prop) => prop.id), content.props.map((prop) => prop.id));
+    assert.equal(preview.appName, locale === 'en' ? 'Odd Bureau' : '奇物局');
     assert.ok(landing.hero.demo.apps.items.some((item) => item.id === 'nimi.odd-bureau'));
   }
+});
+
+test('English negotiation proposals identify the same objects and tasks', async () => {
+  const english = (await loadLandingContent('en')).hero.demo.appPreview.oddBureau;
+  const localizedProps = english.props as unknown as Prop[];
+  const cup = localizedProps.find((prop) => prop.id === 'object-1')!;
+  const book = localizedProps.find((prop) => prop.id === 'object-2')!;
+  const result = interpretProposalLocally(strike, localizedProps, `Let ${cup.label.toLowerCase()} rest; ask ${book.label} to write the story`);
+  assert.deepEqual(result.actions, [
+    { kind: 'rest', objectId: cup.id },
+    { kind: 'assign', objectId: book.id, task: 'story' },
+  ]);
 });
 
 test('the located objects follow the app constraints: 3–6 sequential ids, normalized boxes, no heavy overlap', () => {
