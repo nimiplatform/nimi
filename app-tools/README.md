@@ -501,8 +501,10 @@ A distribution package includes `app-info.json`, containing its actual icon,
 summary, available usage guide and version notes, license, portable requirements
 and, when declared, the publisher safety declaration from `nimi.app.yaml`
 `safety_profile` (see the lifecycle skill's safety-declaration reference). An
-undeclared `safety_profile` stays absent and blocks nothing locally; new public
-Registry admission requires the complete declaration.
+undeclared `safety_profile` stays absent and blocks nothing locally. The
+Registry's current admission policy determines whether a public submission
+requires the complete declaration; App Tools does not fetch that policy during
+local checks.
 Every `pack`, including development-mode packaging and non-release CI, requires
 valid App information. Complete `nimi.app.yaml` and its resources before packing;
 production check/build validates them before the build starts:

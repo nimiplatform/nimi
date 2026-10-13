@@ -1470,7 +1470,7 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   }
   const safetyProfile = descriptor.safetyProfile ? 'declared' : 'undeclared';
   if (options.production === true && !options.json && safetyProfile === 'undeclared') {
-    process.stdout.write('[nimi-app] safety_profile is not declared in nimi.app.yaml; local builds and private packages remain usable, while new public Registry admission requires the declaration.\n');
+    process.stdout.write('[nimi-app] safety_profile is not declared in nimi.app.yaml; local builds, private packages and local import remain usable. Whether a public submission requires the declaration is determined by the current Registry admission policy.\n');
   }
   return emitResult({
     ok: true,
