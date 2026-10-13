@@ -95,6 +95,7 @@ async function createMainWindow(): Promise<void> {
     minWidth: 360,
     minHeight: 560,
     title: "NimiGo",
+    icon: process.platform === 'win32' ? path.join(appRoot, 'assets', 'app-icon.ico') : undefined,
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
