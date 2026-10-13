@@ -801,11 +801,16 @@ test('adoption keeps App-owned login and refresh routes without claiming Realm a
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 
-test('adoption excludes Python virtual environments but still rejects protected App custody', () => {
+test('adoption excludes independent Git checkouts and Python environments but still rejects protected App custody', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-python-env-'));
   try {
     const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
     const input = rawAppInput(target);
+    const checkout = path.join(target, '.claude/worktrees/independent-app');
+    mkdirSync(checkout, { recursive: true });
+    const initialized = spawnSync('git', ['init', '--quiet'], { cwd: checkout, encoding: 'utf8' });
+    assert.equal(initialized.status, 0, initialized.stdout + initialized.stderr);
+    writeFileSync(path.join(checkout, 'old-host.ts'), "export const refreshTokenProvider = () => process.env.NIMI_RUNTIME_TOKEN;\n");
     for (const directory of ['.venv', 'python-tools']) {
       const environment = path.join(target, directory);
       const vendor = path.join(environment, 'lib/python3.14/site-packages/vendor/web');

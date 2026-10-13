@@ -282,6 +282,10 @@ function collectTextFiles(rootDir) {
       }
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {
+        // A nested Git checkout is an independently owned repository, including
+        // an agent's retained worktree. Its history is not this App's source.
+        // Keep checking the current repository's product, Host and declarations.
+        if (existsSync(path.join(fullPath, '.git'))) continue;
         if (isNextBuildOutputDirectory(fullPath)) continue;
         // Python environments can contain bundled JS applications. Like
         // node_modules, these installed dependencies are not App source.
