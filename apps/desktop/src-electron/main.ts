@@ -4,6 +4,7 @@ import { DesktopProductUpdateHost } from './product-update-host.js';
 import { MacOSProductUpdateAdapter } from './macos-product-update-adapter.js';
 import { WindowsProductUpdateAdapter } from './windows-product-update-adapter.js';
 import { ProductUpdateFailureStore, readUpdateFailureDiagnostic } from './product-update-failure-store.js';
+import desktopPackage from '../package.json' with { type: 'json' };
 import { getRuntimeWireCodec, RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/generated';
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
 import { verifyProductInstaller } from './product-update-installer-verification.js';
@@ -406,8 +407,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     productUpdateAdapter = process.platform === 'win32' ? new WindowsProductUpdateAdapter(updateCacheRoot, productionUpdate) : new MacOSProductUpdateAdapter(updateCacheRoot, productionUpdate);
     const windowsUpdate = productUpdateAdapter instanceof WindowsProductUpdateAdapter ? productUpdateAdapter : undefined;
     const updateFailureStore = new ProductUpdateFailureStore(updateCacheRoot, windowsUpdate ? (file) => windowsUpdate.validatePrivateFile(file) : undefined);
+    // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-002
+    const productVersion = ELECTRON_DEVELOPMENT_BUILD ? desktopPackage.version : app.getVersion();
     productUpdateHost = new DesktopProductUpdateHost({
-      currentVersion: app.getVersion(),
+      currentVersion: productVersion,
       target: process.platform === 'darwin' && process.arch === 'arm64' ? 'macos-arm64'
         : process.platform === 'win32' && process.arch === 'x64' ? 'windows-amd64' : 'unsupported',
       osVersion: process.getSystemVersion(),

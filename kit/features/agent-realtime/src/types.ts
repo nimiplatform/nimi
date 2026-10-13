@@ -101,6 +101,11 @@ export type NimiAgentRealtimeSessionAction =
     readonly error: NimiError;
   }
   | {
+    readonly type: 'playback-ended';
+    readonly epoch: number;
+    readonly outputTrackId: string;
+  }
+  | {
     readonly type: 'playback-failed';
     readonly epoch: number;
     readonly error: NimiError;
@@ -167,6 +172,7 @@ export type NimiAgentRealtimePlaybackPort = {
     readonly frame: Uint8Array;
     readonly format: NimiRealtimeAudioFormat;
   }) => Promise<void>;
+  /** Completed output settles after queued audio drains; interrupt/close also settle it. */
   readonly finishOutputTrack: (input: {
     readonly outputTrackId: string;
     readonly lifecycle: 'interrupted' | 'completed' | 'failed';
@@ -213,10 +219,11 @@ export type NimiAgentRealtimeSession = {
   }) => Promise<NimiRealtimeOperationResult>;
   readonly requestCapture: () => Promise<NimiAgentRealtimeCaptureRequestResult>;
   readonly stopCapture: () => Promise<NimiRealtimeOperationResult>;
+  /** Null means only the remaining Host playback was stopped after Runtime completion. */
   readonly interruptOutput: (input: {
     readonly outputTrackId: string;
     readonly interruptAgentTurn: boolean;
-  }) => Promise<NimiRealtimeOperationResult>;
+  }) => Promise<NimiRealtimeOperationResult | null>;
   readonly close: () => Promise<NimiRealtimeOperationResult | null>;
 };
 

@@ -13,6 +13,10 @@ type NimiBrowserAgentRealtimeHostEnvironment = {
 type PlaybackTrack = {
   nextStartTime: number;
   readonly sources: Set<AudioBufferSourceNode>;
+  completed: boolean;
+  pendingWrites: number;
+  readonly drained: Promise<void>;
+  readonly resolveDrained: () => void;
 };
 
 const MAX_CAPTURE_FRAME_QUEUE = 4;
@@ -32,6 +36,11 @@ export function createBrowserAgentRealtimeHostMediaPortWithEnvironment(
 ): NimiAgentRealtimeHostMediaPort {
   let playbackContext: AudioContext | null = null;
   const playbackTracks = new Map<string, PlaybackTrack>();
+  const settleDrainedTrack = (outputTrackId: string, track: PlaybackTrack): void => {
+    if (!track.completed || track.pendingWrites > 0 || track.sources.size > 0) return;
+    if (playbackTracks.get(outputTrackId) === track) playbackTracks.delete(outputTrackId);
+    track.resolveDrained();
+  };
 
   const port: NimiAgentRealtimeHostMediaPort = {
     microphone: Object.freeze({
@@ -208,27 +217,42 @@ export function createBrowserAgentRealtimeHostMediaPortWithEnvironment(
           ?? null;
         if (!context) throw new Error('AudioContext is unavailable.');
         playbackContext = context;
-        if (context.state === 'suspended') await context.resume();
-        const buffer = audioBufferFromPcm(context, input.frame, input.format);
-        const source = context.createBufferSource();
-        source.buffer = buffer;
-        source.connect(context.destination);
-        const track = playbackTracks.get(input.outputTrackId) ?? {
-          nextStartTime: context.currentTime,
-          sources: new Set<AudioBufferSourceNode>(),
-        };
+        const track = playbackTracks.get(input.outputTrackId) ?? createPlaybackTrack(context.currentTime);
         playbackTracks.set(input.outputTrackId, track);
-        const startAt = Math.max(context.currentTime, track.nextStartTime);
-        track.nextStartTime = startAt + buffer.duration;
-        track.sources.add(source);
-        source.onended = () => track.sources.delete(source);
-        source.start(startAt);
+        track.pendingWrites += 1;
+        try {
+          if (context.state === 'suspended') await context.resume();
+          // Interrupt/close may release this track while the browser awaits
+          // permission to resume audio. A late continuation cannot replay it.
+          if (playbackContext !== context || playbackTracks.get(input.outputTrackId) !== track) return;
+          const buffer = audioBufferFromPcm(context, input.frame, input.format);
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+          source.connect(context.destination);
+          const startAt = Math.max(context.currentTime, track.nextStartTime);
+          track.nextStartTime = startAt + buffer.duration;
+          track.sources.add(source);
+          source.onended = () => {
+            source.disconnect();
+            track.sources.delete(source);
+            settleDrainedTrack(input.outputTrackId, track);
+          };
+          source.start(startAt);
+        } finally {
+          track.pendingWrites -= 1;
+          settleDrainedTrack(input.outputTrackId, track);
+        }
       },
       async finishOutputTrack(input) {
         const track = playbackTracks.get(input.outputTrackId);
         if (!track) return;
-        if (input.lifecycle !== 'completed') stopPlaybackTrack(track);
-        playbackTracks.delete(input.outputTrackId);
+        track.completed = true;
+        if (input.lifecycle !== 'completed') {
+          playbackTracks.delete(input.outputTrackId);
+          stopPlaybackTrack(track);
+        }
+        settleDrainedTrack(input.outputTrackId, track);
+        await track.drained;
       },
       async interruptOutputTrack(input) {
         const track = playbackTracks.get(input.outputTrackId);
@@ -339,6 +363,7 @@ function audioBufferFromPcm(
 
 function stopPlaybackTrack(track: PlaybackTrack): void {
   for (const source of track.sources) {
+    source.onended = null;
     try {
       source.stop();
     } catch {
@@ -347,6 +372,13 @@ function stopPlaybackTrack(track: PlaybackTrack): void {
     source.disconnect();
   }
   track.sources.clear();
+  track.resolveDrained();
+}
+
+function createPlaybackTrack(nextStartTime: number): PlaybackTrack {
+  let resolveDrained!: () => void;
+  const drained = new Promise<void>((resolve) => { resolveDrained = resolve; });
+  return { nextStartTime, sources: new Set(), completed: false, pendingWrites: 0, drained, resolveDrained };
 }
 
 function stopMediaStream(stream: MediaStream): void {

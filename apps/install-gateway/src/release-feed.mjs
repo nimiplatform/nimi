@@ -1,7 +1,14 @@
+import { readBoundedResponse } from '../../../config/product-update-contract.mjs';
+
 const ADMITTED_GITHUB_API_ORIGIN = 'https://api.github.com';
 const ADMITTED_REPO_OWNER = 'nimiplatform';
 const ADMITTED_REPO_NAME = 'nimi';
 const DEFAULT_CACHE_MAX_AGE_SECONDS = 300;
+const GITHUB_RELEASE_PAGE_SIZE = 50;
+const MAX_GITHUB_RELEASE_PAGES = 20;
+const MAX_GITHUB_RELEASE_PAGE_BYTES = 4 * 1024 * 1024;
+const MAX_GITHUB_RELEASE_BYTES = 16 * 1024 * 1024;
+const GITHUB_RELEASE_TIMEOUT_MS = 30_000;
 
 // A Runtime-only release is identified only by runtime/v<SemVer> (P-GOV-028).
 // The complete Nimi bundle (nimi/v), Desktop (desktop/v), component families
@@ -54,7 +61,7 @@ export function matchesRuntimeRelease(release) {
 
 export function githubReleaseApiUrl(env = {}) {
   void env;
-  return `${ADMITTED_GITHUB_API_ORIGIN}/repos/${ADMITTED_REPO_OWNER}/${ADMITTED_REPO_NAME}/releases?per_page=50`;
+  return `${ADMITTED_GITHUB_API_ORIGIN}/repos/${ADMITTED_REPO_OWNER}/${ADMITTED_REPO_NAME}/releases?per_page=${GITHUB_RELEASE_PAGE_SIZE}`;
 }
 
 export function githubApiHeaders(env = {}) {
@@ -69,18 +76,69 @@ export function githubApiHeaders(env = {}) {
   return headers;
 }
 
+function nextReleasePage(linkHeader, currentPage) {
+  if (!linkHeader) return null;
+  let next = null;
+  let lastPage = null;
+  const relations = new Set();
+  const admitted = new URL(githubReleaseApiUrl());
+  for (const item of linkHeader.split(',')) {
+    const match = /^\s*<([^<>]+)>\s*;\s*rel="(next|prev|first|last)"\s*$/u.exec(item);
+    if (!match || relations.has(match[2])) throw new Error('GITHUB_RELEASE_FETCH_INVALID: pagination links');
+    relations.add(match[2]);
+    let url;
+    try { url = new URL(match[1]); }
+    catch { throw new Error('GITHUB_RELEASE_FETCH_INVALID: pagination URL'); }
+    const pageText = url.searchParams.get('page');
+    const page = Number(pageText);
+    if (url.origin !== admitted.origin || url.pathname !== admitted.pathname
+      || url.username || url.password || url.hash
+      || [...url.searchParams.keys()].sort().join(',') !== 'page,per_page'
+      || url.searchParams.get('per_page') !== String(GITHUB_RELEASE_PAGE_SIZE)
+      || !/^[1-9][0-9]*$/u.test(pageText ?? '') || !Number.isSafeInteger(page)) {
+      throw new Error('GITHUB_RELEASE_FETCH_INVALID: pagination URL');
+    }
+    if (match[2] === 'next') {
+      if (page !== currentPage + 1) throw new Error('GITHUB_RELEASE_FETCH_INVALID: pagination order');
+      next = url.href;
+    }
+    if (match[2] === 'last') lastPage = page;
+  }
+  if (lastPage !== null && (lastPage < currentPage || (lastPage > currentPage && !next))) {
+    throw new Error('GITHUB_RELEASE_FETCH_INVALID: incomplete pagination');
+  }
+  return next;
+}
+
+// Both feeds need the complete admitted release history before choosing a
+// version. A bounded but unfinished traversal is an upstream error, not absence.
 export async function fetchRepositoryReleases(env = {}, fetchImpl = fetch) {
-  const response = await fetchImpl(githubReleaseApiUrl(env), {
-    headers: githubApiHeaders(env),
-  });
-  if (!response.ok) {
-    throw new Error(`GITHUB_RELEASE_FETCH_FAILED: status=${response.status}`);
+  const releases = [];
+  const headers = githubApiHeaders(env);
+  const signal = AbortSignal.timeout(GITHUB_RELEASE_TIMEOUT_MS);
+  let url = githubReleaseApiUrl(env);
+  let totalBytes = 0;
+  for (let page = 1; page <= MAX_GITHUB_RELEASE_PAGES; page += 1) {
+    let response;
+    try { response = await fetchImpl(url, { headers, signal, redirect: 'error' }); }
+    catch { throw new Error('GITHUB_RELEASE_FETCH_FAILED: request unavailable'); }
+    if (!response.ok) throw new Error(`GITHUB_RELEASE_FETCH_FAILED: status=${response.status}`);
+    let payload;
+    try {
+      const bytes = await readBoundedResponse(response, Math.min(MAX_GITHUB_RELEASE_PAGE_BYTES, MAX_GITHUB_RELEASE_BYTES - totalBytes));
+      totalBytes += bytes.byteLength;
+      payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    } catch { throw new Error('GITHUB_RELEASE_FETCH_INVALID: unreadable or oversized page'); }
+    if (!Array.isArray(payload) || payload.length > GITHUB_RELEASE_PAGE_SIZE) {
+      throw new Error('GITHUB_RELEASE_FETCH_INVALID: expected a bounded array');
+    }
+    releases.push(...payload);
+    const next = nextReleasePage(response.headers.get('link'), page);
+    if (!next) return releases;
+    if (totalBytes >= MAX_GITHUB_RELEASE_BYTES) break;
+    url = next;
   }
-  const payload = await response.json();
-  if (!Array.isArray(payload)) {
-    throw new Error('GITHUB_RELEASE_FETCH_INVALID: expected an array');
-  }
-  return payload;
+  throw new Error('GITHUB_RELEASE_FETCH_INCOMPLETE: pagination limit');
 }
 
 export function runtimeArchiveName(version, archive) {

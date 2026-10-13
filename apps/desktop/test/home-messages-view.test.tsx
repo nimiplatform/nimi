@@ -10,6 +10,7 @@ import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-con
 import type { HomeMessageCardContext } from '../src/shell/renderer/features/home/home-message-card.js';
 import { HomeMessageCenter, messageSourceOptions } from '../src/shell/renderer/features/home/home-message-center.js';
 import { HomeMessagesColumn } from '../src/shell/renderer/features/home/home-messages-column.js';
+import { HomeExecutionNotices } from '../src/shell/renderer/features/home/execution-notices.js';
 import type { HomeMessagePlacement, HomeMessages } from '../src/shell/renderer/features/home/home-messages-controller.js';
 import {
   activityMessage,
@@ -128,9 +129,31 @@ function context(overrides: Partial<HomeMessageCardContext> = {}): HomeMessageCa
   };
 }
 
-function wrap(node: React.ReactNode) {
-  return <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider></QueryClientProvider>;
+function wrap(node: React.ReactNode, client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return <QueryClientProvider client={client}><DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider></QueryClientProvider>;
 }
+
+test('Home summarizes interruptions while the message center retains every notice', async () => {
+  await initI18n(); await changeLocale('en');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(['desktop-execution-notices'], {
+    systemSupported: true,
+    notices: Array.from({ length: 16 }, (_, index) => ({
+      id: `notice-${index}`, displayName: `App ${index}`, kind: 'stopped',
+      occurredAt: NOW.toISOString(), availableNow: true, notification: 'disabled',
+    })),
+  });
+  const summary = renderToStaticMarkup(wrap(<HomeExecutionNotices onViewAll={noop} />, client));
+  assert.match(summary, /16 execution notices/);
+  assert.match(summary, /View notices/);
+  assert.match(summary, /Work does not resume automatically/);
+  assert.doesNotMatch(summary, /App 15:|>Dismiss</);
+  const details = renderToStaticMarkup(wrap(<HomeExecutionNotices />, client));
+  assert.equal((details.match(/>Dismiss</g) ?? []).length, 16);
+  assert.match(details, /App 15:.*execution stopped/);
+  assert.match(details, /The technical connection is available again/);
+  client.clear();
+});
 
 /** The markup of one card, from its test id to the end of its article. */
 function cardHtml(html: string, key: string): string {

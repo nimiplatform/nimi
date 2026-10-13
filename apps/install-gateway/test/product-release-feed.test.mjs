@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolveProductManifest } from '../src/product-release-feed.mjs';
+import { fetchRepositoryReleases } from '../src/release-feed.mjs';
 import { handleInstallGatewayRequest } from '../src/index.mjs';
 import { compareProductVersions, verifyProductEnvelope, productAssetUrl, matchesProductAssetUrl } from '../../../config/product-update-contract.mjs';
 import { signedProductFixture } from './product-release-fixture.mjs';
@@ -13,6 +14,24 @@ test('signed final-asset binding projects only immutable product target and chan
   await assert.rejects(resolveProductManifest([fixture.release], 'stable', 'macos-arm64', fetch, fixture.key), /UPDATE_RELEASE_NOT_FOUND/);
   assert.equal(compareProductVersions('0.3.0', '0.3.0-rc.2'), 1);
   assert.equal(compareProductVersions('0.3.0-rc.1', '0.3.0-beta.9'), 1);
+});
+
+test('product discovery finds its signed channel release behind unrelated component releases', async () => {
+  const fixture = signedProductFixture();
+  const firstPage = 'https://api.github.com/repos/nimiplatform/nimi/releases?per_page=50';
+  const secondPage = `${firstPage}&page=2`;
+  const requests = [];
+  const releases = await fetchRepositoryReleases({}, async (url) => {
+    requests.push(String(url));
+    return String(url) === firstPage
+      ? new Response(JSON.stringify(Array.from({ length: 50 }, (_, index) => ({ tag_name: `sdk/v0.1.${index}` }))), {
+        headers: { link: `<${secondPage}>; rel="next", <${secondPage}>; rel="last"` },
+      })
+      : new Response(JSON.stringify([fixture.release]));
+  });
+  const result = await resolveProductManifest(releases, 'beta', 'macos-arm64', async () => new Response(fixture.manifestBytes), fixture.key);
+  assert.deepEqual(await verifyProductEnvelope(result, fixture.key), fixture.candidate);
+  assert.deepEqual(requests, [firstPage, secondPage]);
 });
 test('GitHub slash-tag URLs identify the exact resource from the unchanged signed encoded URL', async () => {
   const f=signedProductFixture();

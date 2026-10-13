@@ -59,7 +59,7 @@ func OpenAuthorizedLocalAppArtifact(
 		return nil, ErrLocalAppArtifactUnavailable
 	}
 	source, ok := store.Open(ctx, artifactID)
-	if !ok || source == nil || source.Body == nil || source.Record.Owner == nil {
+	if !ok || source == nil || source.Body == nil {
 		return nil, ErrLocalAppArtifactUnavailable
 	}
 	if !localAppArtifactOwnerValid(source.Record, owner) {

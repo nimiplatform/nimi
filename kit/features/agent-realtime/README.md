@@ -27,6 +27,13 @@ device-loss cleanup, Web Audio scheduling, and physical playback; it never
 creates declaration, coverage, App availability, product result, or Runtime
 error truth.
 
+Runtime output completion can precede physical playback. A Host media adapter's
+`finishOutputTrack` promise settles after the queued audio drains (or interruption
+or close releases it). Kit keeps the output interruptible until then without
+blocking Runtime event consumption. `interruptOutput` returns `null` when only
+this remaining local playback is stopped; otherwise it returns the actual Runtime
+operation result. Explicit Agent-turn interruption still goes to Runtime.
+
 The Runtime client remains the sole owner of negotiated media, transient
 pressure, speech, transcript, output-track, lifecycle, and terminal facts.
 Kit forwards bounded PCM output to the Host and never exposes a provider,

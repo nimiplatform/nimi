@@ -35,8 +35,6 @@ scopes:
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/support/**/*"
       - kind: path_glob
-        value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/http.ts"
-      - kind: path_glob
         value: "apps/desktop/src-electron/**/*.ts"
       - kind: path_glob
         value: "sdks/typescript/types/network-retry.ts"

@@ -194,6 +194,18 @@ describe('runtime AI consume contract', () => {
     expect(result.message).toMatch(/abort/i);
   });
 
+  it('does not execute embedding after caller cancellation', async () => {
+    const executeScenario = vi.fn();
+    const controller = new AbortController();
+    controller.abort('user-stopped-embedding');
+    const result = await runRuntimeAIConsumeCapability(input(
+      { ai: { executeScenario } } as unknown as RuntimeAIConsumeRuntime,
+      'text.embed', { signal: controller.signal },
+    ));
+    expect(executeScenario).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: false, reason: 'operation-aborted' });
+  });
+
   it('executes text.embed with batch inputs and projects the embedding summary', async () => {
     const executeScenario = vi.fn<RuntimeAIConsumeRuntime['ai']['executeScenario']>(async () => ({
       output: { output: { oneofKind: 'textEmbed', textEmbed: {

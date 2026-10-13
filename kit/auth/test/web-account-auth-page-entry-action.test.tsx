@@ -81,13 +81,29 @@ describe('WebAccountAuthPage entry action semantics', () => {
 
     const logoControl = () => container.querySelector<HTMLButtonElement>('[data-testid="logo-control"]');
     expect(onActionableReady).toHaveBeenCalledTimes(1);
-    expect(logoControl()?.getAttribute('aria-label')).toBe('Nimi Logo');
+    expect(logoControl()?.getAttribute('aria-label')).toBe('Sign in to Nimi');
+    expect(logoControl()?.textContent).toBe('Sign in to Nimi');
     expect(logoControl()?.dataset.nimiSemanticId).toBe('desktop-login-primary');
 
     act(() => logoControl()?.click());
     expect(onEntryAction).toHaveBeenCalledTimes(1);
     expect(logoControl()?.getAttribute('aria-label')).toBe('Back');
     expect(logoControl()?.hasAttribute('data-nimi-semantic-id')).toBe(false);
+
+    const email = container.querySelector<HTMLInputElement>('input[type="email"]');
+    expect(email?.getAttribute('aria-label')).toBe('Auth.emailPlaceholder');
+    expect(container.querySelector('button[type="submit"]')?.getAttribute('aria-label')).toBe('Continue');
+    const alternatives = container.querySelector<HTMLButtonElement>('button[aria-label="Auth.alternative"]');
+    const google = container.querySelector<HTMLButtonElement>('button[aria-label="Google"]');
+    const register = [...container.querySelectorAll('button')].find(button => button.textContent === 'Auth.confirmRegister');
+    expect(google?.closest('[hidden]')).not.toBeNull();
+    expect(register?.closest('[hidden]')).not.toBeNull();
+    expect(alternatives?.getAttribute('aria-expanded')).toBe('false');
+    act(() => alternatives?.click());
+    expect(google?.closest('[hidden]')).toBeNull();
+    expect(alternatives?.getAttribute('aria-expanded')).toBe('true');
+    act(() => alternatives?.click());
+    expect(google?.closest('[hidden]')).not.toBeNull();
 
     act(() => logoControl()?.click());
     expect(onEntryAction).toHaveBeenCalledTimes(1);

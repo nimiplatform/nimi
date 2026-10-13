@@ -119,6 +119,15 @@ export function reduceNimiAgentRealtimeSessionState(
         playback: 'unavailable',
         error: action.error,
       });
+    case 'playback-ended': {
+      const activeOutputTrackIds = removeTrack(state.activeOutputTrackIds, action.outputTrackId);
+      return freezeState({
+        ...state,
+        activeOutputTrackIds,
+        playback: state.playback === 'unavailable' ? 'unavailable'
+          : activeOutputTrackIds.length === 0 ? 'idle' : 'playing',
+      });
+    }
     case 'operation-failed':
       return freezeState({
         ...state,
@@ -159,6 +168,8 @@ function reduceEvent(
     });
   }
   if (event.type === 'output-track') {
+    // Generation completion does not imply that the Host audio queue drained.
+    if (event.lifecycle === 'completed') return state;
     return freezeState({
       ...state,
       playback: event.lifecycle === 'active'

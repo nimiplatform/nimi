@@ -660,6 +660,7 @@ type ResourceHint struct {
 	Engine             string
 }
 
+// @nimi-authority: rule.nimi.runtime.service-operations.r065
 func (s *Scheduler) Acquire(ctx context.Context, appID string) (func(), AcquireResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", err)
@@ -667,18 +668,18 @@ func (s *Scheduler) Acquire(ctx context.Context, appID string) (func(), AcquireR
 	started := time.Now()
 	appKey, perApp := s.perAppSemaphore(appID)
 
+	// An App's queued requests must not reserve capacity needed by other Apps.
 	select {
-	case s.global <- struct{}{}:
-		s.globalUsed.Add(1)
+	case perApp.sem <- struct{}{}:
 	case <-ctx.Done():
 		s.releaseAppReference(appKey, perApp)
 		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", ctx.Err())
 	}
 	select {
-	case perApp.sem <- struct{}{}:
+	case s.global <- struct{}{}:
+		s.globalUsed.Add(1)
 	case <-ctx.Done():
-		<-s.global
-		s.globalUsed.Add(-1)
+		<-perApp.sem
 		s.releaseAppReference(appKey, perApp)
 		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", ctx.Err())
 	}
@@ -686,11 +687,15 @@ func (s *Scheduler) Acquire(ctx context.Context, appID string) (func(), AcquireR
 	var once sync.Once
 	release := func() {
 		once.Do(func() {
-			<-perApp.sem
 			<-s.global
 			s.globalUsed.Add(-1)
+			<-perApp.sem
 			s.releaseAppReference(appKey, perApp)
 		})
+	}
+	if err := ctx.Err(); err != nil {
+		release()
+		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", err)
 	}
 	waited := time.Since(started)
 	return release, AcquireResult{

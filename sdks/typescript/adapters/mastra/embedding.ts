@@ -47,6 +47,7 @@ export function createNimiMastraEmbeddingModel(
     async doEmbed(callOptions) {
       throwIfAborted(callOptions.abortSignal);
       const result = await embedding.embedText({
+        signal: callOptions.abortSignal,
         values: callOptions.values,
         metadata: buildEmbeddingMetadata(options.metadata, callOptions),
       });

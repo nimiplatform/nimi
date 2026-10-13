@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { getEventListeners } from 'node:events';
 import * as grpc from '@grpc/grpc-js';
 import test from 'node:test';
 
@@ -23,6 +24,56 @@ import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/
 import { Runtime } from './index';
 import { createRuntimeNodeGrpcTransport, type RuntimeNodeGrpcBridge } from './node-grpc';
 import { ReasonCode } from '../types';
+
+test('real gRPC releases abort listeners after unary and stream completion, failure, and return', async (t) => {
+  const server = new grpc.Server();
+  t.after(() => server.forceShutdown());
+  let failUnary = false;
+  let finishStream = true;
+  server.addService({
+    health: {
+      path: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth', requestStream: false, responseStream: false,
+      requestSerialize: (value: object) => Buffer.from(GetRuntimeHealthRequest.toBinary(value)),
+      requestDeserialize: (bytes: Buffer) => GetRuntimeHealthRequest.fromBinary(bytes),
+      responseSerialize: (value: object) => Buffer.from(GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create(value))),
+      responseDeserialize: (bytes: Buffer) => GetRuntimeHealthResponse.fromBinary(bytes),
+    },
+    events: {
+      path: '/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents', requestStream: false, responseStream: true,
+      requestSerialize: (value: object) => Buffer.from(SubscribeRuntimeHealthEventsRequest.toBinary(value)),
+      requestDeserialize: (bytes: Buffer) => SubscribeRuntimeHealthEventsRequest.fromBinary(bytes),
+      responseSerialize: (value: object) => Buffer.from(RuntimeHealthEvent.toBinary(RuntimeHealthEvent.create(value))),
+      responseDeserialize: (bytes: Buffer) => RuntimeHealthEvent.fromBinary(bytes),
+    },
+  }, {
+    health: (_call: unknown, callback: grpc.sendUnaryData<object>) => failUnary
+      ? callback({ code: grpc.status.UNAVAILABLE, message: 'fixture unavailable' }) : callback(null, {}),
+    events: (call: grpc.ServerWritableStream<object, object>) => {
+      call.write({});
+      if (finishStream) call.end();
+    },
+  });
+  const port = await new Promise<number>((resolve, reject) => {
+    server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, value) => error ? reject(error) : resolve(value));
+  });
+  const transport = createRuntimeNodeGrpcTransport({ endpoint: `127.0.0.1:${port}` });
+  const controller = new AbortController();
+  const unary = { methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth', body: {}, signal: controller.signal };
+  for (let index = 0; index < 12; index++) await transport.unary(unary);
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+  failUnary = true;
+  await assert.rejects(transport.unary(unary));
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+  const stream = { ...unary, methodId: '/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents' };
+  for await (const _event of transport.serverStream(stream)) { /* drain */ }
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+  finishStream = false;
+  const iterator = transport.serverStream(stream)[Symbol.asyncIterator]();
+  await iterator.next();
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 1);
+  await iterator.return?.();
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+});
 
 async function expectWithin<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;

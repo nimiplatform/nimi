@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -29,6 +30,86 @@ func TestSchedulerPerAppConcurrencyIsolation(t *testing.T) {
 		t.Fatalf("acquire app-b should not be blocked by app-a per-app limit: %v", err)
 	}
 	releaseB()
+}
+
+func TestSchedulerQueuedAppDoesNotReserveOtherAppsGlobalCapacity(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := New(Config{})
+		ctx, cancel := context.WithCancel(context.Background())
+		var workers sync.WaitGroup
+		var active []func()
+		defer func() {
+			cancel()
+			for _, release := range active {
+				release()
+			}
+			workers.Wait()
+		}()
+		for range DefaultPerAppConcurrency {
+			release, _, err := s.Acquire(ctx, "app-a")
+			if err != nil {
+				t.Fatal(err)
+			}
+			active = append(active, release)
+		}
+		for range DefaultGlobalConcurrency - DefaultPerAppConcurrency {
+			workers.Go(func() {
+				release, _, err := s.Acquire(ctx, "app-a")
+				if err == nil {
+					release()
+				}
+			})
+		}
+		// All App A waiters have reached their blocking acquisition.
+		synctest.Wait()
+		otherCtx, otherCancel := context.WithTimeout(ctx, time.Second)
+		defer otherCancel()
+		release, result, err := s.Acquire(otherCtx, "app-b")
+		if err != nil {
+			t.Fatalf("App B blocked by App A's queued requests: %v", err)
+		}
+		release()
+		if result.Occupancy.GlobalUsed != DefaultPerAppConcurrency+1 {
+			t.Fatalf("queued requests counted as global execution: %+v", result.Occupancy)
+		}
+	})
+}
+
+func TestSchedulerCancelDuringGlobalWaitReleasesAppSlot(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := New(Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
+		releaseA, _, err := s.Acquire(context.Background(), "app-a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseA()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		finished := make(chan error, 1)
+		go func() {
+			release, _, err := s.Acquire(ctx, "app-b")
+			if release != nil {
+				release()
+			}
+			finished <- err
+		}()
+		synctest.Wait()
+		cancel()
+		if err := <-finished; !errors.Is(err, context.Canceled) {
+			t.Fatalf("global wait cancellation: %v", err)
+		}
+		releaseA()
+		retryCtx, retryCancel := context.WithTimeout(context.Background(), time.Second)
+		defer retryCancel()
+		releaseB, _, err := s.Acquire(retryCtx, "app-b")
+		if err != nil {
+			t.Fatalf("cancellation retained App B's slot: %v", err)
+		}
+		releaseB()
+		if occupancy := s.occupancySnapshot("app-b"); occupancy.GlobalUsed != 0 || occupancy.AppUsed != 0 {
+			t.Fatalf("capacity retained after cancel and retry: %+v", occupancy)
+		}
+	})
 }
 
 func TestSchedulerMarksStarvationWhenWaitExceedsThreshold(t *testing.T) {
@@ -166,7 +247,7 @@ func TestSchedulerSameAppBlocksAtPerAppLimit(t *testing.T) {
 	}
 }
 
-func TestSchedulerCancelDuringPerAppWaitReleasesGlobalSlot(t *testing.T) {
+func TestSchedulerCancelDuringPerAppWaitPreservesGlobalCapacity(t *testing.T) {
 	s := New(Config{
 		GlobalConcurrency: 2,
 		PerAppConcurrency: 1,

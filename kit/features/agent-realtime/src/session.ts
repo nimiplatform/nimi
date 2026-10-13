@@ -48,6 +48,7 @@ export function createNimiAgentRealtimeSession(
   let activeSubscription: NimiRealtimeSubscription<NimiAgentRealtimeEvent> | null = null;
   let frameInFlight = false;
   const playbackInterruptedTracks = new Set<string>();
+  const runtimeCompletedTracks = new Set<string>();
 
   const dispatch = (action: NimiAgentRealtimeSessionAction): void => {
     const next = reduceNimiAgentRealtimeSessionState(state, action);
@@ -77,6 +78,8 @@ export function createNimiAgentRealtimeSession(
       }
 
       const epoch = state.sessionEpoch + 1;
+      playbackInterruptedTracks.clear();
+      runtimeCompletedTracks.clear();
       dispatch({ type: 'open-requested', epoch });
       let result: NimiAgentRealtimeOpenResult;
       try {
@@ -118,7 +121,7 @@ export function createNimiAgentRealtimeSession(
       try {
         subscription = await input.agentRealtime.subscribe(scopeInput(scope));
       } catch (cause) {
-        activeSession = null;
+        if (activeSession === scope) activeSession = null;
         await closeAfterSubscribeFailure(input.agentRealtime, scope);
         const error = runtimeError(
           cause,
@@ -271,6 +274,20 @@ export function createNimiAgentRealtimeSession(
     },
     async interruptOutput(interruptInput) {
       const scope = requireActiveSession('interrupt Agent Realtime output');
+      const playbackOnly = runtimeCompletedTracks.has(interruptInput.outputTrackId)
+        && !interruptInput.interruptAgentTurn;
+      playbackInterruptedTracks.add(interruptInput.outputTrackId);
+      try {
+        await input.host.playback.interruptOutputTrack({ outputTrackId: interruptInput.outputTrackId });
+        if (isCurrent(scope)) dispatch({ type: 'playback-ended', epoch: scope.epoch, outputTrackId: interruptInput.outputTrackId });
+      } catch (cause) {
+        const error = playbackError(cause);
+        if (isCurrent(scope)) dispatch({ type: 'playback-failed', epoch: scope.epoch, error });
+        throw error;
+      }
+      // The Runtime already completed this output. Only the physical Host
+      // queue remains; do not invent an execution acknowledgement for it.
+      if (playbackOnly) return null;
       let result: NimiRealtimeOperationResult;
       try {
         result = await input.agentRealtime.interruptOutput({
@@ -288,17 +305,6 @@ export function createNimiAgentRealtimeSession(
         if (isCurrent(scope)) recordIssue(error, false);
         throw error;
       }
-      try {
-        await input.host.playback.interruptOutputTrack({
-          outputTrackId: interruptInput.outputTrackId,
-        });
-      } catch (cause) {
-        const error = playbackError(cause);
-        if (isCurrent(scope)) {
-          dispatch({ type: 'playback-failed', epoch: scope.epoch, error });
-        }
-        throw error;
-      }
       return result;
     },
     async close() {
@@ -308,6 +314,8 @@ export function createNimiAgentRealtimeSession(
       dispatch({ type: 'close-requested', epoch: closeEpoch });
       activeSession = null;
       activeSubscription = null;
+      playbackInterruptedTracks.clear();
+      runtimeCompletedTracks.clear();
       let firstError: NimiError | null = null;
       let result: NimiRealtimeOperationResult | null = null;
 
@@ -381,7 +389,10 @@ export function createNimiAgentRealtimeSession(
           epoch: scope.epoch,
           control: envelope.control,
         });
-        dispatch({ type: 'event-observed', epoch: scope.epoch, event: envelope.event });
+        if (envelope.event.type !== 'audio-frame'
+          || !playbackInterruptedTracks.has(envelope.event.outputTrackId)) {
+          dispatch({ type: 'event-observed', epoch: scope.epoch, event: envelope.event });
+        }
         if (((envelope.event.type === 'transcript' && envelope.event.final)
           || (input.turnDetection === 'server-vad' && envelope.event.type === 'speech-status'
             && envelope.event.state === 'stopped'))
@@ -583,6 +594,7 @@ export function createNimiAgentRealtimeSession(
     event: NimiAgentRealtimeEvent,
   ): Promise<void> {
     if (event.type === 'audio-frame') {
+      if (playbackInterruptedTracks.has(event.outputTrackId)) return;
       if (state.playback === 'unavailable') {
         await interruptUnplayableTrack(scope, event.outputTrackId);
         return;
@@ -602,6 +614,26 @@ export function createNimiAgentRealtimeSession(
       return;
     }
     if (event.type === 'output-track' && event.lifecycle !== 'active') {
+      if (event.lifecycle === 'completed') {
+        runtimeCompletedTracks.add(event.outputTrackId);
+        // A slow speaker must not block further Runtime control/terminal
+        // events. The Host promise owns the physical playback completion.
+        void Promise.resolve().then(() => {
+          if (!isCurrent(scope)) return;
+          return input.host.playback.finishOutputTrack({
+            outputTrackId: event.outputTrackId,
+            lifecycle: 'completed',
+          });
+        }).then(() => {
+          if (!isCurrent(scope)) return;
+          runtimeCompletedTracks.delete(event.outputTrackId);
+          playbackInterruptedTracks.delete(event.outputTrackId);
+          dispatch({ type: 'playback-ended', epoch: scope.epoch, outputTrackId: event.outputTrackId });
+        }).catch((cause: unknown) => {
+          if (isCurrent(scope)) dispatch({ type: 'playback-failed', epoch: scope.epoch, error: playbackError(cause) });
+        });
+        return;
+      }
       try {
         await input.host.playback.finishOutputTrack({
           outputTrackId: event.outputTrackId,

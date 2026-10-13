@@ -52,6 +52,7 @@ export function AuthViewMain(props: {
           onClick={onAlternativeToggle}
           disabled={pending}
           aria-label={t('Auth.alternative')}
+          aria-expanded={showAlternatives}
           className={capsuleBarIconButton}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -70,6 +71,7 @@ export function AuthViewMain(props: {
           onChange={(event) => onEmailChange(event.target.value)}
           className={capsuleBarInput}
           placeholder={t('Auth.emailPlaceholder')}
+          aria-label={t('Auth.emailPlaceholder')}
           required
           autoFocus
           autoComplete="username"
@@ -81,6 +83,7 @@ export function AuthViewMain(props: {
             type="submit"
             data-testid={testIds?.emailSubmitArrow}
             disabled={pending || !email.trim()}
+            aria-label={t('Auth.continue', { defaultValue: 'Continue' })}
             className={capsuleBarSubmitButton}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -93,6 +96,7 @@ export function AuthViewMain(props: {
       {/* Alternatives dropdown */}
       <div
         data-testid={testIds?.alternativePanel}
+        hidden={!showAlternatives}
         className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 shadow-[var(--nimi-elevation-floating)] backdrop-blur transition-all duration-200 ease-out ${
           showAlternatives
             ? 'scale-100 opacity-100'

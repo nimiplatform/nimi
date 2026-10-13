@@ -13,7 +13,10 @@ import type {
   NimiAgentRealtimeClient,
   NimiLocalAppAgentHandle,
   NimiRealtimeControlStatus,
+  NimiAgentRealtimeEvent,
+  NimiRealtimeEventEnvelope,
 } from '../src/types';
+import { playbackFixture } from './playback-fixture';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -37,6 +40,39 @@ afterEach(() => {
 });
 
 describe('Agent Realtime public entry', () => {
+  it.each(['interrupt', 'drain'] as const)('keeps the real Interrupt button usable until queued audio ends by %s', async (ending) => {
+    const fixture = playbackFixture();
+    const client = formalClient(async () => [
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },
+    ]);
+    let next!: (event: IteratorResult<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>) => void;
+    vi.mocked(client.agentRealtime.subscribe).mockResolvedValue({
+      [Symbol.asyncIterator]: () => ({ next: () => new Promise((resolve) => { next = resolve; }) }),
+      cancel: async () => { next?.({ done: true, value: undefined }); },
+    });
+    const node = await renderEntry({ client, initialAgentHandle: HANDLE_A, inputAudio: AUDIO_FORMAT,
+      turnDetection: 'manual', host: fixture.host, locale: 'en' });
+    const button = (text: string) => Array.from(node.querySelectorAll('button'))
+      .find((entry) => entry.textContent === text) as HTMLButtonElement;
+    await act(async () => { button('Open live conversation').click(); });
+    const emit = async (event: NimiAgentRealtimeEvent) => {
+      await act(async () => { next({ done: false, value: { control: control(), event } }); });
+    };
+    await emit({ type: 'audio-frame', requestId: 'r1', outputTrackId: 'track', frameSequence: '1', frame: new Uint8Array(640), format: AUDIO_FORMAT });
+    await emit({ type: 'output-track', requestId: 'r1', outputTrackId: 'track', lifecycle: 'completed', reasonCode: '' });
+    // Runtime events continue while physical playback remains pending.
+    await emit({ type: 'terminal', reasonCode: 'ACTION_EXECUTED' });
+    const interrupt = button(resolveNimiAgentRealtimeCopy('en').interrupt);
+    expect(interrupt.disabled).toBe(false);
+    await act(async () => {
+      if (ending === 'interrupt') interrupt.click();
+      else fixture.sources[0]!.onended?.();
+    });
+    expect(fixture.sources[0]!.stop).toHaveBeenCalledTimes(ending === 'interrupt' ? 1 : 0);
+    expect(client.agentRealtime.interruptOutput).not.toHaveBeenCalled();
+    expect(interrupt.disabled).toBe(true);
+  });
+
   it('owns bounded English and Chinese selector copy', () => {
     expect(resolveNimiAgentRealtimeCopy('en-US').selectAgent).toBe('Choose Agent');
     expect(resolveNimiAgentRealtimeCopy('zh-CN').selectAgent).toBe('选择 Agent');

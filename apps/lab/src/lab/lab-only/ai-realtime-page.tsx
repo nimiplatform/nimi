@@ -265,6 +265,7 @@ function LabAiRealtimeSurface({
     if (kind === 'start-response' || kind === 'continue-response') setRecordingSubmitted(false);
   });
   const activeTracks = state.tracks.filter((track) => track.lifecycle === 'active');
+  const interruptibleTracks = state.tracks.filter((track) => track.lifecycle === 'active' || track.playbackPending);
 
   return (
     <div ref={rootRef} className="lab-realtime" data-testid="lab-ai-realtime">
@@ -352,7 +353,7 @@ function LabAiRealtimeSurface({
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0 || state.tracks.length === 0} onClick={() => void control('continue-response')}>{t('CapabilityTests.aiRealtime.continueResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || activeTracks.length === 0} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
-          {activeTracks.map((track) => (
+          {interruptibleTracks.map((track) => (
             <Button key={track.outputTrackId} type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void run(() => sessionRef.current!.interrupt(track.outputTrackId))}>
               {t('CapabilityTests.aiRealtime.interrupt', { track: track.outputTrackId })}
             </Button>

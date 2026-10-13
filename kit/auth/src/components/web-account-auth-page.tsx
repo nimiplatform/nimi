@@ -78,6 +78,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
   const actionableLogoReady = !flow.pending && isLogoStage;
   const displayError = flow.loginError || session.authError || null;
   const logoAltText = branding.logoAltText || branding.networkLabel;
+  const entryLabel = t('Auth.signIn', { defaultValue: 'Sign in to Nimi' });
   useLayoutEffect(() => {
     if (!actionableLogoReady || actionableReadyReportedRef.current) return;
     actionableReadyReportedRef.current = true;
@@ -124,7 +125,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
           <div className="pointer-events-auto flex w-full flex-col items-center gap-6">
               <button
                 type="button"
-                aria-label={isLogoStage ? logoAltText : t('Common.back', { defaultValue: 'Back' })}
+                aria-label={isLogoStage ? entryLabel : t('Common.back', { defaultValue: 'Back' })}
                 data-nimi-semantic-id={isLogoStage ? semanticIds?.entryAction : undefined}
                 data-testid={testIds?.logoTrigger}
                 onClick={() => {
@@ -138,7 +139,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                 onMouseEnter={() => setIsLogoHovered(true)}
                 onMouseLeave={() => setIsLogoHovered(false)}
                 disabled={flow.pending}
-                className="group relative cursor-pointer focus:outline-none transition-all duration-500 ease-out"
+                className="group relative flex cursor-pointer flex-col items-center gap-4 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)] transition-all duration-500 ease-out"
               >
                 {renderLogo(
                   branding.logo,
@@ -149,6 +150,11 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                       : 'h-16 w-16'
                   }`,
                 )}
+                {isLogoStage ? (
+                  <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)]">
+                    {entryLabel}
+                  </span>
+                ) : null}
               </button>
 
               {isLogoStage ? (
@@ -182,7 +188,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
               ) : null}
 
               {flow.view === 'main' && flow.embeddedStage === 'email' ? (
-                <div className={`w-full origin-top transition-all duration-200 ease-out ${
+                <div hidden={!flow.showRegisterConfirm} className={`w-full origin-top transition-all duration-200 ease-out ${
                   flow.showRegisterConfirm
                     ? 'scale-100 opacity-100'
                     : 'pointer-events-none h-0 scale-95 opacity-0'

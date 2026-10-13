@@ -229,10 +229,15 @@ export function createRuntimeNodeGrpcTransport(
       let responseBytes: Uint8Array | undefined;
       let statusSeen = false;
       let settled = false;
+      let abortHandler: (() => void) | undefined;
+      const cleanup = () => {
+        if (abortHandler) request.signal?.removeEventListener('abort', abortHandler);
+      };
 
       const rejectOnce = (error: unknown) => {
         if (settled) return;
         settled = true;
+        cleanup();
         reject(error);
       };
       const resolveAfterStatus = () => {
@@ -246,6 +251,7 @@ export function createRuntimeNodeGrpcTransport(
           return;
         }
         settled = true;
+        cleanup();
         resolve(responseBytes);
       };
 
@@ -302,7 +308,7 @@ export function createRuntimeNodeGrpcTransport(
           ));
           return;
         }
-        request.signal.addEventListener('abort', () => {
+        abortHandler = () => {
           call.cancel();
           rejectOnce(toTransportError(
             'OPERATION_ABORTED',
@@ -313,7 +319,8 @@ export function createRuntimeNodeGrpcTransport(
               retryable: false,
             },
           ));
-        }, { once: true });
+        };
+        if (!settled) request.signal.addEventListener('abort', abortHandler, { once: true });
       }
     });
   };
@@ -491,6 +498,10 @@ function nodeGrpcReadableStream(
   }> = [];
   let done = false;
   let pendingError: unknown;
+  let abortHandler: (() => void) | undefined;
+  const cleanup = () => {
+    if (abortHandler) signal?.removeEventListener('abort', abortHandler);
+  };
 
   const flush = () => {
     while (queue.length > 0 && waiters.length > 0) {
@@ -514,6 +525,7 @@ function nodeGrpcReadableStream(
   };
 
   const close = () => {
+    cleanup();
     if (done) {
       return;
     }
@@ -541,6 +553,7 @@ function nodeGrpcReadableStream(
       },
     );
     done = true;
+    cleanup();
     call.cancel();
     flush();
   };
@@ -564,6 +577,7 @@ function nodeGrpcReadableStream(
       pendingError = error;
       queue.length = 0;
       done = true;
+      cleanup();
       call.cancel();
       flush();
     }
@@ -576,9 +590,11 @@ function nodeGrpcReadableStream(
   });
   call.on('end', () => {
     done = true;
+    cleanup();
     flush();
   });
   call.on('error', (error: ServiceError) => {
+    cleanup();
     if (done) {
       return;
     }
@@ -601,7 +617,7 @@ function nodeGrpcReadableStream(
       );
       flush();
     } else {
-      signal.addEventListener('abort', () => {
+      abortHandler = () => {
         pendingError = toTransportError(
           'OPERATION_ABORTED',
           `${methodId} was aborted`,
@@ -612,7 +628,8 @@ function nodeGrpcReadableStream(
           },
         );
         close();
-      }, { once: true });
+      };
+      signal.addEventListener('abort', abortHandler, { once: true });
     }
   }
 

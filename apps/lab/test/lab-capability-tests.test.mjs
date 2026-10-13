@@ -1207,6 +1207,145 @@ test('video Session reports owner termination and open failure without claiming 
 });
 
 // The event stream stays open until Close unless a test ends it on purpose.
+for (const ending of ['interrupt', 'drain', 'close']) {
+  test(`Lab completed playback ends by ${ending} without changing Runtime lifecycle or inventing an acknowledgement`, async () => {
+    const { createLabRealtimeController, LAB_AI_REALTIME_INPUT_AUDIO } = await load('lab/lab-only/ai-realtime-session.js');
+    const fake = fakeRealtime({ events: [
+      { type: 'audio-frame', requestId: 'r1', outputTrackId: 'track-1', frameSequence: '1', frame: new Uint8Array(640), format: LAB_AI_REALTIME_INPUT_AUDIO },
+      { type: 'output-track', requestId: 'r1', outputTrackId: 'track-1', lifecycle: 'completed', reasonCode: '' },
+      { type: 'request-terminal', requestId: 'r1', finishReason: 'stop', usage: null, reasonCode: '' },
+    ] });
+    const drain = Promise.withResolvers();
+    let stopped = 0;
+    let updates = 0;
+    const session = createLabRealtimeController({ client: fake.client, now: () => new Date(), createId: () => 'r1', onState: () => { updates++; },
+      playback: { writeAudioFrame: async () => {}, finishOutputTrack: () => drain.promise,
+        interruptOutputTrack: async () => { stopped++; drain.resolve(); }, close: async () => { drain.resolve(); } },
+    });
+    await session.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: true });
+    await session.sendText('hello');
+    await waitFor(() => session.getState().observed['request-terminal'] === 1, 'completed response');
+    assert.equal(session.getState().tracks[0].playbackPending, true);
+    assert.equal(session.getState().tracks[0].lifecycle, 'completed');
+    if (ending === 'interrupt') await session.interrupt('track-1');
+    else if (ending === 'drain') drain.resolve();
+    else await session.close();
+    await waitFor(() => session.getState().tracks[0].playbackPending === false, 'physical playback release');
+    assert.equal(stopped, ending === 'interrupt' ? 1 : 0);
+    assert.equal(session.getState().tracks[0].lifecycle, 'completed');
+    assert.equal(fake.calls.interrupt.length, 0, 'a completed Runtime track receives no interruption request');
+    assert.equal(session.getState().observed.interrupt ?? 0, 0, 'no Runtime interruption is claimed');
+    await session.close();
+    const closedUpdates = updates;
+    drain.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(updates, closedUpdates, 'late drain callbacks cannot publish after close');
+  });
+}
+
+test('Lab close fences a late audio write and does not replay following frames', async () => {
+  const { createLabRealtimeController, LAB_AI_REALTIME_INPUT_AUDIO } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime({ events: ['1', '2'].map((frameSequence) => ({
+    type: 'audio-frame', requestId: 'r1', outputTrackId: 'track', frameSequence, frame: new Uint8Array(640), format: LAB_AI_REALTIME_INPUT_AUDIO,
+  })) });
+  const writing = Promise.withResolvers();
+  let writes = 0;
+  let closes = 0;
+  let updates = 0;
+  const session = createLabRealtimeController({ client: fake.client, now: () => new Date(), createId: () => 'r1', onState: () => { updates++; },
+    playback: { writeAudioFrame: async () => { writes++; await writing.promise; }, finishOutputTrack: async () => {},
+      interruptOutputTrack: async () => {}, close: async () => { closes++; } },
+  });
+  await session.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: true });
+  await waitFor(() => writes === 1, 'audio write waiting to resume');
+  await session.close();
+  assert.equal(session.getState().tracks[0].playbackPending, false);
+  const closedUpdates = updates;
+  writing.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(writes, 1);
+  assert.equal(closes, 1);
+  assert.equal(updates, closedUpdates, 'late audio continuation does not mutate a closed session');
+});
+
+test('Lab interruption does not dispatch to Runtime if generation completes during physical stop', async () => {
+  const { createLabRealtimeController, LAB_AI_REALTIME_INPUT_AUDIO } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime({ events: [
+    { type: 'audio-frame', requestId: 'r1', outputTrackId: 'track', frameSequence: '1', frame: new Uint8Array(640), format: LAB_AI_REALTIME_INPUT_AUDIO },
+    { type: 'output-track', requestId: 'r1', outputTrackId: 'track', lifecycle: 'completed', reasonCode: '' },
+  ] });
+  const ownerCompletion = Promise.withResolvers();
+  const stopping = Promise.withResolvers();
+  const drain = Promise.withResolvers();
+  const client = { ...fake.client, async subscribe() {
+    const subscription = await fake.client.subscribe();
+    return { async *[Symbol.asyncIterator]() {
+      for await (const envelope of subscription) {
+        if (envelope.event.type === 'output-track') await ownerCompletion.promise;
+        yield envelope;
+      }
+    }, cancel: () => subscription.cancel() };
+  } };
+  const session = createLabRealtimeController({ client, now: () => new Date(), createId: () => 'r1', onState: () => {},
+    playback: { writeAudioFrame: async () => {}, finishOutputTrack: () => drain.promise,
+      interruptOutputTrack: () => stopping.promise, close: async () => { drain.resolve(); } },
+  });
+  await session.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: true });
+  await waitFor(() => session.getState().tracks[0]?.playbackPending, 'audio pending');
+  const interrupting = session.interrupt('track');
+  ownerCompletion.resolve();
+  await waitFor(() => session.getState().tracks[0].lifecycle === 'completed', 'owner completed during local stop');
+  stopping.resolve();
+  await interrupting;
+  assert.equal(fake.calls.interrupt.length, 0);
+  assert.equal(session.getState().tracks[0].playbackPending, false);
+  assert.equal(session.getState().tracks[0].lifecycle, 'completed');
+  await session.close();
+});
+
+test('Lab interruption fences following frames after an in-flight audio write resumes', async () => {
+  const { createLabRealtimeController, LAB_AI_REALTIME_INPUT_AUDIO } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime({ events: ['1', '2'].map((frameSequence) => ({
+    type: 'audio-frame', requestId: 'r1', outputTrackId: 'track', frameSequence, frame: new Uint8Array(640), format: LAB_AI_REALTIME_INPUT_AUDIO,
+  })) });
+  const writing = Promise.withResolvers();
+  let writes = 0;
+  const session = createLabRealtimeController({ client: fake.client, now: () => new Date(), createId: () => 'r1', onState: () => {},
+    playback: { writeAudioFrame: async () => { writes++; await writing.promise; }, finishOutputTrack: async () => {},
+      interruptOutputTrack: async () => {}, close: async () => {} },
+  });
+  await session.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: true });
+  await waitFor(() => writes === 1, 'audio write awaiting resume');
+  await session.interrupt('track');
+  writing.resolve();
+  await waitFor(() => session.getState().observed['audio-frame'] === 2, 'later provider frame observed');
+  assert.equal(writes, 1, 'interrupted audio is not handed to the Host again');
+  assert.equal(fake.calls.interrupt.length, 1, 'the active track is interrupted through its real owner');
+  assert.equal(session.getState().tracks[0].playbackPending, false);
+  assert.equal(session.getState().tracks[0].lifecycle, 'active', 'local playback does not fabricate the owner terminal');
+  await session.close();
+});
+
+test('Lab Realtime keeps reading owner terminal events while completed playback drains', async () => {
+  const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime({ events: [
+    { type: 'output-track', requestId: 'r1', outputTrackId: 'track-1', lifecycle: 'completed', reasonCode: '' },
+    { type: 'request-terminal', requestId: 'r1', finishReason: 'stop', usage: null, reasonCode: '' },
+  ] });
+  let release;
+  const drained = new Promise((resolve) => { release = resolve; });
+  const session = createLabRealtimeController({
+    client: fake.client, now: () => new Date(), createId: () => 'r1', onState: () => {},
+    playback: { writeAudioFrame: async () => {}, finishOutputTrack: () => drained,
+      interruptOutputTrack: async () => { release(); }, close: async () => { release(); } },
+  });
+  await session.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: true });
+  await session.sendText('hello');
+  await waitFor(() => session.getState().observed['request-terminal'] === 1, 'terminal despite queued playback');
+  assert.equal(session.getState().responsePending, false);
+  await session.close();
+});
+
 test('Lab Realtime Close waits for device release once before resolving', async () => {
   const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
   const fake = fakeRealtime();
@@ -1380,7 +1519,7 @@ test('direct AI Realtime reports the owner reason for a refused Local route, a r
   await waitFor(() => ended.getState().phase === 'terminated', 'owner terminal');
   assert.equal(ended.getState().terminalReason, 'AI_PROVIDER_UNAVAILABLE');
   assert.equal(ended.getState().tracks[0].lifecycle, 'completed');
-  assert.deepEqual(ended.getState().tracks[1], { outputTrackId: 'active', requestId: 'active', text: 'Actual partial output', audioFrames: 0, lifecycle: 'failed', reasonCode: 'AI_PROVIDER_UNAVAILABLE' });
+  assert.deepEqual(ended.getState().tracks[1], { outputTrackId: 'active', requestId: 'active', text: 'Actual partial output', audioFrames: 0, lifecycle: 'failed', playbackPending: false, reasonCode: 'AI_PROVIDER_UNAVAILABLE' });
   assert.deepEqual(releasedTracks, [{ outputTrackId: 'completed', lifecycle: 'completed' }, { outputTrackId: 'active', lifecycle: 'failed' }]);
 
   const silent = fakeRealtime({ endStream: true });

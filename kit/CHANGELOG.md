@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Agent Realtime retains interruption controls until Host audio playback drains,
+including after Runtime output generation completes. Host media adapters must
+settle `finishOutputTrack({ lifecycle: 'completed' })` after queued audio ends;
+interrupt and close must also release that wait. `interruptOutput()` now returns
+`null` when it only stops completed output still playing locally. Consumers that
+read its Runtime acknowledgement must check for `null`; no acknowledgement is
+fabricated for local playback. This return-type widening is a breaking 0.x minor
+API change for the next release; the shipped version is unchanged here.
+
 ## Conversation setup panel brand icon (next minor, development)
 
 - `ConversationSetupPanel` gains an optional `icon`, and

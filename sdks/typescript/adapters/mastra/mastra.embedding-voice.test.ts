@@ -49,7 +49,9 @@ test('Nimi Mastra embedding model maps AI SDK embed calls to Runtime embeddings'
   });
 
   const asMastraEmbedder: MastraEmbeddingModel<string> = model;
+  const controller = new AbortController();
   const result = await asMastraEmbedder.doEmbed({
+    abortSignal: controller.signal,
     values: ['first', 'second'],
     providerOptions: { nimi: { caller: 'mastra-rag' } },
   });
@@ -58,6 +60,7 @@ test('Nimi Mastra embedding model maps AI SDK embed calls to Runtime embeddings'
   assert.equal(result.usage?.tokens, 5);
   assert.equal(result.providerMetadata?.nimi?.traceId, 'trace-embed');
   assert.deepEqual((calls[0] as { values?: readonly string[] }).values, ['first', 'second']);
+  assert.equal((calls[0] as { signal?: AbortSignal }).signal, controller.signal);
   assert.deepEqual(
     (calls[0] as { metadata?: { providerOptions?: unknown } }).metadata?.providerOptions,
     { nimi: { caller: 'mastra-rag' } },

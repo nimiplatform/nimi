@@ -68,6 +68,7 @@ func remainingTokens(state *runtimev1.AgentAutonomyState) int64 {
 	return remaining
 }
 
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r007
 func pageBounds(pageToken string, pageSize int32, defaultSize int, maxSize int, total int) (int, int, string, error) {
 	offset, err := decodeCursor(pageToken)
 	if err != nil {
@@ -84,9 +85,9 @@ func pageBounds(pageToken string, pageSize int32, defaultSize int, maxSize int, 
 	if start > total {
 		start = total
 	}
-	end := start + size
-	if end > total {
-		end = total
+	end := total
+	if size < total-start {
+		end = start + size
 	}
 	next := ""
 	if end < total {
@@ -107,7 +108,8 @@ func decodeCursor(token string) (uint64, error) {
 	if trimmed == "" {
 		return 0, nil
 	}
-	value, err := strconv.ParseUint(trimmed, 10, 64)
+	// The cursor becomes a slice index; reject values that cannot fit in int.
+	value, err := strconv.ParseUint(trimmed, 10, strconv.IntSize-1)
 	if err != nil {
 		return 0, grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,

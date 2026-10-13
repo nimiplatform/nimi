@@ -83,7 +83,7 @@ function parseSnapshot(value: unknown): NoticeSnapshot {
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.execution-notice
-export function HomeExecutionNotices() {
+export function HomeExecutionNotices({ onViewAll }: { onViewAll?: () => void } = {}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ['desktop-execution-notices'], enabled: hasElectronInvoke(), retry: false, refetchInterval: 2000,
@@ -92,6 +92,13 @@ export function HomeExecutionNotices() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['desktop-execution-notices'] }) });
   if (query.isError) return <InlineAlert tone="warning" action={<Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button>}>{t('Notifications.execution.unavailable')}</InlineAlert>;
   if (!query.data?.notices.length) return null;
+  if (onViewAll) return <section aria-label={t('Notifications.execution.notices')} data-testid="execution-notices-summary">
+    <InlineAlert tone="warning">
+      <p className="font-medium">{t('Notifications.execution.summaryCount', { count: query.data.notices.length })}</p>
+      <p>{t('Notifications.execution.summaryDescription')}</p>
+      <Button tone="ghost" size="sm" onClick={onViewAll}>{t('Notifications.execution.viewAll')}</Button>
+    </InlineAlert>
+  </section>;
   return <section aria-label={t('Notifications.execution.notices')} className="space-y-2" data-testid="execution-notices">
     <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('Notifications.execution.notices')}</p>
     {query.data.notices.map(notice => <InlineAlert key={notice.id} tone="warning" action={<Button tone="ghost" size="sm" disabled={dismiss.isPending} onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.dismiss')}</Button>}>

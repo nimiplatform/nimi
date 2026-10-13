@@ -22,6 +22,50 @@ const AUDIO_FORMAT = Object.freeze({
 });
 
 describe('canonical Agent Realtime session', () => {
+  it.each([false, true])('preserves explicit Agent turn interruption=%s after generation completed', async (interruptAgentTurn) => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const client = createClient({ stream });
+    const host = createHost();
+    const drained = createDeferred<void>();
+    vi.mocked(host.playback.finishOutputTrack).mockImplementation(() => drained.promise);
+    vi.mocked(host.playback.interruptOutputTrack).mockImplementation(async () => { drained.resolve(); });
+    const session = createSession(client, host);
+    await session.open();
+    stream.push({ control: control(), event: { type: 'audio-frame', requestId: 'r1', outputTrackId: 'track', frameSequence: '1', frame: new Uint8Array(640), format: AUDIO_FORMAT } });
+    stream.push({ control: control(), event: { type: 'output-track', requestId: 'r1', outputTrackId: 'track', lifecycle: 'completed', reasonCode: '' } });
+    await vi.waitFor(() => expect(host.playback.finishOutputTrack).toHaveBeenCalledTimes(1));
+    const result = await session.interruptOutput({ outputTrackId: 'track', interruptAgentTurn });
+    if (interruptAgentTurn) {
+      expect(result).toMatchObject({ ack: { ok: true } });
+      expect(client.interruptOutput).toHaveBeenCalledWith(expect.objectContaining({ interruptAgentTurn: true }));
+    } else {
+      expect(result).toBeNull();
+      expect(client.interruptOutput).not.toHaveBeenCalled();
+    }
+    expect(session.getState().activeOutputTrackIds).toEqual([]);
+    await session.close();
+  });
+
+  it('does not let a stale subscribe rejection discard the replacement session', async () => {
+    const stale = createDeferred<NimiRealtimeSubscription<NimiAgentRealtimeEvent>>();
+    const client = createClient({ stream: createEventStream() });
+    vi.mocked(client.open)
+      .mockResolvedValueOnce({ ...openResult(), realtimeSessionId: 'old-session' })
+      .mockResolvedValueOnce({ ...openResult(), realtimeSessionId: 'new-session' });
+    vi.mocked(client.subscribe).mockImplementationOnce(() => stale.promise);
+    const session = createSession(client, createHost());
+    const opening = session.open().catch((error: unknown) => error);
+    await vi.waitFor(() => expect(client.subscribe).toHaveBeenCalledTimes(1));
+    await session.close();
+    await session.open();
+    stale.reject(new Error('old subscribe failed'));
+    await opening;
+    await expect(session.sendText({ requestId: 'next', text: 'hello' })).resolves.toMatchObject({ ack: { ok: true } });
+    expect(client.appendInput).toHaveBeenLastCalledWith(expect.objectContaining({ realtimeSessionId: 'new-session' }));
+    await session.close();
+    expect(client.close).toHaveBeenLastCalledWith(expect.objectContaining({ realtimeSessionId: 'new-session' }));
+  });
+
   it('opens without implicit capture, serializes Host frames, honors blocked pressure, and hands output to Host', async () => {
     const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
     let captureInput: Parameters<NimiAgentRealtimeHostMediaPort['microphone']['beginCapture']>[0] | null = null;

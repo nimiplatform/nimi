@@ -27,7 +27,9 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
     >
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
-        className={cn('h-full max-h-[inherit] w-full rounded-[inherit]', viewportClassName)}
+        // This primitive only scrolls vertically. Radix's table content wrapper
+        // otherwise expands to intrinsic width and clips actions beside text.
+        className={cn('h-full max-h-[inherit] w-full rounded-[inherit] [&>div]:!block', viewportClassName)}
       >
         {contentClassName ? <div className={contentClassName}>{children}</div> : children}
       </ScrollAreaPrimitive.Viewport>

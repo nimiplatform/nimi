@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
-import { mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, realpath, symlink, writeFile } from 'node:fs/promises';
 import {
   NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME,
   createElectronShellFileProtocolHost,
@@ -247,6 +247,33 @@ describe('createElectronShellFileProtocolHost', () => {
 });
 
 describe('standard storage and local asset bridge', () => {
+  it('rejects storage reads, writes, and removal through a directory link outside its bound root', async () => {
+    await withTempDir('storage-symlink', async (root) => {
+      const dataRoot = path.join(root, 'data');
+      const outside = path.join(root, 'outside');
+      await mkdir(dataRoot);
+      await mkdir(outside);
+      await writeFile(path.join(outside, 'prefs.json'), '{"outside":true}');
+      await symlink(outside, path.join(dataRoot, 'settings'), process.platform === 'win32' ? 'junction' : 'dir');
+      const ipcMain = registerFileSurfaceBridge({ standardDataRootBinding: {
+        source: 'runtime-launch-projection', durableDataRoot: dataRoot, projectionRef: 'fixture',
+      } });
+      const { event } = createInvokeEvent();
+      for (const operation of ['storage.readJson', 'storage.writeJson', 'storage.removeJson'] as const) {
+        await expect(invokeBridge(ipcMain, event, {
+          command: NIMI_STANDARD_SHELL_COMMANDS[operation],
+          payload: { relativePath: 'settings/prefs.json', ...(operation === 'storage.writeJson' ? { value: { changed: true } } : {}) },
+        })).rejects.toMatchObject({ reasonCode: 'electron-standard-path-escapes-root' });
+      }
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+        payload: { relativePath: 'settings/new/nested.json', value: {} },
+      })).rejects.toMatchObject({ reasonCode: 'electron-standard-path-escapes-root' });
+      expect(await readFile(path.join(outside, 'prefs.json'), 'utf8')).toBe('{"outside":true}');
+      expect(await readdir(outside)).toEqual(['prefs.json']);
+    });
+  });
+
   it('implements avatar asset resolution through the standard local asset roots', async () => {
     await withTempDir('avatar-asset', async (root) => {
       const assetRoot = path.join(root, 'avatar');

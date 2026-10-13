@@ -26,6 +26,7 @@ export interface NimiRuntimeEmbeddingClientOptions {
 }
 
 export interface NimiEmbedTextRequest {
+  readonly signal?: AbortSignal;
   readonly purpose?: 'retrieval-document' | 'retrieval-query';
   readonly values: readonly string[];
   readonly dimensions?: number;
@@ -55,16 +56,19 @@ export function createNimiRuntimeEmbeddingClient(
   const appId = requireText(options.appId, 'Runtime embedding client requires appId', 'provide_embedding_app_id');
   return {
     async embedText(request) {
+      request.signal?.throwIfAborted();
       const values = normalizeEmbeddingInputs(request.values);
       const dimensions = request.dimensions;
       const purpose = request.purpose;
       const response = await scenarioClient.executeScenario(
         buildRuntimeTextEmbeddingRequest({ values, dimensions, purpose, options, appId }),
         withNimiRuntimeIdempotencyMetadata({
+          signal: request.signal,
           metadata: mergeMetadata(options.metadata, request.metadata),
           timeoutMs: Number(options.timeoutMs ?? 0) || undefined,
         }, createNimiClientId('runtime-embed')),
       );
+      request.signal?.throwIfAborted();
       return toEmbedTextResult(response, values.length, dimensions);
     },
   };

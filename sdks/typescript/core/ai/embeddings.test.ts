@@ -9,6 +9,33 @@ import {
   createNimiRuntimeEmbeddingClient,
 } from './embeddings';
 
+test('embedding rejects pre-aborted requests and passes cancellation to the pending transport', async () => {
+  let calls = 0;
+  let observed: AbortSignal | undefined;
+  let started!: () => void;
+  const dispatched = new Promise<void>((resolve) => { started = resolve; });
+  const embedding = createNimiRuntimeEmbeddingClient({ appId: 'app-1', runtime: {
+    executeScenario: async (_request, options) => {
+      calls++;
+      observed = options?.signal;
+      started();
+      return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(options.signal?.reason), { once: true });
+      });
+    },
+  } });
+  const before = new AbortController();
+  before.abort();
+  await assert.rejects(embedding.embedText({ values: ['hello'], signal: before.signal }), { name: 'AbortError' });
+  assert.equal(calls, 0);
+  const during = new AbortController();
+  const pending = embedding.embedText({ values: ['hello'], signal: during.signal });
+  await dispatched;
+  assert.equal(observed, during.signal);
+  during.abort();
+  await assert.rejects(pending, { name: 'AbortError' });
+});
+
 test('Runtime-backed embedding client maps text embedding Scenario requests and output', async () => {
   let capturedRequest: ReturnType<typeof buildRuntimeTextEmbeddingRequest> | null = null;
   let capturedOptions: RuntimeTypedCallOptions | undefined;

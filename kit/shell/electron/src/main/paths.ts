@@ -111,6 +111,16 @@ export async function resolveElectronStandardDataRootPath(
       details: { command, root, path: target },
     });
   }
+  const canonicalTarget = await canonicalElectronPathCandidate(target);
+  if (!isSameOrChildPath(root, canonicalTarget)) {
+    throw new NimiElectronShellHostError({
+      code: 'invalid-path',
+      message: `Electron standard path escapes data root through a symbolic link: ${target}`,
+      reasonCode: 'electron-standard-path-escapes-root',
+      actionHint: 'use_relative_path_inside_standard_data_root',
+      details: { command, root, path: target },
+    });
+  }
   return target;
 }
 export async function resolveElectronStandardLocalAssetPath(

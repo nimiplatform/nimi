@@ -31,6 +31,8 @@ export type LabRealtimeOutputTrack = {
   readonly text: string;
   readonly audioFrames: number;
   readonly lifecycle: 'active' | 'interrupted' | 'completed' | 'failed';
+  /** Host audio custody, independent of the Runtime track lifecycle. */
+  readonly playbackPending: boolean;
   readonly reasonCode: string;
 };
 
@@ -128,7 +130,13 @@ export function createLabRealtimeController(input: {
   let pendingOpen: Promise<void> | null = null;
   let pendingClose: Promise<void> | null = null;
   let pendingPlaybackClose: Promise<void> | null = null;
-  const closePlayback = () => pendingPlaybackClose ??= input.playback?.close() ?? Promise.resolve();
+  const stoppedPlaybackTracks = new Set<string>();
+  const closePlayback = () => {
+    if (state.tracks.some((entry) => entry.playbackPending)) {
+      set({ tracks: state.tracks.map((entry) => ({ ...entry, playbackPending: false })) });
+    }
+    return pendingPlaybackClose ??= input.playback?.close() ?? Promise.resolve();
+  };
   let pendingResponseRequestId: string | null = null;
   const set = (patch: Partial<LabRealtimeState>) => {
     state = { ...state, ...patch };
@@ -178,12 +186,13 @@ export function createLabRealtimeController(input: {
   };
   const track = (outputTrackId: string, requestId: string, patch: (current: LabRealtimeOutputTrack) => Partial<LabRealtimeOutputTrack>) => {
     const existing = state.tracks.find((entry) => entry.outputTrackId === outputTrackId)
-      ?? { outputTrackId, requestId, text: '', audioFrames: 0, lifecycle: 'active' as const, reasonCode: '' };
+      ?? { outputTrackId, requestId, text: '', audioFrames: 0, lifecycle: 'active' as const, playbackPending: false, reasonCode: '' };
     const next = { ...existing, ...patch(existing) };
     set({ tracks: state.tracks.some((entry) => entry.outputTrackId === outputTrackId)
       ? state.tracks.map((entry) => entry.outputTrackId === outputTrackId ? next : entry)
       : [...state.tracks, next] });
   };
+  const isOpenScope = (scope: Scope) => state.phase === 'open' && state.scope === scope;
   const requireScope = (): Scope => {
     if (state.phase !== 'open' || !state.scope) throw new Error(t('CapabilityTests.aiRealtime.notOpen'));
     return state.scope;
@@ -195,7 +204,7 @@ export function createLabRealtimeController(input: {
     return result;
   };
 
-  const apply = async (event: NimiAiRealtimeEvent) => {
+  const apply = async (event: NimiAiRealtimeEvent, scope: Scope) => {
     count(event.type);
     log(event.type, eventDetail(event));
     if (event.type === 'text-output') {
@@ -203,14 +212,39 @@ export function createLabRealtimeController(input: {
       track(event.outputTrackId, event.requestId, (current) => ({ text: event.final ? event.text : current.text + event.text }));
     } else if (event.type === 'audio-frame') {
       track(event.outputTrackId, event.requestId, (current) => ({ audioFrames: current.audioFrames + 1 }));
-      await input.playback?.writeAudioFrame({ outputTrackId: event.outputTrackId, frameSequence: event.frameSequence, frame: event.frame, format: event.format }).catch(() => undefined);
+      if (!input.playback || stoppedPlaybackTracks.has(event.outputTrackId)) return;
+      track(event.outputTrackId, event.requestId, () => ({ playbackPending: true }));
+      try {
+        await input.playback.writeAudioFrame({ outputTrackId: event.outputTrackId, frameSequence: event.frameSequence, frame: event.frame, format: event.format });
+      } catch (error) {
+        if (!isOpenScope(scope)) return;
+        stoppedPlaybackTracks.add(event.outputTrackId);
+        track(event.outputTrackId, event.requestId, () => ({ playbackPending: false }));
+        set({ error: describeError(error) });
+        await input.playback.interruptOutputTrack({ outputTrackId: event.outputTrackId }).catch(() => undefined);
+      }
     } else if (event.type === 'output-track') {
       track(event.outputTrackId, event.requestId, () => ({ lifecycle: event.lifecycle, reasonCode: event.reasonCode }));
       // Interrupted tracks have their terminal fenced by Runtime; no later
       // request-terminal is required to permit the next explicit input.
       if (event.lifecycle === 'interrupted') settleResponse(event.requestId);
       if (event.lifecycle !== 'active') {
-        await input.playback?.finishOutputTrack({ outputTrackId: event.outputTrackId, lifecycle: event.lifecycle }).catch(() => undefined);
+        // Host completion waits for physical playback, while the Runtime
+        // event pump must still observe pressure and request/session terminals.
+        const lifecycle = event.lifecycle;
+        if (lifecycle !== 'completed') track(event.outputTrackId, event.requestId, () => ({ playbackPending: false }));
+        void Promise.resolve().then(() => {
+          if (!isOpenScope(scope)) return;
+          return input.playback?.finishOutputTrack({ outputTrackId: event.outputTrackId, lifecycle });
+        }).then(() => {
+          if (!isOpenScope(scope)) return;
+          stoppedPlaybackTracks.delete(event.outputTrackId);
+          track(event.outputTrackId, event.requestId, () => ({ playbackPending: false }));
+        }).catch((error: unknown) => {
+          if (!isOpenScope(scope)) return;
+          track(event.outputTrackId, event.requestId, () => ({ playbackPending: false }));
+          set({ error: describeError(error) });
+        });
       }
     } else if (event.type === 'transcript') {
       const transcripts = state.transcripts.filter((entry) => entry.utteranceId !== event.utteranceId || entry.final);
@@ -226,9 +260,10 @@ export function createLabRealtimeController(input: {
   const pump = async (subscription: AsyncIterable<{ readonly control: NimiRealtimeControlStatus; readonly event: NimiAiRealtimeEvent }>, scope: Scope) => {
     try {
       for await (const envelope of subscription) {
-        if (state.scope !== scope) return;
+        if (!isOpenScope(scope)) return;
         set({ control: envelope.control });
-        await apply(envelope.event);
+        await apply(envelope.event, scope);
+        if (!isOpenScope(scope)) return;
         if (envelope.control.lifecycle === 'closed' || envelope.control.lifecycle === 'failed') {
           ownerEnded = true;
           if (state.phase === 'open') finish('terminated', envelope.control.terminalReason || envelope.control.lifecycle);
@@ -245,6 +280,7 @@ export function createLabRealtimeController(input: {
 
   const closeScope = async (scope: Scope, fallbackReason: string) => {
     set({ phase: 'closing', scope });
+    void closePlayback().catch(() => undefined);
     try {
       const result = await boundedOwnerClose(scope);
       set({ control: result.control });
@@ -382,8 +418,21 @@ export function createLabRealtimeController(input: {
     },
     async interrupt(outputTrackId: string): Promise<void> {
       const scope = requireScope();
-      operation('interrupt', await input.client.interruptOutput({ ...scope, outputTrackId }));
-      await input.playback?.interruptOutputTrack({ outputTrackId }).catch(() => undefined);
+      const current = state.tracks.find((entry) => entry.outputTrackId === outputTrackId);
+      stoppedPlaybackTracks.add(outputTrackId);
+      await input.playback?.interruptOutputTrack({ outputTrackId });
+      if (!isOpenScope(scope)) return;
+      if (current) track(outputTrackId, current.requestId, () => ({ playbackPending: false }));
+      // Runtime generation already ended. This user action releases only the
+      // remaining Host queue and never fabricates a Runtime acknowledgement.
+      const latest = state.tracks.find((entry) => entry.outputTrackId === outputTrackId);
+      if (latest && latest.lifecycle !== 'active') {
+        if (current?.playbackPending) count('playback-interrupt');
+        return;
+      }
+      const result = await input.client.interruptOutput({ ...scope, outputTrackId });
+      if (!isOpenScope(scope)) return;
+      operation('interrupt', result);
       count('interrupt');
     },
     close: closeSession,

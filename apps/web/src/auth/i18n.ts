@@ -5,6 +5,8 @@ import { resolveInitialLocale } from '../landing/i18n/locale.js';
 const en = {
   Common: { back: 'Back' },
   Auth: {
+    signIn: 'Sign in to Nimi',
+    continue: 'Continue',
     alternative: 'Other sign-in methods',
     emailPlaceholder: 'Email address',
     chooseAlternative: 'Other ways to continue',
@@ -92,6 +94,8 @@ const en = {
 const zh = {
   Common: { back: '返回' },
   Auth: {
+    signIn: '登录 Nimi',
+    continue: '继续',
     alternative: '其他登录方式',
     emailPlaceholder: '邮箱地址',
     chooseAlternative: '其他继续方式',

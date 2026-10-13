@@ -667,11 +667,11 @@ units:
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r065
     kind: rule
-    title: AI scheduling uses ordered global and app limits
+    title: AI scheduling preserves global capacity across App queues
     modality: must
-    statement: AI execution acquires a configurable global semaphore defaulting to 8 before a configurable per-app semaphore defaulting to 2, releases in reverse order, maps empty AppID to _default, and marks AcquireResult.Starved true after the configurable default 30-second wait threshold.
+    statement: AI execution acquires a configurable per-app semaphore defaulting to 2 before a configurable global semaphore defaulting to 8 so requests waiting for their App limit do not reserve global execution capacity, releases in reverse order, releases every acquired slot on cancellation without dispatching the canceled request, maps empty AppID to _default, and marks AcquireResult.Starved true after the configurable default 30-second wait threshold.
     condition: Whenever an AI execution path acquires scheduler capacity.
-    failure: Reject execution that bypasses either limit or violates acquisition order, and expose starvation rather than silently waiting beyond the threshold.
+    failure: Reject execution that bypasses either limit, reserves global capacity while waiting for an App slot, violates acquisition order, or retains a slot after cancellation, and expose starvation rather than silently waiting beyond the threshold.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane

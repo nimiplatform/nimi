@@ -135,6 +135,7 @@ export async function runRuntimeAIConsumeCapability(
         metadata: runtimeConsumeMetadata(input),
       });
       const result = await embedding.embedText({
+        signal: input.signal,
         values: input.inputs ?? [input.prompt],
         ...(input.dimensions !== undefined ? { dimensions: input.dimensions } : {}),
       });
@@ -224,7 +225,7 @@ export async function runRuntimeAIConsumeCapability(
       ...(trace ? { trace } : {}),
     };
   } catch (cause) {
-    const aborted = cause instanceof Error && cause.name === 'AbortError';
+    const aborted = input.signal?.aborted || (cause instanceof Error && cause.name === 'AbortError');
     const error = asNimiError(cause, {
       reasonCode: aborted ? ReasonCode.OPERATION_ABORTED : ReasonCode.RUNTIME_CALL_FAILED,
       ...(!aborted ? { actionHint: 'inspect_runtime_ai_execution' } : {}),

@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   RuntimeReleaseInvalidError,
   buildRuntimeManifest,
+  fetchRepositoryReleases,
   githubReleaseApiUrl,
   hasCompleteRuntimeAssetSet,
   matchesRuntimeRelease,
@@ -219,6 +220,90 @@ test('runtime latest route serves the newest verified Runtime release and ignore
   const manifest = await response.json();
   assert.equal(manifest.tag, 'runtime/v1.2.3');
   assert.equal(manifest.version, '1.2.3');
+});
+
+test('Runtime discovery traverses every page before selecting the highest version', async () => {
+  const pages = [
+    Array.from({ length: 50 }, (_, index) => releaseFixture(`0.1.${index}`, { tag: `sdk/v0.1.${index}` })),
+    [releaseFixture('1.9.0')],
+    [releaseFixture('1.10.0')],
+  ];
+  const pageUrl = (page) => `${RELEASES_URL}&page=${page}`;
+  const { fetchImpl: assets } = githubFixture(pages.flat());
+  const requests = [];
+  const response = await latest(async (url, options) => {
+    requests.push(String(url));
+    if (!String(url).startsWith(RELEASES_URL)) return assets(url);
+    assert.equal(options.redirect, 'error');
+    assert.ok(options.signal instanceof AbortSignal);
+    const page = Number(new URL(url).searchParams.get('page') || 1);
+    return new Response(JSON.stringify(pages[page - 1]), { headers: page < 3 ? {
+      link: `<${pageUrl(page + 1)}>; rel="next", <${pageUrl(3)}>; rel="last"`,
+    } : { link: `<${pageUrl(2)}>; rel="prev", <${pageUrl(1)}>; rel="first"` } });
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).version, '1.10.0');
+  assert.deepEqual(requests.slice(0, 3), [RELEASES_URL, pageUrl(2), pageUrl(3)]);
+  assert.equal(requests.length, 4, 'only the selected Runtime checksum asset is fetched');
+});
+
+test('release pagination refuses unsafe, ambiguous, skipped and incomplete Link targets before forwarding credentials', async () => {
+  const next = `${RELEASES_URL}&page=2`;
+  const badLinks = [
+    `<${next.replace('api.github.com', 'example.invalid')}>; rel="next"`,
+    `<${next.replace('/nimiplatform/nimi/', '/other/repo/')}>; rel="next"`,
+    `<${next.replace('https:', 'http:')}>; rel="next"`,
+    `<${next.replace('https://', 'https://user@')}>; rel="next"`,
+    `<${next}#fragment>; rel="next"`,
+    `<${next}&page=2>; rel="next"`,
+    `<${next.replace('per_page=50', 'per_page=100')}>; rel="next"`,
+    `<${next.replace('page=2', 'page=3')}>; rel="next"`,
+    `<${next.replace('page=2', 'page=1')}>; rel="next"`,
+    `<${next}>; rel="next", <${next}>; rel="next"`,
+    `<${next}>; rel="last"`,
+    'malformed pagination',
+  ];
+  for (const link of badLinks) {
+    let requests = 0;
+    await assert.rejects(fetchRepositoryReleases({ NIMI_GITHUB_RELEASES_TOKEN: 'fixture-token' }, async (url, options) => {
+      requests += 1;
+      assert.equal(url, RELEASES_URL);
+      assert.equal(options.headers.authorization, 'Bearer fixture-token');
+      return new Response('[]', { headers: { link } });
+    }), /GITHUB_RELEASE_FETCH_INVALID/u, link);
+    assert.equal(requests, 1, link);
+  }
+});
+
+test('an incomplete release traversal is upstream failure even with an earlier eligible release', async () => {
+  for (const fault of ['http', 'network', 'json', 'shape', 'oversized']) {
+    let requests = 0;
+    const response = await latest(async () => {
+      requests += 1;
+      if (requests === 1) return new Response(JSON.stringify([releaseFixture('1.2.3')]), {
+        headers: { link: `<${RELEASES_URL}&page=2>; rel="next"` },
+      });
+      if (fault === 'network') throw new Error('injected network failure');
+      if (fault === 'http') return new Response('', { status: 503 });
+      if (fault === 'json') return new Response('not json');
+      if (fault === 'shape') return new Response('{}');
+      return new Response('[]', { headers: { 'content-length': String(4 * 1024 * 1024 + 1) } });
+    });
+    assert.equal(response.status, 502, fault);
+    assert.match((await response.json()).error, /^GITHUB_RELEASE_FETCH_/u);
+    assert.equal(requests, 2);
+  }
+});
+
+test('release pagination reaches its finite bound as an error, not an empty feed', async () => {
+  let requests = 0;
+  const response = await latest(async () => {
+    requests += 1;
+    return new Response('[]', { headers: { link: `<${RELEASES_URL}&page=${requests + 1}>; rel="next"` } });
+  });
+  assert.equal(requests, 20);
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { error: 'GITHUB_RELEASE_FETCH_INCOMPLETE: pagination limit' });
 });
 
 test('a Runtime release failing verification is skipped for the newest release that passes', async () => {
