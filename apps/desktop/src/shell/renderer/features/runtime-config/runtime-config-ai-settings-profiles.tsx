@@ -135,8 +135,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         {mode.kind === 'list' || mode.kind === 'recommended' ? (
           <header className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight">{props.title}</h1>
-              {props.lead ? (
+              <h1 className="text-2xl font-semibold tracking-tight">{props.owner ? t('runtimeConfig.aiSettings.profileSelectionTitle') : props.title}</h1>
+              {!props.owner && props.lead ? (
                 <p className="mt-1.5 text-sm text-[var(--nimi-text-secondary)] md:hidden">{props.lead}</p>
               ) : null}
             </div>
@@ -152,7 +152,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
                   data-testid="runtime-ai-settings-profile-import"
                 >
                   <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
-                  {t('runtimeConfig.quickStart.loadShared')}
+                  {t(props.owner ? 'runtimeConfig.aiSettings.profileSelectionImport' : 'runtimeConfig.quickStart.loadShared')}
                 </Button>
                 <Button
                   tone="ghost"
@@ -173,7 +173,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
             <p className="text-xs text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.aiSettings.profileOwnerContext', {
                 owner: profileUseOwnerLabel(props.owner, t),
-                defaultValue: 'Using a profile for {{owner}}: selected capabilities are prepared on this machine; each capability saves the app route when its setup is used.',
+                defaultValue: 'Choose a model setup for {{owner}}, then review the capabilities before applying it.',
               })}
             </p>
             <Button tone="ghost" size="sm" onClick={props.onCloseOwner} data-testid="runtime-ai-settings-profile-owner-close">
@@ -182,7 +182,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
           </div>
         ) : null}
 
-        {mode.kind === 'list' || mode.kind === 'recommended' ? (
+        {!props.owner && (mode.kind === 'list' || mode.kind === 'recommended') ? (
           <div className="mt-2">
             <RuntimeProfileQuickStart
               disabled={props.runtimeWritesDisabled}
@@ -200,7 +200,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
             />
           </div>
         ) : null}
-        {mode.kind === 'list' && props.belowEntryPoints ? <div className="mt-4">{props.belowEntryPoints}</div> : null}
+        {!props.owner && mode.kind === 'list' && props.belowEntryPoints ? <div className="mt-4">{props.belowEntryPoints}</div> : null}
         {mode.kind !== 'list' && mode.kind !== 'use' ? (
           <Button tone="ghost" size="sm" className="-ml-3" onClick={() => setMode({ kind: 'list' })}>
             <ArrowLeft size={15} />
@@ -253,7 +253,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         ) : null}
 
         {mode.kind === 'list' ? (
-          <section className="mt-4 space-y-1">
+          <section className="mt-4 space-y-1" data-testid={props.owner ? 'runtime-ai-settings-profile-selection' : undefined}>
             {loadError ? (
               <InlineAlert tone="danger">
                 <div>{t('runtimeConfig.profiles.libraryLoadFailed', {
@@ -265,6 +265,11 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
               </InlineAlert>
             ) : null}
             {records === null && !loadError ? <LoadingSkeleton className="h-16 w-full" /> : null}
+            {props.owner && records !== null && !loadError && sortedRecords.length === 0 ? (
+              <p className="py-6 text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-ai-settings-profile-selection-empty">
+                {t('runtimeConfig.aiSettings.profileSelectionEmpty')}
+              </p>
+            ) : null}
             {(showAll || props.owner ? sortedRecords : sortedRecords.slice(0, 3)).map((record) => (
               <div
                 key={record.source.profileId}

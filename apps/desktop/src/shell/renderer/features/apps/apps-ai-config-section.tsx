@@ -458,10 +458,10 @@ export function AppsAIConfigSection({
             </span>
             <div className="min-w-0 flex-1 basis-56">
               <div className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
-                {t('Apps.aiConfig.profileSource.title', { defaultValue: 'Shared profile' })}
+                {t('Apps.aiConfig.profileSource.title', { defaultValue: 'Model setups' })}
               </div>
               <p className="m-0 mt-0.5 text-[length:var(--nimi-type-caption-size)] leading-relaxed text-[var(--nimi-text-muted)]">
-                {t('Apps.aiConfig.profileSource.hint', { defaultValue: 'Use a model set from your profile library. Missing models download first.' })}
+                {t('Apps.aiConfig.profileSource.hint', { defaultValue: 'Choose a saved or imported model setup, then review, prepare and apply it.' })}
               </p>
             </div>
             <Button
@@ -471,7 +471,7 @@ export function AppsAIConfigSection({
               onClick={openProfileUse}
               data-testid={`apps-ai-config-use-profile:${appId}`}
             >
-              {t('Apps.aiConfig.profileSource.action', { defaultValue: 'Choose profile' })}
+              {t('Apps.aiConfig.profileSource.action', { defaultValue: 'Choose setup' })}
             </Button>
           </div>
         )}

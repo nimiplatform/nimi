@@ -402,6 +402,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     setModelConfiguration(null);
     props.onCloseSetupTask();
     props.onCloseSavedConfigs();
+    props.onCloseProfileUseOwner();
     setCapability(null);
     setSection('overview');
     setError(null);

@@ -325,9 +325,9 @@
       }
     },
     "profileSource": {
-      "title": "Shared profile",
-      "hint": "Use a model set from your profile library. Missing models download first.",
-      "action": "Choose profile"
+      "title": "Model setups",
+      "hint": "Choose a saved or imported model setup, then review, prepare and apply it.",
+      "action": "Choose setup"
     }
   },
   "version": {

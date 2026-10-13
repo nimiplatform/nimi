@@ -136,13 +136,19 @@ async function withHome(run: (ui: {
   recheck: (loadoutId: string) => Promise<void>;
   click: (selector: string) => Promise<void>;
   waitFor: (selector: string, predicate?: (element: HTMLElement) => boolean) => Promise<HTMLElement>;
-}) => Promise<void>, incompleteExamples = false, diagnosticsInitiallyOpen = false) {
+}) => Promise<void>, options: {
+  incompleteExamples?: boolean;
+  diagnosticsInitiallyOpen?: boolean;
+  profileOwnerAppId?: string;
+} = {}) {
+  const { incompleteExamples = false, diagnosticsInitiallyOpen = false, profileOwnerAppId } = options;
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
   dom.window.HTMLElement.prototype.scrollTo = function(options?: ScrollToOptions | number, y?: number) {
     this.scrollTop = typeof options === 'number' ? y ?? 0 : options?.top ?? 0;
     this.scrollLeft = typeof options === 'number' ? options : options?.left ?? 0;
   };
   class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+  dom.window.HTMLElement.prototype.scrollIntoView = () => {};
   const values = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator, localStorage: dom.window.localStorage,
     HTMLElement: dom.window.HTMLElement, HTMLButtonElement: dom.window.HTMLButtonElement, HTMLInputElement: dom.window.HTMLInputElement,
@@ -181,7 +187,7 @@ async function withHome(run: (ui: {
       focusedTaskId={null}
       actionFocus={undefined}
       savedConfigsContext={null}
-      profileUseOwner={null}
+      profileUseOwner={profileOwnerAppId ? { kind: 'app', ownerAppId: profileOwnerAppId, returnFocus: `apps:${profileOwnerAppId}` } : null}
       onOpenSetupTask={noop}
       onCloseSetupTask={noop}
       onOpenModelFiles={noop}
@@ -268,7 +274,20 @@ test('diagnostics shares the right pane, preserves the capability rail and retur
     assert.equal(ui.document.querySelector('[data-testid="diagnostics-test-content"]'), null);
     assert.strictEqual(ui.document.querySelector('[data-testid="ai-capability:text.generate"]'), row);
     assert.deepEqual(ui.calls.loadoutWrites, []);
-  }, false, true);
+  }, { diagnosticsInitiallyOpen: true });
+});
+
+test('an App profile entry opens the setup chooser with its owner instead of the capabilities overview', async () => {
+  await withHome(async (ui) => {
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile-selection-empty"]');
+    assert.ok(ui.document.querySelector('[data-testid="runtime-ai-settings-profile-selection"]'));
+    assert.equal(ui.document.querySelector('h1')?.textContent, 'runtimeConfig.aiSettings.profileSelectionTitle');
+    assert.ok(ui.document.querySelector('[data-testid="runtime-ai-settings-profile-owner-banner"]')?.textContent?.includes('test.persona'));
+    assert.ok(ui.document.querySelector('[data-testid="runtime-ai-settings-profile-import"]'));
+    assert.equal(ui.document.querySelector('[data-testid="ai-profile-quick-start"]'), null);
+    assert.equal(ui.document.querySelector('[data-testid="local-model-list"]'), null);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { profileOwnerAppId: 'test.persona' });
 });
 
 test('the home lists on-device models, expands with read-only candidate checks, refreshes and opens setup without any Loadout write', async () => {
@@ -389,7 +408,7 @@ test('same-name incomplete configurations show distinct identities, real counts 
     await ui.click('[data-testid="model-configuration-back"]');
     await ui.waitFor('[data-testid="local-model-list"]');
     assert.deepEqual(ui.calls.loadoutWrites, []);
-  }, true);
+  }, { incompleteExamples: true });
 });
 
 test('current configuration checks its own dependencies, fails visibly and recovers without a write', async () => {

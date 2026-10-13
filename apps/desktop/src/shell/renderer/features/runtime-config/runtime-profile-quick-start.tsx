@@ -10,7 +10,6 @@ import {
   Download,
   LoaderCircle,
   MessageSquare,
-  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type CSSProperties, type ReactNode } from 'react';
@@ -152,9 +151,17 @@ export function RuntimeProfileQuickStart(props: {
   const ready = props.capabilities.filter((entry) => entry.state.state === 'ready');
   if (ready.length > 0) {
     return (
-      <QuickStartShell icon={Sparkles} state="ready">
+      <QuickStartShell state="ready">
         <div className="space-y-1">
-          <QuickStartTitle>{t('runtimeConfig.quickStart.readyTitle')}</QuickStartTitle>
+          <QuickStartTitle>
+            <span className="flex items-center gap-2.5">
+              <span
+                className="size-2.5 shrink-0 rounded-full bg-[var(--nimi-status-success)] shadow-[0_0_0_4px_var(--nimi-status-success-soft-bg),0_0_12px_color-mix(in_srgb,var(--nimi-status-success)_45%,transparent)]"
+                aria-hidden="true"
+              />
+              {t('runtimeConfig.quickStart.readyTitle')}
+            </span>
+          </QuickStartTitle>
         </div>
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
           {ready.map((entry) => {
@@ -166,7 +173,7 @@ export function RuntimeProfileQuickStart(props: {
               <button
                 key={entry.id}
                 type="button"
-                className="group flex flex-col items-start gap-3 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)] motion-safe:hover:-translate-y-0.5"
+                className="group flex flex-col items-start gap-3 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,transform,border-color] duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)] motion-safe:hover:-translate-y-0.5"
                 data-ready-capability={entry.id}
                 aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
                 onClick={() => props.onOpenCapability(entry.id)}
@@ -176,7 +183,7 @@ export function RuntimeProfileQuickStart(props: {
                     <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{label}</span>
-                  <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)]">
+                  <span className="flex shrink-0 -translate-x-1 items-center gap-1 text-xs font-medium text-[var(--nimi-action-primary-bg)] opacity-0 transition-[opacity,transform] duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
                     {t('runtimeConfig.quickStart.view')}
                     <ArrowRight size={14} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
                   </span>
@@ -266,7 +273,7 @@ export function RuntimeProfileQuickStart(props: {
 
 
 function QuickStartShell(props: {
-  readonly icon: LucideIcon;
+  readonly icon?: LucideIcon;
   readonly state: 'pending' | 'ready' | 'preparing' | 'attention' | 'unknown' | 'unset';
   readonly children: ReactNode;
 }) {
@@ -286,17 +293,19 @@ function QuickStartShell(props: {
       data-quick-start-state={props.state}
     >
       <div className="flex flex-wrap items-start gap-5">
-        <span
-          className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${iconTileClass}`}
-          style={attention || muted ? undefined : PRIMARY_ICON_TILE_STYLE}
-        >
-          <Icon
-            size={28}
-            strokeWidth={1.6}
-            className={props.state === 'preparing' ? 'animate-spin' : undefined}
-            aria-hidden="true"
-          />
-        </span>
+        {Icon ? (
+          <span
+            className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${iconTileClass}`}
+            style={attention || muted ? undefined : PRIMARY_ICON_TILE_STYLE}
+          >
+            <Icon
+              size={28}
+              strokeWidth={1.6}
+              className={props.state === 'preparing' ? 'animate-spin' : undefined}
+              aria-hidden="true"
+            />
+          </span>
+        ) : null}
         <div className="min-w-0 flex-1 space-y-3">{props.children}</div>
       </div>
     </section>

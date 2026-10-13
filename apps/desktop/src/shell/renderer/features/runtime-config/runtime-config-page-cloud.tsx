@@ -426,10 +426,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   }, [bindings.clock.now, checkingAll, connectorSdk, model.setPageFeedback, state, uncheckedConnectors, updateState]);
   const hasConnectors = state.connectors.length > 0;
   return (
-    <RuntimePageShell className='space-y-6 pt-1'>
+    <RuntimePageShell className='space-y-6 pt-2 lg:pt-4'>
       <RuntimePageHeader
         title={t('runtimeConfig.nav.cloudServices', { defaultValue: 'Cloud Services' })}
-        description={t('runtimeConfig.product.cloudLead')}
         actions={hasConnectors ? (
           <>
             {uncheckedConnectors.length > 1 ? (
