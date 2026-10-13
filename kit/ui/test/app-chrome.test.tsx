@@ -1,15 +1,16 @@
-import React, { act } from 'react';
+import React, { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { createNimiNavigation } from '@nimiplatform/kit/core/navigation';
 import { NimiAppChrome } from '../src/app-chrome/chrome.js';
 import { NimiMenubar } from '../src/app-chrome/menubar.js';
 import { createNimiChromeEditingOwner } from '../src/app-chrome/editing.js';
 import { TooltipProvider } from '../src/components/tooltip.js';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../src/components/dialog.js';
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { configurable: true, value: true });
 let root: Root | undefined;
-afterEach(async () => { if (root) await act(async () => root?.unmount()); root = undefined; document.body.replaceChildren(); });
+afterEach(async () => { if (root) await act(async () => root?.unmount()); root = undefined; document.body.replaceChildren(); vi.restoreAllMocks(); });
 async function mount(element: React.ReactNode) {
   const container = document.createElement('div'); document.body.append(container); root = createRoot(container);
   await act(async () => root!.render(<TooltipProvider>{element}</TooltipProvider>));
@@ -113,4 +114,67 @@ it('opens compact submenus with ArrowRight and returns to their parent with Arro
   expect(button('Menu').getAttribute('aria-expanded')).toBe('false');
   await click(button('Menu')); await key(button('File'), 'ArrowRight'); await key(button('Open'), 'Tab', { shiftKey: true });
   expect(button('Menu').getAttribute('aria-expanded')).toBe('false');
+});
+
+it.each([
+  { compact: false, shiftKey: false }, { compact: false, shiftKey: true },
+  { compact: true, shiftKey: false }, { compact: true, shiftKey: true },
+])('Tab exits the menubar with compact=$compact, shift=$shiftKey, including portalled submenus', async ({ compact, shiftKey }) => {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 100, height: 30 } as DOMRect);
+  await mount(<><button>Before menu</button><NimiMenubar locale="en" compact={compact}
+    onExecute={() => undefined} onCaptureSelection={() => undefined} onRestoreEditFocus={() => undefined}
+    commands={[{ id: 'app.help', label: 'About', menu: 'help', state: { enabled: true, visible: true } }]} />
+    <button disabled>Disabled after menu</button><span data-radix-focus-guard tabIndex={0} /><button>After menu</button></>);
+  const trigger = button(compact ? 'Menu' : 'Help');
+  await act(async () => trigger.focus()); await key(trigger, 'ArrowDown');
+  if (compact) await key(button('Help'), 'ArrowRight');
+  expect(document.activeElement).toBe(button('About'));
+  await key(button('About'), 'Tab', { shiftKey });
+  expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  expect(document.activeElement).toBe(button(shiftKey ? 'Before menu' : 'After menu'));
+  // Closing either the outer or nested portal must not restore its trigger.
+  await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
+  expect(document.activeElement).toBe(button(shiftKey ? 'Before menu' : 'After menu'));
+});
+
+it('returns focus to the connected Help trigger after closing a keyboard-opened help dialog', async () => {
+  await mount(<NimiAppChrome metadata={{ name: 'Test', version: '1' }} />);
+  await act(async () => button('Help').focus()); await key(button('Help'), 'ArrowDown');
+  await click(button('Keyboard shortcuts'));
+  expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+  await click(button('Close'));
+  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  await vi.waitFor(() => expect(document.activeElement).toBe(button('Help')));
+});
+
+it.each([false, true])('preserves Help dialog return focus and the original Edit selection with compact=%s', async compact => {
+  const editing = createNimiChromeEditingOwner(document);
+  function MenuDialog() {
+    const [open, setOpen] = useState(false);
+    return <><input aria-label="Draft" defaultValue="Original draft" /><NimiMenubar locale="en" compact={compact}
+      onCaptureSelection={() => editing.capture()} onRestoreEditFocus={() => editing.restore('copy')}
+      onExecute={id => { if (id === 'nimi.edit.copy') editing.restore('copy'); else setOpen(true); }} commands={[
+        { id: 'nimi.edit.copy', label: 'Copy', menu: 'edit', state: { enabled: true, visible: true } },
+        { id: 'app.help', label: 'About', menu: 'help', state: { enabled: true, visible: true } },
+      ]} /><Dialog open={open} onOpenChange={setOpen}><DialogContent onClose={() => setOpen(false)}>
+        <DialogTitle>About app</DialogTitle><DialogDescription>Actual metadata</DialogDescription>
+        <button onClick={() => setOpen(false)}>Close</button>
+      </DialogContent></Dialog></>;
+  }
+  await mount(<MenuDialog />);
+  await click(button(compact ? 'Menu' : 'Help'));
+  if (compact) await key(button('Help'), 'ArrowRight');
+  await click(button('About'));
+  await key(document.querySelector('[role="dialog"]')!, 'Escape');
+  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  await vi.waitFor(() => expect(document.activeElement).toBe(button(compact ? 'Menu' : 'Help')));
+  const input = document.querySelector('input')!;
+  await act(async () => { input.focus(); input.setSelectionRange(2, 8); });
+  await click(button(compact ? 'Menu' : 'Edit'));
+  if (compact) await key(button('Edit'), 'ArrowRight');
+  await click(button('Copy'));
+  await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
+  expect(document.activeElement).toBe(input);
+  expect([input.selectionStart, input.selectionEnd]).toEqual([2, 8]);
+  expect(input.value).toBe('Original draft');
 });

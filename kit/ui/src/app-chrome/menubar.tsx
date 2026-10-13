@@ -2,6 +2,7 @@ import React, { useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { NimiAppCommandState, NimiAppMenu } from '@nimiplatform/kit/core/app-commands';
 import { Button } from '../components/button.js';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/popover.js';
+import { collectFocusableElements } from '../a11y/focus.js';
 
 export type NimiMenubarCommand = { readonly id: string; readonly label: string; readonly menu: NimiAppMenu; readonly shortcut?: string; readonly state: NimiAppCommandState };
 const menus: readonly NimiAppMenu[] = ['file', 'edit', 'view', 'help'];
@@ -21,6 +22,7 @@ export function NimiMenubar({ commands, locale, compact, onExecute, onCaptureSel
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const editedRef = useRef(false);
+  const tabExitRef = useRef(false);
   const enterFromEnd = useRef(false);
   const branchRefs = useRef<Partial<Record<NimiAppMenu, HTMLButtonElement | null>>>({});
   const id = useId();
@@ -33,6 +35,9 @@ export function NimiMenubar({ commands, locale, compact, onExecute, onCaptureSel
   const select = (command: NimiMenubarCommand) => {
     if (!command.state.enabled || command.state.busy) return;
     editedRef.current = command.id.startsWith('nimi.edit.');
+    // Help dialogs and other actions need a connected return-focus anchor;
+    // their portal item disappears as the menu closes. Edit owns its target.
+    if (!editedRef.current) focusTop(compact ? 0 : tops.indexOf(command.menu));
     setSubmenu(null); setOpen(null); onExecute(command.id);
   };
   const focusMenu = (name: string) => {
@@ -40,7 +45,29 @@ export function NimiMenubar({ commands, locale, compact, onExecute, onCaptureSel
     (enterFromEnd.current ? items[items.length - 1] : items[0])?.focus(); enterFromEnd.current = false;
   };
   const restoreFocus = (event: Event) => {
-    if (editedRef.current) { event.preventDefault(); onRestoreEditFocus(); }
+    if (tabExitRef.current) event.preventDefault();
+    else if (editedRef.current) { event.preventDefault(); onRestoreEditFocus(); }
+  };
+  const exitOnTab = (event: KeyboardEvent) => {
+    const root = rootRef.current;
+    const trigger = root?.querySelector<HTMLButtonElement>('[data-nimi-menu-trigger][tabindex="0"]');
+    if (!root || !trigger) return;
+    // Popovers are portalled after the page. Continue from the menubar's tab
+    // stop instead, and prevent either closing popover from stealing focus.
+    const stops = collectFocusableElements(root.ownerDocument.body)
+      .filter(element => element.tabIndex >= 0 && !element.hasAttribute('data-radix-focus-guard')
+        && !element.closest(`[data-nimi-menubar-owner="${id}"]`))
+      .sort((a, b) => (a.tabIndex || Infinity) - (b.tabIndex || Infinity));
+    const index = stops.indexOf(trigger);
+    const target = stops[index + (event.shiftKey ? -1 : 1)];
+    tabExitRef.current = true;
+    setSubmenu(null); setOpen(null);
+    if (index >= 0 && target) {
+      event.preventDefault(); target.focus();
+    } else {
+      // At the document boundary let native Tab move out of the document.
+      trigger.focus();
+    }
   };
   const commandItem = (command: NimiMenubarCommand) => <button key={command.id} type="button" role={command.state.checked !== undefined ? 'menuitemcheckbox' : 'menuitem'}
     data-nimi-command-id={command.id} aria-checked={command.state.checked} disabled={!command.state.enabled || command.state.busy} tabIndex={-1}
@@ -49,7 +76,7 @@ export function NimiMenubar({ commands, locale, compact, onExecute, onCaptureSel
     <span className="flex-1">{command.label}</span><span className="text-[var(--nimi-text-muted)]">{command.shortcut}</span>
   </button>;
   const keyMenu = (event: KeyboardEvent<HTMLDivElement>, name: string) => {
-    if (event.key === 'Tab') { setSubmenu(null); setOpen(null); return; }
+    if (event.key === 'Tab') { exitOnTab(event); return; }
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const items = [...(menuRefs.current[name]?.querySelectorAll<HTMLButtonElement>('[role="menuitem"], [role="menuitemcheckbox"]') ?? [])].filter(button => !button.disabled);
     const current = items.indexOf(document.activeElement as HTMLButtonElement);
@@ -71,16 +98,16 @@ export function NimiMenubar({ commands, locale, compact, onExecute, onCaptureSel
     {tops.map((name, index) => {
       const visible = commands.filter(c => c.state.visible && (name === 'all' || c.menu === name))
         .sort((a, b) => menus.indexOf(a.menu) - menus.indexOf(b.menu));
-      return <Popover key={name} open={open === name} onOpenChange={next => { if (next) { editedRef.current = false; onCaptureSelection(); } else setSubmenu(null); setOpen(next ? name : null); }}>
+      return <Popover key={name} open={open === name} onOpenChange={next => { if (next) { editedRef.current = false; tabExitRef.current = false; onCaptureSelection(); } else setSubmenu(null); setOpen(next ? name : null); }}>
         <PopoverTrigger asChild>
           <Button tone="ghost" size="sm" role="menuitem" data-nimi-menu-trigger="true" tabIndex={active === index ? 0 : -1}
             aria-haspopup="menu" aria-expanded={open === name} aria-controls={`${id}-${name}`} onFocus={() => setActive(index)}
             onPointerDownCapture={onCaptureSelection}
             onKeyDown={event => {
-              if (event.key === 'Tab') { setSubmenu(null); setOpen(null); return; }
+              if (event.key === 'Tab') { exitOnTab(event); return; }
               if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
               if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); focusTop(index + (event.key === 'ArrowRight' ? 1 : -1)); }
-              else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); enterFromEnd.current = event.key === 'ArrowUp'; editedRef.current = false; onCaptureSelection(); setOpen(name); }
+              else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); enterFromEnd.current = event.key === 'ArrowUp'; editedRef.current = false; tabExitRef.current = false; onCaptureSelection(); setOpen(name); }
               else if (event.key === 'Escape') { setOpen(null); }
             }}>
             {menuLabels[locale][name as keyof typeof menuLabels.en]}

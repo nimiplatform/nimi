@@ -27,6 +27,9 @@ managed Host glue. There are no compatibility aliases or automatic history
 migrations. App Tools provides the complete scaffold contract and migration
 instructions with its matching release.
 
+Tab and Shift+Tab exit full and compact menus from the menubar's position in
+the page tab order, including nested popovers, without losing focus on close.
+
 ## 0.20.0 — 2026-10-13
 
 This release includes breaking 0.x API changes. Keep SDK 0.21.0 and upgrade
