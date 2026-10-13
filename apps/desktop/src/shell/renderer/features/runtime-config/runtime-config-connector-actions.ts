@@ -20,9 +20,35 @@ export function replaceConnectorsInState(
 ): RuntimeConfigStateV11 {
   const previousSelectedId = prev.selectedConnectorId;
   const selectedStillExists = connectors.some((c) => c.id === previousSelectedId);
+  const previousById = new Map(prev.connectors.map((connector) => [connector.id, connector]));
   return {
     ...prev,
-    connectors,
+    connectors: connectors.map((connector) => {
+      const previous = previousById.get(connector.id);
+      // Inventory refreshes contain configuration, not connection-check results.
+      // Keep the last observed result across navigation for the same connection;
+      // changed settings and explicit save results must still require a new check.
+      if (!previous?.lastCheckedAt || connector.lastCheckedAt
+        || connector.status !== 'idle'
+        || previous.provider !== connector.provider
+        || previous.endpoint !== connector.endpoint
+        || previous.authMode !== connector.authMode
+        || previous.providerAuthProfile !== connector.providerAuthProfile
+        || previous.accountLabel !== connector.accountLabel
+        || previous.scope !== connector.scope
+        || previous.hasCredential !== connector.hasCredential
+        || previous.isDraft !== connector.isDraft) {
+        return connector;
+      }
+      return {
+        ...connector,
+        status: previous.status,
+        lastCheckedAt: previous.lastCheckedAt,
+        lastDetail: previous.lastDetail,
+        models: previous.models,
+        modelCapabilities: previous.modelCapabilities,
+      };
+    }),
     selectedConnectorId: selectedStillExists
       ? previousSelectedId
       : (connectors[0]?.id || ''),
