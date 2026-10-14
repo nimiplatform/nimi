@@ -37,7 +37,7 @@ func TestCompleteRules(t *testing.T) {
 	for _, value := range []string{
 		"", "token: string", "password: <redacted>", "token = null", "Bearer example", "approved: true",
 		strings.Repeat("a", 64), "AKIA" + strings.Repeat("A", 16), "https://example.test/?X-Amz-Signature=" + strings.Repeat("a", 64),
-		"-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n<redacted>\n-----END PRIVATE KEY-----",
+		"-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n<redacted>\n-----END PRIVATE KEY-----", // pragma: allowlist secret -- header-only and redacted rejection fixtures; no key material
 		string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pub})),
 		string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})),
 		"ghp_<redacted>", "ghp_" + strings.Repeat("_", 36),
