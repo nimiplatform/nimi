@@ -13,7 +13,11 @@ class Contents extends EventEmitter {
   cut() { this.edits.push('cut'); } paste() { this.edits.push('paste'); } selectAll() { this.edits.push('select-all'); }
 }
 class Window extends EventEmitter {
-  webContents = new Contents(); destroyed = false; focused = true; fullscreen = false; closes = 0; menuVisible = true;
+  readonly contents = new Contents(); destroyed = false; focused = true; fullscreen = false; closes = 0; menuVisible = true;
+  get webContents() {
+    if (this.destroyed) throw new TypeError('Object has been destroyed');
+    return this.contents;
+  }
   isDestroyed() { return this.destroyed; } isFocused() { return this.focused; } isFullScreen() { return this.fullscreen; }
   setFullScreen(value: boolean) { this.fullscreen = value; } close() { this.closes++; }
   setMenu(_menu: null) {} setMenuBarVisibility(value: boolean) { this.menuVisible = value; }
@@ -26,10 +30,10 @@ const fixture = (platform: 'win32' | 'darwin' = 'win32') => {
     allowedRendererUrls: [url], app: { quit() { quits++; } },
     menu: { buildFromTemplate(value) { menu = value; return {}; }, setApplicationMenu() {} },
   });
-  const window = new Window(); host.bindWindow(window);
+  const window = new Window(); const remove = host.bindWindow(window);
   const send = (name: string, value: unknown) => events.push([name, value]);
   const bind = () => host.invoke('chromeBind', { locale: 'en' }, event(window), send) as NimiChromeState;
-  return { host, window, bind, send, events, get menu() { return menu; }, get quits() { return quits; } };
+  return { host, window, remove, bind, send, events, get menu() { return menu; }, get quits() { return quits; } };
 };
 const states = (generation: string, visible = true) => ({ generation, locale: 'en', commands: [{ id: 'nimi.sidebar.toggle', enabled: true, visible, checked: false }], suppressMenuShortcuts: false });
 
@@ -75,8 +79,39 @@ describe('exact native chrome binding', () => {
     expect(() => f.bind()).toThrow('exact-main-frame');
     f.window.webContents.emit('did-finish-load');
     expect(() => f.host.invoke('chromeCommand', { generation: old, command: 'copy' }, event(f.window), f.send)).toThrow('generation-expired');
-    const fresh = f.bind().generation; f.window.destroyed = true; f.window.emit('closed');
-    expect(() => f.host.invoke('chromeCommand', { generation: fresh, command: 'copy' }, event(f.window), f.send)).toThrow('exact-main-frame');
+    const fresh = f.bind().generation; const sender = event(f.window);
+    f.window.destroyed = true; f.window.emit('closed');
+    expect(() => f.host.invoke('chromeCommand', { generation: fresh, command: 'copy' }, sender, f.send)).toThrow('exact-main-frame');
+  });
+  it.each(['closed-first', 'contents-first', 'quit-before-closed'] as const)('cleans up once when destruction arrives %s', (order) => {
+    const f = fixture(); const generation = f.bind().generation;
+    const sender = event(f.window); const contents = f.window.contents;
+    contents.on('unrelated', () => undefined);
+    f.window.on('unrelated', () => undefined);
+    contents.setIgnoreMenuShortcuts = () => { throw new Error('native shortcut setter must not run during destruction'); };
+    if (order === 'contents-first') {
+      contents.destroyed = true; contents.emit('destroyed');
+      f.window.destroyed = true; f.window.emit('closed');
+    } else {
+      f.window.destroyed = true;
+      // Electron can emit window-all-closed -> quit -> will-quit before our
+      // closed/destroyed listeners. The Window getter already throws then.
+      if (order === 'quit-before-closed') { f.host.invalidateAll(); f.host.dispose(); }
+      f.window.emit('closed'); contents.destroyed = true; contents.emit('destroyed');
+    }
+    f.remove(); f.remove(); f.host.invalidateAll(); f.host.dispose(); f.host.dispose();
+    expect(f.window.eventNames()).toEqual(['unrelated']);
+    expect(contents.eventNames()).toEqual(['unrelated']);
+    expect(() => f.host.invoke('chromeCommand', { generation, command: 'copy' }, sender, f.send)).toThrow('exact-main-frame');
+    expect(f.events).toEqual([]);
+  });
+  it('does not let an old cleanup remove a later binding on the same live window', () => {
+    const f = fixture(); f.bind(); f.remove();
+    const removeCurrent = f.host.bindWindow(f.window); const generation = f.bind().generation;
+    f.remove();
+    f.host.invoke('chromeCommand', { generation, command: 'copy' }, event(f.window), f.send);
+    expect(f.window.contents.edits).toEqual(['copy']);
+    removeCurrent(); f.host.dispose();
   });
   it('retains a binding after cancelled close/hide and preserves App quit ownership', () => {
     const f = fixture(); const generation = f.bind().generation;

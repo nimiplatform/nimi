@@ -51,7 +51,7 @@ export type NimiElectronAppChromeHost = {
   invalidateAll(): void; dispose(): void;
 };
 type WindowBinding = {
-  window: NimiElectronChromeWindow; generation: string | null; loading: boolean;
+  window: NimiElectronChromeWindow; webContents: NimiElectronChromeWebContents; generation: string | null; loading: boolean;
   locale: NimiChromeLocale; states: Map<string, NimiChromeCommandState>;
   suppress: boolean; send?: (event: string, payload: unknown) => void; cleanup: () => void;
 };
@@ -168,7 +168,9 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
   };
   const revoke = (binding: WindowBinding) => {
     binding.generation = null; binding.states.clear(); binding.send = undefined; binding.suppress = false;
-    if (!binding.window.webContents.isDestroyed()) binding.window.webContents.setIgnoreMenuShortcuts(false);
+    // BrowserWindow.webContents itself can throw once the native window is
+    // destroyed, including will-quit before our closed listener has run.
+    if (!binding.window.isDestroyed() && !binding.webContents.isDestroyed()) binding.webContents.setIgnoreMenuShortcuts(false);
     projectMenu();
   };
   const authorize = (event: NimiElectronIpcMainInvokeEvent): WindowBinding => {
@@ -185,35 +187,40 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
   };
   const bindWindow = (window: NimiElectronChromeWindow) => {
     if (disposed || window.isDestroyed() || window.webContents.isDestroyed() || bindings.has(window.webContents)) throw chromeError('invalid-payload', 'chrome-window-binding-invalid');
-    window.webContents.setZoomMode('isolated');
+    const webContents = window.webContents;
+    webContents.setZoomMode('isolated');
     if (platform !== 'darwin') { window.setMenu(null); window.setMenuBarVisibility(false); }
     const cleanup: (() => void)[] = [];
-    const binding: WindowBinding = { window, generation: null, loading: false, locale: 'en', states: new Map(), suppress: false, cleanup: () => undefined };
+    const binding: WindowBinding = { window, webContents, generation: null, loading: false, locale: 'en', states: new Map(), suppress: false, cleanup: () => undefined };
     const on = (target: Emitter, event: string, listener: Listener) => { target.on(event, listener); cleanup.push(() => { target.removeListener(event, listener); }); };
     const remove = () => {
-      revoke(binding); bindings.delete(window.webContents);
+      // closed, WebContents.destroyed and host disposal can overlap. Detach
+      // this exact binding before callbacks, without reading a dead Window.
+      // An old returned cleanup must also leave a later binding untouched.
+      if (bindings.get(webContents) !== binding) return;
+      bindings.delete(webContents);
       if (focused === binding) focused = undefined;
       for (const off of cleanup.splice(0)) off();
-      projectMenu();
+      revoke(binding);
     };
     binding.cleanup = remove;
-    bindings.set(window.webContents, binding);
+    bindings.set(webContents, binding);
     on(window, 'focus', () => { focused = binding; projectMenu(); });
     for (const event of ['resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen']) on(window, event, () => emitState(binding));
     on(window, 'closed', remove);
-    on(window.webContents, 'destroyed', remove);
-    on(window.webContents, 'render-process-gone', () => { binding.loading = true; revoke(binding); });
-    on(window.webContents, 'did-start-navigation', (...args) => {
+    on(webContents, 'destroyed', remove);
+    on(webContents, 'render-process-gone', () => { binding.loading = true; revoke(binding); });
+    on(webContents, 'did-start-navigation', (...args) => {
       const details = args[0] as { isMainFrame?: boolean; isSameDocument?: boolean };
       if (details?.isMainFrame !== false && details?.isSameDocument !== true) { binding.loading = true; revoke(binding); }
     });
-    on(window.webContents, 'did-finish-load', () => { binding.loading = false; });
-    on(window.webContents, 'before-input-event', (_event, value) => {
+    on(webContents, 'did-finish-load', () => { binding.loading = false; });
+    on(webContents, 'before-input-event', (_event, value) => {
       const key = value as { isComposing?: boolean; key?: string; control?: boolean; meta?: boolean; alt?: boolean; shift?: boolean };
       const editingConflict = binding.suppress && shortcuts.some(shortcut =>
         (shortcut.commandId.startsWith('nimi.navigation.') || shortcut.commandId === 'nimi.sidebar.toggle' || !shortcut.commandId.startsWith('nimi.'))
         && matchesInput(shortcut.keys, key));
-      window.webContents.setIgnoreMenuShortcuts(Boolean(key.isComposing || editingConflict));
+      webContents.setIgnoreMenuShortcuts(Boolean(key.isComposing || editingConflict));
     });
     if (window.isFocused()) focused = binding;
     projectMenu();
