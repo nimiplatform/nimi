@@ -12,6 +12,7 @@
     "reader": "About this world",
     "readWorld": "Read the full world setting",
     "readAll": "Read all",
+    "readingEntryCount": "{{count}} items",
     "settings": "World setting",
     "scenes": "Places in this world",
     "viewScene": "View place",

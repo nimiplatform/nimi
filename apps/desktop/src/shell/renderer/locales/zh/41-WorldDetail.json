@@ -12,6 +12,7 @@
     "reader": "了解这个世界",
     "readWorld": "阅读完整世界设定",
     "readAll": "阅读全文",
+    "readingEntryCount": "{{count}} 条",
     "settings": "世界设定",
     "scenes": "世界里的地点",
     "viewScene": "查看地点",
