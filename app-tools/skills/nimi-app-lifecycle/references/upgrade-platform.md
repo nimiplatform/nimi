@@ -25,3 +25,5 @@ A scaffold from an app-tools version that still managed `LICENSE` hands it to th
 For existing Apps, sync preserves the exact `package.json` text when its managed values are already current. A project formatter's whitespace or key ordering alone is not drift; actual managed value changes are still synchronized.
 
 Do not downgrade away required features, edit installed package code or disable checks to get a green result. A platform capability awaiting publication blocks public release reproducibility, not independent engineering work. Validate a representative actual old-to-new combination; do not build a general migration framework.
+
+README.md and SECURITY.md belong to the App after creation. If an earlier lock lists them as managed, explicit sync transfers ownership without rewriting their contents or recreating missing documents. Run sync and commit the updated lock; subsequent sync and check preserve the App-authored documents.

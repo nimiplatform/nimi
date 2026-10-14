@@ -109,7 +109,9 @@ jobs:
           shopt -s nullglob
           tarballs=(dist/component-release/app-tools/*.tgz)
           test "${#tarballs[@]}" -eq 1
-          npm publish "${tarballs[0]}" --access public --dry-run
+          publication_tag="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).publishConfig?.tag || 'latest'))")"
+          case "${publication_tag}" in latest|maintenance-0.12) ;; *) echo "Unsupported publication tag" >&2; exit 1 ;; esac
+          npm publish "${tarballs[0]}" --access public --tag "${publication_tag}" --dry-run
       - name: Require every scaffolded public dependency for tag publication
         if: steps.release.outputs.production == 'true'
         env:
@@ -186,5 +188,7 @@ jobs:
             remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
             test "${remote_sha1}" = "${local_sha1}"
           else
-            npm publish "${tarballs[0]}" --access public --provenance
+            publication_tag="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).publishConfig?.tag || 'latest'))")"
+            case "${publication_tag}" in latest|maintenance-0.12) ;; *) echo "Unsupported publication tag" >&2; exit 1 ;; esac
+            npm publish "${tarballs[0]}" --access public --tag "${publication_tag}" --provenance
           fi

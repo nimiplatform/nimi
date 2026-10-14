@@ -2961,7 +2961,7 @@ test('create gives the App its own initial LICENSE and keeps the template notice
     assert.match(notice, /The App's own license is the LICENSE file at the project root\./u);
     assert.equal(snapshot.lock.managedFileHashes[SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH].class, 'scaffold-managed glue');
   }
-  assert.deepEqual([...SCAFFOLD_APP_OWNED_HANDOVER_PATHS], ['LICENSE']);
+  assert.deepEqual([...SCAFFOLD_APP_OWNED_HANDOVER_PATHS], ['LICENSE', 'README.md', 'SECURITY.md']);
 });
 
 test('the App edits its LICENSE while sync and check keep the edit and still guard the template notice', () => {
@@ -3405,3 +3405,60 @@ test('generated Host destroys old renderer state on invalidation before creating
   events.get('before-quit')(); invalidated();
   assert.equal(order.length, 3, 'quitting must not resurrect a renderer');
 });
+
+for (const documentPath of ['README.md', 'SECURITY.md']) {
+  test(`fresh ${documentPath} belongs to the App and sync preserves authored content`, () => {
+    const generated = cliScaffold('standalone');
+    try {
+      const lock = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+      assert.equal(lock.appOwnedInitialHashes[documentPath].class, 'app-owned product code');
+      assert.equal(Object.hasOwn(lock.managedFileHashes, documentPath), false);
+      const authored = '# App-owned document\n\nEnglish guidance. 中文指引。\n';
+      writeFileSync(path.join(generated.target, documentPath), authored);
+      const sync = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.equal(sync.status, 0, sync.stderr);
+      assert.equal(generated.read(documentPath), authored);
+      const check = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.equal(check.status, 0, check.stderr);
+    } finally { generated.cleanup(); }
+  });
+
+  test(`sync transfers earlier managed ${documentPath} without replacing or recreating it`, () => {
+    for (const variant of ['unchanged', 'edited', 'missing']) {
+      const generated = cliScaffold('standalone');
+      try {
+        const lockPath = path.join(generated.target, SCAFFOLD_LOCK_PATH);
+        const lock = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+        const initial = generated.read(documentPath);
+        lock.managedFileHashes[documentPath] = { class: 'scaffold-managed glue', sha256: hashScaffoldContent(initial) };
+        delete lock.appOwnedInitialHashes[documentPath];
+        lock.managedFileTaxonomy.appOwnedProductCode = lock.managedFileTaxonomy.appOwnedProductCode.filter(file => file !== documentPath);
+        lock.managedFileTaxonomy.scaffoldManagedGlue.push(documentPath);
+        lock.managedFileTaxonomy.scaffoldManagedGlue.sort((a, b) => a.localeCompare(b));
+        writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+        const filePath = path.join(generated.target, documentPath);
+        const authored = variant === 'edited' ? '# Authored document\n\nPreserve this exact content. 保留原文。\n' : initial;
+        if (variant === 'missing') rmSync(filePath); else writeFileSync(filePath, authored);
+        const check = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+        assert.notEqual(check.status, 0);
+        assert.match(check.stderr, /now belongs to the App.*Run nimi-app sync/u);
+        const preview = runNimiApp(['sync', '--dir', generated.target, '--dry-run', '--json'], generated.tempRoot, { env: generated.env });
+        assert.equal(preview.status, 0, preview.stderr);
+        const plan = JSON.parse(preview.stdout);
+        assert.equal(plan.changes.some(change => change.path === documentPath), false);
+        assert.equal(plan.ownershipHandover[0].path, documentPath);
+        const sync = runNimiApp(['sync', '--dir', generated.target, '--json'], generated.tempRoot, { env: generated.env });
+        assert.equal(sync.status, 0, sync.stderr);
+        const updated = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+        assert.equal(Object.hasOwn(updated.managedFileHashes, documentPath), false);
+        assert.equal(updated.appOwnedInitialHashes[documentPath].class, 'app-owned product code');
+        if (variant === 'missing') assert.equal(existsSync(filePath), false);
+        else {
+          assert.equal(generated.read(documentPath), authored);
+          const next = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+          assert.equal(next.status, 0, next.stderr);
+        }
+      } finally { generated.cleanup(); }
+    }
+  });
+}
