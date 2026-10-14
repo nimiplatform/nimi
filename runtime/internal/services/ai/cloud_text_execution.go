@@ -152,6 +152,9 @@ func (s *Service) captureCloudTextEffectiveInputs(
 		return nil, cloudTextDriverError(err)
 	}
 	preSpec := preMapped.Spec()
+	if err := s.checkTextInputRisk(preSpec); err != nil {
+		return nil, err
+	}
 	if preAdapter != nil && preAdapter.registration.MaterializationPlanner != nil {
 		var inputBudget *textbehavior.OwnedMediaInputBudget
 		preSpec, inputBudget, err = preAdapter.registration.MaterializationPlanner(ctx, preSpec, stream)

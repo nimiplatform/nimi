@@ -7,6 +7,7 @@ const SECTION_KEYS = [
   'apps',
   'worlds',
   'capabilities',
+  'riskControl',
   'create',
   'continuity',
   'developers',
@@ -105,6 +106,7 @@ test('navigation and menu labels support keyboard-accessible section routing', a
     const content = await loadLandingContent(locale);
     assert.ok(content.nav.apps.length > 0);
     assert.ok(content.nav.worlds.length > 0);
+    assert.ok(content.nav.riskControl.length > 0);
     assert.ok(content.nav.create.length > 0);
     assert.ok(content.nav.developers.length > 0);
     assert.ok(content.nav.docs.length > 0);

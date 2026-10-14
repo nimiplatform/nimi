@@ -417,17 +417,16 @@ body {
   transition: color 180ms ease, background-color 180ms ease;
 }
 
-/* Laptop widths must fit logo, in-flow nav, utilities, and the download
- * action on one row, so the nav runs compact there; body-size labels return
- * once the bar has room for a centered nav. */
-@media (min-width: 1024px) and (max-width: 1279.98px) {
+/* Six localized links share the bar with the logo and utilities. Keep the
+ * nav in normal flow, compact it on laptops, and use the menu below 1280px. */
+@media (min-width: 1280px) and (max-width: 1535.98px) {
   .nav-anchor {
     padding: 0.45rem 0.5rem;
     font-size: 0.875rem;
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1536px) {
   .nav-anchor {
     padding: 0.45rem 0.875rem;
     font-size: 1rem;

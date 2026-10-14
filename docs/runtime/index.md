@@ -7,6 +7,7 @@ Runtime is the core local service responsible for translating authorized product
 Runtime is responsible for:
 
 - **AI Execution & Scheduling**: Routing between local models and cloud providers, managing token budgets and quotas, and securely storing provider credentials;
+- **Centralized AI Risk Control**: Shared checks on the text-generation path for model inputs, outputs, and complete tool arguments; see the [current rules and refusal handling](/runtime/ai-risk-control).
 - **LocalAgent Lifecycle**: Instantiating and managing local agent instances based on Realm-issued character specifications (Character Source);
 - **Interaction & Presentation**: Maintaining conversation streams, memory mediation, internal state, voice playback, and UI event projections;
 - **Local Processes & Audit**: Managing local worker processes, model loading, streaming transport, and audit logs;
@@ -26,6 +27,7 @@ These core responsibilities stay with Runtime regardless of whether the consumer
 
 - [Integrations](/runtime/integrations)
 - [Streaming](/runtime/streaming)
+- [Centralized AI Risk Control](/runtime/ai-risk-control)
 - [Multimodal](/runtime/multimodal)
 - [Agent Execution](/runtime/agent-execution)
 - [Memory And Knowledge](/runtime/memory-and-knowledge)

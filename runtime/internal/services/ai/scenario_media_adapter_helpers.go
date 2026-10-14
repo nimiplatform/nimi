@@ -116,6 +116,8 @@ func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode)
 
 func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
 	switch reasonCode {
+	case runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED:
+		return "content filtering blocked this request or response"
 	case runtimev1.ReasonCode_AI_VIDEO_DECODE_FAILED:
 		return "the source video could not be completely decoded"
 	case runtimev1.ReasonCode_AI_VIDEO_ENCODE_FAILED:

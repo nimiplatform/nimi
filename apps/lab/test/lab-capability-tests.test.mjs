@@ -630,6 +630,20 @@ test('text.tools fails explicitly for an undeclared tool or invalid arguments an
   assert.ok(refused.message.includes(t('CapabilityTests.textTools.toolNotCalled', { tool: 'lab_convert_centimeters' })), refused.message);
 });
 
+test('text.tools keeps content refusal and never executes a received tool from a failed stream', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const fake = fakeClient({ streamTurn: () => [
+    { type: 'tool-call', sequence: '1', traceId: 'risk', itemIndex: 0, toolCall: { id: 'c1', name: 'lab_convert_centimeters', arguments: { centimeters: 30 } } },
+    { type: 'delta', sequence: '2', traceId: 'risk', itemIndex: 1, text: 'partial' },
+    { type: 'failed', sequence: '3', traceId: 'risk', reasonCode: 'ai-content-filter-blocked', actionHint: 'provide_redacted_content_or_change_context' },
+  ] });
+  const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'Convert 30 cm.', parameters: { scenario: 'tool-call', delivery: 'stream' } }, ready(fake.client));
+  assert.equal(result.ok, false);
+  assert.ok(JSON.stringify(result).includes('ai-content-filter-blocked'));
+  assert.equal(fake.calls.streamTurn.length, 1, 'no tool result or follow-up model turn from a failed batch');
+  assert.equal(fake.calls.execute.length, 0);
+});
+
 test('text.tools structured output declares the fixed schema and the App parses and checks the final text', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { t } = await load('shell/i18n/index.js');
@@ -906,6 +920,26 @@ test('text.decide failures keep typed non-success reasons and the input limit ha
     assert.equal(mismatch.ok, false);
     assert.equal(mismatch.reason, 'runtime-call-failed');
     assert.equal(mismatch.message, t('CapabilityTests.textDecide.resultMismatch'));
+  }
+});
+
+test('content filtering keeps its typed reason and requests revised content instead of an unchanged retry', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction, studioNonSuccessNeedsTargetReselection } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  for (const delivery of ['sync', 'stream']) {
+    const fake = fakeClient({
+      execute: () => { throw typedError('ai-content-filter-blocked'); },
+      streamTurn: () => [{ type: 'failed', sequence: '1', traceId: 'risk-copy', reasonCode: 'ai-content-filter-blocked', actionHint: 'provide_redacted_content_or_change_context' }],
+    });
+    const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'synthetic test', parameters: { scenario: 'tool-call', delivery } }, ready(fake.client));
+    assert.equal(result.ok, false);
+    assert.equal(result.diagnostics.reasonCode, 'AI_CONTENT_FILTER_BLOCKED');
+    assert.equal(studioNonSuccessReasonUserMessage(result.reason, t, result.capabilityId, result.diagnostics), t('NonSuccess.message.contentFilterBlocked'));
+    assert.equal(studioNonSuccessReasonUserAction(result.reason, t, result.capabilityId, result.diagnostics), t('NonSuccess.action.contentFilterBlocked'));
+    assert.notEqual(t('NonSuccess.action.contentFilterBlocked'), t('NonSuccess.action.runtimeCallFailed'));
+    assert.equal(studioNonSuccessNeedsTargetReselection(result.diagnostics), false);
+    assert.equal(fake.calls.execute.length + fake.calls.streamTurn.length, 1);
   }
 });
 

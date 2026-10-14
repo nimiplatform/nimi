@@ -160,9 +160,8 @@ func (s *Service) executeLocalAppWork(work *localAppWorkExecution, binding publi
 		}); err != nil {
 			return "", err
 		}
-		if !batch.completed || batch.open != nil {
-			return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
-		}
+		// @nimi-authority: rule.nimi.runtime.ai-provider.text-content-boundaries
+		// accept already validated structure; failed may terminate an open item.
 		if batch.failed {
 			reason := runtimev1.ReasonCode_AI_OUTPUT_INVALID
 			for _, event := range batch.events {
@@ -171,6 +170,9 @@ func (s *Service) executeLocalAppWork(work *localAppWorkExecution, binding publi
 				}
 			}
 			return "", grpcerr.WithReasonCode(codes.Internal, reason)
+		}
+		if !batch.completed || batch.open != nil {
+			return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 		}
 		if len(batch.calls) == 0 {
 			return localAppWorkOutputText(batch)

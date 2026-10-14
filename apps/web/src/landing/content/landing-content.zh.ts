@@ -16,6 +16,7 @@ export const landingContentZh: LandingContent = {
   nav: {
     apps: '应用',
     worlds: '角色与世界',
+    riskControl: 'AI 风控',
     create: '创建应用',
     developers: '开发者',
     docs: '文档',
@@ -241,6 +242,24 @@ export const landingContentZh: LandingContent = {
     cloudText: '随时按需接入前沿云端超大模型，适合极其复杂的推理、高精度生成与多模态任务。',
     costNote: 'Nimi 本身免费且开源。云端服务按对应服务商的规则计费，第三方 App 是否收费由发布者决定。',
     cta: '了解模型支持与运行条件',
+  },
+  riskControl: {
+    title: '集中式 AI 风控，跨应用生效。',
+    description: 'Nimi 把内容检查放进本机 Runtime。通过这条文本生成路径调用模型的 App，共享输入、输出与工具参数的防护，本地与云端使用同一套规则。',
+    benefit: '防护可以在公共执行层持续演进，开发者沿用现有调用接口和工具工作流。正常内容继续流式交付，命中规则时明确停止尚未交付的内容。',
+    availability: '开发预览 · 已在当前源码构建中实现',
+    cta: '了解集中式风控与当前支持范围',
+    scope: '当前覆盖文本生成中的特定私钥与 token 格式。',
+    limit: '流式内容可能在确认命中前已经显示；图片、音视频与任意编码不在当前检测范围。',
+    diagram: {
+      label: '多个 Nimi App 通过本机 Runtime 的统一检查点调用本地或云端文本模型',
+      apps: 'Nimi Apps',
+      activities: ['写作', '研究', '工具工作流'],
+      runtime: '在本机完成内容检查',
+      checks: ['模型输入', '生成输出', '完整工具参数'],
+      routes: ['本地模型', '云端模型'],
+      caption: '执行路径示意 · App 保留工具执行与业务授权职责',
+    },
   },
   create: {
     title: '把你的想法，变成自己的应用。',

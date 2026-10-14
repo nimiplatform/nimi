@@ -475,6 +475,31 @@ func TestLocalAppWorkRequiresCompleteValidatedFinalAndToolBatch(t *testing.T) {
 	}
 }
 
+func TestLocalAppWorkContentFailureAfterToolAndOpenText(t *testing.T) {
+	f := newAppWorkFixture(t)
+	f.svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+		if err := emitWorkTool(emit, 0, "first", "save_document"); err != nil {
+			return err
+		}
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDeltaAt(1, false, "visible prefix")}}); err != nil {
+			return err
+		}
+		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED, Payload: &runtimev1.StreamScenarioEvent_Failed{Failed: &runtimev1.ScenarioStreamFailed{ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED}}})
+	}})
+	id := f.start(t)
+	out := f.wait(t, id, func(x *runtimev1.LocalAppAgentWorkExecution) bool { return localAppWorkTerminal(x.State) })
+	if out.State != runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_FAILED || out.OutputText != "" || out.ReasonCode != runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+		t.Fatalf("lost formal failure: %v", out)
+	}
+	f.svc.chatSurfaceMu.Lock()
+	defer f.svc.chatSurfaceMu.Unlock()
+	for _, event := range f.svc.localAppWorkExecutions[id].events {
+		if event.GetToolCall() != nil {
+			t.Fatal("failed batch handed off tool")
+		}
+	}
+}
+
 func TestConversationRejectsRetiredWorkWireField(t *testing.T) {
 	f := newAppWorkFixture(t)
 	req := &runtimev1.SendLocalAppConversationTurnRequest{}

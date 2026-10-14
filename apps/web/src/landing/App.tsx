@@ -7,6 +7,7 @@ import { DevelopersSection } from './components/developers-section.js';
 import { GetStartedSection } from './components/get-started-section.js';
 import { HeroSection } from './components/hero-section.js';
 import { LanguageToggle } from './components/language-toggle.js';
+import { RiskControlSection } from './components/risk-control-section.js';
 import { WorldsSection } from './components/worlds-section.js';
 import { loadLandingContent, type LandingContent } from './content/landing-content.js';
 import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
@@ -207,6 +208,7 @@ export function App() {
   const sectionNavItems: Array<{ href: string; label: string; external?: boolean }> = [
     { href: '#apps', label: content.nav.apps },
     { href: '#worlds', label: content.nav.worlds },
+    { href: '#risk-control', label: content.nav.riskControl },
     { href: '#create', label: content.nav.create },
     { href: '#developers', label: content.nav.developers },
     { href: links.docsUrl, label: content.nav.docs, external: true },
@@ -258,7 +260,7 @@ export function App() {
 
             <nav
               aria-label={content.nav.menu}
-              className="hidden lg:ml-3 lg:block xl:absolute xl:left-1/2 xl:ml-0 xl:-translate-x-1/2"
+              className="hidden xl:ml-5 xl:block"
             >
               <ul className="flex items-center justify-center gap-1 text-slate-900">
                 {sectionNavItems.map((item) => (
@@ -282,7 +284,7 @@ export function App() {
               <button
                 ref={menuButtonRef}
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-control-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] lg:hidden"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] xl:hidden"
                 aria-expanded={menuOpen}
                 aria-controls="landing-nav-menu"
                 aria-label={menuOpen ? content.nav.closeMenu : content.nav.openMenu}
@@ -303,7 +305,7 @@ export function App() {
                   )}
                 </svg>
               </button>
-              <div className="hidden lg:block">
+              <div className="hidden xl:block">
                 <LanguageToggle
                   locale={locale}
                   label={content.localeToggleLabel}
@@ -332,7 +334,7 @@ export function App() {
               <span aria-hidden="true" className="mx-2 hidden h-5 w-px bg-slate-200 sm:block" />
               <a
                 href={links.downloadUrl}
-                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-5 text-base font-semibold text-white shadow-[0_4px_12px_-6px_rgba(14,165,233,0.5)] transition hover:brightness-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] focus-visible:ring-offset-1"
+                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-3 text-sm font-semibold text-white shadow-[0_4px_12px_-6px_rgba(14,165,233,0.5)] transition hover:brightness-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] focus-visible:ring-offset-1 sm:px-5 sm:text-base"
               >
                 {content.hero.downloadCta}
               </a>
@@ -342,7 +344,7 @@ export function App() {
           <div
             id="landing-nav-menu"
             hidden={!menuOpen}
-            className="border-t border-slate-100 pb-4 pt-2 lg:hidden"
+            className="border-t border-slate-100 pb-4 pt-2 xl:hidden"
           >
             <ul className="flex flex-col gap-1 text-slate-900">
               {sectionNavItems.map((item) => (
@@ -359,7 +361,7 @@ export function App() {
                 </li>
               ))}
             </ul>
-            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 lg:hidden">
+            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 xl:hidden">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                 {content.localeToggleLabel}
               </span>
@@ -384,6 +386,7 @@ export function App() {
         <AppsSection content={content.apps} demo={content.hero.demo} />
         <WorldsSection content={content.worlds} links={links} />
         <CapabilitiesSection content={content.capabilities} links={links} />
+        <RiskControlSection content={content.riskControl} links={links} />
         <CreateSection content={content.create} links={links} />
         <ContinuitySection content={content.continuity} />
         <DevelopersSection content={content.developers} links={links} />
@@ -401,6 +404,7 @@ export function App() {
               <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
                 <li><a href="#apps" className="transition hover:text-slate-900">{content.footer.appsLabel}</a></li>
                 <li><a href="#worlds" className="transition hover:text-slate-900">{content.footer.worldsLabel}</a></li>
+                <li><a href="#risk-control" className="transition hover:text-slate-900">{content.nav.riskControl}</a></li>
                 <li><a href="#create" className="transition hover:text-slate-900">{content.footer.createLabel}</a></li>
                 <li><a href="#developers" className="transition hover:text-slate-900">{content.footer.developersLabel}</a></li>
                 <li><a href={links.docsUrl} target="_blank" rel="noreferrer" className="transition hover:text-slate-900">{content.footer.docsLabel}</a></li>

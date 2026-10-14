@@ -52,6 +52,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return err
 	}
 	jobID := job.GetJobId()
+	var usage *runtimev1.UsageStats
 	deliveryFailure := &scenarioStreamDeliveryFailure{}
 	defer s.finishScenarioJobExecution(jobID)
 	defer func() {
@@ -118,6 +119,10 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
+	backendCtx, backendCancel := context.WithCancel(requestCtx)
+	defer backendCancel()
+	var contentErr error
+	risk := textRiskStream{s: s}
 	firstPacketTimedOut := &atomic.Bool{}
 	idleTimedOut := &atomic.Bool{}
 	firstPacketSeen := &atomic.Bool{}
@@ -208,7 +213,13 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		if deliveryCause := deliveryFailure.durableCause(); deliveryCause != nil {
 			cause = deliveryCause
 		}
-		s.finishCloudScenarioJobFailure(requestCtx, jobID, cause)
+		s.finishCloudScenarioJobFailureWithUsage(requestCtx, jobID, cause, usage)
+		if transportErr := deliveryFailure.transportCause(); transportErr != nil {
+			return transportErr
+		}
+		if localCtx.Err() != nil {
+			return cause
+		}
 		if s.logger != nil {
 			logArgs := []any{
 				"scenario_type", req.GetScenarioType().String(),
@@ -258,7 +269,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		defer firstPacketTimer.Stop()
 	}
 
-	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	streamSimulated := false
 	firstProviderCallbackAt := time.Time{}
@@ -332,10 +342,18 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		recordFirstDeltaSent()
 		return nil
 	}
-	requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-	result, streamErr := s.streamCapturedCloudText(requestCtx, effective, func(delta textbehavior.OrderedDelta) error {
+	backendCtx = nimillm.WithStreamSimulationFlag(backendCtx, &streamSimulated)
+	result, streamErr := s.streamCapturedCloudText(backendCtx, effective, func(delta textbehavior.OrderedDelta) error {
 		recordFirstProviderCallback()
 		recordActivity()
+		if contentErr != nil {
+			return contentErr
+		}
+		if err := risk.delta(delta); err != nil {
+			contentErr = err
+			backendCancel()
+			return err
+		}
 		if delta.Kind == textbehavior.OrderedItemText && !delta.ItemCompleted {
 			if chunkBuf.Len() > 0 && chunkIndex != delta.ItemIndex {
 				if err := flushDelta(); err != nil {
@@ -361,8 +379,24 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		recordFirstDeltaSent()
 		return nil
 	})
+	if contentErr != nil && requestCtx.Err() == nil {
+		streamErr = contentErr
+	} else if requestCtx.Err() != nil {
+		if requestCtx.Err() == context.DeadlineExceeded {
+			streamErr = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		} else {
+			streamErr = grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED)
+		}
+	}
 	if streamErr != nil {
 		return failAndStop(streamErr)
+	}
+	usage = result.Usage
+	if err := s.checkTextResultRisk(result.Text, result.Items); err != nil {
+		return failAndStop(err)
+	}
+	if err := risk.finish(); err != nil {
+		return failAndStop(err)
 	}
 	usage, finishReason = result.Usage, result.FinishReason
 	if err := flushDelta(); err != nil {

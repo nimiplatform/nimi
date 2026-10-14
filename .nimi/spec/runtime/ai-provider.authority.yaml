@@ -1456,6 +1456,36 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.text-content-rules
+    kind: rule
+    title: Narrow deterministic text content rules
+    modality: must
+    statement: Runtime text.generate applies the same local deterministic content rules to Local and Cloud SYNC and STREAM business data. The initial closed rule set is pem-private-key, recognizing complete unencrypted PEM blocks of type PRIVATE KEY, RSA PRIVATE KEY or EC PRIVATE KEY whose payload parses respectively as PKCS8, PKCS1 or SEC1 private key, and github-classic-pat, recognizing exactly ghp_ followed by 36 ASCII alphanumeric characters bounded by value ends or non-identifier bytes. ASCII letters, digits, underscore and non-ASCII bytes continue an identifier. The token rule supports complete and incremental values; PEM supports naturally available complete values only. Headers alone, public keys, certificates, redacted placeholders, types, empty values, hashes, credential IDs, generic Bearer/password/token clues, entropy and injection wording do not independently block. Matching demonstrates format, never validity or authorization. No credential store, remote detector, App configuration or permission is added; media bytes and opaque continuity are outside inspection.
+    condition: Whenever text.generate admits normalized business input or exposes model output.
+    failure: Reject a confirmed match with FailedPrecondition and AI_CONTENT_FILTER_BLOCKED without matched content in new diagnostics; genuine validation, permission, detector or transport errors retain their own reasons.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.text-content-boundaries
+    kind: rule
+    title: Text inspection preserves delivery and lifecycle owners
+    modality: must
+    statement: Inspect normalized business text, visible media reference strings and JSON string values including system, selected history, summaries, tool descriptions and schemas, complete ToolCall arguments and ToolResults before model dispatch, media materialization and new request body capture or Job creation. Preserve accepted roles, order and content. Inspect each normalized delta once before the existing send buffer or direct send; retain bounded identifier state across chunks without inventing left boundaries or treating chunk end as value end. Confirm pending right boundaries at a delimiter or logical ItemCompleted, including empty completion; only successful backend return may finish a basic text stream. Check naturally complete final text, visible summaries and tool arguments before final flush, fallback output, normal completion or result commit, including Cloud streams with no artifacts. A hit stops undelivered output without flushing it; already delivered text cannot be recalled. Preserve the content reason locally before canceling only backend execution, and consume it through the ordinary failure path while real external cancellation, permission loss, deadline, Runtime shutdown and transport failure retain their existing priority. Do not add waits, whole-step buffering, output limits, retries, route changes, durable policy state or public protocol fields. Input refusal uses the existing call error without a Job or fabricated failed event; output refusal uses failed when delivery is still possible and a consistent failed Job with neutral content-filter wording. Usage retains only known facts supported by existing carriers. A structurally valid failed model terminal takes precedence over open text completeness in agent.work; success still requires complete items and no tool may execute or be handed off from a failed batch.
+    condition: Whenever text.generate executes or an existing Host consumes its terminal result.
+    failure: Fail the current operation truthfully without success output, pending tool execution, sensitive diagnostic content, retryable inference misclassification or fabricated delivery.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.text-content-history
+    kind: rule
+    title: Content refusal does not rewrite history or exempt Local analysis
+    modality: must
+    statement: Content inspection does not migrate, delete, rewrite, reauthenticate or certify existing records. Selected historical or summary content remains subject to current text.generate rules and can repeatedly refuse an otherwise harmless new request. Original records stay readable under their existing owner. Recovery uses only existing explicit App context editing or new conversation capabilities; reopening a RuntimeAgent anchor is not a context reset, and an affected RuntimeAgent conversation without an existing recovery entry remains unable to infer while the content is selected. No automatic summary retry loop, context omission, cleanup or exemption is introduced. Local sensitive-material analysis is also refused on a real match even for legitimate use; users may explicitly supply a redacted copy through existing business controls. Integration results and Delegation approval policy retain their original owners and behavior; inspection cannot grant authority or reverse an already performed business effect.
+    condition: Whenever existing data enters a new text.generate request, including RuntimeAgent calls that use that Scenario owner.
+    failure: Clearly refuse the current inference and disclose the limited recovery or Local-analysis support without claiming that original-context inference or recovery succeeded.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.embedding-space-identity
     kind: rule
     title: Embedding results identify their captured vector space

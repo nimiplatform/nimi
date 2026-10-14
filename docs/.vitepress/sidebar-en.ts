@@ -90,6 +90,7 @@ const runtimeGroups: DefaultTheme.SidebarItem[] = [
     text: 'Execution',
     items: [
       { text: 'Streaming', link: '/runtime/streaming' },
+      { text: 'AI Risk Control', link: '/runtime/ai-risk-control' },
       { text: 'Streaming Protocol', link: '/runtime/streaming-protocol' },
       { text: 'Multimodal', link: '/runtime/multimodal' },
       { text: 'Voice Asset Lifecycle', link: '/runtime/voice-asset-lifecycle' },

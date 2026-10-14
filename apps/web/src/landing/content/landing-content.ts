@@ -1181,6 +1181,7 @@ export type LandingContent = {
   nav: {
     apps: string;
     worlds: string;
+    riskControl: string;
     create: string;
     developers: string;
     docs: string;
@@ -1237,6 +1238,24 @@ export type LandingContent = {
     subtitle: string;
     body: string;
     supports: ReadonlyArray<string>;
+  };
+  riskControl: {
+    title: string;
+    description: string;
+    benefit: string;
+    availability: string;
+    cta: string;
+    scope: string;
+    limit: string;
+    diagram: {
+      label: string;
+      apps: string;
+      activities: ReadonlyArray<string>;
+      runtime: string;
+      checks: ReadonlyArray<string>;
+      routes: ReadonlyArray<string>;
+      caption: string;
+    };
   };
   developers: {
     eyebrow: string;

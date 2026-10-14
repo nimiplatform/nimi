@@ -16,6 +16,7 @@ export const landingContentEn: LandingContent = {
   nav: {
     apps: 'Apps',
     worlds: 'Characters & Worlds',
+    riskControl: 'AI risk control',
     create: 'Create apps',
     developers: 'Developers',
     docs: 'Docs',
@@ -241,6 +242,24 @@ export const landingContentEn: LandingContent = {
     cloudText: 'Connect leading cloud models on demand for complex reasoning, high-fidelity generation, and heavy multimodal workloads.',
     costNote: "Nimi is free and open source. Cloud services follow their providers’ pricing, and third-party app pricing is set by each publisher.",
     cta: 'Learn about model requirements',
+  },
+  riskControl: {
+    title: 'One layer of AI protection. Shared across apps.',
+    description: 'Nimi checks model inputs, outputs, and tool arguments in the Runtime on your device. Apps using this text-generation path share the same content rules across local and cloud models.',
+    benefit: 'Protection can evolve in one execution layer while developers keep their existing calls and tool workflows. Normal content keeps streaming; a rule match stops content that has not yet been delivered.',
+    availability: 'Developer preview · Implemented in current source builds',
+    cta: 'Explore centralized risk control and coverage',
+    scope: 'Current coverage: specific private-key and token formats in text generation.',
+    limit: 'Streamed content may be visible before a match is confirmed. Images, audio, video, and arbitrary encodings are outside current detection.',
+    diagram: {
+      label: 'Nimi Apps call local or cloud text models through shared checks in the Runtime on the device',
+      apps: 'Nimi Apps',
+      activities: ['Writing', 'Research', 'Tool workflows'],
+      runtime: 'Content checks run on your device',
+      checks: ['Model inputs', 'Generated outputs', 'Complete tool arguments'],
+      routes: ['Local models', 'Cloud models'],
+      caption: 'Execution path · Apps retain tool execution and business authorization',
+    },
   },
   create: {
     title: 'Turn your ideas into your own private tools.',

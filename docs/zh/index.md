@@ -20,6 +20,9 @@ features:
   - title: 接入 AI 能力
     details: 使用强类型 SDK 声明能力偏好，调用端侧或云端模型执行推理。
     link: /zh/sdk/first-ai-call
+  - title: 集中式 AI 风控
+    details: 开发预览：让多个 App 共用 Runtime 对文本输入、输出和工具参数的检查。
+    link: /zh/runtime/ai-risk-control
   - title: 常见排错与诊断
     details: 提供清晰的分步排查指引，覆盖工程搭建、Runtime 接入与 AI 调用异常。
     link: /zh/start/troubleshooting
@@ -32,4 +35,5 @@ features:
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)

@@ -26,6 +26,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/riskcontrol"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -76,6 +77,7 @@ type Service struct {
 	connStore                              *connector.ConnectorStore
 	localExecution                         localexecution.Resolver
 	localTextHost                          localexecution.TextExecutionHost
+	textRisk                               *riskcontrol.Detector
 	localImageHost                         localexecution.ImageExecutionHost
 	localMusicHost                         localexecution.MusicExecutionHost
 	localVideoHost                         localexecution.VideoExecutionHost
@@ -283,6 +285,7 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		hostAudit = auditlog.New(256, 256)
 	}
 	svc := &Service{
+		textRisk:                               riskcontrol.New(),
 		logger:                                 logger,
 		config:                                 cfg,
 		audit:                                  auditStore,

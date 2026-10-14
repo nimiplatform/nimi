@@ -20,6 +20,9 @@ features:
   - title: Connect AI Capabilities
     details: Call local or cloud models through the typed SDK and configure routing for your requests.
     link: /sdk/first-ai-call
+  - title: Centralized AI Risk Control
+    details: Developer preview of shared Runtime checks for text inputs, outputs, and tool arguments across apps.
+    link: /runtime/ai-risk-control
   - title: Troubleshooting & Diagnostics
     details: Step-by-step checks for project setup, Runtime connection, and AI call errors.
     link: /start/troubleshooting
@@ -32,4 +35,5 @@ To install and use the Nimi desktop client directly, visit [nimi.ai](https://nim
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)

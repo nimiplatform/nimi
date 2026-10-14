@@ -14,6 +14,7 @@ export type LandingLinks = {
   createAppUrl: string;
   createGuideUrl: string;
   modelsUrl: string;
+  riskControlUrl: string;
 };
 
 // Docs site is deployed at the docs.nimi.ai subdomain (VitePress with
@@ -35,6 +36,7 @@ const DEFAULT_LINKS: LandingLinks = {
   createAppUrl: '/apps#create-your-own',
   createGuideUrl: 'https://docs.nimi.ai/start/create-an-app',
   modelsUrl: 'https://docs.nimi.ai/runtime/connectors-and-providers',
+  riskControlUrl: 'https://docs.nimi.ai/runtime/ai-risk-control',
 };
 
 /**
@@ -118,6 +120,7 @@ export function resolveLocalizedLinks(links: LandingLinks, locale: 'en' | 'zh'):
     desktopDownloadUrl: localizeDocsUrl(links.desktopDownloadUrl, locale),
     createGuideUrl: localizeDocsUrl(links.createGuideUrl, locale),
     modelsUrl: localizeDocsUrl(links.modelsUrl, locale),
+    riskControlUrl: localizeDocsUrl(links.riskControlUrl, locale),
     downloadUrl: withLocaleQuery(links.downloadUrl, locale),
     appsUrl: withLocaleQuery(links.appsUrl, locale),
     worldsUrl: withLocaleQuery(links.worldsUrl, locale),
@@ -162,6 +165,7 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
     createAppUrl: DEFAULT_LINKS.createAppUrl,
     createGuideUrl: DEFAULT_LINKS.createGuideUrl,
     modelsUrl: normalizeUrl(env.VITE_LANDING_MODELS_URL, DEFAULT_LINKS.modelsUrl),
+    riskControlUrl: DEFAULT_LINKS.riskControlUrl,
   };
 }
 

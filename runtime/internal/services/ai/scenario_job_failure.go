@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -212,6 +213,10 @@ func scenarioDeadlineElapsed(ctx context.Context) bool {
 }
 
 func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID string, err error) {
+	s.finishLocalTextScenarioJobFailureWithUsage(ctx, jobID, err, nil)
+}
+
+func (s *Service) finishLocalTextScenarioJobFailureWithUsage(ctx context.Context, jobID string, err error, usage *runtimev1.UsageStats) {
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
@@ -233,6 +238,9 @@ func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID s
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+		if usage != nil {
+			job.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+		}
 		job.ReasonCode = reason
 		job.Interruption = nil
 		if reason == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
@@ -247,6 +255,10 @@ func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID s
 }
 
 func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID string, err error) {
+	s.finishCloudScenarioJobFailureWithUsage(ctx, jobID, err, nil)
+}
+
+func (s *Service) finishCloudScenarioJobFailureWithUsage(ctx context.Context, jobID string, err error, usage *runtimev1.UsageStats) {
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
@@ -270,6 +282,9 @@ func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID strin
 		reason = runtimev1.ReasonCode_ACTION_EXECUTED
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+		if usage != nil {
+			job.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+		}
 		job.ReasonCode = reason
 		job.Interruption = nil
 		if reason == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {

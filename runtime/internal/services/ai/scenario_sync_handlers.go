@@ -76,8 +76,11 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	}
 	defer cancel()
 	result, err := s.executeCapturedCloudText(requestCtx, executionEffective)
+	if err == nil {
+		err = s.checkTextResultRisk(result.Text, result.Items)
+	}
 	if err != nil {
-		s.finishCloudScenarioJobFailure(requestCtx, jobID, err)
+		s.finishCloudScenarioJobFailureWithUsage(requestCtx, jobID, err, result.Usage)
 		return nil, err
 	}
 	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})

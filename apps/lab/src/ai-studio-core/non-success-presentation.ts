@@ -49,6 +49,7 @@ const MEDIA_OPTION_UNSUPPORTED_REASON_CODE = 'AI_MEDIA_OPTION_UNSUPPORTED';
 const MODALITY_UNSUPPORTED_REASON_CODE = 'AI_MODALITY_NOT_SUPPORTED';
 const MEDIA_CODEC_UNAVAILABLE_REASON_CODE = 'AI_MEDIA_CODEC_UNAVAILABLE';
 const LOCAL_LOAD_FAILED_REASON_CODE = 'AI_LOCAL_EXECUTION_LOAD_FAILED';
+const CONTENT_FILTER_BLOCKED_REASON_CODE = 'AI_CONTENT_FILTER_BLOCKED';
 const VOICE_INPUT_INVALID_REASON_CODE = 'AI_VOICE_INPUT_INVALID';
 const VOICE_TARGET_MISMATCH_REASON_CODE = 'AI_VOICE_TARGET_MODEL_MISMATCH';
 const UNAVAILABLE_VOICE_REASON_CODES: ReadonlySet<string> = new Set(['AI_VOICE_ASSET_NOT_FOUND', 'AI_VOICE_ASSET_EXPIRED']);
@@ -85,6 +86,8 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.message.voiceTargetMismatch');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.modelSelectionRequired');
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.message.stoppedDirectCall');
+  // @nimi-authority: rule.nimi.runtime.ai-provider.text-content-boundaries
+  if (diagnostics?.reasonCode === CONTENT_FILTER_BLOCKED_REASON_CODE) return translate('NonSuccess.message.contentFilterBlocked');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.message.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.textBehaviorUnsupported');
   if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.message.mediaCodecUnavailable');
@@ -107,6 +110,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.action.voiceTargetMismatch');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.selectModelAction');
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.action.stoppedDirectCall');
+  if (diagnostics?.reasonCode === CONTENT_FILTER_BLOCKED_REASON_CODE) return translate('NonSuccess.action.contentFilterBlocked');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.action.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.textBehaviorUnsupported');
   if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.action.mediaCodecUnavailable');

@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -72,8 +73,11 @@ func executeLocalTextGenerateScenario(
 	defer cancel()
 
 	result, err := s.executeCapturedLocalText(requestCtx, executionEffective, nil)
+	if err == nil {
+		err = s.checkTextResultRisk(result.Text, result.Items)
+	}
 	if err != nil {
-		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+		s.finishLocalTextScenarioJobFailureWithUsage(requestCtx, jobID, err, localTextUsage(result, executionEffective.request))
 		return nil, err
 	}
 	usage := localTextUsage(result, executionEffective.request)
@@ -196,6 +200,12 @@ func streamLocalTextGenerateScenario(
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
+	// Backend-only cancellation must not change the caller/Job stop fact.
+	backendCtx, backendCancel := context.WithCancel(requestCtx)
+	defer backendCancel()
+	var contentErr error
+	var observedUsage *runtimev1.UsageStats
+	risk := textRiskStream{s: s}
 	firstPacketTimedOut := &atomic.Bool{}
 	idleTimedOut := &atomic.Bool{}
 	firstPacketSeen := &atomic.Bool{}
@@ -305,6 +315,14 @@ func streamLocalTextGenerateScenario(
 			if textBuffer.Len() != 0 || textItemOpened {
 				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 			}
+			if contentErr != nil {
+				return contentErr
+			}
+			if err := risk.delta(*delta.Ordered); err != nil {
+				contentErr = err
+				backendCancel()
+				return err
+			}
 			return send(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: orderedTextOutputDelta(*delta.Ordered)},
@@ -312,6 +330,14 @@ func streamLocalTextGenerateScenario(
 		}
 		if delta.Text != "" {
 			recordActivity()
+		}
+		if contentErr != nil {
+			return contentErr
+		}
+		if err := risk.delta(textbehavior.OrderedDelta{Kind: textbehavior.OrderedItemText, Text: delta.Text}); err != nil {
+			contentErr = err
+			backendCancel()
+			return err
 		}
 		if delta.Text != "" {
 			textBuffer.WriteString(delta.Text)
@@ -332,7 +358,26 @@ func streamLocalTextGenerateScenario(
 		})
 	} else {
 		var result localexecution.TextResult
-		result, err = s.localTextHost.StreamText(requestCtx, executionEffective.plan, onDelta, nil)
+		result, err = s.localTextHost.StreamText(backendCtx, executionEffective.plan, onDelta, nil)
+		if err == nil {
+			observedUsage = localTextUsage(result, executionEffective.request)
+		}
+		if contentErr != nil && requestCtx.Err() == nil {
+			err = contentErr
+		} else if requestCtx.Err() != nil {
+			kind := localexecution.FailureCanceled
+			if requestCtx.Err() == context.DeadlineExceeded {
+				kind = localexecution.FailureTimeout
+			}
+			err = &localexecution.ExecutionError{Kind: kind, Err: requestCtx.Err()}
+		}
+		if err == nil {
+			err = s.checkTextResultRisk(result.Text, result.Items)
+			if err == nil {
+				err = risk.finish()
+			}
+			contentErr = err
+		}
 		if err == nil {
 			if flushErr := flushText(); flushErr != nil {
 				return flushErr
@@ -372,7 +417,7 @@ func streamLocalTextGenerateScenario(
 		}
 		if deliveryErr := currentDeliveryFailure(); deliveryErr != nil {
 			err = deliveryErr
-		} else {
+		} else if contentErr == nil || requestCtx.Err() != nil {
 			err = localTextExecutionError(err)
 		}
 	}
@@ -383,7 +428,7 @@ func streamLocalTextGenerateScenario(
 	if firstPacketTimedOut.Load() || idleTimedOut.Load() || requestCtx.Err() == context.DeadlineExceeded {
 		err = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	}
-	s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
+	s.finishLocalTextScenarioJobFailureWithUsage(requestCtx, jobID, err, observedUsage)
 	if transportErr := currentDeliveryTransportError(); transportErr != nil {
 		return transportErr
 	}

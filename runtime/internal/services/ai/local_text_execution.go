@@ -93,6 +93,9 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
+	if err := s.checkTextInputRisk(normalized); err != nil {
+		return nil, err
+	}
 	resolved, err := s.resolveSelectedLocalTextGenerateScenario(ctx, head, normalized)
 	if err != nil {
 		return nil, err

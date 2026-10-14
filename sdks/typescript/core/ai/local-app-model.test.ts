@@ -341,6 +341,24 @@ test('failed Local App text generation preserves its Runtime trace', async () =>
   assert.equal(f.canceled(), 1);
 });
 
+test('content refusal preserves the original input error and rejects a tool batch after open text', async () => {
+  const f = fixture(async function* () {
+    yield { type: 'tool-call', sequence: '1', traceId: 'risk-trace', itemIndex: 0, toolCall: call };
+    yield { type: 'delta', sequence: '2', traceId: 'risk-trace', itemIndex: 1, text: 'partial' };
+    yield { type: 'failed', sequence: '3', traceId: 'risk-trace', reasonCode: 'ai-content-filter-blocked', actionHint: 'provide_redacted_content_or_change_context' };
+  });
+  await assert.rejects(f.model.generateText({ messages: [user], tools: [tool] }), {
+    reasonCode: 'ai-content-filter-blocked', traceId: 'risk-trace', retryable: false,
+  });
+  assert.equal(f.inputs.length, 1);
+  assert.equal(f.canceled(), 1);
+  const refusal = createNimiError({ reasonCode: 'ai-content-filter-blocked', message: 'content filtering blocked this request or response', retryable: false });
+  let opens = 0;
+  const inputModel = createNimiLocalAppTextModel({ ...f.ai, text: { ...f.ai.text, streamTurn: async () => { opens++; throw refusal; } } });
+  await assert.rejects(inputModel.generateText({ messages: [user] }), error => error === refusal);
+  assert.equal(opens, 1);
+});
+
 test('failed text keeps interruption and trace when closing the carrier also fails', async () => {
   const cleanup = new Error('Host unavailable during close');
   const interruption = { cause: 'runtime-restart', resubmitDisposition: 'outcome-uncertain' };
