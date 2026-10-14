@@ -16,7 +16,7 @@ export const landingContentEn: LandingContent = {
   nav: {
     apps: 'Apps',
     worlds: 'Characters & Worlds',
-    riskControl: 'AI risk control',
+    riskControl: 'Content checks',
     create: 'Create apps',
     developers: 'Developers',
     docs: 'Docs',
@@ -244,13 +244,13 @@ export const landingContentEn: LandingContent = {
     cta: 'Learn about model requirements',
   },
   riskControl: {
-    title: 'One layer of AI protection. Shared across apps.',
-    description: 'Nimi checks model inputs, outputs, and tool arguments in the Runtime on your device. Apps using this text-generation path share the same content rules across local and cloud models.',
-    benefit: 'Protection can evolve in one execution layer while developers keep their existing calls and tool workflows. Normal content keeps streaming; a rule match stops content that has not yet been delivered.',
-    availability: 'Developer preview · Implemented in current source builds',
-    cta: 'Explore centralized risk control and coverage',
-    scope: 'Current coverage: specific private-key and token formats in text generation.',
-    limit: 'Streamed content may be visible before a match is confirmed. Images, audio, video, and arbitrary encodings are outside current detection.',
+    title: 'A layer of content protection, shared across apps.',
+    description: 'Whether you are writing, researching, or running tool workflows, Nimi checks text-generation inputs, outputs, and complete tool arguments right in the Runtime on your device. Apps on this path share the same rules—whether running a local model or sending requests that pass the checks to a cloud provider.',
+    benefit: 'Apps do not need to reinvent their own filters—developers keep their existing API calls and tool workflows as Runtime rules evolve. Normal responses stream without extra waiting, and when a rule matches, Nimi immediately blocks the input or stops unsent output.',
+    availability: 'Developer preview · Available in current source builds (see release notes for packaged builds)',
+    cta: 'Explore on-device content checks and current coverage',
+    scope: 'Currently covers the text-generation path only, matching specific private-key and token formats.',
+    limit: 'Provides format-based blocking rather than comprehensive security or a zero-leak guarantee. Streamed text already shown before a match cannot be retracted, and images, audio, video, and arbitrary encodings are not covered.',
     diagram: {
       label: 'Nimi Apps call local or cloud text models through shared checks in the Runtime on the device',
       apps: 'Nimi Apps',
@@ -258,7 +258,7 @@ export const landingContentEn: LandingContent = {
       runtime: 'Content checks run on your device',
       checks: ['Model inputs', 'Generated outputs', 'Complete tool arguments'],
       routes: ['Local models', 'Cloud models'],
-      caption: 'Execution path · Apps retain tool execution and business authorization',
+      caption: 'Text-generation path · Apps remain responsible for tool execution and business authorization',
     },
   },
   create: {

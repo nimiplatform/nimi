@@ -170,7 +170,7 @@
       "runtimeTimeout": "稍后重试；如果仍然超时，再展开 Runtime 详情查看原因。",
       "streamInterrupted": "请先检查任务状态；确认任务未完成后再重试。",
       "runtimeCallFailed": "先重试一次；如果仍然失败，再展开 Runtime 详情查看原因。",
-      "contentFilterBlocked": "请检查输入及所选上下文，移除或脱敏受限内容后再提交。",
+      "contentFilterBlocked": "请尝试移除或脱敏受限内容，或调整所选上下文后重新提交。",
       "inputLimitExceeded": "请缩短输入，或配置可接受更长输入的模型，然后重新运行。",
       "textBehaviorUnsupported": "打开参数并重置此模型不接受的设置，或在 Desktop 的 AI 能力中选择支持此行为的模型，再重新运行。",
       "mediaOptionUnsupported": "打开「参数」重置不受支持的设置后重新运行，也可以在 App AI 配置中选择支持这些设置的模型。",

@@ -748,15 +748,15 @@
       "filtersActive": "Filter (active)",
       "quickFilterTypeGroup": "Type filters",
       "quickFilters": {
-        "all": "All messages",
-        "unread": "Unread messages",
-        "pending": "Pending items",
+        "all": "All",
+        "unread": "Unread",
+        "pending": "Pending",
         "message": "Messages only",
         "post": "Activity only",
         "todo": "Items only"
       },
       "clearFilters": "Clear filters",
-      "noMatches": "No matching items on Home. View all in the Message center.",
+      "noMatches": "No matches on Home. View all in Message center.",
       "title": "Messages",
       "settings": "Message settings",
       "sectionItems": "Messages & items",
@@ -780,7 +780,7 @@
       "noMatchingSources": "No matching sources. Try another name.",
       "sourceGroups": {
         "app": "Apps",
-        "runtime-agent": "Assistant messages",
+        "runtime-agent": "Assistants",
         "realm-post": "Posts",
         "system": "System notifications"
       },

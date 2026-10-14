@@ -16,7 +16,7 @@ export const landingContentZh: LandingContent = {
   nav: {
     apps: '应用',
     worlds: '角色与世界',
-    riskControl: 'AI 风控',
+    riskControl: '内容检查',
     create: '创建应用',
     developers: '开发者',
     docs: '文档',
@@ -244,13 +244,13 @@ export const landingContentZh: LandingContent = {
     cta: '了解模型支持与运行条件',
   },
   riskControl: {
-    title: '集中式 AI 风控，跨应用生效。',
-    description: 'Nimi 把内容检查放进本机 Runtime。通过这条文本生成路径调用模型的 App，共享输入、输出与工具参数的防护，本地与云端使用同一套规则。',
-    benefit: '防护可以在公共执行层持续演进，开发者沿用现有调用接口和工具工作流。正常内容继续流式交付，命中规则时明确停止尚未交付的内容。',
-    availability: '开发预览 · 已在当前源码构建中实现',
-    cta: '了解集中式风控与当前支持范围',
-    scope: '当前覆盖文本生成中的特定私钥与 token 格式。',
-    limit: '流式内容可能在确认命中前已经显示；图片、音视频与任意编码不在当前检测范围。',
+    title: '一道内容防护，多款应用共用。',
+    description: '在日常写作、研究或调用工具时，Nimi 会在本机 Runtime 内直接检查文本生成路径上的模型输入、输出和完整工具参数。无论调用本地模型，还是将通过检查的请求发往云端模型，接入的 App 都共用同一套规则。',
+    benefit: 'App 不必各自维护一套扫描器，开发者可以沿用现有调用方式和工具流程，共用 Runtime 的检查规则。正常回复照常流式输出、不增加额外等待；一旦命中规则，立即拦截输入或停发尚未送出的内容。',
+    availability: '开发预览 · 当前源码构建可用，发布包支持情况见发布说明',
+    cta: '了解本机内容检查与当前支持范围',
+    scope: '当前仅覆盖文本生成路径，按格式识别特定的私钥与访问令牌。',
+    limit: '这是一项基础格式拦截，不构成全面安全或零泄露保证；确认命中前已显示的流式文字无法撤回，图片、音视频及任意编码内容不在当前检测范围内。',
     diagram: {
       label: '多个 Nimi App 通过本机 Runtime 的统一检查点调用本地或云端文本模型',
       apps: 'Nimi Apps',
@@ -258,7 +258,7 @@ export const landingContentZh: LandingContent = {
       runtime: '在本机完成内容检查',
       checks: ['模型输入', '生成输出', '完整工具参数'],
       routes: ['本地模型', '云端模型'],
-      caption: '执行路径示意 · App 保留工具执行与业务授权职责',
+      caption: '文本生成路径示意 · 工具执行与业务授权仍由 App 负责',
     },
   },
   create: {

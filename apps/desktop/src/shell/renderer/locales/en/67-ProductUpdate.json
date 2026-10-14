@@ -5,7 +5,7 @@
   "update": "Update",
   "currentTitle": "You’re up to date",
   "completedTitle": "Update complete",
-  "completedBody": "Nimi has been updated to the latest version.",
+  "completedBody": "This update has been installed and Nimi is ready to use.",
   "cancel": "Cancel download",
   "dismiss": "OK",
   "later": "Later",

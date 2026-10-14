@@ -90,7 +90,7 @@ const runtimeGroups: DefaultTheme.SidebarItem[] = [
     text: '执行',
     items: [
       { text: '流式', link: '/zh/runtime/streaming' },
-      { text: '集中式 AI 风控', link: '/zh/runtime/ai-risk-control' },
+      { text: '内容检查', link: '/zh/runtime/ai-risk-control' },
       { text: '流式协议', link: '/zh/runtime/streaming-protocol' },
       { text: '多模态', link: '/zh/runtime/multimodal' },
       { text: '语音资产生命周期', link: '/zh/runtime/voice-asset-lifecycle' },

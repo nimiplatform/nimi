@@ -20,8 +20,8 @@ features:
   - title: Connect AI Capabilities
     details: Call local or cloud models through the typed SDK and configure routing for your requests.
     link: /sdk/first-ai-call
-  - title: Centralized AI Risk Control
-    details: Developer preview of shared Runtime checks for text inputs, outputs, and tool arguments across apps.
+  - title: Runtime Content Checks
+    details: Developer preview of on-device checks for text.generate inputs, outputs, and complete tool arguments across apps.
     link: /runtime/ai-risk-control
   - title: Troubleshooting & Diagnostics
     details: Step-by-step checks for project setup, Runtime connection, and AI call errors.

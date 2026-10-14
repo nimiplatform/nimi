@@ -1,78 +1,78 @@
-# Centralized AI risk control
+# AI content checks in Runtime
 
-Nimi puts content checks in the Runtime on the user's device. Apps that use its text-generation path share the same checks for model inputs, generated output, and complete tool-call arguments, across both local and cloud routes.
+Nimi runs content checks directly in the Runtime on the user's device. Every app that calls `text.generate` gets the same inspection for prompts, generated output, and complete tool-call arguments—whether the request runs on a local model or a cloud provider.
 
-For example, a research app may retrieve a document containing a private key and include it in its next model request. Runtime can reject that request before model dispatch. The same rule applies when a writing app includes the material in a prompt or when a tool result becomes the next model input. Each app keeps its own workflow; the shared execution layer supplies the content check.
+Suppose a research app reads a file containing a private key and includes it in the next prompt, or a tool returns a token that gets fed back into the conversation. If that content matches one of the rules below, Runtime rejects the request before it reaches the model. Model output is checked too. Apps keep their own workflows without each maintaining a separate scanner.
 
 ::: info Developer preview
-This feature is implemented in current Runtime source builds. Use a Runtime build that includes it; availability in a published download follows that release's notes. No new App request fields, registration steps, or mandatory risk-control configuration are required.
+Content checks are available in current Runtime source builds. For prebuilt downloads, check the release notes for your version. Apps do not need new request fields, registration steps, or configuration to use them.
 :::
 
-## A common enforcement point
+## How local inspection works
 
-Runtime already resolves the authorized caller, keeps provider credentials in its custody, and executes the selected model request. Content inspection adds another check at that shared boundary. Rules can evolve there without asking every app to build a separate scanner or replace its AI host.
+Runtime already resolves caller identity, holds provider credentials, and dispatches model requests. Running deterministic format checks in the same place means protection does not depend on whether a model obeys safety instructions in a prompt.
 
-The covered formats are checked by deterministic code, independently of whether the model follows a safety instruction in its prompt.
+Inspection runs entirely on the user's machine with no network dependency and no external scanning service. When an app uses a cloud route, requests that pass inspection are still sent to the selected model provider.
 
-“Centralized” describes where enforcement lives: in the local Runtime shared by its consumers. Detection has no network dependency and does not send content to a separate security service. Choosing a cloud model still sends admitted request data to that provider.
-
-These responsibilities remain distinct:
+Responsibilities stay distinct across the stack:
 
 | Responsibility | Owner |
 | --- | --- |
-| Check model business input, output, and complete tool arguments | Runtime AI |
-| Resolve identity, permissions, credential custody, and resource access | The existing Runtime resource owners |
-| Run business tools, manage later model turns, display results, and obtain business approval | The App's existing host |
+| Inspect business text in model inputs, outputs, and complete tool arguments | Runtime AI |
+| Verify identity, permissions, credential custody, and resource access | Existing Runtime resource services |
+| Execute tools, manage multi-turn state, render output, and obtain business approval | Your App host |
 
-A clean scan does not grant permission. Model text such as `approved: true` never establishes authorization.
+Passing a content check does not grant permission, and model output such as `approved: true` never establishes authorization. Integration business results and Delegation approval policies work as before.
 
-## Where checks run
+## What gets checked and when
 
-Current inspection covers `text.generate` in SYNC and STREAM execution. Candidate generation and RuntimeAgent calls inherit it when they use that same Scenario path.
+Current inspection covers `text.generate` in `SYNC` and `STREAM` execution. Candidate generation and `RuntimeAgent` calls are included whenever they use that path. Other AI capabilities, raw image/audio/video bytes, opaque continuity payloads, and calls outside `text.generate` are not covered.
 
-| Boundary | Checked content | Result of a match |
+| Stage | Checked content | Result of a match |
 | --- | --- | --- |
-| Model input | Normalized business text and JSON string values: system text, selected history and summaries, tool descriptions and schemas, tool results, and visible media-reference strings | Refuse before model dispatch, media materialization, and capture of a new request body or Job |
-| Streaming output | Text and visible reasoning summaries, incrementally | Stop undelivered output and report failure through the existing stream |
-| Tool call | Complete arguments, with JSON escapes decoded into actual values | Refuse before forwarding the call to the App |
-| Final result | Naturally available complete text, visible summaries, and tool arguments | Refuse before final buffered output, normal completion, or successful result storage |
+| Model input | Normalized business text and JSON string values: system text, selected history and summaries, tool descriptions and schemas, tool results, and visible media-reference strings | Refused before model dispatch, media materialization, request-body capture, or new Job creation |
+| Streaming output | Generated text and visible reasoning summaries, checked incrementally | Stops undelivered output and reports failure through the existing stream and Job path |
+| Tool call | Complete arguments after decoding JSON escapes into actual values | Refused before forwarding the tool call to the App |
+| Final result | Naturally complete text, visible summaries, and tool arguments | Refused before flushing final buffered output, completing normally, or storing a successful result |
 
-Normal content follows the original chunking and buffering behavior. Inspection adds no timer, whole-step delivery wait, or new output limit. A chunk boundary is not a value boundary: a possible match may need a delimiter or logical item completion before it can be confirmed.
+Normal output keeps its existing chunking and buffering behavior. Inspection adds no timers, full-step buffering, or new output-length limits. Because a transport chunk boundary is not always a value boundary, Runtime can confirm some matches only when a delimiter or the end of a logical item arrives. Normal text continues to stream in the meantime.
+
+In streaming mode, text already delivered before a match is confirmed cannot be recalled. Content checks help catch accidental credential exposure, but they do not guarantee zero leakage, act as an operating-system sandbox, or prevent all prompt injection, malicious model behavior, or data exfiltration.
 
 ## Current rules
 
-The initial rules target a small set of recognizable credential formats, rather than every occurrence of a sensitive word.
+The initial rules target specific, well-defined credential formats rather than blocking every sensitive word or high-entropy string.
 
-| Rule | Match | Inspection mode |
+| Rule | Match condition | Inspection mode |
 | --- | --- | --- |
 | `pem-private-key` | Complete, unencrypted PEM private keys that parse as PKCS8 (`PRIVATE KEY`), PKCS1 (`RSA PRIVATE KEY`), or SEC1 (`EC PRIVATE KEY`) | Complete values only |
 | `github-classic-pat` | `ghp_` followed by exactly 36 ASCII letters or digits, with identifier boundaries on both sides | Complete values and incremental text |
 
-For the token rule, ASCII letters, digits, underscore, and non-ASCII bytes continue an identifier. A format match does not verify that a credential was issued or is usable. Other token formats, encrypted or OpenSSH private-key formats, and arbitrary encodings are not covered by these rules.
+For `github-classic-pat`, ASCII letters, digits, underscores (`_`), and non-ASCII bytes continue an identifier, so a match only triggers when the token stands on its own. Matching is purely structural—Runtime does not verify whether a credential was actually issued or remains active.
 
-`token: string`, `password: <redacted>`, empty values, ordinary hashes, PEM headers alone, public keys, and certificates do not independently cause refusal. Neither do generic Bearer wording, sensitive property names, high entropy, or prompt-injection phrases.
+Other token formats, encrypted or OpenSSH private keys, and arbitrary encodings are not covered. Placeholders and ordinary technical text—such as `token: string`, `password: <redacted>`, empty values, hashes, standalone PEM headers, public keys, certificates, generic `Bearer` wording, sensitive field names, high-entropy strings, or prompt-injection phrases—do not trigger refusal on their own.
+
+Local and cloud routes apply the same rules. A local request containing a private key in one of the covered formats is refused even for legitimate analysis. You can supply a redacted copy through your App’s existing input controls; Runtime never silently rewrites your input.
 
 ## Handle a refusal in your App
 
-New Runtime content decisions use gRPC `FailedPrecondition` with `AI_CONTENT_FILTER_BLOCKED`. The protected App carrier also exposes the corresponding `ai-content-filter-blocked` token. Use the typed error or event provided by your SDK surface; do not classify the failure by parsing user-facing prose.
+When Runtime blocks content, it returns gRPC `FailedPrecondition` with reason `AI_CONTENT_FILTER_BLOCKED` (and exposes `ai-content-filter-blocked` on the protected App carrier). Branch on the typed error or event from your SDK rather than parsing user-facing error messages.
 
-- **Input refusal:** the original call fails before a Job or output stream is established. There is no fabricated stream `failed` event or successful result.
-- **Output refusal:** an established stream reports `failed` when the connection can still deliver it. Preserve the reason and treat the model step as failed. Do not execute previously received tool calls from that failed batch.
-- **User guidance:** explain that content filtering blocked the request or response. Ask the user to review and redact the input or selected context before explicitly submitting a revised request. Do not automatically retry, replay tools, or switch models, providers, or routes.
+- **Input refusal:** The call fails before Runtime creates a Job or opens an output stream. Handle it as a call error; there is no stream `failed` event or successful result.
+- **Output refusal:** An active stream reports failure through the existing `failed` path (and records Job failure) when the connection can still deliver it. Treat the entire model turn as failed, and **do not execute any tool calls** received earlier in that failed batch.
+- **User guidance:** Tell the user that content filtering blocked the request or response, and ask them to review and redact the input or selected context before submitting again. Do not automatically retry, replay tools, or switch models, providers, or local/cloud routes.
 
-An appropriate message is: “Content filtering blocked this request or response. Review the input and selected context before submitting a revised request.”
+A clear user-facing message is:
 
-Existing cancellation, timeout, permission, shutdown, and transport failures keep their own meaning. New Runtime risk diagnostics record rule and stage information without the matched secret. Existing App histories are not globally rewritten or redacted. Known usage may remain in the existing Job record; missing usage does not mean a failed call was free.
+> This request or response did not pass the content check. Review the input and selected context, then remove or redact restricted content before submitting again.
 
-## Streaming and context limits
+Cancellation, timeouts, permission errors, Runtime shutdown, and transport failures keep their own error codes and priority. Content-check diagnostics record the rule, stage, and related information without storing the matched secret. Known usage may remain in the existing Job record; missing usage does not mean a failed call was free.
 
-Streaming is preserved, so content can already be visible before a match is confirmed. Runtime stops the remaining delivery; it cannot recall text already shown. This is not a zero-leakage guarantee.
+## History and conversation recovery
 
-Local requests use the same rules. Legitimate analysis of an actual private key can therefore be refused even on a local model. Supply an explicitly redacted copy through your existing input controls; Runtime does not silently rewrite the original material.
+Runtime never globally rewrites or scrubs stored App history, and a diagnostic event does not mean earlier records were cleaned. Old turns remain readable, but any history or summary selected into a new request is checked again. If matched material stays in the selected context, even a harmless follow-up question will be refused.
 
-Old records remain readable. If selected history or a summary contains matching material, a harmless new question can still be refused. Apps may use their existing explicit context-editing or new-conversation controls. Reopening a RuntimeAgent conversation reuses its anchor rather than resetting history; an affected conversation can remain unable to infer while the material is selected. There is no automatic cleanup, history exemption, or new reset protocol.
-
-Image, audio, video, opaque continuity, other AI capabilities, and calls outside this text-generation path are outside current inspection. Integration business results and Delegation approval policies retain their existing behavior. This feature is a shared model-boundary defense, not an operating-system sandbox or a guarantee against malicious models, prompt injection, or arbitrary data exfiltration.
+Apps can let users remove the offending material through their existing context-editing or new-conversation controls. Reopening a `RuntimeAgent` conversation reuses its anchor rather than clearing context, and Runtime does not add automatic history cleanup, history exemptions, or a new reset protocol. If a conversation still includes blocked context and your App has no existing recovery entry point to remove it, tell the user clearly that inference cannot continue in that conversation.
 
 ## Continue building
 

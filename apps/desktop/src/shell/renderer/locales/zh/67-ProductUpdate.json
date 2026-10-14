@@ -5,7 +5,7 @@
   "update": "更新",
   "currentTitle": "已是最新版本",
   "completedTitle": "更新完成",
-  "completedBody": "Nimi 已更新到最新版本。",
+  "completedBody": "本次更新已安装完成，可以继续使用 Nimi。",
   "cancel": "取消下载",
   "dismiss": "知道了",
   "later": "稍后",

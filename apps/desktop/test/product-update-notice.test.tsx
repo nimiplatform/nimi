@@ -88,7 +88,7 @@ test('Home update UI preserves consent and recovery, and acknowledges current an
     assert.ok(!(dom.window.document.body.textContent ?? '').includes(messages.completedTitle));
     status = { ...status, phase: 'completed', currentVersion: '0.4.0', checkAvailable: true };
     await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 10)); });
-    assert.match(dom.window.document.body.textContent ?? '', /Nimi has been updated to the latest version/);
+    assert.match(dom.window.document.body.textContent ?? '', /This update has been installed and Nimi is ready to use/);
     assert.equal(dom.window.document.querySelector('[data-testid="nimi-product-update"]'), null);
     await act(async () => button('OK', true).click());
     await act(async () => { client.setQueryData(['nimi-product-update'], { ...status }); await new Promise((resolve) => setTimeout(resolve, 1_000)); });

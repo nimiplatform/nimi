@@ -7,7 +7,7 @@ Runtime 是 Nimi 的核心本地服务，负责将获得授权的产品意图转
 Runtime 负责管理与执行：
 
 - **AI 执行与资源调度**：本地模型与云端 API 的调度、资源配额（Quota/Budget）以及连接器凭据的安全托管；
-- **集中式 AI 风控**：在文本生成路径统一检查模型输入、输出和完整工具参数，详见[当前规则与拒绝处理方式](/zh/runtime/ai-risk-control)；
+- **Runtime 内容检查**：在本机 `text.generate` 路径上检查模型输入、输出和完整工具参数，详见[当前规则与命中处理方式](/zh/runtime/ai-risk-control)；
 - **LocalAgent 实例管理**：基于 Realm 签发的角色描述（Character Source）在本地实例化 LocalAgent，并维护其生命周期；
 - **交互与呈现投影**：维护 LocalAgent 的对话（Conversation）、记忆访问代理、状态机、语音与交互事件流；
 - **本地服务与审计**：管理本地进程、模型加载、流式通信与本地审计日志；
@@ -27,7 +27,7 @@ Runtime 负责管理与执行：
 
 - [集成](/zh/runtime/integrations)
 - [流式传输](/zh/runtime/streaming)
-- [集中式 AI 风控](/zh/runtime/ai-risk-control)
+- [Runtime 内容检查](/zh/runtime/ai-risk-control)
 - [多模态执行](/zh/runtime/multimodal)
 - [Agent 执行](/zh/runtime/agent-execution)
 - [Memory 与 Knowledge](/zh/runtime/memory-and-knowledge)

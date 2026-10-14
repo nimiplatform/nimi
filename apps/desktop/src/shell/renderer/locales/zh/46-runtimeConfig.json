@@ -748,9 +748,9 @@
       "filtersActive": "筛选（已启用）",
       "quickFilterTypeGroup": "类型筛选",
       "quickFilters": {
-        "all": "全部消息",
-        "unread": "未读消息",
-        "pending": "待处理事项",
+        "all": "全部",
+        "unread": "未读",
+        "pending": "待处理",
         "message": "仅看消息",
         "post": "仅看动态",
         "todo": "仅看事项"
@@ -780,7 +780,7 @@
       "noMatchingSources": "未找到匹配来源，试试其他名称",
       "sourceGroups": {
         "app": "应用",
-        "runtime-agent": "助手消息",
+        "runtime-agent": "助手",
         "realm-post": "动态",
         "system": "系统通知"
       },

@@ -170,7 +170,7 @@
       "runtimeTimeout": "Try again later. If it still times out, open Runtime details to find the cause.",
       "streamInterrupted": "Check the task status; retry only after confirming it did not complete.",
       "runtimeCallFailed": "Try again once. If it still fails, open Runtime details to find the cause.",
-      "contentFilterBlocked": "Review the input and selected context. Remove or redact restricted content before submitting a revised request.",
+      "contentFilterBlocked": "Try removing or redacting any restricted content, or adjusting the selected context, then submit your request again.",
       "inputLimitExceeded": "Shorten the input, or configure a model that accepts longer input, then run it again.",
       "textBehaviorUnsupported": "Open Parameters and reset the settings this model does not accept, or choose a model that supports this behavior in Desktop AI Capabilities, then run again.",
       "mediaOptionUnsupported": "Open Parameters and reset the unsupported settings, then run again. You can also choose a model that supports those settings in App AI configuration.",
