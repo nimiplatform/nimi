@@ -121,6 +121,15 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 		if err != nil {
 			return nil, nil, "", err
 		}
+		if event.Payload.Usage != nil && event.Payload.Usage.Duration != nil {
+			duration := *event.Payload.Usage.Duration
+			if duration < 0 {
+				return nil, nil, "", finiteASRInvalidOutput("invalid billing duration")
+			}
+			if billedSeconds == nil || duration > *billedSeconds {
+				billedSeconds = &duration
+			}
+		}
 		switch event.Header.Event {
 		case "result-generated":
 			sentence := event.Payload.Output.Sentence
@@ -133,8 +142,12 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 			if sentence.ID == nil || *sentence.ID < 0 || sentence.Final == nil {
 				return nil, nil, "", finiteASRInvalidOutput(fmt.Sprintf("invalid sentence flags (identity present=%t, terminal flag present=%t)", sentence.ID != nil, sentence.Final != nil))
 			}
+			if sentence.Text == nil {
+				return nil, nil, "", finiteASRInvalidOutput("sentence omitted text")
+			}
+			sentenceText := *sentence.Text
 			if !*sentence.Final {
-				if strings.TrimSpace(sentence.Text) != "" {
+				if strings.TrimSpace(sentenceText) != "" {
 					pending[*sentence.ID] = true
 					if len(pending) > localexecution.MaxSpeechTranscriptWords {
 						return nil, nil, "", finiteASRInvalidOutput("too many unfinished sentences")
@@ -145,16 +158,23 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 			if *sentence.ID <= lastFinalID {
 				return nil, nil, "", finiteASRInvalidOutput("non increasing final sentence")
 			}
-			if strings.TrimSpace(sentence.Text) == "" {
-				return nil, nil, "", finiteASRInvalidOutput("empty final sentence")
+			if strings.TrimSpace(sentenceText) == "" {
+				// Qwen Audio can finalize an empty, timed segment before actual
+				// speech. Consume its sequence number, not a transcript result.
+				// Never discard lexical words or an unfinished textual result.
+				if len(sentence.Words) != 0 || pending[*sentence.ID] || sentence.Begin == nil || sentence.End == nil || *sentence.Begin < 0 || *sentence.End < *sentence.Begin {
+					return nil, nil, "", finiteASRInvalidOutput("empty final sentence")
+				}
+				lastFinalID = *sentence.ID
+				continue
 			}
 			lastFinalID = *sentence.ID
 			delete(pending, *sentence.ID)
-			textBytes += len(sentence.Text) + 1
+			textBytes += len(sentenceText) + 1
 			if textBytes > localexecution.MaxSpeechTranscriptBytes || len(result.Words)+len(sentence.Words) > localexecution.MaxSpeechTranscriptWords {
 				return nil, nil, "", finiteASRInvalidOutput("transcript exceeds output bounds")
 			}
-			sentences = append(sentences, sentence.Text)
+			sentences = append(sentences, sentenceText)
 			if spec.GetTimestamps() && len(sentence.Words) == 0 {
 				return nil, nil, "", finiteASRInvalidOutput("final sentence omitted requested word timings")
 			}
@@ -178,15 +198,6 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 				result.Words = append(result.Words, &runtimev1.SpeechTranscriptWord{
 					Text: wordText, StartSeconds: float64(*word.Begin) / 1000, EndSeconds: float64(*word.End) / 1000,
 				})
-			}
-			if event.Payload.Usage != nil && event.Payload.Usage.Duration != nil {
-				duration := *event.Payload.Usage.Duration
-				if duration < 0 {
-					return nil, nil, "", finiteASRInvalidOutput("invalid billing duration")
-				}
-				if billedSeconds == nil || duration > *billedSeconds {
-					billedSeconds = &duration
-				}
 			}
 		case "task-finished":
 			if !finishRequested.Load() || len(pending) != 0 {
@@ -228,10 +239,12 @@ type finiteASREvent struct {
 	Payload struct {
 		Output struct {
 			Sentence *struct {
-				ID        *int64 `json:"sentence_id"`
-				Text      string `json:"text"`
-				Final     *bool  `json:"sentence_end"`
-				Heartbeat bool   `json:"heartbeat"`
+				ID        *int64  `json:"sentence_id"`
+				Text      *string `json:"text"`
+				Begin     *int64  `json:"begin_time"`
+				End       *int64  `json:"end_time"`
+				Final     *bool   `json:"sentence_end"`
+				Heartbeat bool    `json:"heartbeat"`
 				Words     []struct {
 					Text        string `json:"text"`
 					Punctuation string `json:"punctuation"`

@@ -46,6 +46,78 @@ func TestDashScopeFiniteASRUsesActualFinalWordsAndTerminal(t *testing.T) {
 	}
 }
 
+func TestDashScopeFiniteASREmptySegmentsDoNotDiscardLaterSpeech(t *testing.T) {
+	audio := finiteASRTestWAV()
+	server := finiteASRTestServer(t, audio, func(conn *websocket.Conn, taskID string) {
+		// Observed Qwen Audio 3.0 sequence: a bounded empty segment precedes
+		// the actual speech. It is neither a transcript nor task completion.
+		finiteASRSendEvent(t, conn, taskID, "result-generated", map[string]any{"sentence_id": 1, "sentence_end": false, "sentence_begin": true, "begin_time": 0, "text": "", "words": []any{}})
+		finiteASRSendEvent(t, conn, taskID, "result-generated", map[string]any{"sentence_id": 1, "sentence_end": true, "begin_time": 0, "end_time": 100, "text": "", "words": []any{}})
+		final := finiteASRFinalSentence()
+		final["sentence_id"] = 2
+		finiteASRSendEvent(t, conn, taskID, "result-generated", final)
+		finiteASRSendEvent(t, conn, taskID, "result-generated", map[string]any{"sentence_id": 3, "sentence_end": true, "begin_time": 920, "end_time": 1000, "text": "", "words": []any{}})
+		_ = websocket.JSON.Send(conn, map[string]any{"header": map[string]any{"event": "task-finished", "task_id": taskID}, "payload": map[string]any{"usage": map[string]any{"duration": 7}}})
+	})
+	defer server.Close()
+	artifacts, _, _, err := executeDashScopeFiniteASR(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}, finiteASRTestRequest(audio), "qwen-audio-3.0-asr-flash-streaming")
+	if err != nil || len(artifacts) != 1 {
+		t.Fatalf("valid speech after empty segment lost: %v", err)
+	}
+	var transcript runtimev1.SpeechTranscript
+	if err := protojson.Unmarshal(artifacts[0].GetBytes(), &transcript); err != nil {
+		t.Fatal(err)
+	}
+	if transcript.Text != "Hello, world." || len(transcript.Words) != 2 || transcript.Words[0].StartSeconds != 0.17 || transcript.Words[1].EndSeconds != 0.92 {
+		t.Fatalf("provider transcript or timings changed: %v", &transcript)
+	}
+	if artifacts[0].GetMetadata().AsMap()["provider_usage_seconds"] != float64(7) {
+		t.Fatal("terminal usage lost")
+	}
+}
+
+func TestDashScopeFiniteASREmptySegmentsStillFailClosed(t *testing.T) {
+	for _, name := range []string{"only-empty", "unfinished-text", "has-words", "missing-text", "missing-time", "backward-time", "duplicate-empty", "no-terminal"} {
+		t.Run(name, func(t *testing.T) {
+			audio := finiteASRTestWAV()
+			server := finiteASRTestServer(t, audio, func(conn *websocket.Conn, taskID string) {
+				if name != "only-empty" {
+					finiteASRSendEvent(t, conn, taskID, "result-generated", finiteASRFinalSentence())
+				}
+				empty := map[string]any{"sentence_id": 2, "sentence_end": true, "begin_time": 920, "end_time": 1000, "text": "", "words": []any{}}
+				switch name {
+				case "unfinished-text":
+					finiteASRSendEvent(t, conn, taskID, "result-generated", map[string]any{"sentence_id": 2, "sentence_end": false, "text": "must not disappear"})
+				case "has-words":
+					empty["words"] = finiteASRFinalSentence()["words"]
+				case "missing-text":
+					delete(empty, "text")
+				case "missing-time":
+					delete(empty, "end_time")
+				case "backward-time":
+					empty["end_time"] = 900
+				}
+				finiteASRSendEvent(t, conn, taskID, "result-generated", empty)
+				if name == "duplicate-empty" {
+					finiteASRSendEvent(t, conn, taskID, "result-generated", empty)
+				}
+				if name != "no-terminal" {
+					finiteASRSendEvent(t, conn, taskID, "task-finished", nil)
+				}
+			})
+			defer server.Close()
+			artifacts, _, _, err := executeDashScopeFiniteASR(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}, finiteASRTestRequest(audio), "qwen-audio-3.0-asr-flash-streaming")
+			want := runtimev1.ReasonCode_AI_OUTPUT_INVALID
+			if name == "no-terminal" {
+				want = runtimev1.ReasonCode_AI_STREAM_BROKEN
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != want || len(artifacts) != 0 {
+				t.Fatalf("invalid completion accepted: %v %v", artifacts, err)
+			}
+		})
+	}
+}
+
 func TestDashScopeFiniteASRRejectsIncompleteOrContradictoryResults(t *testing.T) {
 	for _, name := range []string{"missing-terminal", "wrong-task", "missing-words", "duplicate-final", "empty-final", "unfinished-sentence", "missing-time", "backward-time", "empty-completion"} {
 		t.Run(name, func(t *testing.T) {
