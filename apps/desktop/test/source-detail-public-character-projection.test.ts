@@ -182,6 +182,25 @@ test('source detail fails closed without a complete CharacterSourceRefV3', () =>
 
 test('source detail loads one public Character projection without the full-world aggregate', async () => {
   const calls: string[] = [];
+  const publicSource = publicSourceCard(sourceRef, '宋濂');
+  const publicWorld = {
+    id: sourceRef.worldId,
+    name: 'Ming World',
+    summary: 'A world of scholars.',
+    type: 'CREATOR',
+    visibility: 'public',
+    media: { bannerUrl: 'https://cdn.example.test/ming-world-banner.png' },
+    stats: {},
+    entityKinds: [],
+    relationshipTypes: [],
+    time: { mode: 'static', label: 'Ming' },
+    rules: [],
+    systems: [],
+    scenes: [],
+    timeline: [],
+    createdAt: '2026-07-28T00:00:00.000Z',
+    updatedAt: '2026-07-28T00:00:00.000Z',
+  };
   const realm = {
     worldCore: {
       worldCoreControllerGetWorldCharacter: async () => ({
@@ -214,7 +233,12 @@ test('source detail loads one public Character projection without the full-world
       }) => {
         calls.push('worldPublicControllerGetCharacterSource');
         assert.deepEqual(request.body.sourceRef, sourceRef);
-        return publicSourceCard(sourceRef, '宋濂');
+        return publicSource;
+      },
+      worldPublicControllerGetWorld: async (request: { path: { worldId: string } }) => {
+        calls.push('worldPublicControllerGetWorld');
+        assert.equal(request.path.worldId, sourceRef.worldId);
+        return publicWorld;
       },
       worldPublicControllerGetWorldDetailWithCharacters: async () => {
         calls.push('worldPublicControllerGetWorldDetailWithCharacters');
@@ -228,9 +252,10 @@ test('source detail loads one public Character projection without the full-world
     sourceRef,
   );
 
-  assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource']);
+  assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource', 'worldPublicControllerGetWorld']);
   assert.equal(result.displayName, '宋濂');
   assert.equal(result.avatarUrl, 'https://cdn.example.test/song-lian-avatar.png');
+  assert.equal(result.worldBannerUrl, publicWorld.media.bannerUrl);
   assert.deepEqual(result.viewerRelation, {
     state: 'connectable',
     connectionId: null,
@@ -242,10 +267,33 @@ test('source detail loads one public Character projection without the full-world
     realm: () => realm,
   } as never);
   assert.equal(displayDetail?.stats, null);
+  assert.equal(displayDetail?.source.worldBannerUrl, publicWorld.media.bannerUrl);
   assert.deepEqual(calls, [
     'worldPublicControllerGetCharacterSource',
+    'worldPublicControllerGetWorld',
     'worldPublicControllerGetCharacterSource',
+    'worldPublicControllerGetWorld',
   ]);
+
+  publicWorld.id = 'another-world';
+  await assert.rejects(
+    fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never),
+    /does not match requested world/,
+  );
+  publicWorld.id = sourceRef.worldId;
+
+  const getWorld = realm.worldPublic.worldPublicControllerGetWorld;
+  realm.worldPublic.worldPublicControllerGetWorld = async () => { throw new Error('network unavailable'); };
+  const withoutBanner = await fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never);
+  assert.equal(withoutBanner?.source.worldBannerUrl, null);
+  assert.equal(withoutBanner?.source.displayName, '宋濂');
+  realm.worldPublic.worldPublicControllerGetWorld = getWorld;
+
+  Object.assign(publicSource.media, { profileCoverUrl: 'https://cdn.example.test/personal-cover.png' });
+  calls.length = 0;
+  const coveredDetail = await fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never);
+  assert.equal(coveredDetail?.source.profileCoverUrl, 'https://cdn.example.test/personal-cover.png');
+  assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource']);
 });
 
 test('persona source detail fails closed on a stale Runtime source hash', async () => {

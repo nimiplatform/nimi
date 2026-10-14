@@ -10,12 +10,39 @@ import {
   renderToStaticMarkup,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
+import { WorldCharacterRelationshipCluesSection } from '../src/shell/renderer/features/source-detail/source-detail-world-character-relationship-clues.js';
 
 test.before(async () => {
   await initI18n();
 });
 
-test('world character relationship map shows explicit relation labels as authored without extracting names from prose', () => {
+test('relationship text localizes spouses and creative collaboration and removes graph controls', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.relationshipClues = [];
+    source.characterProfile = {
+      ...source.characterProfile,
+      relationshipNotes: [
+        { id: 'spouse', type: 'spouses', targetRef: 'person-fang', summary: '方婉仪与罗聘为夫妻。' },
+        { id: 'collaboration', type: 'co-creator-of', targetRef: null, summary: '两人合作绘制花卉图卷。' },
+      ],
+    };
+    source.relationshipTargetLabels = { 'person-fang': '方婉仪' };
+    const markup = renderToStaticMarkup(React.createElement(WorldCharacterRelationshipCluesSection, { source }));
+    const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
+    assert.match(visibleMarkup, /方婉仪 · 夫妻/);
+    assert.match(visibleMarkup, /共同创作/);
+    assert.match(visibleMarkup, /方婉仪与罗聘为夫妻。/);
+    assert.match(visibleMarkup, /两人合作绘制花卉图卷。/);
+    assert.doesNotMatch(visibleMarkup, /spouses|co-creator-of|<button|aria-pressed/);
+    assert.doesNotMatch(markup, /world-character-relationship-map|world-character-relationship-cards/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character relationship text shows explicit relation labels as authored without extracting names from prose', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     relationships: [
@@ -57,20 +84,18 @@ test('world character relationship map shows explicit relation labels as authore
   assert.equal(associationClue?.label, '墓誌銘由劉智所作');
   assert.equal(associationClue?.targetLabel, null);
 
-  const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
-  const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
+  const mapStart = markup.indexOf('data-testid="world-character-relationship-list"');
+  const mapEnd = markup.indexOf('</ul>', mapStart);
   const mapMarkup = markup.slice(mapStart, mapEnd);
 
-  // Without an explicit target label the node shows the explicit relation
-  // label as authored; no person name is extracted from the label or summary.
-  assert.match(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">墓誌銘由劉智所作<\/h3>/);
-  assert.doesNotMatch(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">劉智<\/h3>/);
+  // Keep authored relationship wording without inventing a person name.
+  assert.match(mapMarkup, /墓誌銘由劉智所作/);
+  assert.doesNotMatch(mapMarkup, />劉智</);
   assert.doesNotMatch(markup, /墓志铭由刘智所作/);
-  assert.match(markup, /<h3 class="text-sm font-semibold leading-6 text-\[var\(--nimi-text-primary\)\]">墓誌銘由劉智所作<\/h3>/);
   assert.match(markup, /刘智与欧阳德存在交游或关联记录。/);
 });
 
-test('world character relationship map renders posted address clues with location icons', () => {
+test('world character relationship text preserves posted address clues and their details', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     characterProfile: {
@@ -120,24 +145,23 @@ test('world character relationship map renders posted address clues with locatio
       onPrimaryAction: () => {},
     }),
   );
-  const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
-  const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
+  const mapStart = markup.indexOf('data-testid="world-character-relationship-list"');
+  const mapEnd = markup.indexOf('</ul>', mapStart);
   const mapMarkup = markup.slice(mapStart, mapEnd);
   const cardStart = markup.indexOf('data-testid="world-character-relationship-clue-postedAddress"');
-  const cardEnd = markup.indexOf('</article>', cardStart);
+  const cardEnd = markup.indexOf('</li>', cardStart);
   const cardMarkup = markup.slice(cardStart, cardEnd);
 
   assert.match(mapMarkup, /京兆府/);
-  assert.match(mapMarkup, /lucide-map-pin/);
+  assert.doesNotMatch(mapMarkup, /<svg|<button|aria-pressed/);
   assert.doesNotMatch(mapMarkup, /lucide-user-round/);
-  assert.match(cardMarkup, /lucide-map-pin/);
   assert.match(cardMarkup, /1086/);
   assert.match(cardMarkup, /翰林学士/);
   assert.match(cardMarkup, /京兆府/);
   assert.doesNotMatch(cardMarkup, /lucide-user-round/);
 });
 
-test('world character relationship map localizes kinship kind labels', async () => {
+test('world character relationship text localizes kinship kind labels', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -178,15 +202,15 @@ test('world character relationship map localizes kinship kind labels', async () 
       }),
     );
 
-    assert.match(markup, />亲属</);
+    assert.match(markup, /温氏 · 亲属/);
     assert.doesNotMatch(markup, />kinship</);
-    assert.match(markup, /围绕亲属展开/);
+    assert.doesNotMatch(markup, /围绕亲属展开/);
   } finally {
     await changeLocale('en');
   }
 });
 
-test('world character relationship map never renders raw target entity ids from profile notes', () => {
+test('world character relationship text never renders raw target entity ids from profile notes', () => {
   const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
@@ -200,15 +224,15 @@ test('world character relationship map never renders raw target entity ids from 
     }),
   );
 
-  const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
-  const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
+  const mapStart = markup.indexOf('data-testid="world-character-relationship-list"');
+  const mapEnd = markup.indexOf('</ul>', mapStart);
   const mapMarkup = markup.slice(mapStart, mapEnd);
 
   assert.doesNotMatch(mapMarkup, /cbdb-status-181/);
   assert.doesNotMatch(mapMarkup, /cbdb-office-70625/);
   assert.doesNotMatch(mapMarkup, /cbdb-text-28102/);
-  assert.match(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">礼部尚书<\/h3>/);
-  assert.match(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">理学家 - 阳明学派<\/h3>/);
+  assert.match(mapMarkup, /礼部尚书/);
+  assert.match(mapMarkup, /理学家 - 阳明学派/);
 });
 
 test('world character source detail renders dossier sections without exposing raw relationship source fields', () => {
@@ -233,7 +257,8 @@ test('world character source detail renders dossier sections without exposing ra
   assert.match(markup, /1554/);
   assert.match(markup, /1545/);
   assert.match(markup, /欧阳南野先生文集/);
-  assert.match(markup, /data-testid="world-character-relationship-map"/);
+  assert.match(markup, /data-testid="world-character-relationship-list"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-relationship-map"|aria-pressed/);
   assert.match(markup, /data-testid="world-character-career-derived-node"/);
   assert.match(markup, /data-testid="world-character-relationship-clue-postedToOffice"/);
   assert.doesNotMatch(markup, /data-testid="world-character-relationship-clue-text"/);

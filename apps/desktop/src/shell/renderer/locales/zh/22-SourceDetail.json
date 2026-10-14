@@ -83,11 +83,10 @@
     "milestoneKind": {
       "biography": "生平"
     },
-    "relationshipEyebrow": "图谱证据",
     "relationshipTitle": "关系线索",
-    "relationshipSummary": "{{name}}的关系主要围绕{{kinds}}展开。",
-    "relationshipAll": "全部",
     "relationshipKind": {
+      "spouses": "夫妻",
+      "coCreator": "共同创作",
       "kinship": "亲属",
       "status": "身份",
       "office": "官职",

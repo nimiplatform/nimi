@@ -42,7 +42,7 @@ function cardsBy(markup: string, testId: string): string[] {
   return markup
     .split(`data-testid="${testId}"`)
     .slice(1)
-    .map((chunk) => chunk.slice(0, chunk.indexOf('</article>')));
+    .map((chunk) => chunk.slice(0, chunk.indexOf(testId.startsWith('world-character-relationship-clue-') ? '</li>' : '</article>')));
 }
 
 const worldRef = {
@@ -139,16 +139,16 @@ test('non-historical English and mixed-script source detail renders as authored 
   const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
   assert.equal(description, 'Station cartographer');
 
-  // English and mixed-script targets appear in the relationship map.
-  const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-map"', 'data-testid="world-character-relationship-cards"');
-  assert.match(mapMarkup, />Oriel Vantasse<\/h3>/);
-  assert.match(mapMarkup, />Noor 努尔<\/h3>/);
-  assert.match(mapMarkup, />宇宙之子<\/h3>/);
+  // English and mixed-script targets appear in the relationship text.
+  const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-list"', '</ul>');
+  assert.match(mapMarkup, />Oriel Vantasse · crewmate<\/span>/);
+  assert.match(mapMarkup, />Noor 努尔<\/span>/);
+  assert.match(mapMarkup, />宇宙之子<\/span>/);
 
   // The explicit (non-historical) type is shown as authored; untyped rows are
   // shown neutrally rather than dropped or classified as kinship.
   const [crewmateCard] = cardsBy(markup, 'world-character-relationship-clue-crewmate');
-  assert.match(crewmateCard ?? '', />crewmate<\/span>/);
+  assert.match(crewmateCard ?? '', / · crewmate<\/span>/);
   const untypedCards = cardsBy(markup, 'world-character-relationship-clue-untyped');
   assert.equal(untypedCards.length, 2);
   assert.match(untypedCards.join('\n'), /宇宙之子 is the crew nickname for Mira\./);
@@ -238,10 +238,10 @@ test('explicitly typed historical relationships still display with their localiz
 
     const [kinshipCard] = cardsBy(markup, 'world-character-relationship-clue-kinship');
     assert.match(kinshipCard ?? '', /温氏/);
-    assert.match(kinshipCard ?? '', />亲属<\/span>/);
+    assert.match(kinshipCard ?? '', /温氏 · 亲属<\/span>/);
     const [statusCard] = cardsBy(markup, 'world-character-relationship-clue-status');
     assert.match(statusCard ?? '', /理学家 - 阳明学派/);
-    assert.match(statusCard ?? '', />身份<\/span>/);
+    assert.match(statusCard ?? '', /理学家 - 阳明学派 · 身份<\/span>/);
 
     // The typed office relationship becomes an office career milestone.
     const office = source.worldCharacterAugmentation?.careerMilestones.find((milestone) => milestone.title === '礼部尚书');
@@ -303,9 +303,9 @@ test('relationship titles that equal a known entity id are treated as identifier
     ],
   }, 'source_materialization_available');
   const markup = render(source);
-  const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-map"', 'data-testid="world-character-relationship-cards"');
+  const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-list"', '</ul>');
 
-  assert.doesNotMatch(mapMarkup, />entity-oriel<\/h3>/);
+  assert.doesNotMatch(mapMarkup, />entity-oriel<\/span>/);
   // A hyphenated value that is not a known id is authored text and is shown.
-  assert.match(mapMarkup, />the-last-star-7<\/h3>/);
+  assert.match(mapMarkup, />the-last-star-7 · crewmate<\/span>/);
 });

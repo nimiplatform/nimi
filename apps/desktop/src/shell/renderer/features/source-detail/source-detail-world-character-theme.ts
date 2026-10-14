@@ -85,6 +85,8 @@ export function relationKindLabel(
   t: TranslationFn,
 ): string {
   const labels: Record<string, string> = {
+    spouses: t('SourceDetail.worldCharacter.relationshipKind.spouses', { defaultValue: 'Spouses' }),
+    'co-creator-of': t('SourceDetail.worldCharacter.relationshipKind.coCreator', { defaultValue: 'Creative collaboration' }),
     kinship: t('SourceDetail.worldCharacter.relationshipKind.kinship', { defaultValue: 'Kinship' }),
     status: t('SourceDetail.worldCharacter.relationshipKind.status', { defaultValue: 'Status' }),
     postedToOffice: t('SourceDetail.worldCharacter.relationshipKind.office', { defaultValue: 'Office' }),
@@ -101,11 +103,6 @@ export function relationKindLabel(
 export function relationshipTheme(type: string | null): RelationshipTheme {
   return (type && Object.hasOwn(RELATIONSHIP_THEMES, type) ? RELATIONSHIP_THEMES[type] : undefined)
     ?? relationshipThemeFrom(STATUS_THEME_TOKENS.neutral, '3 4');
-}
-
-/** Theme for the "all relationships" filter, keyed to the primary accent. */
-export function allRelationshipsTheme(): RelationshipTheme {
-  return relationshipThemeFrom(STATUS_THEME_TOKENS.primary, '3 4');
 }
 
 export function milestoneKindLabel(

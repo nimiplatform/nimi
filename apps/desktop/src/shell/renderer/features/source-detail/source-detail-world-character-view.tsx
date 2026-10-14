@@ -15,7 +15,7 @@ import {
   worldCharacterHeroDescription,
   worldCharacterPrimaryActionLabel,
 } from './source-detail-world-character-labels.js';
-import { WorldCharacterRelationshipCluesSection } from './source-detail-world-character-relationship-map.js';
+import { WorldCharacterRelationshipCluesSection } from './source-detail-world-character-relationship-clues.js';
 import {
   milestoneKindLabel,
   milestoneTheme,

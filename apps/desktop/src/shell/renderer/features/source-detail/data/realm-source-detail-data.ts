@@ -10,6 +10,8 @@ import {
   type CharacterProfileCoreDto,
 } from '../../realm-source/character-source-profile-projection.js';
 import {
+  projectWorldPublicItem,
+  requireWorldPublicDetailDto,
   requireWorldPublicSourceCardDto,
   type WorldPublicSourceCardDto,
 } from '../../world/data/world-public-projection.js';
@@ -136,14 +138,31 @@ async function loadPublicSourceCard(
   return source;
 }
 
-function projectProfile(
+async function loadProfileProjection(
+  realm: Realm,
   profile: CharacterProfileCoreDto,
   source: WorldPublicSourceCardDto,
   runtimeSourceRef: string | null,
-): JsonObject {
+): Promise<JsonObject> {
   const projection = projectCharacterSourceProfile(profile, source);
+  // The source card carries character media only. Resolve the world's public
+  // banner when the character has no cover, using the same projection as World.
+  let worldBannerUrl: string | null = null;
+  if (!projection.profileCoverUrl) {
+    // An unavailable optional image must not hide a successfully loaded
+    // character. Validate successful replies outside the transport catch so
+    // malformed or mismatched public projections still fail closed.
+    const world = await realm.worldPublic.worldPublicControllerGetWorld({
+      path: { worldId: source.worldId },
+    }).then(value => ({ value })).catch(() => null);
+    if (world !== null) {
+      const banner = projectWorldPublicItem(requireWorldPublicDetailDto(world.value, source.worldId)).bannerUrl;
+      worldBannerUrl = typeof banner === 'string' ? banner : null;
+    }
+  }
   return {
     ...projection,
+    worldBannerUrl,
     runtimeSourceRef: projection.viewerRelation.runtimeSourceRef ?? runtimeSourceRef,
   } as unknown as JsonObject;
 }
@@ -170,7 +189,7 @@ async function loadRealmSourceDetailsBySourceRef(
     const publicSource = await loadPublicSourceCard(realm, sourceRef);
     return {
       id: persona.id,
-      ...projectProfile(persona.profile, publicSource, runtimeSourceRef),
+      ...await loadProfileProjection(realm, persona.profile, publicSource, runtimeSourceRef),
       createdAt: persona.createdAt,
       updatedAt: persona.updatedAt,
       visibility: persona.visibility,
@@ -205,7 +224,7 @@ async function loadRealmSourceDetailsBySourceRef(
   ]);
   return {
     id: character.id,
-    ...projectProfile(character.profile, publicSource, runtimeSourceRef),
+    ...await loadProfileProjection(realm, character.profile, publicSource, runtimeSourceRef),
     entityId,
     entityContentHash: toNonEmptyString(entity.contentHash),
     entity,

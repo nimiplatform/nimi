@@ -83,11 +83,10 @@
     "milestoneKind": {
       "biography": "Biography"
     },
-    "relationshipEyebrow": "Graph evidence",
     "relationshipTitle": "Relationship clues",
-    "relationshipSummary": "{{name}}'s relationship network centers on {{kinds}}.",
-    "relationshipAll": "All",
     "relationshipKind": {
+      "spouses": "Spouses",
+      "coCreator": "Creative collaboration",
       "kinship": "Kinship",
       "status": "Status",
       "office": "Office",
