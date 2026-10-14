@@ -2,6 +2,13 @@
 
 # Changelog
 
+## Unreleased
+
+Minor API addition: `NimiAppCommand` and `NimiMenubarCommand` accept optional
+`order` and `group` presentation hints. Lower order values appear first within
+a menu (default 50); adjacent differing groups receive a separator. Existing
+declarations remain valid. This requires a minor release under Kit's 0.x policy.
+
 ## 0.21.0 — 2026-10-13
 
 Standard App navigation and chrome add `core/navigation`, `core/app-commands`

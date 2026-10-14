@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ArrowLeft, ArrowRight, PanelLeft } from 'lucide-react';
 import { createNimiAppCommandSet, NIMI_APP_COMMAND_IDS, NIMI_APP_COMMAND_LABELS, type NimiAppCommand, type NimiAppMetadata, type NimiAppSidebar, type NimiStandardAppCommandId } from '@nimiplatform/kit/core/app-commands';
 import type { NimiDestination, NimiNavigationController, NimiNavigationResult } from '@nimiplatform/kit/core/navigation';
 import type { NimiChromeNativeCommand, NimiChromeState } from '@nimiplatform/kit/shell/capabilities';
@@ -24,6 +24,30 @@ const contentShortcuts: NimiChromeState['shortcuts'] = [
   { commandId: 'nimi.navigation.forward', keys: 'Alt+Right', owner: 'renderer' },
   { commandId: 'nimi.sidebar.toggle', keys: 'Ctrl+B', owner: 'renderer' },
 ];
+// Menu separators split the File panel into destination / window groups, the
+// Edit panel into history / clipboard / selection groups, the View panel into
+// panel / navigation / zoom / window groups, and the Help panel into
+// learn / product groups; ungrouped commands keep the list seamless.
+const menuGroup = (id: string): string | undefined => {
+  if (id.startsWith('nimi.file.')) return 'window';
+  if (id === 'nimi.edit.undo' || id === 'nimi.edit.redo') return 'history';
+  if (id.startsWith('nimi.edit.')) return id === 'nimi.edit.select-all' ? 'selection' : 'clipboard';
+  if (id === 'nimi.sidebar.toggle') return 'panel';
+  if (id.startsWith('nimi.navigation.')) return 'navigation';
+  if (id.startsWith('nimi.view.zoom-')) return 'zoom';
+  if (id === 'nimi.view.fullscreen') return 'window';
+  if (id === 'nimi.help.shortcuts') return 'learn';
+  if (id === 'nimi.help.about') return 'product';
+  return undefined;
+};
+// Within-menu presentation order; unset means the default middle rank.
+const standardMenuOrder: Partial<Record<NimiStandardAppCommandId, number>> = {
+  'nimi.file.close': 20, 'nimi.file.quit': 21,
+  'nimi.edit.undo': 10, 'nimi.edit.redo': 20, 'nimi.edit.cut': 30, 'nimi.edit.copy': 40, 'nimi.edit.paste': 50, 'nimi.edit.select-all': 60,
+  'nimi.sidebar.toggle': 10, 'nimi.navigation.back': 20, 'nimi.navigation.forward': 21,
+  'nimi.view.zoom-in': 30, 'nimi.view.zoom-out': 31, 'nimi.view.zoom-reset': 32, 'nimi.view.fullscreen': 40,
+  'nimi.help.shortcuts': 11, 'nimi.help.about': 90,
+};
 export type NimiAppChromeProps<D extends NimiDestination> = {
   readonly metadata: NimiAppMetadata;
   readonly navigation?: NimiNavigationController<D>;
@@ -117,12 +141,14 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
     observer.observe(header.current); return () => observer.disconnect();
   }, []);
   const appCommands = props.commands ?? emptyCommands;
-  const appSignature = JSON.stringify(appCommands.map(c => [c.id, c.label, c.menu, c.shortcut]));
+  const appSignature = JSON.stringify(appCommands.map(c => [c.id, c.label, c.menu, c.shortcut, c.order, c.group]));
   const shortcutSignature = JSON.stringify(capabilities?.shortcuts ?? contentShortcuts);
   const commandSet = useMemo(() => {
-    const label = (id: NimiStandardAppCommandId) => id === 'nimi.sidebar.toggle'
-      ? locale === 'zh' ? '侧栏' : 'Sidebar'
-      : NIMI_APP_COMMAND_LABELS[id][locale === 'zh' ? 1 : 0];
+    const label = (id: NimiStandardAppCommandId) => {
+      if (id === 'nimi.help.about') return `${locale === 'zh' ? '关于' : 'About'} ${props.metadata.name}`;
+      if (id === 'nimi.file.quit') return `${locale === 'zh' ? '退出' : 'Quit'} ${props.metadata.name}`;
+      return NIMI_APP_COMMAND_LABELS[id][locale === 'zh' ? 1 : 0];
+    };
     const nativeCommand = async (id: NimiStandardAppCommandId) => {
       const binding = active.current;
       if (!binding || binding.scope !== desired.current) throw new Error('Window chrome is not bound to this scope.');
@@ -133,6 +159,7 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
     const handleNavigationResult = (result: NimiNavigationResult) => { if (result.status === 'failed' || result.status === 'invalid') throw result.error; };
     const standard = NIMI_APP_COMMAND_IDS.map((id): NimiAppCommand => ({
       id, label: label(id), menu: id.includes('.edit.') ? 'edit' : id.includes('.file.') ? 'file' : id.includes('.help.') ? 'help' : 'view',
+      order: standardMenuOrder[id],
       shortcut: (capabilities?.shortcuts ?? contentShortcuts).find(shortcut => shortcut.commandId === id)?.keys,
       state: () => {
         const binding = active.current;
@@ -163,7 +190,7 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
       return state ? { ...state, enabled: state.enabled && (!needsHost || active.current?.scope === desired.current) } : { visible: false, enabled: false };
     }, execute: () => latest.current.commands?.find(c => c.id === command.id)?.execute() }));
     return createNimiAppCommandSet(standard, declared);
-  }, [scope, locale, appSignature, navigation, needsHost, editing, shortcutSignature]);
+  }, [scope, locale, appSignature, navigation, needsHost, editing, shortcutSignature, props.metadata.name]);
   useEffect(() => () => commandSet.dispose(), [commandSet]);
   const dispatch = (id: string) => {
     try {
@@ -175,7 +202,7 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
   dispatchRef.current = dispatch;
   const shortcuts = capabilities?.shortcuts ?? (needsHost ? [] : contentShortcuts);
   const menuCommands: NimiMenubarCommand[] = commandSet.commands.map(command => ({
-    id: command.id, label: command.label, menu: command.menu,
+    id: command.id, label: command.label, menu: command.menu, order: command.order, group: menuGroup(command.id) ?? command.group,
     shortcut: shortcuts.find(s => s.commandId === command.id)?.keys ?? command.shortcut,
     state: commandSet.state(command.id),
   }));
@@ -221,19 +248,19 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
     const label = id === 'nimi.sidebar.toggle' ? props.sidebar?.visible ? locale === 'zh' ? '隐藏侧栏' : 'Hide sidebar' : locale === 'zh' ? '显示侧栏' : 'Show sidebar' : command.label;
     return <Tooltip content={command.state.reason ?? `${label}${command.shortcut ? ` (${command.shortcut})` : ''}`} placement="bottom">
       <IconButton ref={id === 'nimi.sidebar.toggle' ? foldButton : undefined} size="sm" icon={icon} aria-label={label} aria-pressed={id === 'nimi.sidebar.toggle' ? command.state.checked : undefined}
-        disabled={!command.state.enabled || command.state.busy} onClick={() => dispatch(id)} />
+        className="text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
+        disabled={!command.state.enabled || command.state.busy} onClick={() => dispatch(id)} style={{ cursor: 'default' }} />
     </Tooltip>;
   };
   return <>
-    <header ref={header} className={`nimi-app-chrome flex h-[var(--nimi-space-9)] min-w-0 shrink-0 items-center gap-[var(--nimi-space-2)] border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-[var(--nimi-space-3)] text-[var(--nimi-text-secondary)]${capabilities?.windowDrag ? ' nimi-app-chrome--drag [-webkit-app-region:drag]' : ''}`} aria-label={props.metadata.name}
+    <header ref={header} className={`nimi-app-chrome flex h-[var(--nimi-space-9)] min-w-0 shrink-0 items-center gap-[var(--nimi-space-2)] border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-[var(--nimi-space-3)] text-[var(--nimi-text-muted)]${capabilities?.windowDrag ? ' nimi-app-chrome--drag [-webkit-app-region:drag]' : ''}`} aria-label={props.metadata.name}
       style={capabilities?.windowDrag ? { marginLeft: `env(titlebar-area-x, ${capabilities.geometry.left}px)`, width: `env(titlebar-area-width, calc(100% - ${capabilities.geometry.left + capabilities.geometry.right}px))`, height: `env(titlebar-area-height, ${capabilities.geometry.height}px)` } : undefined}>
       <div className="nimi-app-chrome__controls flex items-center gap-[var(--nimi-space-2)] [-webkit-app-region:no-drag]">
         {toolbar('nimi.navigation.back', <ArrowLeft size={16} />)}{toolbar('nimi.navigation.forward', <ArrowRight size={16} />)}
-        {toolbar('nimi.sidebar.toggle', props.sidebar?.visible ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />)}
+        {toolbar('nimi.sidebar.toggle', <PanelLeft size={16} />)}
       </div>
       {capabilities?.menuPlacement !== 'system' ? <NimiMenubar key={`${nav?.generation ?? 0}:${props.scopeKey ?? ''}`} commands={menuCommands} locale={locale} compact={compact} onExecute={dispatch} onCaptureSelection={() => editing.capture()}
         onRestoreEditFocus={() => { try { editing.restore(lastEdit.current); } catch { /* The command path already surfaced a stale target. */ } }} /> : null}
-      <span className="min-w-0 flex-1 truncate px-2 text-center text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{props.metadata.name}</span>
     </header>
     {error ? <div role="alert" className="px-3 py-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-danger)]">
       {locale === 'zh' ? '窗口操作未完成：' : 'Window action failed: '}{error instanceof Error ? error.message : String(error)}

@@ -168,13 +168,14 @@
     "nimi-app-chrome": {
       "backgroundColor": "{colors.surface-panel}",
       "height": "{spacing.9}",
-      "padding": "{spacing.3}",
-      "textColor": "{colors.secondary}"
+      "padding": "{spacing.3}"
     },
     "nimi-menubar-slot-item": {
       "padding": "{spacing.2}",
-      "rounded": "{rounded.sm}",
-      "textColor": "{colors.secondary}"
+      "rounded": "{rounded.sm}"
+    },
+    "nimi-menubar-slot-panel": {
+      "padding": "{spacing.1}"
     },
     "overlay-shell-kind-panel-drawer": {
       "rounded": "{rounded.xl}"
@@ -3126,6 +3127,10 @@
           {
             "id": "item",
             "className": "nimi-menubar__item"
+          },
+          {
+            "id": "separator",
+            "className": "nimi-menubar__separator"
           }
         ],
         "variants": {

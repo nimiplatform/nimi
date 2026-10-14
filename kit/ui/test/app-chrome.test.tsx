@@ -19,6 +19,24 @@ const key = async (target: Element, value: string, options: KeyboardEventInit = 
 const click = async (target: Element) => act(async () => { target.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 const button = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find(element => element.textContent?.trim() === label || element.getAttribute('aria-label') === label)!;
 
+it('updates command ordering and grouping on rerender and visibly projects checked state', async () => {
+  const render = (changed: boolean) => <NimiAppChrome metadata={{ name: 'Test', version: '1' }} commands={[
+    { id: 'test.first', label: 'First', menu: 'file', order: changed ? 90 : 10, group: changed ? 'other' : 'same', state: () => ({ enabled: true, visible: true, checked: changed }), execute() {} },
+    { id: 'test.second', label: 'Second', menu: 'file', order: 20, group: 'same', state: () => ({ enabled: true, visible: true }), execute() {} },
+  ]} />;
+  await mount(render(false));
+  await click(button('File'));
+  const items = () => [...document.querySelectorAll('[role="menu"] [data-nimi-command-id]')];
+  expect(items().map(item => item.getAttribute('data-nimi-command-id'))).toEqual(['test.first', 'test.second']);
+  expect(document.querySelector('[role="separator"]')).toBeNull();
+  expect(items()[0].textContent).not.toContain('✓');
+  await act(async () => root!.render(<TooltipProvider>{render(true)}</TooltipProvider>));
+  expect(items().map(item => item.getAttribute('data-nimi-command-id'))).toEqual(['test.second', 'test.first']);
+  expect(document.querySelector('[role="separator"]')).not.toBeNull();
+  expect(items()[1].getAttribute('aria-checked')).toBe('true');
+  expect(items()[1].textContent).toContain('✓');
+});
+
 it('Alt navigation works as a full press sequence from body and menu focus; Alt alone activates the menu', async () => {
   const navigation = createNimiNavigation({ initial: { id: 'a' }, validate: value => value as { id: string } });
   await navigation.push({ id: 'b' });
@@ -90,6 +108,36 @@ it('supports roving top focus, skips disabled items and returns focus on Escape'
   }
 });
 
+it('switches open menus on hover without opening idle menus or restoring the outgoing trigger focus', async () => {
+  const capture = vi.fn();
+  await mount(<NimiMenubar locale="en" compact={false} onExecute={() => undefined} onCaptureSelection={capture} onRestoreEditFocus={() => undefined} commands={[
+    { id: 'app.edit', label: 'Edit action', menu: 'edit', state: { enabled: true, visible: true } },
+    { id: 'app.view', label: 'View action', menu: 'view', state: { enabled: true, visible: true } },
+    { id: 'app.help', label: 'Help action', menu: 'help', state: { enabled: true, visible: true } },
+  ]} />);
+  const hover = async (label: string, pointerType = 'mouse') => act(async () => {
+    const event = new MouseEvent('pointerover', { bubbles: true });
+    Object.defineProperty(event, 'pointerType', { value: pointerType });
+    button(label).dispatchEvent(event);
+  });
+  await hover('View'); expect(button('View').getAttribute('aria-expanded')).toBe('false');
+  await click(button('Edit'));
+  await hover('View', 'touch'); expect(button('Edit').getAttribute('aria-expanded')).toBe('true');
+  await hover('View');
+  expect(button('Edit').getAttribute('aria-expanded')).toBe('false');
+  expect(button('View').getAttribute('aria-expanded')).toBe('true');
+  await vi.waitFor(() => expect(document.querySelector('[role="menu"][aria-label="Edit"]')).toBeNull());
+  expect(document.activeElement).toBe(button('View action'));
+  await hover('Help'); await hover('Edit');
+  await vi.waitFor(() => expect(document.querySelectorAll('[role="menu"]')).toHaveLength(1));
+  expect(document.activeElement).toBe(button('Edit action'));
+  expect(capture).toHaveBeenCalledTimes(1);
+  await key(button('Edit action'), 'Escape');
+  await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
+  expect(document.activeElement).toBe(button('Edit'));
+  await hover('View'); expect(button('View').getAttribute('aria-expanded')).toBe('false');
+});
+
 it('restores readonly input/document selections for copy and rejects stale/hidden targets', () => {
   document.body.innerHTML = '<input readonly value="Read only result"><div id="output">Selected result</div><button role="menuitem">Copy</button>';
   const input = document.querySelector('input')!; input.focus(); input.setSelectionRange(0, 4);
@@ -115,6 +163,26 @@ it('opens compact submenus with ArrowRight and returns to their parent with Arro
   expect(button('Menu').getAttribute('aria-expanded')).toBe('false');
   await click(button('Menu')); await key(button('File'), 'ArrowRight'); await key(button('Open'), 'Tab', { shiftKey: true });
   expect(button('Menu').getAttribute('aria-expanded')).toBe('false');
+});
+
+it('orders panel items by explicit order and separates only differing groups', async () => {
+  await mount(<NimiMenubar locale="en" compact={false} onExecute={() => undefined} onCaptureSelection={() => undefined} onRestoreEditFocus={() => undefined} commands={[
+    { id: 'app.late', label: 'Late', menu: 'view', order: 80, group: 'product', state: { enabled: true, visible: true } },
+    { id: 'app.first', label: 'First', menu: 'view', order: 10, group: 'learn', state: { enabled: true, visible: true } },
+    { id: 'app.second', label: 'Second', menu: 'view', order: 11, group: 'learn', state: { enabled: true, visible: true } },
+    { id: 'app.alpha', label: 'Alpha', menu: 'file', state: { enabled: true, visible: true } },
+    { id: 'app.beta', label: 'Beta', menu: 'file', state: { enabled: true, visible: true } },
+  ]} />);
+  await click(button('View'));
+  const viewMenu = document.querySelector('[role="menu"]')!;
+  expect([...viewMenu.querySelectorAll('[role="menuitem"]')].map(element => element.textContent)).toEqual(['First', 'Second', 'Late']);
+  expect(viewMenu.querySelectorAll('[role="separator"]')).toHaveLength(1);
+  await key(document.activeElement ?? document.body, 'Escape');
+  await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
+  await click(button('File'));
+  const fileMenu = document.querySelector('[role="menu"]')!;
+  expect([...fileMenu.querySelectorAll('[role="menuitem"]')].map(element => element.textContent)).toEqual(['Alpha', 'Beta']);
+  expect(fileMenu.querySelectorAll('[role="separator"]')).toHaveLength(0);
 });
 
 it.each([
@@ -182,4 +250,22 @@ it.each([false, true])('preserves Help dialog return focus and the original Edit
   expect(document.activeElement).toBe(input);
   expect([input.selectionStart, input.selectionEnd]).toEqual([2, 8]);
   expect(input.value).toBe('Original draft');
+});
+
+it('keeps the default arrow cursor on chrome controls and menu triggers', async () => {
+  const navigation = createNimiNavigation({ initial: { id: 'a' }, validate: value => value as { id: string } });
+  await navigation.push({ id: 'b' });
+  await mount(<NimiAppChrome metadata={{ name: 'Test', version: '1' }} navigation={navigation}
+    sidebar={{ visible: true, onVisibleChange() {} }} />);
+  expect(button('Back').style.cursor).toBe('default');
+  expect(button('Forward').style.cursor).toBe('default');
+  expect(button('Hide sidebar').style.cursor).toBe('default');
+  // A disabled chrome control is hover-wrapped by its tooltip; the wrapper is
+  // the actual hover surface and must keep the same arrow cursor.
+  const wrapper = document.querySelector('span[role="button"][aria-label="Forward"]');
+  expect(wrapper).not.toBeNull();
+  expect((wrapper as HTMLElement).style.cursor).toBe('default');
+  for (const trigger of document.querySelectorAll<HTMLButtonElement>('[data-nimi-menu-trigger]')) {
+    expect(trigger.style.cursor).toBe('default');
+  }
 });

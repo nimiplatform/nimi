@@ -1,6 +1,6 @@
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-app-chrome
 export const NIMI_APP_COMMAND_IDS = [
-  'nimi.navigation.back', 'nimi.navigation.forward', 'nimi.sidebar.toggle',
+  'nimi.sidebar.toggle', 'nimi.navigation.back', 'nimi.navigation.forward',
   'nimi.edit.undo', 'nimi.edit.redo', 'nimi.edit.cut', 'nimi.edit.copy',
   'nimi.edit.paste', 'nimi.edit.select-all',
   'nimi.view.zoom-in', 'nimi.view.zoom-out', 'nimi.view.zoom-reset', 'nimi.view.fullscreen',
@@ -8,13 +8,13 @@ export const NIMI_APP_COMMAND_IDS = [
 ] as const;
 export type NimiStandardAppCommandId = typeof NIMI_APP_COMMAND_IDS[number];
 export const NIMI_APP_COMMAND_LABELS: Record<NimiStandardAppCommandId, readonly [string, string]> = {
-  'nimi.navigation.back': ['Back', '后退'], 'nimi.navigation.forward': ['Forward', '前进'],
-  'nimi.sidebar.toggle': ['Show sidebar', '显示侧栏'],
+  'nimi.navigation.back': ['Back', '返回'], 'nimi.navigation.forward': ['Forward', '前进'],
+  'nimi.sidebar.toggle': ['Toggle Sidebar', '显示/隐藏侧边栏'],
   'nimi.edit.undo': ['Undo', '撤销'], 'nimi.edit.redo': ['Redo', '重做'],
   'nimi.edit.cut': ['Cut', '剪切'], 'nimi.edit.copy': ['Copy', '复制'],
   'nimi.edit.paste': ['Paste', '粘贴'], 'nimi.edit.select-all': ['Select all', '全选'],
   'nimi.view.zoom-in': ['Zoom in', '放大'], 'nimi.view.zoom-out': ['Zoom out', '缩小'],
-  'nimi.view.zoom-reset': ['Actual size', '实际大小'], 'nimi.view.fullscreen': ['Full screen', '全屏'],
+  'nimi.view.zoom-reset': ['Actual size', '实际大小'], 'nimi.view.fullscreen': ['Toggle Full Screen', '切换全屏'],
   'nimi.file.close': ['Close window', '关闭窗口'], 'nimi.file.quit': ['Quit', '退出应用'],
   'nimi.help.shortcuts': ['Keyboard shortcuts', '快捷键说明'], 'nimi.help.about': ['About', '关于'],
 };
@@ -31,6 +31,10 @@ export type NimiAppCommand = {
   readonly label: string;
   readonly menu: NimiAppMenu;
   readonly shortcut?: string;
+  /** Presentation hint: lower values sort earlier within the same menu panel. */
+  readonly order?: number;
+  /** Presentation hint: adjacent items with different groups are split by a separator. */
+  readonly group?: string;
   readonly state: () => NimiAppCommandState;
   readonly execute: () => void | Promise<void>;
 };

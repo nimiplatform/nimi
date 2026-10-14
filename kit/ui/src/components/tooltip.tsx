@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
@@ -99,6 +100,7 @@ function MotionTooltipBubble({
 
 type TooltipTriggerElementProps = {
   className?: string;
+  style?: CSSProperties;
   tabIndex?: number;
   href?: string;
   disabled?: boolean;
@@ -109,6 +111,8 @@ type TooltipTriggerElementProps = {
 function tooltipTriggerChild(children: ReactNode, className?: string) {
   if (React.isValidElement<TooltipTriggerElementProps>(children) && children.type !== React.Fragment) {
     if (children.props.disabled === true) {
+      // The wrapper span replaces the disabled child as the hover/focus
+      // surface, so it carries the child's cursor intent.
       return (
         <span
           tabIndex={0}
@@ -117,6 +121,7 @@ function tooltipTriggerChild(children: ReactNode, className?: string) {
           aria-label={children.props['aria-label']}
           aria-labelledby={children.props['aria-labelledby']}
           className={cn('inline-flex items-center justify-center', FOCUS_RING_CLASS_NAME, className)}
+          style={{ cursor: children.props.style?.cursor }}
         >
           {React.cloneElement(children, {
             className: cn('pointer-events-none', children.props.className),

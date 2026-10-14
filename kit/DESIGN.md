@@ -137,11 +137,11 @@ components:
     backgroundColor: "{colors.surface-panel}"
     height: "{spacing.9}"
     padding: "{spacing.3}"
-    textColor: "{colors.secondary}"
   nimi-menubar-slot-item:
     padding: "{spacing.2}"
     rounded: "{rounded.sm}"
-    textColor: "{colors.secondary}"
+  nimi-menubar-slot-panel:
+    padding: "{spacing.1}"
   overlay-shell-kind-panel-drawer:
     rounded: "{rounded.xl}"
   overlay-shell-slot-backdrop:
@@ -381,8 +381,9 @@ Official component token aliases:
 - `button-state-hover-primary`: backgroundColor `{colors.primary-hover}`.
 - `button-tone-ghost`: textColor `{colors.secondary}`.
 - `button-tone-primary`: backgroundColor `{colors.primary}`, textColor `{colors.on-primary}`.
-- `nimi-app-chrome`: backgroundColor `{colors.surface-panel}`, height `{spacing.9}`, padding `{spacing.3}`, textColor `{colors.secondary}`.
-- `nimi-menubar-slot-item`: padding `{spacing.2}`, rounded `{rounded.sm}`, textColor `{colors.secondary}`.
+- `nimi-app-chrome`: backgroundColor `{colors.surface-panel}`, height `{spacing.9}`, padding `{spacing.3}`.
+- `nimi-menubar-slot-item`: padding `{spacing.2}`, rounded `{rounded.sm}`.
+- `nimi-menubar-slot-panel`: padding `{spacing.1}`.
 - `overlay-shell-kind-panel-drawer`: rounded `{rounded.xl}`.
 - `overlay-shell-slot-backdrop`: padding `{spacing.5}`.
 - `overlay-shell-slot-content`: padding `{spacing.5}`.

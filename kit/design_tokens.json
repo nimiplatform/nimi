@@ -326,10 +326,6 @@
       "padding": {
         "$type": "string",
         "$value": "{spacing.3}"
-      },
-      "textColor": {
-        "$type": "string",
-        "$value": "{colors.secondary}"
       }
     },
     "nimi-menubar-slot-item": {
@@ -340,10 +336,12 @@
       "rounded": {
         "$type": "string",
         "$value": "{rounded.sm}"
-      },
-      "textColor": {
+      }
+    },
+    "nimi-menubar-slot-panel": {
+      "padding": {
         "$type": "string",
-        "$value": "{colors.secondary}"
+        "$value": "{spacing.1}"
       }
     },
     "overlay-shell-kind-panel-drawer": {
