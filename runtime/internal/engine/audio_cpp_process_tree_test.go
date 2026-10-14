@@ -7,8 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +14,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 func TestAudioCppCancellationWaitsForOwnedProcessTree(t *testing.T) {
@@ -99,7 +100,12 @@ func TestAudioCppProcessTreeProbe(t *testing.T) {
 			// Cancellation kills this fixture process; Wait still reaps it.
 			go func() { _ = child.Wait() }()
 		}
-		if err := os.WriteFile(filepath.Join(root, name), []byte(fmt.Sprint(os.Getpid())), 0600); err != nil {
+		// Readers treat the final path as ready; publish only after the PID is complete.
+		pendingPath := filepath.Join(root, name+".tmp")
+		if err := os.WriteFile(pendingPath, []byte(fmt.Sprint(os.Getpid())), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Rename(pendingPath, filepath.Join(root, name)); err != nil {
 			t.Fatal(err)
 		}
 		for {
