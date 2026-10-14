@@ -43,6 +43,7 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { GlobalDownloadsNavigation } from '../../features/runtime-config/global-downloads-view.js';
 import { ProductUpdateNotice } from '../../features/home/product-update-notice.js';
+import { useProductUpdate } from '../../features/home/product-update-context.js';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(
@@ -71,6 +72,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
+  const { homeReady } = useProductUpdate();
+  useEffect(homeReady, [homeReady]);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
 
@@ -324,6 +327,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </ScrollArea>
             </nav>
             <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
+              <ProductUpdateNotice />
               <GlobalDownloadsNavigation onOpen={() => props.onNav('downloads')} />
               <Tooltip
                 content={t('Navigation.notifications')}
@@ -394,7 +398,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <OfflineShellStrip />
-          <ProductUpdateNotice />
           <NimiToaster />
 
           <MainLayoutPanelStack

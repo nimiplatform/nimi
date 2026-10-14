@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React, { act } from 'react';
+import React, { act, useEffect } from 'react';
 import { JSDOM } from 'jsdom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createInstance } from 'i18next';
@@ -10,7 +10,7 @@ import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/b
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 import type { ProductUpdateStatus } from '../src/shell/shared/product-update.js';
 
-test('Home requires ready capability and explicit task-impact confirmation; deferral and changed candidate do not install', async () => {
+test('Home update UI preserves consent and recovery, and acknowledges current and completed results with OK', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true });
   const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement,
     HTMLInputElement: dom.window.HTMLInputElement, HTMLTextAreaElement: dom.window.HTMLTextAreaElement,
@@ -34,30 +34,40 @@ test('Home requires ready capability and explicit task-impact confirmation; defe
   const i18n = createInstance(); await i18n.init({ lng: 'en', resources: { en: { translation: { ProductUpdate: messages } } } });
   const { createRoot } = await import('react-dom/client');
   const { ProductUpdateNotice } = await import('../src/shell/renderer/features/home/product-update-notice.js');
+  const { ProductUpdateProvider, useProductUpdate } = await import('../src/shell/renderer/features/home/product-update-context.js');
+  const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+  function UpdateControls() {
+    const update = useProductUpdate();
+    useEffect(update.homeReady, [update.homeReady]);
+    return <><button disabled={!update.checkAvailable} onClick={() => { void update.check(); }}>Check from Help</button><ProductUpdateNotice /></>;
+  }
   const root = createRoot(dom.window.document.getElementById('root')!);
   const button = (text: string, dialog = false) => {
-    const scope = dialog ? dom.window.document.querySelector('[role="dialog"]')! : dom.window.document;
-    const found = [...scope.querySelectorAll<HTMLButtonElement>('button')].find((item) => item.textContent === text);
+    const found = [...dom.window.document.querySelectorAll<HTMLButtonElement>(dialog ? '[role="dialog"] button' : 'button')].find((item) => item.textContent === text || item.getAttribute('aria-label') === text);
     assert.ok(found, `button missing: ${text}`); return found;
   };
   try {
-    await act(async () => root.render(<I18nextProvider i18n={i18n}><QueryClientProvider client={client}><DesktopRendererBindingProvider bindings={bindings}><ProductUpdateNotice /></DesktopRendererBindingProvider></QueryClientProvider></I18nextProvider>));
+    await act(async () => root.render(<I18nextProvider i18n={i18n}><QueryClientProvider client={client}><DesktopRendererBindingProvider bindings={bindings}><TooltipProvider><ProductUpdateProvider><UpdateControls /></ProductUpdateProvider></TooltipProvider></DesktopRendererBindingProvider></QueryClientProvider></I18nextProvider>));
     assert.ok(![...dom.window.document.querySelectorAll('button')].some((item) => item.textContent === messages.restart));
+    await act(async () => button(messages.update).click());
+    assert.match(dom.window.document.body.textContent ?? '', /Installation is not available/);
+    await act(async () => button('OK', true).click());
     status = { ...status, installationAvailable: true };
     await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 0)); });
-    await act(async () => button(messages.restart).click());
+    await act(async () => button(messages.update).click());
     assert.match(dom.window.document.body.textContent ?? '', /Running apps and tasks will stop/); assert.deepEqual(installs, []);
     await act(async () => button(messages.later, true).click()); assert.deepEqual(installs, []);
-    await act(async () => button(messages.restart).click());
+    await act(async () => button(messages.update).click());
     status = { ...status, releaseId: 'nimi/v0.4.0', candidateVersion: '0.4.0' };
     await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 0)); });
     await act(async () => button(messages.restart, true).click()); assert.deepEqual(installs, []);
-    await act(async () => button(messages.restart).click());
+    await act(async () => button(messages.update).click());
     await act(async () => button(messages.restart, true).click()); assert.deepEqual(installs, ['nimi/v0.4.0']);
     status = { ...status, phase: 'failed', reason: 'UPDATE_HANDOFF_FAILED', installationAvailable: false,
       checkAvailable: false, recoveryAction: 'reopen-current' };
     await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 0)); });
     assert.ok(![...dom.window.document.querySelectorAll('button')].some((item) => item.textContent === messages.check));
+    await act(async () => button(messages.update).click());
     await act(async () => { button(messages.reopen).click(); await new Promise((resolve) => setTimeout(resolve, 0)); }); assert.equal(reopens, 1);
     const alertDeadline = Date.now() + 1_000;
     while (!(dom.window.document.body.textContent ?? '').includes('could not stop safely') && Date.now() < alertDeadline) {
@@ -65,6 +75,24 @@ test('Home requires ready capability and explicit task-impact confirmation; defe
     }
     assert.match(dom.window.document.body.textContent ?? '', /could not stop safely/);
     assert.match(dom.window.document.body.textContent ?? '', /installer handoff failed/);
+    await act(async () => button('OK', true).click());
+    status = { ...status, phase: 'current', reason: null, checkAvailable: true, recoveryAction: 'none', recoveryError: null };
+    await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 10)); });
+    assert.equal(dom.window.document.querySelector('[data-testid="nimi-product-update"]'), null);
+    await act(async () => button('Check from Help').click());
+    assert.match(dom.window.document.body.textContent ?? '', /You’re up to date/);
+    assert.equal(dom.window.document.querySelector('[data-testid="product-update-dialog"]')?.querySelectorAll('button').length, 1);
+    await act(async () => button('OK', true).click());
+    status = { ...status, phase: 'awaiting-activation', checkAvailable: false };
+    await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 10)); });
+    assert.ok(!(dom.window.document.body.textContent ?? '').includes(messages.completedTitle));
+    status = { ...status, phase: 'completed', currentVersion: '0.4.0', checkAvailable: true };
+    await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 10)); });
+    assert.match(dom.window.document.body.textContent ?? '', /Nimi has been updated to the latest version/);
+    assert.equal(dom.window.document.querySelector('[data-testid="nimi-product-update"]'), null);
+    await act(async () => button('OK', true).click());
+    await act(async () => { client.setQueryData(['nimi-product-update'], { ...status }); await new Promise((resolve) => setTimeout(resolve, 1_000)); });
+    assert.equal(dom.window.document.querySelector('[data-testid="product-update-dialog"]'), null);
   } finally {
     await act(async () => root.unmount()); client.clear(); await new Promise((resolve) => setTimeout(resolve, 0)); dom.window.close();
     for (const [key, descriptor] of original) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
