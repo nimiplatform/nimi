@@ -46,14 +46,22 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create \
 cd my-editor-app
 pnpm install
 pnpm run init
+pnpm run sync
+pnpm run check
 pnpm dev
 ```
+
+Set `--author` to the person or team responsible for the App and its license.
 
 ### Feature Profiles
 - `--features studio-create`: Injects creative text and multimodal generation capabilities along with `runtime.consume` permissions.
 - `--features studio-media`: Includes music, audio separation, and speech transcription capabilities.
 
+<a id="local-development-packages"></a>
+
 ### Dependencies & Existing Projects
+
+Standalone third-party Apps must declare public npm and Cargo dependency versions. Use published packages, or override them for local development with the complete archives described below—never point dependencies at a Nimi source checkout.
 
 - **SDK and Kit Version Alignment**: Keep the SDK/Kit version combination declared by your selected App Tools release and its lockfile (`sync` preserves supported existing combinations and rejects unlisted ones). This checkout's `0.13.0` candidate defaults to SDK `0.21.0` and Kit/native `0.21.0`—note that a version in a source manifest is not proof of npm publication.
 - **Testing Local Tarballs**: During local development, you can select complete `.tgz` archives via `pnpm-workspace.yaml` overrides, including Kit's matching optional native package. Re-run `pnpm install` whenever you change an archive. For local acceptance, run ordinary `check` and `build`, followed by `pack --production` to inspect the actual payload (`check --production` requires dependencies resolved from the public registry).
@@ -98,6 +106,10 @@ Before publishing publicly, verify the `.nimiapp` package on your own machine:
 1. Open Nimi Home.
 2. Go to **Apps → Add App → Import local package**.
 3. Select your `.nimiapp` file and verify installation, launch, and AI workflows.
+
+Exercise the actual install, launch, and key user flows on each supported target. Passing tests or packaging alone is not enough—mark any path you have not run as `NOT-VERIFIED`.
+
+Simulator integration is retired. Use Desktop-supervised Electron for App development and acceptance.
 
 ---
 

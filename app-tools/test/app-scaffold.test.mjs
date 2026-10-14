@@ -1149,11 +1149,11 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }
   assert.match(readme, /author.*person.*team/isu);
-  assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency version declarations/iu);
-  assert.match(readme, /Complete local npm tarballs are supported development resolutions/u);
-  assert.match(readme, /Source-workspace paths[\s\S]*remain outside the standalone dependency boundary/u);
+  assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency versions/iu);
+  assert.match(readme, /complete `\.tgz` archives via `pnpm-workspace.yaml` overrides/u);
+  assert.match(readme, /never point dependencies at a Nimi source checkout/u);
   assert.match(starterReadme, /App-owned product code/u);
-  assert.match(starterReadme, /publisher may sign[\s\S]*explicit unsigned posture/iu);
+  assert.match(starterReadme, /publishers? may sign[\s\S]*explicit unsigned posture/iu);
   assert.doesNotMatch(starterReadme, /WINDOWS_CERTIFICATE_BASE64|WINDOWS_CERTIFICATE_PASSWORD|publisher PFX/iu);
   assert.match(starterAgents, /create -> dependency install -> init -> sync -> check -> dev\/test\/build -> pack/u);
   for (const content of [readme, starterReadme]) {
@@ -1161,13 +1161,13 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     const initAt = content.indexOf('pnpm run init');
     const syncAt = content.indexOf('pnpm run sync');
     const checkAt = content.indexOf('pnpm run check');
-    const buildAt = content.indexOf('pnpm run app:build');
+    const buildAt = content.search(/pnpm (?:run app:build|exec nimi-app build)/u);
     const devAt = content.indexOf('pnpm dev');
     assert.ok(installAt > -1 && installAt < initAt, 'install must be documented before init');
     assert.ok(initAt < syncAt, 'init must be documented before sync');
     assert.ok(syncAt < checkAt, 'sync must be documented before check');
     assert.ok(checkAt < buildAt, 'check must be documented before build');
-    assert.ok(buildAt < devAt, 'build must be documented before dev');
+    assert.ok(checkAt < devAt, 'check must be documented before dev');
   }
 });
 

@@ -81,7 +81,8 @@ it('supports roving top focus, skips disabled items and returns focus on Escape'
   expect(document.activeElement).toBe(button('First'));
   await key(button('First'), 'ArrowDown'); expect(document.activeElement).toBe(button('Last'));
   await key(button('Last'), 'Escape'); expect(document.activeElement).toBe(button('View'));
-  expect(document.querySelector('[role="menu"]')?.closest('[data-state]')?.getAttribute('data-state')).toBe('closed');
+  expect(button('View').getAttribute('aria-expanded')).toBe('false');
+  await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
   for (const shiftKey of [false, true]) {
     await key(button('View'), 'ArrowDown');
     await key(button('First'), 'Tab', { shiftKey });

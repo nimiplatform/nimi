@@ -162,7 +162,7 @@ describe('AppConversationEntry', () => {
     });
     await flush();
 
-    expect(container.textContent).toContain('请明确选择当前 Agent');
+    expect(container.textContent).toContain('请先选择当前 Agent，打开它的对话。');
     expect(container.textContent).toContain('打开对话');
     expect(harness.calls.some((call) => call.method === 'open')).toBe(false);
 
