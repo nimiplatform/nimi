@@ -37,7 +37,7 @@
     },
     {
       "path": "README.md",
-      "class": "scaffold-managed glue"
+      "class": "app-owned product code"
     },
     {
       "path": "scripts/validate.mjs",
@@ -45,7 +45,7 @@
     },
     {
       "path": "SECURITY.md",
-      "class": "scaffold-managed glue"
+      "class": "app-owned product code"
     },
     {
       "path": "src-tauri/build.rs",

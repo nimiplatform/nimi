@@ -46,7 +46,7 @@ export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
 export const SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH = 'licenses/nimi-app-template.txt';
 // Files that earlier scaffold versions managed and that now belong to the App.
 // Sync records the new owner and leaves the existing file exactly as it is.
-export const SCAFFOLD_APP_OWNED_HANDOVER_PATHS = Object.freeze(['LICENSE']);
+export const SCAFFOLD_APP_OWNED_HANDOVER_PATHS = Object.freeze(['LICENSE', 'README.md', 'SECURITY.md']);
 const TEMPLATE_LICENSE_COPYRIGHT_LINE = /^Copyright \(c\) (\d{4}) \S.*$/gmu;
 const TEMPLATE_LICENSE_NOTICE_HEADER = [
   'Nimi App template notice',
