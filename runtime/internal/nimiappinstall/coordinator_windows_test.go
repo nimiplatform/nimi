@@ -462,20 +462,27 @@ func (registry pausedLaunchRegistry) RevalidateInstalled(ctx context.Context, se
 }
 
 func TestInstalledLaunchRechecksUninstallAfterSlowRegistryWithoutHoldingMutationLock(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 	coordinator, client, _, _ := newInstallFixture(t, false)
-	installed, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	installed, err := coordinator.Install(t.Context(), resolveInstallFixture(t, client))
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Measure the coordination under test, not fixture creation and installation.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
 	paused := pausedLaunchRegistry{registryResolver: coordinator.registry, entered: make(chan struct{}), resume: make(chan struct{})}
 	coordinator.registry = paused
 	done := make(chan error, 1)
 	go func() {
 		done <- coordinator.WithInstalledLaunch(ctx, installed.Registration.RegistrationHandle, func(InstalledLaunch) error { return errors.New("launch must not bind after uninstall reservation") })
 	}()
-	<-paused.entered
+	select {
+	case <-paused.entered:
+	case err := <-done:
+		t.Fatalf("launch returned before reaching Registry: %v", err)
+	case <-ctx.Done():
+		t.Fatal("launch did not reach Registry before the coordination deadline")
+	}
 	reserved := make(chan error, 1)
 	go func() {
 		_, err := coordinator.StartUninstall(ctx, installed.Registration.RegistrationHandle)
