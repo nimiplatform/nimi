@@ -43,10 +43,10 @@ The Runtime daemon enters a stopping state or restarts, causing the SDK transpor
 
 ## Architectural Boundaries
 
-- Retries must never be used to mask schema, decoding, or contract failures.
-- Structured reason codes must never be discarded during error translation.
-- Authentication refreshes cannot be abused to circumvent data validation errors.
-- Real failures must be propagated faithfully without pseudo-success.
+- **Retries never cross boundary layers**: Automatic retries may handle transient transport failures only when the operation’s retry policy permits replay; they must never be used to mask schema, decoding, or contract failures.
+- **Preserve structured error context**: Structured reason codes and diagnostic metadata must never be discarded or swallowed during error translation.
+- **Authentication recovery is scope-limited**: Token refreshes recover authentication sessions; they cannot be abused to circumvent data validation errors.
+- **Faithful failure propagation**: Real failures must be surfaced transparently without synthesizing mock data or faking successful outcomes.
 
 ## Source Basis
 

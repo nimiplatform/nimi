@@ -16,8 +16,8 @@ External services can propose structured actions, but they cannot bypass session
 ## Fault Isolation and Resilience
 
 To ensure core system stability:
-- If an external tool or provider goes offline, Runtime isolates the error to that specific call, returning a structured unavailable status without degrading the agent's baseline conversation capabilities.
-- **Open Standards (MCP)**: Integrates with open specifications such as the Model Context Protocol (MCP) to map heterogeneous external tools into standardized, auditable platform actions.
+- **Failure Containment**: If an external tool or provider goes offline, Runtime isolates the error to that specific call, returning a structured unavailable status without degrading the agent's baseline conversation capabilities.
+- **Open Standards (MCP)**: Supports open specifications such as the Model Context Protocol (MCP) to map heterogeneous external tools into standardized, auditable platform actions.
 
 ## Source Basis
 

@@ -1,37 +1,37 @@
 # Cross-Domain Product Stories
 
-These end-to-end scenarios demonstrate how subsystem ownership boundaries compose across real product workflows.
+These end-to-end scenarios show how subsystem boundaries work together in real product flows.
 
-## Scenario 1: Creating a Character and Executing a LocalAgent
+## Scenario 1: Creating a Character and Running a LocalAgent
 
-1. **Character Selection**: The user creates or selects a Character within a Realm-owned product surface.
-2. **Source Generation**: Realm issues the formal Character Source definition.
+1. **Character Selection**: The user creates or selects a Character in a Realm-backed surface.
+2. **Source Generation**: Realm issues the structured Character Source definition.
 3. **Local Instantiation**: Runtime instantiates an account-scoped LocalAgent from that definition on the user's machine.
-4. **Authorized Projection**: Nimi Home or an independent App receives only the authorized LocalAgent projection via the SDK.
-5. **Private State Isolation**: Runtime encapsulates conversation sessions, memory routing, inference loadouts, readiness states, and provider credentials within its secure boundary.
+4. **Authorized Projection**: Nimi Home or an app receives only the authorized LocalAgent projection through the SDK.
+5. **Private State Isolation**: Runtime keeps conversation sessions, Cognition-backed memory routing, inference loadouts, readiness state, and provider credentials inside its own boundary.
 
-The product host does not mint character identities, and Realm does not execute the LocalAgent's local inference turns.
+The host surface never mints character identities, and Realm never executes the LocalAgent's local inference turns.
 
-## Scenario 2: Continuing Conversations Across Multiple Surfaces
+## Scenario 2: Continuing a Conversation Across Surfaces
 
-1. **Session Creation**: Runtime opens a Conversation and yields an explicit, unique Conversation Anchor.
-2. **Multi-Surface Rendering**: Desktop shell renders committed turns and manages local ephemeral UI states.
-3. **Embodiment Attachment**: Avatar binds a visual 2D/3D character model to that same authorized Conversation Anchor.
-4. **Single Source of Truth**: Runtime remains the sole continuity authority; neither UI surface copies local chat logs to forge recovery state.
+1. **Session Creation**: Runtime opens a conversation and returns an explicit, unique Conversation Anchor.
+2. **Multi-Surface Rendering**: The Desktop host renders committed turns and manages lightweight local UI state.
+3. **Embodiment Attachment**: Avatar binds a 2D or 3D character model to the same authorized Conversation Anchor.
+4. **Single Continuity Authority**: Runtime remains the sole source of truth for conversation continuity; neither surface copies local chat logs to fabricate recovery state.
 
-Renderer gaze tracking and physical motions remain managed locally by Avatar; dialogue text, speech synthesis, and presentation timing remain Runtime projections.
+Avatar manages gaze tracking and physical motion locally, while Runtime projects dialogue text, speech synthesis, and presentation timing.
 
 ## Scenario 3: Launching a Scaffolded Application
 
-1. **Protected Launch**: Nimi Home initializes the application through a local protected launch sequence.
-2. **Intent Submission**: The application submits typed intents and the active session-scoped `agentHandle` through the standard SDK.
-3. **Session Verification**: Runtime derives the user account, application identity, authorization scopes, and permissions directly from the secure session.
-4. **Least-Privilege Return**: The application receives a validated, typed result—never receiving Realm JWTs, provider API keys, internal Runtime tokens, or account-wide agent rosters.
+1. **Protected Launch**: Nimi Home starts the application through a local protected launch sequence.
+2. **Intent Submission**: The application submits typed operations and the session-scoped `agentHandle` through accepted SDK APIs.
+3. **Session Verification**: Runtime derives the user account, application identity, and allowed operations directly from the protected host session.
+4. **Least-Privilege Return**: The application receives a validated, typed result—never Realm JWTs, provider API keys, internal Runtime tokens, or account-wide agent rosters.
 
-Direct SDK usage and scaffolded standalone apps adhere to the same underlying architectural contract. Subsystem integration rules represent platform invariants rather than user-selectable options.
+Direct SDK integrations and scaffolded standalone apps follow the same architectural contract. These boundary rules are platform invariants, not user-toggled settings.
 
 > [!NOTE]
-> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
+> Long-term memory is isolated per agent in Cognition and accessed through Runtime. `Knowledge V1` currently has no active public client interface.
 
 ## Source Basis
 

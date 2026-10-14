@@ -1,32 +1,20 @@
-# Local Audit and Security Logging Architecture
+# Local Audit and Security Logs
 
-Runtime maintains a structured local security audit ledger covering every AI model invocation, authorization decision, inter-app collaboration event, and external agent action. The audit ledger is persisted securely on the user's local device, upholding local-first privacy and user autonomy.
+Use Runtime’s audit records to trace a failed request, understand an access refusal, or inspect a lifecycle change. Records carry the owning operation’s result, correlation and time; an audit entry does not itself prove that a product journey succeeded.
 
-## Scope of Local Auditing
+## What the Records Contain
 
-| Event Family | Example Captured Data | Operational Value |
-| --- | --- | --- |
-| **AI Inference Lifecycle** | Task submission, execution milestones, terminal success or failure | Diagnostic tracking of latency and runtime health |
-| **Model Routing & Selection** | Local engine assignments, cloud connector routing, parameter snapshots | Reproducibility of inference configurations |
-| **Authorization Decisions** | Token validation results, scope evaluations, capability gating | Security verification and boundary enforcement |
-| **Delegated Tool Calls** | Proposed action payloads, output firewall verdicts, user approvals | End-to-end provenance for agent behaviors |
-| **Memory Operations** | Memory consolidation entries, semantic recall logs, reset events | Auditing cognitive state and memory evolution |
+Runtime records security-relevant authentication, authorization, execution, lifecycle and resource facts. Diagnostic projections are bounded and redacted: credentials, session proofs, raw private content and provider secrets do not belong in them.
 
-Each audit entry records structured lineage (including Trace ID and Principal ID) and precise timestamps, persisting durably across Runtime restarts within local retention bounds.
+Records are retained locally under count and encoded-size limits. Oldest records are evicted when those bounds are reached, and repeated identical refusals can share a counted record. Audit storage is not a permanent, exhaustive history of everything an App has done.
 
-## Local-First Design Principles
+## Investigate a Failed Request
 
-1. **User Data Ownership**: Audit data resides by default in protected local SQLite storage managed by Runtime and is never uploaded without explicit consent.
-2. **Offline Resilience**: Operates deterministically without network connectivity, capturing complete operational telemetry in air-gapped setups.
-3. **Optional Cloud Aggregation**: In enterprise or synchronized environments, users can enable telemetry export to stream sanitized aggregate metrics to Realm.
+1. Keep the returned reason code, action hint and Trace ID when present.
+2. Use the available Runtime diagnostics to locate the matching operation and its actual outcome.
+3. For a Job, inspect the original Job ID before deciding whether another submission is safe. A missing audit row does not prove that an external action never happened.
 
-## Diagnostic Scenario: Reconstructing a Failed Inference Request
-
-When an application encounters an unexpected inference failure, developers can reconstruct the root cause using the Trace ID:
-
-1. **Locate Trace ID**: Copy the Trace ID provided in the UI error bubble or client logs.
-2. **Inspect Job Lifecycle**: Trace the lifecycle progression (`SUBMITTED → RUNNING → FAILED`).
-3. **Pinpoint Root Cause**: The audit record captures the provider lineage, routed engine/endpoint information, and the exact error code returned (such as context window limits or timeout), eliminating guesswork.
+Authorized audit export produces bounded diagnostic output; it does not imply automatic cloud aggregation or a Realm telemetry upload service. Handle exported records according to the information they actually contain.
 
 ## Source Basis
 

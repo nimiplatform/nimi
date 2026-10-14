@@ -10,7 +10,7 @@ export const jevSearchMessagesZh = {
   'jevSearch.results.item2.title': '异步 Rust：任务、Future 与运行时',
   'jevSearch.results.item2.description': '帮助理解异步 Rust 程序执行方式的示例阅读清单。',
   'jevSearch.results.item3.title': '构建异步服务的经验',
-  'jevSearch.results.item3.description': '关于调度、取消与并发代码可理解性的示例笔记。',
+  'jevSearch.results.item3.description': "关于任务调度、取消机制与并发代码可读性的示例笔记。",
   'jevSearch.notice': '静态产品预览 · 搜索结果和相关性评分均为示例，不发送搜索或 AI 请求。',
   'jevSearch.workspace.pastMonth': '过去一个月',
   'jevSearch.searchHeader.jev': 'Jev ',
@@ -18,7 +18,7 @@ export const jevSearchMessagesZh = {
   'jevSearch.searchHeader.searchSettings': '搜索设置',
   'jevSearch.settings.searchSettings': '搜索设置',
   'jevSearch.settings.inTheInstalledAppConnectYourSearch1api':
-    '在已安装 App 中连接 Search1API 账户，并在 Nimi 中选择 AI。',
+    "在已安装的 App 中连接 Search1API 账号，并在 Nimi 中选择 AI 模型。",
   'jevSearch.settings.thisPreviewUsesASavedExampleAnd': '本预览使用已保存的示例，无需 API key。',
   'jevSearch.settings.backToSearch': '返回搜索',
   'jevSearch.workspace.jev': 'Jev ',

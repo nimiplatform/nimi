@@ -1,79 +1,115 @@
 # Troubleshooting Nimi App Integration
 
-Use this guide when a Nimi App, SDK call, Nimi Lab test flow, or local Runtime command encounters issues. It focuses on practical debugging steps and solutions available through public interfaces.
+Running into issues while developing a Nimi App, invoking SDK methods, running Nimi Lab tests, or launching local Runtime? This guide covers the most common integration hurdles, explains their root causes, and walks through how to resolve them.
 
-## 1. Match the Runtime Startup Path
+---
 
-For source development, run this command in a dedicated terminal at the Nimi repository root:
+## 1. Verify Runtime Startup Mode
 
-```sh
+Choose the Runtime startup method that matches your environment:
+
+### Source Code Development (Recommended)
+Open a dedicated terminal at the root of the Nimi repository:
+```bash
 pnpm dev:runtime
 ```
+In a second terminal, run `pnpm dev:desktop` and sign in to Nimi Home. This launches the standard two-process developer supervisor workflow.
 
-Then run `pnpm dev:desktop` in another terminal and sign in through Nimi Home. This starts the current-user source Runtime supervisor. See [Development Environment Setup](/start/install) for the prerequisites.
+### Windows Background Service
+If you installed the official Nimi desktop installer and registered the Windows system service:
+- Run `nimi status` to check service state.
+- Run `nimi start` to start the background service.
+- Run `nimi doctor` to verify system prerequisites.
+- Run `nimi health --json` for a structured health summary.
 
-For an installed Windows fixed service, inspect it with `nimi status`; use `nimi start` only when that service is installed and its control prerequisites are satisfied. The current macOS/Linux builds do not provide that background service controller. These commands do not start the source supervisor.
+> [!NOTE] Startup Caveat
+> `nimi serve` is reserved for background daemon execution and is rejected by design when run in a standard developer shell. During local development, use `pnpm dev:runtime` instead. For packaged builds, always use the supported launcher for your platform (package lifecycle support is currently limited to macOS arm64 and Windows x86_64).
 
-`nimi serve` is the production daemon entry point. An ordinary Windows development terminal is rejected because it lacks the fixed-service identity. Use the supervisor workflow above for source debugging.
+---
 
-For an existing Runtime environment, use `nimi doctor` to inspect local prerequisites and `nimi health --json` for the corresponding service health summary.
+## 2. Check Host-Bound Client Session
 
-## 2. Verify App Host Bindings
+Nimi Apps must communicate with Runtime through the scaffolded host-bound client:
 
-Nimi Apps communicate with the underlying environment using the scaffold-generated `NimiLocalAppClient` instance. If code constructs a standalone client directly, it may lack the required application context and trigger an error. Restore the scaffold-generated binding rather than manually passing an `appId` or low-level gRPC endpoint.
+```ts
+import { getNimiLocalAppClient } from './shell/auth/local-app-client';
+const client = getNimiLocalAppClient();
+```
 
-When running your App through Nimi Home in Developer Mode, Desktop supplies a protected host connection and Runtime derives the current App session. After session rotation, call `client.agents.listReferences()` again and replace cached handles; Agent Work uses `client.agentWork.listReferences()`. Use the current reference catalog to restore the selection and reopen required subscriptions. A refreshed transport does not update strings held by your App, and recovery must not replay business actions automatically.
+- **Avoid standalone gRPC construction**: Never call `createNimiClient({ appId, ... })` with manual gRPC addresses inside an App. The App renderer relies on the protected host session—a standalone client cannot acquire protected access for that App, and requests will fail according to the rejected operation.
+- **Recover cleanly on session rotation**: When a user switches accounts or re-establishes a session, stop in-flight work and discard stale handles before reading fresh state and recreating subscriptions under the new session. Simply refreshing a UI list will not rebind active background work.
 
-## 3. Configure Runtime AI Capability Intents
+---
 
-An `AI_CONFIG_NOT_FOUND` error indicates that the current App does not have a configured AI capability intent (AIConfig) in Runtime. Open the App's configuration settings, select the preferred execution mode (such as Local or Cloud models) for the required capability, save the configuration, and retry the request.
+## 3. Resolving `AI_CONFIG_NOT_FOUND`
 
-Nimi uses the "Capability Intent" design pattern: applications declare what capability they need (e.g., text generation, embeddings), while Runtime manages the model selection, connectors, and routing. When encountering permission or execution errors, inspect the structured error details and adjust configuration accordingly, rather than synthesizing fallback endpoints in application code.
+If your AI generation request fails with `AI_CONFIG_NOT_FOUND` or `ai-config-not-found`:
 
-## 4. Understanding Nimi Lab Error States
+### Root Cause
+Your app has not yet saved a capability routing intent (such as `text.generate`) in the local Runtime.
 
-Nimi Lab provides structured status codes to help pinpoint issues during integration testing:
+### Resolution
+1. Open the app's **AI Settings** modal (or configure it via Nimi Home's App Settings).
+2. Choose an execution strategy for the required capability:
+   - **Local Model**: Select a ready local resource configured for this capability in Nimi.
+   - **Cloud Model**: Select a configured provider connector (e.g. OpenAI, Anthropic) with a valid API key.
+3. Save the configuration and retry your request.
+
+> [!TIP] Capability Intent Architecture
+> Nimi uses a "Capability Intent" pattern: applications declare *what* capability they need (e.g. text generation, embeddings), while Runtime resolves *which* model satisfies it based on user preference. Applications stay decoupled from specific providers, giving users full control over their keys and compute.
+
+---
+
+## 4. Nimi Lab Error States Reference
+
+When running validation suites in Nimi Lab, standard error states indicate specific failure modes:
 
 | Error State | Root Cause | Recommended Action |
-| --- | --- | --- |
-| `runtime-unavailable` | Cannot connect to the local Runtime service. | Verify that Runtime is running and check port connectivity. |
-| `permission-required` | Capability permission has not been granted. | Inspect the App declaration and current session/access summary; repair the declared coverage or session, then relaunch through the supported host. |
-| `input-invalid` | Required prompts or parameters are missing or malformed. | Verify and correct the input parameters before retrying. |
-| `sdk-method-unavailable` | The current App build does not expose this capability. | Update the App or upgrade SDK dependencies to the matching version. |
-| `runtime-call-failed` | An error occurred during Runtime execution. | Check terminal logs and Runtime diagnostics for detailed error traces. |
+| :--- | :--- | :--- |
+| `runtime-unavailable` | Cannot connect to the local Runtime service. | Ensure `pnpm dev:runtime` is running and local port connectivity is normal. |
+| `principal-unauthorized` | The current session or caller is not authorized for this operation. | Check sign-in and this app’s Nimi Access status in Nimi Home, then verify the required access declarations in `nimi.app.yaml`; AI calls require `runtime.consume`. |
+| `input-invalid` | Prompt or parameter schema is missing or invalid. | Check your request parameters and ensure `messages` follow the required schema. |
+| `sdk-method-unavailable` | The installed SDK version lacks the invoked method. | Check the `@nimiplatform/sdk` version in `package.json` and upgrade to the matching release. |
+| `runtime-call-failed` | An unhandled error occurred during model execution or network request. | Inspect Runtime terminal logs or the Desktop console for detailed stack traces. |
 
-## 5. App Project Health Checks
+---
 
-In projects generated by App Tools, run standard verification commands:
+## 5. Project Health and Hygiene Checks
 
-```sh
+Inside your application repository, use the built-in scripts to verify project integrity:
+
+```bash
+# Validate project inputs and managed configuration
 pnpm run check
+
+# Run automated tests
 pnpm run test
 ```
 
-If `check` reports synchronization issues after checking out code or modifying dependencies, synchronize lockfile dependencies first and re-run:
+After updating dependencies or switching branches:
 
-```sh
+```bash
+# Sync dependencies cleanly against the lockfile
 pnpm install --frozen-lockfile
+
+# Refresh managed configuration files (preserves your business logic)
+pnpm run sync
+
+# Verify project health
 pnpm run check
 ```
 
-- **Initial Setup**: Run `pnpm run init` after installing dependencies.
-- **Refreshing Configuration**: When updating dependencies, run `pnpm run sync` to refresh managed configuration files, then run `check`. Your custom application logic is preserved.
-- **Note**: The project-level `pnpm run check` evaluates application code, while `nimi doctor` checks the local Runtime service.
+---
 
-## 6. Best Practices
+## 6. Development Best Practices
 
-- **Clean Boundaries**: Use the public APIs in `@nimiplatform/sdk` and `@nimiplatform/kit` rather than reaching into internal implementation modules.
-- **Centralized Dispatch**: Route AI calls through Runtime to take advantage of credential security, local hardware acceleration, and unified capability management.
-- **Decoupled Configuration**: Avoid hardcoding specific provider names or endpoints in application code; use capability intents to keep your app portable.
-- **Actionable User Feedback**: Surface structured error states to users (such as requesting permissions or notifying when the local service is offline) for a smooth onboarding experience.
+1. **Stick to the host-bound client**: Reuse `getNimiLocalAppClient()` rather than creating multiple client instances.
+2. **Program against capability intents**: Never hardcode model names or remote endpoints in your app logic.
+3. **Provide actionable UI feedback**: Clearly distinguish between "waiting for inference", "service disconnected", and "access unavailable", and give users direct links to the relevant settings.
 
 ## Source Basis
 
 - [`runtime/cmd/nimi/onboarding_helpers.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/cmd/nimi/onboarding_helpers.go)
 - [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
-- [`sdks/typescript/core/ai/capability-configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/capability-configuration.ts)
-- [`sdks/typescript/core/ai/runtime-model.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-model.ts)
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)

@@ -1,28 +1,28 @@
 # Voice Input, Realtime, and Reply Playback
 
-Agent Chat has separate paths for recorded voice input, Realtime media, and playing a reply. Check the current voice configuration and the availability shown by the interface before using a path.
+Agent Chat offers three distinct audio paths: recorded voice input, Realtime media sessions, and on-demand reply playback. Before using any audio feature, check the interface for your active voice configuration and availability indicators.
 
 ## Recorded Voice Input
 
-1. Click the microphone control and allow microphone access when prompted.
+1. Click the microphone button and grant microphone access if prompted.
 2. Speak while recording is active.
-3. Click again to stop. Runtime transcribes the completed recording; the client then submits the recognized text as a Conversation turn.
+3. Click the button again to stop. Runtime transcribes the completed recording, and the client submits the recognized text as a Conversation turn.
 
-The current recording path uses manual stopping. A pause in speech does not automatically submit the turn, and the composer does not show a word-by-word transcript while this recording runs.
+Recording requires manual stopping: pausing while you speak does not automatically submit the turn, and the composer does not display a live word-by-word transcript during recording.
 
 ## Realtime Media
 
-Use the separate Realtime entry when the current session and configured capability support it. It opens a media session with its own start and end controls. The current request uses manual turn detection; do not treat it as the recorded-input flow or assume that a pause automatically submits a turn.
+When supported by the current session and the Agent's configured capabilities, use the dedicated Realtime entry point to start and end a live media session. Realtime media is separate from recorded voice input and uses manual turn detection—pauses in speech will not automatically submit a turn.
 
-## Play a Particular Reply
+## Playing Individual Replies
 
-Use the playback action on a reply. The client requests voice rendering for that message, waits for the completed artifact, reads it, and plays it locally. This does not enable automatic audio for every later reply or real-time highlighted subtitles.
+Click the playback button on a reply with playback available to hear it spoken. The client requests voice rendering for that message, retrieves the completed audio artifact once generated, and plays it locally. This action plays only the selected message; it does not auto-play subsequent replies or show real-time highlighted subtitles.
 
-If voice processing fails, use the returned reason to check the session, configuration, model, or connection. Already committed text remains separate from the playback result.
+If voice processing fails, check the returned error reason to troubleshoot your session state, configuration, model availability, or network connection. Committed text messages remain intact regardless of playback results.
 
 ## Avatar Playback
 
-Avatar uses the canonical Conversation's final voice artifact and bounded timing information. It owns local playback and lipsync analysis. Common Runtime presentation events do not carry renderer mouth weights or viseme frames. The separate Realtime media path has its own admission and cannot be inferred from Avatar's local audio events.
+The Avatar uses the canonical Conversation's final voice artifact and bounded timing metadata to handle local playback and lipsync analysis. Standard Runtime presentation events do not carry renderer mouth weights or viseme frames. In addition, the separate Realtime media path enforces its own admission rules and cannot be inferred from the Avatar's local audio events.
 
 ## Related Documentation
 

@@ -1,129 +1,80 @@
 # @nimiplatform/sdk
 
-Public TypeScript clients and contracts for Nimi Apps and integrations.
-The package includes runnable JavaScript and TypeScript declarations under
-`dist/`; use the public exports instead of importing Runtime internals.
+The official TypeScript SDK for the Nimi Platform.
 
-## Developing a Nimi App
+`@nimiplatform/sdk` provides strongly-typed clients, capability contracts, and runtime interfaces for building privacy-preserving, AI-native desktop applications. Through a unified capability-intent architecture, applications can seamlessly harness both on-device local models and cloud AI providers without managing API keys or low-level transport protocols.
 
-Start with the lifecycle guide included in `@nimiplatform/app-tools`.
-`nimi-app --help` prints its location before initialization. Select the matched
-SDK/Kit versions from that package's `nimiScaffoldVersions` and retain the
-project lockfile. See [migration notes](CHANGELOG.md) before upgrading.
+---
 
-An installed or development App consumes one `NimiLocalAppClient`, bound to
-the standard Kit shell in its supervised Host. Generated projects create it in
-`src/shell/auth/local-app-client.ts`:
+## 1. Core Architecture & Mental Model
+
+### The Host-Bound Client
+Standard Nimi Apps run inside a desktop host supervised by Nimi Desktop (the current host of Nimi Home). Instead of requiring applications to manage secrets or connect directly to local ports, the host injects a secure IPC bridge.
 
 ```ts
 import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
 import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
 
+// Scaffolded apps export this singleton from src/shell/auth/local-app-client.ts
 const client: NimiLocalAppClient = createNimiClient({
   localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
 });
-
-const { text } = await client.ai.text.generateCandidate({
-  messages: [{ role: 'user', text: 'What can you help me with?' }],
-});
 ```
 
-App-owned Node business work can use the same Host's `bridge.services`.
-The App does not supply Nimi credentials, account identity, a Runtime endpoint,
-or a provider/model override to these protected calls. A direct client created
-with `createNimiClient({ appId, runtime })` is for programs outside a Nimi App;
-Runtime rejects App-scoped operations such as AI execution and App storage
-from it.
+- **Host-managed credentials**: No API tokens, account IDs, or private network addresses are embedded in your frontend code.
+- **Dynamic Routing**: The local Runtime resolves whether an action is fulfilled by a selected local model or a supported cloud provider based on user preference.
+- **Fail-Closed Boundaries**: Direct standalone clients (`createNimiClient({ appId, runtime })`) are reserved for external server daemons or test scripts; Runtime strictly rejects app-scoped operations from unverified gRPC origins.
 
-For a multi-step tool loop, JSON output or image input, bind the common model
-interface to the same client:
+---
+
+## 2. Quickstart: Text Generation
+
+### Single-Turn Text Generation
+The simplest way to generate text using the user's preferred model:
+
+```ts
+const { text } = await client.ai.text.generateCandidate({
+  messages: [
+    { role: 'user', text: 'Summarize the core tenets of local-first computing.' }
+  ],
+});
+console.log(text);
+```
+
+### Multi-Step Tool Loops & Structured Output
+For multi-turn tool calling, structured JSON output, or multimodal inputs, bind the local app text model:
 
 ```ts
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
 
-export async function answer(
+export async function answerWithTools(
   client: NimiLocalAppClient,
   question: string,
   signal: AbortSignal,
 ) {
-  return createNimiLocalAppTextModel(client.ai).generateText({
-    messages: [{ role: 'user', content: [{ type: 'text', text: question }] }],
+  const model = createNimiLocalAppTextModel(client.ai);
+
+  return await model.generateText({
+    messages: [
+      { role: 'user', content: [{ type: 'text', text: question }] }
+    ],
+    responseFormat: { type: 'json-object' },
     signal,
   });
 }
 ```
 
-The model executes one step. The App owns tool handlers and subsequent steps,
-preserves ordered `outputItems` as `turnItems`, appends matching tool results,
-and forwards cancellation. Preserve opaque `reasoning-continuity` bytes and
-order without decoding or displaying them. Only complete successful output
-can be treated as a finished result; partial JSON is not a validated object.
+- **Tool Execution & Turn History**: The application owns tool handlers and subsequent conversation turns. Preserve ordered `outputItems` as `turnItems` on the next tool step, along with matching tool results.
+- **Reasoning Continuity**: Preserve opaque `reasoning-continuity` payloads byte-for-byte in their original order. Do not decode or display them.
+- **Validation**: Treat a response as complete only after successful completion—check the finish reason and validate the returned JSON against your business schema.
 
-The matching development SDK/Kit/native/Runtime preserves system messages in
-their submitted order, including instructions inside conversation history.
-Separate system-message boundaries and positions require an explicitly admitted
-Driver combination; unsupported combinations fail before inference instead of
-moving instructions to the beginning or changing their role. The initial exact
-DeepSeek Chat Completions v3 slice preserves these inputs in synchronous and
-streaming plain text, function-tool or JSON-object calls. Other combinations
-remain separately admitted. This does not relax the 128-message/1-MiB bounds,
-or the user-only media boundary.
+---
 
-App-owned initiation or continuation can submit nonempty system/assistant
-context without a user-role message. The carrier does not add a filler user
-turn or rewrite roles. Empty and opaque-only input still fails, and exact
-Driver input support remains required. If an App's budget planner drops needed
-history, the App must report that loss rather than treating it as intentional
-userless generation. The narrow text candidate method is unchanged.
+## 3. Advanced Capabilities
 
-The current Local App binding (SDK 0.21.0 / Kit/native 0.18.0 with matching
-Runtime) supports function tools, tool choice, structured `responseFormat`,
-and admitted user image parts. HTTP(S) image file
-parts and owned image `artifact-ref` parts preserve their order with text.
-Upload local image bytes through `client.ai.artifacts.upload`; do not put file
-paths or data URLs in model requests. Other media methods have separate contracts, and each
-selected execution configuration must support the requested modality and
-controls.
-
-The matching development cohort also carries owned WAV, MPEG audio and MP4
-video Artifact references in user text-generation messages. Upload the media
-through the App's artifact API; direct audio/video URLs and inline data remain
-invalid App inputs. The exact Gemini 3.8 Flash native base adapter admits this
-media in plain-text synchronous and streaming calls. Its tool and schema modes
-remain separate synchronous combinations and do not admit audio/video input.
-Preserving multiple system-message boundaries is a separate Driver behavior;
-media support does not imply that combination is supported.
-
-## Local App speech support boundaries
-
-The current matched package combination carries a typed
-`job.transcription` on completed `speech-transcribe` jobs. It contains `status`
-(`transcribed` or `no-speech`), original `text`, model-reported `language` and
-ordered `words` with `text`, `startSeconds` and `endSeconds`. Plain transcription
-resources can leave language and words empty. Aligned results also leave
-`language` empty when recognition did not report it; real words and timestamps
-can still be present. Requesting `timestamps: true`
-requires a resource with actual alignment support; unsupported requests fail.
-The request's `language` is an input hint, not a detected-language result.
-
-DashScope's `qwen-audio-3.0-asr-flash-streaming` and admitted
-`fun-asr-realtime` models also execute finite `speech-transcribe` Jobs. The
-matching Runtime accepts mono PCM WAV up to 300 seconds and 32 MiB, waits for
-the provider's successful terminal event, and publishes its final text and
-actual word times. Partial hypotheses are not completed results. Detected
-language remains empty because this protocol does not report it; empty output
-is an error, not an inferred `no-speech`. Prompt, response-format and diarization
-controls are unsupported. The provider's WebSocket transport does not turn
-these Jobs into public realtime sessions. Longer audio remains App chunking.
-
-For the local Qwen3 aligned recipe, an explicit supported input language can
-guide the aligner when recognition returns text without a language label.
-That hint is never copied into the result's `language`. Without a reported
-language or an explicit supported hint, alignment fails; an unsupported
-reported language is not overridden by the hint. Apps can use their selected
-source language for downstream processing while retaining missing detection
-as unknown.
+### Audio Transcription (`audio.transcribe`)
+Read completed speech-to-text results. Word timing is available only when the selected resource supports alignment:
 
 ```ts
 const { job } = await client.ai.scenarioJobs.get(jobId);
@@ -131,368 +82,139 @@ if (job.status === 'completed' && job.scenarioType === 'speech-transcribe') {
   const transcript = job.transcription;
   if (transcript?.status === 'transcribed') {
     for (const word of transcript.words) {
-      console.log(word.text, word.startSeconds, word.endSeconds);
+      console.log(`${word.text} [${word.startSeconds}s - ${word.endSeconds}s]`);
     }
   }
 }
 ```
 
-`transcriptionText` remains the same original text for text-only consumers.
-Use the typed result rather than decoding artifact JSON. `no-speech` has empty
-text, language and words; it is distinct from invalid input and inference
-failure. The complete result is limited to 1 MiB and 16,384 alignment units.
+- **Supported Engines**: Supports local Qwen3 aligned recipes (with 80ms resolution across CJK and European languages) and Faster Whisper with Silero VAD.
+- **Resource Limits & Semantics**: Local Qwen3 aligned and Demucs routes accept bounded audio up to 300 seconds, though exact limits and available controls depend on the selected resource. Note that Qwen3 alignment units may be individual CJK characters rather than linguistic words, and a language hint is not a detected-language result.
 
-The local Qwen3 Transformers aligned recipe captures both the recognition
-model and its forced aligner in the selected Loadout. It accepts at most 300
-seconds per request and supports zh/en/yue/fr/de/it/ja/ko/pt/ru/es. Times are
-actual model alignment relative to the submitted audio's zero point, with
-pauses retained. The current aligner has 80 ms resolution. Units can be CJK
-characters; they are not guaranteed to be linguistic words. Text retains
-punctuation. For longer media, the App splits input and adds each source chunk
-offset exactly once; Runtime does not own App chunking or subtitle assembly.
-This route does not provide diarization, speaker counts, or a standalone
-alignment operation for caller-supplied transcripts.
+For the local Qwen3 aligned recipe, supported language hints are `zh`, `en`, `yue`, `fr`, `de`, `it`, `ja`, `ko`, `pt`, `ru`, and `es`. Alignment uses the input audio timeline; keep pauses and add chunk offsets exactly once when assembling longer media. The complete transcription result is bounded to 1 MiB and 16,384 alignment units. An absent detected language remains unknown, even when a language hint was supplied.
 
-The local Faster Whisper recipe instead captures a CTranslate2 Whisper model
-and a Silero ONNX voice activity detector. It also accepts up to 300 seconds
-and returns real word times on the original input timeline; it does not offer
-diarization or prompts. A caller-specified language is a hint, not detected
-language, so that result field stays empty when the request fixes the language.
-The recognizer receives the full audio: VAD alone cannot discard weak or
-synthetic speech. No-speech requires both no recognized segments and no speech
-detected by the captured VAD. Empty recognition after detected speech fails.
-Neither recipe guarantees error-free subtitles; retain source timing and use
-the App's proofreading workflow when recognition or alignment is inaccurate.
-
-Select the intended Loadout for `audio.transcribe` in Nimi's model configuration first.
-The App's AIConfig Local intent is the route marker `local: {}` and carries no
-Loadout reference; the machine's current selection is captured at new Job
-admission. `listOptions({ kind: 'local-loadouts', capabilityContract:
-'audio.transcribe' })` exposes that current selection, not every saved Loadout.
-
-Local `audio-separate` jobs consume `mimeType` and the same bytes/HTTPS URI
-`audioSource` shape as transcription. Choose the Demucs separation Loadout for
-`audio.separate` in Nimi, then declare that capability's `local: {}` App intent.
-The initial Driver accepts at most 300 seconds and 32 MiB per input. Split longer
-sources in the App while retaining their offsets and complete timeline.
-
-A completed Job's `audioSeparation` names `vocalsArtifactId` and
-`backgroundArtifactId`. Both refer to that Job's audio artifacts and preserve
-the input zero point, duration and pauses; background is the model's summed
-non-vocal sources. Read sample rate and channel count from the artifact records.
-The current Driver produces float WAV audio, which can exceed inline limits.
-Receive it through `client.storage.assets.adoptArtifact`. Use the returned
-record's `relativePath` for reads, previews and removal: Runtime normalizes the
-filename extension to the actual artifact media type, so the requested path is
-not necessarily the stored path. For example, requesting `transfers/result`
-for a WAV artifact returns `transfers/result.wav`.
+### Audio Separation (`audio.separate`)
+Separate vocals and accompaniment using local Demucs models:
 
 ```ts
-const adopted = await client.storage.assets.adoptArtifact({ artifactId, relativePath });
-const received = await client.storage.assets.read({ relativePath: adopted.relativePath });
+// Submit separation job
+const { job } = await client.ai.scenarioJobs.submit({
+  type: 'audio-separate',
+  mimeType: 'audio/wav',
+  audioSource: { type: 'bytes', bytes: audioBuffer },
+});
+
+// Save job.jobId. Once observation reports completion, read the final result.
+const { job: completed } = await client.ai.scenarioJobs.get(job.jobId);
+if (completed.status === 'completed' && completed.audioSeparation) {
+  const vocals = await client.storage.assets.adoptArtifact({
+    artifactId: completed.audioSeparation.vocalsArtifactId,
+    relativePath: 'audio/vocals.wav',
+  });
+  // Use vocals.relativePath: the stored extension may be normalized.
+  console.log(vocals.relativePath);
+}
 ```
 
-Consume `received.body` fully before committing the App's result. If the asset
-was a temporary transfer, remove `adopted.relativePath` only after reception.
-Treat the pair as complete in the App only after both outputs have been received.
-Do not infer roles from filenames, replace background with the input mix, or
-count a canceled/failed Job as a partial success.
+When handling separation outputs:
+- Adopt both separation outputs before presenting a complete pair.
+- Read sample rate and channel count from the artifact records, and retain the source timeline when splitting longer audio.
+- Treat failed or canceled Jobs as incomplete—never present them as a partial success.
 
-Check required inputs and outputs before migrating a workflow. A missing
-configuration, an implementation defect in an existing contract, and a required
-new capability are different integration outcomes. Report the expected result
-and actual supported interface rather than silently dropping a core feature.
+### Custom Voice Creation & Synthesis (`voice.create` & `audio.synthesize`)
+Clone a voice from reference audio or design a new persona via natural language:
 
-### Interactive dictation with finite transcription jobs
+```ts
+// Create a voice persona from audio reference
+const { job } = await client.ai.scenarioJobs.submit({
+  type: 'voice-create',
+  creationSource: 'reference-audio',
+  referenceAudio: { type: 'bytes', bytes: sampleAudioBytes },
+  referenceAudioMime: 'audio/wav',
+  languageHints: [],
+  preferredName: 'My voice',
+  text: '', // Follow the selected resource’s referenceAudioInput.textMode.
 
-An App that already implements windowed dictation can submit its bounded audio
-windows as `speech-transcribe` Jobs. Capture, silence detection, window offsets,
-draft display, utterance commits and document storage remain App-owned. Show
-only actual recognized text as a draft; a later window may revise it. Serialize
-or bound pending work so a slower recognizer cannot create an unbounded queue.
-Pause capture without inventing a transcript, drain the final window on an
-explicit stop, and cancel in-flight Jobs on discard. Ignore late results from a
-discarded capture generation and retain already committed utterances without
-appending them again in the final document.
+});
 
-This composition does not make a finite recognizer a native streaming Driver.
-Verify its actual latency and pause/stop/cancel behavior in the App. The separate
-`client.ai.realtime` interface implements `realtime.interact`; its presence does
-not establish a local, transcription-only route. Do not silently substitute a
-Cloud conversation model for local dictation.
+// After observing completion, retrieve the voice asset separately from the Job.
+const result = await client.ai.scenarioJobs.get(job.jobId);
+if (result.job.status === 'completed' && result.asset?.status === 'active') {
+  await client.ai.scenarioJobs.submit({
+    type: 'speech-synthesize',
+    text: 'Hello world, speaking in the newly created voice!',
+    language: '', audioFormat: 'wav', emotion: '',
+    voiceRef: { type: 'voice-asset', id: result.asset.voiceAssetId },
+    timingMode: 'none', voiceRenderHints: null,
+  });
+}
+```
 
-### Creating and reusing voices
+Before building your form, inspect `referenceAudioInput` on the selected `voice.create` resource: it declares the supported input forms and whether reference text is required, optional, or unsupported (the example above passes empty text, so choose a resource that admits it). Also ensure that voice creation and synthesis use compatible selected resources—a created asset does not guarantee that every synthesis route can render it.
 
-SDK 0.15.0 and Kit/native 0.11.0 expose optional `referenceAudioInput` on
-AIConfig effective Local resources and Cloud targets, also present in their
-options. Read it from the selected `voice.create` resource. It contains
-`supportsBytes`, `supportsUri`, `textMode` (`unsupported`, `optional`, or
-`required`) and `mimeTypes`. Missing metadata means unknown or inapplicable;
-an empty MIME list means formats are not enumerated. Neither means arbitrary
-input support. Runtime still validates the actual request at admission.
-
-When `textMode` is `unsupported`, pass `text: ''` in the SDK's reference-audio
-spec and keep any transcript in App storage. When optional, send the actual
-reference transcript if available; when required, request one before creating
-the voice. Do not select these behaviors by provider/model name. Local Qwen3
-reference workflows accept both public URI and bytes with optional text; the
-Runtime captures a URI into private bytes and empty text uses the model's
-reference-only mode. Choosing URI input never uploads an existing local file.
-
-Submit `voice-create` through `client.ai.scenarioJobs` with exactly one
-`creationSource`: `reference-audio` (audio bytes or HTTPS URI, MIME type and
-optional reference transcript in `text`) or `text-description` (instruction and
-preview text). Read the completed Job with `get(jobId)` to obtain `asset` and
-`voiceReference`. For synthesis, pass the returned asset identity as
-`voiceRef: { type: 'voice-asset', id: asset.voiceAssetId }` in a
-`speech-synthesize` Job. Creation success is not proof that playable audio was
-generated; the local Qwen3 creation paths return a voice handle and
-requires a synthesis Job to produce the preview audio.
-
-Both operations use their own committed capability configuration. The selected
-`voice.create` implementation must support `input.audio` or `input.text` for the
-requested source. Separate local Qwen3 clone and design recipes require their
-respective Loadouts; synthesis also needs a compatible selected Loadout. A source
-field does not switch a model or route. Expose unmet configuration to the user instead
-of retrying through a different engine. Existing engine-specific seed, sampling
-or guidance controls must not be silently mapped to unrelated public fields.
-
-For DashScope Qwen-Audio 3.0 voices, select the same current TTS model for
-`voice.create` and `audio.synthesize`. Both Plus and Flash use the provider's
-voice-enrollment and SpeechSynthesizer protocols. Reference-audio creation
-requires a publicly reachable HTTP(S) URI; inline bytes and a local file path
-are not supported by this provider workflow. Nimi does not publish an App's
-private audio to obtain a URL. Preserve the user's reference URI explicitly,
-or select a configuration that accepts bytes. A cloned voice's target model
-must match later synthesis. The current provider accepts 16-bit WAV, MP3 or
-M4A, at least 16 kHz, at most 60 seconds and 10 MB; it recommends 10–20 seconds
-with at least five seconds of continuous clear speech. Stereo uses the first
-channel. The reference transcript is unsupported for this workflow; retain it
-as business metadata rather than submitting it as a model prompt. Check the
-[provider's reference requirements](https://help.aliyun.com/zh/model-studio/voice-cloning-user-guide)
-when preparing a new sample. Voice design accepts an English or Chinese
-description of at most 500 characters and a preview of 15–200 characters in
-the same supported language. Synthesis supports additional languages,
-including Spanish; that does not expand the design preview's language range.
-The App keeps voice metadata and audition/export files in its business storage.
-
-The current local Qwen3 synthesis Driver accepts WAV output and no timing mode
-beyond `none`. It rejects supplied `speed`, `pitch`, `volume`, `sampleRateHz` and
-`voiceRenderHints`, including explicit neutral values such as `speed: 1`. Omit
-those fields. When the product's playback speed or delivery format is a
-deterministic media-editing operation, preserve it in the App after generation
-(for example, FFmpeg tempo conversion), using the actual decoded audio format.
-That post-processing is distinct from a model's acoustic generation control.
-
-Qwen3 Base reference-voice synthesis does not provide per-utterance style or
-emotion instructions. The CustomVoice preset path maps `emotion` to its own
-natural-language instruction; this does not establish support for Base voice
-assets. A `voice-create` design instruction describes the voice being created,
-not a later utterance's prosody. Other engines' inline expression tokens, such
-as OmniVoice's `[laughter]` or `[question-en]`, have no defined Qwen3 mapping.
-Keep unsupported model-specific controls explicit instead of silently mapping
-them to another field or assuming literal text will produce the intended effect.
-
-For a library that mixes cloned and designed voices, select the explicit
-**Qwen3 design and reference voice library** recipe for `voice.create`. Bind its
-Base and VoiceDesign models independently, and select that same Base ModelAsset
-for `audio.synthesize`. The library admits both source features in one captured
-configuration. A `text-description` Job requires nonempty `previewText`, runs
-VoiceDesign to create real reference audio, then returns a Base-compatible voice
-asset containing that reference. Reference-audio creation uses the supplied
-audio. Both kinds of asset subsequently synthesize with Base, so a story or
-batch can mix them without changing the machine selection. Wait for creation to
-complete before requesting audition audio; design creation now includes model
-execution and follows the ordinary Job timeout and cancellation lifecycle.
-
-Keep business voice names, descriptions, original reference audio and transcript,
-and saved previews in App storage. A Runtime VoiceAsset is not the App's voice
-library record or a permanent audio backup. Save the `voiceAssetId` actually
-used for an approved take and reuse it to synthesize with that same voice;
-there is no requirement to clone every audition again. Runtime revalidates its
-owner, status and target compatibility. An expired or incompatible asset fails
-explicitly rather than causing hidden recreation, upload or route switching.
-This retains the voice identity, not identical audio or prosody on every take.
-
-If the user instead chooses actual sample audio as a new reference, or edits,
-denoises or replaces the reference, invalidate the previous reference/asset
-association and use `reference-audio` creation for that new input. A cached
-source VoiceAsset does not represent edited output audio. Preserve the actual
-chosen audio and transcript in either workflow, distinguish the two actions in
-the product, and apply normal resource eligibility and configuration checks.
-
-## Persisting results and resuming jobs
-
-Runtime Job storage is bounded execution state, not the App's project database.
-The current Runtime retains terminal Jobs for up to 30 minutes and applies a
-count limit. Save complete validated results in App-managed storage while the
-Job is available; adopt output artifacts when the project needs to retain them.
-Persisting only a Job ID does not preserve its result or artifact bytes.
-
-When resuming a project, reuse complete App-owned results. If a step has only
-an old Job ID, and the normal public Job read explicitly returns `not-found`,
-record that reference as unavailable. An explicit continue/retry action may
-then submit that unfinished step again from its original input and save the new
-ID. Do not poll a missing Job indefinitely, mark it completed, or rerun already
-completed project steps. Permission, session and transport errors are different
-failures and must not trigger the missing-Job recovery path.
-
-## Structured text
-
-`createNimiLocalAppTextModel(client.ai)` binds text generation to an installed
-App's protected session. Its name does not restrict execution to a local model:
-the App's committed AI configuration chooses Local or Cloud.
-
-Request JSON with `responseFormat: { type: 'json-object' }` and consume it only
-after `generateText` completes. A configured route is not proof that every text
-behavior is available; unsupported behavior fails before dispatch, and malformed
-model output remains a failure. Do not extract a plausible JSON fragment or
-change providers automatically to turn that failure into success.
-
-The matching development Runtime admits DeepSeek `deepseek-flash` (currently
-served by V4.1 Flash), `deepseek-v4-flash` and `deepseek-v4-pro`. These provider
-API names are not immutable weight-version pins. Record the exact configured
-target and test date when comparing results; prefer the current `deepseek-flash`
-name for new Flash selections.
-
-The exact adapters support JSON-object output or native function-tool calls,
-including streamed completion, complete tool arguments and tool-result turns.
-These are separate admitted combinations: do not combine tools and JSON output.
-Thinking is disabled; requested reasoning, JSON Schema, media input, `topK` and
-`seed` are not admitted by this slice. The App still uses the same model interface
-and AI configuration; it never calls DeepSeek directly or executes a model's
-tool request inside Runtime.
-
-## Language analysis
-
-Use the `text.annotate` AI configuration capability and submit an asynchronous
-`text-annotate` Job through the existing scenario Job API:
+### Language Analysis (`text.annotate`)
+Perform part-of-speech tagging, lemmatization, and syntactic dependency parsing:
 
 ```ts
 const { job } = await client.ai.scenarioJobs.submit({
   type: 'text-annotate',
   language: 'en',
-  texts: ['A sentence to analyze.'],
+  texts: ['Nimi puts personal sovereignty at the center of modern computing.'],
 });
-// Subscribe or get this Job through the same scenarioJobs service.
-// Read job.textAnnotation only after status === 'completed'.
+
+// Completed job contains structured token annotations with exact Unicode scalar offsets
 ```
 
-`texts` is an ordered batch of
-1–64 strings, including empty strings, totaling at most 512 KiB of UTF-8.
-The completed Job's `textAnnotation.documents` preserves that batch order and
-the exact original text and whitespace. Each document contains:
-
-- `text`, `language` and an ordered `tokens` array.
-- Each token's `text`, `start`, `end`, `headIndex`, `partOfSpeech`, `dependency`
-  and `isPunctuation`.
-- `sentences`, each with `startToken` and exclusive `endToken`.
-
-Token `start`/`end` count **Unicode scalar values**, not UTF-8 bytes or JavaScript
-UTF-16 code units. Python can slice its original string directly; JavaScript can
-use `Array.from(document.text).slice(start, end).join('')`. Token array positions
-are their indices, heads are document-local, and a span's original text extends
-from its first token's start to its last token's end. Sentence spans partition
-the token array. Empty documents have no tokens or sentences.
-
-The initial local spaCy implementation uses the original md 3.8.0 pipelines for
-en/de/es/fr/it/ru/zh/ja. The active Nimi model configuration must contain the
-pipeline for the requested language. `language` validates that choice; it does
-not override machine selection. Model installation and dependency preparation
-belong to Nimi, and inference never downloads a model in the App. A batch is
-bounded to 65536 tokens and a 16 MiB normalized result; oversized or failed analysis
-returns failure rather than partial annotations. Keep subtitle splitting rules,
-translation, time matching, project state and repeated analysis in the App.
-These annotations contain no audio timestamps or generated replacement text.
-
-This addition requires a matching development Runtime, SDK, Kit and native
-package set. Keep using the documented local tarball workflow during iteration;
-package publication is not a development prerequisite.
-
-## Text decisions
-
-Use the `text.decide` AI configuration capability and the synchronous
-`text-decide` execute variant to score App-authored questions about one state:
+### Structured Text Decisions (`text.decide`)
+Score probability distributions over state-dependent choices or boolean hypotheses:
 
 ```ts
-const controller = new AbortController();
-const { output, traceId } = await client.ai.scenario.execute({
+const { output } = await client.ai.scenario.execute({
   type: 'text-decide',
-  state: { json: { hand: ['A', 'K'], pot: 12 } }, // or { text: '...' }
+  state: { json: { gameRound: 3, playerChips: 450 } },
   questions: [
-    { id: 'action', instructions: { text: 'Choose the action.' }, kind: 'choice',
-      candidates: [{ id: 'fold' }, { id: 'call', description: { text: 'Match the bet.' } }] },
-    { id: 'bluff', instructions: { text: 'Is the opponent bluffing?' }, kind: 'boolean' },
+    {
+      id: 'next_action',
+      instructions: { text: 'Choose the optimal next action.' },
+      kind: 'choice',
+      candidates: [{ id: 'raise' }, { id: 'call' }, { id: 'fold' }],
+    },
+    {
+      id: 'opponent_bluffing',
+      instructions: { text: 'Is the opponent likely bluffing?' },
+      kind: 'boolean',
+    },
   ],
-}, { signal: controller.signal, timeoutMs: 10_000 });
-// output.type === 'text-decide'; output.answers follow the submitted order.
+}, { timeoutMs: 10_000 });
 ```
 
-State is nonblank text or one JSON object or array (at most 256 KiB, 64 nesting
-levels); 1–64 questions with unique IDs; instructions at most 32 KiB; a choice has
-2–255 unique candidates; descriptions and boolean criteria are optional and at most
-8 KiB; IDs are 1–64 bytes without surrounding whitespace or control characters; the
-complete request is at most 1 MiB. JSON content is sent as its `JSON.stringify`
-text, so key insertion order is kept. Invalid input fails before transport.
+---
 
-Each choice answer carries the selected candidate and one probability per submitted
-candidate in submitted order; each boolean answer carries `trueProbability`. There is
-no confidence, usage, provider or model field. Thresholds, grouping and actions stay
-in the App. Input that is valid but cannot be encoded completely by the configured
-implementation fails with `ai-input-limit-exceeded` (`AI_INPUT_LIMIT_EXCEEDED`).
+## 4. Public Subpaths & Modules
 
-Every execute variant accepts per-call options. Aborting settles the call at once
-with `OPERATION_ABORTED`; an elapsed `timeoutMs` (1–120000) settles it with
-`OPERATION_TIMEOUT`. Either failure cancels the pending Runtime call, never returns a
-late result and leaves the protected App session valid.
+| Subpath | Description |
+| :--- | :--- |
+| `@nimiplatform/sdk` | Core entry point; exports `createNimiClient` |
+| `@nimiplatform/sdk/app` | Host-bound app client types, shell contracts, and app operations |
+| `@nimiplatform/sdk/ai` | AI model interfaces, text model bindings, and artifact utilities |
+| `@nimiplatform/sdk/contracts` | Common message schemas, content parts, and tool definitions |
+| `@nimiplatform/sdk/runtime` | Strongly-typed Runtime client for authorized external processes |
+| `@nimiplatform/sdk/realm` | Standalone Realm client for user identities, worlds, and characters |
+| `@nimiplatform/sdk/types` | Portable TypeScript types, schemas, and standardized error codes |
+| `@nimiplatform/sdk-adapter-vercel-ai` | Separate adapter package for Vercel AI SDK 7 integration |
 
-## Public entry points
+---
 
-| Import | Purpose |
-| --- | --- |
-| `@nimiplatform/sdk/app` | Host-bound App client, standard shell contracts and typed App operations. |
-| `@nimiplatform/sdk/ai` | Model interfaces and the Local App text model binding. |
-| `@nimiplatform/sdk/contracts` | Shared messages, content parts, tool and ordered result values. |
-| `@nimiplatform/sdk/ai-runner` | External-host execution helpers; they do not move App workflow state into Runtime. |
-| `@nimiplatform/sdk/runtime` | Public Runtime clients for their explicitly supported consumer contexts. This is not a Local App authorization bypass. |
-| `@nimiplatform/sdk/realm` | Public Realm clients for their supported contexts; App Realm operations use the App client. |
+## 5. Async Job Observation & Cancellation
 
-The installed package's `exports` and `.d.ts` files define the exact callable
-surface. Framework adapters are separate packages; do not infer that an
-adapter is publicly available from a source-workspace directory.
+Long-running generation tasks (audio transcription, separation, voice cloning) are managed as asynchronous scenario jobs:
 
-For Vercel AI SDK 6 Apps, the separate `@nimiplatform/sdk-adapter-vercel-ai`
-package provides `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` for
-`streamText` and the existing UI/tool-loop protocol. Adapter 0.3.0 pairs with
-SDK 0.19.0 and Kit/native 0.16.0; the earlier adapter 0.1.0 declares SDK
-`^0.13.0` and does not accept a later SDK minor. Read its package README before
-mapping images or conversation history, and preserve text/tool provider
-metadata for opaque continuity.
+- **Polling & Events**: Observe jobs with `client.ai.scenarioJobs.get(jobId)` or stream progress via observers.
+- **Cancellation**: Call `client.ai.scenarioJobs.cancel(jobId)` to cancel an asynchronous Job, or pass an `AbortSignal` to control supported synchronous calls and model steps. Always inspect the returned state—a cancellation request does not guarantee that a remote provider has stopped computing or billing.
+- **Artifact Custody**: Execution artifacts are temporary. Adopt completed outputs with `client.storage.assets.adoptArtifact` and use its returned path. While recovery-enabled Jobs expose `recoveryExpiresAt`, retention windows vary—persist durable App assets for later reopening rather than assuming every Job shares the same retention period.
 
-Source and issue reporting: [nimiplatform/nimi](https://github.com/nimiplatform/nimi).
-Include the selected SDK, Kit, App Tools and Runtime versions, the actual App
-operation, expected/observed behavior, and a bounded reproduction.
+---
+
+## License
 
 Licensed under [Apache-2.0](LICENSE).
-
-### Observing and canceling Jobs
-
-All Job runners and observers use `getIntervalMs` (default `1000` milliseconds,
-positive integer) to query the same original Job even when an event subscription
-is healthy and silent. Gets are serialized. `onObservation` receives each full
-Get, including a transient `observationIssue`; the issue does not change the Job
-status. `runNimiRuntimeScenarioJob` and `observeNimiRuntimeScenarioJob` return that
-complete terminal response as `response`, including typed outer results.
-
-A runner's `signal` is an explicit user Cancel request. Use its
-`observationSignal` for view disposal, navigation or stopping observation. For
-`observeNimiRuntimeScenarioJob`, `signal` only
-detaches and optional `cancelSignal` requests Cancel explicitly. Cancel rejection
-is reported as an observation error with the original Job ID, without a fabricated
-terminal state. A successful Cancel still requires a full terminal Get. Technical
-`callOptions` budgets remain independent of Job lifetime.
-
-Save the business action before Submit and persist its returned Job ID. Reopen
-by original ID or submission lookup; missing or expired actions never trigger a
-new Submit. Observers do not own App history or media custody. Read/adopt results
-through their formal typed, artifact or resource owners while retention permits.

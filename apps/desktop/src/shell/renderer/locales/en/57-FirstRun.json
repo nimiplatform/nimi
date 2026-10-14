@@ -7,7 +7,7 @@
   },
   "storage": {
     "heading": "Choose where Nimi stores models, apps, and large local data.",
-    "subline": "Nimi keeps models, apps, and large local data in the folder you select.",
+    "subline": "Select a writable local folder with enough space for your models, apps, and application data.",
     "selectedHeading": "Confirm where Nimi stores its local data.",
     "selectedSubline": "Continue to confirm the selected folder and finish initial setup.",
     "preparing": "Nimi is preparing the local environment…",
@@ -19,18 +19,18 @@
   },
   "repair": {
     "heading": "Nimi needs to repair local components",
-    "body": "Restore required product configuration, account, data root, or runtime service components, then retry.",
+    "body": "Check and restore the required configuration, account state, data storage folder, or runtime service, then try again.",
     "retry": "Retry"
   },
   "blocked": {
     "heading": "Cannot continue yet",
-    "body": "Nimi cannot safely initialize product configuration, access the selected data folder, or validate required account and runtime state. Please check and retry."
+    "body": "Nimi couldn't initialize its configuration, access the selected data folder, or verify your account and runtime state. Please check these settings and try again."
   },
   "ready": {
     "heading": "Nimi is ready",
     "body": "Opening Nimi…"
   },
-  "reconcilingAuth": "Reconciling sign-in state…",
+  "reconcilingAuth": "Checking sign-in status…",
   "states": {
     "not_logged_in": {
       "title": "Sign in to use Nimi.",
@@ -50,11 +50,11 @@
     },
     "repair_required": {
       "title": "Nimi needs to repair some local components before continuing.",
-      "body": "Please check required product configuration, account, data root, or runtime service status, then retry."
+      "body": "Check the local configuration, account status, data storage folder, or runtime service, then try again."
     },
     "blocked": {
       "title": "Nimi cannot continue safely yet.",
-      "body": "Please resolve product configuration, data storage, or runtime service issues, then retry."
+      "body": "Resolve the configuration, data storage, or runtime service issues, then try again."
     },
     "ready_for_use": {
       "title": "Nimi is ready.",

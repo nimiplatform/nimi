@@ -3,7 +3,7 @@ export const polyagentMessagesZh = {
   'polyagent.workspace.workbench': '工作台',
   'polyagent.workspace.positions': '持仓',
   'polyagent.workspace.orders': '订单',
-  'polyagent.workspace.researchAndDecisions': '研究与决定',
+  'polyagent.workspace.researchAndDecisions': "研究与决策",
   'polyagent.workspace.runSettings': '运行设置',
   'polyagent.workspace.sampleMarketAWillTheExhibition': '示例市场 A · 展览会在计划日期开幕吗？',
   'polyagent.workspace.monitoring': '观察中',
@@ -38,20 +38,20 @@ export const polyagentMessagesZh = {
   'polyagent.main.fictionalMarkets': '个虚构市场',
   'polyagent.demoMarkets.candidateMarkets': '候选市场',
   'polyagent.demoMarkets.sampleSnapshot': '示例快照',
-  'polyagent.demoMarkets.paperPrice': '纸面价格 ',
+  'polyagent.demoMarkets.paperPrice': "模拟价格 ",
   'polyagent.demoMarkets.sampleVolume': ' · 示例成交量 ',
   'polyagent.demoDecision.sampleResearchRecordCheckMarketRulesExpiry':
     '示例研究记录：核对市场规则、到期时间与流动性。当前没有真实市场数据，不产生交易建议。',
   'polyagent.demoDecision.viewSampleResearchRecord': '查看示例研究记录',
-  'polyagent.demoDecision.keepTheFactsAndDecisionsFromThat': '保留当时看到的事实与决定',
+  'polyagent.demoDecision.keepTheFactsAndDecisionsFromThat': "保留当时的已知事实与所作决策",
   'polyagent.demoDecision.readTheFictionalSnapshotAndConfirmIts':
     '读取虚构市场快照，确认记录时间。',
   'polyagent.demoDecision.checkStrategyConditionsFundingLimitsAndPerOrder':
     '核对策略条件、资金上限和单笔约束。',
   'polyagent.demoDecision.sampleDecisionKeepObservingTakeNoReal':
-    '示例决定：继续观察，不执行真实操作。',
+    "示例决策：继续观察，不执行真实操作。",
   'polyagent.demoDecision.aQuotedPriceIsNotAGuaranteed':
-    '价格是市场报价，不是获利保证；这里的数值仅用于界面演示。',
+    "市场报价不代表收益保证；这里的数值仅用于界面演示。",
   'polyagent.demoLedger.ordersAndFills': '订单与成交',
   'polyagent.demoLedger.currentPositions': '当前持仓',
   'polyagent.demoLedger.market': '市场',

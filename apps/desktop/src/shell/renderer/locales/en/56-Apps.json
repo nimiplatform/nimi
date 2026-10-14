@@ -3,7 +3,7 @@
   "description": "Manage your installed apps and local development projects.",
   "collectionEyebrow": "App management",
   "inventoryTitle": "Connected apps",
-  "inventoryDescription": "Registered local development projects appear here with their project roots and declared permissions.",
+  "inventoryDescription": "Registered local development projects appear here with their project folders and App Access declarations.",
   "inventoryCount": "{{count}} apps",
   "sidebar": {
     "subtitle": "Local development apps",
@@ -89,7 +89,7 @@
     "unavailable": "Nimi Access unavailable"
   },
   "listTitle": "App list",
-  "listDescription": "Filter registered apps by declared access permissions.",
+  "listDescription": "Filter registered apps by their declared App Access.",
   "developerCard": {
     "title": "Connect or manage a local app",
     "description": "Connect a new local project or manage existing registrations in Developer Mode.",
@@ -108,7 +108,7 @@
   "empty": "Install an account app or connect a local app.",
   "error": "Unable to load Apps: {{detail}}",
   "lifecycleReadFailed": "Installed apps' run state can't be read right now. Try again in a moment.",
-  "chooseSource": "\"{{app}}\" has more than one source. Choose the one to open below.",
+  "chooseSource": "\"{{app}}\" is available from multiple sources. Choose which one to open below.",
   "loading": "Loading apps...",
   "sourceManager": {
     "title": "App sources",
@@ -146,9 +146,9 @@
   "sourceDegradedDetail": "{{source}} degraded: {{reasonCode}} {{detail}}",
   "openReadiness": {
     "ready": "Ready",
-    "installRequired": "Install Required",
-    "updateRequired": "Update Required",
-    "repairRequired": "Repair Required",
+    "installRequired": "Install required",
+    "updateRequired": "Update required",
+    "repairRequired": "Repair required",
     "blockedByMasterGate": "Sign in required",
     "unsupported": "Unsupported",
     "signInRequired": "Sign in required",
@@ -170,16 +170,16 @@
     "localRecordActive": "Local development record active",
     "localRecordDormant": "Local development record dormant",
     "localRecordRemoved": "Local development record removed",
-    "immutablePackageUnavailable": "Immutable package unavailable (0K)",
-    "notInstalledInstallable": "Install Required",
+    "immutablePackageUnavailable": "Immutable app package unavailable",
+    "notInstalledInstallable": "Install required",
     "installing": "Installing",
     "installedReady": "Ready",
-    "updateAvailable": "Update Available",
-    "updateRequired": "Update Required",
-    "repairRequired": "Repair Required",
+    "updateAvailable": "Update available",
+    "updateRequired": "Update required",
+    "repairRequired": "Repair required",
     "unsupportedOnThisDevice": "Unsupported",
     "blockedByPolicy": "Blocked",
-    "installFailed": "Install Failed",
+    "installFailed": "Install failed",
     "uninstalling": "Uninstalling"
   },
   "action": {
@@ -194,7 +194,7 @@
     "uninstall": "Uninstall",
     "removeLocalAdoption": "Remove local link",
     "signIn": "Sign in",
-    "deleteAppData": "Delete App Data",
+    "deleteAppData": "Delete app data",
     "launch": "Launch",
     "stop": "Stop",
     "removeDevelopment": "Remove registration",
@@ -213,7 +213,7 @@
     "platformFeatures": "Platform features",
     "data": "Data",
     "runtime": "Runtime",
-    "aiDetail": "Uses an app AIConfig initialized from your recommended or default AI profile.",
+    "aiDetail": "Configure this app's required AI capabilities and model preferences.",
     "platformFeaturesDetail": "Uses Nimi platform features declared by the app. Protected access is evaluated separately when used.",
     "dataDetail": "Stores durable app data under a managed nimi_data app root.",
     "runtimeDetail": "Requires a verified runtime package release."
@@ -225,7 +225,7 @@
     "recommendedProfile": "Recommended profile",
     "noRecommendedProfile": "No catalog profile",
     "requiredCapabilities": "Required capabilities",
-    "changeProfile": "Change App Profile",
+    "changeProfile": "Change app profile",
     "modalTitle": "Apply AI Profile to App",
     "modalHint": "Choose a profile and preview the app-scope AIConfig before applying it."
   },
@@ -309,7 +309,7 @@
       },
       "textAnnotate": {
         "label": "Language analysis",
-        "description": "Identify tokens, parts of speech, dependencies, and sentence boundaries"
+        "description": "Identify tokens, parts of speech, dependencies, and sentence boundaries."
       },
       "textDecide": {
         "label": "Decisions",
@@ -317,7 +317,7 @@
       },
       "audioSeparate": {
         "label": "Vocals and background",
-        "description": "Separate vocals from background audio while preserving timing"
+        "description": "Separate vocals from background audio while preserving timing."
       },
       "audioSpeakerEmbed": {
         "label": "Speaker representation",
@@ -383,9 +383,9 @@
     "noAccessTitle": "No App Access declared",
     "noAccessDescription": "This project registered without declaring any App Access domains.",
     "runRequirementsTitle": "Run requirements",
-    "runRequirementsLocalDescription": "This App comes from a local development project connected on this device. Nimi builds, launches, and supervises its runs; the status badge at the top of this page and Nimi's own records are the source of truth for run state and failure reasons.",
-    "runRequirementsInstalledDescription": "Nimi installs, launches, and supervises this App's runs; the status badge at the top of this page and Nimi's own records are the source of truth for run state and failure reasons.",
-    "runRequirementsAiNote": "Configure this App's models in the “AI Models” tab before using AI features. When a required model or capability is missing, the feature reports unavailable instead of producing substitute results.",
+    "runRequirementsLocalDescription": "This app comes from a local development project connected on this device. Nimi builds, launches, and supervises its runs. Check the status badge at the top of this page and Nimi's run records for the current run state and any failure details.",
+    "runRequirementsInstalledDescription": "Nimi installs, launches, and supervises this app's runs. Check the status badge at the top of this page and Nimi's run records for the current run state and any failure details.",
+    "runRequirementsAiNote": "Configure this app's models in the “AI models” tab before using AI features. If a required model or capability is missing, the feature is reported as unavailable rather than returning substitute results.",
     "developerInfoTitle": "Developer information",
     "developerInfoDescription": "Exact local source and generation details for troubleshooting this registration.",
     "propertiesTitle": "Properties",
@@ -470,12 +470,12 @@
   },
   "confirm": {
     "uninstall": {
-      "title": "Uninstall App",
+      "title": "Uninstall app",
       "message": "Stop {{app}} and remove its local package? App data, shared models and account data will be retained."
     },
     "removeDevelopment": {
       "title": "Remove development registration",
-      "message": "Remove this development registration for {{app}}? This stops its current run without deleting project files. Registering again creates a separate App identity and does not restore this one.",
+      "message": "Remove this development registration for {{app}}? This stops its current run without deleting project files. Registering again creates a separate app identity and does not restore this one.",
       "confirm": "Remove registration"
     },
     "deleteAppData": {
@@ -487,10 +487,10 @@
   "update": {
     "available": "Update available: {{version}}",
     "toVersion": "Update to {{version}}",
-    "stopRequired": "Stop the App before updating it.",
+    "stopRequired": "Stop the app before updating it.",
     "confirmTitle": "Update {{app}}?",
     "confirmMessage": "Update from {{from}} to {{to}}, keeping app data managed by Nimi.",
-    "confirmAvailability": "The app cannot open during the update, including while queued or paused. Once cancellation succeeds, you can use {{version}} again.",
+    "confirmAvailability": "The app cannot be opened during the update, including while queued or paused. If you cancel, you can use {{version}} again once cancellation completes.",
     "confirmAction": "Continue update",
     "cancelAction": "Not now"
   },
@@ -527,20 +527,20 @@
     "downNamed": "Move {{app}} down",
     "details": "View details",
     "viewTask": "View task",
-    "viewApp": "View App",
+    "viewApp": "View app",
     "back": "Back to app tasks",
     "saved": "Saved",
     "position": "Queue position: {{position}}.",
     "empty": "No tasks waiting",
     "emptyHint": "Choose an App to install or update from the app list.",
     "recent": "Recent tasks ({{count}})",
-    "afterDownload": "Package checks and installation follow. Completion will not automatically launch the App.",
+    "afterDownload": "After download, Nimi checks the package before installing it. A completed installation does not launch the App automatically.",
     "pausedHint": "Progress is saved. Resuming adds this task to the end of the queue; other queued downloads can continue.",
     "interruptedHint": "Download interrupted. Available progress is saved. Resume to rejoin the queue.",
     "verifyingHint": "Download complete. Checking the package.",
     "stagingHint": "Checks passed. Preparing installation.",
-    "committingHint": "Finishing installation. This step cannot be paused or canceled; wait for the confirmed result.",
-    "failedHint": "This task did not complete. Retry confirms the selected release again, or view the App to choose another available release.",
+    "committingHint": "Finishing installation. This step cannot be paused or canceled; please wait for the confirmed result.",
+    "failedHint": "This task did not complete. Retry to reverify the selected release, or view the App to choose another available release.",
     "verificationFailed": "Package verification failed. This version was not installed. Invalid content was removed; a retry must pass all checks.",
     "staleSelection": "The selected release has changed. View the App and choose it again.",
     "policyBlocked": "Distribution of this release is blocked. View the App for currently available releases.",
@@ -566,7 +566,7 @@
     "hint": "Downloads and installs continue in the background. Closing this window will not interrupt them.",
     "hintDismiss": "Dismiss",
     "cancelTitle": "Cancel this download task?",
-    "cancelMessage": "Remove {{size}} downloaded for {{app}}. The installed App version, App data, shared models, and account data are retained.",
+    "cancelMessage": "This will remove {{size}} of downloaded files for {{app}}. Your installed App version, App data, shared models, and account data will be kept.",
     "confirmCancel": "Cancel download",
     "keepTask": "Keep task",
     "bytesUnknown": "Download size unknown",
@@ -611,7 +611,7 @@
     "updateUnavailable": "This installation cannot be updated. Refresh the app list and try again.",
     "invalidPackage": "This package is incomplete or unsupported. Select a .nimiapp file created with production packaging.",
     "failed": "Local import failed. Select the package again.",
-    "invalidPreview": "Valid package information was not returned. Select the file again.",
+    "invalidPreview": "Could not read valid package information. Please select the file again.",
     "newerVersionRequired": "Select a package with a newer version number.",
     "wrongApp": "This package belongs to a different app. Select the correct package.",
     "invalidJob": "The installation task could not be confirmed. Check its actual state in app tasks.",
@@ -625,7 +625,7 @@
     "nativeMacOSUnnotarized": "This package has a publisher signature but is not notarized by Apple. Continue only if you trust the app; the OS may still block its launch.",
     "verifyingHint": "Checking the selected local package.",
     "cancelTitle": "Cancel this installation task?",
-    "cancelMessage": "Remove the temporary installation files for {{app}}. The installed version, App data, shared models, and account data are retained.",
+    "cancelMessage": "This will remove the temporary installation files for {{app}}. Your installed version, App data, shared models, and account data will be kept.",
     "confirmCancel": "Cancel installation",
     "canceledHint": "Canceled. Temporary installation files were removed. The installed version and App data are retained.",
     "platform": "System",

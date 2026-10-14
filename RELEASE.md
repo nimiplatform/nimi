@@ -1,172 +1,64 @@
-# Release Process
+# Release Architecture & Process
 
-Current user-visible release status is canonical at <https://nimi.ai/download>.
-This document is the maintainer release process; it does not restate user-facing
-status.
+This document outlines the release process, versioning policies, and CI publishing pipelines across the Nimi ecosystem.
 
-This repository has three distinct release identities. They must not be merged:
+User-facing download and release status is canonically maintained at <https://nimi.ai/download>.
 
-- Nimi installable product releases coordinate Desktop, Runtime, signing, update,
-  and rollback.
-- First-party public components release independently from component tags.
-- Third-party Nimi Apps publish from their own publisher repositories and managed
-  App workflows.
+---
 
-## First-party public components
+## 1. Three Distinct Release Identities
 
-Production publication is tag-only. Manual workflow dispatch is dry-run only.
+The Nimi repository manages three independent publication tracks:
 
-| Component | Production tag | Workflow | Destination |
-| --- | --- | --- | --- |
+1. **Nimi Installable Product (Desktop & Runtime)**: Coordinated release of Desktop installers and local Runtime daemons across supported platforms (macOS arm64, Windows x86_64).
+2. **First-Party Libraries & Tooling**: Public npm packages (`@nimiplatform/sdk`, `@nimiplatform/kit`, `@nimiplatform/app-tools`, `@nimiplatform/sdk-adapter-vercel-ai`) and Crates.io packages (`nimi-shell-tauri`).
+3. **Ecosystem Applications**: Distributed as `.nimiapp` packages via the public [Nimi App Registry](https://github.com/nimiplatform/nimi-app-registry).
+
+---
+
+## 2. Public Component Release Matrix
+
+First-party component publication starts exclusively from protected Git tags. Manual CI dispatches perform dry-run verification only.
+
+| Package | Tag Format | Workflow | Registry |
+| :--- | :--- | :--- | :--- |
 | `@nimiplatform/sdk` | `sdk/v<version>` | `release.yml` | npm |
-| `@nimiplatform/kit` and `@nimiplatform/kit-protected-local-*` | `kit/v<version>` | `release-kit.yml` | npm |
+| `@nimiplatform/kit` and matching `kit-protected-local-*` npm packages | `kit/v<version>` | `release-kit.yml` | npm |
 | `@nimiplatform/sdk-adapter-vercel-ai` | `sdk-adapter-vercel-ai/v<version>` | `release-sdk-adapter-vercel-ai.yml` | npm |
+| `@nimiplatform/app-tools` | `app-tools/v<version>` | `release-app-tools.yml` | npm |
 | `nimi-shell-protected-local` | `nimi-shell-protected-local/v<version>` | `release-nimi-shell-protected-local.yml` | crates.io |
 | `nimi-shell-tauri` | `nimi-shell-tauri/v<version>` | `release-nimi-shell-tauri.yml` | crates.io |
-| `@nimiplatform/app-tools` | `app-tools/v<version>` | `release-app-tools.yml` | npm |
 
-For SDK, Kit, the Vercel adapter, and App Tools, the tag version must equal the
-exact package.json version. They remain independently versioned; no root
-`vX.Y.Z` tag, aggregate manifest, RC bundle, or global promotion workflow
-identifies those packages.
+### Provenance & Security
+- All npm packages publish using GitHub Actions OIDC and npm provenance (without static `NPM_TOKEN` secrets).
+- Release jobs validate the exact tarball before publication. For an already published npm version, they compare its SHA-1 with the immutable registry package rather than overwriting it.
 
-The npm workflows retain their historical filenames because npm Trusted
-Publisher configuration binds the repository and exact workflow identity. They
-publish with GitHub OIDC and npm provenance and do not use `NPM_TOKEN`. Pull
-request and manual dry-run jobs have no OIDC permission; only the tag-only publish
-job receives `id-token: write` and it publishes the exact tarball validated by the
-preceding job.
+---
 
-## Pull request and dry-run boundary
+## 3. Publication Dependency Order
 
-The component workflows run their affected build, tests, deterministic pack, and
-registry dry-run on pull requests while a version is unpublished. Once that exact
-version is public, the same check requires the candidate tarball SHA-1 to equal
-the immutable registry package instead of attempting to overwrite it. Tauri
-source tests run immediately; its cargo-package dry-run requires its exact
-protected-local version to be public. A release reconciliation PR is not merged
-until required repository checks and these component checks pass.
+First-party components must be published in dependency order so downstream packages can resolve their declared versions from the public registry:
 
-After merge, a maintainer may run a component workflow manually for another
-dry-run. A manual dispatch cannot publish. Production publication starts only by
-pushing the exact component tag at a commit already contained in `origin/main`.
+1. **Independent Release Roots**: `@nimiplatform/sdk` and `nimi-shell-protected-local` have no internal release dependencies and can be published first.
+2. **First-Level Dependents**:
+   - `@nimiplatform/kit` and `@nimiplatform/sdk-adapter-vercel-ai` wait for their declared `@nimiplatform/sdk` version. (Under a `kit/v<version>` tag, Kit publishes its platform-native `kit-protected-local-*` npm packages before the main `@nimiplatform/kit` package.)
+   - `nimi-shell-tauri` waits for its declared `nimi-shell-protected-local` crate version.
+3. **Scaffolding Tooling**: `@nimiplatform/app-tools` waits for the SDK, Kit, and Tauri versions embedded in its scaffold contract.
 
-Every npm package is packed before publication. The Kit tarball rewrites the
-workspace SDK dependency to its public caret range and declares the two Kit
-native packages (`win32-x64`, `darwin-arm64`) as `^<Kit version>` optional
-dependencies. `release-kit.yml` builds those native packages on their own
-platforms and publishes them before Kit under the same `kit/v` tag. Runtime
-binaries do not enter these component releases.
+### Tagging & Versioning Rules
+- Use each component's own manifest version and confirm that upstream dependencies are live in the public registry before tagging.
+- Tags must point to commits already in `origin/main`.
+- **Immutable Tags**: Never move, delete, or reuse a component release tag. Retry transient failures on the unchanged tag, and bump to a new version whenever code changes are needed.
 
-## Dependency order
+The installable product follows a separate [release procedure](scripts/release/PRODUCT-RELEASE.md), which covers coordinated signing, update, and rollback checks.
 
-The two independent roots may begin separately:
+---
 
-1. Publish SDK from `sdk/v<SDK version>`.
-2. Publish protected-local from
-   `nimi-shell-protected-local/v<protected-local version>`.
+## 4. Third-Party App Release Flow
 
-Then publish dependants:
+Ecosystem apps developed with `@nimiplatform/app-tools` follow an immutable release chain:
 
-3. Kit waits for its declared SDK version to be visible on npm.
-4. The Vercel adapter waits for its SDK peer version to be visible on npm.
-5. Tauri reads the protected-local version declared by its own Cargo dependency
-   and waits for that version to be visible on crates.io; it does not reuse the
-   Tauri component version as protected-local identity.
-6. App Tools waits for the SDK, Kit, and Tauri versions embedded in its packed
-   scaffold contract to be visible in their public registries. The Tauri
-   publisher has already closed its protected-local dependency.
-
-Each tag takes its version from that component's own manifest at the tagged
-commit: `sdks/typescript/package.json`, `kit/package.json`,
-`app-tools/package.json`, `kit/shell/protected-local/Cargo.toml`, and
-`kit/shell/tauri/Cargo.toml`. A manifest version on `main` is a prepared
-candidate, not a publication; npm and crates.io show which versions are public.
-
-Read the candidate versions from those manifests and the adapter's
-`sdks/typescript/adapters/vercel-ai/package.json` when preparing a release.
-For App Tools, inspect its `nimiScaffoldVersions` declarations and admitted dependency
-combinations as well as its own version. A newer SDK/Kit development combination
-does not automatically change the fresh-scaffold default or prove any package
-was published. Registry preflight must verify every required public dependency
-before a production tag is prepared.
-
-`nimi-shell-tauri/v0.2.0` is an immutable failed publication attempt. Its
-crates.io dependency preflight was rejected before package upload, so the tag
-remains reserved history and is never moved, deleted, or reused. Recovery uses
-the next component version, `nimi-shell-tauri/v0.2.1`.
-
-`app-tools/v0.2.0` is an immutable first publication. Windows production
-packaging recovery uses `app-tools/v0.2.1`; the earlier tag and package remain
-unchanged.
-
-Proto has no package manifest version and has no active production publisher in
-this release set. A future Proto publication identity requires separate authority
-and is not inferred from another component.
-
-## Immutable tag recovery
-
-Component release tags are immutable and must never be moved, deleted, or reused.
-A transient workflow retry may run again from the same unchanged tag and verifies
-an already-published registry version only when its bytes match. A code change
-requires the next component version and a new component tag.
-
-The historical `v0.2.0-rc.1`, `v0.2.0`, and `v0.2.1-rc.1` refs are abandoned
-global-library-train attempts. They remain immutable history and are not SDK,
-Kit, App Tools, shell, Proto, third-party App, or installable-product release
-truth. Do not promote, move, or reuse them.
-
-## Unsigned developer preview
-
-`.github/workflows/release-preview.yml` remains a separate unsigned developer
-preview path. It accepts an exact main commit, preview version, and sequence
-number and produces immutable development assets with different per-OS payloads:
-
-- Windows x64 contains only the source-local Kit package. It contains no Nimi
-  App, Runtime archive, installer, or Windows service package.
-- macOS arm64 contains an ad-hoc, repo-assisted `Nimi Dev.app` candidate and
-  Runtime payload. Installation and uninstallation require the exact source
-  checkout; the asset is not a standalone installer.
-- Linux has no preview asset.
-
-The preview does not publish npm packages, crates, or Proto and never becomes
-input to a component release. It does not establish a Nimi product release,
-public download, native installation, first launch, self-update, or uninstall.
-Runtime service distribution, Desktop production signing/notarization, and Kit
-native carriers each require their own target-specific release verification; this
-preview does not establish those outcomes.
-
-## Credentials and external configuration
-
-- npm: Trusted Publisher for `nimiplatform/nimi` and the exact component workflow
-  filename; GitHub-hosted runner with `id-token: write`.
-- crates.io: Trusted Publisher for `nimiplatform/nimi` and each exact shell
-  workflow filename; GitHub-hosted runner with `id-token: write` and the pinned
-  `rust-lang/crates-io-auth-action`. The protected-local 0.2.0 first publication
-  is the one-time API-token bootstrap required before its Trusted Publisher can
-  be configured; later shell publication does not use a repository token.
-- GitHub: component tag rules must prevent update and deletion while allowing the
-  first tag creation.
-
-Do not add local npm publication, manual production dispatch, registry upload
-fallbacks, or another global component publisher.
-
-## Post-release verification
-
-For each published component, verify:
-
-- the immutable component tag resolves to the intended main commit;
-- the registry version is visible;
-- npm provenance names the exact component workflow and component tag;
-- the published dependency versions match the package or scaffold contract;
-- a public install or Cargo resolution no longer uses workspace/path sources.
-
-These checks establish component publication only. They do not establish a Nimi
-product release, third-party App admission, installation, running process, or
-Nimi Access readiness.
-
-When the published SDK, Kit native packages, or shell crates carry a newer
-Runtime wire, refresh the proto breaking-change baseline to that component tag
-with `pnpm proto:baseline:refresh`, recording its published artifacts and the
-adjudication of every difference from the previous baseline. Until then the gate
-protects only the older published wire.
+1. **Local Pre-flight**: App authors run `pnpm exec nimi-app check --production` locally.
+2. **Automated Packaging**: After configuring protected tags, Release immutability, and the read-only repository-settings credential described in [App Tools](app-tools/README.md#publishing-on-github), pushing an annotated `v<version>` tag triggers the app's GitHub Actions workflow to build and package `.nimiapp` along with its metadata sidecars.
+3. **Registry Submission**: The author opens an admission PR in the Nimi App Registry referencing the immutable GitHub Release.
+4. **Admission & Lifecycle Verification**: Human Registry admission makes the approved target available to Catalog consumers. Installation, launch, and Nimi Access remain separate checks; current package lifecycle targets are macOS arm64 and Windows x86_64.

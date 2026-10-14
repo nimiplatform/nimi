@@ -254,7 +254,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.performance.item3':
     "Book opened a page and read Plant's dream aloud. Lamp softened its light over the leaves. Orange gave Cup a segment as an apology. Nobody at breakfast mentioned the quarrel again.",
   'oddBureau.demo.hostOnly':
-    'This action needs Odd Bureau in your local Nimi installation. Runtime handles photo positioning, play creation, and speech; this website demonstrates the interface and play only.',
+    "This action requires Odd Bureau in your local Nimi installation. Runtime supplies object localization, text generation, and speech; this web preview demonstrates the interface and gameplay only.",
   'oddBureau.demo.voice':
     'Read-aloud needs speech synthesis configured in Nimi. This web preview stays silent.',
   'oddBureau.demo.dismiss': 'Got it',
@@ -290,7 +290,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.machineGame.wireLengthBudgetForThisChallenge':
     'Wire-length budget for this challenge:',
   'oddBureau.machineGame.myCircuit': 'My circuit',
-  'oddBureau.machineGame.removeTheCircuit': 'Remove the circuit',
+  'oddBureau.machineGame.removeTheCircuit': "Clear circuit",
   'oddBureau.machineGame.removeFromTheCircuit': 'Remove {labelId} from the circuit',
   'oddBureau.machineGame.startWithAnObjectTaggedSoundSource':
     'Start with an object tagged Sound source.',
@@ -300,7 +300,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.machineGame.startThisStrangeMachine': 'Start this strange machine',
   'oddBureau.machineGame.stopSound': 'Stop sound',
   'oddBureau.machineGame.muteRunningAudio': 'Mute running audio',
-  'oddBureau.machineGame.enableRunningAudio': 'Enable running audio',
+  'oddBureau.machineGame.enableRunningAudio': "Unmute running audio",
   'oddBureau.machineGame.lastRun': 'Last run',
   'oddBureau.machineGame.theSoundJustPassedThroughHere': 'The sound just passed through here',
   'oddBureau.machineGame.itWorkedInventSomethingElse': 'It worked! Invent something else?',
@@ -317,7 +317,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.machineGame.clear': 'Clear',
   'oddBureau.strikeGame.nobodyYet': 'Nobody yet',
   'oddBureau.strikeGame.grantARest': 'Grant {labelActionObjectId} a rest',
-  'oddBureau.strikeGame.giveTheSoleCreditTo': 'Give the sole credit to {labelActionObjectId}',
+  'oddBureau.strikeGame.giveTheSoleCreditTo': "Give sole credit to {labelActionObjectId}",
   'oddBureau.strikeGame.askTo': 'Ask {name} to {task}',
   'oddBureau.strikeGame.iNeedACredit': 'I need a credit',
   'oddBureau.strikeGame.letRestFirst': 'Let {labelOfferNeedsRest} rest first',
@@ -360,8 +360,8 @@ export const oddBureauMessagesEn = {
   'oddBureau.strikeGame.reviewThePromisesOnTheLeftAnd':
     'Review the promises on the left and try different choices next round.',
   'oddBureau.strikeGame.startAnotherNegotiation': 'Start another negotiation',
-  'oddBureau.strikeGame.proposeARest': 'Propose a rest',
-  'oddBureau.strikeGame.proposeACredit': 'Propose a credit',
+  'oddBureau.strikeGame.proposeARest': "Propose rest",
+  'oddBureau.strikeGame.proposeACredit': "Propose credit",
   'oddBureau.strikeGame.anUnspokenProposal': 'An unspoken proposal',
   'oddBureau.strikeGame.withdrawProposal': 'Withdraw proposal',
   'oddBureau.strikeGame.afterConfirmation': 'After confirmation:',
@@ -371,7 +371,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.strikeGame.credit2': ', credit',
   'oddBureau.strikeGame.label': '.',
   'oddBureau.strikeGame.thisPromiseMakesTheStorytellingImpossibleIn':
-    'This promise makes the storytelling impossible in this round. Confirming will end the round without a show.',
+    "With this promise, the story cannot go on this round. Confirming will end the round without a show.",
   'oddBureau.strikeGame.acceptThisEnding': 'Accept this ending',
   'oddBureau.strikeGame.confirmThisPromise': 'Confirm this promise',
   'oddBureau.strikeGame.everythingIsArrangedLetThemPerformThe':
@@ -397,7 +397,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.mystery.chooseAPhotoWithAtLeastThree':
     'Choose a photo with at least three separate objects. Open a case, click objects to hear their accounts, collect testimony, and identify the suspect. Every story is AI-created fiction.',
   'oddBureau.mystery.nimiLocatesTheObjectsVisuallyTextAnd':
-    'Nimi locates the objects visually. Text and optional speech use capabilities configured in Nimi. The photo is processed by the selected capabilities.',
+    "Nimi locates objects visually, while text and optional speech use your configured capabilities. Your photo is processed by the capabilities you select.",
   'oddBureau.mystery.closePlayInstructions': 'Close play instructions',
   'oddBureau.mystery.theObjectsInYourPhoto': 'The objects in your photo ',
   'oddBureau.mystery.have': 'have ',
@@ -464,7 +464,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.mystery.behindTheTrouble': 'Behind the trouble:',
   'oddBureau.mystery.connectTheseStatements': 'Connect these statements',
   'oddBureau.mystery.thisTestimonyHasNotBeenCollectedIn':
-    'This testimony has not been collected in this round',
+    "This testimony wasn't collected during the round",
   'oddBureau.mystery.anotherCaseWithThisPhoto': 'Another case with this photo',
   'oddBureau.mystery.openACaseWithANewPhoto': 'Open a case with a new photo',
   'oddBureau.mystery.thisIsAFictionalMysteryCreatedBy':
@@ -516,7 +516,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.setup.backToTheScene': 'Back to the scene',
   'oddBureau.setup.connectAiToThePlayground': 'Connect AI to the playground',
   'oddBureau.setup.playNeedsObjectDetectionAndPlayCreation':
-    'Play needs object detection and play creation. Object voices are optional and can be enabled later.',
+    "Playing requires object detection and story creation. Object voices are optional and can be enabled later.",
   'oddBureau.setup.oddBureauCapabilities': 'Odd Bureau capabilities',
   'oddBureau.setup.chooseCapabilitiesForThisBureauOnlyOther':
     "Choose capabilities for this bureau only. Other Nimi Apps' settings are unaffected.",
@@ -568,7 +568,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.setup.chooseAConnectedServiceThenAModel': 'Choose a connected service, then a model.',
   'oddBureau.setup.processInTheCloud': 'Process in the cloud',
   'oddBureau.setup.textIsSentToTheSelectedService':
-    'Text is sent to the selected service and may incur its charges.',
+    "Text is sent to the selected service and may incur charges.",
   'oddBureau.setup.cloudService': 'Cloud service',
   'oddBureau.setup.cloudModel': 'Cloud model',
   'oddBureau.setup.connectedServices': 'Connected services',
@@ -589,7 +589,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.setup.requiredIdentifyTheObjectsAndTheir':
     'Required · identify the objects and their positions',
   'oddBureau.setup.requiredCreateDeviceRulesCharacterRequests':
-    'Required · create device rules, character requests, stories, and proposals',
+    "Required · create machine rules, character requests, stories, and proposals",
   'oddBureau.setup.optionalReadObjectDialogueAloud': 'Optional · read object dialogue aloud',
   'oddBureau.setup.configuredBackToPlay': 'Configured — back to play',
   'oddBureau.begin.identifyingObjectsInThePhoto': 'Identifying objects in the photo…',
@@ -650,7 +650,7 @@ export const oddBureauMessagesEn = {
     'Connect a source and a container, visiting each object only once.',
   'oddBureau.rules.theCircuitContainsAnUnknownObject': 'The circuit contains an unknown object.',
   'oddBureau.rules.theCircuitMustStartAtASound':
-    'The circuit must start at a Sound source and end at Store.',
+    "The circuit must start at a Sound source and end at a Store container.",
   'oddBureau.rules.aCircuitCanHaveOnlyOneSound': 'A circuit can have only one sound source.',
   'oddBureau.rules.theContainerIsTheEndOfThis': 'The container is the end of this circuit.',
   'oddBureau.rules.tooManyNotesOneCircuitCanPass':
@@ -674,9 +674,9 @@ export const oddBureauMessagesEn = {
   'oddBureau.rules.oneObjectCanTakeAtMostTwo': 'One object can take at most two jobs.',
   'oddBureau.rules.thisCompanionHasNotAgreedToThis': 'This companion has not agreed to this job.',
   'oddBureau.rules.honorItsCreditConditionBeforeAssigningThis':
-    'Honor its credit condition before assigning this job.',
+    "Meet this companion's credit condition before assigning the job.",
   'oddBureau.rules.grantTheSpecifiedCompanionARestBefore':
-    'Grant the specified companion a rest before assigning this job.',
+    "Grant the requested companion rest before assigning this job.",
   'oddBureau.proposal.partner': 'A companion',
   'oddBureau.proposal.clarify':
     'I could not identify an assignment. Try “let {name} rest” or “ask {name} to write the story.”',
@@ -703,7 +703,7 @@ export const oddBureauMessagesEn = {
   'oddBureau.machine.operations.store.name': 'Store',
   'oddBureau.machine.operations.store.rule': 'Stores received sound, up to 32 notes',
   'oddBureau.machine.sendSound': 'Send this sound into {receiver}',
-  'oddBureau.strike.credits': 'Credit: {credit} · reader: {reader}',
+  'oddBureau.strike.credits': "Credit: {credit} · Reader: {reader}",
   'oddBureau.strike.resting': '{name} rests',
   'oddBureau.strike.credited': 'Credit for {name}',
   'oddBureau.mystery.sceneLabel':
@@ -713,6 +713,6 @@ export const oddBureauMessagesEn = {
   'oddBureau.settings.capabilityTitle': '{capability} settings',
   'oddBureau.settings.localDefault': 'Not set · local default {model}',
   'oddBureau.settings.unsupportedFeatures': 'Local model does not support: {features}',
-  'oddBureau.home.arrivals': '{names} has arrived.',
+  'oddBureau.home.arrivals': "{names} arrived on stage.",
   'oddBureau.machine.connectInstruction': 'Select connections or drag one object toward another',
 } as const;

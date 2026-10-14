@@ -4,7 +4,7 @@
     "runtimeUnavailable": "Desktop runtime is not ready. Please restart the app."
   },
   "codes": {
-    "LOCAL_LIFECYCLE_WRITE_DENIED": "The current source is not allowed to perform local model lifecycle writes.",
+    "LOCAL_LIFECYCLE_WRITE_DENIED": "Local model changes are not allowed from this source.",
     "AI_PROVIDER_TIMEOUT": "AI provider request timed out.",
     "AI_PROVIDER_UNAVAILABLE": "AI provider is unavailable.",
     "AI_PROVIDER_RATE_LIMITED": "AI provider rate limit was reached.",
@@ -18,10 +18,10 @@
     "AI_CONNECTOR_INVALID": "AI connector configuration is invalid.",
     "AI_CONNECTOR_IMMUTABLE": "AI connector cannot be modified.",
     "AI_CONNECTOR_LIMIT_EXCEEDED": "AI connector limit has been exceeded.",
-    "AI_MODEL_NOT_FOUND": "Runtime found no admitted implementation for this capability.",
+    "AI_MODEL_NOT_FOUND": "Runtime couldn't find an available model or service for this capability.",
     "AI_MODALITY_NOT_SUPPORTED": "AI modality is not supported.",
     "AI_MODEL_PROVIDER_MISMATCH": "Runtime implementation configuration is inconsistent.",
-    "AI_MEDIA_IDEMPOTENCY_CONFLICT": "Media task idempotency conflict occurred.",
+    "AI_MEDIA_IDEMPOTENCY_CONFLICT": "This media request conflicts with an existing task using the same request ID.",
     "AI_MEDIA_JOB_NOT_FOUND": "Media task was not found.",
     "AI_MEDIA_SPEC_INVALID": "Media specification is invalid.",
     "AI_MEDIA_CODEC_UNAVAILABLE": "The audio and video converter Nimi uses isn't available on this device, so this audio or video can't be prepared.",

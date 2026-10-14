@@ -27,7 +27,7 @@
       "interrupt_aria": "Interrupt current reply",
       "interrupt_pending": "Interrupting…",
       "interrupt_failed": "Interrupt failed",
-      "voice_input_invalid": "Voice input could not be processed; try again.",
+      "voice_input_invalid": "Couldn't process voice input. Please try again.",
       "close_aria": "Close companion controls",
       "audio_unavailable": "Audio playback is unavailable; lip sync will continue using timing data only.",
       "privacy_indicator_aria": "Privacy indicator: {{state}}"
@@ -128,7 +128,7 @@
         "proof_missing": "No valid interaction bounds detected"
       },
       "lipsync": {
-        "label": "LipSync",
+        "label": "Lip sync",
         "proof_present": "Audio profile loaded",
         "proof_missing": "No lip-sync profile detected"
       }
@@ -143,7 +143,7 @@
       },
       "show_voice_captions": {
         "label": "Show voice captions",
-        "help": "Bounded foreground voice captions only.",
+        "help": "Show voice captions for the current companion conversation.",
         "note": "Voice captions only show speech from the current agent conversation."
       },
       "caption_size": {
@@ -194,7 +194,7 @@
       "surface_aria": "Avatar cannot be displayed",
       "badge": "Unavailable",
       "title": "The avatar can't be displayed",
-      "summary": "This avatar stopped presenting in its window.",
+      "summary": "The avatar stopped rendering in this window.",
       "recovery": "Restart the avatar to try again, or close this window.",
       "restart": "Restart avatar",
       "close": "Close avatar"

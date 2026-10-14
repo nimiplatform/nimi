@@ -28,7 +28,7 @@
     },
     "confirmPersistentPersona": {
       "title": "Create a persistent test PersonaCharacter?",
-      "message": "This creates and replaces one clearly marked private test PersonaCharacter in your Realm. Delete is not admitted, so the record will remain in this account after the probe completes. Group and run-all actions skip this operation.",
+      "message": "This creates and replaces one clearly marked private test PersonaCharacter in your Realm. This probe leaves the record in the account for persistence checks; it does not delete it afterwards. Group and run-all actions skip this operation.",
       "confirm": "Create persistent test data",
       "cancel": "Cancel",
       "running": "Creating test data…"
@@ -65,7 +65,7 @@
     "sessionBar": {
       "ariaLabel": "Session and identity",
       "title": "Session & Identity",
-      "blurb": "Independent facts, each queried on its own — none is derived from another."
+      "blurb": "Each fact is queried independently — none is inferred from another."
     },
     "nav": {
       "ariaLabel": "Probe groups",
@@ -82,7 +82,7 @@
       },
       "realm": {
         "title": "Realm Data",
-        "blurb": "Declared Realm data access: list/create WorldCores and owner PersonaCharacter list/get/create/replace; delete is not admitted."
+        "blurb": "Declared Realm data access: list/create WorldCores, and list/get/create/replace owner PersonaCharacter records. These probes do not delete their test records."
       },
       "aiConsumption": {
         "title": "AI Consumption",
@@ -105,13 +105,13 @@
       },
       "worldList": {
         "title": "WorldCore listing",
-        "proves": "The App can list local Realm WorldCores through its declared Realm data access.",
+        "proves": "The App can list Realm WorldCore records through its currently admitted Realm data access.",
         "running": "Listing local WorldCores…"
       },
       "worldCreate": {
         "title": "WorldCore create & read-back",
         "proves": "A WorldCore created through the App Realm owner reads back with matching identity and content hash.",
-        "requires": "Creates a clearly marked private test WorldCore that persists because delete is not admitted. Run only after explicit confirmation.",
+        "requires": "Explicit confirmation. Creates a clearly marked private test WorldCore that remains in this account because delete is not admitted.",
         "running": "Creating a WorldCore and verifying the read-back…"
       },
       "personaOwnerList": {
@@ -122,13 +122,13 @@
       "personaOwnerCreateReplace": {
         "title": "Persistent PersonaCharacter create, replace & conflict",
         "proves": "The App creates one private owner PersonaCharacter, replaces it with the latest hash, and receives a typed stale-hash conflict.",
-        "requires": "Creates a clearly marked private test PersonaCharacter that persists because delete is not admitted. Run only after explicit confirmation.",
+        "requires": "Creates a clearly marked private test PersonaCharacter and leaves it in the account for persistence checks. Run only after explicit confirmation.",
         "running": "Creating and replacing the persistent test PersonaCharacter…"
       },
       "personaOwnerPersistence": {
         "title": "PersonaCharacter persistence read-back",
         "proves": "A prior Nimi Lab test PersonaCharacter is recovered through listOwned and getOwned after reload or restart.",
-        "requires": "Requires a persistent Nimi Lab test PersonaCharacter created by the explicitly confirmed create probe in this account. Run this read-only check directly after reload or restart.",
+        "requires": "A persistent Nimi Lab test PersonaCharacter in this account (from the confirmed create probe). Run this read-only check after a reload or restart.",
         "running": "Recovering the persistent owner PersonaCharacter…"
       },
       "textGeneration": {

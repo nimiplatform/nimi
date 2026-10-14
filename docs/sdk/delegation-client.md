@@ -35,7 +35,7 @@ A feature module powered by an external AI suggests executing a tool:
 1. **Submit proposal**: The module invokes `delegationClient.suggestToolRequest(...)`.
 2. **Gateway intake**: The Runtime delegation gateway validates the request against the trust tier of the provider profile.
 3. **Output firewall inspection**: The firewall validates payload schema, origin provenance, descriptor hash, data sensitivity, and prompt injection risks.
-4. **Enforce verdict**: A typed verdict is returned (e.g. `ACCEPTED_SUGGESTION`, `APPROVAL_REQUIRED`, `QUARANTINED`).
+4. **Enforce verdict**: A typed verdict is returned (e.g., `ACCEPTED_SUGGESTION`, `APPROVAL_REQUIRED`, `QUARANTINED`).
 5. **Execution**: If approved, Runtime executes the action within its audit lineage and returns typed results back through the SDK.
 
 ## Architectural Boundaries

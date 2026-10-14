@@ -1,8 +1,8 @@
 # Live2D Integration
 
-Live2D is a primary rendering backend for Nimi Avatar. Built atop the official Cubism SDK for Web, Avatar does not guess package capabilities from scattered Cubism files alone. Instead, it systematically validates package assets, calculates the **proven compatibility tier**, and projects the model through a shared, cross-platform embodiment surface.
+Live2D serves as a primary rendering backend for Nimi Avatar. Powered by the official Cubism SDK for Web, Avatar does not guess package capabilities from scattered Cubism files alone. Instead, it systematically validates package assets, computes the **proven compatibility tier**, and presents the character through a shared, cross-platform embodiment surface.
 
-This document also provides the authoring guide for the Live2D Adapter Manifest. The adapter manifest enables creators to map an existing Cubism model to Avatar activities, expressions, lipsync channels, physics simulations, postures, and hit-test regions without altering the original model files.
+This guide also explains how to author the Live2D Adapter Manifest. The adapter manifest enables creators to map an existing Cubism model to Avatar activities, expressions, lipsync channels, physics simulations, postures, and hit-test regions without altering the original model assets.
 
 ## SDK and Renderer Boundaries
 
@@ -15,18 +15,18 @@ This document also provides the authoring guide for the Live2D Adapter Manifest.
 | Audio Lipsync Bridge | `wLipSync` driving `ParamMouthOpenY` and optional mouth-form parameters |
 | Package Metadata | Verified adapter manifest and compatibility tier evaluation |
 
-Live2D operates under the closed backend discriminator `kind: 'live2d'`. Avatar-owned carrier translation consumes the neutral embodiment interface. Creator scripts do not receive Cubism classes or the Live2D parameter extension.
+Live2D operates under the closed backend discriminator `kind: 'live2d'`. The Avatar carrier translation layer consumes the neutral embodiment interface, meaning creator scripts never directly access Cubism internal classes or Live2D parameter extensions.
 
 ## Asset Ingestion Pipeline
 
 Avatar processes a Live2D package through four deterministic steps:
 
-1. **Resolution**: Locate and verify local asset paths using the Avatar package resolver;
-2. **Resource loading**: Parse the selected `model3.json` and load all referenced Moc bytecode, textures, and motion files;
-3. **Compatibility evaluation**: Validate the adapter manifest, license metadata, and asset signatures;
-4. **Window bounds calculation**: Report nominal physics bounds and mesh extents so the transparent desktop window conforms cleanly to the character's visible body.
+1. **Resolution**: Locate and verify local asset paths using the Avatar package resolver.
+2. **Resource loading**: Parse the designated `model3.json` and load all referenced Moc bytecode, textures, and motion files.
+3. **Compatibility evaluation**: Validate the adapter manifest, license metadata, and asset signatures.
+4. **Window bounds calculation**: Calculate nominal physics bounds and mesh extents so the transparent desktop window neatly fits the character's visible silhouette.
 
-Packages that fail schema or licensing validation are rejected. Missing essential files triggers fail-closed isolation; missing optional blendshapes or expressions lowers the computed compatibility tier while reporting actionable diagnostic traces.
+Packages failing schema or licensing validation are rejected immediately. Missing essential files triggers fail-closed isolation, whereas missing optional parameters or expressions lowers the computed compatibility tier while emitting actionable diagnostic traces.
 
 ## Compatibility Tiers
 
@@ -37,17 +37,17 @@ Packages that fail schema or licensing validation are rejected. Missing essentia
 | `semantic_basic` | Baseline companion: essential companion activities (`neutral`, `greet`, `listening`, `thinking`) are mapped |
 | `companion_complete` | Full companion experience: verified support for all advanced Avatar desktop companion interactions |
 
-A package may declare a desired tier in its manifest, but Avatar reports strictly the highest tier proven by empirical validation.
+A package may declare a requested tier in its manifest, but Avatar only grants the highest tier verified by empirical validation.
 
 ## Adapter Manifest Authoring
 
-Creators may embed an adapter manifest directly within their model package:
+Creators can embed an adapter manifest directly within the model package:
 
 ```text
 <model-package>/runtime/nimi/live2d-adapter.json
 ```
 
-Alternatively, desktop launchers may configure an external sidecar adapter. The system enforces a single-source-of-truth policy: embedded and sidecar adapters are never merged or blended.
+Alternatively, desktop launchers can configure an external sidecar adapter. The system enforces a single-source-of-truth policy: embedded and sidecar adapters are never merged or blended.
 
 The manifest begins with standard headers:
 
@@ -137,14 +137,14 @@ Feature declarations must be unambiguous: if a capability is missing from the mo
 
 ## Authoring Checklist
 
-- [ ] Exactly one `*.model3.json` file resides in the root;
-- [ ] `target_model.model_id` precisely matches the resolved model ID;
-- [ ] `FileReferences.Moc` and all referenced texture assets exist;
-- [ ] A looping `idle` motion group is configured;
-- [ ] When requesting `semantic_basic`, `neutral`, `greet`, `listening`, and `thinking` map to valid motion groups;
-- [ ] All mapped expression IDs exist within `FileReferences.Expressions`;
-- [ ] Lipsync parameters point to an active opening parameter (e.g. `ParamMouthOpenY`);
-- [ ] Hit region aliases map to declared model hit areas or specify an alpha-mask fallback;
+- [ ] Exactly one `*.model3.json` file resides in the root.
+- [ ] `target_model.model_id` precisely matches the resolved model ID.
+- [ ] `FileReferences.Moc` and all referenced texture assets exist.
+- [ ] A looping `idle` motion group is configured.
+- [ ] When requesting `semantic_basic`, `neutral`, `greet`, `listening`, and `thinking` map to valid motion groups.
+- [ ] All mapped expression IDs exist within `FileReferences.Expressions`.
+- [ ] Lipsync parameters point to an active opening parameter (e.g. `ParamMouthOpenY`).
+- [ ] Hit region aliases map to declared model hit areas or specify an alpha-mask fallback.
 - [ ] Licensing terms are verified prior to distribution.
 
 ## Diagnostic Codes

@@ -25,13 +25,13 @@ export const parentosMessagesZh = {
   'parentos.home.overflowFormat': '还有 {{count}} 项 →',
   'parentos.home.health.vision.title': '4 岁视力筛查',
   'parentos.home.health.vision.description':
-    '4-5 岁是弱视干预的关键窗口，建议每年做一次视力与屈光筛查，记录裸眼视力和是否有眯眼、歪头看物的表现。',
+    "记录适龄视力筛查与屈光检查结果，留意眯眼、歪头看物等表现；检查项目与复查时间请遵循儿科或眼科专业人员的建议。",
   'parentos.home.health.dental.title': '乳牙涂氟随访',
   'parentos.home.health.dental.description':
-    '每 3-6 个月复查一次乳牙，检查有无新龋，涂氟后两小时内避免进食。',
+    "记录乳牙检查、龋齿观察与涂氟情况，并根据所用材料和牙医建议记下涂氟后注意事项与下次复查时间。",
   'parentos.home.development.social.title': '同伴交往敏感期',
   'parentos.home.development.social.description':
-    '4 岁左右孩子开始在意"朋友"，会经历合作、争执与和好。观察她加入游戏的方式，比纠正冲突更有价值。',
+    "4 岁左右的孩子开始在意“朋友”，会经历合作、争执与和好。观察她加入游戏的方式，比纠正冲突更有价值。",
   'parentos.home.development.language.title': '叙事表达在快速发展',
   'parentos.home.development.language.description':
     '她开始能讲有开头和结尾的小故事，睡前让她复述今天发生的事，是最自然的语言练习。',
@@ -60,10 +60,10 @@ export const parentosMessagesZh = {
   'parentos.home.outdoorTitle': '每周户外目标',
   'parentos.home.outdoor.unit': '分钟',
   'parentos.home.outdoor.primary': '本周已户外 9 小时，离目标还差 5 小时。',
-  'parentos.home.outdoor.secondary': '周末各安排一次公园活动就能完成。',
+  'parentos.home.outdoor.secondary': "可以把剩下的 5 小时分到周末两次公园活动中。",
   'parentos.home.sensitiveBadge': '敏感期',
   'parentos.home.periods.item1.title': '社交敏感期',
-  'parentos.home.periods.item1.sign': '开始主动找固定的玩伴，会为"谁先玩"讨价还价。',
+  'parentos.home.periods.item1.sign': "开始主动找固定的玩伴，会为“谁先玩”讨价还价。",
   'parentos.home.periods.item2.title': '秩序敏感期（尾声）',
   'parentos.home.periods.item2.sign': '仍会坚持某些顺序，但已经能接受偶尔的变化。',
   'parentos.home.recordAction': '去记录',
@@ -110,10 +110,10 @@ export const parentosMessagesZh = {
   'parentos.home.teaser':
     '这个月小满最明显的变化在语言和社交：她开始用完整的故事表达自己，也第一次主动处理了和同伴的分歧。',
   'parentos.home.todoTitle': '本月可以做的一件事',
-  'parentos.home.actionText': '每周留一次 20 分钟的"她当老师"时间，让她教你一件事。',
+  'parentos.home.actionText': "每周留一次 20 分钟的“她当老师”时间，让她教你一件事。",
   'parentos.panel.title': '待办事项',
   'parentos.panel.todayTab': '今天',
-  'parentos.panel.upcomingTab': '近期 7 天',
+  'parentos.panel.upcomingTab': "未来 7 天",
   'parentos.panel.overdueSummary': '逾期汇总',
   'parentos.panel.reminders.rVision.title': '4 岁视力筛查',
   'parentos.panel.reminders.rVision.status': '今天到期',
@@ -155,7 +155,7 @@ export const parentosMessagesZh = {
   'parentos.panel.todos.tBook.title': '每晚读 10 分钟绘本',
   'parentos.panel.todos.tBook.due': '今天',
   'parentos.panel.todos.tPark.title': '周六去公园两小时',
-  'parentos.panel.todos.tPark.due': '2天后',
+  'parentos.panel.todos.tPark.due': "2 天后",
   'parentos.panel.observationNudges': '观察建议',
   'parentos.panel.nudges.item1.text': '孩子最近沉浸在什么事情里？',
   'parentos.panel.nudges.item1.question': '有没有发现孩子特别投入的瞬间？',
@@ -168,19 +168,19 @@ export const parentosMessagesZh = {
   'parentos.advisor.conversations.c1.messages.item1.content':
     '小满开学两周了，每天早上送到幼儿园门口还是会哭，要抱很久才肯进去。我该坚持还是再等等？',
   'parentos.advisor.conversations.c1.messages.item2.content':
-    '4 岁孩子入园两周仍有分离哭闹是很常见的，**不代表适应失败**。从你记录的随记看，她在园内的社交和语言表现很活跃，说明分离时刻的情绪是"告别的仪式"，而不是全天的状态。\n\n可以试试：\n- 固定一个很短的告别仪式（拥抱、击掌、一句固定的话），每天一样\n- 告别后不回头，交给老师即可；拉长告别反而延长焦虑\n- 回家后不追问"今天哭了吗"，改问"今天和谁玩了"\n\n如果三周后仍无缓解，或她在园内也持续退缩，再考虑和老师一起观察具体触发点。',
+    "每个孩子适应新环境的节奏不同。可以先向老师了解她进班后的状态，再一起商量下一步。\n\n接下来可以试试：\n- 保持简短一致的告别仪式：拥抱、说清楚何时来接她，然后温和离开\n- 接园时多聊聊今天和谁玩了\n\n如果她在园内也持续难过或你仍有顾虑，可以随时和老师及儿科专业人员沟通。",
   'parentos.advisor.conversations.c2.title': '4 岁视力筛查要看什么',
   'parentos.advisor.conversations.c2.when': '3 天前',
   'parentos.advisor.conversations.c2.messages.item1.content':
     '这周要带小满去做视力筛查，家长应该重点问哪些？',
   'parentos.advisor.conversations.c2.messages.item2.content':
-    '4 岁筛查重点是**裸眼视力、屈光度和双眼是否有明显差异**。可以主动请医生记录：\n- 双眼裸眼视力（记到档案里，方便和明年对比）\n- 是否有散光或远视储备偏低\n- 是否需要散瞳复查\n\n回来后把数值录进档案，ParentOS 会在下一年提醒复查。',
+    "这次检查可以重点记下**裸眼视力、屈光结果和双眼度数差异**，顺便向医生确认：\n- 双眼各自的检查数值，方便日后对比\n- 散光、远视储备情况，以及平时眯眼、歪头是否需要留意\n- 接下来是否需要散瞳或何时复查\n\n检查后把结果和医嘱记进档案，方便按医生建议的时间跟进。",
   'parentos.advisor.conversations.c3.title': '弟弟出生后姐姐的情绪变化',
   'parentos.advisor.conversations.c3.when': '2 周前',
   'parentos.advisor.conversations.c3.messages.item1.content':
     '弟弟出生后小满最近特别黏人，还会故意惹弟弟哭。',
   'parentos.advisor.conversations.c3.messages.item2.content':
-    '这是典型的**手足竞争期**表现。她在确认自己仍然被爱。每天给她 10-15 分钟完全属于她的"专属时间"，比反复讲道理更有效。',
+    "照顾弟弟妹妹占去不少精力时，姐姐也很需要被单独看见。不妨留出一段只属于她的**专注相处时间**，陪她做喜欢的事，多倾听她的感受。",
   'parentos.advisor.user': '你',
   'parentos.advisor.assistant': '成长顾问',
   'parentos.advisor.thinking': 'AI 正在思考...',
@@ -193,11 +193,11 @@ export const parentosMessagesZh = {
   'parentos.advisor.suggestions.item3': '户外时间不够会影响视力吗？',
   'parentos.advisor.emptyEyebrow': 'AI 顾问',
   'parentos.advisor.emptyTitle': '选择或创建一个对话',
-  'parentos.advisor.emptyDescription': 'AI 顾问基于 小满 的档案和本地记录工作',
+  'parentos.advisor.emptyDescription': "AI 顾问基于小满的档案与本地记录提供建议",
   'parentos.advisor.replies.item1':
-    '结合小满 4 岁 3 个月的阶段和最近的记录来看，这件事**不需要着急**。她的语言和社交都在正常范围内，可以先把观察记录下来，一到两周后我们再一起看有没有变化。\n\n建议这周：\n- 每天留一段不被打断的自由玩耍时间\n- 记录她主动发起互动的次数\n- 有让你意外的瞬间就写进成长随记',
+    "仅凭几条随记还不好直接下结论，**先从具体观察开始**。小满现在 4 岁 3 个月，不妨先把接下来一两周的具体表现记下来，再一起回看日常变化。\n\n这周可以从这些小事开始：\n- 每天留出一段不被打断的自由玩耍时间\n- 记下她主动开启对话或互动的场景\n- 把有趣的表达随手写进成长随记",
   'parentos.advisor.replies.item2':
-    '可以这样理解：4-5 岁是**叙事能力**快速发展的窗口。你不需要专门"教"，只要在她讲的时候多问一句"然后呢"，故事就会越来越完整。\n\n如果想更系统一点，可以把她讲的故事录成语音随记，一个月后回听会很有意思。',
+    "陪孩子练习**表达和讲故事**，不需要专门上课。平时顺着她的话多问一句“然后呢？”，能鼓励她把想法继续往下讲。\n\n你也可以把她讲的故事存成语音随记，过段时间再一起回听，留住这些日常片段。",
   'parentos.journal.heroLead': '成长',
   'parentos.journal.heroTail': '随记',
   'parentos.journal.subtitleLead': '写下今天的一个瞬间。',
@@ -236,7 +236,7 @@ export const parentosMessagesZh = {
   'parentos.profile.completenessLabel': '档案完整度',
   'parentos.profile.addData': '添加健康数据',
   'parentos.profile.editChild': '编辑资料',
-  'parentos.profile.archiveTitle': '成长故事，分门别类',
+  'parentos.profile.archiveTitle': "成长轨迹，分门别类",
   'parentos.profile.groups.growth.name': '生长',
   'parentos.profile.groups.growth.summary': '身高 104.6 cm · 体重 16.8 kg',
   'parentos.profile.groups.growth.metrics.item1.label': '身高',
@@ -260,7 +260,7 @@ export const parentosMessagesZh = {
   'parentos.profile.groups.vaccines.summary': '已完成 18 针 · 待补 1 针',
   'parentos.profile.groups.vaccines.metrics.item1.label': '已完成',
   'parentos.profile.groups.vaccines.metrics.item1.value': '18 针',
-  'parentos.profile.groups.vaccines.metrics.item2.label': '待补',
+  'parentos.profile.groups.vaccines.metrics.item2.label': "待核对",
   'parentos.profile.groups.vaccines.metrics.item2.value': '流感（秋季）',
   'parentos.profile.groups.sleep.name': '睡眠',
   'parentos.profile.groups.sleep.summary': '平均 10h20m',
@@ -275,7 +275,7 @@ export const parentosMessagesZh = {
   'parentos.profile.groups.milestones.metrics.item3.label': '社交情绪',
   'parentos.profile.groups.milestones.metrics.item3.value': '6 项',
   'parentos.reports.title': '成长报告',
-  'parentos.reports.subtitle': '每月自动整理一封成长信，也可以按时间段生成。',
+  'parentos.reports.subtitle': "回看一个月的成长，也可以自选时间范围。",
   'parentos.reports.generate': '生成报告',
   'parentos.reports.presets.item1': '本月',
   'parentos.reports.presets.item2': '上月',
@@ -288,11 +288,11 @@ export const parentosMessagesZh = {
   'parentos.reports.letter.paragraphs.item1':
     '这个月小满最明显的变化在语言和社交。她开始用完整的故事表达自己，讲《三只小猪》时会给每个角色配上不同的声音；在游乐场，她第一次在被拒绝后没有退缩，转身又去找了新的玩伴。',
   'parentos.reports.letter.paragraphs.item2':
-    '身高这个月长了 1.2 厘米，体重增加 0.4 公斤，都在她自己的曲线通道内。睡眠稳定在 10 小时左右，入睡时间比上个月提前了 15 分钟。',
+    "这个月身高长了 1.2 厘米，体重增加 0.4 公斤，沿着她自己的生长曲线平稳增长。睡眠稳定在 10 小时左右，入睡时间比上个月提前了 15 分钟。",
   'parentos.reports.letter.paragraphs.item3':
     '视力筛查已经到期，建议本周完成；秋季流感疫苗仍然待补。',
   'parentos.reports.letter.actionsTitle': '下个月可以做的三件事',
-  'parentos.reports.letter.actions.item1': '每周留一次 20 分钟的"她当老师"时间',
+  'parentos.reports.letter.actions.item1': "每周留一次 20 分钟的“她当老师”时间",
   'parentos.reports.letter.actions.item2': '完成 4 岁视力筛查并录入数值',
   'parentos.reports.letter.actions.item3': '周末各安排一次两小时的户外活动',
   'parentos.settings.title': '设置',
@@ -300,7 +300,7 @@ export const parentosMessagesZh = {
   'parentos.settings.other': '其他',
   'parentos.settings.account.note': '登录和账户切换由 Nimi 统一管理。',
   'parentos.settings.languageTitle': '界面语言',
-  'parentos.settings.languageDesc': '切换 ParentOS 的全局界面文案。',
+  'parentos.settings.languageDesc': "切换 ParentOS 的界面显示语言。",
   'parentos.settings.sections.children.label': '孩子与家庭成员',
   'parentos.settings.sections.children.desc': '管理孩子档案、记录人与头像。',
   'parentos.settings.sections.nurture.label': '养育模式',
@@ -310,7 +310,7 @@ export const parentosMessagesZh = {
   'parentos.settings.sections.ai.label': 'AI 设置',
   'parentos.settings.sections.ai.desc': '为成长顾问与语音转写选择本地或云端模型。',
   'parentos.settings.info.item1.label': '隐私与本地数据',
-  'parentos.settings.info.item1.desc': '所有记录只保存在这台设备上。',
+  'parentos.settings.info.item1.desc': "成长记录与媒体保存在本机数据库和目录中；使用云端 AI 时，会将当前请求相关内容发送给所选模型服务商。",
   'parentos.settings.info.item2.label': '关于 ParentOS',
   'parentos.settings.info.item2.desc': '版本 0.1.6 · 演示数据',
   'parentos.notices.hostOnly': '这个预览只使用演示数据；文件、相机与 AI 模型在 Nimi 桌面端中可用。',
@@ -325,5 +325,5 @@ export const parentosMessagesZh = {
   'parentos.settingsPage.thePreviewFollowsTheLanguageSelectedAt':
     '预览语言跟随页面顶部的语言选择。',
   'parentos.settingsPage.chinese': '中文',
-  'parentos.settingsPage.english': '英语',
+  'parentos.settingsPage.english': "英文",
 } as const;

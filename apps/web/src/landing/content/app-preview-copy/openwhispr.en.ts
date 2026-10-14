@@ -57,7 +57,7 @@ export const openwhisprMessagesEn = {
     'Keep the right spelling for terms you use often.',
   'openwhispr.home.sampleDictionary': 'Sample dictionary',
   'openwhispr.home.turnRecordingsIntoNotes': 'Turn recordings into notes',
-  'openwhispr.home.exploreASavedRecordingTranscript': 'Explore a saved recording transcript.',
+  'openwhispr.home.exploreASavedRecordingTranscript': "Browse a preset recording transcript.",
   'openwhispr.home.openSampleTranscript': 'Open sample transcript',
   'openwhispr.home.dictationShortcut': 'Dictation shortcut',
   'openwhispr.home.holdRightCtrl': 'Hold right Ctrl',

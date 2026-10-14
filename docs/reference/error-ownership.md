@@ -27,7 +27,7 @@ When an upstream model provider experiences a transient outage:
 
 1. **Provider Failure**: Remote model API returns an HTTP 500 error.
 2. **Runtime Classification**: Runtime captures the event, classifies it under reason code `AI_PROVIDER_INTERNAL` (governed by runtime rule `K-ERR-*`), and logs local audit traces with a Trace ID.
-3. **SDK Normalization**: The SDK encapsulates the exception into a structured `NimiError` (with `reasonCode: 'AI_PROVIDER_INTERNAL'` and action hint `retry_with_backoff_or_switch_provider`).
+3. **SDK Normalization**: The SDK encapsulates the exception into a structured `NimiError` (with `reasonCode: 'AI_PROVIDER_INTERNAL'` and the actual `actionHint` returned for that operation).
 4. **Desktop UI Rendering**: The UI catches the error at its component boundary, rendering a contextual prompt ("Model provider encountered an internal error; please try again later or switch provider") with actionable retry controls.
 
 ## Source Basis

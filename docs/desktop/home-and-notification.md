@@ -1,34 +1,34 @@
 # Home Dashboard and Notification Center
 
-The Nimi Home dashboard serves as your personal AI command center. Here, you can launch new tasks or resume recent conversations, inspect machine hardware acceleration and Runtime readiness, and triage notifications from apps and agents in a consolidated feed.
+The Nimi Home dashboard is your daily command center for AI tasks, apps, and updates. From here, you can start new workflows, pick up recent conversations, check local hardware acceleration and Runtime health, and triage updates from apps and agents in one consolidated feed.
 
 ## Home Dashboard Sections
 
 | Section | Content | Actions |
 | --- | --- | --- |
-| **Start & Resume** | Quick launch tiles and recent conversations | Instantly resume unfinished workflows or dialogues |
-| **Device AI Readiness** | Local hardware status, model readiness, Runtime connectivity | Navigate to AI settings to configure or troubleshoot models |
-| **Actionable Messages** | Key todos from apps and agents, download progress, updates | Click cards to jump straight into the corresponding app |
-| **Message Center** | Full-width view aggregating all app events, with filters | Batch review notifications and completed items |
-| **Moments & Activity** | Community updates, character posts, and social feed | Share your own posts or catch up on friend activities |
+| **Start & Resume** | Quick-launch tiles and recent conversations | Resume unfinished workflows or dialogue sessions |
+| **Device AI Readiness** | Local hardware status, model readiness, and Runtime connectivity | Jump to AI settings to configure or troubleshoot models |
+| **Actionable Messages** | Key todos from apps and agents, download progress, and pending updates | Click a card to open the corresponding app context |
+| **Message Center** | Full-width view of loaded updates with source and status filters | Review notifications and completed items in batches |
+| **Moments & Activity** | Community updates, character posts, and social feed | Share posts and interact with updates from friends |
 
 ## Community Feed and Moments
 
-Clicking "Moments" opens the Realm community stream:
-- **Aggregated Content**: View your own posts, updates from friends, and public posts from verified characters (PersonaCharacters and WorldCharacters).
-- **Post & React**: Publish rich posts and engage with the community. Visibility permissions (public vs. friends-only) and author identities are preserved authoritatively by Realm.
+Select **Moments** to open the Realm community stream:
+- **Aggregated Feed**: Brings together your own posts, updates from friends, and public posts from verified characters (`PersonaCharacters` and `WorldCharacters`).
+- **Post & React**: Publish posts and interact with the community. Realm manages post visibility (public or friends-only) and verifies author identity.
 
 ## Customizing Your Dashboard Feed
 
-- **Hide from Home**: Users can hide specific cards from the Home overview. This only changes visual placement—it never stops background tasks or cancels todos.
-- **Restore Cards**: Hidden cards remain accessible in the full Message Center, where you can click "Show on Home" to restore them.
-- **Home Message Preferences**: Under "Settings → Notifications", choose which application activity and messages appear in the Home preview. This setting configures the Home dashboard feed only, saved separately from Realm notification delivery preferences.
+- **Hide from Home**: You can hide App and Agent activity cards from the Home overview. Hiding a card only changes what appears on the dashboard—it never stops background tasks or cancels the underlying todo.
+- **Restore Cards**: Hidden cards stay available in the full **Message Center**, where you can select **Show on Home** at any time to put them back on the dashboard.
+- **Home Message Preferences**: Under **Settings → Notifications**, choose which apps can surface activity and message cards on the Home preview. This setting only controls the Home dashboard feed and is stored separately from your Realm notification delivery preferences.
 
-## User Journey: Launching an App from a Home Todo
+## Example Workflow: Acting on a Home Todo
 
-1. **Card Appears**: A reminder card from an installed app (e.g., NimiDay schedule companion) surfaces on the Home feed.
-2. **Click to Open**: The dashboard opens the corresponding app window and routes directly to the item.
-3. **Resolve Task**: Once you update or confirm the item, the card status updates accordingly.
+1. **Card Appears**: An installed app (such as the NimiDay schedule companion) posts a reminder card to your Home feed.
+2. **Click to Open**: Clicking the card opens the app window and jumps straight to the relevant item.
+3. **Resolve Task**: Once you confirm or update the item in the app, the card status on Home updates automatically.
 
 ## Source Basis
 

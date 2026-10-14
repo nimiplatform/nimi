@@ -1,22 +1,22 @@
 # Agent Conversation Actions
 
-Agent Chat opens the Runtime-maintained Conversation for the selected Agent. Committed turns can be read again from another authorized surface; drafts and pending input belong to the current window.
+Agent Chat opens the Runtime-managed Conversation for your selected Agent. Committed turns sync across any authorized surface, while unsubmitted drafts and pending input stay strictly local to your current window.
 
 ## Send Text or an Image
 
-Type a message and send it to start a turn. The current composer accepts at most one image attachment per turn, subject to the Agent's configured capabilities. Its file picker and paste handler accept image MIME types only.
+Type a message and send it to start a turn. If the Agent's configured capabilities support image input, you can attach up to one image per turn. Both the file picker and clipboard paste accept image MIME types only.
 
-To discuss a document or code file here, paste the relevant text into the message. The composer does not upload PDF, Markdown, or source-code files as document attachments.
+The composer does not upload PDF, Markdown, or source-code files as document attachments. To discuss a document or code snippet, paste the relevant text directly into your message.
 
 ## Stop and Recover
 
-Agent turns display text updates while generation runs. Use Stop to request interruption. Previously committed messages remain in the Conversation; interruption does not undo completed external actions.
+Agent responses stream live text updates as they generate. Click **Stop** at any time to request an interruption. Stopping preserves all previously committed messages in the Conversation and does not undo external actions that have already completed.
 
-After reconnecting, reload the committed Runtime snapshot. A pending fragment or local cache does not prove that a turn committed. Continue with a new message to correct or refine an earlier response rather than silently rewriting history.
+If you reconnect after a drop, reload the committed snapshot from Runtime. An unfinished text fragment or local frontend cache does not mean a turn was committed. To correct or refine an earlier reply, simply send a new follow-up message rather than trying to rewrite conversation history.
 
 ## Separate Conversation Modes
 
-Human messages use Realm threads. Ordinary AI/Nimi Chat has its own request and message-storage path; its controls do not inherit Agent Conversation's streaming and Stop behavior. See [Chat Modes](/desktop/chat).
+Human-to-human messages run on Realm threads. Ordinary AI/Nimi Chat uses an independent request and storage path and does not share Agent Conversation's streaming updates or **Stop** control. See [Chat Modes](/desktop/chat) for details.
 
 ## Source Basis
 

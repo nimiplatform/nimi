@@ -246,7 +246,7 @@ export class FollowUpEngine {
       if (item.source) { const source = await this.call(id, scope, item.source.targetRef, 'deliverable.read', item.source.reference); sourceText = JSON.stringify(source); }
       if (!alreadyNotified) {
         await this.review(id, scope, true, sourceText); this.check(id, scope);
-        if (!this.find(id).prepared) { await this.update(id, { state: 'needs-input', issue: 'preparation-incomplete', error: '' }); this.check(id, scope); await this.publish(id, '安排需要补充', '尚未发送通知，请在 Day 查看准备检查。'); return; }
+        if (!this.find(id).prepared) { await this.update(id, { state: 'needs-input', issue: 'preparation-incomplete', error: '' }); this.check(id, scope); await this.publish(id, '安排需要补充', "尚未发送通知，请在 Day 查看准备情况。"); return; }
         await this.update(id, { state: 'notifying' });
         for (const recipient of this.find(id).recipients) {
           this.check(id, scope);

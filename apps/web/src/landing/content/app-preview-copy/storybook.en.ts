@@ -4,10 +4,10 @@ export const storybookMessagesEn = {
   'storybook.harborLetters.subtitle':
     'Before the lighthouse goes dark, a letter arrives from a missing keeper.',
   'storybook.harborLetters.themes.item1': 'Mystery',
-  'storybook.harborLetters.themes.item2': 'Two sides of human nature',
+  'storybook.harborLetters.themes.item2': "Duality of human nature",
   'storybook.harborLetters.role': 'An investigator on assignment',
   'storybook.harborLetters.cast.item1.name': 'Aran',
-  'storybook.harborLetters.cast.item1.voice': 'Soft-spoken, pausing at the crucial moments',
+  'storybook.harborLetters.cast.item1.voice': "Soft-spoken, pausing at crucial moments",
   'storybook.harborLetters.cast.item1.publicFacts.item1': 'Owner of the harbor café',
   'storybook.harborLetters.cast.item1.publicFacts.item2': 'Has known the missing keeper for years',
   'storybook.harborLetters.cast.item2.name': 'Lu Chen',
@@ -38,7 +38,7 @@ export const storybookMessagesEn = {
   'storybook.harborLetters.nodes.item3.scene.inn.label': 'Aran',
   'storybook.harborLetters.nodes.item4.scene.keeper.title': 'A man who does not want rescuing',
   'storybook.harborLetters.nodes.item4.scene.keeper.text':
-    'Aran leads you to the boathouse behind the lighthouse. The keeper sits in a small boat, the original incident log on his knees.\n\n‘We extinguished the light to let a smuggling boat in. The passenger ship struck the reef,’ he says. ‘I signed a false log. Now they want to demolish the lighthouse—and the evidence.’\n\nHe hands you the book. ‘I will testify. But my daughter must board tomorrow morning. She knows nothing.’',
+    "Aran leads you to the boathouse behind the lighthouse. The keeper sits in a small boat, the original incident log on his knees.\n\n‘We extinguished the light to let a smuggling boat in. The passenger ship struck the reef,’ he says. ‘I signed a false log. Now they want to demolish the lighthouse—and the evidence.’\n\nHe hands you the book. ‘I will testify. But my daughter must board the ferry tomorrow morning. She knows nothing.’",
   'storybook.harborLetters.nodes.item4.scene.keeper.choices.item1.pick.g.title':
     'Send his daughter away safely, then publish the evidence',
   'storybook.harborLetters.nodes.item4.scene.keeper.choices.item2.pick.h.title':
@@ -117,7 +117,7 @@ export const storybookMessagesEn = {
   'storybook.lastTrain.nodes.item3.scene.conductor.label': 'The conductor',
   'storybook.lastTrain.nodes.item4.scene.firststop.title': 'Three minutes',
   'storybook.lastTrain.nodes.item4.scene.firststop.text':
-    "The person you hoped to see stands outside, young enough to make your heart ache, checking a shopping list.\n\nThe conductor starts his timer. In three minutes, the stop will disappear.\n\nBehind you, Xiaoman whispers: ‘You don't need the perfect sentence. People don't listen only because you speak well.’",
+    "The person you hoped to see stands outside, young enough to make your heart ache, checking a shopping list.\n\nThe conductor starts his timer. In three minutes, the stop will disappear.\n\nBehind you, Xiaoman whispers: ‘You don't need the perfect words. People don't listen just because you say it well.’",
   'storybook.lastTrain.nodes.item4.scene.firststop.choices.item1.pick.g.title':
     'Walk over and offer a long-delayed thank-you',
   'storybook.lastTrain.nodes.item4.scene.firststop.choices.item2.pick.h.title':
@@ -176,7 +176,7 @@ export const storybookMessagesEn = {
   'storybook.rainPost.nodes.item2.scene.price.choices.item2.pick.d.title':
     'Listen to the glowing bottle first',
   'storybook.rainPost.nodes.item2.scene.price.label': 'Qinghe',
-  'storybook.rainPost.nodes.item3.scene.open.title': 'The future has no model answer',
+  'storybook.rainPost.nodes.item3.scene.open.title': "The future has no single right answer",
   'storybook.rainPost.nodes.item3.scene.open.text':
     "There are no lottery numbers or prophecies.\n\n‘You must be wondering whether to leave that job. We chose one road. But I often think the version of us on the other road might be happy too.’\n\nRain has blurred the last sentence. Only ‘Don't let fear’ remains clear.\n\nQinghe offers paper and a pen. ‘You can reply. One sentence only.’",
   'storybook.rainPost.nodes.item3.scene.open.choices.item1.pick.e.title':
@@ -210,7 +210,7 @@ export const storybookMessagesEn = {
     'The next day, the shop is gone. A small new plant grows where it stood.\n\nYou have not suddenly become brave. Your hands still shake at decisions. But you begin to allow yourself a mistake that belongs to you.\n\nPerhaps in ten years you will write that letter. Perhaps not.\n\nEither way, today is your own choice.',
   'storybook.rainPost.nodes.item8.ending.ordinary.title': 'The light in useless things',
   'storybook.rainPost.nodes.item8.ending.ordinary.text':
-    'Your friend still recognizes your voice. You talk for hours about small, useless things.\n\nAfterward, a dry petal appears in your coat pocket. It bears no words but smells like rain in the shop.\n\nThe future gave you no answers. Yet afterward, you walk a little more slowly whenever it rains.\n\nPerhaps someone is waiting behind a door you pass.',
+    "Your friend still recognizes your voice. You talk for hours about small, useless things.\n\nAfterward, a dry petal appears in your coat pocket. It bears no words but smells like rain in the shop.\n\nThe future gave you no answers. Yet from then on, you walk a little more slowly whenever it rains.\n\nPerhaps someone is waiting behind a door you pass.",
   'storybook.rainPost.endings.tomorrow.label': 'Tomorrow is unwritten',
   'storybook.rainPost.endings.ordinary.label': 'The light in useless things',
   'storybook.intakeSeeds.item1.label': 'An impossible call',
@@ -238,12 +238,12 @@ export const storybookMessagesEn = {
   'storybook.studioProject.status': 'Ready to play',
   'storybook.settings.accountName': 'Nimi connected',
   'storybook.settings.accountNote':
-    'Choose a narrative model below to adapt stories, arrange branches, and speak with characters while playing.',
+    "Choose a narrative model below to adapt stories, shape branching paths, and talk with characters as you play.",
   'storybook.settings.modelLabel': 'Narrative text generation',
   'storybook.settings.modelNote':
-    'For story adaptation, branch arrangement, and improvised character dialogue.',
+    "Used for adapting stories, shaping story branches, and improvising character dialogue.",
   'storybook.demo.hostOnly':
-    'This action needs Storybook in your local Nimi installation, including its local library and Runtime AI. The website demonstrates the interface and interaction only.',
+    "This feature requires Storybook running in your local Nimi installation, with access to your local library and Runtime AI. This web preview demonstrates the interface and interactions only.",
   'storybook.demo.dismiss': 'Got it',
   'storybook.sidebar.storybookLibrary': 'Storybook library',
   'storybook.sidebar.storybook': 'storybook',
@@ -273,7 +273,7 @@ export const storybookMessagesEn = {
   'storybook.playHome.oneCharacterCardCanOpenNewPossibilities':
     'One character card can open new possibilities.',
   'storybook.playHome.bringAFavoriteCharacterWorldMaterialOr':
-    "Bring a favorite character, world material, or an experience you've arranged.",
+    "Bring in a favorite character, worldbuilding notes, or a story experience you've crafted.",
   'storybook.playHome.bringInAWorld': 'Bring in a world',
   'storybook.playHome.startHereStoryNo01': 'START HERE · STORY NO. 01',
   'storybook.playHome.scenes': ' scenes',
@@ -294,11 +294,11 @@ export const storybookMessagesEn = {
   'storybook.playHome.storybookOriginal': 'STORYBOOK ORIGINAL',
   'storybook.playHome.noStoryFoundTryAnotherWord': 'No story found. Try another word.',
   'storybook.playHome.theWorldYouBringWillChangeThrough':
-    'The world you bring will change through your participation.',
+    "The world you bring in changes as you take part in it.",
   'storybook.playHome.poweredByNimi': 'POWERED BY NIMI',
   'storybook.playRun.thisStoryCannotBeOpenedRightNow': 'This story cannot be opened right now.',
   'storybook.playRun.yourProgressRemainsOnThisDeviceImport':
-    'Your progress remains on this device. Import the complete story file again.',
+    "Your progress is still saved on this device. Re-import the full story file to continue.",
   'storybook.playRun.backToTheLibrary': 'Back to the library',
   'storybook.sendFreeText.theStoryResponds': 'The story responds',
   'storybook.sendFreeText.you': 'You',
@@ -351,7 +351,7 @@ export const storybookMessagesEn = {
   'storybook.studioHome.studio': 'STUDIO',
   'storybook.studioHome.letImaginationGrowAWorld': 'Let imagination grow a world.',
   'storybook.studioHome.thisIsYourStudioOneThoughtCan':
-    'This is your studio. One thought can become a story worth experiencing.',
+    "This is your studio, where a single spark can grow into a story worth living.",
   'storybook.studioHome.yourWordsTheirWorld': 'YOUR WORDS. THEIR WORLD.',
   'storybook.studioHome.youBeginTheStory': 'You begin the story.',
   'storybook.studioHome.weImagineTheRestTogether': 'We imagine the rest together.',
@@ -381,7 +381,7 @@ export const storybookMessagesEn = {
     'Paste a short story, a passage you love,\nor simply a sudden idea.\n\nThat day, things were not supposed to happen this way…',
   'storybook.studioIntake.draftSavedOnThisDevice': 'Draft saved on this device',
   'storybook.studioIntake.typingSavesAutomaticallyOnThisDevice':
-    'Typing saves automatically on this device',
+    "Saves automatically on this device as you type",
   'storybook.studioIntake.8000Characters': ' / 8,000 characters',
   'storybook.studioIntake.aLittleDirection': 'A LITTLE DIRECTION',
   'storybook.studioIntake.whereShouldTheStoryGo': 'Where should the story go?',
@@ -400,7 +400,7 @@ export const storybookMessagesEn = {
   'storybook.studioIntake.letTheStoryGrow': 'Let the story grow',
   'storybook.workspace.aiModels': 'AI models',
   'storybook.workspace.chooseAiForStoryAdaptationAndCharacter':
-    'Choose AI for story adaptation and character dialogue.',
+    "Choose the AI model for story adaptation and character dialogue.",
   'storybook.workspace.back': 'Back',
   'storybook.workspace.currentConfiguration': 'Current configuration',
   'storybook.workspace.chooseTheModelForStoryCreation': 'Choose the model for story creation',
@@ -413,7 +413,7 @@ export const storybookMessagesEn = {
   'storybook.workspace.runtimeRouteIntentSaved': 'Runtime route intent saved.',
   'storybook.workspace.textGenerationIsNotConfigured': 'Text generation is not configured.',
   'storybook.workspace.route': 'Route',
-  'storybook.workspace.local': 'local',
+  'storybook.workspace.local': "Local",
   'storybook.workspace.cloud': 'Cloud',
   'storybook.workspace.useLocalRuntime': 'Use local Runtime',
   'storybook.workspace.saveCloudIntent': 'Save cloud intent',
@@ -453,7 +453,7 @@ export const storybookMessagesEn = {
   'storybook.settingsPage.connectedToNimi': 'Connected to Nimi',
   'storybook.settingsPage.checkConnectionAgain': 'Check connection again',
   'storybook.settingsPage.runtimeStoresConfigurationStorybookDoesNotHold':
-    'Runtime stores configuration. Storybook does not hold providers, models, or credentials.',
+    "Runtime stores model preferences and applies them during execution. Storybook does not keep provider keys.",
   'storybook.library.allStories': 'All',
   'storybook.library.experienceCount': '{count} journeys',
   'storybook.reader.actNumber': 'Act {number}',

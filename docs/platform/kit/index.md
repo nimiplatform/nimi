@@ -1,6 +1,6 @@
 # Platform Kit
 
-`@nimiplatform/kit` provides reusable UI components and host integration building blocks for Nimi Apps. Developers can readily share visual design language, accessibility behaviors, Shell adapters, and common UI interaction primitives, while business logic and domain authority remain firmly owned by the Apps and underlying platform services.
+`@nimiplatform/kit` delivers reusable UI components and host integration building blocks for Nimi Apps. It allows applications to share visual design systems, accessible interaction patterns, Shell adapters, and core UI primitives, while business logic and domain authority remain strictly with each App and its underlying platform services.
 
 ## Core Module Surfaces
 
@@ -12,40 +12,40 @@
 | `telemetry` | Renderer telemetry and React error boundary components |
 | `shell/tauri` | Lightweight Rust host glue for Tauri environments |
 
-Kit follows a demand-driven evolution principle: reusable surfaces are added only when multiple apps or host environments have clear reuse requirements and unambiguous component boundaries. Kit avoids speculative design and does not assemble redundant catalogs simply for the appearance of ecosystem completeness.
+Kit evolves on concrete demand: shared surfaces are introduced only when multiple apps or host environments establish recurring needs with unambiguous component boundaries. Kit avoids speculative abstractions and preemptive catalog expansion.
 
 ## Host Environments: Electron and Tauri
 
-Nimi App development defaults to the Desktop-supervised Electron host, which packages the complete standard shell.
+Nimi App development defaults to the Desktop-supervised Electron host, which bundles the full standard shell.
 
-Tauri is an explicitly configured lightweight alternative, where the shared Tauri crate implements a targeted subset of capabilities:
+Tauri serves as an explicitly configured lightweight alternative, where the shared Tauri crate implements a focused subset of capabilities:
 
 - **Supported on Tauri**: Session status queries, App AIConfig, single-shot text generation (`generateCandidate`), Artifact uploads, local storage (JSON documents and static assets), Realm World and PersonaCharacter operations, shared Agent AIConfig, Agent management (autonomy, appearance, memory controls, embodiment), and App Activity tracking.
 - **Not supported on Tauri**: Streamed text turns, Scenario orchestration and Job scheduling, Artifact downloads, voice assets, Realm realtime chat and channels, Agent collaboration recommendations, third-party Integrations, realtime audio/video sessions, native media player handles, Avatar host handoff, and Resource Pack imports.
-- **Invocation behavior**: Attempting to invoke unsupported capabilities on a Tauri host fails immediately before shell dispatch with `capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`). Custom Tauri commands registered independently by the App are unaffected.
+- **Invocation behavior**: Calling an unsupported capability on Tauri fails immediately before shell dispatch with `capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`). Custom Tauri commands registered independently by the App remain unaffected.
 
 ## Ownership Boundaries
 
-Kit owns reusable presentation patterns and host-neutral interaction mechanics. It deliberately avoids owning:
+Kit owns reusable presentation patterns and host-neutral interaction mechanics. It deliberately excludes:
 
-- App-specific business workflows, layouts, or product logic;
-- Runtime layer concerns (LocalAgent, Conversation, Memory, Knowledge, or readiness states);
-- Realm virtual worlds, character personas, accounts, or social graph canonical state;
-- Avatar execution pipelines or skeletal rendering core authority;
+- App-specific business workflows, layouts, or product decisions;
+- Runtime layer state (LocalAgent, Conversation, Memory, Knowledge, or readiness states);
+- Realm virtual worlds, character personas, accounts, or canonical social graph records;
+- Avatar execution pipelines or skeletal rendering engine internals;
 - AI provider routing, backend execution, or permission authorization rules.
 
-Apps consume Kit via public subpaths and compose primitives locally. Apps should not import internal private paths from Kit, nor should they duplicate primitives already maintained by Kit.
+Apps consume Kit through public subpaths and compose primitives locally. Apps must not import private internal paths from Kit, nor should they re-implement primitives already maintained by Kit.
 
 ## Typical Scenario: Reusing a Shared Confirmation Dialog
 
-An App requires an accessible, platform-consistent confirmation modal:
+An application requires an accessible, platform-consistent confirmation modal:
 
-1. **Import cleanly**: The App imports `Dialog` and semantic tokens from `@nimiplatform/kit/ui`.
-2. **Define business content**: The App supplies its own dialog copy, form elements, and action handlers.
-3. **Delegate interaction mechanics**: Kit manages keyboard focus traps, navigation, and accessibility semantics automatically.
-4. **Clear division of labor**: Product decisions remain in the App; accessibility and visual consistency are guaranteed by Kit.
+1. **Import cleanly**: The App imports `Dialog` and relevant semantic tokens from `@nimiplatform/kit/ui`.
+2. **Supply business content**: The App defines dialog copy, form inputs, and action handlers.
+3. **Delegate interaction mechanics**: Kit handles focus trapping, keyboard navigation, and accessibility semantics automatically.
+4. **Maintain separation of concerns**: Product workflows stay inside the App; Kit provides shared visual and accessibility primitives; each App still needs to verify its own composition and interaction.
 
-For visual design guidelines, see [Design Pattern](/platform/kit/design-pattern). To get started integrating Kit in your application, see [Use Kit in an App](/platform/kit/use-kit-in-app).
+For visual styling standards, see [Design Pattern](/platform/kit/design-pattern). To get started integrating Kit in your application, see [Use Kit in an App](/platform/kit/use-kit-in-app).
 
 ## Source Basis
 

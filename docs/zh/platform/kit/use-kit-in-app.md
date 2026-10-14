@@ -1,6 +1,6 @@
 # 在 App 中使用 Kit
 
-当应用需要接入 Nimi 标准 UI、用户认证、Shell 宿主胶水、遥测、AI 配置界面或可复用的业务功能表面时，推荐使用 `@nimiplatform/kit`。
+当应用需要接入 Nimi 标准 UI、用户认证界面、Shell 宿主集成胶水、遥测能力、AI 配置面板或可复用的业务功能界面时，推荐使用 `@nimiplatform/kit`。
 
 应用代码应始终通过 `kit/package.json` 中声明的公开子路径导入 Kit；切勿直接导入内部源码路径（如 `kit/**/src`），也不要在本地重复实现 Kit 已成熟支持的公共能力。
 
@@ -30,7 +30,7 @@ Kit 不对外暴露通配符 (Wildcard) 导出，完整的可用子路径请以 
 
 ## 引入 UI 组件与主题
 
-在 React 组件中消费标准 UI 原语：
+在 React 组件中直接引入和使用标准 UI 原语：
 
 ```ts
 import { Button, IconButton, Dialog, cn } from '@nimiplatform/kit/ui';
@@ -46,7 +46,7 @@ import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 @import '@nimiplatform/kit/ui/themes/nimi-accent.css';
 ```
 
-通常引入一个基础底色主题（`light.css` 或 `dark.css`），并根据需求叠加应用专属的强调色包。请勿在应用样式中私自覆盖 Kit 的 `--nimi-*` 全局变量命名。
+通常引入一个基础底色主题（`light.css` 或 `dark.css`），并根据需求叠加应用专属的强调色包。请勿在应用样式表中覆盖 Kit 全局定义的 `--nimi-*` CSS 变量。
 
 ## Shell 桥接与认证接入
 
@@ -60,7 +60,7 @@ import {
 import { createRendererEntryModuleLoader } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
-标准渲染层入口通常初始化调用一次 `installNimiShellRuntimeBridge()`。`createNimiLocalAppStandardShellSurface()` 负责为宿主绑定的 SDK Client 提供标准 Shell 实现，Client 随后通过 `createNimiClient({ localApp: { standardShell } })` 完成组装。更底层的 `invokeShell` 与 `invokeTauri` 属于 Shell 适配层内部胶水，日常业务代码无需直接调用。
+标准渲染层入口通常初始化调用一次 `installNimiShellRuntimeBridge()`。`createNimiLocalAppStandardShellSurface()` 负责为宿主绑定的 SDK Client 提供标准 Shell 实现，Client 随后通过 `createNimiClient({ localApp: { standardShell } })` 完成组装。更底层的 `invokeShell` 与 `invokeTauri` 属于 Shell 适配层内部胶水，日常业务逻辑无需直接调用。
 
 在 Electron 主进程 (Main) 与预加载脚本 (Preload) 中，使用专用导出：
 
@@ -89,7 +89,7 @@ Agent Center 亦通过 `@nimiplatform/kit/features/agent-center/ui` 导出的 `A
 
 ## 复用与集成规范
 
-- 在手写 App 本地 UI 原语、用户认证流、Shell 胶水、AI 设置面板或聊天对话框前，请先核对 Kit 是否已提供开箱即用支持。
+- 在手动实现 App 本地 UI 原语、用户认证流、Shell 胶水、AI 设置面板或聊天对话框前，建议先确认 Kit 是否已提供现成支持。
 - 严格遵循公开子路径导出。若所需通用能力仍藏在 `kit/**/src` 内，应先在 Kit 中定义合规导出，再在应用中规范引用。
 - 业务特有的页面排版、交互文案与业务决策严格保留在 App 内部。
 - 底层推理语义与执行逻辑保留在 Runtime 与 SDK 中。

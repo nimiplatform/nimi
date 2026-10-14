@@ -1,23 +1,23 @@
 # Architecture Invariants and Integration Anti-Patterns
 
-When building Nimi applications or integrating platform capabilities, understanding architectural invariants and avoiding common anti-patterns is vital for robust software design. This guide contrasts common misconceptions with recommended verification practices.
+Building reliable Nimi applications requires respecting subsystem boundaries and verifying readiness at each step. This page contrasts common integration misconceptions with the platform's actual invariants.
 
-## Common Anti-Patterns vs. Recommended Practices
+## Common Anti-Patterns vs. Architectural Invariants
 
 | Misconception | Architectural Invariant & Recommended Practice |
 | --- | --- |
-| **Assuming that downloaded model weights imply instant AI readiness** | Model files are static disk assets; they must be bound into a Loadout, designated as the capability default, and validated against local driver readiness before inference can run. |
-| **Assuming that connecting a cloud provider enables every capability** | Concrete operational support depends on the implemented capability driver dialect and the provider's feature matrix within Runtime. |
-| **Assuming that receiving a completion event implies durable persistence** | Progress events provide immediate UI feedback; durable project persistence requires fetching final artifacts via `Get` endpoints and saving them to app storage. |
-| **Assuming that Developer Mode disables security checks** | Developer Mode simplifies local sandbox onboarding; cryptographic signature verification and session scoping remain strictly enforced. |
-| **Assuming that switching apps automatically merges all private memories** | Each LocalAgent maintains an isolated cognitive sandbox; memories are retrieved contextually within authorized sessions of that specific agent. |
-| **Assuming that installing the SDK exposes internal unexported surfaces** | The platform enforces strict visibility boundaries; client apps consume exported public APIs, while internal transports remain sandboxed. |
+| **Downloaded model weights mean AI is ready to run** | Model files on disk are only static assets. Before inference can run, weights must be bound into a Loadout, set as the capability default, and backed by a ready local driver. |
+| **Connecting a cloud provider unlocks every capability** | Actual support depends on the capability driver dialect implemented in Runtime and that provider's supported feature matrix. |
+| **A completion event means data is durably saved** | Streamed events provide immediate UI progress. An AI Job result does not prove an App draft was saved. Retrieve the result through the operation’s supported result API and confirm that the App’s own save completed. |
+| **Developer Mode turns off security checks** | Developer Mode streamlines local onboarding and self-signed testing, but session scoping and cryptographic verification remain active. |
+| **Switching apps merges an agent's private memories** | Each LocalAgent has an isolated memory space in Cognition, accessed through Runtime only within authorized sessions for that agent. |
+| **Installing the SDK exposes internal platform transports** | Visibility boundaries are strictly enforced. Apps can only call exported, admitted SDK operations; internal transports remain isolated. |
 
-## Actionable Structured Feedback
+## Handling Structured Non-Success Codes
 
-When encountering structured non-success codes (e.g., `unavailable`, `permission-required`, `blocked`):
-- **Provide Actionable Prompts**: Surface the underlying cause directly to users, offering direct paths to resolution (such as requesting permissions or starting Runtime).
-- **Avoid Silent Synthesized Fallbacks**: Refrain from silently substituting unconfigured models or simulating pseudo-success, maintaining high system determinism and transparency.
+When the platform returns structured non-success codes (such as unavailable, missing access, or blocked states):
+- **Surface Actionable Guidance**: Explain the specific cause to the user and point to the real fix—such as starting Runtime, configuring a model Loadout, or running within a protected host session.
+- **Never Fake a Fallback**: Do not silently swap in unrelated models or fabricate success responses. Keep failure states explicit and deterministic.
 
 ## Source Basis
 

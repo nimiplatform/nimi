@@ -34,14 +34,14 @@ export const realmWorldMessagesZh = {
   'realmWorld.main.sampleWorldRules': '世界规则示例',
   'realmWorld.main.theTownSBellsChangeWithTheTides':
     '小城的钟声随着潮汐而变化。居民可以远行，但每年会在同一天回到码头。',
-  'realmWorld.character.maintainCharacterSettings': '维护角色设定',
+  'realmWorld.character.maintainCharacterSettings': "完善角色设定",
   'realmWorld.character.characterName': '角色名称',
   'realmWorld.character.characterRoleAndStory': '角色职责与故事',
   'realmWorld.character.theseAreCharacterSettingsWithinASample':
     '这是示例世界中的角色设定，不会创建对话或本地 AI。',
   'realmWorld.locations.lighthouse': '灯塔',
   'realmWorld.locations.sampleCharacter': '示例角色',
-  'realmWorld.locations.worksHereWhereTheTownSConnection': '在这里工作，也是小城与远方联系的起点。',
+  'realmWorld.locations.worksHereWhereTheTownSConnection': "在这里工作，这里也是小城与远方联系的起点。",
   'realmWorld.locations.dock': '码头',
   'realmWorld.locations.ferriesBringNewStoriesResidentsMeetAgain':
     '渡轮带来新的故事，居民在这里迎来重逢与告别。',
@@ -58,7 +58,7 @@ export const realmWorldMessagesZh = {
   'realmWorld.idea.startWithAnIdeaSampleDraft': '从一句灵感开始 · 示例草稿',
   'realmWorld.idea.exploreThisIdea': '探索这个想法',
   'realmWorld.main.worldLibrary': '世界库',
-  'realmWorld.main.worldCollection': '世界集合',
+  'realmWorld.main.worldCollection': "世界合集",
   'realmWorld.main.searchWorlds': '搜索世界',
   'realmWorld.main.searchWorlds2': '搜索世界…',
   'realmWorld.main.noMatchingSampleWorlds': '没有匹配的示例世界。',

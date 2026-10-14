@@ -1,7 +1,7 @@
 {
   "generic": "操作失败，请稍后重试。",
   "patterns": {
-    "runtimeUnavailable": "桌面运行时尚未就绪，请重启应用。"
+    "runtimeUnavailable": "桌面 Runtime 尚未就绪，请重启应用。"
   },
   "codes": {
     "LOCAL_LIFECYCLE_WRITE_DENIED": "当前来源无权执行本地模型生命周期写操作。",
@@ -18,7 +18,7 @@
     "AI_CONNECTOR_INVALID": "AI 连接器配置无效。",
     "AI_CONNECTOR_IMMUTABLE": "AI 连接器不可修改。",
     "AI_CONNECTOR_LIMIT_EXCEEDED": "AI 连接器数量已超出上限。",
-    "AI_MODEL_NOT_FOUND": "Runtime 找不到该能力的已准入实现。",
+    "AI_MODEL_NOT_FOUND": "Runtime 未找到支持该能力的可用实现。",
     "AI_MODALITY_NOT_SUPPORTED": "当前不支持该 AI 模态。",
     "AI_MODEL_PROVIDER_MISMATCH": "Runtime 实现配置不一致。",
     "AI_MEDIA_IDEMPOTENCY_CONFLICT": "媒体任务发生幂等冲突。",
@@ -31,14 +31,14 @@
     "AI_LOCAL_EXECUTION_CANCELED": "本地 AI 执行已取消。",
     "AI_LOCAL_MODEL_PROFILE_MISSING": "Runtime 本地配置缺失。",
     "AI_LOCAL_ASSET_ALREADY_INSTALLED": "本地 AI 资产已安装。",
-    "AI_LOCAL_ENDPOINT_REQUIRED": "本地 AI endpoint 配置缺失。",
+    "AI_LOCAL_ENDPOINT_REQUIRED": "缺少本地 AI 服务端点配置。",
     "AI_LOCAL_TEMPLATE_NOT_FOUND": "未找到本地 AI 模板。",
     "AI_LOCAL_MANIFEST_INVALID": "本地 AI 清单无效。",
     "AUTH_REVOCATION_UNAVAILABLE": "认证撤销检查暂时不可用。",
     "AUTH_TOKEN_INVALID": "认证令牌无效。",
     "SESSION_EXPIRED": "会话已过期。",
     "RUNTIME_CALL_FAILED": "Runtime 调用失败。",
-    "RUNTIME_UNAVAILABLE": "运行时不可用。",
-    "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE": "运行时守护进程不可用。"
+    "RUNTIME_UNAVAILABLE": "Runtime 不可用。",
+    "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE": "Runtime 守护进程不可用。"
   }
 }

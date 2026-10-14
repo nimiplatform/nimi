@@ -28,7 +28,7 @@ AIConfig 维护当前主体配置的完整快照。每次更新均通过版本�
 - **本地意图 (Local)**：仅携带轻量路径标记 `local: {}`，不耦合具体的模型文件或本地硬件标识。
 - **云端意图 (Cloud)**：必须包含从 Runtime 提供的安全候选列表中选取的 `connectorRef`、`implementation` 与 `providerModelTarget`。这些属于持久化的静态配置，而非临时的请求级覆盖。
 
-在提交生成任务时，Runtime 会直接绑定本地选中的 Loadout 或配置的云端参数，不再发起临时的动态模型替换。当前账号下的所有 LocalAgent 共享一份独立的 Agent AIConfig，单个智能体不直接充当配置 Owner。
+在提交生成任务时，Runtime 会直接绑定本地选中的 Loadout 或配置的云端参数，不再发起临时的动态模型替换。当前账号下的所有 LocalAgent 共享一份统一的 Agent AIConfig，单个智能体不直接充当配置 Owner。
 
 ## App 集成开发流程
 
@@ -64,7 +64,7 @@ export async function useLocalTextGeneration(client: NimiLocalAppClient) {
 }
 ```
 
-参考示例代码可参阅 [`examples/sdk/03-ai-config.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/03-ai-config.ts)。App Client 绝不会硬编码私有账号或底层模型路径；外部直连客户端亦无权读写受保护应用的 AIConfig。
+参考示例代码可参阅 [`examples/sdk/03-ai-config.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/03-ai-config.ts)。App Client 不应硬编码私有账号或底层模型路径；外部直连客户端亦无权读写受保护应用的 AIConfig。
 
 实际模型推理执行见[第一次 AI 调用](/zh/sdk/first-ai-call)。
 
@@ -72,14 +72,14 @@ export async function useLocalTextGeneration(client: NimiLocalAppClient) {
 
 SDK 在向外分发前会严格校验能力意图格式与 `revision` 的完整性；若返回数据畸形也会立即阻断。底层 Runtime 会在执行边界校验各项前置条件，当遇到未声明意图、未经授权的云端调用、能力特征不满足或本地硬件不可用时，均会抛出强类型错误。
 
-App 应当优雅捕获并向用户呈现这些标准错误信息：
-- 严禁擅自使用虚假兜底（如伪造 `auto` 策略）；
-- 严禁在代码中写死某个商业 Provider 或私有模型名称；
-- 严禁自行搭建旁路 HTTP/REST 请求绕过 Runtime 调度。
+App 应当妥善处理并向用户呈现这些标准错误信息：
+- 不得注入虚假兜底（如伪造 `auto` 策略）；
+- 不得在业务代码中写死某个商业 Provider 或私有模型名称；
+- 不得自行搭建旁路 HTTP/REST 请求绕过 Runtime 调度。
 
 ## Runtime 与应用的分工边界
 
-宿主硬件拓扑、本地已下载的模型资产、显卡驱动状态、服务健康度及底层执行耗时诊断，均由 Runtime 统一管控。诊断日志可以帮助开发者排查调用异常，但不允许应用层在每次请求时越俎代代庖地干预底层的硬件调度。
+宿主硬件拓扑、本地已下载的模型资产、显卡驱动状态、服务健康度及底层执行耗时诊断，均由 Runtime 统一管控。诊断日志可以帮助开发者排查调用异常，但不允许应用层在每次请求时越俎代庖干预底层的硬件调度。
 
 ## Source Basis
 

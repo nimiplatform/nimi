@@ -7,132 +7,92 @@ import { MemoryRouter } from 'react-router-dom';
 import { DownloadPageView, PUBLIC_PAGE_CONTENT } from '../src/pages/release-pages.js';
 
 const REQUIRED_ATTRIBUTION = 'Free code signing provided by SignPath.io, certificate by SignPath Foundation.';
-const REQUIRED_DISCLAIMER = 'No current Nimi artifact should be treated as SignPath-signed unless its Authenticode signature verifies successfully.';
-const RELEASE_PAGES_SOURCE = readFileSync(new URL('../src/pages/release-pages.tsx', import.meta.url), 'utf8');
 
-test('public release pages retain platform status and required signing disclosures in both locales', () => {
+test('official routes and planned signing attribution remain clear in both locales', () => {
   for (const locale of ['en', 'zh'] as const) {
     const copy = PUBLIC_PAGE_CONTENT[locale];
     assert.equal(copy.download.meta.canonical, 'https://nimi.ai/download');
-    assert.match(copy.download.releaseAction, /source code|源代码/u);
     assert.equal(copy.policy.meta.canonical, 'https://nimi.ai/code-signing');
-    assert.ok(['Windows', 'macOS', 'Linux'].every((name) => copy.download.platforms.some((platform) => platform.name === name)));
-    assert.ok(copy.download.platforms.every((platform) => platform.status.length > 0));
     assert.equal(copy.download.attribution, REQUIRED_ATTRIBUTION);
-    assert.equal(copy.download.disclaimer, REQUIRED_DISCLAIMER);
     assert.equal(copy.policy.attribution, REQUIRED_ATTRIBUTION);
-    assert.ok(copy.policy.verificationChecks.every((check) => check.length > 0));
-    assert.match(copy.policy.metadataBlocker, /PE Product Name/);
+    assert.match(copy.download.providerLabel, /Planned|计划/u);
+    assert.match(copy.policy.attributionPending, /only after|仅在/u);
+    assert.match(copy.download.disclaimer, /Authenticode/);
     assert.match(copy.policy.team.items?.join('\n') ?? '', /@snowzane/);
+    assert.ok(copy.policy.verificationChecks.every((check) => check.length > 0));
   }
 });
 
-test('download copy identifies the complete product and independently released components', () => {
-  const page = PUBLIC_PAGE_CONTENT.en.download;
-  assert.match(page.statusTitle, /not available to download yet/i);
-  assert.match(page.statusBody, /No Nimi product or component release is published/);
-  assert.match(page.versions.title, /identified/i);
-  assert.match(page.versions.cta, /GitHub Releases/);
-  assert.ok((page.versions.items?.length ?? 0) >= 3);
-  assert.match(page.preview.title, /withdrawn/i);
-  assert.match(JSON.stringify(page), /NOT PROMOTABLE/);
-  assert.match(page.release.paragraphs.join('\n'), /conversations, characters, creations, stories, worlds/);
-  assert.match(page.prerelease.paragraphs.join('\n'), /nimi\/vX\.Y\.Z-preview\.N/);
-  assert.match(page.prerelease.paragraphs.join('\n'), /desktop\/vX\.Y\.Z-preview\.N/);
-  assert.match(page.prerelease.paragraphs.join('\n'), /runtime\/vX\.Y\.Z-rc\.N/);
-  assert.match(page.release.paragraphs.join('\n'), /Zhiyu and Nimi Lab are independently published Third-party Apps/);
-  assert.match(page.prerelease.paragraphs.join('\n'), /never renamed, replaced, or promoted/);
-  assert.match(page.sourceBuild.paragraphs.join('\n'), /never included in the GitHub unsigned-preview assets/);
-
-  const windows = page.platforms.find((item) => item.name === 'Windows');
-  assert.match(windows?.status ?? '', /No download yet/);
-  assert.match(windows?.detail ?? '', /No Windows x86_64 release is published/);
-  const macos = page.platforms.find((item) => item.name === 'macOS');
-  assert.match(macos?.status ?? '', /No download yet/);
-  assert.match(macos?.detail ?? '', /No macOS arm64 release is published/);
-  const linux = page.platforms.find((item) => item.name === 'Linux');
-  assert.match(linux?.detail ?? '', /no official Nimi product or developer-preview download/);
-  assert.match(page.preview.warning, /Do not disable Windows security controls/);
-  assert.match(page.verification.paragraphs.join('\n'), /no replacement preview download/);
-  assert.match(page.verification.paragraphs.join('\n'), /did not claim a release checksum set or complete SBOM/);
-  assert.match(page.systemChanges.paragraphs.join('\n'), /_nimiruntimedev/);
-  assert.match(page.systemChanges.paragraphs.join('\n'), /nimi-macos-dev-security\.lock/);
-  assert.match(page.uninstall.paragraphs.join('\n'), /accept-runtime-fixed-service\.mjs --uninstall/);
-  assert.match(page.uninstall.paragraphs.join('\n'), /delete the extracted directory/);
-});
-
-test('code signing copy names current blockers without claiming SignPath approval', () => {
-  const page = PUBLIC_PAGE_CONTENT.en.policy;
-  const serialized = JSON.stringify(page);
-  assert.match(serialized, /SignPath Foundation application not submitted/);
-  assert.match(serialized, /There is no production-signed Windows release/);
-  assert.match(serialized, /replacement public unsigned Runtime bootstrap has not been published/);
-  assert.match(serialized, /application has not yet been submitted/);
-  assert.doesNotMatch(serialized, /application pending/i);
-  assert.match(serialized, /GitHub Actions is the only production build system/);
-  assert.match(serialized, /runtime\/vX\.Y\.Z-preview\.N/);
-  assert.match(serialized, /never a promotion input/);
-  assert.match(serialized, /expected to report NotSigned/);
-  assert.match(serialized, /initial SignPath application scope is one Nimi-owned Windows x64 Runtime executable named nimi\.exe/);
-  assert.match(serialized, /Authenticode on that \.node file is not a Phase 4A release gate/);
-  assert.match(serialized, /never signs a third-party App or upstream binary/);
-  assert.match(serialized, /next bootstrap publication must provide an independently identified Windows x64 Runtime preview/);
-  assert.doesNotMatch(serialized, /Runtime executables named nimi\.exe for amd64 and arm64/);
-  assert.match(serialized, /no complete product uninstall path|no admitted production uninstall flow/i);
-  assert.match(serialized, /SignPath approval, production signing, post-signature verification, and repackaging are not integrated/);
-  assert.match(serialized, /repair-local-agent-chat\.exe/);
-  assert.match(serialized, /restricted service SID/);
-  assert.doesNotMatch(serialized, /SignPath (has|is) approved/i);
-});
-
-test('withdrawn previews are not advertised as available downloads in either locale', () => {
-  for (const locale of ['en', 'zh'] as const) {
-    const copy = PUBLIC_PAGE_CONTENT[locale];
-    const download = JSON.stringify(copy.download);
-    const policy = JSON.stringify(copy.policy);
-    assert.match(download, /source-local Kit/);
-    assert.doesNotMatch(download, /v0\.2\.2-preview\.1/);
-    assert.match(download, /withdrawn|撤回|撤下/u);
-    assert.match(download, /Desktop/);
-    assert.match(download, /Runtime/);
-    assert.match(download, /Avatar/);
-    assert.match(download, /Zhiyu/);
-    assert.match(download, /Nimi Lab/);
-    assert.match(download, /version --json/);
-    assert.match(download, /delete the extracted directory|删除解压目录/u);
-    assert.match(download, /Do not disable Windows security controls|不要为了运行未签名文件而关闭 Windows 安全能力/u);
-    assert.match(policy, /Windows x64 Runtime/);
-    assert.match(policy, /Phase 4A/);
-    assert.match(policy, /third-party App|第三方 App/u);
-    assert.match(policy, /SubjectPublicKeyInfo/);
-    assert.match(policy, /SPKI/);
-    assert.match(policy, /application has not yet been submitted|申请尚未提交/u);
-    assert.match(policy, /does not enable protected-local production|不会使 protected-local production 可用/u);
-    assert.doesNotMatch(policy, /current admitted Windows release scope|当前准入的 Windows release 签名范围/u);
-  }
-  assert.doesNotMatch(
-    RELEASE_PAGES_SOURCE,
-    /releases\/(?:tag|download)\/v\d/,
-  );
-});
-
-test('app lifecycle copy matches the current supported platform scope', () => {
+test('the Beta identifies its actual platform assets and independent channel', () => {
   for (const locale of ['en', 'zh'] as const) {
     const page = PUBLIC_PAGE_CONTENT[locale].download;
-    const paragraphs = page.release.paragraphs.join('\n');
-    assert.match(paragraphs, /macOS arm64/);
-    assert.match(paragraphs, /Windows x86_64/);
-    assert.match(paragraphs, locale === 'zh' ? /更新/ : /update/i);
-    assert.match(paragraphs, locale === 'zh' ? /普通修复仍不可用/ : /ordinary repair remain unavailable/i);
+    assert.match(page.statusTitle, /v0\.2\.4.*Beta/);
+    for (const owner of ['nimi', 'desktop', 'runtime']) {
+      assert.ok(page.versions.paragraphs.join('\n').includes(`${owner}/v<version>`));
+    }
+    assert.match(page.prerelease.paragraphs.join('\n'), /channel/);
+    assert.match(page.release.paragraphs.join('\n'), /stable/i);
+    const windows = page.platforms.find((item) => item.name === 'Windows');
+    const macos = page.platforms.find((item) => item.name === 'macOS');
+    const linux = page.platforms.find((item) => item.name === 'Linux');
+    assert.match(windows?.detail ?? '', /Nimi-0\.2\.4-windows-amd64\.exe/);
+    assert.match(windows?.detail ?? '', /10\.0\.19041/);
+    assert.match(windows?.detail ?? '', /NotSigned/);
+    assert.match(macos?.detail ?? '', /Nimi-0\.2\.4-macos-arm64\.pkg/);
+    assert.match(macos?.detail ?? '', /13\.0/);
+    assert.match(linux?.status ?? '', /No product release|无完整产品发布/u);
+    assert.match(page.release.paragraphs.join('\n'), /Zhiyu/);
+    assert.match(page.release.paragraphs.join('\n'), /Nimi Lab/);
   }
 });
 
-test('clean public routes have route declarations, crawlable metadata, and sitemap entries', () => {
+test('metadata verification does not imply Authenticode or broaden planned SignPath scope', () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const page = PUBLIC_PAGE_CONTENT[locale].policy;
+    const text = JSON.stringify(page);
+    assert.match(text, /Ed25519/);
+    assert.match(text, /P-SUPD-012/);
+    assert.match(text, /NotSigned/);
+    assert.match(page.scope.paragraphs[0] ?? '', /initial SignPath application scope remains|SignPath 初始申请范围仍是/u);
+    assert.match(page.scope.paragraphs[0] ?? '', /Runtime.*nimi\.exe/);
+    assert.match(page.scope.items?.join('\n') ?? '', /outside that initial SignPath request|不在该 SignPath 初始申请范围/u);
+    assert.match(page.scope.items?.join('\n') ?? '', /third-party Apps|第三方 App/iu);
+    assert.match(page.verificationChecks.join('\n'), /SHA-256/);
+    assert.doesNotMatch(text, /SignPath (has|is) approved/i);
+  }
+});
+
+test('historical cleanup is scoped to old builds and current Beta recovery uses its own guide', () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const page = PUBLIC_PAGE_CONTENT[locale].download;
+    const cleanup = page.uninstall.paragraphs.join('\n');
+    assert.match(cleanup, /Historical|历史/u);
+    assert.match(cleanup, /Root/);
+    assert.match(cleanup, /TrustedPublisher/);
+    assert.match(cleanup, /accept-runtime-fixed-service\.mjs --uninstall/);
+    assert.match(page.uninstall.paragraphs[0] ?? '', /exact release|对应版本/u);
+    assert.match(page.systemChanges.paragraphs.join('\n'), /_nimiruntimedev/);
+    assert.match(page.systemChanges.paragraphs.join('\n'), /nimi-macos-dev-security\.lock/);
+    assert.doesNotMatch(JSON.stringify(page), /v0\.2\.2-preview\.1/);
+  }
+});
+
+test('App lifecycle scope preserves platform support and session admission', () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const text = PUBLIC_PAGE_CONTENT[locale].download.release.paragraphs.join('\n');
+    assert.match(text, /macOS arm64/);
+    assert.match(text, /Windows x86_64/);
+    assert.match(text, /updates|更新/u);
+    assert.match(text, /ordinary App repair remain unavailable|普通 App 修复仍不可用/u);
+    assert.match(text, /current session|当前会话/u);
+  }
+});
+
+test('public routes retain crawlable metadata and sitemap entries', () => {
   const router = readFileSync(new URL('../src/site-router.tsx', import.meta.url), 'utf8');
   const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
   const downloadHtml = readFileSync(new URL('../download.html', import.meta.url), 'utf8');
   const policyHtml = readFileSync(new URL('../code-signing.html', import.meta.url), 'utf8');
-
   assert.match(router, /path="\/download"/);
   assert.match(router, /path="\/code-signing"/);
   assert.match(sitemap, /https:\/\/nimi\.ai\/download/);
@@ -143,40 +103,32 @@ test('clean public routes have route declarations, crawlable metadata, and sitem
   assert.match(policyHtml, /property="og:title" content="Code signing policy/);
 });
 
-
-test('download renders the withdrawal before its source action and retains cleanup guidance', () => {
+test('rendered download action follows Beta scope and unsigned-Windows disclosure', () => {
   for (const locale of ['en', 'zh'] as const) {
     const html = renderToStaticMarkup(createElement(MemoryRouter, {}, createElement(DownloadPageView, {
-      locale,
-      onLocaleChange: () => {},
+      locale, onLocaleChange: () => {},
     })));
-    const action = html.indexOf('class="release-primary-action" href="https://github.com/nimiplatform/nimi"');
+    const action = html.indexOf('class="release-primary-action" href="https://github.com/nimiplatform/nimi/releases"');
     const scope = html.indexOf('id="preview-scope"');
     const warning = html.indexOf('id="preview-warning"');
     assert.ok(action > 0 && scope > 0 && warning > 0);
     assert.ok(scope < action && warning < action);
     assert.match(html, /aria-describedby="preview-scope preview-warning"/);
-    assert.match(html.slice(scope, action), /withdrawn|撤回/);
-    assert.match(html.slice(warning, action), /Do not disable Windows security controls|不要为了运行未签名文件而关闭 Windows 安全能力/);
+    assert.match(html.slice(scope, action), /0\.2\.4/);
+    assert.match(html.slice(warning, action), /no Authenticode signature|尚无 Authenticode 签名/u);
+    assert.match(html.slice(warning, action), /Do not install a development root certificate|请勿为此安装开发根证书/u);
     assert.doesNotMatch(html, /href="[^"]*releases\/download\//);
     assert.match(html, /href="#developer-details"/);
     assert.match(html, /id="developer-details"/);
     assert.match(html, /href="\/code-signing"/);
-    assert.match(html, /_nimiruntimedev/);
-    assert.match(html, /accept-runtime-fixed-service\.mjs --uninstall/);
-    assert.match(html, /NOT PROMOTABLE/);
-    assert.match(html, /Realm/);
-    assert.match(html, /Developer Mode/);
-    assert.match(html, /Registry/);
   }
 });
 
-test('download status states current availability and the account requirement in both locales', () => {
+test('both locales explain Nimi account and browser sign-in requirements', () => {
   for (const locale of ['en', 'zh'] as const) {
     const page = PUBLIC_PAGE_CONTENT[locale].download;
-    const current = [page.statusTitle, page.statusBody, ...page.platforms.map((platform) => platform.status)].join('\n');
-    // No published release exists, so the page must not describe release assets as available.
-    assert.doesNotMatch(current, /published per version|按版本发布|See GitHub Releases|见 GitHub Releases/u);
-    assert.match(page.statusBody, locale === 'zh' ? /Nimi 账号/u : /Nimi account/);
+    assert.match(page.statusBody, /Nimi account|Nimi 账号/u);
+    assert.match(page.statusBody, /browser sign-in|浏览器中登录/u);
+    assert.match(page.statusBody, /Beta/);
   }
 });

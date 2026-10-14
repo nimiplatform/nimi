@@ -1,94 +1,55 @@
-# Nimi App Ecosystem Responsibility Entrypoint
+# Nimi 生态架构与系统职责边界 (Ecosystem Architecture & Boundaries)
 
-Status: non-authoritative AI handoff.
+本文档系统性地梳理 Nimi 各核心子系统的职责划分与所有权边界，帮助开发者与架构参与者清晰理解数据流向、权限控制及模块定位。
 
-Product authority lives under `.nimi/spec/**`. Repository and nearest
-`AGENTS.md` files define working constraints. This page is a compact
-owner map, not a second specification, migration record, or validation
-ledger.
+---
 
-## Core Responsibility Chain
+## 核心职责流向
 
-`Realm or Runtime owner → SDK typed access → Kit reusable UI → App composition`
+在 Nimi 的体系设计中，一个典型的生态交互遵循清晰的分层调用链条：
 
-| Concern | Owner |
-| --- | --- |
-| Persistent Character identity, authoritative world state, history, account/social state | Realm |
-| LocalAgent execution runtime, materialization, and process lifecycle | Runtime |
-| Conversations, committed events, memory access authorization, provider routing, jobs | Runtime |
-| Canonical long-term memory and knowledge, provenance, ranking, and retention | Cognition |
-| Typed client interfaces, cross-process transport, and developer APIs | SDK |
-| Reusable UI components, design tokens, accessibility, and shell foundations | Kit |
-| Application-specific workflows, user-facing views, and local state management | App |
-| Primary desktop shell, user workspace, and app supervisor | Nimi Home / Desktop |
-| Visual embodiment presentation and animation rendering | Avatar |
+$$\text{Realm / Runtime 核心引擎} \longrightarrow \text{SDK 强类型接口} \longrightarrow \text{Kit 共享 UI 组件} \longrightarrow \text{生态应用组装 (App)}$$
 
-Character and LocalAgent are related but distinct concepts. Realm manages the
-persistent Character definition, persona attributes, and social identity. Runtime
-instantiates that Character as an active LocalAgent execution instance for active sessions.
-UI projections, App bindings, and Avatar visual renderers consume this state without creating
-parallel identity truth.
+| 关注领域 | 权威所有者 (Owner) | 核心职责 |
+|---|---|---|
+| **角色世界资产与社会关系** | **Realm** | 持久化角色设定 (Character)、虚拟世界规则、长期故事演变、生态身份认证与跨应用社交网络关系 |
+| **本地 AI 调度与受保护访问** | **Runtime** | LocalAgent 实例生命周期、本地/云端模型调度中继、会话事件提交、凭据安全托管与受保护 App 访问控制 |
+| **长期记忆与知识沉淀** | **Cognition** | 规范的 Agent 长期记忆、上下文溯源、相关性排序与遗忘管理（杜绝 App 私建混乱的长期记忆库） |
+| **开发者抽象与通信协议** | **SDK** (`@nimiplatform/sdk`) | 跨进程调用强类型 Client 封装、通信传输中继与面向开发者的工程抽象 |
+| **设计系统与基础组件** | **Kit** (`@nimiplatform/kit`) | 跨 App 统一的可复用 UI 控件、设计 Token、无障碍支持、基础认证与 Shell 桥接 |
+| **业务场景与用户交互** | **App** (生态应用) | 专注具体用户任务的界面视图、本地轻量业务状态与场景工作流编排 |
+| **桌面超级工作台与应用监管** | **Nimi Home（入口）/ Desktop（当前宿主）** | 用户日常使用的统一桌面宿主、应用生命周期监管与本地窗口调度 |
+| **角色具身化视觉表现** | **Avatar** | 桌面端 2D/3D 角色立绘与模型渲染表现层（消费状态，不更改 Agent 决策逻辑） |
 
-## App Authorization
+---
 
-- App access to Runtime is derived from the active session and app
-  identity.
-- A scaffolded App does not receive Realm JWTs, provider credentials,
-  or independent Runtime proof.
-- Apps consume admitted SDK or host surfaces; they do not call Realm or
-  Runtime private APIs.
-- App-local configuration, docs, and tests never become product
-  authority.
+## 角色 (Character) 与 LocalAgent 的关键区分
 
-Direct SDK use and a scaffolded App are integration paths, not
-user-facing product profiles.
+- **Realm 中的 Character（角色）**：持久化的社会化身份资产，承载世界观设定、性格底色、人设故事与初始属性。
+- **Runtime 中的 LocalAgent（运行态智能体）**：由 Runtime 基于有效 Character Source 创建的本地智能体，拥有独立的运行状态与对话（Conversation），可跨应用会话持续存在。其长期记忆由 Cognition 统一管理，由 Runtime 协调受控访问。
+- **表现与渲染（App / Avatar）**：前端视图（App）与桌面浮动载体（Avatar）仅作为视觉与交互表现层消费这些状态，严禁在客户端篡改或伪造角色身份真值。
 
-## Subsystem Responsibilities
-- Runtime manages execution, LocalAgent instances, conversational sessions, committed events, memory access authorization, provider/model routing, and fail-closed channel access controls.
-- Cognition manages long-term memory and knowledge structures. V1 implements long-term memory and bounded agent source custody. Runtime and Apps do not maintain parallel, conflicting long-term stores.
-- Realm manages authoritative world definitions and persistent Character identities. Runtime and Apps consume these via standard Realm SDK interfaces.
-- SDK provides typed client abstractions, transport handling, and developer ergonomics, maintaining strict decoupling from internal backend state.
-- Kit provides reusable UI components, design tokens, and shared presentation primitives driven by actual app requirements.
-- Apps manage application-specific views, local workflows, and ephemeral user interface state.
-- Nimi Home serves as the desktop workstation and application supervisor.
-- Avatar renders character visual projections (2D/3D embodiments) without altering character execution logic or identity state.
+---
 
-## Deferred And Isolated Capabilities
+## 应用访问权限 (App Access)
 
-General Workflow, MCP, World Evolution, Marketplace, Trust Tier, and commercial
-settlement are not current Runtime-core prerequisites. App package lifecycle is
-source-specific: verified packages use approved Registry descriptors, immutable
-local imports do not acquire Registry trust, and Developer Mode remains a
-non-package path. The current Windows x86_64 and macOS arm64 package entry points
-are governed by P-NAPP-040a; implementation does not establish combined product
-acceptance or public release readiness. Ordinary repair and package lifecycle
-on other platforms remain unavailable.
+Nimi 坚守本地优先与用户数据主权原则：
 
-## Implementation Rules
+1. **会话级动态授权**：App 对本地 Runtime 的访问能力由当前受保护会话、App 声明和 Runtime 访问规则共同决定，禁止越权刺探底层系统。
+2. **受保护调用与凭据隔离**：标准 App 的渲染层通过宿主会话调用 SDK，不接管 Provider API Key、Realm JWT 或底层特权连接，相关凭据托管与执行均由 Runtime 负责（注：该机制旨在隔离平台凭据与受控能力，并非对 App 一切系统行为的全面沙箱保证）。
+3. **受控通道闭合**：应用须通过规范的 SDK 客户端请求受保护操作，严禁绕过受控通道直连底层内部接口。
+4. **单向依赖规则**：
+   - Desktop / Web 严禁直接依赖 `runtime/internal/*`。
+   - SDK 严禁违背设计原则向应用暴露未授权的私有内部数据。
 
-- Follow the affected `.nimi/spec/**` owner container before changing
-  product semantics.
-- Fail closed on contract violations.
-- Do not add legacy shims, dual paths, pseudo-success, raw private API
-  bypasses, provider/model hardcoding, or forwarding shells.
-- Start at the observed consumer and move upstream only when the real
-  trace requires it.
-- Test product behavior at the nearest owner. Do not substitute
-  migration gates, checker-of-checker systems, file inventories, or
-  evidence-completeness checks for owner behavior.
+---
 
-## Read First
+## 规范与权威源头 (Source Basis)
 
-1. `AGENTS.md`
-2. The nearest descendant `AGENTS.md`
-3. The exact affected authority container under `.nimi/spec/**`
-4. `.nimi/methodology/authority-authoring.yaml` before authority edits
+当需要查阅或修改具体领域的形式化契约与状态机时，请以 `.nimi/spec/**` 下的权威规范为准：
 
-For app boundaries, the usual starting containers are:
-
-- `.nimi/spec/platform/app-ecosystem.authority.yaml`
-- `.nimi/spec/runtime/app-surface.authority.yaml`
-- `.nimi/spec/runtime/agent-service.authority.yaml`
-- `.nimi/spec/runtime/memory-world.authority.yaml`
-- `.nimi/spec/sdks/client-core.authority.yaml`
-- `.nimi/spec/sdks/feature-clients.authority.yaml`
+- [平台生态规范](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [Runtime 应用接入规范](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
+- [Agent 服务模型规范](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
+- [认知与记忆规范](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/memory.authority.yaml)
+- [SDK 核心抽象规范](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)

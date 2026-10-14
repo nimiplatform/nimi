@@ -76,7 +76,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.strike.characters.cup.testimony':
     '整个早晨，我旁边一直有一片叶子的影子在晃，晃得我头晕。',
   'oddBureau.strike.characters.cup.clueTitle': '晃动的叶影',
-  'oddBureau.strike.characters.cup.suggestedQuestion': '那片叶子影子从哪儿来？',
+  'oddBureau.strike.characters.cup.suggestedQuestion': "那片叶子的影子从哪儿来？",
   'oddBureau.strike.characters.cup.replies.item1': '从我左边来，绿油油的，一直伸到闹钟那边去了。',
   'oddBureau.strike.characters.cup.replies.item2': '我不喜欢影子。影子一来，就没人记得端我了。',
   'oddBureau.strike.characters.book.persona': '红皮精装，罢工也要有条理',
@@ -125,7 +125,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.strike.characters.orange.replies.item2': '我一个橘子，看东西都是圆的，你多担待。',
   'oddBureau.party.title': '桌上多了一圈咖啡渍',
   'oddBureau.party.incident':
-    '主人出门的那晚，桌上多了一圈咖啡渍。派对谁都参加了，可渍是谁弄出来的？',
+    "主人出门的那晚，桌上多了一圈咖啡渍。派对谁都参加了，可这圈渍是谁弄出来的？",
   'oddBureau.party.opening':
     '主人一出门，早餐桌就开了派对。灯当聚光灯，书当舞台，闹钟负责倒数。第二天，桌上多了一圈谁也不认的咖啡渍。',
   'oddBureau.party.resolution':
@@ -133,7 +133,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.party.characters.cup.persona': '深蓝色，派对上负责端着咖啡站在角落',
   'oddBureau.party.characters.cup.greeting': '咖啡渍在我旁边不代表是我洒的！我是被撞的！',
   'oddBureau.party.characters.cup.testimony':
-    '我被撞了一下，往前晃了半圈，才泼出来的。撞我的东西又圆又滚。',
+    "我被撞了一下，往前晃了半圈，才泼出来的。撞我的家伙圆圆的，还会滚。",
   'oddBureau.party.characters.cup.clueTitle': '半圈的晃动',
   'oddBureau.party.characters.cup.suggestedQuestion': '撞你的东西是从哪边来的？',
   'oddBureau.party.characters.cup.replies.item1': '从桌子中间过来的，速度快得像在谢幕。',
@@ -214,7 +214,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.performance.item3':
     '书本翻开一页，念出盆栽的梦。台灯听完，把光调得柔柔的，正好照在叶子上。橘子把自己的一瓣分给了杯子当赔礼。早餐桌上，谁也没再提刚才的事。',
   'oddBureau.demo.hostOnly':
-    '这一步需要本机 Nimi 中的奇物局本体：照片定位、玩法创作与语音由 Runtime 执行；网页演示只展示界面与玩法。',
+    "这一步需要在本机 Nimi 中运行奇物局：Runtime 提供物件定位、文本生成与语音能力；网页预览只展示界面与玩法。",
   'oddBureau.demo.voice': '朗读需要 Nimi 中配置的语音合成能力；网页演示不发声。',
   'oddBureau.demo.dismiss': '知道了',
   'oddBureau.workspace.aStrangeTheft': '离奇失窃',
@@ -238,7 +238,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.machineGame.startWithASoundSourceThenAdd': '从一个发声物品开始，再接改造器和容器。',
   'oddBureau.machineGame.eachOfThemHasATrick': '这些家伙，各有一招。',
   'oddBureau.machineGame.clickObjectsInThePhotoToSee':
-    '点照片里的物品查看规则。它们今天的本领已经确定，反复试也不会偷偷改口。',
+    "点照片里的物品查看规则。它们今天的本领已经固定，反复试也不会变卦。",
   'oddBureau.machineGame.challengeCompleteKeepInventingFreely': '挑战完成，继续自由发明。',
   'oddBureau.machineGame.previewTheTargetMelody': '试听目标旋律',
   'oddBureau.machineGame.wireLengthBudgetForThisChallenge': '本次挑战的线长预算：',
@@ -286,14 +286,14 @@ export const oddBureauMessagesZh = {
   'oddBureau.strikeGame.promisesMade': '已经答应的事',
   'oddBureau.strikeGame.promises': ' 份承诺',
   'oddBureau.strikeGame.discussConditionsThenConfirmEveryPromiseIs':
-    '先聊条件，再确认。许出的约定，这一局会一直遵守。',
+    "先聊条件，再确认。许下的约定，这一局都会算数。",
   'oddBureau.strikeGame.promisesKeptCurtainDown': '说到做到，故事落幕。',
   'oddBureau.strikeGame.tonightSStorytelling': '今晚的故事会',
   'oddBureau.strikeGame.makeTheStorytellingPossible': '让故事会开得成。',
   'oddBureau.strikeGame.oneRestSlot': '一份休假',
   'oddBureau.strikeGame.oneCreditSlot': '一份署名',
   'oddBureau.strikeGame.eachObjectCanDoAtMostTwo':
-    '每件最多两份工作；休假伙伴不工作，署名留给工作者。',
+    "每位伙伴最多承担两份工作；休假的不工作，署名只留给工作的伙伴。",
   'oddBureau.strikeGame.restEasyEveryArrangementFollowsTheAgreement':
     '安心休息，所有安排照约定进行。',
   'oddBureau.strikeGame.sTaleAct': '的童话 · 第 ',
@@ -302,15 +302,15 @@ export const oddBureauMessagesZh = {
   'oddBureau.strikeGame.curtainCall': '谢幕',
   'oddBureau.strikeGame.nextAct': '下一幕',
   'oddBureau.strikeGame.someoneFoundRestAndSomeoneFinallyReceived':
-    '有人得到了休息，有人终于被写进名字里。这场故事会，是你安排出来的。',
+    "有人得到了休息，有人终于留下了名字。这场故事会，是你安排出来的。",
   'oddBureau.strikeGame.thisTimeTheShowCannotBegin': '这一次，没能开场。',
   'oddBureau.strikeGame.promisesAlreadyMadeStayInForceBut':
-    '已经许出的约定不会被收回，但它们让剩下的工作无法安排齐。',
+    "已经许下的约定不能收回，但剩下的工作也没法排开了。",
   'oddBureau.strikeGame.reviewThePromisesOnTheLeftAnd': '看看左边的承诺，下一轮可以换一种选择。',
   'oddBureau.strikeGame.startAnotherNegotiation': '另开一轮谈判',
   'oddBureau.strikeGame.proposeARest': '提议让它休息',
   'oddBureau.strikeGame.proposeACredit': '提议给它署名',
-  'oddBureau.strikeGame.anUnspokenProposal': '还没许出口的提议',
+  'oddBureau.strikeGame.anUnspokenProposal': "还没说出口的提议",
   'oddBureau.strikeGame.withdrawProposal': '收起提议',
   'oddBureau.strikeGame.afterConfirmation': '确认后：',
   'oddBureau.strikeGame.3JobsArrangedRest': '/3 份工作已落实，休假',
@@ -319,7 +319,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.strikeGame.credit2': '，署名',
   'oddBureau.strikeGame.label': '。',
   'oddBureau.strikeGame.thisPromiseMakesTheStorytellingImpossibleIn':
-    '这份承诺会让本局无法完成故事会。确认后，将以未开场结束。',
+    "答应这一条，今晚的故事会就开不成了。确认后本局将直接结束。",
   'oddBureau.strikeGame.acceptThisEnding': '接受这次散场',
   'oddBureau.strikeGame.confirmThisPromise': '确认这份承诺',
   'oddBureau.strikeGame.everythingIsArrangedLetThemPerformThe': '安排齐了。让大家把故事演出来。',
@@ -408,7 +408,7 @@ export const oddBureauMessagesZh = {
   'oddBureau.mystery.openACaseWithANewPhoto': '用新照片开案',
   'oddBureau.mystery.thisIsAFictionalMysteryCreatedBy': '这是一桩 AI 创作的虚构小案。',
   'oddBureau.mystery.investigationPanel': '调查面板',
-  'oddBureau.mystery.objectTestimony': '物品来话',
+  'oddBureau.mystery.objectTestimony': "物品证词",
   'oddBureau.mystery.clueNotebook': '线索本',
   'oddBureau.mystery.itS': '就是',
   'oddBureau.mystery.label': '？',
@@ -455,7 +455,7 @@ export const oddBureauMessagesZh = {
     '这些玩法需要「看见物品」和「创作玩法」两项能力。「让物品开口」可选，稍后也能开启。',
   'oddBureau.setup.oddBureauCapabilities': '奇物局的能力',
   'oddBureau.setup.chooseCapabilitiesForThisBureauOnlyOther':
-    '只为这间事务所选择能力，不会改变 Nimi 中其他 App 的设置。',
+    "此处所选能力仅作用于奇物局，不会改变 Nimi 中其他 App 的设置。",
   'oddBureau.setup.backToCapabilityOverview': '返回能力总览',
   'oddBureau.setup.modelInUse': '使用的模型',
   'oddBureau.setup.chooseALocalOrCloudCapability': '选择本机或云端能力',
@@ -524,7 +524,7 @@ export const oddBureauMessagesZh = {
     '必需 · 创作器件规则、角色诉求、故事和提议',
   'oddBureau.setup.optionalReadObjectDialogueAloud': '可选 · 把物品的台词读给你听',
   'oddBureau.setup.configuredBackToPlay': '配置好了，回去开玩',
-  'oddBureau.begin.identifyingObjectsInThePhoto': '正在认领照片里的物品…',
+  'oddBureau.begin.identifyingObjectsInThePhoto': "正在辨认照片里的物品…",
   'oddBureau.begin.givingEachObjectAStrangeButConsistent': '给每件物品一条奇怪又讲理的规则…',
   'oddBureau.begin.hearingWhyNobodyWantsToWork': '听听大家为什么不肯开工…',
   'oddBureau.bureauHeader.backToPlaySelection': '回到玩法选择',
@@ -575,29 +575,29 @@ export const oddBureauMessagesZh = {
   'oddBureau.rules.theCircuitContainsAnUnknownObject': '线路包含未知物品。',
   'oddBureau.rules.theCircuitMustStartAtASound': '线路需要从「发声」出发，以「装起来」结束。',
   'oddBureau.rules.aCircuitCanHaveOnlyOneSound': '一条线只能有一个发声起点。',
-  'oddBureau.rules.theContainerIsTheEndOfThis': '容器是这一条线的终点。',
+  'oddBureau.rules.theContainerIsTheEndOfThis': "容器是这条线的终点。",
   'oddBureau.rules.tooManyNotesOneCircuitCanPass': '声音太多啦，这条线一次最多传递 32 个音。',
   'oddBureau.rules.theMachineNeedsAValidModifierSource':
-    '这台机器还缺一个有效的改造器、发声器或容器，请重新生成。',
+    "这台机器还缺少可用的发声器、改造器或容器，请重新生成。",
   'oddBureau.rules.theContainerIsFullPourOutOr': '这个容器装不下了，先把声音倒出来或清空。',
   'oddBureau.rules.thisObjectIsNotParticipating': '这件物品没有参加故事会。',
   'oddBureau.rules.theOnlyRestSlotHasAlreadyBeen': '唯一的休假名额已经答应给别人了。',
   'oddBureau.rules.thisCompanionHasAcceptedWorkOrCredit':
-    '这位已经接受工作或署名，不能再批准休假。',
+    "这位伙伴已经接下工作或获得署名，不能再批准休假。",
   'oddBureau.rules.theOnlyCreditHasAlreadyBeenPromised': '唯一的署名已经许出，不能转送给别人。',
   'oddBureau.rules.creditMustGoToACompanionTaking': '署名需要交给参加演出的伙伴。',
   'oddBureau.rules.thisJobDoesNotExist': '没有这项工作。',
   'oddBureau.rules.someoneHasAlreadyAcceptedThisJob': '这项工作已经有人答应承担。',
   'oddBureau.rules.aCompanionGrantedRestCannotBeAssigned': '已经批准休假的伙伴不能再被安排工作。',
   'oddBureau.rules.oneObjectCanTakeAtMostTwo': '一件物品最多承担两份工作。',
-  'oddBureau.rules.thisCompanionHasNotAgreedToThis': '这位没有答应做这份工作。',
-  'oddBureau.rules.honorItsCreditConditionBeforeAssigningThis': '这份工作需要先兑现它的署名条件。',
-  'oddBureau.rules.grantTheSpecifiedCompanionARestBefore': '这份工作需要先批准它指定的伙伴休息。',
+  'oddBureau.rules.thisCompanionHasNotAgreedToThis': "这位伙伴没有答应接这份工作。",
+  'oddBureau.rules.honorItsCreditConditionBeforeAssigningThis': "需要先兑现署名条件，才能安排这份工作。",
+  'oddBureau.rules.grantTheSpecifiedCompanionARestBefore': "需要先批准指定伙伴休假，才能安排这份工作。",
   'oddBureau.proposal.partner': '一位伙伴',
   'oddBureau.proposal.clarify':
     '我还没听出要安排谁做什么。可以试试「让{name}休息」或者「请{name}写故事」这样的说法。',
   'oddBureau.proposal.review':
-    '我把你的话整理成了 {count} 项安排。确认之前，先看看它们对休假、署名和三份工作的影响。',
+    "我把你的意思整理成了 {count} 项安排。确认前，先看看休假、署名和三项工作会有什么变化。",
   'oddBureau.notes.thump': '咚',
   'oddBureau.notes.ding': '叮',
   'oddBureau.notes.ring': '铃',

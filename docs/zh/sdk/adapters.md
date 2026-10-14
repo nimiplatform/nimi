@@ -1,20 +1,20 @@
 # 框架适配器
 
-适配器把第三方框架调用转换为 Nimi AI 客户端操作。Runtime 仍负责路由与执行，App 负责工具函数和自己的界面或业务状态。
+适配器负责将第三方生态框架的调用桥接至 Nimi AI 客户端。Runtime 继续负责模型路由与执行，App 则专注于工具回调、界面交互与自身业务状态。
 
 ## 区分发布包与源码开发包
 
-| 制品 | 版本与配对 | 本指南的用途 |
+| 制品 | 版本与配对关系 | 在本指南中的定位 |
 | --- | --- | --- |
-| npm 已发布的 Vercel 适配器 | 0.1.0；AI SDK 6、provider 3、SDK ^0.13.0 | 历史公开制品，不与当前源码示例混用 |
-| 当前工作区 Vercel 适配器源码 | 0.5.0；AI SDK ^7.0.0、provider ^4.0.0、SDK ^0.21.0 | 下方示例使用这一开发组合，通过匹配的本地归档或开发交付包提供 |
-| OpenAI-compatible | 仅源码，未作为公共 npm 包分发 | 内部测试与已明确支持的兼容子集 |
+| npm 已发布的 Vercel 适配器 | 0.1.0；AI SDK 6、provider 3、SDK ^0.13.0 | 早期公开发布制品，不可与当前源码示例混用 |
+| 当前工作区 Vercel 适配器源码 | 0.5.0；AI SDK ^7.0.0、provider ^4.0.0、SDK ^0.21.0 | 下方示例采用此组合，通过本地开发归档或开发交付包提供 |
+| OpenAI-compatible 适配器 | 仅存在于源码，未公开发布至 npm | 仅用于内部测试及明确支持的兼容子集 |
 
-公开 0.1.0的声明可在 [npm 制品元数据](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0)查询。源码包的版本号不表示同版本已经发布。当前App开发环境见[开发环境准备](/zh/start/install)。
+已发布的 0.1.0 版本声明请参阅 [npm 制品元数据](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0)。源码清单中的版本号并不代表该版本已正式发布。当前 App 的开发环境准备请参考[开发环境准备](/zh/start/install)。
 
 ## 在当前源码 App 中使用 Vercel AI SDK 7
 
-准备SDK 0.21.0、匹配Kit/Runtime以及源码 adapter 0.5.0的开发归档。复用App已有的宿主绑定client：
+请确保具备 SDK 0.21.0、配套的 Kit/Runtime 构建产物，以及适配器 0.5.0 源码的本地开发归档。直接复用 App 宿主绑定的客户端实例：
 
 ```ts
 import { stepCountIs, streamText } from 'ai';
@@ -32,13 +32,13 @@ const result = streamText({
 });
 ```
 
-源码 adapter返回 LanguageModelV4，不能作为AI SDK 6的当前配对。执行还需要该 App 已有的 AIConfig、能力声明与当前有效会话；适配器不提供账户凭据、模型就绪或权限旁路。
+当前源码适配器返回 `LanguageModelV4` 实例，无法与 AI SDK 6 配对。实际执行还依赖 App 既有的 `AIConfig`、能力声明以及当前的有效会话；适配器不自带凭据、不保证模型就绪状态，也无法绕过平台的权限校验。
 
 ## 其他入口
 
-公共AI runner、Runtime和AI工具子路径按各自契约使用。旧 `@nimiplatform/sdk/ai-provider` 已退役，不转发到适配器。
+请在各自约定的契约范围内使用公开的 AI runner、Runtime 与 AI 工具子路径。已退役的旧子路径 `@nimiplatform/sdk/ai-provider` 不再转发至任何适配器。
 
-OpenAI-compatible 只提供源码中明确支持的子集；没有发布包，也不能用它直连私人Runtime接口或绕过能力校验。
+OpenAI-compatible 适配器仅覆盖源码中明确支持的 API 子集；它未作为独立包发布，既不能用于直连私有 Runtime 接口，也无法绕过平台的能力校验。
 
 ## Source Basis
 

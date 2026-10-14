@@ -152,13 +152,13 @@ function primaryCopy(stage: ZhiyuHomeProductStage): {
       };
     case 'source-required':
       return {
-        title: '选择已存在伙伴',
+        title: "选择已有伙伴",
         description: '当前没有可打开的伙伴。请前往 Nimi Desktop 的“探索”页选择角色或人设；伙伴出现在本地列表后，织羽会打开它。',
         actionHint: '前往 Nimi Desktop 的“探索”页选择角色或人设。',
       };
     case 'agent-required':
       return {
-        title: '选择已存在伙伴',
+        title: "选择已有伙伴",
         description: '账户已连接，但当前没有可打开的伙伴。请前往 Nimi Desktop 的“探索”页选择角色或人设。',
         actionHint: '前往 Nimi Desktop 的“探索”页选择角色或人设。',
       };

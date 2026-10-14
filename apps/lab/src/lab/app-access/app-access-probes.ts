@@ -287,7 +287,7 @@ export async function runPersonaOwnerCreateReplaceConflictProbe(client: AppAcces
       `revision ${detail.contentRevision} → ${replaced.contentRevision}`,
       `hash ${truncateOpaque(detail.contentHash)} → ${truncateOpaque(replaced.contentHash)}`,
       'stale baseContentHash rejected as content-conflict',
-      'test Persona persists because delete is not admitted',
+      'test Persona retained for persistence checks; this probe does not delete it',
     ]);
   } catch (error) {
     return fail(error);

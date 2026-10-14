@@ -14,7 +14,7 @@ AI generation requests carry prompt contents and supported execution parameters.
 
 ## Error Handling and Fault Tolerance
 
-The SDK preserves strongly-typed error codes, structured reason codes, and diagnostic metadata returned by Runtime. When input payloads are malformed or authorization is missing, requests fail closed. Missing methods or unsupported option combinations must be reported to the user gracefully; applications must not attempt to call Runtime private packages or contact providers directly.
+The SDK preserves strongly-typed error codes, structured reason codes, and diagnostic metadata returned by Runtime. When input payloads are malformed or authorization is missing, requests fail closed. Missing methods or unsupported option combinations must be reported to the user with clear diagnostic feedback; applications must not attempt to call Runtime private packages or contact providers directly.
 
 To get started, review [First AI Call](/sdk/first-ai-call), [AI Config](/sdk/ai-config-surface), and [App Authorization](/platform/agents/participation-authority).
 

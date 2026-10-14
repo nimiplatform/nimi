@@ -1,27 +1,27 @@
 # External Agent Access and Integration Control
 
-> **Status**: Reserved / In development. Nimi Desktop provides a projection surface under "Advanced & Diagnostics → Permissions & Access" for external agent integration. Token issuance and active execution remain disabled until the Runtime action registry and external gateway infrastructure land.
+> **Status**: Reserved / In development. Desktop currently provides a status projection under **Advanced & Diagnostics → Permissions & Access**. Token issuance and external execution remain disabled until the Runtime action registry and external gateway infrastructure are enabled.
 
-External Agent Access enables third-party AI assistants, IDE extensions, and automation workflows to interface safely with Nimi. By issuing scoped, time-bounded access tokens to external principals, users will be able to allow external tools to collaborate within well-defined boundaries.
+External Agent Access is designed to let third-party tools—such as IDE extensions, external AI assistants, and automation workflows—interact with Nimi through scoped, time-bounded access tokens.
 
-For the security architecture and platform-level specifications, see [Platform → External Agents](/platform/agents/external-agents).
+For the platform-level specification and security model, see [Platform → External Agents](/platform/agents/external-agents).
 
-## Current Status and Safety Guardrails
+## Current Desktop Behavior
 
-| Control Dimension | Current Behavior | Design Rationale |
+| Control Dimension | Current Behavior | Purpose |
 | --- | --- | --- |
-| **Service Status** | Desktop reports Runtime's external gateway readiness | Provides visibility into service connectivity |
-| **Action Registry** | Token issuance stays disabled while the action registry is unpopulated (`EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`) | Enforces fail-closed security to prevent unverified executions |
-| **Token Ledger** | Displays token projection state and reasons why issuance is currently deferred | Offers transparent visibility into access controls without permitting premature token creation |
-| **Revocation Contract** | Revocation interface is defined in the specification as a fail-closed control | Prepares immediate revocation capabilities once token issuance goes live |
+| **Service Status** | Displays Runtime's external gateway readiness | Shows whether the local gateway service is reachable |
+| **Action Registry** | Keeps token issuance disabled while the action registry is empty (`EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`) | Fails closed so tokens cannot be issued before permitted actions are registered |
+| **Token Ledger** | Shows current token projection state and why issuance is unavailable | Explains why external access cannot yet be granted |
+| **Revocation Contract** | Defines the revocation interface in the specification as a fail-closed control | Reserves immediate revocation support before token issuance opens |
 
-## Security Architecture
+## Planned Security Boundaries
 
-To protect user data and local privacy, Nimi enforces three foundational invariants for external agents:
+When external token issuance and gateway execution are enabled, the protocol requires three core safeguards:
 
-- **Least Privilege**: Every issued token is scoped strictly to specific actions and data boundaries.
-- **Audit Lineage**: Every external invocation, parameter payload, and user decision is captured in bounded, sanitized local audit events.
-- **Fail-Closed Gateways**: Any operation outside the explicitly permitted action registry is intercepted and blocked at the gateway level.
+- **Least Privilege**: Each token is restricted to explicit actions and data scopes.
+- **Bounded Local Audit**: External calls, parameters, and authorization decisions are recorded in sanitized, size-bounded local audit events.
+- **Fail-Closed Gateway**: Operations not present in the admitted action registry are rejected at the gateway.
 
 ## Source Basis
 

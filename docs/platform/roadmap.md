@@ -6,7 +6,7 @@ Nimi integrates local and cloud AI compute, interactive apps, and deeply realize
 
 Current development interfaces establish clean separation between App AIConfig, local inference engine loadouts, protected application sessions, and Runtime execution. Agent conversations leverage Runtime-managed context continuity alongside optional Cognition long-term memory; Knowledge V1 currently has no active public interface.
 
-Application development, local package import, verified catalog distribution, and public general release represent distinct stages. See [Application Development & Distribution](/start/#local-development-and-distribution) for prerequisites and current platform boundaries. Local compilation success alone does not equate to public release readiness.
+Application development, local package import, verified catalog distribution, and public general release represent distinct stages. See [Application Development & Distribution](/start/#three-app-lifecycle-modes) for prerequisites and current platform boundaries. Local compilation success alone does not equate to public release readiness.
 
 ## Forward-Looking Platform Capabilities
 

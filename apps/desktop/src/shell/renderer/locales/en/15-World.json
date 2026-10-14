@@ -28,10 +28,10 @@
   "atlas": {
     "discovery": {
       "title": "Explore worlds",
-      "subtitle": "Choose a world and start your source discovery journey."
+      "subtitle": "Choose a world to explore its background, rules, and character sources."
     },
     "discoverMore": "Discover more worlds",
-    "countSummary": "{{value}} worlds / public setting index",
+    "countSummary": "{{value}} worlds · public world index",
     "worldCount": "{{value}} worlds",
     "sourceDiscovery": "Source Discovery",
     "sourceCount": "{{value}} sources",
@@ -40,16 +40,16 @@
       "summary": "{{value}} worlds · saved on this device",
       "empty": {
         "title": "No followed worlds yet",
-        "body": "Tap Follow on a world's detail page, or the heart on a card, to keep the worlds you care about here.",
+        "body": "Click Follow on a world's detail page, or the heart on a card, to keep the worlds you care about here.",
         "cta": "Browse all worlds"
       },
-      "error": "Couldn't read your followed worlds on this device.",
+      "error": "Couldn't load your followed worlds on this device.",
       "follow": "Follow world",
       "unfollow": "Unfollow",
       "unavailable": "Sign in to follow worlds."
     },
     "publicWorld": "Public world",
-    "emptySources": "Characters and personas appear here when this world exposes public sources.",
+    "emptySources": "Characters and personas appear here when this world has public sources.",
     "schemaTabs": {
       "overview": "Overview",
       "entities": "Entities",
@@ -57,7 +57,7 @@
     },
     "entityKinds": "Entity Kinds",
     "relationshipGraph": "Relationship Graph",
-    "worldCharacters": "WorldCharacters",
+    "worldCharacters": "World Characters",
     "sourceBoundaryNote": "{{characters}} world-owned characters bind to WorldEntityCore; {{personas}} personas remain user-owned sources.",
     "noEntityKinds": "No public entity kinds.",
     "noRelationshipTypes": "No public relationship types.",
@@ -71,7 +71,7 @@
     "more": "More",
     "featured": {
       "title": "Featured Worlds",
-      "body": "Selected public worlds for source discovery and setting context.",
+      "body": "Curated public worlds for discovering characters, personas, and world settings.",
       "viewAll": "View all",
       "open": "Open {{name}}"
     },
@@ -115,7 +115,7 @@
         "openProfile": "Open {{name}} profile",
         "materializedFeedback": "{{name}} is now available as a local agent.",
         "empty": "This world has no people to meet yet.",
-        "unavailable": "People data could not be loaded yet."
+        "unavailable": "Couldn't load people for this world right now."
       },
       "status": {
         "friends": "{{count}} local agents added",

@@ -3,7 +3,7 @@
   "description": "管理已安装的应用与本地开发项目。",
   "collectionEyebrow": "应用管理",
   "inventoryTitle": "已接入的应用",
-  "inventoryDescription": "已注册的本地开发项目会显示其项目路径与申请的权限列表。",
+  "inventoryDescription": "已注册的本地开发项目会显示项目路径与声明的 App Access。",
   "inventoryCount": "{{count}} 个 App",
   "sidebar": {
     "subtitle": "本地开发 App",
@@ -50,7 +50,7 @@
   },
   "catalog": {
     "loading": "正在加载应用目录…",
-    "registryApproved": "这个版本已通过公共 Nimi App Registry 审核，下载时还会再次校验，确保你拿到的就是审核过的文件。但审核和校验都不等于保证没有恶意行为，也不保证你的操作系统一定允许它运行。",
+    "registryApproved": "此版本已通过公共 Nimi App Registry 审核，下载时还会再次校验文件完整性。但审核与校验不保证应用绝无恶意行为，也不代表操作系统一定允许其运行。",
     "policyBlocked": "当前 Registry 策略已阻止新的安装或启动：{{reason}}",
     "policyBlockedFallback": "未提供原因。",
     "publisher": "GitHub 发布者",
@@ -89,7 +89,7 @@
     "unavailable": "Nimi Access 不可用"
   },
   "listTitle": "应用列表",
-  "listDescription": "按应用申请的权限范围筛选已注册应用。",
+  "listDescription": "按应用声明的 App Access 范围筛选已注册应用。",
   "developerCard": {
     "title": "接入或管理本地应用",
     "description": "在开发者模式中连接新的本地项目或管理现有注册。",
@@ -104,8 +104,8 @@
     "appAccess": "已声明的 App Access",
     "noAppAccess": "未声明 App Access 域"
   },
-  "emptyTitle": "库存中暂无 App",
-  "empty": "安装账号 App，或接入一个本地 App。",
+  "emptyTitle": "暂无 App",
+  "empty": "安装账号关联的 App，或接入本地 App。",
   "error": "无法加载 Apps：{{detail}}",
   "lifecycleReadFailed": "暂时无法读取已安装 App 的运行状态，请稍后重试。",
   "chooseSource": "「{{app}}」有多个来源，请在下面选择要打开的那一个。",
@@ -170,7 +170,7 @@
     "localRecordActive": "本地开发记录已激活",
     "localRecordDormant": "本地开发记录已休眠",
     "localRecordRemoved": "本地开发记录已移除",
-    "immutablePackageUnavailable": "不可变应用包暂不可用（0K）",
+    "immutablePackageUnavailable": "不可变应用包暂不可用",
     "notInstalledInstallable": "需要安装",
     "installing": "安装中",
     "installedReady": "可用",
@@ -213,21 +213,21 @@
     "platformFeatures": "平台功能",
     "data": "数据",
     "runtime": "运行时",
-    "aiDetail": "使用从推荐或默认 AI 配置初始化的应用 AIConfig。",
+    "aiDetail": "配置此应用所需的 AI 能力与模型偏好。",
     "platformFeaturesDetail": "使用应用声明的 Nimi 平台功能；受保护访问只在实际使用时单独判断。",
     "dataDetail": "在受管的 nimi_data 应用根目录下存储持久应用数据。",
-    "runtimeDetail": "需要经过校验的运行时包发布。"
+    "runtimeDetail": "需要经过校验的运行时发布包。"
   },
   "aiProfile": {
     "sectionTitle": "AI Profile",
     "currentProfile": "当前配置",
     "notInitialized": "此应用尚未初始化",
     "recommendedProfile": "推荐配置",
-    "noRecommendedProfile": "无目录配置",
+    "noRecommendedProfile": "目录未提供推荐配置",
     "requiredCapabilities": "所需能力",
     "changeProfile": "更换应用配置",
     "modalTitle": "将 AI Profile 应用到 App",
-    "modalHint": "选择一个配置，并在应用前预览 app-scope AIConfig。"
+    "modalHint": "选择一个配置，并在生效前预览 app-scope AIConfig。"
   },
   "aiConfig": {
     "title": "AI 模型",
@@ -269,11 +269,11 @@
       },
       "musicTranscribe": {
         "label": "音乐转谱",
-        "description": "设置此应用如何从录音估计乐谱。"
+        "description": "选择此 App 如何从录音推算并生成乐谱。"
       },
       "audioVoiceConvert": {
         "label": "声音转换",
-        "description": "设置此应用如何把演唱转换为另一种声音。"
+        "description": "选择此 App 如何将演唱转换为另一种声音。"
       },
       "realtimeInteract": {
         "label": "实时交互",
@@ -309,15 +309,15 @@
       },
       "textAnnotate": {
         "label": "语言分析",
-        "description": "识别词语、词性、依存关系和句子边界"
+        "description": "识别词语、词性、依存关系和句子边界。"
       },
       "textDecide": {
         "label": "决策判断",
-        "description": "选择此 App 如何从它提供的选项中挑选一项，或判断某个说法是否成立，并给出相应的概率。"
+        "description": "选择此 App 如何从给定选项中做出选择，或判断某个说法是否成立并给出相应概率。"
       },
       "audioSeparate": {
         "label": "人声与背景分离",
-        "description": "分离人声和背景音，保留原有时间轴"
+        "description": "分离人声与背景音，并保留原有时间轴。"
       },
       "audioSpeakerEmbed": {
         "label": "说话人特征",
@@ -340,11 +340,11 @@
     "resolve_descriptor": "正在解析发布描述符",
     "download": "正在下载安装包",
     "verify": "正在校验签名与清单",
-    "materialize": "正在落地发布",
-    "unpack": "正在解包发布",
+    "materialize": "正在准备发布文件",
+    "unpack": "正在解包发布文件",
     "evidence": "正在记录安装凭证",
     "installed": "已安装",
-    "swap": "正在切换发布",
+    "swap": "正在切换发布版本",
     "uninstalling": "正在卸载",
     "failed": "失败",
     "cancelled": "已取消",
@@ -368,7 +368,7 @@
     "catalogVersion": "版本",
     "versionNotProvided": "未提供",
     "releaseRef": "发布引用",
-    "aboutDescription": "当前可用于这个本地开发 App 的注册与来源信息。",
+    "aboutDescription": "此本地开发 App 当前的注册与来源信息。",
     "registrationState": "注册状态",
     "runState": "运行状态",
     "source": "来源",
@@ -385,7 +385,7 @@
     "runRequirementsTitle": "运行条件",
     "runRequirementsLocalDescription": "此 App 来自本机接入的本地开发项目，由 Nimi 构建、启动并监督运行；运行状态与失败原因以页面顶部的状态徽章和 Nimi 的实际记录为准。",
     "runRequirementsInstalledDescription": "此 App 由 Nimi 安装、启动并监督运行；运行状态与失败原因以页面顶部的状态徽章和 Nimi 的实际记录为准。",
-    "runRequirementsAiNote": "使用 AI 功能前，在“AI 模型”标签页完成此应用的模型配置。缺少所需模型或能力时，相关功能会报告不可用，不会生成替代结果。",
+    "runRequirementsAiNote": "使用 AI 功能前，请先在“AI 模型”标签页完成此应用的模型配置。缺少所需模型或能力时，相关功能会提示不可用，不会生成替代结果。",
     "developerInfoTitle": "开发者信息",
     "developerInfoDescription": "用于排查此注册的精确本地来源和 generation 信息。",
     "propertiesTitle": "属性",
@@ -393,7 +393,7 @@
     "documentsSectionTitle": "文档",
     "updateSectionTitle": "更新",
     "autoUpdateLabel": "自动更新",
-    "autoUpdateDescription": "有可用更新时的行为。“自动开始”仍会在下载安装前请你确认。",
+    "autoUpdateDescription": "设置发现新版本时的处理方式。即使选择“自动开始”，下载和安装前仍需经你确认。",
     "autoUpdateManual": "有可用更新时提醒我",
     "autoUpdateAuto": "自动开始更新（仍需我确认）",
     "autoUpdateSaveFailed": "暂时无法保存此设置。",
@@ -457,11 +457,11 @@
     },
     "agentLocal": {
       "label": "本地 Agent",
-      "description": "声明与 Nimi 暴露的本地 Agent 能力交互。"
+      "description": "声明与 Nimi 提供的本地 Agent 能力交互。"
     },
     "agentConfigure": {
       "label": "Agent 配置",
-      "description": "声明使用 Nimi 暴露的受支持 Agent 配置能力。"
+      "description": "声明使用 Nimi 提供的受支持 Agent 配置能力。"
     },
     "unknown": {
       "label": "未识别的声明",
@@ -475,7 +475,7 @@
     },
     "removeDevelopment": {
       "title": "移除本地开发注册",
-      "message": "移除 {{app}} 的这条本地开发注册？这会停止该注册的当前运行，不会删除项目文件。重新注册会创建独立的应用身份，不会恢复此注册的身份。",
+      "message": "移除 {{app}} 的这条本地开发注册？当前运行将被停止，但本地项目文件不会删除。日后重新注册会创建独立的应用身份，无法恢复原有身份。",
       "confirm": "移除注册"
     },
     "deleteAppData": {
@@ -489,7 +489,7 @@
     "toVersion": "更新至 {{version}}",
     "stopRequired": "请先停止应用，再执行更新。",
     "confirmTitle": "更新 {{app}}？",
-    "confirmMessage": "从 {{from}} 更新至 {{to}}，保留 Nimi 管理的应用数据。",
+    "confirmMessage": "将版本从 {{from}} 更新至 {{to}}，并保留 Nimi 管理的应用数据。",
     "confirmAvailability": "更新期间（包括排队或暂停时）暂时无法打开应用。取消成功后，可继续使用 {{version}}。",
     "confirmAction": "继续更新",
     "cancelAction": "暂不更新"
@@ -534,7 +534,7 @@
     "empty": "没有待处理的任务",
     "emptyHint": "从应用列表选择要安装或更新的 App。",
     "recent": "最近任务（{{count}}）",
-    "afterDownload": "下载后还需检查安装包和安装，完成后不会自动运行 App。",
+    "afterDownload": "下载后还需校验安装包并完成安装，安装后不会自动运行 App。",
     "pausedHint": "进度已保留。继续后加入队尾；其他待下载项可继续。",
     "interruptedHint": "下载已中断，已保留可用进度。选择“继续”后重新进入队列。",
     "verifyingHint": "文件已下载，正在检查安装包。",
@@ -542,7 +542,7 @@
     "committingHint": "正在完成安装。此时无法暂停或取消，请等待确认结果。",
     "failedHint": "此任务未完成。重试会重新确认所选版本；也可查看 App 选择其他可用版本。",
     "verificationFailed": "安装包未通过校验，此版本未安装。无效内容已清理；重试仍需完整校验。",
-    "staleSelection": "所选版本已变化，请查看 App 并重新选择。",
+    "staleSelection": "所选版本已变更，请查看 App 并重新选择。",
     "policyBlocked": "此版本已被暂停分发。查看 App 了解当前可用版本。",
     "completedHint": "{{version}} 已安装完成。打开与运行状态以当前 App 页面为准。",
     "canceledHint": "已取消，临时下载已移除。现有版本和 App 数据保留。",
@@ -552,7 +552,7 @@
     "installVersion": "安装 {{version}}",
     "refresh": "重新获取状态",
     "loading": "正在读取应用任务…",
-    "disconnected": "暂时无法获取最新状态，显示上次确认的进度。速度和剩余时间暂不可用，操作将在连接恢复后可用。",
+    "disconnected": "暂时无法获取最新状态，当前显示上次确认的进度。速度和剩余时间暂不可用，待连接恢复后即可继续操作。",
     "controlFailed": "部分操作未确认。已重新读取任务，请根据当前状态继续。",
     "actionResult": "{{count}} 项操作已确认，{{failed}} 项未确认。",
     "packageInfo": "安装包与诊断信息",
@@ -668,7 +668,7 @@
     "inProductNotice": "应用内提示",
     "exportMarking": "导出可见标识",
     "machineMarking": "机器可读标识",
-    "notUniform": "“无”表示该提示或标识没有在此应用的所有受支持路径上统一提供。",
+    "notUniform": "显示为“无”表示此应用未在所有受支持路径上统一提供该提示或标识。",
     "network": "发布者网络访问",
     "networkOn": "会连接 Nimi 之外由发布者控制的服务",
     "networkOnShort": "发布者服务",
@@ -678,13 +678,13 @@
     "sharing": "用户内容分享",
     "commercial": "商业功能",
     "sensitive": "敏感数据",
-    "highImpact": "高影响决定用途",
+    "highImpact": "高影响决策用途",
     "dataSummary": "数据",
     "dataSummaryNone": "未声明发布者服务、遥测、账号、分享或付费",
     "diffTitle": "{{version}} 的声明变化",
     "diffNone": "已安装版本与此更新之间没有声明变化。",
     "diffUndeclaredBoth": "已安装版本和此更新都没有发布者安全声明。",
-    "diffField": "事实",
+    "diffField": "声明项",
     "diffBefore": "已安装",
     "diffAfter": "更新",
     "value": {
@@ -735,12 +735,12 @@
       "biometric": "生物特征",
       "government-identifier": "政府证件号",
       "medical-diagnosis-treatment": "医疗诊断或治疗",
-      "legal-decision-support": "法律决定支持",
-      "employment-decision": "雇佣决定",
-      "education-admission-decision": "教育录取决定",
-      "credit-insurance-decision": "信贷或保险决定",
+      "legal-decision-support": "法律决策支持",
+      "employment-decision": "雇佣决策",
+      "education-admission-decision": "教育录取决策",
+      "credit-insurance-decision": "信贷或保险决策",
       "biometric-identification": "生物特征身份识别",
-      "public-safety-decision": "公共安全决定"
+      "public-safety-decision": "公共安全决策"
     }
   }
 }

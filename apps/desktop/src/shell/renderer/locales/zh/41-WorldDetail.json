@@ -1,7 +1,7 @@
 {
   "discovery": {
     "readingIncomplete": "部分设定或历史尚未加载，当前仅显示已读取的内容。",
-    "placesIncomplete": "地点和参考资料加载失败，请重试查看。",
+    "placesIncomplete": "地点与参考资料加载失败，请重试。",
     "people": "这个世界的人物",
     "peopleCount": "{{count}} 位人物",
     "searchPeople": "搜索世界里的人物",
@@ -36,7 +36,12 @@
       "history": "世界历史"
     }
   },
-  "sceneResourceKinds": { "entity": "相关实体", "timelineEvent": "历史事件", "resource": "相关资源", "unnamed": "未命名资源" },
+  "sceneResourceKinds": {
+    "entity": "相关实体",
+    "timelineEvent": "历史事件",
+    "resource": "相关资源",
+    "unnamed": "未命名资源"
+  },
   "title": "世界",
   "loading": "正在加载世界详情...",
   "error": "加载世界详情失败",
@@ -45,18 +50,18 @@
   "loadingStateMessage": "正在准备世界画布与最新状态",
   "level": "等级 {{level}}",
   "levelShort": "Lv.{{level}}",
-  "characters": "{{count}} 个 Character",
-  "charactersShort": "Character",
+  "characters": "{{count}} 位角色",
+  "charactersShort": "角色",
   "mainWorld": "主世界",
   "subWorld": "创作者世界",
   "about": "关于",
   "worldview": "世界观",
   "governance": "治理",
-  "transit": "Source 目录",
+  "transit": "角色与实体",
   "audit": "审计",
-  "timeFlowRatio": "时间流速: {{ratio}}x",
-  "freezeReason": "冻结原因: {{reason}}",
-  "creatorId": "创建者: {{id}}",
+  "timeFlowRatio": "时间流速：{{ratio}}x",
+  "freezeReason": "冻结原因：{{reason}}",
+  "creatorId": "创建者：{{id}}",
   "scores": "评分",
   "scoresShort": "评分",
   "status": "状态",
@@ -74,10 +79,10 @@
   "moreOptions": "更多选项",
   "id": "ID",
   "overview": "世界概览",
-  "overviewDesc": "完整覆盖世界的基础字段、状态字段、资源字段与运行参数。",
+  "overviewDesc": "汇总世界的基础信息、当前状态、核心资源与运行参数。",
   "description": "描述",
   "templateArea": "模板区域 · 可直连接口字段",
-  "scoresDesc": "围绕活跃度、共识度、参与度、质量与综合趋势的可视化展示。",
+  "scoresDesc": "直观呈现世界的活跃度、共识度、参与度、内容质量与综合趋势。",
   "activity": "活跃度",
   "activityDesc": "衡量用户交互量、消息数量及世界内的日活跃参与情况。",
   "consensus": "共识度",
@@ -96,12 +101,12 @@
     "needsAttention": "需关注"
   },
   "ewmaTitle": "综合趋势",
-  "ewmaDesc": "代表世界近阶段的综合趋势表现。这个模块适合放在运营看板或首页右侧概览区，用于快速判断世界是否处于上升期。",
-  "charactersList": "Character 列表",
-  "charactersDesc": "展示这个世界中的 Character 与 Persona Source。",
-  "characterTiles": "Character 条目",
-  "charactersLoading": "正在加载 Character...",
-  "noPersonaSourcesYet": "这个世界里还没有 Persona",
+  "ewmaDesc": "反映世界近期的综合表现走势，可用于快速判断世界是否处于上升期。",
+  "charactersList": "角色列表",
+  "charactersDesc": "浏览与这个世界关联的公开角色资料。",
+  "characterTiles": "角色卡片",
+  "charactersLoading": "正在加载角色…",
+  "noPersonaSourcesYet": "这个世界里还没有公开角色",
   "startChat": "成为我的伙伴",
   "voiceInteraction": "Source",
   "createdAt": "创建于",
@@ -110,7 +115,7 @@
   "eventsLoading": "正在加载事件...",
   "sampleData": "示例数据",
   "oldestToLatest": "从旧到新",
-  "footerNote": "这是一个单文件静态模板示例：你可以把 world、scores、characters、events 替换为接口返回数据，并继续扩展为 React / Vue 组件化页面。",
+  "footerNote": "详情以当前可读取的 Realm 世界信息为准。",
   "glass": {
     "backToAtlas": "返回世界图鉴",
     "publicSettingBackground": "公开世界设定背景",
@@ -129,7 +134,7 @@
     },
     "lore": {
       "title": "世界背景",
-      "subtitle": "用于理解 Character、Persona、规则和重大事件的静态设定上下文。",
+      "subtitle": "帮助你了解 Character、Persona、世界规则与重大事件的背景设定。",
       "primaryLanguage": "主要语言",
       "era": "纪元",
       "contentRating": "内容等级",
@@ -138,7 +143,7 @@
     },
     "characters": {
       "title": "Character 与 Persona",
-      "subtitle": "浏览这个世界的公开 Source；想继续对话时，可以成为伙伴。",
+      "subtitle": "浏览这个世界的公开 Source，与感兴趣的对象成为伙伴并开启对话。",
       "empty": "这个世界还没有公开 Character 或 Persona Source。"
     },
     "timeline": {
@@ -148,7 +153,7 @@
     },
     "scenes": {
       "title": "场景",
-      "subtitle": "帮助用户选择合适 Source 的地点和场景锚点。",
+      "subtitle": "通过具体地点与场景锚点，找到与你契合的 Source。",
       "empty": "这个世界还没有发布场景。",
       "defaultContext": "场景上下文",
       "viewRelatedSources": "查看相关 Source"
@@ -158,7 +163,7 @@
       "empty": "暂无公开 Source。",
       "featuredSources": "精选 Source",
       "settingHighlights": "设定亮点",
-      "note": "世界是公开设定背景。成为伙伴会 materialize 后续聊天使用的 Runtime-owned 身份。"
+      "note": "世界提供公开的背景设定。将感兴趣的角色添加为本地伙伴，就可以继续对话。"
     }
   },
   "section": {
@@ -262,11 +267,11 @@
         "timeFlowSubtitle": "当前世界的时间加速度",
         "cultivationLevelCount": "{{count}} 阶",
         "constellationTitle": "界域星图",
-        "constellationSubtitle": "连接界域的拓扑与可达性",
+        "constellationSubtitle": "各界域之间的连接结构与可达关系",
         "constellationEmpty": "当前只有拓扑元信息，还没有可展示的界域节点。",
         "taboosSubtitle": "定义硬边界的禁忌规则",
         "causalitySubtitle": "命运、因果与业力控制",
-        "languagesSubtitle": "语言、书写与口语样本"
+        "languagesSubtitle": "世界语言、文字体系与常用语示例"
       },
       "hero": {
         "back": "返回",
@@ -281,7 +286,7 @@
         "title": "世界观核心规则",
         "subtitle": "这个世界的核心运转规则",
         "snapshotTitle": "规则速览",
-        "snapshotSubtitle": "先建立这个世界的运行心智，再决定从哪里进入。",
+        "snapshotSubtitle": "先了解这个世界的运转逻辑，再选择你的切入点。",
         "snapshotOperation": "运转核心",
         "snapshotPowerSystem": "主体系",
         "snapshotTaboos": "禁忌强度",
@@ -289,7 +294,7 @@
         "snapshotCausality": "因果约束",
         "operation": "世界如何运转",
         "powerSystem": "力量体系",
-        "powerSystemSubtitle": "这个世界的主力量进阶路径与等级结构",
+        "powerSystemSubtitle": "主要力量的进阶路径与等级结构",
         "primarySystem": "主体系",
         "levelTierCount": "境界阶数",
         "supportingSystem": "附属体系",
@@ -312,7 +317,7 @@
       },
       "timeline": {
         "title": "事件编年",
-        "subtitle": "世界正式事件主轴",
+        "subtitle": "世界设定中的重要事件",
         "oasisTitle": "系统里程碑",
         "oasisSubtitle": "OASIS 平台的关键演进节点",
         "primary": "主线",
@@ -331,11 +336,11 @@
         "characterRefs": "角色",
         "locationRefs": "地点",
         "evidence": "证据",
-        "empty": "这个世界当前没有可展示的正式事件。"
+        "empty": "这个世界暂无可展示的正式事件。"
       },
       "scenes": {
         "title": "关键场景",
-        "subtitle": "从这些地点进入这个世界的主要空间与关系",
+        "subtitle": "从这些地点切入，了解世界的主要空间与人物关系",
         "oasisTitle": "系统场景",
         "oasisSubtitle": "OASIS 主世界的核心系统空间",
         "noDescription": "暂无描述。",
@@ -361,7 +366,7 @@
       "worldFacts": {
         "title": "世界事实",
         "subtitle": "来自公开世界设定的静态事实",
-        "intro": "这一组信息总结世界背景与 Source discovery 表面。",
+        "intro": "汇总世界背景与可浏览的角色资料。",
         "flowRatio": "时间流速",
         "characterCount": "当前角色",
         "assetCount": "当前资源引用",
@@ -375,8 +380,8 @@
         "nativeCreation": "原生创建",
         "latestAudit": "最近治理动作",
         "recommendedCharacters": "建议切入角色",
-        "recommendedCharactersSubtitle": "理解规则后，建议先从这些角色切入世界",
-        "recommendedCharactersHint": "先从最贴近当前时间切面的角色进入，会更容易理解这个世界的秩序、地点与关系。",
+        "recommendedCharactersSubtitle": "了解基本规则后，不妨先从这些角色切入",
+        "recommendedCharactersHint": "从最贴近当前时间节点的角色入手，能帮你更快理清这里的秩序、地点与人际关系。",
         "entryPrimary": "首个切入点",
         "entrySecondary": "补充入口",
         "entryReasonScene": "适合先从 {{value}} 切入",
@@ -384,9 +389,9 @@
         "entryReasonDefault": "适合用来建立对这个世界的第一印象",
         "inspectProfile": "点击查看角色档案",
         "chronology": "纪年",
-        "chronologySubtitle": "当前世界时间事实",
+        "chronologySubtitle": "世界当前的时间设定",
         "chronologyAndLanguage": "纪年与语言",
-        "chronologyAndLanguageSubtitle": "世界时间与语言事实",
+        "chronologyAndLanguageSubtitle": "世界的时间与语言设定",
         "languages": "语言",
         "languagesSubtitle": "这个世界常用的语言",
         "currentWorldTime": "当前世界时间",
@@ -425,7 +430,7 @@
         "empty": "这个世界当前还没有 Source。",
         "vitality": "活力值",
         "chat": "打开",
-        "chatOpensInConversation": "Runtime materialize 后打开伙伴会话。",
+        "chatOpensInConversation": "经 Runtime 实例化后即可打开伙伴会话。",
         "voice": "Source",
         "voiceOpensInConversation": "语音属于后续 Runtime-owned 伙伴体验。",
         "materializeSource": "成为我的伙伴",
@@ -458,8 +463,8 @@
         "auditsTitle": "等级治理轨迹",
         "auditsSubtitle": "最近的等级与治理变化",
         "auditsLoading": "加载治理轨迹中...",
-        "prevLevel": "此前等级",
-        "nextLevel": "后续等级",
+        "prevLevel": "变更前等级",
+        "nextLevel": "变更后等级",
         "mutationsTitle": "维护轨迹",
         "mutationsSubtitle": "最近的维护变更"
       }
@@ -508,7 +513,7 @@
     },
     "characters": {
       "title": "可结识的人物",
-      "subtitle": "先把人物加入本地成为本地 Agent，再进入聊天——每个人都带着自己的生平与交游。",
+      "subtitle": "先将人物添加为本地 Agent，即可开启对话——每个人都带着各自的生平与交游。",
       "empty": "这个世界还没有公开 Character 或 Persona Source。",
       "openProfile": "打开 {{name}} 详情",
       "engagement": "互动",
@@ -548,7 +553,7 @@
       "status": {
         "connectable": {
           "label": "现在可结识",
-          "caption": "加入本地成为本地 Agent 后即可进入聊天。"
+          "caption": "添加为本地 Agent 后即可开始对话。"
         },
         "connected": {
           "label": "已结识",
@@ -568,12 +573,12 @@
       },
       "loadMore": "加载更多人物（已加载 {{loaded}} / 共 {{total}}）",
       "loadingMore": "正在加载…",
-      "loadMoreError": "没能加载更多人物，请重试。",
+      "loadMoreError": "加载更多人物失败，请重试。",
       "loadingPeople": "正在加载人物…",
-      "loadFailed": "没能加载这个世界的人物。",
-      "loadFailedOffline": "连接不上，没能加载这个世界的人物。请检查网络后重试。",
+      "loadFailed": "未能加载这个世界的人物。",
+      "loadFailedOffline": "无法连接网络，未能加载这个世界的人物。请检查网络后重试。",
       "retry": "重试",
-      "loadMoreOffline": "连接不上，没能加载更多人物。请检查网络后重试。",
+      "loadMoreOffline": "无法连接网络，未能加载更多人物。请检查网络后重试。",
       "peopleWaitingForNetwork": "当前离线，恢复网络后会自动加载这个世界的人物。",
       "loadMoreWaiting": "当前离线，恢复网络后会继续加载更多人物。"
     },
@@ -583,7 +588,7 @@
     },
     "loreLibrary": {
       "title": "世界设定集",
-      "subtitle": "把世界运行规则、制度体系、禁忌与语言设定整理成可浏览的语义资料。",
+      "subtitle": "把世界的运行规则、制度体系、禁忌与语言设定整理成方便查阅的资料。",
       "records": "条记录",
       "empty": "这个世界还没有发布结构化设定。",
       "kind": {
@@ -613,7 +618,7 @@
     },
     "resourceReferences": {
       "title": "世界素材清单",
-      "subtitle": "按使用场景整理这个世界已经接入的图片素材、可打开来源，以及仍待补齐的资产计划。",
+      "subtitle": "按使用场景汇总已接入的图片素材、外部来源链接与待补齐的资产计划。",
       "readerHint": "先看哪些素材现在能用，再看它们来自哪里，最后看还有哪些缺口。",
       "records": "条记录",
       "empty": "这个世界还没有接入可展示素材或资产计划。",
@@ -634,13 +639,13 @@
         "planned": "待补齐"
       },
       "description": {
-        "ready": "这项素材已经同时进入 Realm 记录并拥有可打开来源，可以用于世界展示位。",
-        "external": "这项素材当前以外部来源进入世界，还没有对应的 Realm 内部素材记录。",
+        "ready": "这项素材已在 Realm 登记，并提供了来源链接。",
+        "external": "该素材目前引用自外部来源，尚未在 Realm 内部生成素材记录。",
         "registered": "这项素材已被世界登记引用，但当前没有可打开的外部来源地址。",
         "planned": "这是未来要制作、替换或补齐的素材需求，不是已经可用的图片。"
       },
       "field": {
-        "usage": "用在",
+        "usage": "用途",
         "resourceId": "素材 ID",
         "sourceLink": "来源链接",
         "sourceId": "来源 ID",
@@ -662,7 +667,7 @@
       "group": {
         "material": {
           "title": "已接入素材",
-          "subtitle": "世界图标、横幅、主视觉、亮点图等展示位会优先在这里查看。"
+          "subtitle": "可在这里集中查看世界图标、顶部横幅、主视觉、亮点图等展示位所用的素材。"
         },
         "intent": {
           "title": "待补齐计划",
@@ -687,11 +692,11 @@
       "relatedResources": "相关资源",
       "fromEvents": "来自 locationRefs 与摘要",
       "fromResources": "来自场景资源",
-      "sceneId": "Scene ID",
-      "imageAssetRef": "Image Asset Ref",
+      "sceneId": "场景 ID",
+      "imageAssetRef": "图片素材引用",
       "noImage": "暂无图片",
       "none": "暂无",
-      "enterHintTitle": "进入前先说明“这里有什么”",
+      "enterHintTitle": "先看看这里有什么",
       "enterHintDesc": "打开场景面板后，可继续查看人物、事件和资料源。"
     },
     "settings": {
@@ -713,7 +718,7 @@
         },
         "summoned": {
           "title": "人物由你唤起",
-          "desc": "当你和某个人物聊天时，才会为他生成可对话的角色。"
+          "desc": "先将人物添加为伙伴，再开始对话。"
         }
       }
     },
@@ -747,7 +752,7 @@
         "directionPlace": "查看 {{value}} 的地域线索",
         "viewProfile": "查看人物档案",
         "sameIdentity": "同身份人物",
-        "noRelated": "可先从人物列表继续。"
+        "noRelated": "暂无关联人物，可从人物列表选择其他角色继续探索。"
       },
       "peopleList": {
         "title": "人物",

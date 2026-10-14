@@ -1,25 +1,25 @@
 # VRMA Interchange Animations
 
-.vrma files support animation authoring, interchange, and offline inspection. Current Avatar product activity and idle use the generated-motion runtime; they do not scan a model motions directory to replace idle automatically.
+`.vrma` files support animation authoring, asset interchange, and offline inspection. In the current Avatar product runtime, live activity and idle motions are driven by the generated-motion runtime; the engine does not scan a model's motions directory to automatically replace idle motions.
 
 ## Authoring and Interchange
 
-Prepare an animation matching the target VRM humanoid skeleton and export a VRM Animation format supported by the current loader. Check bones, expressions, loop boundaries, and retargeting. Follow the exporter documentation for tool-specific controls.
+Prepare an animation clip tailored to the target VRM humanoid skeleton and export it in a VRM Animation format supported by the current loader. Verify bone mappings, facial expressions, loop boundaries, and retargeting results. Follow the exporter's documentation for tool-specific settings.
 
-The repository's VRMA preset registry is a separate interchange path. It loads the preset table and may receive an explicit perModelOverrides list from its caller. A matching preset ID shadows the existing entry; an unknown ID does not create a product route.
+The repository's VRMA preset registry provides an independent interchange pipeline. It loads the preset table and can receive an explicit `perModelOverrides` list from the caller. A matching preset ID overrides the existing preset entry; an unrecognized ID does not register a new product route.
 
 ## Model-Specific Interchange Clip
 
-1. Author and export a clip for the target skeleton.
-2. In a tool using the interchange registry, explicitly supply its asset reference for a known preset ID.
-3. Call the registry's loadAll with the target VRM and perModelOverrides, then inspect loading and retargeting results.
-4. Check the loop and target posture through that tool's actual playback path.
+1. Author and export an animation clip matching the target skeleton.
+2. In a tool that integrates the interchange registry, explicitly supply the asset reference for a known preset ID.
+3. Call the registry's `loadAll` method with the target VRM and `perModelOverrides`, then inspect the loading and retargeting results.
+4. Verify the motion loop and target posture through that tool's actual playback pipeline.
 
-Placing idle_subtle.vrma in a model directory alone does not change product idle. Product route support still comes from the generated-motion catalog, capability profile, and safety limits, not file presence.
+Simply placing an `idle_subtle.vrma` file into a model directory will not change product idle behavior. Product route support is determined by the generated-motion catalog, model capability profiles, and safety constraints—not the mere presence of animation files.
 
 ## Current Product Motion
 
-For product routes such as nod_yes, greet_wave, and idle_subtle, use the current [Generated Motion and Sidecar](/avatar/generated-motion-provider) path and verify the result in the real Avatar window.
+To test or verify product routes such as `nod_yes`, `greet_wave`, or `idle_subtle`, follow the current [Generated Motion and Sidecar](/avatar/generated-motion-provider) pipeline and verify the results in the real Avatar window.
 
 ## Source Basis
 

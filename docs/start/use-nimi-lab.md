@@ -2,7 +2,7 @@
 
 `apps/lab/` is Nimi's local capability workbench. Built as a fully functional Nimi App, it integrates the latest SDK, Kit, Runtime, Realm, and App Tools capabilities so developers can evaluate and test new features before they are broadly exposed through project templates.
 
-Nimi Lab illustrates capability integration best practices. Core responsibilities—such as permissions, session tokens, model scheduling, and data persistence—remain governed by standard platform boundaries and security invariants.
+Nimi Lab serves as a reference implementation for capability integration. Core responsibilities—such as permissions, session tokens, model scheduling, and data persistence—remain strictly governed by standard platform boundaries and security invariants.
 
 ## Running and Debugging
 
@@ -22,7 +22,7 @@ pnpm run typecheck  # Check TypeScript types
 pnpm run test       # Execute unit and integration tests
 ```
 
-On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron development environment. Register and grant permissions to local development builds via Developer Mode in Nimi Home.
+On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron development environment. Register local development builds through Developer Mode in Nimi Home and check their Nimi Access session status.
 
 ## Key Code and Architectural References
 
@@ -41,17 +41,17 @@ On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron develop
 - **Independent Application Identity**: The app ID `nimi.lab` belongs specifically to Nimi Lab; custom applications must declare their own unique App IDs.
 - **Data and Fixture Isolation**: Test fixtures, mock datasets, and diagnostics in Lab are for exploration and testing; design dedicated models for your own product logic.
 - **Progressive Adoption**: Evaluate new capabilities in Lab first, then adapt relevant patterns into your custom application based on your product needs.
-- **Actionable User Guidance**: Surface structured states to users (such as prompting service startup or requesting capability permissions) to deliver a polished user experience.
+- **Actionable User Guidance**: Surface structured states to users (such as prompting service startup or checking access readiness) to provide clear next steps when an action cannot proceed.
 
 ## Common State Codes
 
 | State Code | Meaning | User Feedback Strategy |
 | --- | --- | --- |
-| `runtime-unavailable` | Local Runtime service is not responding. | Guide user to launch or restart the Nimi Desktop service. |
-| `permission-required` | Required capability permission has not been granted. | Direct user to grant permission in the authorization dialog. |
-| `input-invalid` | Prompt or required parameters are missing or malformed. | Inform user to check their input. |
-| `sdk-method-unavailable` | Capability is not exposed in the current build. | Prompt to update the SDK package. |
-| `runtime-call-failed` | An error occurred during request processing. | Provide clear error messaging and retain diagnostic logs. |
+| `runtime-unavailable` | Local Runtime service is not responding. | Check that local Runtime and Nimi Home are running. |
+| `principal-unauthorized` | The current session or caller is not authorized for this operation. | Check sign-in and this app’s Nimi Access status in Nimi Home, then verify the required access declarations in `nimi.app.yaml`; AI calls require `runtime.consume`. |
+| `input-invalid` | Prompt or required parameters are missing or malformed. | Prompt the user to verify required parameters and input format. |
+| `sdk-method-unavailable` | Capability is not exposed in the current build. | Prompt the user to update the SDK package. |
+| `runtime-call-failed` | An error occurred during request processing. | Display a descriptive error message and retain diagnostic logs. |
 
 ## Source Basis
 

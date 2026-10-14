@@ -2,11 +2,11 @@
   "pageTitle": "Developer",
   "pageDescription": "Manage Developer Mode and local development for this device.",
   "developerModeTitle": "Developer Mode",
-  "developerModeDescription": "Developer Mode lets Desktop register and supervise exact local-development projects. Registration does not grant protected App Access.",
+  "developerModeDescription": "Developer Mode lets Desktop register and supervise specific local development projects. Registering a project does not grant protected App Access.",
   "developerModeStatusOn": "Developer Mode is on",
   "developerModeStatusOff": "Developer Mode is off",
   "developerModeStatusLoading": "Checking Nimi Runtime…",
-  "developerModeStatusUnavailable": "Developer Mode is unavailable until the fixed Nimi Runtime service is connected",
+  "developerModeStatusUnavailable": "Developer Mode is unavailable until Desktop connects to the Nimi Runtime service",
   "developerModeRetry": "Retry Runtime connection",
   "developerModeEnable": "Enable Developer Mode",
   "developerModeDisable": "Disable Developer Mode"

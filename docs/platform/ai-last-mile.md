@@ -1,11 +1,11 @@
 # AI Execution Last Mile
 
-The AI last mile represents the end-to-end execution path: from an authorized user intent, through Runtime LocalAgent processing, returning a structured read-only projection to the consuming application.
+For a LocalAgent, the AI last mile represents the execution path: from an authorized user intent, through Runtime LocalAgent orchestration and inference, returning a structured read-only projection to the consuming application.
 
 Architectural ownership across this boundary is cleanly separated:
-- **Runtime** owns LocalAgent conversation lifecycles, memory routing, local and cloud AI scheduling, driver selection, safety validation, token budgeting, and application authorization.
+- **Runtime** manages LocalAgent conversation lifecycles, memory routing, local and cloud AI scheduling, driver selection, safety validation, token budgeting, and application authorization.
 - **SDK** exposes the bounded, type-safe public interface.
-- **Apps** own their UI interactions and presentation, without managing underlying execution state or private credentials.
+- **Apps** own their UI interactions and presentation, without managing underlying execution state or holding private credentials.
 
 ## Core Execution Pipeline
 

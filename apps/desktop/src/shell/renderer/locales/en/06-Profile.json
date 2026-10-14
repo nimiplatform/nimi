@@ -36,9 +36,9 @@
     "PAUSED": "Paused"
   },
   "eligibilityDescription": {
-    "personaAndWorld": "Persona creation is available without a subscription, and world creation is authorized.",
-    "personaOnly": "Persona creation is available without a subscription.",
-    "worldOnly": "World creation is authorized.",
+    "personaAndWorld": "You can create personas without a subscription, and your account is authorized to create worlds.",
+    "personaOnly": "You can create personas without a subscription.",
+    "worldOnly": "Your account is authorized to create worlds.",
     "none": "No creation capabilities are currently available on this account."
   },
   "updateSuccess": "Profile updated",

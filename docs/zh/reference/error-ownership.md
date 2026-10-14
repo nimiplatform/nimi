@@ -25,9 +25,9 @@
 
 当底层云端模型服务发生临时故障时，系统经历清晰的错误传播与映射链路：
 
-1. **Provider 返回异常**：远程大模型服务返回 HTTP 500 内部错误；
-2. **Runtime 归类与捕获**：本地执行驱动将其捕获，归类为规范 `K-ERR-*` 规则约束下的标准原因码 `AI_PROVIDER_INTERNAL`，并记录现场审计日志与 Trace ID；
-3. **SDK 结构化封装**：SDK 门面将其包装为结构化 `NimiError` 对象（包含 `reasonCode: 'AI_PROVIDER_INTERNAL'` 与操作建议 `actionHint: 'retry_with_backoff_or_switch_provider'`）；
+1. **Provider 返回异常**：远程大模型服务返回 HTTP 500 内部错误。
+2. **Runtime 归类与捕获**：本地执行驱动将其捕获，归类为规范 `K-ERR-*` 规则约束下的标准原因码 `AI_PROVIDER_INTERNAL`，并记录现场审计日志与 Trace ID。
+3. **SDK 结构化封装**：SDK 门面将其包装为结构化 `NimiError` 对象（包含 `reasonCode: 'AI_PROVIDER_INTERNAL'` 与该操作实际返回的 `actionHint`）。
 4. **桌面端友好呈现**：UI 界面在消息气泡旁展示准确的提示信息（例如：“模型服务商发生内部错误，请稍后重试或切换模型”），并提供明确的操作选项。
 
 ## Source Basis

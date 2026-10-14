@@ -1,73 +1,66 @@
 # Worlds Architecture Overview
 
-Worlds (`World`) are the core operational domains and experiential environments of the Nimi platform.
+Worlds (`World`) are the core creative domains and narrative environments of the Nimi platform.
 
 ## What is a World
 
-In Nimi, a World is a persistent interactive environment: characters reside within it, and narratives unfold continuously over time. Every world features creator-defined lore and operational rules, shared present-state that outlasts any individual user session, and an append-only audit history logging significant events.
+In Nimi, a World is a persistent environment defined by its core lore, characters, entities, and relationships. Rather than treating every interaction as an isolated session, a world provides durable context where characters reside and stories unfold.
 
-Participants (human users and AI agents alike) are not local constructs of a single world: they arrive equipped with globally recognized character identities, established social graphs, and virtual asset balances valid across all worlds.
+Participants—both human users and AI agents—are not isolated constructs trapped inside a single application: accounts and persona characters carry consistent identities across the platform, while long-term agent memories are managed per agent by Cognition through Runtime.
 
 A world is **not**:
-- **A Chat Room**: Dialogue represents an interaction surface inside a world; the world provides the surrounding environment that gives dialogue narrative context.
-- **A Game Campaign**: Campaigns are transient game sessions; a world continues evolving even when human participants are offline.
-- **A Single Level**: Levels are scripted encounters; a world operates under persistent rules and cumulative history independent of any single visit.
-- **An Application**: Applications project platform surfaces; a world is the authoritative domain being projected.
+- **A Chat Room**: Dialogue is one way to interact inside a world; the world provides the lore, characters, and structural context around that dialogue.
+- **A Transient Session**: Individual play or story sessions come and go, while the world's core settings and character definitions persist in Realm.
+- **A Single Level**: Levels are scripted encounters; a world defines reusable settings, characters, entities, and relationships across sessions.
+- **An Application**: Applications project user interfaces and local experiences; a world is the underlying domain record stored in Realm.
 
-A world functions as a consistent digital micro-universe: created by authors, animated by participants, and durable over time.
+## Architectural Layers of a World
 
-## The Three Dimensions of a World
+A world in Realm separates currently available authoring records from planned shared state and history contracts. See [State vs History](/platform/worlds/state-vs-history) for the detailed design reference.
 
-Every world in Realm comprises three distinct, complementary architectural layers. See [State vs History](/platform/worlds/state-vs-history) for in-depth analysis.
-
-| Dimension | Architectural Question Answered | Governing Authority |
+| Layer | Architectural Role | Current Status |
 | --- | --- | --- |
-| **Truth** | Authoritative settings, foundational contracts, rules, and core objects governing the world (evolvable via authorized releases) | Realm `R-TRUTH-*` |
-| **World State** | The current shared operational state (locations, relations, entity attributes) | Realm `R-WSTATE-*` |
-| **World History** | The immutable, auditable log of accepted state mutations explaining how the world reached its current state | Realm `R-WHIST-*` |
+| **World Authoring & Settings** | Authoritative world settings and rosters defined through `WorldCore`, `WorldCharacter`, `PersonaCharacter`, `WorldEntity`, and `WorldRelationship` | **Current interface** through Runtime-admitted host bindings |
+| **World State** | Persistent shared world state across sessions (`WORLD` / `ENTITY` / `RELATION` scopes), excluding app runtime variables, prompt context, or render state | **Planned contract** (design reference only; no active controller or tracked OpenAPI read/write endpoints) |
+| **World History** | Append-only record of admitted occurred facts, where corrections append replacement or invalidation records rather than hard deletes | **Planned contract** (design reference only; no active controller or tracked OpenAPI read/write endpoints) |
 
-Conflating these dimensions compromises system integrity: a world without truth lacks invariant rules; a world without state cannot render the present; a world without history cannot audit the past.
+Keeping these layers distinct prevents applications from mixing authoring definitions, private session variables, and shared history.
 
-## Adjacent Realm Services
+## Adjacent Realm and Runtime Capabilities
 
-Worlds are augmented by adjacent Realm services:
+Worlds work alongside other platform capabilities mediated by Runtime and Realm:
 
-| Realm Service | Architectural Responsibility |
+| Capability | Architectural Responsibility |
 | --- | --- |
-| **Direct Chat** | Peer-to-peer thread synchronization, message delivery, and read-receipt tracking |
-| **Social Graph** | Friendship admission and social topology gating interaction prerequisites |
-| **Economy** | Creator monetization, credential ledgers, and transaction settlements |
-| **Assets & Bindings** | World-bound models, resource bundles, and attachments to entities |
-| **Transit** | Hub-and-spoke spatial routing between worlds via the OASIS system world |
+| **Direct Chat & Presence** | Runtime-admitted realtime channels for human-to-human DirectChat, typing indicators, inbox updates, and Presence |
+| **LocalAgent & Cognition** | LocalAgent dialogue execution in Runtime and per-agent long-term memory managed by Cognition through Runtime |
+| **Social & Economy** | Platform account relationships, permissions, and settlement rails managed by Realm |
+| **OASIS & Transit** | The `OASIS` system main world and the spatial transit protocol design (see [OASIS](/platform/worlds/oasis)) |
 
-These services are coordinated by Realm, transforming static data stores into immersive virtual worlds.
+Apps access Realm through a protected host session, manifest `realm.data` declaration, and Runtime admission. Runtime holds Realm credentials and remote realtime connections; apps do not handle raw Bearer tokens, direct HTTP requests, or raw sockets, and generic world event broadcasting or notification streams are not open to apps.
 
 ## Section Contents
 
-- [State vs History](/platform/worlds/state-vs-history): Mutation envelopes and the `effectClass` model governing state updates versus history appends.
-- [OASIS](/platform/worlds/oasis): The unique system main world and central transit hub.
-- [Lifecycle](/platform/worlds/lifecycle): Creation, atomic release packaging, application binding, suspension, and revocation.
+- [State vs History](/platform/worlds/state-vs-history): Design reference for planned `WorldState` and `WorldHistory` contracts, commit envelopes, and `effectClass` rules.
+- [OASIS](/platform/worlds/oasis): The system main world (`OASIS`) and the transit protocol design.
+- [Lifecycle](/platform/worlds/lifecycle): World creation eligibility, independent `WorldCore` and `WorldCharacter` authoring, `baseContentHash` updates, and visibility settings.
 
 For schema-level field definitions, see [Reference → World Fields](/reference/world-fields).
 
-## Scenario: Entering a World
+## Scenario: Interacting with a World
 
-When a user signs into Nimi and visits a world created by a friend:
+When a user opens an application that loads a world:
 
-- **Ecosystem Identity**: The user's account identity remains identical to their identity across Nimi. The world admits the user without redefining their persona.
-- **Asset Portability**: Wallets, friendships, and global asset inventories are accessible within the world without state duplication.
-- **Local Rule Enforcement**: The world enforces custom internal rules (e.g., custom local scrip or accelerated diurnal cycles). These local rules apply exclusively within the world and do not retroactively mutate global account standings.
-- **Private Memory**: Dialogue with resident agents is continuous; agent memories are managed per agent by Cognition and accessed via Runtime, preventing leakage into public world state.
-- **Hub Transit**: Departing the world routes through OASIS, ensuring verified identity continuity.
+- **Consistent Identity**: The user operates under their protected host session, and persona definitions (`PersonaCharacter`) can be accessed through the host-bound Realm client.
+- **Controlled Data Access**: The app reads `WorldCore`, `WorldCharacter`, `WorldEntity`, and `WorldRelationship` records through Runtime-admitted operations, with Realm enforcing resource authorization.
+- **Private Agent Memory**: Conversations with a `LocalAgent` are handled by Runtime, and long-term agent memories are stored per agent by Cognition via Runtime. App session data and private story logs do not automatically sync to Realm or become public world history.
+- **System Main World (`OASIS`)**: `OASIS` serves as the system main world whose `WorldCore` and character profiles are accessible through standard interfaces. For the cross-world transit protocol design, see [OASIS](/platform/worlds/oasis).
 
-## Scenario: Publishing a World
+## Scenario: Authoring and Updating a World
 
-When an author designs and publishes a new world:
+With world creation eligibility, a creator can save the setting first, then build out its characters and entities. Existing records are updated through their own operations; when concurrent edits conflict, read the latest version before deciding how to merge them.
 
-- **Authoring Invariant Truth**: The creator defines core rules, resident character assets, scenes, and visual configurations.
-- **Atomic WorldRelease**: The creator commits a `WorldRelease` package—an atomic transaction freezing truth schemas, resource checksums, and version metadata. Rollbacks are executed as forward-moving release operations.
-- **Decoupled Local Economy**: Worlds may maintain internal tokens or point economies while platform settlement rails remain decoupled.
-- **Destination Admission**: Once published, the world becomes an active destination reachable via OASIS transit.
+Realm administrators grant creation eligibility, and saving a record does not itself publish it to a catalog. See [World Lifecycle](/platform/worlds/lifecycle) for operations and version conditions, and [World Fields](/reference/world-fields) for the data reference.
 
 ## Source Basis
 

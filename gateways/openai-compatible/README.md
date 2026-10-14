@@ -1,23 +1,14 @@
 # Nimi OpenAI-Compatible Gateway
 
-Local loopback gateway for OpenAI-compatible clients that want to consume
-admitted Nimi Runtime model capabilities without depending on Runtime internals.
+Local loopback gateway for OpenAI-compatible clients that want to consume admitted Nimi Runtime model capabilities without depending on Runtime internals.
 
 ## Boundaries
 
-- This package is a Runtime consumer, not a Runtime daemon module.
-- The standard HTTP surface is `/v1/*`. The old namespaced `/openai/v1/*`
-  surface is not accepted after the hardcut.
-- The gateway exposes OpenAI-compatible HTTP shapes and delegates execution to an
-  injected Runtime/SDK capability client.
-- The gateway must not call `runtime/internal/**`, managed media backend HTTP, or
-  app-owned private transports.
-- Model names exposed to clients are aliases projected from Runtime-supported
-  targets. Runtime remains the authority for model inventory, profile
-  validation, leases, execution, and artifacts.
-- v1 is loopback-only with numeric loopback proof (`127.0.0.1`, `::1`, or
-  IPv4-mapped loopback). LAN or remote exposure belongs to a later explicit
-  product slice with device grants or Realm auth.
+- **Runtime consumer**: This package is an external Runtime consumer, not a Runtime daemon module. It exposes OpenAI-compatible HTTP endpoints and delegates execution to an injected Runtime/SDK capability client.
+- **Canonical path prefix**: The standard HTTP surface is `/v1/*`. The legacy namespaced `/openai/v1/*` prefix is rejected after the hardcut.
+- **No private transport access**: The gateway must never call `runtime/internal/**`, managed media backend HTTP endpoints, or app-owned private transports.
+- **Projected model aliases**: Model names exposed to clients are compatibility aliases projected from Runtime-supported targets, not immutable model pins. Runtime remains the sole authority for model inventory, profile validation, leases, execution, and artifacts.
+- **Loopback-only in v1**: Every request requires numeric loopback proof (`127.0.0.1`, `::1`, or IPv4-mapped loopback). LAN or remote exposure belongs to a future product slice gated by device grants or Realm authentication.
 
 ## Supported Standard Surface
 
@@ -32,82 +23,50 @@ admitted Nimi Runtime model capabilities without depending on Runtime internals.
 - `GET /v1/artifacts/:id`
 - `GET /healthz`
 
-Every route, including `/healthz`, requires verified loopback client evidence.
-`/healthz` does not require a local API key after loopback has been proven.
+### Loopback & Health Check
 
-`/v1/models` projects Runtime-supported OpenAI capability targets. The gateway
-does not keep a static provider or model registry. The catalog must project the
-current Runtime execution target with at most one supported alias per capability.
-Multiple targets for one capability fail closed at discovery and submission;
-this gateway cannot carry per-request provider/model overrides. Catalog and
-execution must use the same Runtime configuration. Aliases are compatibility
-names, not immutable model pins.
+Every route—including `/healthz`—requires verified numeric loopback client evidence. Once loopback is proven, `/healthz` does not require a local API key.
 
-`/v1/chat/completions` supports non-streaming responses through
-`runtime.runChatCompletion()` and SSE streaming through
-`runtime.streamChatCompletion()`.
+### Model Discovery (`/v1/models`)
 
-`/v1/responses`, `/v1/embeddings`, `/v1/audio/speech`, and
-`/v1/images/generations` are standard HTTP shapes mapped to injected Runtime
-capability methods. Unsupported official features fail closed with an OpenAI
-error envelope and `NIMI_GATEWAY_UNSUPPORTED_FEATURE`; they are not silently
-ignored.
+`/v1/models` dynamically projects Runtime-supported OpenAI capability targets; the gateway holds no static provider or model registry. The catalog projects the current Runtime execution target with at most one supported alias per capability. If multiple targets exist for a single capability, both discovery and submission fail closed, as this gateway does not support per-request provider or model overrides. Catalog discovery and request execution must share the same Runtime configuration.
 
-Malformed official fields fail closed with `NIMI_GATEWAY_REQUEST_INVALID`
-instead of being dropped before Runtime execution. Deferred standard features
-include Responses streaming and Embeddings `encoding_format=base64` until the
-Runtime contract can preserve those exact response semantics.
+### Execution & Error Handling
 
-`/v1/images/edits` and `/v1/images/variations` are routed as standard endpoints
-and fail closed until the Runtime capability method and multipart parsing are
-wired. This keeps the endpoint boundary visible without fabricating support.
+- **Chat Completions (`/v1/chat/completions`)**: Supports non-streaming responses via `runtime.runChatCompletion()` and SSE streaming via `runtime.streamChatCompletion()`.
+- **Mapped Standard Endpoints**: `/v1/responses`, `/v1/embeddings`, `/v1/audio/speech`, and `/v1/images/generations` map standard OpenAI HTTP payloads to injected Runtime capability methods.
+- **Fail-Closed Validation**:
+  - Unsupported official features fail closed with an OpenAI error envelope and code `NIMI_GATEWAY_UNSUPPORTED_FEATURE` rather than being silently ignored.
+  - Malformed official fields fail closed with `NIMI_GATEWAY_REQUEST_INVALID` instead of being stripped before Runtime execution.
+  - Deferred features—including Responses streaming and Embeddings `encoding_format=base64`—fail closed until the Runtime contract can preserve their exact response semantics.
+  - `/v1/images/edits` and `/v1/images/variations` are routed as standard endpoints but fail closed until the underlying Runtime capability methods and multipart parsing are wired.
+- **Non-Standard Image Fields**: Companion models, local pipeline slots, raw file paths, and provider-specific knobs (such as `seed` and `negative_prompt`) are not accepted by this gateway unless separately admitted through a Nimi-specific extension.
 
-`response_format=url` returns a short-lived gateway artifact URL backed by
-generated bytes. `response_format=b64_json` returns base64 inline bytes. The
-gateway emits artifact URLs only on numeric loopback origins and does not trust
-a caller-controlled `Host` header for remote-looking origins. The gateway never
-returns filesystem paths or managed-media backend URLs.
+### Image Artifacts & Caching (`response_format`)
 
-URL bytes expire actively after `artifactTtlMs` (default 10 minutes), even if the
-URL is never requested again. FIFO eviction also limits `artifactMaxBytes`
-(default 64 MiB) and `artifactMaxEntries` (default 128). Expired or evicted URLs
-return 404. A single image above the byte budget returns a typed 503; callers
-can request `b64_json`. Eviction never deletes the Runtime-owned artifact.
-
-Companion models, local pipeline slots, raw file paths, and provider-specific
-execution knobs such as `seed` and `negative_prompt` are not OpenAI standard
-image fields. They remain outside this surface until admitted through a
-Nimi-specific extension.
+- `response_format=b64_json` returns base64 inline bytes.
+- `response_format=url` returns a short-lived gateway artifact URL backed by generated bytes (`GET /v1/artifacts/:id`).
+- **Origin safety**: Artifact URLs are emitted only on numeric loopback origins; the gateway never trusts a caller-controlled `Host` header for remote-looking origins and never exposes filesystem paths or managed-media backend URLs.
+- **TTL & eviction**: Cached URL bytes expire actively after `artifactTtlMs` (default 10 minutes), even if never requested again. FIFO eviction enforces `artifactMaxBytes` (default 64 MiB) and `artifactMaxEntries` (default 128). Expired or evicted URLs return `404`. A single image exceeding the byte budget returns a typed `503` (callers can request `b64_json` instead). Gateway cache eviction never deletes the underlying Runtime-owned artifact.
 
 ## Runtime Adapter Contract
 
-The gateway accepts an injected Runtime object. Capability methods are optional
-at construction time and are checked at the endpoint boundary:
+The gateway accepts an injected Runtime object. Capability methods are optional at construction time and verified at each endpoint boundary:
 
-- `runtime.listModels()` for cross-capability model projection.
-- `runtime.listImageGenerationModels()` as the image-only projection fallback.
-- `runtime.runChatCompletion(request)`.
-- `runtime.streamChatCompletion(request)`.
-- `runtime.runResponse(request)`.
-- `runtime.runEmbedding(request)`.
-- `runtime.runSpeechSynthesis(request)`.
-- `runtime.runImageGenerationJob(request)`.
-- `runtime.runImageEditJob(request)` when image edit is admitted.
-- `runtime.runImageVariationJob(request)` when image variation is admitted.
-- `runtime.readArtifactBytes({ artifactId, signal })` when Runtime returns artifact ids
-  without inline bytes.
+- `runtime.listModels()` — cross-capability model projection
+- `runtime.listImageGenerationModels()` — image-only projection fallback
+- `runtime.runChatCompletion(request)`
+- `runtime.streamChatCompletion(request)`
+- `runtime.runResponse(request)`
+- `runtime.runEmbedding(request)`
+- `runtime.runSpeechSynthesis(request)`
+- `runtime.runImageGenerationJob(request)`
+- `runtime.runImageEditJob(request)` (when image edit is admitted)
+- `runtime.runImageVariationJob(request)` (when image variation is admitted)
+- `runtime.readArtifactBytes({ artifactId, signal })` (when Runtime returns artifact IDs without inline bytes)
 
-`createOpenAICompatibleRuntimeAdapter()` is the intended public-SDK seam for
-real integrations. It does not import Runtime internals or SDK build artifacts;
-the owning process injects public SDK functions and clients. The current SDK
-adapter path is image-generation focused; unpreserved official image fields must
-fail closed rather than disappear.
+### Integration & Lifecycle Rules
 
-HTTP disconnects abort `request.signal`. Injected capability adapters must honor
-that signal, and streaming adapters must release resources on iterator return.
-SSE pulls follow consumer demand instead of eagerly draining the producer.
-
-The gateway package intentionally does not ship a fake Runtime transport.
-Runtime grant acquisition, protected `ai.spend.meter` token custody, Forge
-ledger integration, LAN exposure, and Realm-authenticated remote service
-exposure are separate follow-up seams.
+- **Public SDK seam**: `createOpenAICompatibleRuntimeAdapter()` is the public SDK integration entrypoint. It never imports Runtime internals or SDK build artifacts; the owning process injects public SDK functions and clients. The current SDK adapter path focuses on image generation, and any unpreserved official image fields must fail closed rather than disappear.
+- **Cancellation & backpressure**: HTTP client disconnects abort `request.signal`. Injected capability adapters must honor that signal, and streaming adapters must release resources when the iterator returns. SSE streaming pulls follow consumer demand rather than eagerly draining the producer.
+- **Out-of-scope seams**: This package ships no fake Runtime transport. Runtime grant acquisition, protected `ai.spend.meter` token custody, Forge ledger integration, LAN exposure, and Realm-authenticated remote service exposure belong to separate follow-up seams.

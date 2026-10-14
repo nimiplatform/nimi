@@ -1,6 +1,6 @@
 {
   "discovery": {
-    "readingIncomplete": "Some world setting or history could not be loaded. Only the content already read is shown.",
+    "readingIncomplete": "Some world settings or history could not be loaded. Showing the content loaded so far.",
     "placesIncomplete": "Places and references could not be loaded. Try again to view them.",
     "people": "People in this world",
     "peopleCount": "{{count}} people",
@@ -36,7 +36,12 @@
       "history": "World history"
     }
   },
-  "sceneResourceKinds": { "entity": "Related entity", "timelineEvent": "Historical event", "resource": "Related resource", "unnamed": "Unnamed resource" },
+  "sceneResourceKinds": {
+    "entity": "Related entity",
+    "timelineEvent": "Historical event",
+    "resource": "Related resource",
+    "unnamed": "Unnamed resource"
+  },
   "title": "World",
   "loading": "Loading world details...",
   "error": "Failed to load world details",
@@ -74,10 +79,10 @@
   "moreOptions": "More Options",
   "id": "ID",
   "overview": "World Overview",
-  "overviewDesc": "Complete coverage of World basic fields, status fields, resource fields and runtime parameters.",
+  "overviewDesc": "Covers core world details, status, resources, and runtime parameters.",
   "description": "Description",
   "templateArea": "Template Area · API-ready",
-  "scoresDesc": "Visual display of Activity, Consensus, Engagement, Quality and overall trends.",
+  "scoresDesc": "A visual breakdown of Activity, Consensus, Engagement, Quality, and overall trends.",
   "activity": "Activity",
   "activityDesc": "Measures user interactions, message volume, and daily active participation within the world.",
   "consensus": "Consensus",
@@ -96,26 +101,26 @@
     "needsAttention": "Needs Attention"
   },
   "ewmaTitle": "Trend",
-  "ewmaDesc": "Represents the comprehensive trend performance of the world. Suitable for dashboards to quickly determine if the world is in a growth phase.",
-  "charactersList": "Character List",
-  "charactersDesc": "Display character and persona source tiles in this world.",
+  "ewmaDesc": "Tracks the world's overall momentum to show at a glance whether it is growing.",
+  "charactersList": "Character Directory",
+  "charactersDesc": "Browse the public character profiles associated with this world.",
   "characterTiles": "Character tiles",
   "charactersLoading": "Loading characters...",
-  "noPersonaSourcesYet": "No personas in this world yet",
-  "startChat": "Become my partner",
+  "noPersonaSourcesYet": "No public characters in this world yet",
+  "startChat": "Become Partners",
   "voiceInteraction": "Source",
   "createdAt": "Created at",
   "timeline": "Timeline",
-  "timelineDesc": "Display key milestones, evolution events and governance actions in chronological order.",
+  "timelineDesc": "Key milestones, world evolution events, and governance actions in chronological order.",
   "eventsLoading": "Loading events...",
   "sampleData": "Sample data",
-  "oldestToLatest": "Oldest to Latest",
-  "footerNote": "This is a single-file static template example: You can replace world, scores, characters, events with API response data and extend it as a React/Vue component page.",
+  "oldestToLatest": "Oldest to Newest",
+  "footerNote": "Details reflect the Realm information available for this world.",
   "glass": {
     "backToAtlas": "Back to World Atlas",
-    "publicSettingBackground": "Public world setting background",
+    "publicSettingBackground": "Public world setting",
     "sourcesCount": "{{value}} sources",
-    "timeflowValue": "{{value}}x timeflow",
+    "timeflowValue": "{{value}}x time flow",
     "notSpecified": "Not specified",
     "openEra": "Open era",
     "stats": {
@@ -129,7 +134,7 @@
     },
     "lore": {
       "title": "World Background",
-      "subtitle": "Static setting context used to understand characters, personas, rules, and major events.",
+      "subtitle": "Foundational lore and context for understanding the world's characters, personas, rules, and major events.",
       "primaryLanguage": "Primary Language",
       "era": "Era",
       "contentRating": "Content Rating",
@@ -138,7 +143,7 @@
     },
     "characters": {
       "title": "Characters and Personas",
-      "subtitle": "Browse public sources from this world and become partners when you want to keep talking.",
+      "subtitle": "Browse public character and persona sources in this world, and become partners to start an ongoing conversation.",
       "empty": "This world has no public character or persona sources yet."
     },
     "timeline": {
@@ -158,7 +163,7 @@
       "empty": "No public sources are available yet.",
       "featuredSources": "Featured Sources",
       "settingHighlights": "Setting Highlights",
-      "note": "Worlds are public setting backgrounds. Becoming partners materializes the Runtime-owned identity used by later chat surfaces."
+      "note": "Worlds provide background settings. Add a character as a local partner to continue the conversation."
     }
   },
   "section": {
@@ -190,39 +195,39 @@
     "intro": {
       "kicker": "World Introduction",
       "title": "World Introduction",
-      "desc": "Building an extensible, immersive, and continuously evolving World homepage template based on the cultivation order of \"A Record of a Mortal's Journey to Immortality\". You can directly replace the data object at the bottom to adapt it to any novel, game, mythology, or original world.",
+      "desc": "An extensible, immersive, and evolving world homepage template inspired by the cultivation realm of \"A Record of a Mortal's Journey to Immortality.\" Replace the underlying data object to adapt this layout to any novel, game, mythology, or original world.",
       "sideNote1": "Main World Info / Status / Level / Time Flow",
       "sideNote2": "Field display supports on-demand show/hide"
     },
     "scores": {
       "kicker": "One Chart · Five Metrics",
       "title": "Comprehensive Scoring Metrics",
-      "desc": "Consolidating Activity / Consensus / Engagement / Quality / EWMA five metrics into one radar chart for quick assessment.",
-      "sideNote": "Score range: 0 - 100\nEWMA observes overall trend sustainability",
-      "chartNote": "All five dimensions in one view, perfect for world homepage overview."
+      "desc": "Combines five key metrics—Activity, Consensus, Engagement, Quality, and EWMA—into a single radar chart for quick assessment.",
+      "sideNote": "Score range: 0–100\nEWMA tracks long-term trend stability",
+      "chartNote": "All five dimensions at a glance."
     },
     "characters": {
       "kicker": "Character Roster",
       "title": "Character List",
-      "desc": "Displays Characters generated by or belonging to this world. Each card includes name, handle, bio, creation time.",
+      "desc": "Characters created in or belonging to this world, including their name, handle, bio, and creation date.",
       "sideNote": "Cards can extend:\nLocal Agent state / Source tags / Ownership / Permissions",
       "voiceCall": "Source",
       "enterChat": "View Source",
       "chat": "Source",
-      "addFriend": "Become my partner",
+      "addFriend": "Become Partners",
       "createdAt": "Created",
       "noData": "No data available"
     },
     "timeline": {
       "kicker": "Chronicle",
       "title": "Major Events Timeline",
-      "desc": "Displays key milestones, plot transitions, secret realm openings, faction conflicts, version switches in chronological order.",
+      "desc": "Tracks key milestones, plot turns, secret realm openings, faction conflicts, and version updates in chronological order.",
       "sideNote": "Timeline supports infinite extension\nCan split into Main/Sub/Arc announcements",
       "noData": "No event data available"
     },
     "footer": {
       "templateUsage": "Template Usage:",
-      "templateDesc": "Simply replace the world fields, scores, Character list and event data in the worldData object at the bottom to reuse this page for any World. Current example is \"A Record of a Mortal's Journey to Immortality · Tiannan Spiritual Realm\"."
+      "templateDesc": "Replace the world fields, scores, character list, and event data in the worldData object to reuse this template for any world. Currently showing sample data for \"A Record of a Mortal's Journey to Immortality · Tiannan Spiritual Realm.\""
     },
     "noData": {
       "quote": "No quote available",
@@ -312,9 +317,9 @@
       },
       "timeline": {
         "title": "Chronicle",
-        "subtitle": "Official world event spine",
+        "subtitle": "Major events in the world setting",
         "oasisTitle": "System Milestones",
-        "oasisSubtitle": "Key platform evolution points of OASIS",
+        "oasisSubtitle": "Key milestones in the evolution of OASIS",
         "primary": "Primary",
         "secondary": "Secondary",
         "characters": "Characters",
@@ -331,11 +336,11 @@
         "characterRefs": "Characters",
         "locationRefs": "Locations",
         "evidence": "Evidence",
-        "empty": "This world has no formal events to display yet."
+        "empty": "No recorded events for this world yet."
       },
       "scenes": {
         "title": "Key Scenes",
-        "subtitle": "Places that open up the main spaces and relationships of this world",
+        "subtitle": "Signature locations where this world's spaces and relationships unfold",
         "oasisTitle": "System Scenes",
         "oasisSubtitle": "Core system spaces inside the OASIS prime world",
         "noDescription": "No description.",
@@ -364,7 +369,7 @@
         "intro": "This group summarizes the world background and source discovery surface.",
         "flowRatio": "Time Flow",
         "characterCount": "Current Characters",
-        "assetCount": "Current Asset Refs",
+        "assetCount": "Current Asset References",
         "sceneCount": "Current Scenes",
         "contentRating": "Content Rating",
         "freezeReason": "Freeze Reason"
@@ -373,20 +378,20 @@
         "governanceSummary": "Governance Summary",
         "level": "Level",
         "nativeCreation": "Native Creation",
-        "latestAudit": "Latest governance action",
+        "latestAudit": "Latest Governance Action",
         "recommendedCharacters": "Suggested Starting Characters",
-        "recommendedCharactersSubtitle": "After understanding the rules, start from these characters",
-        "recommendedCharactersHint": "Entering through characters closest to the current time slice makes it easier to understand the order, places, and relationships of this world.",
-        "entryPrimary": "First Entry",
-        "entrySecondary": "Support Entry",
-        "entryReasonScene": "Best entered through {{value}} first",
+        "recommendedCharactersSubtitle": "Once you know the rules, meet these characters first",
+        "recommendedCharactersHint": "Starting with characters active in the current era makes it easier to grasp this world's order, places, and relationships.",
+        "entryPrimary": "Primary Entry",
+        "entrySecondary": "Supporting Entry",
+        "entryReasonScene": "Best approached through {{value}} first",
         "entryReasonIdentity": "A good way to understand the world through the lens of {{value}}",
         "entryReasonDefault": "A good starting point for building your first impression of this world",
         "inspectProfile": "Open profile",
         "chronology": "Chronology",
-        "chronologySubtitle": "Current world time facts",
+        "chronologySubtitle": "Time and calendar in this world",
         "chronologyAndLanguage": "Chronology & Languages",
-        "chronologyAndLanguageSubtitle": "World time and language facts",
+        "chronologyAndLanguageSubtitle": "Time, calendar, and languages in this world",
         "languages": "Languages",
         "languagesSubtitle": "Common languages in this world",
         "currentWorldTime": "Current World Time",
@@ -405,7 +410,7 @@
         "language": "Common Tongue",
         "governance": "Governance",
         "governanceManaged": "System Managed",
-        "governanceRestricted": "Restricted Managed",
+        "governanceRestricted": "Restricted Management",
         "governanceLimited": "Limited Access"
       },
       "quickNav": {
@@ -425,7 +430,7 @@
         "empty": "This world has no sources yet.",
         "vitality": "Vitality",
         "chat": "Open",
-        "chatOpensInConversation": "Opens the partner conversation after Runtime materialization.",
+        "chatOpensInConversation": "Opens the partner conversation once materialized in Runtime.",
         "voice": "Source",
         "voiceOpensInConversation": "Voice belongs to the later Runtime-owned partner surface.",
         "materializeSource": "Become my partner",
@@ -443,7 +448,7 @@
         "groupSecondary": "Secondary Characters",
         "groupBackground": "Background Characters",
         "voiceSample": "Voice sample",
-        "voiceReady": "Ready audio resource"
+        "voiceReady": "Audio ready"
       },
       "extended": {
         "evolutionTitle": "Worldview Evolution",
@@ -503,14 +508,14 @@
       },
       "scenes": {
         "title": "Step into the scenes",
-        "desc": "Read this world immersively through concrete scenes."
+        "desc": "Experience this world up close through its concrete scenes."
       }
     },
     "characters": {
       "title": "People you can meet",
-      "subtitle": "Add a person locally as a local agent before chatting — each carries their own life and connections.",
+      "subtitle": "Add a character as a local agent before chatting — each brings their own life and connections.",
       "empty": "This world has no public character or persona sources yet.",
-      "openProfile": "Open {{name}} profile",
+      "openProfile": "Open {{name}}'s profile",
       "engagement": "Activity",
       "vitality": "Vitality",
       "connect": "Add character",
@@ -542,13 +547,13 @@
         },
         "BACKGROUND": {
           "label": "Background figures",
-          "caption": "People who texture and color the world."
+          "caption": "Everyday figures who bring texture and life to the world."
         }
       },
       "status": {
         "connectable": {
           "label": "Available now",
-          "caption": "Add locally as a local agent before chatting."
+          "caption": "Add as a local agent before chatting."
         },
         "connected": {
           "label": "Local agent ready",
@@ -570,11 +575,11 @@
       "loadingMore": "Loading…",
       "loadMoreError": "Couldn't load more people. Try again.",
       "loadingPeople": "Loading people…",
-      "loadFailed": "Couldn't load this World's people.",
-      "loadFailedOffline": "Couldn't connect to load this World's people. Check your connection and try again.",
+      "loadFailed": "Couldn't load this world's people.",
+      "loadFailedOffline": "Couldn't connect to load this world's people. Check your connection and try again.",
       "retry": "Try again",
       "loadMoreOffline": "Couldn't connect to load more people. Check your connection and try again.",
-      "peopleWaitingForNetwork": "You're offline. This World's people will load when you're back online.",
+      "peopleWaitingForNetwork": "You're offline. This world's people will load when you're back online.",
       "loadMoreWaiting": "You're offline. More people will load when you're back online."
     },
     "loreOverview": {
@@ -583,7 +588,7 @@
     },
     "loreLibrary": {
       "title": "Setting compendium",
-      "subtitle": "Structured semantic records for world rules, systems, taboos, and languages.",
+      "subtitle": "Structured records for world rules, systems, taboos, and languages.",
       "records": "records",
       "empty": "This world has not published structured lore yet.",
       "kind": {
@@ -613,8 +618,8 @@
     },
     "resourceReferences": {
       "title": "World asset checklist",
-      "subtitle": "Organized by use: connected visual assets, openable sources, and asset plans that still need completion.",
-      "readerHint": "Start with what can be used now, then inspect where it comes from, then review what is still missing.",
+      "subtitle": "Organized by use: connected visual assets, accessible sources, and asset plans that still need completion.",
+      "readerHint": "Start with what is ready to use, check where it comes from, and review what is still missing.",
       "records": "records",
       "empty": "This world has not connected display assets or asset plans yet.",
       "kind": {
@@ -623,7 +628,7 @@
         "intent": "Asset intents"
       },
       "summary": {
-        "usable": "Openable assets",
+        "usable": "Accessible assets",
         "registered": "Realm records",
         "planned": "Pending plans"
       },
@@ -634,10 +639,10 @@
         "planned": "Pending"
       },
       "description": {
-        "ready": "This asset is both registered in Realm and backed by an openable source, so it can be used in world presentation.",
+        "ready": "This asset has a Realm record and a source link.",
         "external": "This asset is referenced through an external source and does not yet have a matching Realm asset record.",
-        "registered": "This asset is registered by the world, but no openable external source is currently available.",
-        "planned": "This is a future production, replacement, or completion request, not an image that is ready to use."
+        "registered": "This asset is registered by the world, but no accessible external source is currently available.",
+        "planned": "This is a planned request for future production, replacement, or completion — not a ready-to-use asset."
       },
       "field": {
         "usage": "Used as",
@@ -666,7 +671,7 @@
         },
         "intent": {
           "title": "Pending asset plans",
-          "subtitle": "These are asset needs that still require production, replacement, or completion."
+          "subtitle": "Assets that still need to be created, replaced, or completed."
         }
       }
     },
@@ -677,10 +682,10 @@
     },
     "scenes": {
       "title": "Explorable scenes",
-      "subtitle": "Step into a concrete scene and experience this world immersively.",
+      "subtitle": "Step into a scene to experience this world immersively.",
       "enter": "Enter scene",
       "empty": "No scenes are published for this world yet.",
-      "detailCard": "Scene detail card",
+      "detailCard": "Scene details",
       "activeEntities": "Active entities",
       "relatedCharacters": "Related characters",
       "relatedEvents": "Related events",
@@ -692,7 +697,7 @@
       "noImage": "No image",
       "none": "None",
       "enterHintTitle": "Explain what is here before entry",
-      "enterHintDesc": "Open the scene sheet, then jump into people, events, and sources."
+      "enterHintDesc": "Open the scene details to explore its people, events, and sources."
     },
     "settings": {
       "title": "World settings",
@@ -709,24 +714,24 @@
         },
         "scoped": {
           "title": "Clear, trustworthy scope",
-          "desc": "Only the people selected into this world and their relationships are shown."
+          "desc": "Only the people included in this world and their relationships are shown."
         },
         "summoned": {
           "title": "Summoned by you",
-          "desc": "A talkable character is generated only when you start chatting with someone."
+          "desc": "Add a character as a partner to start chatting."
         }
       }
     },
     "relationshipExplorer": {
-      "back": "Back to detail",
+      "back": "Back to details",
       "noCharactersTitle": "No public people yet",
-      "noCharactersDesc": "Character relationship exploration needs at least one public person.",
+      "noCharactersDesc": "Exploring relationships requires at least one public person.",
       "topbar": {
         "current": "Exploring: {{name}}"
       },
       "metrics": {
-        "people": "People collected",
-        "relationships": "Relationships organized"
+        "people": "People included",
+        "relationships": "Relationships mapped"
       },
       "identity": {
         "primary": "Key person",
@@ -737,21 +742,21 @@
         "status": "Character profile",
         "identity": "Identity tags",
         "materials": "Available material",
-        "basicMaterial": "Basic character information is collected",
-        "bioMaterial": "Character introduction is organized",
-        "topicMaterial": "{{count}} material clues are organized",
+        "basicMaterial": "Basic character information available",
+        "bioMaterial": "Character introduction ready",
+        "topicMaterial": "{{count}} material clues compiled",
         "placeMaterial": "Location: {{place}}",
         "directions": "Possible directions",
-        "directionFaction": "Follow the circle around {{value}}",
+        "directionFaction": "Explore the circle around {{value}}",
         "directionRole": "Find other people with the role {{value}}",
         "directionPlace": "View regional clues around {{value}}",
         "viewProfile": "Open character profile",
-        "sameIdentity": "Same identity",
-        "noRelated": "Continue from the people list."
+        "sameIdentity": "Shared identity",
+        "noRelated": "Select someone else from the people list to continue."
       },
       "peopleList": {
         "title": "People",
-        "searchPlaceholder": "Search people or identity…",
+        "searchPlaceholder": "Search by name or identity…",
         "empty": "No people match the current filter."
       }
     },
@@ -763,7 +768,7 @@
       "recFriends": "Suggested people",
       "addFriend": "Add locally",
       "viewAllPeople": "View all people",
-      "quick": "Quick entries",
+      "quick": "Quick access",
       "entries": {
         "people": {
           "title": "Browse all people",
@@ -784,7 +789,7 @@
       },
       "chatCta": {
         "title": "Talk with people in this world",
-        "desc": "Meet their stories, motivations, and connections."
+        "desc": "Discover their stories, motivations, and connections."
       }
     }
   }

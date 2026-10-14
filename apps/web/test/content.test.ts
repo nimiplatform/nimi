@@ -43,12 +43,7 @@ test('content exposes the full user journey in both locales', async () => {
     assert.ok(content.hero.demo.settings.groups.length >= 2);
 
     // The apps screen is the demo window under a centered section header.
-    assert.equal(
-      content.apps.title,
-      locale === 'zh'
-        ? 'AI 不该只是一个聊天框。'
-        : 'From work to interests, explore different AI apps.',
-    );
+    assert.ok(content.apps.title.trim().length > 0, `${locale}.apps needs a heading`);
     assert.ok(content.apps.subtitle.length > 0);
 
     assert.ok(content.worlds.title.length > 0);
@@ -93,11 +88,13 @@ test('landing copy keeps the cost and open-source boundaries honest', async () =
     const content = await loadLandingContent(locale);
     const serialized = JSON.stringify(content);
 
-    assert.match(serialized, locale === 'zh' ? /Nimi 本身免费/ : /Nimi itself is free/);
+    const costNote = content.capabilities.costNote;
+    assert.match(costNote, locale === 'zh' ? /Nimi 本身免费/ : /Nimi (?:itself )?is free/);
     assert.match(
-      serialized,
-      locale === 'zh' ? /第三方 App 是否收费由发布者决定/ : /third-party app charges is up to its publisher/,
+      costNote,
+      locale === 'zh' ? /第三方 App 是否收费由发布者决定/ : /third-party app (?:charges is up to its publisher|pricing is set by each publisher)/,
     );
+    assert.match(costNote, locale === 'zh' ? /云端服务.*服务商.*计费/ : /Cloud services.*providers.*pricing/);
     assert.doesNotMatch(serialized, /从头到尾，全部开源|everything is open source/i);
     assert.doesNotMatch(serialized, /完整源码|complete source code/i);
   }

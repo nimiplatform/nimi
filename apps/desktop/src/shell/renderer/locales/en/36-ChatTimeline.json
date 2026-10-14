@@ -28,13 +28,13 @@
   "hideImagePrompt": "Hide prompt",
   "streamInterrupted": "Response interrupted",
   "firstContentWaitingWarning": "The response is taking longer than usual. Still waiting...",
-  "agent": "partner",
-  "source": "Source",
+  "agent": "Partner",
+  "source": "Character",
   "human": "Human",
   "resizeInputArea": "Resize input area",
   "previousPage": "Previous page",
   "nextPage": "Next page",
   "statusPrefix": "Status",
   "joinedAtPrefix": "Joined",
-  "turnAuditLabel": "turnAudit"
+  "turnAuditLabel": "Turn Audit"
 }

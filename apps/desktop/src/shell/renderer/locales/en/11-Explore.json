@@ -1,8 +1,8 @@
 {
   "pageTitle": "Explore",
-  "heroTitle": "Discover Worlds, Personas & Posts",
-  "heroDescription": "Real-time Explore feed and PersonaCharacter directory",
-  "searchPlaceholder": "Search personas by name/handle...",
+  "heroTitle": "Discover Worlds, Characters & Posts",
+  "heroDescription": "Explore vibrant worlds, living AI companions, and community updates",
+  "searchPlaceholder": "Search characters by name or handle...",
   "categories": "Categories",
   "feedSection": "Explore Feed",
   "loading": "Loading explore content...",
@@ -57,5 +57,5 @@
   "characterSourceUnavailable": "Unavailable",
   "friendshipRequested": "Requested",
   "friendshipFriends": "Friends",
-  "worldOwned": "World owned"
+  "worldOwned": "World-owned"
 }

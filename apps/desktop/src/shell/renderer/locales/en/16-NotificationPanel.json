@@ -4,7 +4,7 @@
   "refresh": "Refresh",
   "markAllRead": "Mark All Read",
   "loading": "Loading notifications...",
-  "loadError": "Failed to load notifications",
+  "loadError": "Couldn't load notifications.",
   "empty": "No notifications",
   "allCaughtUp": "You're all caught up",
   "unreadSummary": "{{count}} unread",
@@ -16,13 +16,13 @@
   "loadMore": "Load More",
   "loadingMore": "Loading...",
   "rejectReason": "Reason (optional)",
-  "confirmReject": "Confirm Reject",
+  "confirmReject": "Confirm Rejection",
   "rejecting": "Rejecting...",
-  "loginRequired": "Please log in to view notifications",
-  "markReadError": "Failed to mark notification as read",
-  "markAllReadError": "Failed to mark all as read",
+  "loginRequired": "Sign in to view your notifications.",
+  "markReadError": "Couldn't mark notification as read.",
+  "markAllReadError": "Couldn't mark all notifications as read.",
   "accepting": "Accepting...",
-  "loadMoreError": "Failed to load more notifications",
+  "loadMoreError": "Couldn't load more notifications.",
   "submitting": "Submitting...",
   "filters": {
     "all": "All",
@@ -33,8 +33,8 @@
   },
   "typeNotifications": {
     "friendRequestReceived": "Friend Request",
-    "friendRequestAccepted": "Friend Accepted",
-    "friendRequestRejected": "Friend Rejected",
+    "friendRequestAccepted": "Friend Request Accepted",
+    "friendRequestRejected": "Friend Request Declined",
     "system": "System"
   }
 }

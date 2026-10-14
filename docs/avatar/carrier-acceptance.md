@@ -1,68 +1,51 @@
 # Carrier Visual Acceptance
 
-A **carrier** is the host surface responsible for rendering an embodiment — such as a viewport, canvas, or window widget where the character actually appears. The carrier visual acceptance contract determines whether a given embodiment package can be hosted and displayed on a specific carrier target.
+A **carrier** is the host surface—currently the standalone desktop Avatar window and viewport—where an embodied character is rendered. Carrier visual acceptance defines how Avatar validates rendering backends, checks model integrity, manages renderer states, and gates user interaction.
 
-## Acceptance Decisions
+## Backend Selection and Validation
 
-| Scenario | Evaluation Result |
+Avatar currently supports two rendering backends: **`live2d`** and **`vrm`**. A single Avatar factory validates the backend kind before initializing any graphics pipeline:
+
+| Input Condition | Acceptance Outcome |
 | --- | --- |
-| Embodiment matches carrier capabilities and requirements | Accepted: initialize and render |
-| Embodiment exceeds carrier limits (e.g., complexity tier) | Rejected or degraded: fallback to an authorized simplified projection |
-| Embodiment definition is malformed | Rejected: returns typed schema/contract error |
-| Embodiment violates carrier security or policy rules | Rejected: returns typed policy error |
+| Validated `live2d` or `vrm` kind with complete assets | Accepted: initializes the matching backend branch |
+| Unknown, ambiguous, or unvalidated backend kind | Rejected: aborts without substituting a placeholder branch |
+| Missing, invalid, or unparseable model resources | Unavailable: fails cleanly without reporting success via placeholder or fallback materials |
 
-Carriers do not perform partial, unverified, or silent half-rendering. Every acceptance decision is evaluated through typed capability checks, deterministically producing an accepted, degraded, or rejected outcome.
+## Asset Integrity Requirements
 
-## Why Carrier-Level Evaluation Matters
+Carriers do not perform silent half-rendering or mask broken packages with substitute assets:
 
-If embodiments could render unconditionally across any host surface, high-fidelity 3D assets designed for high-performance desktop carriers could overwhelm constrained mobile or embedded devices. Similarly, assets tailored for a specific backend (like Live2D) might be incorrectly mounted onto an incompatible 3D engine (like three-vrm).
+- **Strict Live2D validation**: A Live2D package must provide a single `model3` definition along with all required `MOC3` data, textures, and declared resources. If any required file is missing, invalid, or fails to parse, the carrier cannot render the character and never reports success using placeholder or fallback materials.
+- **Product readiness gating**: Product interaction is closed whenever no model is loaded or the rendering backend is not yet ready. Rendering a development fixture does not count as product `ready`.
 
-The carrier acceptance contract formalizes what each carrier can host. Embodiments declare their requirements, carriers declare their supported profiles, and the platform verifies compatibility before invoking any rendering pipeline.
+## Renderer States and Bounded Fallbacks
 
-## Developer Scenarios
+During execution, the carrier branch (`backend-branch.ts`) tracks presentation through four states:
 
-### 1. High-Detail Embodiment on a Constrained Carrier
+- `loading`: Validating and loading the backend and model resources.
+- `ready`: Backend presentation is ready. Product interaction also requires a valid App session, Runtime binding, driver, and model conditions.
+- `recovering`: The backend is internally recovering from a transient rendering fault.
+- `unavailable`: Validation failed, required assets are missing, or the backend cannot render.
 
-A user installs an embodiment package with complex skeletal animations and high-resolution textures on a low-power device:
+**What fallback means in practice:**
+- **Geometry bounds (`surfaceBounds`)**: When viewport or window geometry needs adjustment, the carrier can fall back to configured, bounded `surfaceBounds`. It does **not** automatically convert a high-complexity 3D VRM model into a low-poly mesh or a 2D snapshot.
+- **Transient fault recovery**: Temporary rendering glitches are handled internally by the active backend (`recovering`), rather than hot-swapping incompatible packages or mutating model definitions.
 
-1. **Carrier declares capabilities:** The carrier declares supported backends, motion complexity tiers, and memory/asset bounds.
-2. **Package inspection:** The carrier inspects the package manifest and resource descriptors.
-3. **Acceptance evaluation:** The acceptance contract evaluates whether the package fits within the host profile.
-4. **Fallback decision:** The full embodiment exceeds device limits; the contract transitions to an authorized degraded projection (such as a 2D snapshot or simplified animation tier).
-5. **Typed notification:** The host surfaces a clear, actionable reason (e.g., `"Device profile does not meet minimum requirements for full motion tier"`).
+## Responsibility Boundaries
 
-The fallback is explicit and predictable, preventing silent crashes or incomplete visual artifacts.
-
-### 2. Backend Mismatch Rejection
-
-An embodiment requires a Live2D Cubism runtime, but the current carrier only supports VRM 3D:
-
-1. **Acceptance check:** The carrier compares the package's backend kind against its supported engines.
-2. **Rejection:** Detects backend mismatch (`live2d` requested, `vrm` available).
-3. **Typed error:** Returns a structured error indicating unsupported backend.
-4. **Clean boundary:** The carrier aborts before initializing renderer state or allocating WebGL contexts.
-
-Discriminated unions ensure that backend mismatches are identified and handled prior to any render execution.
-
-### 3. Hot-Reloading Updates During an Active Session
-
-A creator publishes an updated embodiment package while an agent is currently active:
-
-1. **Update signal:** A new package descriptor is received via the update channel.
-2. **Re-evaluation:** The carrier evaluates the updated package against the active carrier contract.
-3. **Compatible update:** If accepted, the carrier performs a smooth asset transition within defined transition bounds.
-4. **Incompatible update:** If the new version exceeds capabilities, the carrier retains the existing working version or cleanly transitions to `degraded:embodiment-incompatible`.
-5. **Session stability:** Active conversations and agent state are preserved without abrupt failures.
-
-## Scope and Non-Goals
+Avatar is an ordinary governed application without special privileges. Semantic identity, dialogue, and presentation truths remain with their respective upstream owners:
 
 | Concern | Responsibility Boundary |
 | --- | --- |
-| Character identity | Managed by Realm; carrier only handles presentation |
-| Execution context | Managed by Runtime and LocalAgent; carrier handles viewport rendering |
-| Package authoring & mutation | Packages are read-only artifacts created by creators |
-| Unbounded rendering | Carriers strictly adhere to declared resource and complexity limits |
+| Character identity & relationships | Owned by Realm |
+| Agent execution & dialogue sessions | Owned by Runtime |
+| Long-term memory | Owned by Cognition |
+| Visual rendering & viewport bounds | Handled locally by the Avatar carrier |
+
+A carrier rendering failure only indicates that visual presentation is unavailable—it neither proves the underlying Agent is offline nor proves the Agent is online. Carrier unavailability never rewrites Agent identity, memory, or session state.
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`apps/avatar/src/shell/renderer/carrier/backend-branch.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/carrier/backend-branch.ts)

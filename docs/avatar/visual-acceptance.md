@@ -1,31 +1,31 @@
 # Avatar Visual Acceptance
 
-The acceptance target is the Desktop-supervised Avatar window, its current protected App session, and actual output from the selected model. Fixture parsing, type checks, and local diagnostics prove their own covered behavior; none alone establishes this product path.
+Visual acceptance targets the Desktop-supervised Avatar window, its active protected App session, and the actual rendering output from the selected model. Passing fixture parsing, type checks, or local diagnostics validates only those specific isolated layers; none of them alone confirms that the end-to-end product path is functional.
 
 ## Prepare the Real Path
 
-1. Prepare matching Runtime, SDK/Kit, and a validated model with its capability profile.
-2. Start Runtime and Home and complete Home sign-in.
-3. Select the current Agent through a formal caller entry. Desktop and Runtime revalidate the launch intent and Conversation anchor.
-4. Inspect the Desktop-supervised Avatar Electron window. The source development entry is `pnpm dev:avatar` at the repository root, but this command neither selects a default Agent nor proves session or presentation readiness.
+1. Prepare a matching Runtime, SDK/Kit, and a validated model along with its capability profile.
+2. Launch Runtime and Home, then complete sign-in within Home.
+3. Select the target Agent through a formal caller entry point. Desktop and Runtime will revalidate the launch intent and Conversation anchor.
+4. Inspect the resulting Desktop-supervised Avatar Electron window. While `pnpm dev:avatar` at the repository root serves as the source development entry, running this command neither selects a default Agent nor establishes session or presentation readiness.
 
-Direct Vite, another product's renderer, or a fixture_not_verified preview cannot substitute for this target.
+Direct Vite previews, renderer windows from other products, or unverified fixture previews (`fixture_not_verified`) cannot substitute for this acceptance target.
 
 ## Verify the Changed Behavior
 
-- **Model presentation**: The selected Live2D or VRM model is visible in the real Avatar window, not an empty canvas or diagnostic placeholder.
-- **Session and interaction**: The current Agent/Conversation binding is valid, and product interaction and backend presentation are ready.
-- **Activity and expression**: Trigger the supported input changed by this work and observe that model's output; idle or another model does not prove it.
-- **Window and hit regions**: When bounds, scale, or passthrough change, inspect the affected region and operation. Do not repeat unrelated checks for changes that do not affect them.
-- **Failure and recovery**: Missing or unsupported input shows the applicable reason; recovery still requires valid session and presentation prerequisites.
+- **Model presentation**: The selected Live2D or VRM model must render visibly in the real Avatar window, rather than showing an empty canvas or a diagnostic placeholder.
+- **Session and interaction**: The active Agent/Conversation binding must be valid, with interactive controls and backend presentation fully initialized.
+- **Activity and expression**: Trigger the supported inputs affected by the current change and inspect that specific model's output; verifying idle postures or switching to another model does not validate the change.
+- **Window and hit regions**: When adjusting bounds, scale, or click-through passthrough properties, verify the affected window regions and interactions directly. Do not repeat unrelated checks when changes do not touch them.
+- **Failure and recovery**: Missing or unsupported inputs should present clear, applicable error reasons. Subsequent recovery still requires meeting valid session and presentation prerequisites.
 
-A Live2D result covers the tested Live2D path, not VRM. Screenshots, logs, and automation explain what was actually observed. There is no current fixed pixel-grid/frame-count gate or recordCarrierVisualProof API.
+Live2D verification results only validate the tested Live2D pipeline, not VRM. Use screenshots, logs, and automated test output to record what was genuinely observed. The system currently does not enforce fixed pixel-grid/frame-count gates or provide a `recordCarrierVisualProof` API.
 
 ## Existing Engineering Checks
 
-Avatar typecheck and test cover types and the behavior actually exercised by their tests. The repository-root `pnpm smoke:avatar-live2d` checks the selected imported Live2D asset's structure, references, and file prerequisites. It does not launch an Avatar renderer or prove pixel output or voice interaction.
+Avatar's `typecheck` and `test` scripts verify static types and the specific execution paths exercised by those tests. Running `pnpm smoke:avatar-live2d` from the repository root checks the structure, asset references, and file prerequisites of the selected imported Live2D model; it does not launch an Avatar renderer, render actual pixels, or validate voice interaction.
 
-Record the session, model, backend, and actual result relevant to the check. Mark unrun cases as unverified instead of filling them with fixture success or another renderer's evidence.
+Document the specific session, model, backend, and observed result relevant to each acceptance check. Mark unrun test cases as unverified rather than claiming product readiness based on mock fixture passes or evidence from other renderers.
 
 ## Source Basis
 

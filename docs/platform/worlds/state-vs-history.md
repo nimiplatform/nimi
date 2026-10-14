@@ -1,37 +1,38 @@
 # State vs History
 
-> Status: Active specification. World State (`R-WSTATE-*`) and World History (`R-WHIST-*`) are live Realm surfaces with distinct, complementary roles.
+> Status: Planned contract (design reference). World State (`R-WSTATE-*`) and World History (`R-WHIST-*`) are planned independent Realm contracts, not live callable interfaces. Realm currently exposes no approved controllers or tracked OpenAPI read/write operations for these surfaces, and existing database models do not represent public endpoints. Today, apps interact with world data only through the fixed host-bound `WorldCore`, `WorldCharacter`, `WorldEntity`, and `WorldRelationship` operations.
 
-A world maintains two durable records in Realm: its **state** (what is true right now) and its **history** (the sequence of what happened). They are fundamentally distinct, neither replaces the other, and explicit platform contracts determine which surface an event mutates.
+In the planned world data model, Realm separates two durable records: **state** (what is true in the shared world right now) and **history** (the accepted sequence of what has happened). Neither surface replaces the other, and explicit protocol contracts govern which surface a commit may touch.
 
 ## What State Is
 
-| Property | Value |
+| Property | Planned Contract |
 | --- | --- |
 | Authority | Realm World State owner (`R-WSTATE-*`) |
-| Purpose | Shared present-state of the world |
-| Scope | Durable shared scopes only: `WORLD`, `ENTITY`, `RELATION` |
+| Purpose | Durable shared present-state of the world |
+| Scope | `WORLD`, `ENTITY`, `RELATION` (`ENTITY` and `RELATION` do not define a generic JSON structure) |
 | Mutation method | Explicit commit envelope |
-| Story-local control variables | Managed privately by the App; not stored in Realm |
+| Commit envelope fields | `worldId`, `appId`, `sessionId`, `effectClass`, `scope`, `schemaId`, `schemaVersion`, `actorRefs`, `reason`, `evidenceRefs` |
+| Excluded data | App story runtime variables, prompt context, render state, and cursor or ephemeral state |
 
-State expresses the current shared truth: a character is at a specific location, a relationship has reached a particular milestone, or an entity possesses certain attributes. State changes exclusively through explicit commit envelopes.
+World State is strictly for durable shared facts—for example, a character's current shared standing or a world-level condition. It never stores ephemeral UI state, cursor positions, render state, prompt context, or app-local story variables. All updates must arrive in an explicit commit envelope.
 
 ## What History Is
 
-| Property | Value |
+| Property | Planned Contract |
 | --- | --- |
 | Authority | Realm World History owner (`R-WHIST-*`) |
-| Purpose | Canonical record of verified facts and audit provenance |
+| Purpose | Canonical record of accepted facts and provenance |
 | Append posture | Explicit append-only |
-| Story trace / raw inference logs / app-private archives | Excluded from Realm history |
-| Provenance per event | `appId`, `sessionId`, `actorRefs`, `reason`, `evidenceRefs`, and related state anchors |
-| Mutation rule | Append-only; corrections model supersession or invalidation without silent hard deletion |
+| Excluded data | Story traces, raw inference logs, and app-private narrative archives |
+| Provenance per event | `worldId`, `appId`, `sessionId`, `actorRefs`, `reason`, `evidenceRefs`, and related state anchors |
+| Mutation rule | Append-only; corrections append superseding or invalidating records without silent hard deletion |
 
-History stores the verified sequence of what has occurred: which turn committed a change, authored by which app under what run mode. It is not an uncurated stream of model generation tokens, but rather the official chronicle of platform-verified events.
+World History records accepted facts of what happened: which commit occurred, submitted by which app, with what provenance and evidence references. It is not a raw stream of model tokens or private story transcripts; private story logs never automatically become world history.
 
-## The `effectClass` Determines Which Surface Updates
+## `effectClass` Determines Which Surface Updates
 
-Every commit envelope declares an explicit `effectClass`:
+Every commit envelope must explicitly declare an `effectClass`. There is no default `effectClass`:
 
 | `effectClass` | State write | History append |
 | --- | --- | --- |
@@ -39,97 +40,96 @@ Every commit envelope declares an explicit `effectClass`:
 | `STATE_ONLY` | Yes | No |
 | `STATE_AND_HISTORY` | Yes | Yes |
 
-Clients must not introduce custom mutation classes; this closed enumeration is strictly enforced by protocol contracts.
+`effectClass` is a closed enumeration enforced by protocol contract. Clients cannot omit the field or introduce custom mutation classes.
 
-## Run Mode Authorization
+## Run Mode and Matrix Authorization
 
-State writes require explicit app authorization, validated against an `(appId, schemaId, schemaVersion, effectClass) -> runMode` matrix alongside strict schema enforcement. Missing schema fields, unrecognized scopes, unverifiable provenance, or unauthorized run modes cause immediate rejection.
+Commits are gated by both the execution run mode and an explicit authorization matrix across `appId`, `schemaId`, `schemaVersion`, `effectClass`, and `scope`. Missing envelope fields, unrecognized scopes, unverifiable provenance, or unauthorized matrix combinations cause immediate rejection.
 
-History append constraints:
+Key authorization rules:
 
 | Rule | Constraint |
 | --- | --- |
-| `REPLAY` runs may NOT append to shared world history | `R-WHIST-004` |
-| Only `CANON_MUTATION` rows authorized by the matrix may append | `R-WHIST-004` |
-| App-private narrative archives | Owned privately by the App; excluded from Realm history (`R-WHIST-006`) |
+| `REPLAY` prohibits both State commits and History appends | `REPLAY` runs cannot commit to shared World State or append to World History (`R-WHIST-004`); there is no exception allowing replay runs to write shared state |
+| `CANON_MUTATION` requires exact matrix authorization | Even under `CANON_MUTATION`, commits succeed only when the exact `(appId, schemaId, schemaVersion, effectClass, scope)` combination is authorized |
+| App-private narrative archives remain App-owned | Owned privately by the App and excluded from Realm history (`R-WHIST-006`) |
 
 ## Why Two Separate Surfaces
 
 If state absorbed history:
-- "Has this entity ever been in another location?" becomes unanswerable.
-- Auditability, deterministic replay, and post-incident reconstruction are lost.
-- Relying on silent overwrites to patch data destroys audit trails.
+- Questions like "What was the prior accepted state before this change?" could not be answered from shared records.
+- Provenance chains and post-incident reconstruction would be lost.
+- Overwriting values in place would erase the sequence of accepted events.
 
 If history absorbed state:
-- Answering "Where is this entity right now?" requires replaying the entire history stream on every query.
-- App read operations incur unbounded latency and compute costs.
-- Under high concurrency, determining the "current" state becomes ambiguous.
+- Reading the current shared state would require replaying historical events on every query.
+- Read complexity would grow with the length of the world's chronicle rather than the size of its active state.
+- Resolving the current state across concurrent updates would become ambiguous.
 
-Two dedicated surfaces serve a unified data model. Every event explicitly declares which surface it touches via `effectClass`.
+Keeping the two surfaces separate allows each commit envelope to declare its exact footprint through `effectClass`.
 
-## Typical Scenario: A `STATE_ONLY` Mutation
+## Design Scenarios
 
-An app writes a transient world-state update without archival significance:
+### `STATE_ONLY`: Durable State Update Without History Append
 
-1. **Commit envelope**: The app submits with `effectClass: STATE_ONLY`.
-2. **Realm validation**: Schema structure, provenance credentials, and run-mode permissions pass.
-3. **State updated**: The world present-state reflects the change immediately.
-4. **History unchanged**: No history row is appended; the update is stateful but not historical.
+An authorized app updates a durable shared state value that does not constitute a historical milestone:
 
-## Typical Scenario: A `STATE_AND_HISTORY` Mutation
+1. **Commit envelope**: The app submits the full envelope with an explicit `effectClass: STATE_ONLY` and target `scope` (`WORLD`, `ENTITY`, or `RELATION`).
+2. **Contract validation**: Realm verifies the `CANON_MUTATION` run mode, checks the `(appId, schemaId, schemaVersion, effectClass, scope)` authorization matrix, and validates provenance fields.
+3. **State updated**: The durable shared state record updates.
+4. **History unchanged**: No history entry is appended.
 
-An app commits a canonical milestone mutation:
+### `STATE_AND_HISTORY`: Canonical Fact Commit
 
-1. **Commit envelope**: The app submits with `effectClass: STATE_AND_HISTORY`.
-2. **Realm validation**: Passes base checks and verifies that the current run mode authorizes history append (`CANON_MUTATION`).
-3. **State updated**: The world present-state updates accordingly.
-4. **History appended**: A new row with full provenance metadata lands in history.
-5. **Traceability**: Future replays or audits can reference this entry reliably.
+An authorized app commits a milestone change that must be recorded as an accepted historical fact:
 
-## Typical Scenario: A Correction
+1. **Commit envelope**: The app submits the envelope with `effectClass: STATE_AND_HISTORY`.
+2. **Contract validation**: Realm validates the schema, provenance (`actorRefs`, `reason`, `evidenceRefs`), `CANON_MUTATION` run mode, and exact matrix permission across app, schema, effect class, and scope.
+3. **State updated**: The shared present-state reflects the change.
+4. **History appended**: A new append-only record with provenance metadata is written to World History.
 
-An earlier history entry needs correction:
+### Correcting an Earlier History Record
 
-1. **No silent hard delete**: The original entry remains; corrections are modeled as superseding or invalidating events.
-2. **Append a correction event**: The new entry references the previous ID and documents the rationale for supersession.
-3. **Append-only integrity**: Auditors inspect both the original entry and the corrective action, preserving the provenance chain.
+An earlier accepted history entry requires correction:
 
-The append-only invariant ensures that Realm history serves as an immutable, long-term audit trail.
+1. **No silent hard delete**: The original entry remains intact.
+2. **Append a superseding or invalidating entry**: A new record references the prior entry and records the `reason` and `evidenceRefs` for supersession or invalidation.
+3. **Intact provenance chain**: Both the original record and the correction remain visible in the append-only log.
 
-## Typical Scenario: A Replay Consumer Attempts to Write History
+### `REPLAY` Run Attempts to Write State or History
 
-A replay consumer attempts to append history during execution:
+A replay consumer re-executes a session under `REPLAY` mode:
 
-1. **Replay executes**: Mutations are re-derived under `REPLAY` mode.
-2. **Append blocked**: Per `R-WHIST-004`, `REPLAY` runs cannot append to shared history.
-3. **Controlled state write**: If the authorization matrix permits state updates for this run mode, state changes apply while history remains unpolluted.
-4. **Audit integrity**: The replay path is clearly marked; shared Realm history is untouched.
+1. **Replay executes locally**: The consumer processes events under `REPLAY`.
+2. **Shared writes blocked**: If the replay attempts to submit a commit envelope, Realm rejects both shared World State writes and World History appends (`R-WHIST-004`).
+3. **No state-write exception**: Replay mode has no fallback path for mutating shared state or history.
 
-## Typical Scenario: An App Manages Private Narrative Logs
+### App-Private Narrative Logs
 
-An interactive story app needs per-session narrative logs:
+An interactive story app maintains session transcripts and local story variables:
 
-1. **Excluded from Realm history**: Realm history stores verified platform facts only.
-2. **App-owned storage**: The app persists its narrative transcripts in its private store (`R-WHIST-006`).
-3. **Clear boundary**: The app does not represent private narrative logs as Realm canonical history.
+1. **Excluded from Realm**: Story control variables, prompt context, render state, and narrative transcripts stay outside Realm World State and World History.
+2. **App-owned storage**: The app persists its private narrative archives in App-owned storage (`R-WHIST-006`).
+3. **Clear boundary**: Private story records are never automatically promoted to or represented as canonical world history.
 
 ## Architectural Boundaries
 
-- State and history remain distinct surfaces without implicit merging.
-- `effectClass` is a closed enumeration with no ad-hoc extensions.
-- Realm disallows covert writes outside the explicit commit envelope.
-- `REPLAY` runs cannot append to history silently.
-- App-private archives never become Realm canonical state.
-- History entries are never silently hard-deleted.
+- World State and World History are planned independent contracts without live controller or OpenAPI read/write endpoints today.
+- World State stores only durable shared state (`WORLD`, `ENTITY`, `RELATION`), never app runtime variables, prompt context, render state, or cursor/ephemeral data.
+- `ENTITY` and `RELATION` scopes do not provide a generic unstructured JSON payload.
+- `effectClass` (`NONE`, `STATE_ONLY`, `STATE_AND_HISTORY`) has no default value and admits no custom extensions.
+- `REPLAY` runs are strictly barred from both shared State commits and History appends.
+- `CANON_MUTATION` requires an exact authorization match across `appId`, `schemaId`, `schemaVersion`, `effectClass`, and `scope`.
+- History corrections append superseding or invalidating records rather than performing silent hard deletes.
 
 ## Boundary Summary
 
-| Concern | Owner |
+| Concern | Planned Owner |
 | --- | --- |
-| Shared present-state | Realm (`R-WSTATE-*`) |
-| Canonical facts and audit provenance | Realm (`R-WHIST-*`) |
+| Durable shared present-state | Realm (`R-WSTATE-*`) |
+| Accepted facts and provenance log | Realm (`R-WHIST-*`) |
 | Commit envelope validation | Realm (`R-WSTATE-002`) |
-| Run-mode authorization matrix | Realm (`R-WSTATE-005`) |
+| Run-mode and `(app, schema, effect, scope)` authorization matrix | Realm (`R-WSTATE-005`) |
 | `effectClass` closed enumeration | Realm (`R-WSTATE-004`) |
 
 ## Source Basis

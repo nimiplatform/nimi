@@ -34,7 +34,7 @@ export const overtoneMessagesEn = {
   'overtone.demoComposer.viewSampleDirections': 'View sample directions',
   'overtone.demoComposer.threeDirectionsDifferentPossibilities':
     'Three directions, different possibilities',
-  'overtone.demoComposer.savedExamples': 'Saved examples',
+  'overtone.demoComposer.savedExamples': "Preset examples",
   'overtone.demoComposer.currentDirection': 'Current direction',
   'overtone.demoComposer.exploreThisDirection': 'Explore this direction',
   'overtone.demoNotebook.creativeNotebook': 'Creative notebook',

@@ -1,12 +1,12 @@
 {
   "pageTitle": "开发者",
-  "pageDescription": "管理此设备的开发者模式与本地开发。",
+  "pageDescription": "管理此设备的开发者模式与本地开发项目。",
   "developerModeTitle": "开发者模式",
-  "developerModeDescription": "开发者模式允许 Desktop 注册并监管确切的本地开发项目。注册不会授予受保护的 App Access。",
+  "developerModeDescription": "开启开发者模式后，Desktop 可注册并管理指定的本地开发项目。注册项目不会自动授予受保护的 App Access。",
   "developerModeStatusOn": "开发者模式已开启",
   "developerModeStatusOff": "开发者模式已关闭",
   "developerModeStatusLoading": "正在检查 Nimi Runtime…",
-  "developerModeStatusUnavailable": "固定 Nimi Runtime 服务连接前，开发者模式不可用",
+  "developerModeStatusUnavailable": "Nimi Runtime 服务连接就绪前，开发者模式不可用",
   "developerModeRetry": "重试 Runtime 连接",
   "developerModeEnable": "开启开发者模式",
   "developerModeDisable": "关闭开发者模式"

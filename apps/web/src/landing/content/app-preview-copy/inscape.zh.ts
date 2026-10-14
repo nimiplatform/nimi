@@ -27,7 +27,7 @@ export const inscapeMessagesZh = {
   'inscape.main.innerRoundtable': '内心圆桌',
   'inscape.main.whenYouReTornLetDifferentPerspectivesSit': '当你左右为难，让不同视角坐下来聊一聊。',
   'inscape.main.behindTheFeeling': '感受的背面',
-  'inscape.main.startWithASmallMomentAndNotice': '从一件小事出发，看看重要的需要。',
+  'inscape.main.startWithASmallMomentAndNotice': "从一件小事出发，看看背后那些重要的需要。",
   'inscape.main.whyCanTheSameWordsSoundSo': '同一句话，为什么听起来不一样？',
   'inscape.reflectionCard.whichRecentSmallDecisionFeltMostLike': '最近哪一个小决定，最像真实的你？',
   'inscape.reflectionCard.withoutAnyShouldsHowWouldYouSpend':
@@ -39,7 +39,7 @@ export const inscapeMessagesZh = {
   'inscape.main.whatHappened': '发生了什么？',
   'inscape.reading.lookFromAnotherAngle': '换个角度看看',
   'inscape.reading.thisSavedExampleInvitesYouToNotice':
-    '这段预设示例邀请你同时看见对新鲜感的好奇与对熟悉节奏的珍惜。它不分析你刚输入的内容。',
+    "这段预设示例陪你同时看见两件事：对新鲜感的好奇，以及对熟悉节奏的珍惜。它不会分析你刚输入的内容。",
   'inscape.reading.askYourselfIsThereAVerySmall':
     '可以问问自己：有没有一个很小、很容易开始的尝试？',
   'inscape.main.addToSampleJournal': '加入示例手记',
@@ -52,12 +52,12 @@ export const inscapeMessagesZh = {
   'inscape.main.takeYourTimeGettingToKnowDifferent': '不急着定义，慢慢认识自己的不同侧面。',
   'inscape.reading.aSelfPortraitStillGrowing': '一份正在生长的自我画像',
   'inscape.reading.cognitiveFunctionsOfferOnePerspectiveOnUnderstanding':
-    '认知功能是一种理解视角。下方为虚构档案示意，不是对访问者的测评结果。',
+    "认知功能只是理解自己的一种视角。下方为虚构档案示例，并非对你的测评结果。",
   'inscape.main.introvertedIntuitionNi': '内倾直觉 · Ni',
   'inscape.main.extravertedFeelingFe': '外倾情感 · Fe',
   'inscape.main.introvertedThinkingTi': '内倾思考 · Ti',
   'inscape.main.extravertedSensingSe': '外倾感觉 · Se',
-  'inscape.main.sampleTendency': '{label}示例倾向',
+  'inscape.main.sampleTendency': "{label} 示例倾向",
   'inscape.main.sample2': '示例',
   'inscape.main.viewReflectionJournal': '查看探索手记',
   'inscape.main.betweenUs': '关系之间',

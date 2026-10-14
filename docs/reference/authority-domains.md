@@ -1,31 +1,31 @@
 # Authority Domains and Architectural Boundaries
 
-Nimi establishes explicit Authority Domains across its distributed architecture, designating a definitive owner for every category of data, state, and compute resource. Clean boundaries prevent ownership ambiguities and cross-subsystem race conditions.
+Nimi divides its architecture into explicit Authority Domains. Every category of data, state, and compute has a single owning subsystem, preventing ambiguous ownership and cross-layer race conditions.
 
 ## Authority Domains Matrix
 
 | Domain | Authoritative Scope | Explicit Non-Scope |
 | --- | --- | --- |
-| **Platform Protocol** | Core cross-world primitives, system safety invariants, wire contracts | Cloud database details, local inference mechanics, app logic |
-| **Realm Server** | Global identities, Character lore templates, World state and history, Social graph, Creator economics | Local hardware compute scheduling, local weights, desktop UI states |
-| **Local Runtime** | Local model inference, cloud connector custody, LocalAgent instantiation, turn continuity, memory mediation, channel access controls | Server-side world lore arbitration, product UI presentation |
-| **Cognition** | Agent-private long-term memory, semantic embeddings, cognitive consolidation | Network transport framing, frontend rendering, driver execution |
-| **SDK** | Public type-safe interfaces, argument validation, structured error mapping | Backend storage implementations, local engine internals, raw transports |
-| **Kit** | Shared cross-platform UI widgets, interactive patterns, and layout components | Underlying state arbitration, proprietary app business data |
-| **Nimi Home / Desktop** | User command center, window management, local hardware and model configuration | Arbitrating Realm server truth or overriding local Runtime security |
-| **Avatar Application** | Live2D and 3D VRM graphics pipelines, skeletal motion, real-time lip synchronization | Agent long-term memory banks, model routing, conversation continuity |
-| **Applications (App)** | Unique application features, workflow logic, private application data | Universal platform credentials, direct provider API secrets |
+| **Platform Protocol** | Cross-world protocol primitives, system safety invariants, wire contracts | Cloud database internals, local inference execution, app business logic |
+| **Realm Server** | Global identities, Character templates, World definitions and planned state/history contracts, social graph, creator economy contracts | Local compute scheduling, local model weights, desktop UI state |
+| **Local Runtime** | Local model inference, cloud connector custody, LocalAgent instantiation, turn continuity, memory mediation, protected session and channel access | Server-side world lore arbitration, product UI rendering |
+| **Cognition** | Per-agent long-term memory, semantic embeddings, memory consolidation | Network transport framing, frontend rendering, hardware driver execution |
+| **SDK** | Public type-safe client interfaces, argument validation, structured error mapping | Backend storage engines, local inference internals, private transports |
+| **Kit** | Shared cross-platform UI components, interaction patterns, layout presets | Underlying state arbitration, app-private business data |
+| **Nimi Home / Desktop** | User entry portal hosted by Desktop, window management, local hardware and model setup | Arbitrating Realm truth or bypassing Runtime access controls |
+| **Avatar Application** | Live2D and 3D VRM graphics pipelines, skeletal animation, real-time lip sync | Agent long-term memory, model routing, conversation continuity |
+| **Applications (App)** | App-specific features, workflows, and private app data | Platform-wide credentials, raw provider API secrets |
 
 ## Cross-Domain Data Flows
 
 | Direction | Coordination Mechanism |
 | --- | --- |
-| **Realm → Runtime** | Realm issues certified Character Sources; Runtime materializes and executes LocalAgents |
-| **Realm → Runtime** | Realm provides verified World context to enrich local agent contextual dialogue |
-| **Runtime → SDK** | Runtime delivers normalized generation streams and structured events to the SDK |
-| **SDK → App** | Applications consume public capabilities, leveraging protected channel access and hardware acceleration |
-| **Runtime → Avatar** | Runtime streams standardized presentation events; Avatar animates character visuals via local GPU |
-| **Nimi Home → App** | Home launches applications within supervised Electron development hosts, verified by Runtime |
+| **Realm → Runtime** | Realm issues certified Character Sources; Runtime instantiates and runs LocalAgents |
+| **Realm → Runtime** | Realm supplies World context to ground LocalAgent dialogue |
+| **Runtime → SDK** | Runtime streams normalized generation output and structured events to the SDK |
+| **SDK → App** | Apps invoke explicitly admitted SDK operations over protected host sessions |
+| **Runtime → Avatar** | Runtime streams presentation events; Avatar drives character visuals on the local GPU |
+| **Nimi Home → App** | Home (hosted in Desktop) launches apps within protected host sessions verified by Runtime |
 
 ## Related Documentation
 

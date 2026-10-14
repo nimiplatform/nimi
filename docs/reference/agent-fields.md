@@ -21,7 +21,7 @@ In Nimi's architecture, persistent character templates (Character) and active lo
 ## Access Conventions and Scopes
 
 Applications interact with agents using secure session scopes:
-- **Session-Scoped Handles (`agentHandle`)**: Applications interact with companions via temporary handles issued by the supervised host, rather than hardcoding static internal IDs.
+- **Session-Scoped Handles (`agentHandle`)**: Applications interact with agents via temporary handles issued by the supervised host, rather than hardcoding static internal IDs.
 - **Least-Privilege Exposure**: Provider API keys, user private keys, and low-level sandbox transports remain shielded inside Runtime and are never exposed to frontend renderers.
 
 ## Dialogue Continuity

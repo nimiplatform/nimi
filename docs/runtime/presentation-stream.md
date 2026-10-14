@@ -1,24 +1,24 @@
 # Agent Presentation Inputs and Voice Correlation
 
-A formal App reads and subscribes to bounded Agent presentation data through the SDK embodiment client. Runtime supplies semantics and timing; Avatar maps those inputs to model activity, expression, and local playback.
+Formal Apps read and subscribe to bounded Agent presentation data through the SDK embodiment client. Runtime supplies semantic events and timing metadata, while Avatar maps those inputs to model activity, expressions, and local audio playback.
 
 ## Common Presentation Events
 
-The current event types are activity, emotion, posture, and voice-timing. Voice timing contains duration, deadline, and turn correlation information. It does not contain renderer mouth weights, viseme or phoneme frames, bone curves, or playback instructions.
+Current presentation event types include `activity`, `emotion`, `posture`, and `voice-timing`. A `voice-timing` event carries duration, deadline, and turn-correlation metadata; it never includes renderer mouth weights, viseme or phoneme frames, bone curves, or playback instructions.
 
-Calls use the current App session's `agentHandle` and exact `conversationAnchorId`. Runtime validates the session, declared access, and operation before returning admitted snapshots or updates.
+Requests must provide the active App session's `agentHandle` and exact `conversationAnchorId`. Runtime validates the session state, declared access, and operation type before returning admitted snapshots or stream updates.
 
 ## Avatar Final-Voice Playback
 
 1. Conversation commits a final voice sidecar containing an artifact reference.
-2. Avatar uses its own session handle and Conversation anchor to read that artifact through `conversation.readArtifact`.
-3. Avatar plays and analyzes the audio locally, then presents it through the selected Live2D or VRM backend.
+2. Avatar uses its own session `agentHandle` and Conversation anchor to read that artifact via `conversation.readArtifact`.
+3. Avatar plays and analyzes the audio locally, then drives presentation through the selected Live2D or VRM backend.
 
-An Avatar-local audio_chunk event may carry the entire artifact already read. Its name does not establish a Runtime-native audio stream. Independently admitted Realtime media and general speech generation have their own APIs and prerequisites.
+An Avatar-local `audio_chunk` event may carry the full artifact payload already read; the event name does not imply a Runtime-native audio stream. Independently admitted Realtime media and general speech generation use their own APIs and admission prerequisites.
 
 ## Consumer Responsibilities
 
-Desktop uses Conversation results and local input or playback state for lightweight feedback. Avatar independently consumes data admitted to its own session; Desktop does not forward cached Conversation state or mouth frames to it. Renderer state and playback progress do not rewrite Runtime Conversation or Agent semantics.
+Desktop uses Conversation results and local input or playback state for lightweight UI feedback. Avatar independently consumes data admitted to its own session—Desktop never forwards cached Conversation state or mouth frames to Avatar. Renderer state and playback progress never write back to or alter Runtime Conversation or Agent semantics.
 
 ## Source Basis
 

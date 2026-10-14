@@ -1,57 +1,35 @@
-# SDKS Core Family
+# Nimi SDK Family
 
-`sdks/` is the active SDK family source. `sdks/typescript` is the active
-TypeScript implementation of the public `@nimiplatform/sdk` package.
+The `sdks/` directory contains the official SDK implementations for the Nimi platform. The primary, full-featured implementation is the TypeScript SDK in `sdks/typescript`, distributed as `@nimiplatform/sdk`.
 
-Retired pre-vNext TypeScript SDK source remains available only through Git
-history. It is not an active package root and must not regain implementation or
-authority ownership.
+## Language Ecosystem
 
-Current scope:
+- **TypeScript (`sdks/typescript`)**: The primary full implementation covering Runtime, Realm, local apps, AI models, Agent participation, feature modules, adapters (e.g. Vercel AI SDK), and testing suites.
+- **Python, Go, Rust (`sdks/{python,go,rust}`)**: Generated typed Runtime and Realm core clients that maintain wire-protocol compatibility.
+- **Code Generation (`sdks/generators`)**: Automated generator tools that produce typed definitions from gRPC protobuf and OpenAPI schemas. Do not edit generated files manually.
+- **Adapters**: Framework adapters distributed as dedicated packages with independent release lifecycles (see the [Vercel AI SDK adapter](typescript/adapters/vercel-ai/README.md)).
 
-- TypeScript is the only full implementation target: Runtime, Realm, app, AI,
-  agent, features, adapters, testing, and migration proofs.
-- Python, Go, and Rust remain generated Runtime/Realm core only until the
-  TypeScript implementation is stable.
-- Generated files are produced through `sdks/generators`; do not hand-edit
-  generated outputs.
-- Framework adapters are independent packages with their own public entry points
-  and compatibility notes, including the [Vercel AI adapter](typescript/adapters/vercel-ai/README.md).
-  Source presence or a package manifest alone does not establish published availability.
-
-Generation:
+### Code Generation & Conformance
 
 ```bash
+# Run code generation
 node sdks/generators/generate.mjs
+
+# Verify generated code parity
 node sdks/generators/generate.mjs --check
-```
 
-Realm OpenAPI resolution uses `config/realm-openapi-source.json`, with relative
-paths resolved from the repo root. If that source is not present in a worktree,
-set `NIMI_REALM_OPENAPI_PATH` to the canonical OpenAPI file before running the
-generator. Realm typed-client generation fails closed when OpenAPI is
-unavailable; spec tables are not REST schema fallback authority.
-
-Conformance:
-
-```bash
+# Run multi-language conformance suite
 node sdks/conformance/run.mjs --language all --profile typed-core
 ```
 
-The conformance runner validates generated manifest parity and generated
-Runtime/Realm core behavior. TypeScript handwritten surfaces have their own
-package tests and SDK matrix gates.
+> [!NOTE]
+> Realm OpenAPI generation reads `config/realm-openapi-source.json` from the repository root, or respects the `NIMI_REALM_OPENAPI_PATH` environment variable. Generation fails closed if the canonical OpenAPI schema is missing.
 
-## Local App text tools
+---
 
-`createNimiLocalAppTextModel` is exposed from `@nimiplatform/sdk/ai`.
-It binds the common `NimiAiModel` interface to a protected App client's `ai`
-surface. It supports function tools, ordered assistant output and tool results,
-tool choice, and a structured `responseFormat`. The App's AIConfig selects a
-compatible execution configuration; requests contain no provider or model
-identity. Select the SDK/Kit/native and Runtime combination from the
-[TypeScript integration guide](typescript/README.md#developing-a-nimi-app);
-this example is not a separate version matrix or a broader support promise.
+## Local App Text Tools & Structured Outputs
+
+The `createNimiLocalAppTextModel` utility (from `@nimiplatform/sdk/ai`) connects the standard `NimiAiModel` interface to an app's protected AI client. It supports model tool calls, ordered assistant and tool outputs, tool selection, and schema-constrained responses. The app's committed AIConfig selects the execution backend, keeping provider and model specifics out of app requests.
 
 ```ts
 import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
@@ -64,8 +42,10 @@ export function requestSearch(client: NimiLocalAppClient, signal: AbortSignal) {
       name: 'search',
       description: 'Search for sources.',
       inputSchema: {
-        type: 'object', properties: { query: { type: 'string' } },
-        required: ['query'], additionalProperties: false,
+        type: 'object',
+        properties: { query: { type: 'string' } },
+        required: ['query'],
+        additionalProperties: false,
       },
     }],
     toolChoice: 'required',
@@ -74,77 +54,18 @@ export function requestSearch(client: NimiLocalAppClient, signal: AbortSignal) {
 }
 ```
 
-The result contains complete tool calls. The caller executes its fixed handlers
-after a successful step, preserves `outputItems` in ordered `turnItems`, appends
-the corresponding `tool-result` entries, and explicitly requests the next step.
-This includes opaque `reasoning-continuity` items required by exact adapters:
-retain their order and bytes without decoding or displaying them. Update custom
-stream collectors to handle that event as well as `tool-call`; the standard
-model collector already preserves it. Carriers use `Uint8Array` in the common
-model and byte arrays at the JSON shell boundary, with a 64 KiB payload limit.
-`generateText` collects the same cancellable stream as `streamText`; neither
-method owns a multi-step workflow. Missing terminal events, invalid tool calls
-and interrupted streams fail without manufacturing a result.
+### Stream & Tool Execution Rules
 
-Direct App callers can use `ai.scenario.execute({ type: 'text-generate', ... })`
-or `ai.text.streamTurn(...)`. Custom Host carriers can reuse the public text
-input/output validators and feature-client constructors from
-`@nimiplatform/sdk/app`. Migrate exhaustive stream matches for `tool-call`,
-`tool-calls` and the required delta `itemIndex`; the text-candidate input stays
-narrow. Input is limited to 128 messages, 64 function tools and 1 MiB, with a
-256 KiB output bound. Partial structured text is display-only until a successful
-terminal result passes the caller's declared response schema.
+- **Execution Flow**: After each step, callers execute tool handlers, append matching `tool-result` items, preserve `outputItems` within `turnItems`, and request the next turn.
+- **Reasoning Continuity**: Opaque `reasoning-continuity` items required by specific adapters must retain their exact order and byte payloads without client decoding.
+- **Payload Limits**: Requests are bounded by 128 messages, 64 function tools, and a 1 MiB total payload size. Stream payloads use 64 KiB chunk bounds, and outputs are limited to 256 KiB.
+- **Cancellation & Failure**: Streams can be aborted via `AbortSignal`. Missing terminal events, schema violations, or interrupted streams fail closed rather than synthesizing fallback responses.
 
-## World creator operations (unreleased)
+---
 
-The host-bound `NimiLocalAppClient.realm.worldCore` source surface adds
-`getCreationEligibility`, `get`, `replace`, `listCharacters`, `getCharacter`,
-`createCharacter`, `replaceCharacter`, `listEntities`, `getEntity`, `createEntity`,
-`listRelationships`, and `getRelationship` alongside `list` and `create`.
-Every call requires `realm.data`; Realm separately enforces explicit per-account
-administrator authorization for new worlds. Subscription, role and existing
-ownership do not grant creation. Existing-world maintenance retains ownership
-checks independently. Use eligibility to present the creation action and still
-handle create-time denial. Replacements require the previously read
-`baseContentHash`; world characters require an existing same-world entity.
+## Locate Objects in an Image (`vision.locate`)
 
-This is part of the current Local App shell contract. Use SDK 0.21.0, Kit/native
-0.18.0, and the matching Runtime together; custom shell
-implementations must provide the complete typed method set. The ordinary Realm
-SDK removes administrator-only OASIS bootstrap and adds the current-account
-creation eligibility read. No administrator authorization methods are exposed
-through Local App. Source support does not by itself establish public package availability.
-
-## Video reference audio (unreleased)
-
-T2V accepts optional reference audio when the selected implementation and model
-declare `reference_audio` for that mode. A visual reference is not required;
-the mode's other required inputs and model limits still apply. The Local App
-video content uses the existing `audio-url` type, `reference-audio` role and
-HTTPS `url`, through the App's committed AIConfig and protected Scenario Job.
-
-Wan 2.7 T2V accepts one reference audio URL. Runtime enforces that count and the
-Driver maps it to `input.audio_url`. Wan validates the remote file: WAV or MP3,
-2–30 seconds, at most 15 MB. Its media rejection remains a failed Job. A model
-without declared audio support rejects the input before provider dispatch.
-Explicit video controls are validated even when their value is zero or false.
-Wan accepts `durationSec` from 2 through 15 and `seed` from 0 through 2147483647;
-omit an option to use the provider default. Wan does not support the
-`generateAudio` control, including an explicit `false`. Runtime includes a
-non-empty top-level `prompt` as the first text prompt before validating the
-mode, including when `content` only contains reference audio. If the first text
-item already mirrors that prompt, it is used once. Remaining content retains
-its order, including later repeated text; text prompt parts are joined with
-newlines.
-These source changes do not establish published-package or live-provider readiness.
-
-## Locate objects in a local image
-
-An App with `runtime.consume` can upload an image and run `vision.locate`
-through its host-bound `NimiLocalAppClient`. The machine owner first installs
-the model and dependencies, selects a compatible Locate Loadout in Desktop,
-and configures the App's `vision.locate` intent as Local. The App does not
-select a provider, model, implementation, or Worker endpoint in its request.
+Apps with `runtime.consume` permission can locate objects in images using `vision.locate` via the host-bound `NimiLocalAppClient`. On the local machine, the owner installs the model, selects a Locate Loadout in Desktop, and configures the app's `vision.locate` intent as Local:
 
 ```ts
 import {
@@ -171,7 +92,8 @@ export async function locateImage(
     throw new Error('Choose a static PNG, JPEG, WebP, or GIF image.');
   }
   const uploaded = await client.ai.artifacts.upload({
-    bytes: new Uint8Array(await image.arrayBuffer()), mimeType,
+    bytes: new Uint8Array(await image.arrayBuffer()),
+    mimeType,
   });
   signal?.throwIfAborted();
   const result = await runNimiRuntimeScenarioJob({
@@ -180,11 +102,20 @@ export async function locateImage(
       head: { appId, subjectUserId: '', timeoutMs: 0 },
       scenarioType: ScenarioType.VISION_LOCATE,
       executionMode: ExecutionMode.ASYNC_JOB,
-      spec: { spec: { oneofKind: 'visionLocate', visionLocate: {
-        imageArtifactId: uploaded.artifactId, query,
-        geometry: geometry === 'box' ? VisionLocateGeometry.BOX : VisionLocateGeometry.POINT,
-      } } },
-      requestId: '', idempotencyKey: '', labels: {}, extensions: [],
+      spec: {
+        spec: {
+          oneofKind: 'visionLocate',
+          visionLocate: {
+            imageArtifactId: uploaded.artifactId,
+            query,
+            geometry: geometry === 'box' ? VisionLocateGeometry.BOX : VisionLocateGeometry.POINT,
+          },
+        },
+      },
+      requestId: '',
+      idempotencyKey: '',
+      labels: {},
+      extensions: [],
     },
     signal,
   });
@@ -193,39 +124,26 @@ export async function locateImage(
 }
 ```
 
-The runner submits, observes Job events, and reads the typed terminal Get;
-it does not query artifacts for Locate output. Aborting the supplied signal
-requests Runtime cancellation. A failed Job remains an error, including its
-typed Runtime restart information when present; the runner never resubmits it.
+### Operational Constraints
 
-The result identifies the input artifact and its width and height after EXIF
-orientation. Coordinates are normalized to that complete image, with origin
-at the top left. Multiply x by width and y by height, then apply the same
-display transform as the image. An empty `locations` array is a successful
-explicit no-match result. Labels are optional; no confidence is synthesized.
+- **Input Constraints**: Accepts one static image (PNG, JPEG, WebP, GIF) up to 32 MiB and 64 million decoded pixels, paired with a UTF-8 query up to 8 KiB.
+- **Normalized Coordinates**: Returned bounding boxes or point coordinates are normalized (0.0 to 1.0) relative to the full image dimensions (accounting for EXIF orientation).
+- **Timeouts**: The protected App Job bridge requires `head.timeoutMs: 0` and rejects caller-selected business deadlines. To stop a job early, trigger cancellation and observe the Job's actual terminal state.
 
-Inputs are limited to one static PNG, JPEG, WebP, or GIF image (32 MiB,
-64 * 1024 * 1024 decoded pixels) and an 8 KiB UTF-8 query. The Job deadline
-defaults to 120 seconds, including queue wait and model loading. Set
-`head.timeoutMs` from 1000 to 600000 to choose a different bounded wait.
+---
 
-## Runtime LocalAgent boundary
+## Runtime LocalAgent Boundaries
 
-Realm-backed LocalAgents use one typed workflow: a consumer supplies only a
-`CharacterSourceRefV3` and request id to Runtime `MaterializeRealmSource`.
-Runtime privately owns the Realm grant lifecycle, Packet v3 acquisition,
-current-key verification, and atomic immutable SnapshotV2 plus LocalAgent
-commit. Public consumers cannot create a LocalAgent outside that materialization.
+LocalAgents instantiated from Realm character sources follow a strictly verified workflow:
+1. **Materialization**: Callers pass a `CharacterSourceRefV3` and request ID to Runtime's `MaterializeRealmSource`. Runtime handles Realm grants, Packet v3 validation, key checks, and atomic snapshot commits.
+2. **Strict Projections**: Source and turn-context inspection returns typed `NimiRuntimeAgentSourceContextStatus` and `NimiRuntimeAgentTurnContextSummary` projections, while other authorized Agent operations return their own bounded results. Sensitive internal states—such as raw prompts, private memory internals, and provider payloads—remain strictly hidden.
+3. **Turn Invariants**: A managed Conversation turn accepts only admitted user input (including images when supported by the selected capability). Callers cannot inject system prompts, context overrides, or arbitrary tool attachments into managed LocalAgent turns.
 
-Public consumers receive only the strict SDK projections
-`NimiRuntimeAgentSourceContextStatus` and
-`NimiRuntimeAgentTurnContextSummary`. Unknown or partial schemas, enums,
-coverage, lanes, budgets, truncation, hashes, or identity correlations fail
-closed. These projections never carry raw source/world text, prompts, lane
-content, transcript text, private memory, packet proof, provider payloads, or
-tool arguments/results.
+---
 
-LocalAgent turns accept exactly one current-user text message. Callers cannot
-submit a system prompt, world/context attachment, execution binding, media
-payload, assistant/tool history, or additional message. Generic app AI prompt
-support is a separate SDK surface and is unchanged.
+## Work in Progress & Source-Only Capabilities
+
+The following capabilities exist in source contracts but are not yet part of public stable releases:
+
+- **World Creator Operations (`NimiLocalAppClient.realm.worldCore`)**: Covers world and character management (`create`, `replace`, `listEntities`, `createEntity`, `listRelationships`, `getRelationship`). Requires `realm.data` permission and the account's applicable creator or maintenance eligibility; call `getCreationEligibility()` before offering world creation in your UI.
+- **Video Reference Audio**: Text-to-Video models (e.g. Wan 2.7) accepting optional reference audio URLs (WAV/MP3, 2–30s, up to 15 MB). Source-level contract support does not imply published package or live provider availability.

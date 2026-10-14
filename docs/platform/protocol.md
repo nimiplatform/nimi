@@ -1,61 +1,59 @@
 # Platform Protocol
 
-The platform protocol provides Nimi digital worlds with a shared interaction language. It does not constrain the creative narrative freedom of world creators; instead, it establishes standardized contract structures so that character identity, agent execution, social relationships, and spatial transit remain meaningful across surfaces.
+The platform protocol gives Nimi digital worlds and client surfaces a shared interaction grammar. It does not restrict how creators design internal narratives or gameplay; instead, it defines standardized contract structures so that identities, social ties, context, and cross-world movement carry consistent meaning across the platform.
 
-This document serves as an architectural overview. Authoritative protocol rules live in the platform kernel under the `P-PROTO-*` specification family.
+This document provides an architectural overview. Authoritative protocol specifications live in the platform kernel under the `P-PROTO-*` rule family.
 
 ## The Six Primitives
 
-Each primitive represents a bounded contract surface. A world is free to define its own internal gameplay and narrative rules, but any state or event that crosses world boundaries conforms to one of these six primitives:
+Each primitive defines a bounded contract surface. A world can implement its own internal rules, while cross-world state or events are expressed through six core primitives:
 
 | Primitive | Architectural Coverage |
 | --- | --- |
-| **Timeflow** | Temporal progression, event timing, and time-scale coordination across worlds |
-| **Social** | Relationship graphs, social ties, and interpersonal interaction semantics |
-| **Economy** | Virtual asset values, credential transfers, and economic state |
-| **Transit** | Traversal and travel between worlds or distinct spatial contexts |
-| **Context** | Shared environmental framing, local rules, and situational context |
+| **Timeflow** | Temporal progression, event lifecycle timing, and time-scale coordination across worlds |
+| **Social** | Shared relationship graphs, friendship recognition, and interpersonal interaction contracts |
+| **Economy** | Economic rules, revenue split previews, and value-exchange contracts |
+| **Transit** | Contract semantics for routing and travel between worlds or spatial contexts |
+| **Context** | Shared environmental framing, local scene rules, and situational context |
 | **Presence** | Entity presence, spatial admission, and visibility conditions |
 
-These primitives are deliberately abstract. Timeflow does not mandate "an hour is sixty minutes." Rather, it establishes how temporal progression is formally expressed when one world's timeline must be interpreted by another world or client surface.
+These primitives are intentionally abstract. `Timeflow`, for example, does not force every world to run at real-time speed; it specifies how a world's temporal progression is represented when interpreted by another surface.
 
 ## Why Protocol Precedes Features
 
-Without a shared protocol, features become fragmented and local: a world defines state one way, a desktop shell interprets it differently, and an autonomous agent acts on a third assumption. The platform protocol anchors shared semantics within an authoritative contract that no single product surface can quietly redefine, eliminating state drift.
+Without a shared protocol, product surfaces drift apart: a world defines state one way, a desktop client interprets it another way, and an agent acts on a third assumption. Anchoring shared semantics in protocol contracts prevents isolated features from inventing incompatible local truths.
 
-This principle enforces a practical design invariant: any new capability affecting cross-world semantics must align with the platform protocol. A feature that invents an ad-hoc private social graph does not extend the system—it introduces unmanaged parallel truth.
+In practice, any capability that crosses world boundaries must align with the platform protocol rather than maintaining an unmanaged private graph. At the same time, shared protocol interfaces only standardize representation and access—they never authorize an application or world to bypass the entity owner.
 
 ## Scenario: Cross-World Recognition of Friendship
 
-Suppose Alice and Bob become friends in World A. When Bob visits World B, the Social primitive governs how that relationship is represented:
+Suppose Alice and Bob become friends while in World A, and Bob later visits World B. Under the `Social` primitive and Realm authority:
 
-1. The friendship adheres to a standardized structure readable by both worlds.
-2. World B applies its own local policies. In World B, "friendship" may grant direct messaging permissions; in World A, it might also convey shared economic privileges.
-3. Bob's visit to World B never retroactively modifies World A's authoritative friendship record; any updates must be recorded through each world's respective authority.
+1. **Single shared truth in Realm**: The friendship is recorded in Realm as the shared authoritative social graph—not stored as separate, unrelated friendship ledgers inside World A and World B.
+2. **Local world policies**: Each world can apply its own scene admission and gameplay rules to that friendship. World B might allow friends to open direct chat, while World A might let friends enter a cooperative instance.
+3. **Strict mutation boundaries**: Visiting World B or running local world logic cannot privately alter the global friendship status in Realm. Any change to the friendship itself must go through Realm's authoritative flow with proper owner authorization.
 
-The Social primitive does not force worlds into identical relationship models; it guarantees that relationships are expressed in an unambiguous contract that other surfaces can reliably interpret.
+The `Social` primitive lets worlds build distinct local experiences on top of a single, verifiable relationship fact.
 
 ## Protocol and Realm Boundary
 
-The platform protocol defines the contract grammar for cross-world meaning; Realm is where authoritative world state and history are persistently stored:
+The platform protocol and Realm serve distinct roles:
 
-- **Protocol**: The interaction grammar and message schemas.
-- **Realm**: The persistent state and narrative facts expressed in that grammar.
+- **Protocol**: Defines the contract grammar and schemas (`Timeflow`, `Social`, `Economy`, `Transit`, `Context`, `Presence`, along with `WorldState` and `WorldHistory` specifications).
+- **Realm**: Persists authoritative global entities and state—such as account identities, the social graph, `WorldCore`, and character settings.
 
-When a world advances its internal state, the change is anchored in Realm. When that update needs to be projected onto another client or world, it is serialized through the protocol primitives.
+Note on current implementation boundaries: while Realm actively governs global identity, social relationships, `WorldCore`, and character settings today, `WorldState` and `WorldHistory` remain planned contracts rather than an executable full world-state ledger in current Home. Likewise, `Economy` revenue split previews do not equal live settlement, and creator payouts are not yet connected.
 
-## Scenario: A Workflow Spanning Multiple Primitives
+## Contract Scenario: A Workflow Spanning Multiple Primitives
 
-Consider a weekend festival hosted within a digital world:
+To see how the six primitives fit together as protocol contracts, consider a design scenario for a weekend festival hosted in a digital world:
 
-- **Timeflow** advances the event lifecycle from "scheduled" to "active" to "concluded."
-- **Presence** identifies all agents and human participants present in the festival grounds.
-- **Social** logs new mutual acquaintances formed during the gathering.
-- **Economy** validates item purchases and token exchanges.
-- **Transit** coordinates participant travel back to their home worlds upon conclusion.
-- **Context** broadcasts the festival's active rules and ambient theme, allowing participating agents to adapt their behavior without querying underlying databases.
-
-Together, these primitives compose cohesive, multi-world interactive experiences.
+- **Timeflow** expresses the event lifecycle from scheduled to active to concluded.
+- **Presence** describes which human users and agents are admitted and visible in the venue.
+- **Social** references existing friendships from Realm and standardizes how new social requests are initiated.
+- **Economy** structures item exchange contracts and revenue split rules.
+- **Transit** defines the target routing contract for participants entering or returning from the world.
+- **Context** broadcasts the festival's active rules and situational framing so participating agents can adapt their behavior.
 
 ## Source Basis
 

@@ -13,7 +13,7 @@
       "missingChunk": "Lab run history chunk is missing or invalid: {{path}}",
       "incompleteChunks": "Lab run history chunks are incomplete.",
       "verificationFailed": "Lab history content verification failed. Saved history has not been replaced.",
-      "publicationUncertain": "The history save could not be confirmed. Its content and assets are retained; retry when storage is available."
+      "publicationUncertain": "Could not confirm that history was saved. Your content and assets are still retained; retry once storage is available."
     }
   }
 }

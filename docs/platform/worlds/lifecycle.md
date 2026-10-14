@@ -1,96 +1,68 @@
 # World Lifecycle Management
 
-Worlds in Nimi are built for long-term operational continuity. This document details the end-to-end lifecycle of a World: from conceptual authoring and atomic publishing, to application binding, ongoing maintenance, and eventual suspension or deprecation. Underlying state machines are governed authoritatively by Realm.
+Worlds in Nimi evolve through explicit resource operations governed by Realm and mediated by Runtime. Rather than relying on monolithic release bundles, world authoring and maintenance revolve around canonical setting sources—`WorldCore`, `WorldCharacter`, and `PersonaCharacter`—alongside structured entities and relationships.
 
-For schema-level state definitions, see [Reference → State Machines](/reference/state-machines) and [Reference → World Fields](/reference/world-fields).
+For field-level definitions and runtime state references, see [Reference → State Machines](/reference/state-machines) and [Reference → World Fields](/reference/world-fields).
 
-## Authoring and Atomic Publishing
+## World Creation and Eligibility
 
-Creators design worlds using authoring suites. Tooling maintains the canonical `WorldCore` alongside verified resident characters (`WorldCharacterCore`), timeline tracks, spatial scenes, historical event structures, and product metadata.
+Creating a new world in Realm is a privileged operation:
 
-The publishing operation is executed as an atomic commit (`Core Commit`) via a `WorldCoreIngressPackage` or a delta `CorePatch`, freezing verified core object states into an immutable canonical release. A commit strictly includes:
+- **Explicit Administrator Grant**: An account must be explicitly granted world creation eligibility by a Realm administrator before it can create a world.
+- **No Implicit Substitutes**: Declaring `realm.data` in an application manifest, holding an active subscription, or already owning other worlds does not grant creation eligibility.
+- **Pre-Check vs. Authoritative Enforcement**: Applications can query creation eligibility through `client.realm.worldCore`, but reading eligibility is only a convenience pre-check—Realm always re-verifies eligibility authoritatively when a `create` request is submitted.
 
-- **Core Schema Version**: Guaranteeing serialization compatibility;
-- **Provenance Attestation**: Signing identity and build tooling metadata;
-- **Checksums & Diff Manifests**: Ensuring artifact integrity and tamper-proofing;
-- **Lineage Tree**: Declaring replacement or patch lineage.
+## Authoring and Resource Operations
 
-**Atomicity is fundamental**: World core schemas, character entities, scenes, timelines, and history records land in a single transactional commit. Partially published or inconsistent worlds are rejected.
+World data is maintained across distinct resource types rather than published in a single cross-object transaction. Regular applications interact with world resources through the host bindings `client.realm.worldCore` and `client.realm.personaCharacter`, executing only fixed-type operations explicitly admitted by Runtime:
 
-The publication package distinguishes four primary components:
+| Resource / Surface | Admitted Operations | Operational Notes |
+| --- | --- | --- |
+| **`WorldCore`** | `list`, `get`, `create`, `replace`, creation eligibility | Core world settings and metadata; `WorldCore` and `WorldCharacter` are updated independently |
+| **`WorldCharacter`** | `list`, `get`, `create`, `replace` | Characters bound to a specific world |
+| **`WorldEntity`** | `list`, `get`, `create` | Structured world entities |
+| **`WorldRelationship`** | `list`, `get` | Read-only for applications; app-initiated relationship creation is not available |
+| **`PersonaCharacter`** | Host-bound operations via `client.realm.personaCharacter` | Independent persona character definitions |
 
-| Component | Responsibility & Architectural Scope |
-| --- | --- |
-| **Core World Object** | Identity, ownership, timeflow models, timeline tracks, history, and presentation metadata |
-| **Core Character Objects** | Canonical characters resident within and bound to the world |
-| **Runtime Snapshot Inputs** | By-value materialization payloads required by Runtime to instantiate LocalAgents |
-| **Governance & Metadata** | Semantic versioning, cryptographic provenance, and compliance audit records |
+### `WorldCore` Structure and Visibility
 
-Lorebooks and prompt templates do not serve as the canonical center of the package. They represent source attributes or downstream inference inputs, but never supersede core world schemas.
+A `WorldCore` DTO contains the following fields:
 
-## Rollback as a Forward Release Operation
+- `id`: Unique world identifier
+- `schemaVersion`: Schema version of the core payload
+- `contentRevision`: Revision counter for the world record
+- `contentHash`: Hash of the current core content
+- `origin`: Creation origin metadata
+- `visibility`: Access scope (`private`, `unlisted`, `public`, or `system`)
+- `lorebookDeclaration`: Associated lorebook declaration structure
+- `core`: The structured world core definition
+- `createdAt` / `updatedAt`: Record timestamps
+- `creatorId`: Optional (nullable) creator account reference
 
-When an active release exhibits critical defects, rolling back is itself executed as a forward-moving release transaction—not an ad-hoc overwrite or physical deletion of existing release history.
+### Optimistic Concurrency with `baseContentHash`
 
-- The rollback `WorldRelease` explicitly references the preceding verified good release ID;
-- Rollback lineage is embedded as immutable metadata within the release record;
-- World history permanently logs the rollback as a `CANON_MUTATION` run;
-- The defective release is never deleted from history; it is formally superseded.
+Updating an existing `WorldCore` or `WorldCharacter` via `replace` requires passing the `baseContentHash` from the version being edited. Realm verifies that `baseContentHash` matches the current `contentHash` before accepting the replacement, preventing concurrent edits from silently overwriting each other.
 
-This design guarantees unbroken auditability: retrospective reviews can verify exactly what was superseded, when, and why.
+Saving or replacing a `WorldCore` record updates the stored resource and its `contentRevision` / `contentHash` in place; it does not trigger a separate catalog publication pipeline.
 
-## App-to-World Binding Contracts
+## Application Access and Runtime Mediation
 
-Worlds typically require client applications for interactive user experiences. Application bindings operate under two distinct modes:
+Applications never connect to Realm with raw credentials or direct network sockets:
 
-| Binding Mode | Reads World State | Mutates/Writes World State | Concurrency Limit Per World |
-| --- | --- | --- | --- |
-| **Render App (`render-app`)** | Yes | No (Read-Only) | Multiple concurrent connections |
-| **Extension App (`extension-app`)** | Yes | Yes (Read-Write) | At most one active binding per world |
+1. **Three-Layer Access Control**: Every Realm operation from an application requires an active protected host session, the `realm.data` permission declared in the app manifest, and Runtime admission. Realm independently enforces resource-level authorization on each call.
+2. **Credential and Transport Isolation**: Runtime holds all Realm credentials and manages remote connections. Applications do not receive Bearer tokens, raw HTTP clients, or direct WebSocket connections.
+3. **Scoped Realtime Channels**: Admitted realtime capabilities are limited to human-to-human DirectChat, typing indicators, inbox updates, and Presence. Generic world event broadcasts and notification streams are not exposed to applications.
+4. **LocalAgent and Cognition Boundaries**: LocalAgent conversations run inside Runtime, and per-Agent long-term memory is managed by Cognition through Runtime mediation. Local application state and agent interactions are not automatically synchronized back to Realm.
 
-A world allows at most one active **extension app (`extension-app`)** binding at any given time, eliminating conflicting writes. Multiple read-only **render apps (`render-app`)** may connect simultaneously without blocking each other.
+## OASIS and Cross-World Context
 
-### Binding Lifecycle State Machine
+OASIS is the system main world (`system` visibility). Its `WorldCore` and resident character profiles can be read through the standard `client.realm.worldCore` interfaces. For architectural concepts regarding cross-world navigation and roaming design, see [OASIS](/platform/worlds/oasis).
 
-```
-(new) ──admit──▶ active ──suspend──▶ suspended ──resume──▶ active
-                  │                                          │
-                  └────────────────revoke──────────────────────────▶ revoked
-```
+## Planned Shared State and History
 
-| Lifecycle State | Operational Meaning |
-| --- | --- |
-| `(new)` | World is published; no extension app is currently bound |
-| `active` | An admitted extension app is bound with authorized write access |
-| `suspended` | Binding is temporarily frozen; resumption requires explicit re-admission |
-| `revoked` | Binding is permanently dissolved; the world is freed for new application admission |
+World State and World History define models for durable shared state and admitted facts. They have no current public read/write APIs and are separate from the WorldCore and character records available for editing today.
 
-Suspension is reversible; revocation is terminal. Replacing an extension app requires revoking the incumbent first—the platform never silently transfers write authority between applications.
-
-## Spatial Transit and World Availability
-
-Published worlds join the global transit network. Cross-world navigation routes exclusively through the system world OASIS (see [OASIS](/platform/worlds/oasis)). Worlds without an active extension app remain fully accessible in read-only mode to render apps.
-
-If a creator takes a world offline for maintenance, active participants within that world are routed back to the OASIS hub automatically. User identities, friendship graphs, and asset inventories remain unaffected.
-
-## Scenario: Publishing a World End-to-End
-
-1. **Author Axioms**: Define world rules, resident characters, scenes, and visual bindings;
-2. **Stage Draft Artifacts**: Assemble minimal staging sets (`importSource`, `truthDraft`, `stateDraft`, `historyDraft`) locally;
-3. **Assemble Package**: Package drafts into a standardized bundle separating core rules, derived configs, and signatures;
-4. **Execute Atomic Release**: Submit via `WorldRelease`, locking object schemas and content hashes;
-5. **Join Transit Grid**: The world becomes an active destination reachable from OASIS, readable by render apps, and open for extension app admission;
-6. **Audit Inscription**: World history records the release transaction as a permanent `CANON_MUTATION` milestone.
-
-## Scenario: Replacing an Active Extension App
-
-When an author transitions an active binding from Extension App A to Extension App B:
-
-1. **Revoke Incumbent**: Author revokes App A; its binding transitions from `active` to `revoked`, immediately extinguishing write authority.
-2. **Admit Successor**: Author binds App B; its binding transitions from `(new)` to `active`, granting write permissions.
-3. **Eliminate Concurrency Race**: No overlapping window exists where both apps hold write privileges.
-
-This strict mutual exclusion preserves a single authoritative present-state for the world.
+The planned contracts require explicit submission and exact authorization. `REPLAY` cannot write shared state or history, and private story logs do not automatically become world history. See [State vs History](/platform/worlds/state-vs-history) for the full model.
 
 ## Source Basis
 

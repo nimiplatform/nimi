@@ -18,6 +18,7 @@ Runtime 负责管理与执行：
 ## 架构权责边界
 
 - **Realm**：维护持久化的角色身份（Character Identity）、世界背景（World Context）以及生态社交数据。Runtime 读取并使用这些上下文，但不修改或重新定义身份真相。
+- **Cognition 与记忆边界**：长期记忆由 Cognition 专属性管理，按智能体独立隔离；Runtime 仅作为已授权的投递与召回中介通道。当前版本的 Knowledge V1 暂无活动读写或公共客户端路径。
 - **应用层（Apps & UI Surfaces）**：负责自身的产品界面、用户交互与临时状态展示。应用不能越权接管对话路由、凭证管理或权限判定。
 - **渐进式扩展**：外部工作流或扩展工具均作为可选能力接入，某项可选扩展不可用时不会阻塞核心的对话交互与基础 AI 调用。
 
@@ -33,8 +34,6 @@ Runtime 负责管理与执行：
 - [Account 与 Session](/zh/runtime/account-and-session)
 - [委派能力](/zh/runtime/delegated-capability)
 - [本地审计](/zh/runtime/audit-local)
-
-长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## Source Basis
 

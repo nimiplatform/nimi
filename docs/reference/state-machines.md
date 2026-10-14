@@ -1,6 +1,6 @@
 # Core State Machines Reference
 
-Runtime health, asynchronous jobs, and Realm bindings have separate lifecycles. Avatar availability depends on the current App session and presentation prerequisites.
+Runtime health and asynchronous jobs follow deterministic lifecycles, Realm world authoring separates current CRUD operations from planned shared state contracts, and Avatar availability depends on the current App session and presentation prerequisites.
 
 ## 1. Runtime Daemon Health Lifecycle
 
@@ -27,14 +27,30 @@ Long-running compute jobs transition through deterministic lifecycle milestones:
 
 Jobs may report `submissionOutcome` to describe dispatch state. For `CANCELED` jobs, `stopOutcome` indicates whether underlying compute stoppage was verified (e.g. `confirmed`) or remains unconfirmed (`stopOutcome: 'unconfirmed'`). Other terminal states do not report `stopOutcome`; timeouts are handled under standard job observation and recovery contracts.
 
-## 3. Realm App-World Binding States
+## 3. Realm World Authoring and Planned Shared State Boundaries
 
-| Binding State | Definition |
-| --- | --- |
-| `(new)` | World exists with zero registered extension apps |
-| `active` | One extension app verified and actively writing state |
-| `suspended` | Binding paused temporarily; state mutations blocked |
-| `revoked` | Binding detached; world open for new applicant bindings |
+Realm does not use a per-world App binding state machine. Apps access Realm through an active protected host session, manifest `realm.data` declaration, and Runtime admission, while Realm enforces resource-level authorization. Runtime manages Realm credentials and remote connections.
+
+### Current World Authoring Operations
+
+Current world and character settings are maintained through `WorldCore`, `WorldCharacter`, and `PersonaCharacter`. Using the host-bound `client.realm.worldCore` and `client.realm.personaCharacter` surfaces, Apps can invoke only the fixed typed operations admitted by Runtime:
+
+| Resource | Admitted App Operations | Notes |
+| --- | --- | --- |
+| `WorldCore` | `list`, `get`, `create`, `replace`, creation eligibility read | `create` requires explicit Realm administrator approval on the account (`realm.data`, subscriptions, or existing world ownership do not substitute, and reading eligibility does not replace the creation-time check). `replace` uses `baseContentHash` for optimistic concurrency. |
+| `WorldCharacter` | `list`, `get`, `create`, `replace` | Operated as individual character records alongside `WorldCore`, not bundled into a multi-object transaction. |
+| `WorldEntity` | `list`, `get`, `create` | Fixed typed entity operations on the target world. |
+| `WorldRelationship` | `list`, `get` | Read-only for Apps; App-side relationship creation is not exposed. |
+
+### Planned World State and World History (Design Reference)
+
+`World State` and `World History` are planned standalone contracts. Currently, there are no approved controllers, tracked OpenAPI read/write operations, or general App write/subscription surfaces for shared world state or history.
+
+- **Scope of `WorldState`**: Covers persistent shared world state only. It excludes App story runtime variables, prompt context, rendering state, cursors, and ephemeral session state.
+- **Commit Envelope**: Planned state submissions carry `worldId`, `appId`, `sessionId`, `effectClass`, `scope`, `schemaId`, `schemaVersion`, `actorRefs`, `reason`, and `evidenceRefs`.
+- **Target Scope & Effect Class**: `scope` is constrained to `WORLD`, `ENTITY`, or `RELATION` (`ENTITY` and `RELATION` do not accept arbitrary generic JSON structures). `effectClass` must be explicitly specified as `NONE`, `STATE_ONLY`, or `STATE_AND_HISTORY` with no assumed default.
+- **Mutation Authorization**: `REPLAY` contexts are strictly forbidden from committing shared State or appending History without exception. `CANON_MUTATION` additionally requires matching an explicit `app` / `schema` / `effect` / `scope` authorization matrix.
+- **History Semantics**: `World History` records only admitted factual events. Corrections append superseding or invalidating entries rather than performing silent hard deletes, and private story logs do not automatically become world history.
 
 ## 4. Avatar Readiness
 

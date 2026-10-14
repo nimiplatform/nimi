@@ -10,8 +10,8 @@ During application development, use verified package combinations (App Tools, SD
 
 ## Immutability of Published Releases
 
-- **Semantic Versioning (SemVer)**: Once packages are published to official registries or tagged in git releases, packages are strictly immutable.
-- **Breaking Change Guidance**: In 0.x releases (the current lifecycle for SDK and Kit), breaking architectural evolutions increment the minor version number (e.g. 0.18 -> 0.19) accompanied by explicit migration notes, reserving 1.0.0 for formal platform readiness decisions. For 1.0+ releases, breaking changes increment the major version number following SemVer.
+- **Semantic Versioning (SemVer)**: Once packages are published to official registries or tagged in git releases, their release artifacts are strictly immutable.
+- **Breaking Change Guidance**: In 0.x releases (the current lifecycle for SDK and Kit), breaking architectural evolutions increment the minor version number (e.g., 0.18 -> 0.19) accompanied by explicit migration notes, reserving 1.0.0 for formal platform readiness decisions. For 1.0+ releases, breaking changes increment the major version number following SemVer.
 - **Independent Component Lifecycles**: SDK, Kit, App Tools, and desktop shells release on decoupled cadences while adhering to explicit dependency bounds.
 
 ## Fail-Closed Validation and Troubleshooting

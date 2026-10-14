@@ -29,8 +29,8 @@
     "textCluesTitle": "著述线索",
     "rowRef": "资料编号",
     "statusCollected": "已收录",
-    "statusPending": "待确认",
-    "statusUnknown": "待确认",
+    "statusPending": "待核验",
+    "statusUnknown": "未知",
     "unavailable": "暂时没有作品信息。"
   },
   "worldCharacter": {
@@ -50,7 +50,7 @@
     "worksEyebrow": "相关阅读",
     "personaStyle": {
       "archetype": {
-        "CARING": "照护型",
+        "CARING": "关怀型",
         "PLAYFUL": "顽皮型",
         "INTELLECTUAL": "理智型",
         "CONFIDENT": "自信型",

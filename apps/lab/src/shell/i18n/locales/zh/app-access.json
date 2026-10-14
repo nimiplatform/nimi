@@ -3,13 +3,13 @@
     "page": {
       "title": "App 访问",
       "eyebrow": "Nimi Lab",
-      "blurb": "针对真实 Runtime 链路验证第三方本地 App 契约：会话与身份状态、App 私有存储、Realm 数据、AI 消费、Agent 会话以及边界拒绝。每个探针都走真实路径，不做任何模拟。",
+      "blurb": "基于真实 Runtime 链路，验证第三方本地 App 的各项契约：会话与身份状态、App 私有存储、Realm 数据、AI 调用、Agent 会话及越界拒绝。所有探针均执行真实调用，不使用模拟数据。",
       "refreshSession": "刷新会话",
       "runAll": "运行全部探针",
       "runGroup": "运行分组",
       "signedOut": "请通过账户菜单登录 Nimi 后再运行 App 访问探针。",
       "sessionLost": "Nimi 会话已丢失，此前会话的探针证据已清除。",
-      "noAgentReferences": "当前账户下没有已激活的 Agent。请在 Nimi Desktop 中创建并激活一个，然后重新运行“激活的 Agent 引用”探针。",
+      "noAgentReferences": "当前账户下没有已激活的 Agent。请先在 Nimi Desktop 中创建并激活 Agent，再重新运行“激活的 Agent 引用”探针。",
       "technicalDetails": "技术细节",
       "notRun": "尚未运行。",
       "sessionBound": "会话已绑定",
@@ -21,14 +21,14 @@
     },
     "confirmPersistentWorld": {
       "title": "创建持久测试 WorldCore？",
-      "message": "此操作将在你的 Realm 中创建一个有明确标记的 private 测试 WorldCore。由于 delete 未 admission，该记录在探针完成后仍会保留在当前账户中。分组运行和运行全部会跳过此操作。",
+      "message": "此操作将在你的 Realm 中创建一个带有明确标记的 private 测试 WorldCore。由于当前未开放删除操作，探针完成后该记录仍会保留在当前账户中。分组运行和运行全部会跳过此操作。",
       "confirm": "创建持久测试数据",
       "cancel": "取消",
       "running": "正在创建测试数据…"
     },
     "confirmPersistentPersona": {
       "title": "创建持久测试 PersonaCharacter？",
-      "message": "此操作将在你的 Realm 中创建并替换一个有明确标记的 private 测试 PersonaCharacter。由于 delete 未 admission，该记录在探针完成后仍会保留在当前账户中。分组运行和运行全部会跳过此操作。",
+      "message": "此操作将在你的 Realm 中创建并替换一个有明确标记的 private 测试 PersonaCharacter。测试会保留该记录供后续回读，不会在结束后删除。分组运行和运行全部会跳过此操作。",
       "confirm": "创建持久测试数据",
       "cancel": "取消",
       "running": "正在创建测试数据…"
@@ -47,14 +47,14 @@
       "rendererSince": "渲染进程启动于 {{time}}",
       "checkingSession": "正在检查 Nimi 会话…",
       "toolingHmrActive": "Vite HMR 客户端已激活",
-      "toolingHmrMissing": "未观察到官方 HMR 客户端",
+      "toolingHmrMissing": "未检测到官方 HMR 客户端",
       "checkingCurrentUser": "正在检查当前用户…",
       "sessionLostRecheck": "会话丢失 — 请刷新以重新检查",
       "currentUserSummary": "{{name}} · @{{handle}} · 头像{{avatar}}",
       "avatarSet": "已设置",
       "avatarNone": "未设置",
       "currentUserUnavailable": "当前用户不可用",
-      "hmrUpdateObserved": "观察到 HMR 更新 · {{time}}"
+      "hmrUpdateObserved": "已检测到 HMR 更新 · {{time}}"
     },
     "sessionFacts": {
       "appProcess": "App 进程",
@@ -82,15 +82,15 @@
       },
       "realm": {
         "title": "Realm 数据",
-        "blurb": "声明式 Realm 数据访问：列出/创建 WorldCore，并执行 owner PersonaCharacter 的 list/get/create/replace；delete 未 admission。"
+        "blurb": "已声明的 Realm 数据访问：列出/创建 WorldCore，以及对 owner PersonaCharacter 执行 list/get/create/replace。这些探针不会删除测试记录。"
       },
       "aiConsumption": {
         "title": "AI 消费",
-        "blurb": "通过 owner 托管的当前 App AI 配置执行文本生成。"
+        "blurb": "使用当前 App 由 owner 托管的 AI 配置执行文本生成。"
       },
       "agentConversation": {
         "title": "Agent 会话",
-        "blurb": "激活的 Agent 引用、输入式会话与回合中断 — 按依赖顺序执行。"
+        "blurb": "依次验证激活的 Agent 引用、输入式会话与回合中断（按依赖顺序执行）。"
       },
       "boundary": {
         "title": "边界探针",
@@ -105,35 +105,35 @@
       },
       "worldList": {
         "title": "WorldCore 列表",
-        "proves": "App 可以通过声明的 Realm 数据访问列出本地 Realm WorldCore。",
+        "proves": "App 可通过当前获准的 Realm 数据访问列出 WorldCore。",
         "running": "正在列出本地 WorldCore…"
       },
       "worldCreate": {
         "title": "WorldCore 创建与回读",
-        "proves": "通过 App Realm owner 创建的 WorldCore 回读时身份与内容哈希一致。",
-        "requires": "将创建一个明确标记、且因未 admission delete 而持久保留的 private 测试 WorldCore。仅在明确确认后运行。",
+        "proves": "通过 App Realm owner 创建 WorldCore 后，回读所得的身份标识与内容哈希保持一致。",
+        "requires": "将创建一个带有明确标记的 private 测试 WorldCore；由于当前未开放删除操作，该数据将持久保留。仅在明确确认后运行。",
         "running": "正在创建 WorldCore 并验证回读…"
       },
       "personaOwnerList": {
         "title": "Owner PersonaCharacter 列表与详情",
-        "proves": "listOwned 返回支持 afterId/take 续页的有界 owner page，getOwned 返回选中 PersonaCharacter 的安全投影。",
+        "proves": "验证 listOwned 返回支持 afterId/take 翻页的有界列表，且 getOwned 返回所选 PersonaCharacter 的安全投影。",
         "running": "正在列出并读取 owner PersonaCharacter…"
       },
       "personaOwnerCreateReplace": {
         "title": "持久 PersonaCharacter 创建、替换与冲突",
-        "proves": "App 创建一个 private owner PersonaCharacter，使用最新哈希替换，并得到 stale hash 的 typed conflict。",
-        "requires": "将创建一个明确标记、且因未 admission delete 而持久保留的 private 测试 PersonaCharacter。仅在明确确认后运行。",
+        "proves": "App 创建私有的 owner PersonaCharacter，先用最新哈希成功替换，再验证使用过期哈希（stale hash）时会返回预期的类型化冲突（typed conflict）。",
+        "requires": "将创建一个带有明确标记的 private 测试 PersonaCharacter，并保留在当前账户中供后续回读。仅在明确确认后运行。",
         "running": "正在创建并替换持久测试 PersonaCharacter…"
       },
       "personaOwnerPersistence": {
         "title": "PersonaCharacter 持久化回读",
-        "proves": "reload 或 restart 后，通过 listOwned 与 getOwned 回读此前的 Nimi Lab 测试 PersonaCharacter。",
-        "requires": "需要此账户中已有由显式确认创建探针生成的持久 Nimi Lab 测试 PersonaCharacter。请在 reload 或 restart 后直接运行此只读检查。",
+        "proves": "在页面重载（reload）或应用重启（restart）后，通过 listOwned 与 getOwned 重新读取此前创建的 Nimi Lab 测试 PersonaCharacter。",
+        "requires": "当前账户中已有经显式确认的创建探针生成的持久 Nimi Lab 测试 PersonaCharacter。重载或重启后，直接运行此项只读检查。",
         "running": "正在回读持久 owner PersonaCharacter…"
       },
       "textGeneration": {
         "title": "已配置的文本生成",
-        "proves": "owner 托管的当前 App AI 配置可通过真实 Runtime 路径完成一元文本生成。",
+        "proves": "使用当前 App 由 owner 托管的 AI 配置，通过真实 Runtime 链路完成单次（unary）文本生成。",
         "running": "正在通过当前 App AI 配置生成文本…"
       },
       "agentReferences": {
@@ -143,21 +143,21 @@
       },
       "agentConversation": {
         "title": "Agent 会话",
-        "proves": "输入式 Agent 会话可打开、流式输出并以已提交的助手回复完成。",
+        "proves": "可打开输入式 Agent 会话，流式接收输出，并确认本轮助手回复已提交。",
         "running": "正在打开输入式 Agent 会话…",
         "requires": "已选择的 Agent 引用",
         "gateGuidance": "请先选择一个激活的 Agent 引用。"
       },
       "agentInterrupt": {
         "title": "Agent 回合中断",
-        "proves": "已接受的 Agent 回合可以被显式中断，并终止于 interrupted 终态。",
+        "proves": "已受理的 Agent 回合可被显式中断，并最终停在 interrupted 状态。",
         "running": "正在打开输入式 Agent 会话以执行中断…",
         "requires": "已选择的 Agent 引用",
         "gateGuidance": "请先选择一个激活的 Agent 引用。"
       },
       "storageBoundary": {
         "title": "拒绝存储越界",
-        "proves": "针对 App 私有存储的路径逃逸与超限写入被拒绝。",
+        "proves": "针对 App 私有存储的路径逃逸与超限写入会被正确拦截。",
         "running": "正在尝试路径逃逸与超限写入…"
       }
     },
@@ -177,10 +177,10 @@
       "detail": "详情"
     },
     "failures": {
-      "storageRoundtripMismatch": "存储的数据与写入内容不一致。",
+      "storageRoundtripMismatch": "回读的数据与写入内容不一致。",
       "storageRemoveFailed": "无法删除已存储的文档。",
-      "unexpectedSuccess": "Runtime 接受了必须被拒绝的操作 — 边界已失效。",
-      "unexpectedRejection": "操作被拒绝，但原因与预期不符。",
+      "unexpectedSuccess": "Runtime 放行了应当拒绝的操作，边界保护已失效。",
+      "unexpectedRejection": "操作虽被拒绝，但拒绝原因与预期不符。",
       "worldCoreListReadMismatch": "创建的 WorldCore 回读时身份或内容哈希不一致。",
       "operationFailed": "探针未能完成，请查看技术细节。"
     }

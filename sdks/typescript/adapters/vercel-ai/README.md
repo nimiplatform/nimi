@@ -1,28 +1,24 @@
 # Nimi adapter for Vercel AI SDK 7
 
-Use this adapter to retain Vercel's model, streaming and caller-owned tool-loop
-interfaces while Nimi owns execution configuration and protected access.
-Adapter 0.5.0 requires SDK `^0.21.0`, Kit/native 0.18.0, and the matching
-Runtime. Use the current complete local packages until this combination is
-published. The Local App factory accepts an explicit `executionMode` selection;
-this selects the admitted execution form, not a provider or model. Published
-component upgrade history remains in the SDK and Kit migration notes.
+Use this adapter to retain Vercel's model, streaming, and caller-owned tool-loop interfaces while Nimi owns execution configuration and protected access.
+
+- The `0.5.0` source adapter declares SDK `^0.21.0`, AI SDK `^7.0.0`, and Provider `^4.0.0` peers. For a Local App, keep the SDK/Kit/native combination admitted by your App Tools version and matching Runtime; source version declarations alone do not establish npm publication.
+- The Local App factory accepts an explicit `executionMode` selection; this selects the admitted execution form, not a provider or model.
+- Published component upgrade history remains in the SDK and Kit migration notes.
 
 ## Upgrading to AI SDK 7
 
-This adapter requires `ai@^7` and `@ai-sdk/provider@^4`. Replace
-`stepCountIs` with `isStepCount`, `onFinish` with `onEnd`, and
-`onStepFinish` with `onStepEnd`. `result.usage` now sums all steps; read
-`result.steps.at(-1)?.usage` for the final step. Request/response bodies require
-`experimental_include: { requestBody: true, responseBody: true }`.
-Direct provider calls use V4 tagged file data; provider file references fail
-closed. Reasoning effort maps to the typed Nimi controls and still depends on
-the selected Runtime Driver.
+This adapter requires `ai@^7` and `@ai-sdk/provider@^4`:
+
+- Replace `stepCountIs` with `isStepCount`, `onFinish` with `onEnd`, and `onStepFinish` with `onStepEnd`.
+- `result.usage` now sums all steps; read `result.steps.at(-1)?.usage` for the final step.
+- Request/response bodies require `experimental_include: { requestBody: true, responseBody: true }`.
+- Direct provider calls use V4 tagged file data; provider file references fail closed.
+- Reasoning effort maps to the typed Nimi controls and still depends on the selected Runtime Driver.
 
 ## Local App
 
-Obtain the Host-bound `NimiLocalAppClient` through the standard Kit carrier,
-then construct the model in the App's request scope:
+Obtain the Host-bound `NimiLocalAppClient` through the standard Kit carrier, then construct the model in the App's request scope:
 
 ```ts
 import { convertToModelMessages, isStepCount, streamText } from 'ai';
@@ -39,58 +35,44 @@ const result = streamText({
 return result.toUIMessageStreamResponse();
 ```
 
-The App continues to own tool callbacks, user approval, diagram editing, file
-processing, state and UI. The model adapter emits tool calls only after the
-Nimi step has successful terminal evidence, so a failed or interrupted model
-batch cannot trigger a Vercel tool callback. Text displayed before that terminal
-state remains partial. Malformed output is not replaced with a success value.
+### Tool Execution and Output Guarantees
 
-Select the Runtime mode explicitly for the task. The default is `stream`;
-`sync` uses protected Scenario execution and supplies the complete ordered
-result to the framework only after the operation finishes. Vercel's
-`streamText` UI interface can consume those result events, but it does not
-turn the underlying Runtime call into STREAM. Both modes retain cancellation
-and opaque continuity and never retry in a different mode. The selected
-Driver still decides which tools, schema and request-control combinations
-it admits.
+The App continues to own tool callbacks, user approval, diagram editing, file processing, state, and UI. The model adapter emits tool calls only after the Nimi step has successful terminal evidence, so a failed or interrupted model batch cannot trigger a Vercel tool callback. Text displayed before that terminal state remains partial. Malformed output is not replaced with a success value.
 
-User image files are uploaded through this same App client's artifact API.
-HTTP(S) image URLs are passed to the Runtime input path. Base64 decoding in the
-adapter is transport conversion, not image interpretation; inline binary and
-data URIs never enter the protected text-turn request. Persist original files
-or App storage references for history; transient Runtime artifact references
-are not a durable replacement for the image. No cross-session upload cache is
-created by this adapter.
+### Execution Modes (`stream` vs. `sync`)
 
-## Conversation history and continuity
+Select the Runtime mode explicitly for the task:
 
-Preserve complete UI message `parts`, including text `providerMetadata` and tool
-`callProviderMetadata`. The adapter uses versioned `providerMetadata.nimi` to
-relay opaque continuity before/after the associated visible part. Its base64
-payload is never display reasoning. `convertToModelMessages` restores it to
-the canonical ordered Nimi transcript; do not flatten history into text or
-discard provider metadata when serializing it.
+- **`stream` (default):** Streams incremental Runtime events.
+- **`sync`:** Uses protected Scenario execution and supplies the complete ordered result to the framework only after the operation finishes. Vercel's `streamText` UI interface can consume those result events, but it does not turn the underlying Runtime call into STREAM.
 
-Caller tool results retain their call IDs, tool names and JSON/text values.
-Vercel may copy call metadata onto a tool result; that copy is not replayed as
-a second continuity item. Invalid or unsupported metadata fails explicitly.
+Both modes retain cancellation and opaque continuity and never retry in a different mode. The selected Driver still decides which tools, schema, and request-control combinations it admits.
 
-## Configuration and supported scope
+### Image and Artifact Handling
 
-Use Nimi AIConfig for execution configuration. The adapter does not select a
-provider/model or expose a compatibility HTTP endpoint. Arbitrary provider
-options and HTTP headers are rejected; the framework's transport user-agent is
-not a Runtime generation parameter. Request controls must be supported by the
-selected Nimi execution configuration. In particular, an App's provider-specific
-default `maxOutputTokens` must not be unconditionally imposed on a Nimi model.
+- User image files are uploaded through this same App client's artifact API.
+- HTTP(S) image URLs are passed to the Runtime input path.
+- Base64 decoding in the adapter is transport conversion, not image interpretation; inline binary and data URIs never enter the protected text-turn request.
+- Persist original files or App storage references for history; transient Runtime artifact references are not a durable replacement for the image.
+- No cross-session upload cache is created by this adapter.
 
-Function tools, caller-owned loops, structured response-format mapping and
-image input are supported through their matching Nimi contracts. Provider-owned
-tools/results/approval transcripts, media output and raw reasoning are rejected.
-Only permitted reasoning summaries may be exposed as reasoning. Token usage
-remains unknown when the backing Nimi client does not project it.
+## Conversation History and Continuity
 
-The manifest describes framework usability and explicit gaps. A successful
-mapping test is not live-provider or installed-App acceptance. A generic
-`NimiAiModel` can be wrapped with `createNimiVercelLanguageModel({ model })`;
-ordinary Local Apps should use the Host-bound factory above.
+Preserve complete UI message `parts`, including text `providerMetadata` and tool `callProviderMetadata`:
+
+- The adapter uses versioned `providerMetadata.nimi` to relay opaque continuity before/after the associated visible part. Its base64 payload is never display reasoning.
+- `convertToModelMessages` restores it to the canonical ordered Nimi transcript; do not flatten history into text or discard provider metadata when serializing it.
+- Caller tool results retain their call IDs, tool names, and JSON/text values. Vercel may copy call metadata onto a tool result; that copy is not replayed as a second continuity item.
+- Invalid or unsupported metadata fails explicitly.
+
+## Configuration and Supported Scope
+
+Use Nimi AIConfig for execution configuration. The adapter does not select a provider/model or expose a compatibility HTTP endpoint:
+
+- Arbitrary provider options and HTTP headers are rejected; the framework's transport user-agent is not a Runtime generation parameter.
+- Request controls must be supported by the selected Nimi execution configuration. In particular, an App's provider-specific default `maxOutputTokens` must not be unconditionally imposed on a Nimi model.
+- **Supported:** Function tools, caller-owned loops, structured response-format mapping, and image input through their matching Nimi contracts.
+- **Rejected:** Provider-owned tools/results/approval transcripts, media output, and raw reasoning. Only permitted reasoning summaries may be exposed as reasoning.
+- Token usage remains unknown when the backing Nimi client does not project it.
+
+The manifest describes framework usability and explicit gaps. A successful mapping test is not live-provider or installed-App acceptance. A generic `NimiAiModel` can be wrapped with `createNimiVercelLanguageModel({ model })`; ordinary Local Apps should use the Host-bound factory above.

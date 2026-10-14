@@ -34,9 +34,9 @@
     "localMismatchLabel": "所选本机模型不支持：{{features}}",
     "openOwnerConfigurationLabel": "在 Nimi 中统一管理",
     "cloudBlockedLabel": "此云端配置当前无法运行。请重新选择模型或改选其他模型。",
-    "cloudCatalogStaleLabel": "选定此模型后云端模型列表已更新。请从当前列表重新选择模型。",
+    "cloudCatalogStaleLabel": "选定此模型后云端模型列表已更新，请从最新列表中重新选择。",
     "cloudChatGPTPlanLabel": "正在使用 ChatGPT 计划",
-    "cloudChatGPTPlanDescription": "此模型中符合条件的使用会计入已登录 ChatGPT 计划的额度，Nimi 不收费。",
+    "cloudChatGPTPlanDescription": "使用此模型时，符合条件的用量会计入当前登录的 ChatGPT 计划额度，Nimi 不额外收费。",
     "loadFailed": "无法从 Runtime 加载 Nimi Lab AI 配置。",
     "unsupportedCapabilityLabel": "此能力暂不可用。",
     "notConfiguredLabel": "未配置",
@@ -47,7 +47,7 @@
     "mismatchLabel": "功能不匹配",
     "runtimeConnected": "已连接 Runtime",
     "runtimeUnavailable": "Runtime 不可用",
-    "headerDescription": "在这里选择当前 Runtime 中已有的本机模型并直接保存到 Nimi Lab 的 App AI 配置。",
+    "headerDescription": "为各项能力选择本地或云端路由，再保存 Nimi Lab 的 AI 设置。",
     "footerNote": "相同配置也可以在 Nimi Desktop 中统一查看和管理。"
   }
 }

@@ -7,13 +7,13 @@ export const openNotebookMessagesZh = {
   'openNotebook.workspace.aConversationAboutPublicSpace': '关于公共空间的一次对话',
   'openNotebook.workspace.textSampleSource': '文本 · 示例来源',
   'openNotebook.workspace.smallPublicSpacesBecomeUsefulWhenThey':
-    '方便到达、适合停留并能照顾不同需求的小型公共空间，才更容易被使用。',
+    "方便到达、让人愿意停留、兼顾不同需求，这样的小型公共空间才真正好用。",
   'openNotebook.workspace.questionsForANeighborhoodWalk': '街区散步时的问题',
   'openNotebook.workspace.webSampleSource': '网页 · 示例来源',
   'openNotebook.workspace.whoUsesThisPlaceWhatMakesPeople':
-    '谁会使用这里？什么让人愿意停留？哪里需要树荫或座椅？',
+    "谁会来这里？什么让人愿意留步？哪里添一片树荫或一把座椅会大不一样？",
   'openNotebook.workspace.theSampleSourcesConnectGardensWithThree':
-    '示例来源把花园与三个主题联系起来：共同照看、日常学习和友好的公共空间。下一步可以观察谁在使用一个地方，以及什么让他们愿意停留。',
+    "这些示例来源把花园与三个主题联系在一起：共同照看、日常学习，以及友好的公共空间。下一步不妨观察一下：是谁在使用这处空间，又是什么让他们愿意停留。",
   'openNotebook.workspace.whatThemesConnectTheseSources': '这些来源有哪些共同主题？',
   'openNotebook.workspace.questionsToTakeOnAWalk': '散步时带上的问题',
   'openNotebook.workspace.whoIsThisPlaceForWhatInvites': '这个地方为谁而设？什么能吸引人停下来？',
@@ -28,7 +28,7 @@ export const openNotebookMessagesZh = {
   'openNotebook.main.sampleNotebook3Sources': '示例笔记本 · 3 个来源',
   'openNotebook.page.turnYourResearchIntoAConversation': '让研究变成一场对话',
   'openNotebook.page.inTheFullAppPlanAndProduce':
-    '在完整 App 中，可根据笔记本来源规划并制作音频讨论。',
+    "在完整版 App 中，你可以基于笔记本里的来源策划并制作音频对谈。",
   'openNotebook.page.episodeBrief': '节目概要',
   'openNotebook.page.aShortDiscussionAboutCommunityGardensAnd':
     '一段关于社区花园与共享公共空间的简短讨论。',
@@ -38,7 +38,7 @@ export const openNotebookMessagesZh = {
   'openNotebook.page.english': '英语',
   'openNotebook.page.chinese': '中文',
   'openNotebook.page.modelsAreSelectedThroughNimiAiConfiguration':
-    '在已安装 App 的 Nimi AI 配置中选择模型。',
+    "安装 App 后，可在 Nimi AI 配置中选择所用模型。",
   'openNotebook.main.notebookPanels': '笔记本面板',
   'openNotebook.sources.sources': '来源',
   'openNotebook.sources.chooseWhichExampleSourcesToInclude': '选择要包含的示例来源。',
@@ -54,7 +54,7 @@ export const openNotebookMessagesZh = {
   'openNotebook.chat.sampleSourcesSelected': ' 个示例来源已选择',
   'openNotebook.chat.showSampleNotebookAnswer': '查看笔记本示例回复',
   'openNotebook.chat.thePreviewShowsASavedExampleSource':
-    '此预览展示已保存的示例；选择来源不会运行检索。',
+    "当前预览展示的是预设示例，勾选或取消来源不会触发实时检索。",
   'openNotebook.notes.notes': '笔记',
   'openNotebook.notes.addSampleNote': '添加示例笔记',
   'openNotebook.notes.untitledNote': '无标题笔记',
@@ -67,5 +67,5 @@ export const openNotebookMessagesZh = {
   'openNotebook.tabs.notes': '笔记',
   'openNotebook.navigation.sources': '来源',
   'openNotebook.preview.notice':
-    '静态产品预览 · 来源、笔记和回复均为示例，编辑仅在本次预览中保留，不上传文档。',
+    "静态产品预览 · 来源、笔记与回答均为预设示例。你所做的编辑仅保存在当前预览中，不会上传任何文档。",
 } as const;

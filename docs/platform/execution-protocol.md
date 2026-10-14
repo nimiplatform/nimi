@@ -1,42 +1,42 @@
 # Controlled Action Execution Protocol
 
-Nimi establishes a fail-closed security boundary around external and delegated actions. This boundary operates independently from core Local AI, LocalAgent conversations, memory retrieval, or standard Runtime readiness.
+This page describes the governed delegated-action contract. The current External Agent gateway has an empty action registry and does not admit external execution; the scenario below explains the contract, not an available end-to-end workflow. Nimi Integration uses its own admitted operations and standing resource permissions. This protocol is separate from core local AI inference, LocalAgent conversations, memory recall, and standard Runtime readiness.
 
 ## Execution Safety Lifecycle
 
-When an action surface enables the full execution security boundary, operations strictly follow this phased progression:
+When an action surface uses the full execution boundary, every operation moves through five ordered stages:
 
 ```
 discover → dry-run → verify → commit → audit
 ```
 
-| Phase | Phase Responsibility & Safety Invariant |
+| Phase | Responsibility & Safety Guarantee |
 | --- | --- |
-| `discover` | Return only operations visible and permitted to the current scoped principal |
-| `dry-run` | Produce a structured proposal payload without committing side effects |
-| `verify` | Validate the proposal against active user intent, access policies, and guardrails |
-| `commit` | Apply the authorized action under strict idempotency guarantees |
-| `audit` | Permanently log the terminal outcome and execution lineage |
+| `discover` | Expose only operations visible and permitted to the current scoped principal |
+| `dry-run` | Build a structured proposal showing intended changes without side effects |
+| `verify` | Check the proposal against user intent, access policies, and safety guardrails |
+| `commit` | Execute the approved operation once under idempotency protection |
+| `audit` | Record the final outcome and execution lineage |
 
-If `verify` fails, execution halts immediately; the pipeline never advances to `commit`. If the audit outcome of a commit is indeterminate, the system fails closed. High-risk operations can never bypass the safeguards mandated by their governing authority.
+If `verify` fails, execution stops immediately and never reaches `commit`. If a commit's audit status cannot be confirmed, the system fails closed. High-risk operations cannot bypass the checks required by their owning authority.
 
 ## Authority Boundaries
 
-The action owner defines permitted operations, schema inputs, outputs, risk classifications, and authorization criteria. Runtime provides the delegated gateway, user confirmation workflow, and output filtering, without usurping ownership over Realm or application state. Nimi Home or other desktop hosts render approval dialogs, but do not act as the authoritative decision arbiter.
+Each action owner defines its allowed operations, input/output schemas, risk levels, and approval rules. Runtime provides the delegated gateway, user confirmation flow, and output filtering without taking over Realm or application state. Nimi Home or another host surface may render confirmation dialogs, but the host UI is not the final policy decision-maker.
 
-This boundary does not imply complex workflow engines, external MCP bridges, or public action catalogs. Future adapters that utilize this boundary remain independently owned and non-blocking.
+This protocol does not require a general workflow engine, external MCP bridge, or public action catalog. Future adapters that adopt this pipeline remain independent and non-blocking.
 
 ## Scenario: Verified Write Operation
 
-When an external extension initiates a persistent write:
+When an external extension requests a persistent write:
 
-1. **Discovery**: Returns only permitted operations scoped to the active session.
-2. **Dry-Run**: Generates a typed preview proposal with zero side effects.
-3. **Verification**: Validates intent and safety policies, requesting user confirmation if required.
-4. **Commit**: Executes the mutation exactly once under idempotency locks.
-5. **Audit**: Logs the terminal result and lineage metadata.
+1. **Discovery**: The caller queries available actions and sees only operations allowed for the active session.
+2. **Dry-Run**: Runtime generates a typed preview of the write without modifying target state.
+3. **Verification**: Runtime evaluates safety policies and prompts the user for confirmation if the risk level requires it.
+4. **Commit**: Once verified, the action owner applies the write exactly once under an idempotency lock.
+5. **Audit**: Runtime records the terminal result and lineage metadata.
 
-If verification fails at step three, execution terminates before commit, returning a structured refusal to the caller.
+If policy verification or user confirmation fails in step 3, Runtime aborts before `commit` and returns a structured rejection.
 
 ## Source Basis
 

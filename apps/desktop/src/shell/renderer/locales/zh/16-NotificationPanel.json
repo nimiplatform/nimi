@@ -16,11 +16,11 @@
   "loadMore": "加载更多",
   "loadingMore": "加载中...",
   "rejectReason": "理由（可选）",
-  "confirmReject": "确认拒收",
-  "rejecting": "拒收中...",
-  "loginRequired": "请先登录后查看通知",
-  "markReadError": "标记通知已读失败",
-  "markAllReadError": "全部已读失败",
+  "confirmReject": "确认拒绝",
+  "rejecting": "拒绝中...",
+  "loginRequired": "登录后即可查看通知",
+  "markReadError": "标为已读失败",
+  "markAllReadError": "全部标为已读失败",
   "accepting": "接受中...",
   "loadMoreError": "加载更多通知失败",
   "submitting": "提交中...",
@@ -33,8 +33,8 @@
   },
   "typeNotifications": {
     "friendRequestReceived": "好友请求",
-    "friendRequestAccepted": "好友通过",
-    "friendRequestRejected": "好友拒绝",
+    "friendRequestAccepted": "好友请求已通过",
+    "friendRequestRejected": "好友请求已拒绝",
     "system": "系统通知"
   }
 }

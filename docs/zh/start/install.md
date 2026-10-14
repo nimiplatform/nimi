@@ -1,38 +1,76 @@
 # 开发环境准备
 
-本指南介绍如何搭建 Nimi 开发环境，适用于使用 App Tools 0.11.4、SDK 0.21.0、Kit 0.18.0 以及对应版本的本地 Runtime。同时支持可选的 Vercel AI SDK 适配器（0.5.0）与 Tauri 容器（0.10.0）。
+配置好 Nimi 开发环境后，你就可以在本机开发和调试本地优先的 AI 应用、联调原生宿主交互，并运行端到端测试。
 
-## 基础工具链
+开发时请选用与当前 Nimi 宿主匹配的 App Tools 版本，并沿用它生成的依赖组合。当前仓库源码声明的版本为 App Tools 0.13.0、SDK 0.21.0 与 Kit/native 0.21.0（源码中的版本声明不代表对应包已发布至 npm）。
 
-- **Node.js**：要求 Node.js 24 或更高版本（`engines.node >= 24.0.0`）。
-- **pnpm**：固定使用 pnpm 10.34.5（或兼容的 pnpm 10.x）。
-- **Nimi Coding**：App 项目通过项目本地的 Nimi Coding（0.6.5）进行规范检查，安装依赖后通过 `pnpm run init` 自动完成初始化。
+---
 
-准备好完整的 App Tools、SDK、Kit，以及与当前系统架构匹配的 Kit 原生包。可通过当前源码打包流程构建，或使用配套的开发交付包。Kit 的原生包为可选依赖，其版本与 Kit 保持一致。
+## 1. 基础工具链要求
 
-## 选择依赖版本组合
+开始前，请确认本机已安装以下工具：
 
-本指南显式选用支持的开发依赖组合 SDK `^0.21.0` 与 Kit `^0.18.0`（若使用 Tauri 容器，对应版本为 0.10.0）。注意脚手架模板默认生成 `^0.18.1` / `^0.15.3`；生成工程后请在 `package.json` 与工作区 overrides 中显式改选这两项依赖。
+- **Node.js**：Node.js 24 或更高版本（`engines.node >= 24.0.0`）。
+- **pnpm**：推荐使用 pnpm 10.34.5（或兼容的 pnpm 10.x 版本）。
+- **C/C++ 构建工具**（可选）：若需从源码编译 Kit 的可选原生扩展，macOS 请安装 Xcode Command Line Tools，Windows 请安装 Visual Studio C++ 生成工具。
 
-在实际开发中，可以在 `package.json` 中声明版本，并通过 `pnpm-workspace.yaml` 的 overrides 指向本地归档。具体操作细节可参考[创建 App](/zh/start/create-an-app)。建议保持核心依赖包版本一致，以确保 Runtime 与原生接口的稳定性。
+脚手架生成的 App 工程已内置项目级 Nimi Coding（0.6.5），执行 `pnpm install && pnpm run init` 即可自动完成初始化，无需全局安装。
 
-## 运行与本地调试
+---
 
-1. **启动 Nimi Home 与 Runtime**：准备好本地的 Nimi Home 与 Runtime 服务。Nimi Home 需要登录 Nimi 账户。
-2. **注册与授权**：在 Nimi Home 的开发者模式（Developer Mode）中注册你的应用项目并授予相应权限。
-3. **启动调试**：在应用工程根目录下运行 `pnpm dev`，系统将在受桌面端托管的 Electron 调试环境中启动应用。
+## 2. 核心依赖组合说明
 
-应用窗口启动后，先确认 Nimi Home 中已备好本机模型或云端连接器，再通过客户端保存应用自身的能力路由意图，并验证完整的调用链路。
+Nimi 核心模块之间通过明确的契约协同工作。当前源码脚手架声明的依赖组合如下；若从 npm 安装，请以所选已发布工具生成的版本声明为准：
 
-查看各平台桌面客户端的当前下载与发布状态，可访问[官方下载页面](https://nimi.ai/download)。
+| 模块 | 源码脚手架版本 | 说明 |
+| :--- | :--- | :--- |
+| `@nimiplatform/sdk` | `^0.21.0` | 客户端核心 API、AI 推理与宿主会话绑定 |
+| `@nimiplatform/kit` | `^0.21.0` | 跨平台 UI 组件库、窗口桥接与主题契约 |
+| `@nimiplatform/app-tools` | `^0.13.0` | 项目脚手架与构建打包工具 |
+| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | （可选）Vercel AI SDK 7 适配器 |
 
-## 延伸阅读
+> [!NOTE] 本地归档与覆盖
+> 在主仓库源码中开发或使用离线开发包时，可在项目根目录通过 `pnpm-workspace.yaml` 的 `overrides` 字段将上述依赖直接指向本地 `.tgz` 归档文件。具体配置方式请参考[创建第一个 Nimi App](/zh/start/create-an-app)。
+
+---
+
+## 3. 本地调试三步走
+
+如果基于 Nimi 源码开发，请先按[仓库环境准备指南](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md)配置好 Go、原生构建工具与环境变量，源码 Runtime 启动器连接另行准备的 `http://127.0.0.1:3002` Realm 服务；下列命令不会启动 Realm。随后保持以下三个进程运行：
+
+### 第一步：启动本地 Runtime 服务
+在 Nimi 主仓库根目录下运行：
+```bash
+pnpm dev:runtime
+```
+该命令会启动本地用户态 Runtime 服务，负责本地模型调度、密钥存储与会话管理。
+
+### 第二步：启动 Nimi Desktop / Home
+打开第二个终端窗口，在主仓库根目录下运行：
+```bash
+pnpm dev:desktop
+```
+桌面窗口启动后，登录 Nimi 账号进入 Nimi Home。在启动你的应用前，请前往**设置 → 开发者**开启 Developer Mode，并单独确认该应用的 Nimi Access 会话已就绪。
+
+### 第三步：启动你的 App
+进入你的应用工程根目录，运行：
+```bash
+pnpm dev
+```
+应用将在受桌面端监管的窗口中启动，并向本地 Runtime 请求受保护会话。启动完成后，即可在界面中测试 AI 功能、配置路由或调试推理请求。
+
+---
+
+## 4. 常见问题排查与延伸
+
+- 遇到服务未连接或缺少权限等提示？请查阅[常见问题与故障排查](/zh/start/troubleshooting)。
+- 只想直接体验已发布的官方桌面客户端？请前往 [Nimi 官网下载页](https://nimi.ai/download)。
+
+## 接下来
 
 - [创建第一个 Nimi App](/zh/start/create-an-app)
 - [发起第一次 AI 调用](/zh/sdk/first-ai-call)
 - [AI 能力配置（AIConfig）](/zh/sdk/ai-config-surface)
-- [常见问题与故障排查](/zh/start/troubleshooting)
-- [应用开发与分发模式](/zh/start/#本地开发与分发模式)
 
 ## Source Basis
 

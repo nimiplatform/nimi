@@ -41,7 +41,7 @@ export const jevSearchMessagesEn = {
   'jevSearch.workspace.pastYear': 'Past year',
   'jevSearch.workspace.exampleLinks': ' example links',
   'jevSearch.workspace.savedExampleResultsFiltersExploreThis':
-    'Saved example results · filters explore this sample, independently of your query.',
+    "Saved example results · filters apply to this sample, regardless of your query.",
   'jevSearch.workspace.onTopicIllustrativeScore': '% on topic · illustrative score',
   'jevSearch.workspace.backToExamples': 'Back to examples',
 } as const;

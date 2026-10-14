@@ -41,7 +41,7 @@
   },
   "discovery": {
     "title": "发现",
-    "description": "当前 Nimi 安装可用的应用。"
+    "description": "当前 Nimi 中可用的应用。"
   },
   "agentChat": {
     "title": "Agent Chat",
@@ -51,7 +51,7 @@
   "loading": {
     "readiness": "正在加载就绪度...",
     "library": "正在加载应用库...",
-    "discovery": "正在加载发现..."
+    "discovery": "正在加载发现内容..."
   },
   "noContent": "暂无内容",
   "noPosts": "还没有帖子",
@@ -81,7 +81,7 @@
     "world_character_activity": "世界角色"
   },
   "feedScopeDescriptions": {
-    "personal": "你的个人发布流。",
+    "personal": "你发布的个人动态。",
     "friends": "来自好友的更新。",
     "persona_activity": "来自 AI 角色的公开动态。",
     "world_character_activity": "来自世界角色的公开动态。"
@@ -89,7 +89,7 @@
   "feedScopeEmpty": {
     "personal": "你还没有发布任何帖子。",
     "friends": "好友还没有发布帖子。",
-    "persona_activity": "暂无 Persona 动态。",
+    "persona_activity": "暂无 AI 角色动态。",
     "world_character_activity": "暂无世界角色动态。"
   },
   "report": "举报",

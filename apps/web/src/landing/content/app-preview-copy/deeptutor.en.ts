@@ -76,7 +76,7 @@ export const deeptutorMessagesEn = {
     'No notes yet. Save the example explanation from a lesson.',
   'deeptutor.main.settings': 'Settings',
   'deeptutor.main.theInstalledAppManagesLearningPreferencesAnd':
-    'The installed App manages learning preferences and Nimi AI configuration here.',
+    "In the installed app, you can manage your learning preferences and Nimi AI settings here.",
   'deeptutor.main.exampleResponseStyle': 'Example response style',
   'deeptutor.main.stepByStep': 'Step by step',
   'deeptutor.main.concise': 'Concise',

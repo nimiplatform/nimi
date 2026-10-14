@@ -25,17 +25,17 @@ export const parentosMessagesEn = {
   'parentos.home.overflowFormat': '{{count}} more →',
   'parentos.home.health.vision.title': 'Vision screening at age 4',
   'parentos.home.health.vision.description':
-    'Ages 4–5 are an important window for amblyopia intervention. Arrange annual vision and refraction screening, and record unaided vision, squinting, or tilting the head to see.',
+    "Record age-appropriate vision screening and refraction results, along with observations such as squinting or head tilting. Follow your child’s clinician’s advice on checks and follow-up timing.",
   'parentos.home.health.dental.title': 'Primary-tooth fluoride follow-up',
   'parentos.home.health.dental.description':
-    'Review primary teeth every 3–6 months for new decay. Avoid eating for two hours after fluoride treatment.',
+    "Record primary teeth checkups, cavity observations, and fluoride treatments, and note aftercare instructions for the material used along with the dentist's recommended follow-up timing.",
   'parentos.home.development.social.title': 'A sensitive period for peer relationships',
   'parentos.home.development.social.description':
     'Around age 4, children begin to value friends and experience cooperation, disagreements, and reconciliation. Watching how she joins a game can be more useful than correcting every conflict.',
   'parentos.home.development.language.title': 'Storytelling is developing quickly',
   'parentos.home.development.language.description':
     'She is beginning to tell stories with a beginning and an end. Asking her to retell her day at bedtime is a natural language exercise.',
-  'parentos.home.quickLinksTitle': 'Common entries',
+  'parentos.home.quickLinksTitle': "Quick links",
   'parentos.home.quickLinks.growth.label': 'Growth curves',
   'parentos.home.quickLinks.vaccines.label': 'Vaccines',
   'parentos.home.quickLinks.sleep.label': 'Sleep',
@@ -59,8 +59,8 @@ export const parentosMessagesEn = {
   'parentos.home.vision.measured': 'Measured August 26',
   'parentos.home.outdoorTitle': 'Weekly outdoor goal',
   'parentos.home.outdoor.unit': 'Minutes',
-  'parentos.home.outdoor.primary': '9 outdoor hours this week; 5 hours to the goal.',
-  'parentos.home.outdoor.secondary': 'A park visit on each weekend day would complete the goal.',
+  'parentos.home.outdoor.primary': "9 hours outdoors this week—5 hours away from the goal.",
+  'parentos.home.outdoor.secondary': "You can spread the remaining 5 hours across the weekend's park visits.",
   'parentos.home.sensitiveBadge': 'Sensitive period',
   'parentos.home.periods.item1.title': 'Social development window',
   'parentos.home.periods.item1.sign':
@@ -69,7 +69,7 @@ export const parentosMessagesEn = {
   'parentos.home.periods.item2.sign':
     'She still likes certain routines but can accept occasional changes.',
   'parentos.home.recordAction': 'Record now',
-  'parentos.home.milestoneTitle': 'Milestone',
+  'parentos.home.milestoneTitle': "Milestones",
   'parentos.home.viewAll': 'View all records',
   'parentos.home.recentlyAchieved': 'Recently achieved',
   'parentos.home.upcoming': 'Coming soon',
@@ -89,22 +89,22 @@ export const parentosMessagesEn = {
     'Told all of The Three Little Pigs on her own for the first time, even voicing the wolf.',
   'parentos.home.lines.item1.detail': 'Language · recorded by Mom',
   'parentos.home.lines.item1.tag': 'Treasured moment · a first',
-  'parentos.home.lines.item2.badge': 'Watch',
+  'parentos.home.lines.item2.badge': "Observation",
   'parentos.home.lines.item2.when': '3 days ago',
   'parentos.home.lines.item2.title':
     'Invited another child to use the slide together and stayed cheerful when they declined.',
   'parentos.home.lines.item2.detail': 'Social · recorded by Dad',
-  'parentos.home.lines.item3.badge': 'voice',
+  'parentos.home.lines.item3.badge': "Voice",
   'parentos.home.lines.item3.when': '5 days ago',
   'parentos.home.lines.item3.title':
     'Bedtime voice note: learned to fold a paper airplane at preschool and wants to teach her little brother tomorrow.',
   'parentos.home.lines.item3.detail': 'Voice observation · transcribed',
-  'parentos.home.lines.item4.badge': 'Watch',
+  'parentos.home.lines.item4.badge': "Observation",
   'parentos.home.lines.item4.when': '1 week ago',
   'parentos.home.lines.item4.title':
     "Kept trying to build a taller block tower and didn't give up after it fell five times.",
   'parentos.home.lines.item4.detail': 'Focus · recorded by Mom',
-  'parentos.home.observationTitle': 'Observation distribution',
+  'parentos.home.observationTitle': "Observation breakdown",
   'parentos.home.viewRecords': 'View records',
   'parentos.home.last30': '{{count}} records in the last 30 days',
   'parentos.home.observations.item1.name': 'Social interaction',
@@ -114,14 +114,14 @@ export const parentosMessagesEn = {
   'parentos.home.monthlyReportTitle': "This month's growth letter",
   'parentos.home.viewFullReport': 'View full report',
   'parentos.home.teaser':
-    "Xiaoman's biggest changes this month were in language and social skills. She is expressing herself through complete stories and handling a disagreement with a peer on her own for the first time.",
+    "Xiaoman grew most in language and social skills this month. She now expresses herself in complete stories, and she handled a disagreement with a peer on her own for the first time.",
   'parentos.home.todoTitle': 'One thing to try this month',
   'parentos.home.actionText':
     'Set aside 20 minutes each week when she is the teacher and shows you something.',
   'parentos.panel.title': 'To-dos',
   'parentos.panel.todayTab': 'Today',
   'parentos.panel.upcomingTab': 'Next 7 days',
-  'parentos.panel.overdueSummary': 'Overdue summary',
+  'parentos.panel.overdueSummary': "Overdue",
   'parentos.panel.reminders.rVision.title': 'Vision screening at age 4',
   'parentos.panel.reminders.rVision.status': 'Due today',
   'parentos.panel.reminders.rVision.primary': 'Record data',
@@ -178,19 +178,19 @@ export const parentosMessagesEn = {
   'parentos.advisor.conversations.c1.messages.item1.content':
     'Xiaoman has been at preschool for two weeks but still cries at drop-off and needs a long hug before going in. Should I keep going or give her more time?',
   'parentos.advisor.conversations.c1.messages.item2.content':
-    'Crying at drop-off after two weeks is common at age 4 and **does not mean she has failed to adjust**. Your notes show active language and social engagement at preschool. Her distress may be about saying goodbye rather than lasting all day.\n\nYou could try:\n- Keep a short goodbye ritual consistent: a hug, a high-five, and a familiar phrase.\n- Hand over to the teacher after saying goodbye. A drawn-out goodbye can prolong anxiety.\n- Ask who she played with rather than whether she cried.\n\nIf there is no improvement after three weeks, or she also stays withdrawn during the day, work with her teacher to observe specific triggers.',
+    "Every child adjusts at their own pace. Ask her teacher how she settles after you leave, then agree on the next step together.\n\nYou could try:\n- A brief, consistent goodbye ritual: a hug, telling her when you'll return, and a calm handover.\n- Asking who she played with at pickup.\n\nIf distress continues during the day or you have concerns, talk with her teacher or pediatrician.",
   'parentos.advisor.conversations.c2.title': 'What to ask at an age-4 vision screening',
   'parentos.advisor.conversations.c2.when': '3 days ago',
   'parentos.advisor.conversations.c2.messages.item1.content':
     "I'm taking Xiaoman for vision screening this week. What should I ask?",
   'parentos.advisor.conversations.c2.messages.item2.content':
-    "At age 4, key checks include **unaided visual acuity, refraction, and differences between the two eyes**. Ask the clinician to record:\n- Each eye's unaided visual acuity, for comparison next year.\n- Any astigmatism or low hyperopic reserve.\n- Whether a follow-up with dilating drops is needed.\n\nEnter the measurements in her profile afterward. ParentOS can remind you about next year's review.",
+    "At this visit, focus on recording **unaided visual acuity, refraction results, and any difference between the two eyes**. You can ask the clinician to note:\n- Measurements for each eye to compare at future visits.\n- Astigmatism, hyperopic reserve, or everyday signs like squinting.\n- Whether dilating drops are needed and when to return.\n\nSave the results, and keep the clinician's follow-up advice with your notes.",
   'parentos.advisor.conversations.c3.title': "Her emotions after her brother's birth",
   'parentos.advisor.conversations.c3.when': '2 weeks ago',
   'parentos.advisor.conversations.c3.messages.item1.content':
     'Since her little brother was born, Xiaoman has become very clingy and sometimes deliberately makes him cry.',
   'parentos.advisor.conversations.c3.messages.item2.content':
-    'This can be a sign of **sibling rivalry**. She is checking that she is still loved. Try giving her 10–15 minutes of undivided time each day, rather than repeatedly explaining how she should behave.',
+    "When a younger sibling takes up extra attention, an older child still needs moments that are just for her. Try setting aside some **undivided one-on-one time** to do something she enjoys and listen to how she feels.",
   'parentos.advisor.user': 'You',
   'parentos.advisor.assistant': 'Growth advisor',
   'parentos.advisor.thinking': 'AI is thinking…',
@@ -205,9 +205,9 @@ export const parentosMessagesEn = {
   'parentos.advisor.emptyTitle': 'Choose or create a conversation',
   'parentos.advisor.emptyDescription': "The AI advisor uses Xiaoman's profile and local records",
   'parentos.advisor.replies.item1':
-    "Looking at Xiaoman's age—4 years 3 months—and recent records, **there is no need to rush**. Her language and social development are within the expected range. Record your observations, then review any changes in a week or two.\n\nThis week:\n- Make time for uninterrupted free play each day.\n- Note how often she starts an interaction.\n- Add surprising moments to her growth journal.",
+    "A few notes aren't enough to draw conclusions yet, so **take it one step at a time**. For Xiaoman at 4 years 3 months, try jotting down specific observations over the next week or two so you can look back on how things unfold.\n\nThis week:\n- Make time for uninterrupted free play.\n- Note when she initiates interaction.\n- Save memorable moments in her growth journal.",
   'parentos.advisor.replies.item2':
-    "Ages 4–5 are a period of rapid **storytelling development**. You don't need formal lessons. Asking ‘What happened next?’ as she talks can help her stories become more complete.\n\nYou could also record her stories as voice notes. Listening again a month later can reveal changes.",
+    "Supporting **storytelling and expression** doesn't require formal lessons. Following her lead and asking 'What happened next?' encourages her to keep sharing her thoughts.\n\nYou can also save her stories as voice notes to listen back to together later.",
   'parentos.journal.heroLead': 'Growth',
   'parentos.journal.heroTail': 'Note',
   'parentos.journal.subtitleLead': 'Write down one moment from today.',
@@ -216,8 +216,8 @@ export const parentosMessagesEn = {
   'parentos.journal.stats.thisMonth': 'This month',
   'parentos.journal.stats.total': 'Total',
   'parentos.journal.stats.keepsake': 'Keepsake',
-  'parentos.journal.captureText': 'text',
-  'parentos.journal.captureVoice': 'voice',
+  'parentos.journal.captureText': "Text",
+  'parentos.journal.captureVoice': "Voice",
   'parentos.journal.placeholder': 'What did Xiaoman do today that stood out?',
   'parentos.journal.save': 'Save record',
   'parentos.journal.keepsakeToggle': 'Mark as keepsake',
@@ -243,7 +243,7 @@ export const parentosMessagesEn = {
   'parentos.journal.entries.j4.text':
     'Bedtime voice note: learned to fold a paper airplane at preschool and wants to teach her little brother tomorrow.',
   'parentos.journal.entries.j4.recorder': 'Mom',
-  'parentos.profile.title': 'Profile console',
+  'parentos.profile.title': "Growth profile",
   'parentos.profile.recordSummary': '86 growth records · last entry 3 days ago',
   'parentos.profile.completenessLabel': 'Profile completeness',
   'parentos.profile.addData': 'Add health data',
@@ -268,18 +268,18 @@ export const parentosMessagesEn = {
   'parentos.profile.groups.dental.metrics.item2.label': 'Fluoride',
   'parentos.profile.groups.dental.metrics.item2.value': 'June 12',
   'parentos.profile.groups.dental.metrics.item3.label': 'Caries',
-  'parentos.profile.groups.dental.metrics.item3.value': 'none',
+  'parentos.profile.groups.dental.metrics.item3.value': "None",
   'parentos.profile.groups.vaccines.name': 'Vaccines',
   'parentos.profile.groups.vaccines.summary': '18 doses completed · 1 pending',
-  'parentos.profile.groups.vaccines.metrics.item1.label': 'Complete',
+  'parentos.profile.groups.vaccines.metrics.item1.label': "Completed",
   'parentos.profile.groups.vaccines.metrics.item1.value': '18 doses',
-  'parentos.profile.groups.vaccines.metrics.item2.label': 'Missing',
+  'parentos.profile.groups.vaccines.metrics.item2.label': "To review",
   'parentos.profile.groups.vaccines.metrics.item2.value': 'Flu — autumn',
   'parentos.profile.groups.sleep.name': 'Sleep',
   'parentos.profile.groups.sleep.summary': 'Average 10h 20m',
   'parentos.profile.groups.sleep.metrics.item1.label': 'Average duration',
   'parentos.profile.groups.sleep.metrics.item2.label': 'Bedtime',
-  'parentos.profile.groups.milestones.name': 'Milestone',
+  'parentos.profile.groups.milestones.name': "Milestones",
   'parentos.profile.groups.milestones.summary': '31 milestones reached',
   'parentos.profile.groups.milestones.metrics.item1.label': 'Gross motor',
   'parentos.profile.groups.milestones.metrics.item1.value': '8 milestones',
@@ -287,9 +287,9 @@ export const parentosMessagesEn = {
   'parentos.profile.groups.milestones.metrics.item2.value': '7 milestones',
   'parentos.profile.groups.milestones.metrics.item3.label': 'Social-emotional',
   'parentos.profile.groups.milestones.metrics.item3.value': '6 milestones',
-  'parentos.reports.title': 'growth-report',
+  'parentos.reports.title': "Growth report",
   'parentos.reports.subtitle':
-    'A growth letter is organized each month. You can also choose a date range.',
+    "Review a month's growth, or choose your own date range.",
   'parentos.reports.generate': 'Generate report',
   'parentos.reports.presets.item1': 'This month',
   'parentos.reports.presets.item2': 'Last month',
@@ -306,7 +306,7 @@ export const parentosMessagesEn = {
   'parentos.reports.letter.paragraphs.item3':
     'Her vision screening is due; arrange it this week if possible. The autumn flu vaccine is still pending.',
   'parentos.reports.letter.actionsTitle': 'Three things to try next month',
-  'parentos.reports.letter.actions.item1': 'Set aside 20 minutes each week when she is the teacher',
+  'parentos.reports.letter.actions.item1': "Set aside 20 minutes each week for her to play teacher",
   'parentos.reports.letter.actions.item2':
     'Complete the age-4 vision screening and record the measurements',
   'parentos.reports.letter.actions.item3': 'Plan two hours outdoors on each weekend day',
@@ -315,7 +315,7 @@ export const parentosMessagesEn = {
   'parentos.settings.other': 'Other',
   'parentos.settings.account.note': 'Nimi manages sign-in and account switching.',
   'parentos.settings.languageTitle': 'Interface language',
-  'parentos.settings.languageDesc': 'Switch ParentOS interface copy globally.',
+  'parentos.settings.languageDesc': "Change the display language across ParentOS.",
   'parentos.settings.sections.children.label': 'Children and family',
   'parentos.settings.sections.children.desc': 'Manage child profiles, contributors, and avatars.',
   'parentos.settings.sections.nurture.label': 'Nurture mode',
@@ -324,11 +324,11 @@ export const parentosMessagesEn = {
   'parentos.settings.sections.reminders.label': 'Reminder preferences',
   'parentos.settings.sections.reminders.desc':
     'Adjust reminder frequency by area, or pause reminders.',
-  'parentos.settings.sections.ai.label': 'AI Settings',
+  'parentos.settings.sections.ai.label': "AI settings",
   'parentos.settings.sections.ai.desc':
     'Choose local or cloud models for the growth advisor and speech transcription.',
   'parentos.settings.info.item1.label': 'Privacy and local data',
-  'parentos.settings.info.item1.desc': 'All records stay on this device.',
+  'parentos.settings.info.item1.desc': "Growth records and media are stored locally on your device; when using Cloud AI, content for the current request is sent to your selected model provider.",
   'parentos.settings.info.item2.label': 'About ParentOS',
   'parentos.settings.info.item2.desc': 'Version 0.1.6 · sample data',
   'parentos.notices.hostOnly':
@@ -340,7 +340,7 @@ export const parentosMessagesEn = {
   'parentos.journalPage.today': 'Today',
   'parentos.journalPage.you': 'You',
   'parentos.journalPage.clickToStartRecordingSpeechIsTranscribed':
-    'Click to start recording; speech is transcribed when you finish',
+    "Click to start recording. Speech is transcribed when you finish.",
   'parentos.profilePage.viewAllRecords': 'View all records',
   'parentos.settingsPage.thePreviewFollowsTheLanguageSelectedAt':
     'The preview follows the language selected at the top of the page.',

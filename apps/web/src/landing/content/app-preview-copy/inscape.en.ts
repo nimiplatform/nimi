@@ -61,7 +61,7 @@ export const inscapeMessagesEn = {
     'Take your time getting to know different sides of yourself.',
   'inscape.reading.aSelfPortraitStillGrowing': 'A self-portrait still growing',
   'inscape.reading.cognitiveFunctionsOfferOnePerspectiveOnUnderstanding':
-    'Cognitive functions offer one perspective on understanding. This fictional profile is not an assessment of the visitor.',
+    "Cognitive functions offer one perspective for self-understanding. This fictional profile is an example, not an assessment of you.",
   'inscape.main.introvertedIntuitionNi': 'Introverted intuition · Ni',
   'inscape.main.extravertedFeelingFe': 'Extraverted feeling · Fe',
   'inscape.main.introvertedThinkingTi': 'Introverted thinking · Ti',

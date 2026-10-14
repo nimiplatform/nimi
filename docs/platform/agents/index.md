@@ -1,23 +1,25 @@
 # Character and LocalAgent
 
-Characters represent durable, persistent participants within the Nimi ecosystem. A character possesses an invariant identity: it remains the same entity across every digital world and conversation, persistently maintained over time by Realm.
+A **Character** is a persistent participant in the Nimi ecosystem. Across every digital world and conversation, a character keeps the same identity, relationships, and core definition, all maintained by Realm.
 
-A LocalAgent is how Runtime materializes that character definition locally on-device. When initiating an interactive session, Runtime interprets the character's Realm-issued specification—the Character Source—and executes it as an active agent on the user's machine. The LocalAgent maintains the live conversation history and operational execution state for that run, while canonical character identity remains securely anchored in Realm.
+A **LocalAgent** is how Runtime runs that character on the user's device. When an interactive session starts, Runtime reads the character's Realm-issued specification—the **Character Source**—and launches an active agent locally. The LocalAgent manages live conversation turns and execution state for that run, while the character's permanent identity stays anchored in Realm.
 
-Key architectural concepts:
-- **Character**: Persistent identity, relationship graphs, and world affiliations maintained by Realm. `PersonaCharacter` and `WorldCharacter` represent domain-specific forms of Character, not separate local agent archetypes.
-- **Character Source**: The declarative contract issued by Realm enabling Runtime to instantiate a character.
-- **LocalAgent**: The running on-device instance created for the current user. Runtime governs its lifecycle, active conversations, memory routing, inference model selection, readiness status, and token budgets.
+Core concepts:
+- **Character**: The persistent entity maintained by Realm, including identity, relationship graphs, and world affiliations. `PersonaCharacter` and `WorldCharacter` are domain-specific forms of Character, not separate local agent types.
+- **Character Source**: The declarative contract issued by Realm that Runtime uses to instantiate a character.
+- **LocalAgent**: The on-device instance running for the current user. Runtime manages its lifecycle, active conversations, memory routing, model selection, readiness status, and token budgets.
 
-No extraneous identity layer (such as `AgentFamily` or `AgentPersona`) exists between Character and LocalAgent.
+There is no intermediate identity layer (such as `Agent`, `AgentFamily`, or `AgentPersona`) between Character and LocalAgent.
 
 ## Authority & Subsystem Boundaries
 
-Realm serves as the Single Source of Truth for character identity: who a character is, its social ties, world memberships, and canonical descriptions. Runtime executes a LocalAgent based on the Character Source without usurping Realm's authoritative records.
+Realm is the single source of truth for character identity: who a character is, its social ties, world memberships, and canonical descriptions. Runtime instantiates a LocalAgent from the Character Source without taking over or mutating Realm's records.
 
-Applications, Nimi Home, Desktop shell, and Avatar only access resources authorized for the active authenticated session. They cannot synthesize LocalAgent identities or reconstruct Runtime state from local chat logs, and they never receive Realm master tokens, AI provider API keys, internal Runtime proofs, or account-wide agent rosters.
+Long-term memory is isolated per agent in Cognition, with Runtime mediating authorized recall and updates (`Knowledge V1` currently has no active public client interface).
 
-Avatar renders structured visual and motion streams dispatched by Runtime, managing local rendering parameters (e.g., gaze, mesh kinematics) independently without controlling the LocalAgent's reasoning loop.
+Applications, Nimi Home (hosted by Desktop), and Avatar only access resources authorized for the active protected session. They cannot mint LocalAgent identities or rebuild Runtime state from local chat logs, and they never receive Realm master tokens, AI provider API keys, internal Runtime proofs, or account-wide agent rosters.
+
+Avatar renders structured visual and motion streams from Runtime and manages local rendering state (such as gaze and mesh kinematics) without driving the LocalAgent's reasoning loop.
 
 ## Section Topics
 
@@ -26,9 +28,6 @@ Avatar renders structured visual and motion streams dispatched by Runtime, manag
 - [LocalAgent Access and App Authorization](./participation-authority)
 - [Cross-World Identity](./cross-world-identity)
 - [External Participation](./external-agents)
-
-> [!NOTE]
-> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
 
 ## Source Basis
 

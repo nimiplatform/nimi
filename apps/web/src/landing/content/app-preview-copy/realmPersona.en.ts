@@ -19,7 +19,7 @@ export const realmPersonaMessagesEn = {
   'realmPersona.workspace.assetLibrary': 'Asset library',
   'realmPersona.workspace.aiConfiguration': 'AI configuration',
   'realmPersona.workspace.newPersonaDraft': 'New persona draft',
-  'realmPersona.workspace.waitingForYourSetting': 'Waiting for your setting',
+  'realmPersona.workspace.waitingForYourSetting': "Waiting for persona details",
   'realmPersona.workspace.sampleCreatorWorkspace': 'Sample creator workspace',
   'realmPersona.main.backToPersonaLibrary': 'Back to persona library',
   'realmPersona.main.samplePersonaAvatar': 'Sample persona avatar',
@@ -28,9 +28,9 @@ export const realmPersonaMessagesEn = {
   'realmPersona.main.saveSampleDraft': 'Save sample draft',
   'realmPersona.main.postDraft': 'Post draft',
   'realmPersona.main.personaEditingArea': 'Persona editing area',
-  'realmPersona.main.displayName': 'Display Name',
+  'realmPersona.main.displayName': "Display name",
   'realmPersona.main.oneLineIntroduction': 'One-line introduction',
-  'realmPersona.main.personaSetting': 'Persona setting',
+  'realmPersona.main.personaSetting': "Persona details",
   'realmPersona.main.reviewTheDraftFirstThisPreviewDoes':
     'Review the draft first. This preview does not create or publish a persona to Realm.',
   'realmPersona.visual.currentSampleAppearance': 'Current sample appearance',
@@ -55,7 +55,7 @@ export const realmPersonaMessagesEn = {
   'realmPersona.main.creativeDrafts': 'Creative drafts',
   'realmPersona.main.myRealmPersonas': 'My Realm Personas',
   'realmPersona.main.startWithAnIdeaAndLetA':
-    'Start with an idea and let a persona become distinct.',
+    "Start with an idea and shape a distinct persona.",
   'realmPersona.main.newPersonaDraft': 'New persona draft',
   'realmPersona.idea.whatKindOfPersonaWouldYouLike': 'What kind of persona would you like to meet?',
   'realmPersona.idea.aSingleIdeaCanBeTheBeginning':

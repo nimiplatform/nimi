@@ -10,7 +10,7 @@ Nimi SDK 是 App 面向 Runtime、Realm、AI 推理、Agent 协作、扩展 Feat
 
 ## 快速上手：Nimi App 开发
 
-对于标准的 Nimi App，开发时**只需使用一个绑定宿主会话的客户端 (Host-bound Client)**。当 Nimi Home 在受监管的桌面宿主中启动 App 时，宿主会自动注入标准 Shell 桥接，底层 Runtime 会直接从该受保护会话中解析当前登录账号、App 身份标识与对应权限范围。App 本身无需硬编码 App ID、账号凭证、Token 或 Runtime 监听端口。
+对于标准的 Nimi App，开发时**只需使用一个绑定宿主会话的客户端 (Host-bound Client)**。当 Nimi Home 在受监管的桌面宿主中启动 App 时，宿主会自动注入标准 Shell 桥接，底层 Runtime 会直接从该受保护会话中解析当前登录账号、App 身份标识与对应权限范围。App ID 仍需在项目清单中声明；业务调用从宿主获取身份，无需逐次传入 App ID、账号凭证、Token 或 Runtime 监听端口。
 
 ```ts
 import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
@@ -32,16 +32,16 @@ export function getNimiLocalAppClient(): NimiLocalAppClient {
 
 | API 入口 | 适用场景与推荐实践 |
 | --- | --- |
-| `client.ai.text.generateCandidate` | App 需要简单的单次文本生成。请参阅[第一次 AI 调用](/zh/sdk/first-ai-call)获取完整步骤。 |
-| `client.aiConfig` | App 查询或保存自身的 AI 能力偏好设置。详见 [AI 配置](/zh/sdk/ai-config-surface)。 |
-| `createNimiLocalAppTextModel(client.ai)` (位于 `@nimiplatform/sdk/ai`) | App 需要自主驱动多轮 Tool-calling 循环、结构化 JSON 输出或处理图文多模态内容。底层共享同一个宿主客户端。 |
-| `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` (位于 `@nimiplatform/sdk-adapter-vercel-ai`) | App 基于 Vercel AI SDK 7 生态构建。作为独立适配器包发布，版本对照请参考[适配器说明](/zh/sdk/adapters)。 |
-| `createNimiClient({ appId, runtime, realm })` | 仅适用于 Nimi App 之外的独立守护进程或测试脚本（如独立完成 Realm 鉴权与 Token 管理的脚本）。 |
+| `client.ai.text.generateCandidate` | App 需要标准单轮文本生成。完整步骤请参阅[第一次 AI 调用](/zh/sdk/first-ai-call)。 |
+| `client.aiConfig` | App 查询或持久化自身的 AI 能力偏好设置。详见 [AI 配置](/zh/sdk/ai-config-surface)。 |
+| `createNimiLocalAppTextModel(client.ai)` (位于 `@nimiplatform/sdk/ai`) | App 需要驱动多轮 Tool-calling 循环、结构化 JSON 输出或图文多模态内容，底层复用同一宿主客户端。 |
+| `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` (位于 `@nimiplatform/sdk-adapter-vercel-ai`) | App 基于 Vercel AI SDK 7 生态构建。作为独立适配器包分发，版本对照见[适配器](/zh/sdk/adapters)。 |
+| `createNimiClient({ appId, runtime, realm })` | 仅适用于 App 外部的独立守护进程或测试脚本（自行维护 Realm 鉴权与 Token 会话）。 |
 
 > [!WARNING]
 > 最后一种 `createNimiClient({ appId, ... })` 返回的是直连式 `NimiClient`，而非 App 宿主客户端。仅在配置中传入 App ID 并不会赋予任何受管权限。通过普通本机 gRPC 连接时，Runtime 会以 `PROTECTED_ORIGIN_ROLE_MISMATCH` 严格拒绝 App 专属操作（如 AI 执行、Job 调度、App AIConfig、本地安全存储及 Agent 会话）。切勿在 App 内部使用它取代宿主客户端。
 
-## 核心架构表面
+## SDK 架构表面
 
 <SdkSurfaces />
 

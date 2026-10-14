@@ -2,7 +2,7 @@
 export const jevUltrafastMessagesEn = {
   'jevUltrafast.title': 'Every page is a set of possibilities.',
   'jevUltrafast.description':
-    'A decision model picks the next operation, then its element. A text model writes field values.',
+    "A decision model selects the next action and target element, while a text model fills in the fields.",
   'jevUltrafast.goal': 'Open the information link on example.com.',
   'jevUltrafast.steps.item1.title': 'Observe the page',
   'jevUltrafast.steps.item1.target': 'More information…',
@@ -60,7 +60,7 @@ export const jevUltrafastMessagesEn = {
   'jevUltrafast.choice.pageObserved': 'Page observed',
   'jevUltrafast.choice.waitingForAPage': 'Waiting for a page',
   'jevUltrafast.choice.chooseNextToInspectTheExampleDecision':
-    'Choose next to inspect the example decision.',
+    "Click \"Choose next\" to inspect the example decision.",
   'jevUltrafast.choice.startTheExampleToInspectItsAction':
     'Start the example to inspect its action sequence.',
   'jevUltrafast.history.stepHistory': 'Step history',

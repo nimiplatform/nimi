@@ -33,8 +33,8 @@
     "localUnavailableLabel": "The current on-device selection could not be loaded.",
     "localMismatchLabel": "The selected on-device model does not support: {{features}}",
     "openOwnerConfigurationLabel": "Manage in Nimi",
-    "cloudBlockedLabel": "This Cloud selection cannot run right now. Choose the model again or choose another model.",
-    "cloudCatalogStaleLabel": "The Cloud model list changed after this model was selected. Choose the model again from the current list.",
+    "cloudBlockedLabel": "This Cloud selection cannot run right now. Reselect the model or choose a different one.",
+    "cloudCatalogStaleLabel": "The Cloud model list has changed since this model was selected. Select it again from the current list.",
     "cloudChatGPTPlanLabel": "Using ChatGPT plan",
     "cloudChatGPTPlanDescription": "Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.",
     "loadFailed": "Nimi Lab AI configuration could not be loaded from Runtime.",
@@ -47,7 +47,7 @@
     "mismatchLabel": "Feature mismatch",
     "runtimeConnected": "Connected to Runtime",
     "runtimeUnavailable": "Runtime unavailable",
-    "headerDescription": "Choose an existing on-device model from the current Runtime and save it directly to Nimi Lab's App AI configuration.",
-    "footerNote": "The same configuration can also be viewed and managed centrally in Nimi Desktop."
+    "headerDescription": "Choose a Local or Cloud route for each capability, then save Nimi Lab’s AI settings.",
+    "footerNote": "You can also view and manage this configuration centrally in Nimi Desktop."
   }
 }

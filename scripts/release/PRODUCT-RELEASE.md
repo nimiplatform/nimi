@@ -1,42 +1,42 @@
-# Complete Nimi product release handoff
+# Complete Nimi Product Release Handoff
 
 This is the concrete execution guide for `nimi/v<Desktop package version>`,
-separate from SDK, Runtime-only and third-party App releases. Source preparation,
-actual artifacts and real product acceptance are different results. A successful
+separate from SDK, Runtime-only, and third-party App releases. Source preparation,
+actual artifacts, and real product acceptance represent distinct stages: a successful
 build or publication does not establish installed-product acceptance.
 
 ## Inputs and custody
 
-- Freeze an exact main ancestor SHA. `apps/desktop/package.json` supplies product
-  version; all source checkouts and sidecars must match it and this SHA. Do not
-  edit built/signed assets or version files on build runners.
+- Freeze an exact main ancestor SHA. `apps/desktop/package.json` supplies the product
+  version; all source checkouts and sidecars must match both this version and SHA. Do not
+  edit built or signed assets or version files on build runners.
 - Platform admits the real raw Ed25519 public key in
-  `config/product-update-policy.mjs` and retains its signing custody. Empty key
-  refuses public production builders, manifests, release staging and product-feed deploy.
+  `config/product-update-policy.mjs` and retains its signing custody. An empty key
+  causes public production builders, manifests, release staging, and product-feed deployments to be rejected.
   Existing Mac local-acceptance Apple-signed candidates may still build without
   this updater key; their helper always seals empty update trust, installation
-  stays disabled, and their local realmOrigin prevents public promotion.
-  CLI consumes an existing private-key file via `--signing-key`; it never
+  remains disabled, and their local realmOrigin prevents public promotion.
+  The CLI consumes an existing private-key file via `--signing-key`; it never
   generates a replacement. The workflow's `NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM`
   secret is a custody reference; its name alone does not prove provisioning or
-  a match to the admitted key. Platform must approve/provision that binding,
-  and the workflow verifies the actual pair before signing work. Do not put
-  private keys in chat, Git or artifacts.
+  a match to the admitted key. Platform must approve and provision that binding,
+  and the workflow verifies the actual key pair before performing signing work. Never commit or paste
+  private keys into chat, Git, or build artifacts.
 - Mac reuses `NIMI_MACOS_SIGNING_P12_BASE64`,
-  `NIMI_MACOS_SIGNING_P12_PASSWORD`, `NIMI_NOTARY_APPLE_ID` and
+  `NIMI_MACOS_SIGNING_P12_PASSWORD`, `NIMI_NOTARY_APPLE_ID`, and
   `NIMI_NOTARY_APP_PASSWORD` from the existing temporary-Keychain workflow;
-  Developer ID identities must be Team RMZJPQQR3X. Local-acceptance Realm builds
-  remain non-publishable. Final release sidecar must say
+  Developer ID identities must belong to Team RMZJPQQR3X. Local-acceptance Realm builds
+  remain non-publishable. The final release sidecar must specify
   `realmOrigin=https://realm.nimi.ai`.
-- Publisher uses the dedicated `NIMI_PRODUCT_RELEASES_TOKEN` reference. Its
-  actual permissions are not assumed: publication needs release/tag write and
-  immutable-settings administration read. Keep it scoped to nimiplatform/nimi
+- The publisher uses the dedicated `NIMI_PRODUCT_RELEASES_TOKEN` reference. Its
+  actual permissions are not assumed: publication requires release/tag write access and
+  immutable-settings administration read access. Keep it scoped strictly to `nimiplatform/nimi`
   and provision it only for the publishing workflow. It is never deployed to
-  Gateway. Missing custody or permissions refuse publication.
-  No script enables immutability or changes secrets/repository settings.
+  Gateway. Missing custody or insufficient permissions will block publication.
+  No script enables immutability or modifies secrets/repository settings.
 - Gateway reuses existing Cloudflare account/API token custody and the optional
   read-only `NIMI_GITHUB_RELEASES_TOKEN`. Refresh that reader separately from
-  publishing custody. No publishing token or signing private key is deployed
+  publishing custody. Neither publishing tokens nor signing private keys are ever deployed
   to Gateway.
 
 The operator's ephemeral admission JSON is publishing input, not another
@@ -64,21 +64,21 @@ version or evidence ledger. Its exact keys are:
 }
 ```
 
-Replace angle-bracket values with approved real inputs. Both targets use the
-same publication/expiry window; allow the window to cover real builds and
-validation. Expired input fails instead of being refreshed after signing.
-Windows OS floor remains subject to Platform admission and real Windows
-validation; the example is not a tested support promise.
+Replace angle-bracket values with approved real inputs. Both targets share the
+same publication and expiry window; ensure the window is sufficient to cover actual builds and
+validation. Expired input fails immediately rather than being refreshed after signing.
+Note that the Windows OS floor remains subject to Platform admission and real Windows
+validation; the example above is not a tested support promise.
 
 ## Build and prepare on each actual platform
 
-Use locked workspace dependencies, Node 24, pnpm 10.34.5, the Runtime Go version
-and Rust/native tools. Mac requires Apple Silicon, admitted signing identities
-and notary credentials. Windows requires native x64, MSVC/native tools, Sharp
-x64 dependencies and NSIS (workflow pins Chocolatey NSIS 3.11). Windows
-Authenticode is unsigned for initial Beta; a development signer is not accepted
-as formal product trust. Missing machine/tool/signing prerequisites block their
-actual execution.
+Use locked workspace dependencies, Node 24, pnpm 10.34.5, the pinned Runtime Go version,
+and required Rust/native tools. Mac builds require Apple Silicon, admitted signing identities,
+and notary credentials. Windows builds require native x64, MSVC/native build tools, Sharp
+x64 dependencies, and NSIS (the workflow pins Chocolatey NSIS 3.11). Windows
+Authenticode remains unsigned for initial Beta; a development certificate is not accepted
+as formal product trust. Missing machine, tool, or signing prerequisites will block
+execution.
 
 From the clean repository root on Mac, using existing signing environment:
 
@@ -87,14 +87,14 @@ pnpm build:macos:release
 pnpm release:product:prepare-target -- --identity <Mac output>/release-build-identity.json --asset <Mac output>/Nimi-<version>-macos-arm64.pkg --admission <admission.json> --signing-key <custody key file> --source <SHA> --output .nimi/local/product-release/macos-arm64
 ```
 
-The builder signs the app and roles, notarizes/staples, creates the signed PKG,
-then notarizes/staples and validates the **final PKG bytes** before the sidecar
-hash. Preparation rechecks Installer Team/notarized PKG, signs the timed update
-envelope and copies those final bytes verbatim. Do not modify or repackage them.
-An Apple `stapler staple` or `stapler validate` connection-loss error (`68`,
-`NSURLErrorDomain -1005`) retries that exact operation after 5, 15 and 30 seconds.
-Validation also contacts Apple. Exhaustion still fails the build. Notary
-submissions and TLS/signature/policy refusals are not retried by this rule;
+The builder signs the app and helper roles, notarizes and staples them, creates the signed PKG,
+then notarizes, staples, and validates the **final PKG bytes** before computing the sidecar
+hash. Target preparation rechecks the Installer Team and notarized PKG, signs the timed update
+envelope, and copies those final bytes verbatim. Do not modify or repackage them.
+If an Apple `stapler staple` or `stapler validate` connection-loss error occurs (`68`,
+`NSURLErrorDomain -1005`), the tool retries that exact operation after 5, 15, and 30 seconds.
+Because validation also contacts Apple, exhausting retries fails the build. Notary
+submissions and TLS, signature, or policy rejections are not retried by this rule;
 actual successful validation remains mandatory before hashing.
 
 On Windows, from the same clean source SHA:
@@ -104,14 +104,14 @@ pnpm build:windows:product --identity-signing-key <custody key file>
 pnpm release:product:prepare-target -- --identity apps/desktop/dist/windows/product/Nimi-<version>-windows-amd64.exe.identity.json --asset apps/desktop/dist/windows/product/Nimi-<version>-windows-amd64.exe --inventory apps/desktop/dist/windows/product/nimi-installed-windows-amd64.json --admission <admission.json> --signing-key <custody key file> --source <SHA> --output .nimi/local/product-release/windows-amd64
 ```
 
-The signed installed inventory is formed from actual packaged Desktop,
-Runtime, bundled Avatar/resources/updater and files, embedded in NSIS and
-exported unchanged. Only after NSIS finishes do its final size/SHA and sidecar
-feed the timed envelope. The producer authenticates the inventory and checks
-version/source/channel/components against the sidecar/envelope.
+The signed installed inventory is compiled from actual packaged Desktop,
+Runtime, bundled Avatar/resources/updater assets, and files, embedded in NSIS and
+exported unchanged. Only after NSIS completes do its final size, SHA, and sidecar
+feed into the timed envelope. The producer authenticates the inventory and verifies
+version, source, channel, and components against the sidecar and envelope.
 
-`release:product-update:manifest` remains available for direct one-target
-manifest preparation and now requires `--inventory` for Windows. It does not
+`release:product-update:manifest` remains available for direct single-target
+manifest preparation and now requires `--inventory` on Windows. Note that it does not
 assemble or publish a complete release.
 
 ## Cross-machine consumption and publication
@@ -134,49 +134,49 @@ wrapping is transport only. The complete set is seven files:
 pnpm release:product:validate -- --directory .nimi/local/product-release/ready --source <SHA>
 ```
 
-This authenticates metadata/inventory, exact source/version/channel/target and
-component versions, both target windows, and every final SHA/size. Extra/missing
-files fail. It does not prove payload usability or Windows full product/App Host
-composition. Those remain explicit acceptance prerequisites.
+This validates metadata and inventory, exact source/version/channel/target definitions,
+component versions, both target validity windows, and every final SHA and size. Any extra or
+missing files will fail validation. Passing validation does not prove payload usability or verify full Windows product/App Host
+composition; those remain explicit acceptance prerequisites.
 
-`.github/workflows/release-product.yml` is manual. `publish=false` builds and
-prepares both targets, validates the complete set and retains a ready artifact.
-`publish=true` additionally runs the real publication entry.
-Source/admission/key are checked before signing work.
+The `.github/workflows/release-product.yml` workflow is manually dispatched. Setting `publish=false` builds and
+prepares both targets, validates the complete set, and retains a ready artifact.
+Setting `publish=true` additionally runs the actual publication entry.
+The source commit, admission, and keys are verified before signing work begins.
 
-If Windows preparation succeeded but macOS failed (for example, a transient
+If Windows preparation succeeded but macOS failed (for example, due to a transient
 Apple ticket-stapling network error), set `prepared_windows_run_id` and
-`prepared_windows_run_attempt` to that successful Windows producer. Keep the
+`prepared_windows_run_attempt` to that successful Windows producer run. Keep the
 original `source_sha` and admission. The workflow skips Windows, produces only
 macOS, downloads the exact original four Windows files, and subjects the merged
-seven-file set to the unchanged complete validator before publication. Missing,
-expired, differently signed or mismatched source/cohort assets refuse publication.
+seven-file set to the unchanged complete validator before publication. Any missing,
+expired, differently signed, or mismatched source/cohort assets will block publication.
 This partial handoff cannot be combined with `prepared_run_id` for a complete set;
 it does not change or re-sign the retained Windows target.
 
 To verify macOS first, manually dispatch `build-macos-production.yml` with the
-exact `source_ref`, `prepare_product=true`, `realm_target=production` and original
+exact `source_ref`, `prepare_product=true`, `realm_target=production`, and original
 `release_admission`. This runs the same guarded producer and emits the three
 prepared macOS files without building Windows. After it succeeds and source CI
 passes, dispatch `release-product.yml` with `prepared_macos_run_id` and
 `prepared_macos_run_attempt` pointing to that artifact. macOS is skipped; Windows
 is prepared from the same source, and the original Mac files join the unchanged
-complete-set validation/publisher. Both prepared target references may be supplied
+complete-set validation and publishing pipeline. Both prepared target references may be supplied
 when both already exist. Target references cannot be mixed with `prepared_run_id`.
 
 To publish a previously prepared and approved set from GitHub, set
 `prepared_run_id` and `prepared_run_attempt` to the run that produced its
 `nimi-product-ready-<run>-<attempt>` artifact. Keep `source_sha` and admission
 equal to that original set. The existing workflow downloads that exact artifact
-from this repository with read-only Actions permission, verifies all seven
+from this repository with read-only Actions permissions, verifies all seven
 original files through the same source/key/cohort/final-byte validator, and
-uses the same publisher. It does not rebuild, re-sign or refresh signed times.
-Missing artifacts, source/trust mismatches and expired metadata still refuse
+uses the same publisher. It does not rebuild, re-sign, or refresh signed times.
+Missing artifacts, source/trust mismatches, and expired metadata will still block
 publication. The workflow definition can be newer than the frozen payload source;
-the artifact's signed source remains the product tag's source. The publisher
-runs clean, admitted main code and reads version from the frozen payload commit,
+the artifact's signed source remains the product tag's source commit. The publisher
+runs clean, admitted `main` code and reads the version from the frozen payload commit,
 which must be its main-line ancestor; it never substitutes the operator's newer
-package version. Dirty or unadmitted operator code refuses publication.
+package version. Dirty or unadmitted operator code will block publication.
 
 Only after owner approval of a concrete ready set may an authorized operator run:
 
@@ -184,38 +184,38 @@ Only after owner approval of a concrete ready set may an authorized operator run
 pnpm release:product:publish -- --directory .nimi/local/product-release/ready --source <SHA> --notes <reviewed notes file>
 ```
 
-The script uses only nimiplatform/nimi, checks immutable releases are enabled,
-checks existing tag source, discovers drafts through authenticated paginated
+The script uses only nimiplatform/nimi, checks that immutable releases are enabled,
+checks the existing tag source, discovers drafts through authenticated paginated
 List releases (not the published-only tag lookup), and binds creation/retry,
-asset upload, validation and publish to the same numeric release ID. It uploads missing
+asset upload, validation, and publishing to the same numeric release ID. It uploads missing
 assets without clobber, verifies **all remote asset SHA/size/identity**, then
 rechecks both authenticated payloads' validity immediately before the draft
 transition. Upload-time expiry leaves the draft unpublished; no signed times
-or version are automatically refreshed. It then
-publishes and verifies immutable=true plus the locked tag/source. Unknown or
-different existing assets block. No asset is patched after publish. GitHub's
+or versions are automatically refreshed. It then
+publishes and verifies `immutable=true` plus the locked tag/source. Unknown or
+differing existing assets will block the process. No asset is patched after publish. GitHub's
 [draft-first immutable release behavior](https://cli.github.com/manual/gh_release_create)
 is used; [immutable settings read](https://docs.github.com/en/rest/repos/repos#check-if-immutable-releases-are-enabled-for-a-repository)
 requires owner-approved administration read permission. A failure after final
 publication is an actual published state needing owner review, not a rollback.
 
-Before publication GitHub may report draft-only `untagged-...` download URLs.
+Before publication, GitHub may report draft-only `untagged-...` download URLs.
 Those temporary URLs are not consumed or written into signed metadata. Draft
-verification still binds the exact release ID, source, names, sizes and digests;
+verification still binds the exact numeric release ID, source commit, names, sizes, and digests;
 the publisher requires the exact final tag-and-file resource after publication.
-GitHub's unescaped slash tag and the signed metadata's percent-escaped tag are
+GitHub's unescaped slash tag and the signed metadata's percent-escaped tag represent
 the same URI resource. Verification compares that exact HTTPS repository path
-and rejects other repositories, tags, filenames, credentials, queries or fragments;
+and rejects other repositories, tags, filenames, credentials, queries, or fragments;
 the signed canonical URI and all published bytes remain unchanged.
 
 ## Gateway and real acceptance
 
-Run `pnpm --filter @nimiplatform/install-gateway test` and `build` for the exact
+Run `pnpm --filter @nimiplatform/install-gateway test` and `pnpm --filter @nimiplatform/install-gateway build` for the exact
 key-containing source. After separate deployment approval, manually dispatch
-`deploy-install-gateway.yml` with that exact main SHA and `product_feeds=true`.
+`deploy-install-gateway.yml` with that exact `main` SHA and `product_feeds=true`.
 The existing Cloudflare deployment source keeps endpoint install.nimi.ai and
-the GitHub-only backend. Runtime-only deploy can retain product_feeds=false;
-that does not approve product feeds. This task does not deploy or change token
+the GitHub-only backend. (Runtime-only deploy can retain `product_feeds=false`;
+that does not approve product feeds). This task does not deploy or change token
 custody.
 
 After immutable publication and Gateway deployment, real feeds are:
@@ -224,11 +224,11 @@ After immutable publication and Gateway deployment, real feeds are:
 - `https://install.nimi.ai/nimi/beta/windows-amd64/latest.json`
 
 Verify their publisher payload against the actual immutable Release, source,
-final assets and key. Then use actual product N→N+1 installations on both
+final assets, and key. Then perform hands-on product N→N+1 installations on both
 platforms: background/manual check, full download, native trust, Home prepared
 or exact failure, Later, explicit interruption consent, OS authorization and
 refusal/expiry, critical cleanup and service failure, ordinary-user reopen,
 actual installed cohort/Runtime READY/Home-ready, and original-owner forward
 repair. Include no-development-tool machines and Windows full payload/independent
-Host/App paths. Signing/build/tests/feed alone do not close these gates; manager
+Host/App paths. Signing, builds, tests, and feeds alone do not close these gates; the release manager
 owns checkpoint acceptance and overall release disposition.

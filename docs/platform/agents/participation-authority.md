@@ -1,6 +1,6 @@
 # LocalAgent Access and Application Authorization
 
-A formal application uses its host-bound SDK client to enumerate authorized agent references, submitting the returned session-scoped opaque `agentHandle` when invoking permitted operations. Raw LocalAgent IDs, static bindings, or cached local handles do not constitute valid operational authority.
+A client application uses its host-bound SDK client to enumerate authorized agent references, submitting the returned session-scoped opaque `agentHandle` when invoking permitted operations. Raw LocalAgent IDs, static bindings, or cached local handles do not constitute valid operational authority.
 
 Runtime resolves and revalidates security parameters before each execution: authenticated account identity, application subject, declared capability scopes, operational coverage, target agent permissions, and active session generation. Following connection drops or session rotations, the application must acquire fresh authorized handles; replaying prior business requests to recover access is rejected.
 

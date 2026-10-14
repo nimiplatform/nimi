@@ -1,6 +1,6 @@
 # Cloud Connectors and Model Providers
 
-Runtime manages cloud Connectors, provider catalogs, and low-level protocol execution drivers. Users configure API connections and endpoints in Nimi Home under "Cloud Services", and then link capabilities to those connectors within application AIConfigs.
+Runtime manages cloud Connectors, provider catalogs, and low-level protocol execution drivers. Users configure API keys and endpoints in Nimi Home under **Cloud Services**, then route application capabilities to those connectors inside their AIConfigs.
 
 ## Architecture and Layering
 
@@ -25,7 +25,7 @@ If a cloud inference call fails, follow this diagnostic workflow:
 1. **Verify Route Configuration**: Ensure the active AIConfig references a valid, enabled Connector.
 2. **Test Connector Health**: Use the "Test Connection" button in Cloud Services to verify API key validity and network connectivity.
 3. **Check Provider Quotas**: Verify that your provider account (e.g., OpenAI, Anthropic) has sufficient credit balance and has not hit rate limits.
-4. **Update Targets**: If switching to an alternative model, update the capability target in the AI configuration panel and save.
+4. **Update Targets**: If switching models, update the capability target in your application's AI configuration and save changes.
 
 ## Related Documentation
 

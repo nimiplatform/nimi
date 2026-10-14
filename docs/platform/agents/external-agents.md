@@ -2,7 +2,7 @@
 
 External agents and third-party action integrations do not form part of the core LocalAgent execution engine today. Their absence does not constrain the system: local AI inference, LocalAgent conversations, long-term memory retrieval, speech synthesis, SDK interfaces, Nimi Home, Avatar rendering, and standard application capability workflows all function completely independently.
 
-If external ecosystem integrations are admitted in future releases, they adhere strictly to Nimi's core security invariants:
+Where external ecosystem integrations are admitted, they adhere strictly to Nimi's core security invariants:
 - External entities integrate either as an outside security principal with explicit scope boundaries, or as a read-only participant view.
 - External integrations never become Character assets, LocalAgent instances, or owners of either entity, and they cannot usurp conversation lifecycles or introduce redundant platform-wide `Agent` abstractions.
 

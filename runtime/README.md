@@ -21,11 +21,7 @@ nimi doctor
 nimi status
 ```
 
-Foreground/developer path:
-
-```bash
-nimi serve
-```
+`nimi serve` is the production daemon entry point used by the platform service launcher. For source development, use the supervised command below.
 
 Connector custody and ModelAsset/Loadout selection are exposed only through
 Desktop's verified protected Runtime surface. The CLI and standalone SDK
@@ -57,9 +53,10 @@ verified protected surface has committed Connector and Loadout intent.
 
 If you are developing Nimi Runtime itself from this repo, use the source entrypoint:
 
+Run from the repository root:
+
 ```bash
-cd runtime
-go run ./cmd/nimi serve
+pnpm dev:runtime
 ```
 
 `doctor`, `status`, and `health` use only an admitted daemon manager or
@@ -99,7 +96,7 @@ Production does not open these ordinary listeners. Desktop reaches protected
 Runtime methods through the verified native transport.
 
 CLI runtime management semantics:
-- `serve`: foreground runtime with direct logs
+- `serve`: production daemon entry point for the admitted platform service launcher
 - `start`: admitted background/service start, otherwise bounded unsupported failure
 - `status`: process status + reachability summary
 - `health`: sanitized daemon process or protected-service health summary
@@ -153,21 +150,18 @@ Provider live smokes are opt-in and require their corresponding
 pnpm test:runtime:live
 ```
 
-## Proto baseline
+## Proto Wire Baseline
 
-`pnpm proto:breaking` 对照的是已发布的 wire：
-`runtime/proto/runtime-v1.baseline.json` 记录其来源（携带 wire 的组件
-tag、提交与已发布制品），`runtime/proto/runtime-v1.baseline.binpb` 必须能从该
-tag 的 `proto/` 逐字节重建。门禁不接受从未发布源码刷新的快照。
+`pnpm proto:breaking` checks wire compatibility against officially published releases:
+`runtime/proto/runtime-v1.baseline.json` records its lineage (component tag carrying the wire protocol, commit, and published artifacts). The `runtime/proto/runtime-v1.baseline.binpb` binary descriptor must be byte-for-byte reproducible from that release tag's `proto/` directory. CI gates strictly reject snapshots refreshed from unreleased local commits.
 
-- 有意的破坏性 wire 变化：在记录的 `declaredBreaking` 中写明 buf 的规则、路径、
-  消息、原因，以及新 0.x minor 在 CHANGELOG 中的迁移说明标题。
-- 携带 wire 的组件发布后，从该 tag 刷新基线，并记录与上一基线的差异裁决：
+- **Intentional Breaking Changes**: Must be declared in `declaredBreaking`, specifying the Buf rule, file path, affected message, rationale, and the migration section title in the new `0.x` minor release notes in `CHANGELOG.md`.
+- **Refreshing the Baseline**: After publishing a wire-bearing component release, refresh the baseline descriptor from that tag and record the formal adjudication of differences:
 
 ```bash
 pnpm proto:baseline:refresh -- --tag sdk/v<SemVer> \
   --published npm:@nimiplatform/sdk@<SemVer>,... \
-  --adjudication "<对差异的审阅结论>"
+  --adjudication "<Review conclusion regarding differences>"
 ```
 
 ## References

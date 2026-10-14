@@ -1,6 +1,6 @@
 # Backend-Neutral Architecture
 
-Runtime owns Agent and Conversation semantics. Avatar consumes admitted semantic updates and final voice artifacts, then owns the local mapping, rendering, playback, and window behavior.
+Runtime owns Agent and Conversation semantics. Avatar consumes admitted semantic updates and final voice artifacts, and owns local mapping, rendering, audio playback, and window behavior.
 
 `Runtime / SDK inputs → Avatar built-in translation → selected Live2D or VRM branch`
 
@@ -9,22 +9,22 @@ Runtime owns Agent and Conversation semantics. Avatar consumes admitted semantic
 | Layer | Responsibility |
 | --- | --- |
 | Runtime and SDK | Current-session Agent/Conversation references, activity, emotion, semantic posture, and bounded voice timing |
-| Avatar translation | Validated input mapping, local expressions and playback, hit regions, and shell intent |
-| Backend branch | Model loading, draw loop, branch-specific parameters, and graphics resources |
+| Avatar translation | Validated input mapping, local expressions and playback, hit regions, and window layout intent |
+| Backend branch | Model loading, render loop, branch-specific parameters, and graphics resource management |
 
-The backend union is exactly `live2d` and `vrm`. Live2D uses Cubism; VRM uses three-vrm. Avatar-owned translation may use Live2D's parameter extension after kind narrowing. Model packages cannot inject creators' handlers or private backends.
+The backend union is strictly `live2d | vrm` (powered by Cubism and three-vrm respectively). Avatar's internal translation layer may access Live2D's parameter extension after backend-kind narrowing, while model packages cannot inject creator handlers or custom backends.
 
 ## Activity and Emotion
 
-The built-in adapter consumes `runtime.agent.presentation.activity_requested` and `runtime.agent.state.emotion_changed`. Supported input maps to the selected model's route or expression. `avatar.expression.change` is a local observation, not a new Runtime emotion or a cross-App synchronization command.
+The built-in adapter consumes `runtime.agent.presentation.activity_requested` and `runtime.agent.state.emotion_changed`, mapping supported inputs to routes or expressions on the active model. `avatar.expression.change` is a local observation—not a new Runtime emotion or a cross-App synchronization command.
 
 ## Window Bounds
 
-Backend nominal bounds and the admitted local scale determine the quiet body's footprint. Companion controls and other transient overlays are not added as a permanent docked stack. Their appearance depends on explicit interaction or voice state, product readiness, and the current quiet state.
+The backend's nominal bounds and the admitted local scale determine the resting character footprint. Companion controls and other transient overlays do not occupy a permanently docked stack; they appear only when triggered by explicit interaction or voice state, product readiness, and current quiet-state rules.
 
 ## Voice
 
-Avatar reads the canonical final-voice artifact through its own session and performs local playback/lipsync. Common Runtime presentation data does not provide phoneme frames or mouth weights. Each surface uses its own admitted data rather than copying another window's cache.
+Avatar reads the canonical final-voice artifact through its own protected session and runs playback and lipsync analysis locally. Common Runtime presentation data does not carry phoneme frames or mouth weights, and each surface reads its own admitted session data rather than sharing another window's cache.
 
 ## Related Documentation
 

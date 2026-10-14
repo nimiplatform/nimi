@@ -123,7 +123,7 @@ export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & 
     if (state.resourceBusy || active) return { ok: false, reason: 'busy', message: '助理正在处理另一项请求' };
     try {
       const result = await (options.startWork ?? client.agentWork.start)({ agentHandle: agent.agentHandle, requestId: input.requestId, prompt: input.text, work: { ...input.work, ...(input.routineName ? { routineName: input.routineName } : {}) } });
-      if (closed || expected !== epoch) { await client.agentWork.cancel({ agentHandle: agent.agentHandle, executionId: result.executionId }).catch(() => {}); return { ok: false, reason: 'failed', message: '执行范围已失效；不会继续旧工作' }; }
+      if (closed || expected !== epoch) { await client.agentWork.cancel({ agentHandle: agent.agentHandle, executionId: result.executionId }).catch(() => {}); return { ok: false, reason: 'failed', message: "执行范围已失效，不会继续旧工作" }; }
       active = { agentHandle: agent.agentHandle, executionId: result.executionId }; owned.add(result.executionId);
       publish({ activeTurnId: result.executionId, resourceBusy: true, messages: [...state.messages, { id: `${result.executionId}:request`, turnId: result.executionId, role: input.routineName ? 'app' : 'user', text: input.text, images: [] }] });
       const ownScope = active;

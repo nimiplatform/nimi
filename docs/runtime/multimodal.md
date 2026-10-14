@@ -13,8 +13,8 @@ When dispatching multimodal requests, use standard SDK client interfaces:
 
 Multimodal operations typically run as asynchronous scenario jobs:
 
-- **Managed Artifacts**: Generated images, video clips, and audio files are held in managed custody by Runtime. Applications download or stream assets using opaque handles (e.g., `voiceAssetId` or artifact IDs).
-- **Structured Values**: Operations such as visual grounding, speech transcription, or OCR return structured JSON records (e.g., bounding boxes, aligned timestamps, categorized labels) for immediate programmatic consumption.
+- **Managed Artifacts**: Generated images, video clips, and audio files are held in managed custody by Runtime. Applications read or adopt files using returned artifact IDs. A `voiceAssetId` selects a voice; it is not a generic file-download handle.
+- **Structured Values**: Operations such as admitted visual grounding or speech transcription return structured JSON records (e.g., bounding boxes, aligned timestamps, categorized labels) for immediate programmatic consumption.
 
 ## Asset Custody and Retention
 

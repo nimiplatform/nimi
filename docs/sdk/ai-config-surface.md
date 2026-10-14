@@ -1,8 +1,8 @@
 # AI Config Surface
 
-The SDK AIConfig surface establishes a strongly-typed contract for managing application-scoped AI capability preferences. An application declares its required capability contracts, required features (such as multimodal or tool calling), scenario defaults, and explicit routing preferences between Local and Cloud execution. Physical hardware resolution and model instantiation are governed independently by Runtime, which strictly enforces confirmed configurations during execution.
+The SDK AIConfig surface establishes a strongly typed contract for managing application-scoped AI capability preferences. An application declares its required capability contracts, required features (such as multimodal inputs or tool calling), scenario defaults, and explicit routing preferences between Local and Cloud execution. Physical hardware resolution and model instantiation are governed independently by Runtime, which strictly enforces confirmed configurations during execution.
 
-AIConfig maintains an authoritative snapshot for an owner. Updates atomically overwrite the complete capability list against a revision token; the data contract avoids transient execution states, temporary readiness, or driver health statuses.
+AIConfig maintains an authoritative snapshot for an owner. Updates atomically overwrite the complete capability list against a revision token; the data contract intentionally avoids transient execution states, temporary readiness flags, or driver health indicators.
 
 ## Public Surfaces & Modules
 
@@ -75,7 +75,7 @@ The SDK enforces pre-flight validation on capability intents and revision tokens
 Applications must surface these standard errors transparently:
 - Do not inject speculative fallbacks (such as synthetic `auto` routing);
 - Do not hardcode specific commercial provider IDs or private model names;
-- Do not establish side-channel HTTP/REST requests to bypass Runtime dispatch.
+- Never establish side-channel HTTP/REST requests to bypass Runtime dispatch.
 
 ## Separation of Concerns: App vs. Runtime
 

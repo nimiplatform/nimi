@@ -32,11 +32,11 @@ export const realmPersonaMessagesZh = {
   'realmPersona.main.oneLineIntroduction': '一句话介绍',
   'realmPersona.main.personaSetting': '角色设定',
   'realmPersona.main.reviewTheDraftFirstThisPreviewDoes':
-    '草稿先由你审阅；此预览不会向 Realm 创建或发布角色。',
+    "先由你审阅草稿；当前预览不会在 Realm 中创建或发布角色。",
   'realmPersona.visual.currentSampleAppearance': '当前示例视觉形象',
-  'realmPersona.visual.appearanceCandidates': '视觉形象候选',
+  'realmPersona.visual.appearanceCandidates': "候选视觉形象",
   'realmPersona.visual.theFullAppLetsYouReviewAppearance':
-    '完整 App 中可审阅形象候选，并将合适的形象用于角色资料。',
+    "在完整 App 中可浏览候选形象，并挑选合适的形象用于角色资料。",
   'realmPersona.visual.switchSampleAppearance': '切换示例形象',
   'realmPersona.profileForm.letThePersonaShareAnObservation': '让角色留下自己的观察',
   'realmPersona.profileForm.postDraft': '动态草稿',
@@ -50,7 +50,7 @@ export const realmPersonaMessagesZh = {
   'realmPersona.softPanel.chooseModelsInNimiSAppAiSettings':
     '模型在 Nimi 的 App AI 配置中选择。这里的示例内容已预设，无需配置服务。',
   'realmPersona.main.creativeDrafts': '创作草稿',
-  'realmPersona.main.myRealmPersonas': '我的 Realm Personas',
+  'realmPersona.main.myRealmPersonas': "我的 Realm 角色",
   'realmPersona.main.startWithAnIdeaAndLetA': '从一个想法开始，让角色逐渐鲜明。',
   'realmPersona.main.newPersonaDraft': '新建角色草稿',
   'realmPersona.idea.whatKindOfPersonaWouldYouLike': '你想遇见怎样的角色？',

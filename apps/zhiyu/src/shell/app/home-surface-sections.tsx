@@ -236,7 +236,7 @@ export function IdentityFloorSection({
         className="zhiyu-home__identity-note"
         data-zhiyu-identity-overwrite-policy="runtime-owned"
       >
-        身份不会被单条消息或一条记忆冲突覆盖。
+        身份不会被单条消息或记忆冲突覆盖。
       </p>
       <div className="zhiyu-home__identity-grid" aria-label="身份保护状态">
         {identityFloor.items.map((item) => (

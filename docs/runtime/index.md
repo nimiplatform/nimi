@@ -18,6 +18,7 @@ These core responsibilities stay with Runtime regardless of whether the consumer
 ## Ownership Boundaries
 
 - **Realm**: Maintains persistent character identity, world context, and ecosystem social data. Runtime consumes this context without redefining canonical identity.
+- **Cognition & Memory Boundaries**: Long-term memory is managed privately by Cognition on a per-agent basis; Runtime serves only as an authorized delivery and recall mediator. Knowledge V1 currently provides no active read, write, or public client path.
 - **Applications & UI Surfaces**: Own their product UI, user interactions, and ephemeral state. Applications do not bypass Runtime to manage raw credentials or override permissions.
 - **Progressive Capabilities**: External integrations and workflow tools are optional extensions; an unavailable extension will not disrupt core conversations or fundamental AI capabilities.
 
@@ -33,8 +34,6 @@ These core responsibilities stay with Runtime regardless of whether the consumer
 - [Account And Session](/runtime/account-and-session)
 - [Delegated Capability](/runtime/delegated-capability)
 - [Local Audit](/runtime/audit-local)
-
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

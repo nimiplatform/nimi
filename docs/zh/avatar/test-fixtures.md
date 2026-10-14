@@ -1,35 +1,35 @@
 # Avatar 开发夹具
 
-夹具为本地回归提供可重复的输入，不调用真实 Runtime 会话。显式选择 `VITE_AVATAR_DRIVER=mock` 后，当前 driver factory 使用 MockDriver；默认路径为 SdkDriver，并需要真实 SDK bootstrap 输入。
+测试夹具为本地回归提供可重复的输入流，无需连接真实的 Runtime 会话。当显式配置 `VITE_AVATAR_DRIVER=mock` 时，Driver Factory 会实例化 `MockDriver`；默认路径则为 `SdkDriver`，且依赖真实的 SDK 引导输入。
 
-夹具可以验证解析、调度和本地映射。显示开发模型还需要 fixture 配置提供有效的模型 manifest；仅有事件 JSON，不保证出现模型画面。开发预览保持 fixture_not_verified，不能用于关闭产品验收。
+夹具可用于验证数据解析、调度以及本地映射逻辑。若要正确显示开发模型，fixture 配置还必须提供有效的模型 manifest；仅有事件 JSON 并不保证能渲染出模型画面。此外，开发预览会保持 `fixture_not_verified` 状态，不能直接用于产品验收签发。
 
 ## 当前 Driver 接口
 
-Avatar 维护者使用 AgentDataDriver 的真实方法：start、stop、getBundle、onEvent、onBundleChange、onStatusChange 和 emit。emitCancelable 为可选方法。kind 与 status 为只读状态。
+Avatar 维护者应通过 `AgentDataDriver` 的既有公开方法接入：`start`、`stop`、`getBundle`、`onEvent`、`onBundleChange`、`onStatusChange` 以及 `emit`。其中 `emitCancelable` 为可选方法，`kind` 与 `status` 则是只读状态字段。
 
-`onBundleChange` 通知 bundle 更新，不存在 onAgentDataChange。factory 的 mock 输入需要 scenarioJson，可同时提供 scenarioSource；sdk 输入需要 SdkDriverOptions，不是无参数创建。
+通过 `onBundleChange` 监听 bundle 更新（注意不存在 `onAgentDataChange`）。Factory 在创建 mock 驱动时需要传入 `scenarioJson`（可同时指定 `scenarioSource`）；创建 SDK 驱动时则需要 `SdkDriverOptions`，不支持无参调用。
 
 ## Scenario 格式
 
 | 字段 | 要求 |
 | --- | --- |
-| `scenario_id` | 非空字符串，读取已知 fixture 文件时须匹配其文件名 |
+| `scenario_id` | 非空字符串；加载已知 fixture 文件时须与文件名保持一致 |
 | `version` | 字符串 "1" |
-| `description` | 字符串 |
-| `duration_ms` | 可省略或为 null；提供数值时须为正，loop=true 时必须有限 |
+| `description` | 场景描述字符串 |
+| `duration_ms` | 可省略或设为 null；若提供数值必须为有限正数；当 `loop=true` 时必须提供该数值 |
 | `loop` | 必填布尔值 |
-| `agent_bootstrap` | 初始 fixture 世界、用户、locale、姿态、状态文字与执行状态 |
-| `events` | 必填数组，静态场景写 [] |
+| `agent_bootstrap` | 包含初始 fixture 虚拟世界、用户、locale、姿态、状态文本与执行状态 |
+| `events` | 必填数组；静态场景可填 `[]` |
 | `triggers` | 可选交互触发列表 |
 
-没有 bundle/meta 结构。time 事件使用 kind=time、at_ms、type、detail；after 事件使用 kind=after、after_event_id、delay_ms、type、detail，引用的 event_id 必须存在。
+格式中不包含 `bundle/meta` 结构。`time` 事件使用 `kind=time`、`at_ms`、`type` 与 `detail`；`after` 事件使用 `kind=after`、`after_event_id`、`delay_ms`、`type` 与 `detail`，且引用的 `event_id` 必须已在场景中声明。
 
-Fixture 活动使用 `avatar.fixture.presentation.activity_requested` 与 source=mock，不把模拟输入冒充 Runtime 授权事件。
+Fixture 活动固定发送 `avatar.fixture.presentation.activity_requested` 并将 source 设为 `mock`，切勿将模拟输入混淆或伪装为经 Runtime 授权的真实事件。
 
 ## 静态输入样例
 
-文件名为 static-preview.mock.json：
+文件命名为 `static-preview.mock.json`：
 
 ```json
 {
@@ -56,7 +56,7 @@ Fixture 活动使用 `avatar.fixture.presentation.activity_requested` 与 source
 }
 ```
 
-这些身份字段仅用于 fixture，不建立真实账号、App 会话或对话连续性。可先用当前 loadScenarioFromJson/parseScenario 校验格式；真实参考输入见 default.mock.json。模型呈现和实时产品路径还需分别验证。
+上述身份标识字段仅在 fixture 内生效，不会建立真实的账号、App 会话或上下文连续性。调试时可先通过现有的 `loadScenarioFromJson` 或 `parseScenario` 校验格式；完整参考范例请参阅 `default.mock.json`。模型实际呈现与实时产品链路仍需分别进行独立验证。
 
 ## 相关文档
 

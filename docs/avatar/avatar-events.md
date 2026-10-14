@@ -1,34 +1,34 @@
 # Avatar Local Observation Events
 
-This reference describes observations on Avatar's current internal driver. Runtime retains activity, emotion, and Conversation semantics. Avatar events describe local mapping, input, or playback; they are not a cross-App command API.
+This reference covers the local observation events emitted by Avatar's internal driver. Runtime retains ownership of activity, emotion, and Conversation semantics; Avatar events reflect local mapping, pointer input, or playback activity and are not a cross-App command API.
 
 ## Exact Names from Current Producers
 
 | Name | Meaning |
 | --- | --- |
-| `avatar.before.activity.start` | Local before-mapping observation that the current cancellation policy may block |
-| `avatar.activity.start` | Observation emitted when the current activity mapping is applied |
-| `avatar.activity.end` | End observation from that same mapping-settlement path |
-| `avatar.activity.cancel` | Activity blocked by the local before-execution cancellation policy |
-| `avatar.expression.change` | Local expression-mapping change |
-| `avatar.user.click` | Local pointer input on a model hit region |
-| `avatar.speak.interrupt` | Interruption observation on the current voice/lipsync path |
+| `avatar.before.activity.start` | Local pre-mapping observation that the active cancellation policy may block |
+| `avatar.activity.start` | Emitted when the current activity mapping is applied |
+| `avatar.activity.end` | Emitted when that same activity mapping settles |
+| `avatar.activity.cancel` | Emitted when an activity is blocked before execution by the local cancellation policy |
+| `avatar.expression.change` | Emitted when the local expression mapping changes |
+| `avatar.user.click` | Emitted on local pointer input within a model hit region |
+| `avatar.speak.interrupt` | Emitted when the current voice or lipsync path is interrupted |
 
-A settled activity mapping can emit start and end consecutively. End is not proof that a physical animation clip finished playing. Voice playback lifecycle uses the local state bus; this path does not emit `avatar.speak.start` or `avatar.speak.end`.
+A settled activity mapping may emit `avatar.activity.start` and `avatar.activity.end` back-to-back. `avatar.activity.end` marks mapping settlement, not the completion of a physical animation clip. Voice playback lifecycle runs on the local state bus and does not emit `avatar.speak.start` or `avatar.speak.end`.
 
 ## Runtime Inputs
 
-The SDK driver consumes admitted embodiment updates and translates them into current internal inputs including `runtime.agent.presentation.activity_requested` and `runtime.agent.state.emotion_changed`. Model directories do not register NAS JavaScript handlers, and clicks do not invoke a creator's onClickHead.js.
+The SDK driver consumes admitted embodiment updates and translates them into internal inputs such as `runtime.agent.presentation.activity_requested` and `runtime.agent.state.emotion_changed`. Model directories cannot register NAS JavaScript handlers, and pointer clicks do not invoke creator scripts such as `onClickHead.js`.
 
 ## Pointer Handling
 
-The model surface checks the hit region and sends the click to built-in interaction physics. The result belongs to Avatar's local input and presentation, not Runtime Conversation or authorization state.
+The model surface tests the pointer against valid hit regions and forwards hits to built-in interaction physics. The outcome stays within Avatar's local input and presentation layer without creating Runtime Conversation state or authorization grants.
 
 ## Final-Voice Playback
 
-Avatar reads the canonical Conversation's final voice artifactId through its own session, then supplies the complete artifact to local playback and lipsync analysis. `avatar.conversation.voice.audio_chunk` is an Avatar-local event that may carry all the bytes in this read path; it does not establish a Runtime-native stream or playback instruction.
+Avatar reads the canonical Conversation's final voice `artifactId` through its own protected session, then passes the complete artifact to local playback and lipsync analysis. `avatar.conversation.voice.audio_chunk` is an Avatar-local event that may carry the full artifact bytes on this read path; it does not represent a Runtime-native audio stream or playback instruction.
 
-High-frequency mouth weights and backend draw details stay within local rendering and do not enter the common Runtime presentation contract.
+High-frequency mouth weights and backend draw details stay inside the local rendering path and do not enter the common Runtime presentation contract.
 
 ## Source Basis
 

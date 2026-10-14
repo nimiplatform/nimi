@@ -28,12 +28,12 @@ export const polyagentMessagesEn = {
   'polyagent.demoSettings.staticSimulationNoTradingConnection':
     'Static simulation · no trading connection',
   'polyagent.demoSettings.thisPreviewHasNoRealAccountsPrivate':
-    'This preview has no real accounts, private keys, wallets, or order-signing entry.',
+    "This preview does not connect to real accounts, private keys, wallets, or order signing.",
   'polyagent.demoSettings.backToWorkbench': 'Back to workbench',
   'polyagent.main.showingASampleRunningState': 'Showing a sample running state',
   'polyagent.main.samplePaused': 'Sample paused',
   'polyagent.main.thisStatusChangesOnlyOnThisPage':
-    'This status changes only on this page. It does not start trading or scheduled tasks.',
+    "Toggling this status only updates the preview on this page. It does not start trading or scheduled tasks.",
   'polyagent.main.paperFundsAvailable': 'Paper funds available',
   'polyagent.main.usd': 'USD',
   'polyagent.main.paperPositions': 'Paper positions',
@@ -48,7 +48,7 @@ export const polyagentMessagesEn = {
     'Sample research record: check market rules, expiry, and liquidity. No real market data or trading advice is provided.',
   'polyagent.demoDecision.viewSampleResearchRecord': 'View sample research record',
   'polyagent.demoDecision.keepTheFactsAndDecisionsFromThat':
-    'Keep the facts and decisions from that moment',
+    "Keep a clear record of the snapshot and rationale at each moment",
   'polyagent.demoDecision.readTheFictionalSnapshotAndConfirmIts':
     'Read the fictional snapshot and confirm its timestamp.',
   'polyagent.demoDecision.checkStrategyConditionsFundingLimitsAndPerOrder':

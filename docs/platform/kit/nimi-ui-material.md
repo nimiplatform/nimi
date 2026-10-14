@@ -2,15 +2,15 @@
 
 > Status: Active specification contract; public capabilities are exposed via the Design/Runtime surface.
 
-Under `P-DESIGN-022`, the 5-tier material taxonomy is fully specified and published in `config/platform-nimi-ui-tokens.yaml`. The performance-downgrade hook-point interface is reserved at the specification level; active rendering surfaces resolve material tiers through Kit and host transparency modes.
+Under `P-DESIGN-022`, the 5-tier material taxonomy is formally specified and published in `config/platform-nimi-ui-tokens.yaml`. The performance-downgrade hook interface is reserved at the specification level; active rendering surfaces resolve material tiers through Kit and host transparency modes.
 
 ## What "Material" Means
 
-In the Nimi design pattern, **material** describes the surface treatment of a component: its opacity, backdrop blur, and how it reads against underlying visual layers.
+In the Nimi design pattern, **material** describes the physical surface treatment of a component: its opacity, backdrop blur, and how it reads against underlying visual layers.
 
-Material is an orthogonal axis to color hue: you can pair a `solid` action button, a `glass-thick` floating modal, or a `glass-chrome` overlay with any semantic color role (primary, danger, neutral, etc.) without conflict.
+Material is orthogonal to color hue: you can pair a `solid` action button, a `glass-thick` modal, or a `glass-chrome` overlay with any semantic color role (primary, danger, neutral, etc.) without conflict.
 
-Material is organized as a **closed 5-tier taxonomy**. Applications and feature modules may not introduce parallel, unmanaged material hierarchies.
+Material is organized as a **closed 5-tier taxonomy**. Applications and feature modules must not introduce unmanaged, parallel material hierarchies.
 
 ## The 5 Tiers
 
@@ -39,7 +39,7 @@ This 5-tier classification supersedes the earlier 3-tier model (`solid` / `glass
 | Accent packs overriding `material.*` or `backdrop.*` tokens | Strictly forbidden (materials belong to the neutral foundation layer) |
 | Adding a custom 6th tier | Requires formal platform specification proposal |
 
-Using the `<Surface>` primitive guarantees visual consistency across various application surfaces.
+Using the `<Surface>` primitive guarantees visual consistency across all application surfaces.
 
 ## Design Rationale for Each Tier
 
@@ -47,19 +47,19 @@ Each tier satisfies a specific visual hierarchy and readability objective:
 
 | Tier | Primary Purpose & Context |
 | --- | --- |
-| `solid` | High-contrast surfaces where text readability is paramount (forms, dense data grids) |
+| `solid` | High-contrast surfaces where text readability is paramount (forms, dense data tables) |
 | `glass-thin` | Subtle hover surfaces and lightweight overlays that maintain spatial continuity |
 | `glass-regular` | Standard frosted glass surfaces (drawers, floating sidebars, dropdowns) |
 | `glass-thick` | Heavy frosted glass designed to suppress complex motion underneath (dialogs over active animations) |
 | `glass-chrome` | Maximum blur and prominence for chrome-level system surfaces (application top bars, command palettes) |
 
-The taxonomy is intentionally opinionated. Developers should not invent ad-hoc blur values for fleeting visual experiments.
+The taxonomy is intentionally closed and opinionated; developers should avoid arbitrary blur values for one-off visual experiments.
 
 ## Performance Downgrade Hook Interface
 
-Backdrop filters incur GPU processing overhead. The design specification reserves a performance-downgrade hook interface: when running on resource-constrained devices or under low battery profiles, runtime surfaces can step down higher-cost tiers to lower-cost representations. Implementation of the downgrade behavior is a consumer-surface responsibility; the specification defines the interface so applications read degraded tiers consistently.
+Backdrop filters incur GPU processing overhead. The design specification reserves a performance-downgrade hook interface: when running on resource-constrained devices or under low battery profiles, runtime surfaces can step down higher-cost tiers to lower-cost representations. Implementation of the downgrade behavior is a consumer-surface responsibility; the specification defines the interface so applications experience consistent degradation.
 
-Crucially, performance downgrades **do not alter** the component contract itself; they merely adjust the resolved tier at render time. A component declared as `glass-chrome` may render as `glass-regular` or solid on lower-tier hardware without requiring any application-level code modifications.
+Crucially, performance downgrades **do not alter** the component contract itself; they merely adjust the resolved tier at render time. A component declared as `glass-chrome` may render as `glass-regular` or `solid` on lower-tier hardware without requiring any application code modifications.
 
 ## Accessibility Contrast Thresholds
 
@@ -78,7 +78,7 @@ Developers specify `material="glass-thick"`; platform infrastructure manages var
 
 ## Typical Scenario: Intercepting Ad-Hoc Inline Blur
 
-A feature author writes inline styles: `style=\{\{ background: 'rgba(...)', backdropFilter: 'blur(20px)' \}\}`:
+A feature author writes inline styles: <code v-pre>style={{ background: 'rgba(...)', backdropFilter: 'blur(20px)' }}</code>:
 
 1. **Linting & review catch**: Static linters flag the disallowed inline blur declarations.
 2. **Refactor to primitive**: The component is replaced with `<Surface material="glass-regular">`.

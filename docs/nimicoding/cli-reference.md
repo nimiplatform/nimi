@@ -1,8 +1,8 @@
 # Nimi Coding CLI Reference
 
-The `nimicoding` CLI is the official interface for Nimi Coding. Machine consumers and automation pipelines should inspect both the command exit code and the returned structured JSON payload; an empty result indicates only that no matches were found within the explicitly requested query boundaries, not an evaluation of code correctness or overall conformance.
+The `nimicoding` CLI is the official command-line interface for Nimi Coding. Automation pipelines and machine callers should evaluate both the process exit code and the returned structured JSON payload: an empty result indicates only that no matches were found within the specified query boundaries, not an evaluation of code correctness or overall conformance.
 
-From the repository root, invoke commands via `pnpm exec nimicoding ...` to resolve the workspace-pinned package. Command prefixes are omitted in the table below for brevity.
+From the repository root, run commands via `pnpm exec nimicoding ...` to resolve the workspace-pinned package. Command prefixes are omitted in the table below for brevity.
 
 ## Command Overview
 
@@ -20,8 +20,8 @@ From the repository root, invoke commands via `pnpm exec nimicoding ...` to reso
 ## Key Parameters and Invocation Constraints
 
 - **Explicit budgets**: Bounded commands require explicit positive limits (e.g. `--max-units`, `--max-edges`, `--max-bytes`). When results exceed the budget, commands fail closed rather than returning misleadingly truncated sets.
-- **Candidate recall (`change-candidates`)**: Returns deterministic recall justifications across caller-selected channels without automated semantic arbitration.
-- **Static code context (`code context`)**: Accepts an explicit TypeScript or TSX file, top-level symbol, `tsconfig`, and byte budget, returning root-direct outbound static references without tracing dynamic runtime dispatch.
+- **Candidate recall (`change-candidates`)**: Gathers deterministic recall evidence across caller-selected channels without attempting automated semantic arbitration.
+- **Static code context (`code context`)**: Accepts an explicit TypeScript or TSX file, a top-level symbol, a `tsconfig` path, and a byte budget, returning direct outbound static references without tracing dynamic runtime dispatch.
 - **Authority marker scanning (`code authority`)**: Scans source files for reserved standalone physical comment lines:
   - TypeScript, TSX, Go, and Rust:
     ```text
@@ -33,8 +33,8 @@ From the repository root, invoke commands via `pnpm exec nimicoding ...` to reso
     # @nimi-authority: <exact-authority-id>
     # @nimi-deprecated: <exact-authority-id>
     ```
-  - The scanner uses exact physical-line matching; markers should be placed selectively on key domain owners rather than blanketed across trivial helpers or test suites.
-- **Host maintenance tools**: `start`, `sync`, and `doctor` maintain workspace configuration health without intercepting tasks or altering AI agent lifecycles.
+  - The scanner uses exact physical-line matching. Place markers intentionally on core domain owner files rather than scattering them across utility helpers or test suites.
+- **Host maintenance tools**: `start`, `sync`, and `doctor` keep workspace configuration healthy without intercepting everyday development tasks or altering AI agent lifecycles.
 
 ## Source Basis
 

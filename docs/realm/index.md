@@ -1,35 +1,39 @@
 # Realm Core Service and World Substrate
 
-Realm is the server-side foundation of the Nimi federated network, providing persistent, authoritative services for all digital worlds. Universal account identity, social graphs, world state transitions, creator economics, and cross-world travel (Transit) are unified authoritatively within Realm as the Single Source of Truth.
+Realm is the server-side service layer of Nimi, maintaining shared accounts, social graphs, human-to-human messaging, world and character settings (`WorldCore`, `WorldCharacter`, `PersonaCharacter`), and creator economy records.
 
-Platform responsibilities are divided into clear operational tiers:
-- **Runtime**: Local and cloud AI model inference, agent execution, and memory mediation;
-- **Realm**: Shared world states, entity relationship graphs, and creator asset registries;
-- **SDK**: Unified developer client bridging applications to Runtime and Realm;
-- **Desktop & Web**: Responsive presentation surfaces delivering immersive user experiences.
+Platform responsibilities are divided across four layers:
+- **Runtime**: Executes local and cloud AI inference, manages `LocalAgent` conversations and mediates access to per-agent memory owned by Cognition, and mediates Realm credentials and remote realtime connections.
+- **Realm**: Manages shared account identities, social relationships, human-to-human realtime channels (`DirectChat`, typing, inbox, and `Presence`), world and character data (`WorldCore`, `WorldCharacter`, `PersonaCharacter`, `WorldEntity`, and `WorldRelationship`), and creator economy services.
+- **SDK**: Provides typed client bindings—such as `client.realm.worldCore` and `client.realm.personaCharacter`—that connect applications to Runtime-admitted capabilities.
+- **Desktop & Web**: Desktop hosts Nimi Home and supervised Apps; Web provides the public website and browser account experience.
 
 ## Chapter Guide
 
 ### Authoritative State and Data Models
-- [Realm Architectural Boundaries](/realm/truth) — Division of authority between Nimi clients and Realm services;
-- [State Projections](/realm/projection) — How consumer applications ingest read-only structured views via the SDK;
-- [World State](/realm/world-state) — Current world snapshot storage and atomic commit envelopes;
-- [World History](/realm/world-history) — Immutable, append-only chronological ledgers and audit replays.
+- [Realm Architectural Boundaries](/realm/truth) — Division of authority and access boundaries between Runtime, host sessions, and Realm services.
+- [State Projections](/realm/projection) — How applications read structured views through admitted SDK surfaces.
+- [World State](/realm/world-state) — Design reference for the planned persistent shared world state contract and commit envelope model.
+- [World History](/realm/world-history) — Design reference for the planned append-only world history contract and correction records.
 
 ### Core Domain Primitives
-- [Chat & Communication](/realm/chat) — Cross-world realtime messaging, delivery semantics, and thread lifecycles;
-- [Social & Economic Systems](/realm/social-and-economy) — Global friend graphs, follows, and value flows;
-- [Assets and Bindings](/realm/asset-and-binding) — Attaching creator assets and digital items to world scenes;
-- [Transit & Continuity](/realm/transit) — Navigating between worlds via the central OASIS hub.
+- [Chat & Communication](/realm/chat) — Runtime-mediated human-to-human `DirectChat`, typing indicators, inbox, and `Presence`.
+- [Social & Economic Systems](/realm/social-and-economy) — Shared social graphs, follows, and economic value flows.
+- [Assets and Bindings](/realm/asset-and-binding) — Creator assets and resource associations.
+- [Transit & Continuity](/realm/transit) — Protocol design for cross-world continuity centered on the OASIS system primary world.
 
 ### Creator Ecosystem and App Interconnect
-- [Creator Economy](/realm/creator-economy) — Digital content publishing, royalty settlements, and rights management;
-- [Creator Payouts](/realm/creator-payouts) — Transparent payout ledgers and disbursement auditing;
-- [App Interconnect](/realm/app-interconnect) — Best practices for third-party apps integrating Realm state.
+- [Creator Economy](/realm/creator-economy) — Digital content monetization and revenue distribution.
+- [Creator Payouts](/realm/creator-payouts) — Payout records and settlement workflows.
+- [App Interconnect](/realm/app-interconnect) — Integrating Realm data through protected host sessions, `realm.data` manifest permissions, and Runtime admission.
 
-## Why Nimi Applications Depend on Realm
+## How Nimi Applications Work with Realm
 
-Digital worlds are not isolated islands. When users participate across desktop, web, or mobile devices, their identities, friend circles, and inventories travel with them seamlessly. Realm guarantees cross-platform consistency, eliminating fragmented local states.
+Not all application data is automatically synced to Realm. Understanding what lives in Realm versus Runtime keeps application architecture clean:
+
+- **Mediated Access & Security**: Applications never handle Realm Bearer tokens, raw HTTP clients, or direct sockets. Realm access requires an active protected host session, the `realm.data` declaration in the app manifest, Runtime admission, and Realm resource-level authorization.
+- **World & Character Settings**: Ordinary applications use fixed typed bindings (`client.realm.worldCore` and `client.realm.personaCharacter`) for Runtime-admitted operations on `WorldCore`, `WorldCharacter`, `WorldEntity`, and `WorldRelationship`. Creating a new world additionally requires explicit account eligibility granted by a Realm administrator.
+- **Scoped Realtime & Local Agent Memory**: Admitted realtime channels cover human-to-human `DirectChat`, typing, inbox, and `Presence`. Runtime handles `LocalAgent` conversations; Cognition owns per-agent long-term memory, accessed through Runtime. Meanwhile, `World State` and `World History` remain planned contracts without public read/write APIs; generic world event broadcasts are also unavailable.
 
 ## Related Documentation
 

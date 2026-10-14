@@ -14,7 +14,7 @@ When a user initiates a conversation turn, the system stages context through cle
 
 1. **Context Capture**: Runtime extracts recent turn history and active conversation anchors.
 2. **Semantic Recall**: Runtime requests relevant memories from Cognition matching the user's intent.
-3. **Resilient Degradation**: Memory recall functions as an enhancement. If index warm-up is in progress or zero matches are found, the service returns an empty list, allowing generation to proceed without delay.
+3. **Resilient Degradation**: Memory recall functions as an enhancement. Pending, unavailable and no-match outcomes remain distinct. Runtime uses zero optional memory hits when recall cannot contribute and continues from the other admitted context; it does not report a failed read as a successful empty result.
 4. **Memory Consolidation**: As meaningful interactions conclude, Cognition evaluates conversation milestones and commits consolidated memories in the background.
 
 ## Memory Lifecycle Controls

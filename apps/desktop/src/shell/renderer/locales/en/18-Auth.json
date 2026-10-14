@@ -1,7 +1,7 @@
 {
   "login": "Login",
   "browserSignInTitle": "Sign in to Nimi securely in your browser",
-  "browserSignInDescription": "Nimi account credentials are entered only on the Web. Your browser returns securely to this device when finished.",
+  "browserSignInDescription": "Your Nimi credentials are entered only in your browser. Once you're signed in, you'll be returned securely to this device.",
   "browserSignInContinue": "Continue to sign in",
   "browserSignInPending": "Complete sign-in in your browser",
   "browserSignInRetry": "Retry",
@@ -14,10 +14,10 @@
   "reauthenticationRequired": "Please sign in again to continue.",
   "runtimeAccountUnavailableTitle": "Nimi can't confirm your account",
   "runtimeAccountUnavailableDescription": "Your partners and conversations stay hidden until Nimi can confirm who is signed in. Unsent drafts are kept.",
-  "logoutRuntimeTransientFailure": "Sign out encountered an issue confirming logout status. The account session may still be active: {{error}}",
-  "logoutRuntimeFailure": "Sign out could not be completed because logout failed. The account session may still be active: {{error}}",
+  "logoutRuntimeTransientFailure": "Couldn't confirm that you were signed out. Your account session may still be active: {{error}}",
+  "logoutRuntimeFailure": "Couldn't complete sign-out. Your account session may still be active: {{error}}",
   "logoutSuccess": "Signed out",
-  "switchAccountRuntimeFailure": "Account switch could not start because the system did not confirm the switch request: {{error}}",
+  "switchAccountRuntimeFailure": "Couldn't switch accounts because the request wasn't confirmed: {{error}}",
   "switchAccountReady": "Choose another account to continue",
   "runtimeAccountReconnecting": "Reconnecting automatically…",
   "runtimeAccountRetryNow": "Retry now"

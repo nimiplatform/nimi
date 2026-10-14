@@ -50,7 +50,9 @@ Upon successful completion, reading the job returns the managed asset record and
 | `asset.voiceAssetId` | Globally unique ID of the managed voice asset | Passed to synthesis calls to select this voice |
 | `asset.creationSource` | Creation mode (`reference-audio` or `text-description`) | Source lineage auditing |
 | `asset.status` | Operational health (`active`, `expired`, `deleted`) | Confirms availability before initiating synthesis |
-| `voiceReference` | Standardized reference `{ kind: 'voice_asset_id', voiceAssetId }` | Placed into synthesis configurations |
+| `voiceReference` | Standardized reference `{ kind: 'voice_asset_id', voiceAssetId }` | Read `voiceAssetId` and build the synthesis input shown below |
+
+`voiceReference` is the job-result shape; synthesis accepts a different input shape named `voiceRef`. Take `voiceReference.voiceAssetId` and build `{ type: 'voice-asset', id: voiceAssetId }` rather than passing the result object unchanged.
 
 ## Managing and Synthesizing Voices
 
@@ -60,7 +62,7 @@ Upon successful completion, reading the job returns the managed asset record and
 | **List Custom Voices for this App** | `client.ai.voiceAssets.list({ pageSize: 20 })` |
 | **Delete a Custom Voice** | `client.ai.voiceAssets.delete(voiceAssetId)` |
 
-When executing speech synthesis, set `voiceRef` to `{ type: 'voice-asset', id: voiceAssetId }` or `{ type: 'preset', id: presetVoiceId }`, and Runtime dispatches synthesis using the designated acoustic weights.
+When executing speech synthesis, set `voiceRef` to `{ type: 'voice-asset', id: voiceAssetId }` or `{ type: 'preset', id: presetVoiceId }`, and Runtime validates voice compatibility with the configured `audio.synthesize` route. Read the audio artifact after the Job completes.
 
 ## Source Basis
 

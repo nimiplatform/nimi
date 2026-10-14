@@ -9,7 +9,7 @@ Within Nimi's digital world framework, content assets are structured across four
 - **Invariants**: Bound to content hashes and MIME types, but holds no ownership or authorship metadata, enabling safe deduplication and reuse across higher-level assets.
 
 ### 2. OwnableAsset
-- **Concept**: Standalone digital property with verified intellectual property provenance (e.g., an authored sword model, avatar skin, or musical score).
+- **Concept**: Standalone digital property with recorded ownership and creation provenance (e.g., an authored sword model, avatar skin, or musical score).
 - **Invariants**: Permanently records Owner, Author, and creation lineage; advances through standard lifecycle phases (`DRAFT → READY → ARCHIVED → DELETED`).
 
 ### 3. Bundle
@@ -17,15 +17,15 @@ Within Nimi's digital world framework, content assets are structured across four
 - **Invariants**: Encapsulates assets without merging them, preserving the independent authorship and ownership of each member asset.
 
 ### 4. Binding
-- **Concept**: Semantic relationship attaching an asset to a host entity (e.g., "attaching a laser sword (`Asset`) to the weapon shop (`Scene`) in Cyber City (`World`)").
+- **Concept**: Semantic relationship attaching an asset to a host entity (e.g., attaching a laser sword (`Asset`) to the weapon shop (`Scene`) in Cyber City (`World`)).
 - **Binding Kinds**:
-  - `PRESENTATION`: Mounted purely for visual decoration or ambience;
-  - `USE`: Usable as an interactive object within the scene;
+  - `PRESENTATION`: Mounted purely for visual decoration or ambience.
+  - `USE`: Usable as an interactive object within the scene.
   - `IMPORT`: Linked as a structural dependency for world rules.
 
 ## Strict Validity Binding Matrix
 
-To prevent absurd asset configurations (e.g., mounting raw audio files as drivable vehicles), Realm enforces an explicit validation matrix:
+To prevent invalid or incompatible asset configurations (e.g., mounting raw audio files as drivable vehicles), Realm enforces an explicit validation matrix:
 - Only permissible combinations of `[Object Type] × [Host Type] × [Binding Kind]` are admitted.
 - Unregistered or conflicting combinations fail closed, preserving world logic and visual coherence.
 

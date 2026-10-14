@@ -34,7 +34,7 @@ export const realmWorldMessagesEn = {
   'realmWorld.main.sampleWorldRules': 'Sample world rules',
   'realmWorld.main.theTownSBellsChangeWithTheTides':
     "The town's bells change with the tides. Residents may travel far, but return to the dock on the same day each year.",
-  'realmWorld.character.maintainCharacterSettings': 'Maintain character settings',
+  'realmWorld.character.maintainCharacterSettings': "Character settings",
   'realmWorld.character.characterName': 'Character name',
   'realmWorld.character.characterRoleAndStory': 'Character role and story',
   'realmWorld.character.theseAreCharacterSettingsWithinASample':
@@ -53,7 +53,7 @@ export const realmWorldMessagesEn = {
   'realmWorld.main.creativeDrafts': 'Creative drafts',
   'realmWorld.main.yourWorldUnfoldingYourWay': 'Your world, unfolding your way.',
   'realmWorld.main.buildSettingsAndCharactersAndOrganizeImagination':
-    'Build settings and characters, and organize imagination into a world that can keep growing.',
+    "Build settings and characters, and shape your imagination into a world that keeps growing.",
   'realmWorld.idea.whatKindOfWorldWouldYouLike': 'What kind of world would you like to create?',
   'realmWorld.idea.worldIdea': 'World idea',
   'realmWorld.idea.startWithAnIdeaSampleDraft': 'Start with an idea · sample draft',

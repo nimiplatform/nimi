@@ -1,60 +1,117 @@
-# First AI Call in a Nimi App
+# Making Your First AI Call
 
-Use the App's host-bound SDK client to make one real text-generation request. Nimi Home establishes the App session; Runtime validates the App's saved AIConfig and captures the machine-selected Local Loadout or exact committed Cloud target at submission.
+Welcome to building your first AI-native Nimi App! In this walkthrough, you will make a live text generation request in just a few lines of code.
 
-This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using current App Tools 0.11.4 with SDK 0.21.0 / Kit 0.18.0. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
+Along the way, you will see Nimi's core design philosophy in action: **your application code never touches API keys, internal gRPC endpoints, or vendor-specific routing logic—it simply declares what it wants to achieve.**
 
-## Before the Call
+---
 
-1. Start the project with `pnpm dev` in a compatible Nimi Home development environment. Use its supervised Electron window, not the renderer URL in a browser.
-2. Confirm that the generated `nimi.app.yaml` includes `runtime.consume`, then establish the App's required access through the host. The `studio-create` selection supplies the declaration; it does not grant access by itself.
-3. Configure `text.generate` for this App through its AI settings or Nimi Home's App settings. A local route uses the machine's currently selected Loadout for this capability; a cloud route needs the appropriate configured connector and target. Saving configuration does not prove that generation will succeed.
+## 1. Prerequisites
 
-Use [development setup](/start/install) for prerequisites and [Use Kit in an App](/platform/kit/use-kit-in-app) for shared settings and host integration.
+Before making your request, verify that:
 
-If the generated manifest has `app_access: []`, the project was created without the feature required by this example. Follow the creation guide's AI example in an empty directory rather than hand-editing the managed manifest or its lock. `sync` maintains the original feature selection; it does not add this permission.
+1. **Your supervised dev environment is running**: Launch your app with `pnpm dev`. It runs inside an Electron window managed by Nimi Desktop with an injected security bridge (do not open raw renderer URLs directly in a browser).
+2. **Declarations and session are ready**: Confirm that `nimi.app.yaml` declares `runtime.consume`. In Nimi Home, check Nimi Access for your development registration and verify that its session is ready—a running window alone does not establish access.
+3. **AI capability intent is configured**: Open your app's AI settings and select a preferred model for `text.generate` (either a local model ready in Nimi or a configured cloud provider).
 
-## Generate Text
+---
 
-The default starter already exports `getNimiLocalAppClient()` from `src/shell/auth/local-app-client.ts`. Reuse it. In an existing App with a different file layout, use that App's equivalent host-bound client.
+## 2. Write the Text Generation Logic
+
+Projects scaffolded with App Tools already provide a host-bound client singleton. Create `src/first-ai-call.ts`:
 
 ```ts
-// src/first-ai-call.ts in the current App Tools starter
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
 export async function generateText(prompt: string) {
+  // Retrieve the host-bound client singleton
   const client = getNimiLocalAppClient();
-  return await client.ai.text.generateCandidate({
-    messages: [{ role: 'user', text: prompt }],
+
+  // Dispatch a single-turn text generation request
+  const response = await client.ai.text.generateCandidate({
+    messages: [
+      { role: 'user', text: prompt }
+    ],
   });
+
+  return response.text;
 }
 ```
 
-Call `generateText()` from an App action and present the returned `text`. Display a loading state while waiting for the response, and handle errors by showing actionable feedback to the user.
+### What Happens Under the Hood?
 
-The request carries conversation content. It does not need to specify execution endpoints or providers. Runtime obtains the App identity from the protected host session and applies the configured Local or Cloud intent. Provider credentials remain in Runtime-owned configuration.
+- **Zero Credential Exposure**: No API keys, secret tokens, or private endpoints appear in your frontend code.
+- **Automatic Identity Resolution**: Runtime extracts your App identity directly from the protected host bridge and resolves your app's configured routing rules.
+- **Portability by Default**: Whether your request is fulfilled by a local open-weight model on your GPU or a remote cloud provider, the application contract remains identical.
 
-## Diagnose the First Failure
+---
 
-| Failure | Next step |
-| --- | --- |
-| No bound App session or an access error | Return to the supervised App launch and confirm the app has been granted access in Nimi Home Developer Mode. |
-| `not-found` with reason `ai-config-not-found`, or a missing `text.generate` intent | Save the capability intent for this App in its AI settings, then retry the actual call. |
-| Local model or cloud configuration is unavailable | Inspect the App's current settings and verify that the Runtime-selected model or connector is ready. |
-| Runtime disconnected | Restore the existing Nimi Home/Runtime development instance, reopen the supervised App if needed, and retry the same action. |
-| Execution fails after dispatch | Inspect the typed error and its reason/action fields to diagnose the root cause. |
+## 3. Connect to the UI
 
-For setup debugging, the same client exposes `auth.status()` and `aiConfig.get()` to inspect current session posture and configuration. More setup errors are covered in [Troubleshooting](/start/troubleshooting).
+The default App Tools template uses React. Save the following component as `src/FirstAIExample.tsx` and render `<FirstAIExample />` on your product page inside the existing `WorkbenchRuntimeGate`, keeping the template's sign-in, Runtime readiness, and AI settings controls intact:
 
-## Confirm the Result
+```tsx
+import { useState } from 'react';
+import { generateText } from './first-ai-call';
 
-Run the App repository's automated checks, then trigger a request from the supervised window using its host-bound client. Verify that pending, success, and error states all render and behave as expected.
+export function FirstAIExample() {
+  const [prompt, setPrompt] = useState('');
+  const [result, setResult] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-Do not copy Nimi's repository-wide SDK/Lab test commands into a third-party App as a prerequisite. Follow the scripts declared by that project.
+  async function generate() {
+    if (!prompt.trim() || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      setResult(await generateText(prompt));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Generation failed. Check your AI settings.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section>
+      <label>
+        Your prompt
+        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} />
+      </label>
+      <button disabled={busy || !prompt.trim()} onClick={generate}>
+        {busy ? 'Generating…' : 'Generate'}
+      </button>
+      {error && <p role="alert">{error}</p>}
+      {result && <pre style={{ whiteSpace: 'pre-wrap' }}>{result}</pre>}
+    </section>
+  );
+}
+```
+
+---
+
+## 4. Quick Diagnostics
+
+When troubleshooting, distinguish between a request that is still in flight and one that has failed, and preserve the full error details for inspection. Note that `principal-unauthorized` and `runtime-unavailable` below are Lab presentation categories rather than universal raw SDK error codes:
+
+| Issue | Root Cause | Resolution |
+| :--- | :--- | :--- |
+| `AI_CONFIG_NOT_FOUND` | No model preference has been saved for this capability | Open App Settings, choose a local or cloud model for `text.generate`, and click Save. |
+| `principal-unauthorized` | The current session or caller is not authorized for this operation. | Check sign-in and this app’s Nimi Access status in Nimi Home, then verify the required access declarations in `nimi.app.yaml`; AI calls require `runtime.consume`. |
+| `runtime-unavailable` | Local Runtime service is not running | Ensure `pnpm dev:runtime` is active in your terminal. |
+| Timeout / Unresponsive | Insufficient local VRAM or remote network latency | Check Runtime terminal output, switch to a smaller model, or verify internet connectivity. |
+
+---
+
+## Next Steps
+
+- [Explore SDK Capabilities](/sdk/) — Discover streaming, Agent orchestration, and Realm resources
+- [AI Capability Intent Architecture](/sdk/ai-config-surface) — Deep dive into multi-model dispatch and user sovereignty
+- [Build Rich UI with Nimi Kit](/platform/kit/use-kit-in-app) — Integrate ready-to-use cross-platform components
 
 ## Source Basis
 
 - [`app-tools/templates/default-starter/src/shell/auth/local-app-client.ts`](https://github.com/nimiplatform/nimi/blob/main/app-tools/templates/default-starter/src/shell/auth/local-app-client.ts)
 - [`sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts)
-- [`kit/shell/renderer/src/bridge/local-app.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/shell/renderer/src/bridge/local-app.ts)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)

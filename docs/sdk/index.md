@@ -6,11 +6,11 @@ aside: false
 
 The Nimi SDK is the official boundary for applications integrating Runtime, Realm, AI inference, Agent collaboration, feature modules, and shared type definitions. The core implementation lives under `sdks/typescript` and is published as `@nimiplatform/sdk`.
 
-These host-bound examples target the SDK 0.21.0 source development combination with matching Kit/Runtime. Prepare its local archives or development bundle through [Environment Setup](/start/install). The Vercel example uses source adapter 0.5.0 and AI SDK 7; see [Adapters](/sdk/adapters) for the separate published-artifact pairing.
+The host-bound examples across this guide target the SDK 0.21.0 source development baseline with matching Kit and Runtime versions. Prepare local archives or the development bundle through [Environment Setup](/start/install). The Vercel example targets source adapter 0.5.0 and AI SDK 7; see [Adapters](/sdk/adapters) for published-artifact version pairings.
 
 ## Quick Start: Building a Nimi App
 
-For standard Nimi Apps, development requires **a single host-bound client**. When Nimi Home launches an application in a supervised host, the host automatically injects a standard Shell bridge. The underlying Runtime resolves the signed-in user, application identity, and access boundaries directly from this protected session. Applications do not need to provide or manage App IDs, user credentials, tokens, or Runtime host endpoints.
+For standard Nimi Apps, development requires **a single host-bound client**. When Nimi Home launches an application in a supervised host, the host automatically injects a standard Shell bridge. The underlying Runtime resolves the signed-in user, application identity, and access boundaries directly from this protected session. Declare the App ID in the project manifest; individual client calls derive identity from the host and do not take user credentials, tokens, or Runtime host endpoints.
 
 ```ts
 import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
@@ -32,14 +32,14 @@ Projects created with Nimi tooling already include this client factory in `src/s
 
 | Entry Point | Recommended Use Case |
 | --- | --- |
-| `client.ai.text.generateCandidate` | When an App needs standard single-turn text responses. See [First AI Call](/sdk/first-ai-call) for step-by-step guidance. |
+| `client.ai.text.generateCandidate` | Standard single-turn text generation. See [First AI Call](/sdk/first-ai-call) for step-by-step guidance. |
 | `client.aiConfig` | Read or persist an App's AI capability preferences and routing intents. See [AI Config](/sdk/ai-config-surface). |
-| `createNimiLocalAppTextModel(client.ai)` (from `@nimiplatform/sdk/ai`) | When an App coordinates multi-step tool-calling loops, structured JSON output, or multi-modal vision inputs using the host-bound client. |
-| `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` (from `@nimiplatform/sdk-adapter-vercel-ai`) | When building on the Vercel AI SDK 7 ecosystem. Distributed as an independent adapter package; see [Adapters](/sdk/adapters). |
-| `createNimiClient({ appId, runtime, realm })` | Dedicated to independent background daemons or standalone scripts managing their own Realm authentication outside the App surface. |
+| `createNimiLocalAppTextModel(client.ai)` (from `@nimiplatform/sdk/ai`) | Multi-step tool-calling loops, structured JSON outputs, or multimodal vision inputs using the host-bound client. |
+| `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` (from `@nimiplatform/sdk-adapter-vercel-ai`) | Integration with the Vercel AI SDK 7 ecosystem. Distributed as an independent adapter package; see [Adapters](/sdk/adapters). |
+| `createNimiClient({ appId, runtime, realm })` | Independent background daemons or standalone scripts managing their own Realm authentication outside the App surface. |
 
 > [!WARNING]
-> The last entry point, `createNimiClient({ appId, ... })`, returns a direct `NimiClient`, not an App client. Providing an App ID in its configuration does not grant supervised application privileges. Over standard loopback gRPC connections, Runtime strictly rejects App-scoped operations (such as AI execution, Job scheduling, App AIConfig, and Agent conversations) with `PROTECTED_ORIGIN_ROLE_MISMATCH`. Do not replace an App's host-bound client with it.
+> The last entry point, `createNimiClient({ appId, ... })`, returns a direct `NimiClient`, not an App client. Providing an App ID in its configuration does not grant supervised application privileges. Over standard loopback gRPC connections, Runtime strictly rejects App-scoped operations (such as AI execution, Job scheduling, App AIConfig, secure storage, and Agent conversations) with `PROTECTED_ORIGIN_ROLE_MISMATCH`. Do not replace an App's host-bound client with it.
 
 ## Architecture Surfaces
 
@@ -72,7 +72,7 @@ The TypeScript SDK adopts a single foundation package design; third-party framew
 | `@nimiplatform/sdk/testing` | Test harnesses and fixtures for SDK consumers |
 | `@nimiplatform/sdk/features/*` | Demand-driven, consumer-oriented feature modules |
 
-Legacy deprecated subpaths (such as `@nimiplatform/sdk/world`, `@nimiplatform/sdk/scope`, `@nimiplatform/sdk/ai-provider`, etc.) are completely retired and intentionally fail closed upon import.
+Legacy subpaths (such as `@nimiplatform/sdk/world`, `@nimiplatform/sdk/scope`, and `@nimiplatform/sdk/ai-provider`) are permanently retired and fail closed upon import.
 
 ## Purpose of the SDK
 

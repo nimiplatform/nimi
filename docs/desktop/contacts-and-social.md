@@ -1,39 +1,35 @@
-# Contacts and Social Graph in Desktop
+# Contacts and Social Relationships in Desktop
 
-In Nimi Desktop, social connections are not relegated to a standalone address book page. Instead, social relationships are woven contextually into everyday activities: profile views, chat contact rails, discovery streams in Explore, and the notification center.
+Instead of isolating contacts in a standalone address book, Nimi Desktop integrates relationship status and actions into the views where you already interact: profile cards, the chat contact rail, Explore feeds, and the notification center.
 
-Relationship data is authoritatively managed by Realm. Desktop reflects relationship states within relevant views and captures user actions (such as sending requests or blocking users), syncing them securely through the SDK.
+Realm is the authoritative source for relationship data. Desktop reads current relationship states from Realm and submits user actions—such as sending friend requests, removing friends, or blocking users—through admitted SDK operations.
 
-## Contextual Social Touchpoints
+## Where Social Actions Appear
 
-| Interaction Surface | Capabilities & Actions |
+| Surface | Available Actions |
 | --- | --- |
-| **Profile Detail** | View relationship status (friends/unconnected/blocked), send friend requests, remove, or block |
-| **Chat Contact Rail** | View available friends and public agents directly within the chat context |
-| **Explore & Discovery Feeds** | Follow or send friend requests while browsing worlds, characters, or community posts |
-| **Notification Center** | Triage incoming friend requests: accept, decline, or review profile details |
-| **Agent Friendship Quotas** | Evaluate agent friend limits and prerequisites before launching LocalAgents |
+| **Profile Detail** | View relationship status (friend, unconnected, or blocked), send a friend request, remove a friend, or block |
+| **Chat Contact Rail** | Browse and open conversations with friends and public Agents |
+| **Explore & Discovery Feeds** | Follow creators or send friend requests while browsing worlds, characters, or posts |
+| **Notification Center** | Review incoming friend requests and accept, decline, or open the sender's profile |
+| **Agent Friendship Quotas** | Check Agent friend limits and prerequisites before launching LocalAgents |
 
-This context-first design removes unnecessary screen-switching and keeps social interactions seamless.
+## How Relationship State Is Managed
 
-## Unified Platform Social State
-
-In the Nimi ecosystem, friendship is a network-wide invariant. Once established, it spans across every world you visit and every Nimi application you launch together:
-
-- **Authoritative Storage**: Managed consistently in Realm across all endpoints.
-- **Cross-World and Cross-App Visibility**: No need to re-add friends when moving between worlds or apps.
-- **Security & Integrity**: Friend requests, approvals, and blocks are mediated by structured contracts that guard against impersonation and unauthorized mutations.
+- **Centralized in Realm**: Friendships, pending requests, and blocks are stored in Realm rather than maintained as isolated local state in a single Desktop view.
+- **Shared Across Realm-Backed Surfaces**: Once a relationship changes in Realm, views that read Realm social state reflect the updated status without requiring you to re-add contacts in each surface.
+- **Structured Mutations**: Requests, approvals, removals, and blocks go through structured SDK contracts rather than ad-hoc client mutations.
 
 ## Common Workflows
 
-### 1. Sending and Accepting Friend Requests
-1. **Open Profile**: Click a user's avatar from Explore or a shared conversation to view their profile card.
-2. **Send Request**: Click "Add Friend"; Desktop dispatches a structured request via the SDK to Realm.
-3. **Receive Notification**: The recipient receives a real-time notification card.
-4. **Approve Request**: Upon acceptance, the friendship activates instantly across all shared environments.
+### 1. Send and Respond to a Friend Request
+1. **Open Profile**: Click a user's avatar in Explore or a conversation to open their profile card.
+2. **Send Request**: Click **Add Friend**. Desktop submits the friend request to Realm through the SDK.
+3. **Triage in Notifications**: The recipient sees the incoming request in the Notification Center.
+4. **Accept or Decline**: Accepting the request updates the relationship in Realm and makes the friend status available to Realm-backed views.
 
-### 2. Privacy and Blocking
-If you wish to prevent interactions with a specific user, choose "Block" on their profile. Realm updates the social graph, immediately halting direct messages, invitations, and private feed visibility across all worlds and applications.
+### 2. Block a User
+Select **Block** on a user's profile card to record the block in Realm. Once applied, Realm restricts direct messages, requests, and relationship-gated visibility from that user.
 
 ## Source Basis
 

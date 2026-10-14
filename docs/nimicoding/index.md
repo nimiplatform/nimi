@@ -14,11 +14,11 @@ This documentation corresponds to `@nimiplatform/nimi-coding@0.6.5` pinned by th
 | `.nimi/local/**` | Local verification artifacts and cache outputs (git-ignored; never authoritative) |
 | `config/**` | Static inputs for apps, code generators, and host implementations; outside Nimi Coding configuration |
 
-Nimi Coding maintains a strict single source of truth: downstream developer documentation, test fixtures, compiler outputs, or audit reports must never usurp or redefine product authority.
+Nimi Coding maintains a strict single source of truth: downstream developer documentation, test fixtures, compiler outputs, or audit reports must never override or redefine product authority.
 
 ## Bounded Code Context Reads
 
-- **`code context`**: Analyzes a specified TypeScript or TSX file, admitted top-level symbol (exported or unexported), and `tsconfig` to extract a bounded outbound static context.
+- **`code context`**: Analyzes a specified TypeScript or TSX file, an admitted top-level symbol (exported or unexported), and `tsconfig` to extract a bounded outbound static context.
 - **`code authority`**: Locates explicit `@nimi-authority` and `@nimi-deprecated` marker comments in Git-tracked TypeScript, TSX, Go, Python, and Rust source files, or inspects authority bindings for a given file.
 
 Both commands are request-local and read-only. AI hosts invoke them on demand; they do not install mandatory preflight hooks, alter host task state, or attempt to evaluate unannotated code.

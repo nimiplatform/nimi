@@ -1,38 +1,76 @@
 # Development Environment Setup
 
-This guide walks you through setting up a development environment for Nimi, targeting App Tools 0.11.4, SDK 0.21.0, Kit 0.18.0, and a matching local Runtime build. It also covers the optional Vercel AI SDK adapter (0.5.0) and Tauri carrier (0.10.0).
+Setting up your Nimi development environment gives you everything you need to build local-first AI applications, manage native host interactions, and test end-to-end user workflows on your own machine.
 
-## Required Toolchain
+Always choose the App Tools version that matches your Nimi host and keep the dependency combination it generates. This source checkout declares App Tools 0.13.0, SDK 0.21.0, and Kit/native 0.21.0—note that these versions reflect the current source repository and do not imply those exact versions are published on npm.
+
+---
+
+## 1. Required Toolchain
+
+Ensure your development machine has the following tools installed:
 
 - **Node.js**: Node.js 24 or newer is required (`engines.node >= 24.0.0`).
 - **pnpm**: pnpm 10.34.5 (or compatible pnpm 10.x).
-- **Nimi Coding**: App projects use project-local Nimi Coding (0.6.5) for specification verification, automatically initialized via `pnpm run init` after installing dependencies.
+- **C/C++ Build Tools** (optional): If compiling Kit's optional native extensions from source, macOS requires Xcode Command Line Tools, while Windows requires Visual Studio C++ build tools.
 
-Prepare the App Tools, SDK, Kit, and matching Kit native packages for your OS and CPU architecture. These can be packaged directly from source or obtained from a development delivery bundle. Kit's native package is an optional dependency versioned alongside Kit.
+Scaffolded app projects include project-local Nimi Coding (0.6.5). Running `pnpm install && pnpm run init` configures it automatically without requiring global binary installations.
 
-## Dependency Selection
+---
 
-This guide explicitly uses the admitted development pair SDK `^0.21.0` and Kit `^0.18.0` (or Tauri 0.10.0 if using Tauri). Note that scaffolded templates default to `^0.18.1` / `^0.15.3`; update the two dependency declarations in `package.json` and workspace overrides accordingly.
+## 2. Core Dependency Combinations
 
-In your project, declare dependencies in `package.json` and map them to local archives using overrides in `pnpm-workspace.yaml`. See [Create an App](/start/create-an-app) for step-by-step instructions. Keeping dependent package versions aligned ensures stability across Runtime and native interfaces.
+Nimi's core packages are versioned independently. Use the dependency combination declared by your chosen App Tools version. The current source scaffold declares the following combination (when installing from npm, use the versions declared by your published App Tools package):
 
-## Running and Debugging
+| Package | Source Scaffold Version | Role |
+| :--- | :--- | :--- |
+| `@nimiplatform/sdk` | `^0.21.0` | Client core API, AI inference, and host-bound session integration |
+| `@nimiplatform/kit` | `^0.21.0` | Cross-platform UI components, window bridge, and theme contracts |
+| `@nimiplatform/app-tools` | `^0.13.0` | App scaffolding, project initialization, and production packaging |
+| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | (Optional) Adapter for Vercel AI SDK 7 |
 
-1. **Start Nimi Home and Runtime**: Ensure your local Nimi Home and Runtime instances are running. Nimi Home requires signing in with a Nimi account.
-2. **Register and Authorize**: In Nimi Home's Developer Mode, register your local project and grant the necessary capability permissions.
-3. **Launch the App**: Run `pnpm dev` in your project root to start the app inside Desktop's supervised Electron development host.
+> [!NOTE] Local Archives & Overrides
+> When developing inside the source repository or working with offline distribution bundles, map dependencies directly to local `.tgz` archives using `pnpm-workspace.yaml` overrides. See [Create a Nimi App](/start/create-an-app) for configuration details.
 
-Once the window opens, ensure local loadouts and cloud connectors have been configured in Nimi Home, save your app's capability routing intent using the SDK client, and verify your end-to-end AI workflow.
+---
 
-To check client availability and download options across platforms, visit the [official download page](https://nimi.ai/download).
+## 3. Local Development in Three Steps
+
+If you are developing from the Nimi source repository, first complete the [repository setup](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md), including Go, native build tools, and environment settings. The source Runtime launcher connects to a separately prepared Realm service at `http://127.0.0.1:3002`; these commands do not start Realm. Then keep the following three processes running:
+
+### Step 1: Start the Local Runtime Service
+In the root directory of the Nimi repository:
+```bash
+pnpm dev:runtime
+```
+This runs the local user-space Runtime supervisor, providing unified local model dispatch, secure credential storage, and session authentication.
+
+### Step 2: Start Nimi Desktop / Home
+In a second terminal window:
+```bash
+pnpm dev:desktop
+```
+When the desktop window launches, sign in with your Nimi account to open Nimi Home. Open **Settings → Developer** and enable Developer Mode before launching your app. Make sure to also verify that your app's Nimi Access is ready separately.
+
+### Step 3: Launch Your App
+In your application project directory:
+```bash
+pnpm dev
+```
+Your app will launch inside a Desktop-supervised window and request a protected session with the local Runtime. You can now test AI features, configure routing, and inspect responses.
+
+---
+
+## 4. Troubleshooting and Downloads
+
+- Encountering service connection errors or missing permissions? Visit the [Troubleshooting Guide](/start/troubleshooting).
+- Looking for ready-to-run desktop installers for daily use? Visit the [Official Downloads Page](https://nimi.ai/download).
 
 ## Next Steps
 
-- [Create an App](/start/create-an-app)
-- [First AI Call](/sdk/first-ai-call)
-- [AI Capability Configuration (AIConfig)](/sdk/ai-config-surface)
-- [Troubleshooting Integration Issues](/start/troubleshooting)
-- [Development and Distribution](/start/#local-development-and-distribution)
+- [Create a Nimi App](/start/create-an-app)
+- [Make Your First AI Call](/sdk/first-ai-call)
+- [Configure AI Capability Intents](/sdk/ai-config-surface)
 
 ## Source Basis
 

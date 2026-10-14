@@ -1,20 +1,20 @@
 # Framework Adapters
 
-Adapters translate third-party framework calls into Nimi AI client operations. Runtime retains routing and execution; the App retains tool callbacks and its own UI or business state.
+Adapters bridge third-party framework interfaces with Nimi AI client operations. Runtime handles model routing and execution, while the application manages tool callbacks, presentation, and its own business state.
 
-## Published and Source Development Packages
+## Published Packages vs. Source Development Packages
 
-| Artifact | Version and pairing | Use in this guide |
+| Artifact | Version and pairing | Role in this guide |
 | --- | --- | --- |
-| Published npm Vercel adapter | 0.1.0; AI SDK 6, provider 3, SDK ^0.13.0 | Earlier public artifact, not interchangeable with the current source example |
-| Current workspace Vercel adapter source | 0.5.0; AI SDK ^7.0.0, provider ^4.0.0, SDK ^0.21.0 | The example below uses this development combination via matching local archives or a development delivery bundle |
-| OpenAI-compatible | Source only; not distributed as a public npm package | Internal testing and the explicitly supported compatibility subset |
+| Published npm Vercel adapter | 0.1.0; AI SDK 6, provider 3, SDK ^0.13.0 | Earlier public artifact; not interchangeable with the current source workspace example |
+| Current workspace Vercel adapter source | 0.5.0; AI SDK ^7.0.0, provider ^4.0.0, SDK ^0.21.0 | Used in the example below, loaded via matching local archives or a development delivery bundle |
+| OpenAI-compatible adapter | Source only; not distributed as a public npm package | Intended for internal testing and explicitly supported compatibility subsets |
 
-The published 0.1.0 declarations are available in [npm artifact metadata](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0). A source manifest version does not establish publication of that version. Prepare the current App combination using [Development Environment Setup](/start/install).
+The published 0.1.0 declarations are documented in the [npm artifact metadata](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0). A version specified in a source manifest does not establish that the package has been published to npm. To set up the current application environment, follow [Development Environment Setup](/start/install).
 
-## Vercel AI SDK 7 in the Current Source App
+## Using Vercel AI SDK 7 in the Current Source App
 
-Prepare SDK 0.21.0, matching Kit/Runtime, and development archives for source adapter 0.5.0. Reuse the App's host-bound client:
+Ensure you have SDK 0.21.0, matching Kit and Runtime builds, and local development archives for source adapter 0.5.0. Reuse the host-bound client from your shell:
 
 ```ts
 import { stepCountIs, streamText } from 'ai';
@@ -32,13 +32,13 @@ const result = streamText({
 });
 ```
 
-The source adapter returns LanguageModelV4 and is not the AI SDK 6 pairing. Execution also requires the App's AIConfig, declarations, and valid current session. The adapter does not provide credentials, model readiness, or an authorization bypass.
+This source adapter implementation returns a `LanguageModelV4` instance and does not pair with AI SDK 6. Execution also requires the application's configured `AIConfig`, valid capability declarations, and an active desktop session. The adapter itself does not supply credentials, verify model readiness, or bypass platform authorization rules.
 
 ## Other Entry Points
 
-Use public AI runner, Runtime, and AI utility subpaths within their contracts. The retired `@nimiplatform/sdk/ai-provider` subpath does not forward to an adapter.
+Consume public AI runner, Runtime, and AI utility subpaths according to their documented contracts. The retired `@nimiplatform/sdk/ai-provider` subpath has been removed and does not route to framework adapters.
 
-OpenAI-compatible supplies only the subset explicitly supported in source. There is no published package, and it cannot create a private Runtime connection or bypass capability validation.
+The OpenAI-compatible adapter supports only the narrow API subset explicitly implemented in source. Because it is not published as a standalone package, it cannot be used to establish direct connections to private Runtime instances or bypass platform capability checks.
 
 ## Source Basis
 

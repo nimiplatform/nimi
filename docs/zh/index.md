@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Nimi
   text: 开发者文档
-  tagline: 构建现代化 Nimi App，通过 SDK 无缝集成端侧与云端 AI 能力，探索跨世界的连续性生态。
+  tagline: 构建 Nimi App，通过 SDK 与 Runtime 接入本地或云端 AI 能力。
   actions:
     - theme: brand
       text: 快速创建 App
@@ -15,19 +15,19 @@ hero:
 
 features:
   - title: 快速搭建与运行
-    details: 环境检查、一键初始化工程，并在 Nimi Home 中实时预览与调试。
+    details: 检查开发前置依赖、初始化项目骨架，并在 Nimi Home 中启动与调试应用。
     link: /zh/start/
   - title: 接入 AI 能力
-    details: 使用强类型 SDK 声明能力偏好，高效调用本地模型或云端多模态推理。
+    details: 使用强类型 SDK 声明能力偏好，调用端侧或云端模型执行推理。
     link: /zh/sdk/first-ai-call
   - title: 常见排错与诊断
-    details: 覆盖开发环境、依赖就绪、网络通信与 AI 调用的标准化排查指引。
+    details: 提供清晰的分步排查指引，覆盖工程搭建、Runtime 接入与 AI 调用异常。
     link: /zh/start/troubleshooting
 ---
 
-推荐从[快速创建 Nimi App](/zh/start/create-an-app)开始，为你的应用接入所需能力。[SDK 开发指南](/zh/sdk/)和 [Runtime 运行架构](/zh/runtime/)提供了详尽的 API 文档、配置参数与执行模型说明。
+你可以从[快速创建 Nimi App](/zh/start/create-an-app)开始，逐步为应用接入所需能力。[SDK 开发指南](/zh/sdk/)与 [Runtime 运行架构](/zh/runtime/)提供了完整的 API 规范、配置参考与运行模型说明。
 
-若你希望直接下载并体验 Nimi 桌面客户端，请访问 [Nimi 官网](https://nimi.ai) 并查看[客户端下载](https://nimi.ai/download)。Nimi Home 需要登录 Nimi 账号，并在浏览器中完成授权验证。
+若你希望直接下载并体验 Nimi 桌面客户端，请访问 [Nimi 官网](https://nimi.ai) 或前往[客户端下载](https://nimi.ai/download)页面。运行 Nimi Home 需要登录 Nimi 账号，登录验证将在浏览器中安全完成。
 
 ## Source Basis
 

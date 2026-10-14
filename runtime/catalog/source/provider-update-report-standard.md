@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the standard shape and review rules for provider catalog
+This document defines the standard structure and review rules for provider catalog
 update reports.
 
 It is a repository-wide reusable maintenance standard for
@@ -10,10 +10,10 @@ It is a repository-wide reusable maintenance standard for
 
 ## Core Rule
 
-A provider update report is a `candidate discovery` and `review` artifact.
-It is not authority mutation by itself.
+A provider update report is a candidate-discovery and review artifact;
+it does not mutate source authority by itself.
 
-Only reviewed edits to `runtime/catalog/source/providers/*.source.yaml` may
+Only reviewed edits to `runtime/catalog/source/providers/*.source.yaml`
 change source truth.
 
 ## Report Modes
@@ -42,8 +42,8 @@ Use explicit capability families such as:
 - `world`
 - `music`
 
-If a provider needs another capability family, name it explicitly instead of
-collapsing it into a generic bucket.
+If a provider requires another capability family, name it explicitly instead of
+collapsing it into a generic catch-all bucket.
 
 ## Multi-Axis Classification
 
@@ -67,7 +67,7 @@ Examples:
   - `lineage_or_track`: `max`, `plus`, `flash`, `vc`, `vd`, `realtime`
 
 If overlapping first-party lines exist in the same capability family, the
-report must not force them into one "winner" bucket prematurely.
+report must not prematurely force them into a single track.
 
 ## Evidence Hierarchy
 
@@ -83,9 +83,9 @@ If evidence conflicts:
 - official provider evidence wins over aggregates
 - source remains unchanged until a reviewer resolves the conflict
 
-## Statistical Requirements
+## Inventory Reconciliation Requirements
 
-Each report must compare:
+Each report must compare and reconcile:
 
 1. `current_source_inventory`
 2. `official_current_inventory`
@@ -96,8 +96,8 @@ Each report must compare:
 The comparison must be done at the appropriate scoped axis:
 
 - at minimum per capability family
-- and for complex providers, per `product_family + capability_family`
-- and when needed, also per `lineage_or_track`
+- per `product_family + capability_family` for complex providers
+- per `lineage_or_track` when needed to distinguish parallel tracks
 
 ## Curation Rules
 

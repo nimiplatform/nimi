@@ -8,7 +8,7 @@
   "switchAccount": "切换账号",
   "logoutConfirmTitle": "确认退出当前账号？",
   "logoutConfirmAction": "退出登录",
-  "switchAccountConfirmTitle": "切换账号?",
+  "switchAccountConfirmTitle": "确认切换账号？",
   "switchAccountConfirmBody": "将退出当前账号并返回登录页。",
   "switchAccountConfirmAction": "切换账号"
 }

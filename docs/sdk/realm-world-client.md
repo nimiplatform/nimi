@@ -4,9 +4,9 @@ User accounts, character personas (Character), virtual worlds (World), social gr
 
 ## Strongly-Typed Domain Operations
 
-Applications may invoke only those operations explicitly declared in their App manifest and granted by authorization policies. Both user account and application identities are derived automatically from the protected host session. Persona character mutations, World query interfaces, and Realm realtime channels maintain strict, strongly-typed inputs, permissions, and response contracts; unbounded generic proxies are disallowed.
+Applications may invoke only those operations explicitly declared in their App manifest and granted by authorization policies. Both user account and application identities are derived automatically from the protected host session. Character mutations, World query interfaces, and Realm realtime channels maintain strict, strongly-typed inputs, permissions, and response contracts; unbounded generic proxies are disallowed.
 
-The standalone `@nimiplatform/sdk/realm` facade serves external scripts that independently manage Realm authentication sessions. Standard Nimi Apps must not use it to escape the security boundaries of their host session. The retired `@nimiplatform/sdk/world` subpath remains permanently removed.
+The standalone `@nimiplatform/sdk/realm` facade serves external scripts that independently manage Realm authentication sessions. Standard Nimi Apps must not use it to bypass the security boundaries of their host session. The retired `@nimiplatform/sdk/world` subpath remains permanently removed.
 
 ## Composing an Application Flow
 

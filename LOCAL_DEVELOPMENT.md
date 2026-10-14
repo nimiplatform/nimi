@@ -1,206 +1,119 @@
-# Nimi 本地开发指南
+# Nimi 本地开发指南 (Local Development)
 
-本文档介绍在 Windows 与 macOS 环境下进行 Nimi Desktop、Runtime 及应用开发的标准流程与规范。
+本文档面向在 Windows 与 macOS 环境下进行 Nimi Desktop、本地 Runtime 及生态应用开发的开发者，介绍核心工作流、调试手段与安全规范。
 
-本地开发严格遵循生产级的安全边界设计：
+---
 
-- **隔离监管**：源码级 Runtime 开发由独立进程监管；系统级服务验收使用专门的安装与校验命令。
-- **安全通道**：Desktop 仅通过受控的本地通信通道访问 Runtime。
-- **监督启动**：应用均由 Desktop 监督启动，并通过受保护通道与本地环境通信。
-- **零凭据泄露**：前端渲染层不持有敏感 Token、底层 RPC 端点或未授权的系统凭据。
-- **权限解耦**：开发者模式（Developer Mode）、应用授权与具体的业务操作权限彼此独立管理。
-- **确定性反馈**：当无法建立安全通信通道时，系统返回明确的结构化不可用错误，严禁伪成功。
+## 核心设计与安全模型
 
-## 开发路径
+本地开发时，应用通过受保护的宿主会话访问 Nimi 能力，遵循四项核心原则：
 
-| 路径 | 用途 | 受保护 Runtime |
+- **桌面宿主监督**：生态应用均由 Nimi Desktop 作为 Supervisor 监督启动，运行在独立的 Electron 宿主中。
+- **受控安全信道**：应用通过 Kit 标准 Bridge 与 Runtime 通信；前端渲染层**绝不直接持有**敏感 Token、系统 RPC 端点或底层凭据。
+- **确定性错误反馈**：通信断开或未获授权时，接口会返回结构化错误码，严禁静默吞错或伪造成功状态。
+- **权限解耦**：开发者模式（Developer Mode）仅负责开启本地联调通道，具体的数据与 AI 能力调用仍由运行时权限系统按需鉴权。
+
+---
+
+## 开发路径与命令矩阵
+
+| 开发路径 | 适用场景 | 依赖条件 |
 |---|---|---|
-| `pnpm dev:desktop` | Windows/macOS 日常 Electron UI、main、preload 与默认 loopback CDP 迭代；先启动 source Runtime | 使用当前用户 source Runtime |
-| `pnpm dev:zhiyu` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 Zhiyu Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:lab` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 Nimi Lab Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:nimigo` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 NimiGo Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:nimiday` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 NimiDay Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:avatar` | 启动带默认 loopback CDP 的 avatar-only Desktop Electron carrier；与普通 Desktop dev 实例互斥 | 取决于 Avatar launch binding |
-| `pnpm dev:runtime` | Windows x64/macOS arm64 构建并启动独立的当前用户 source Runtime supervisor；终端必须保持运行 | source development |
-| `pnpm accept:runtime:fixed-service` | Windows/macOS 构建并验收 fixed-service candidate | fixed-service acceptance |
-| `pnpm accept:runtime:fixed-service -- --install` | macOS 首次安装固定 ad-hoc development candidate | fixed-service acceptance |
-| `pnpm dev:macos:desktop:installed` | macOS 启动 renderer 与已安装的 `/Applications/Nimi Dev.app` | 可用 |
-| `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App，并默认分配独立的 ephemeral loopback CDP 端口 | 取决于当前受保护 Desktop/Runtime |
+| `pnpm dev:desktop` | Windows / macOS 桌面端 UI、Main 与 Preload 核心迭代 | 先在独立终端启动 `pnpm dev:runtime` |
+| `pnpm dev:runtime` | Windows x64 / macOS arm64 本地 Runtime 源码调试 | 独立终端持续前台运行 |
+| `pnpm dev:lab` | 启动 Nimi Lab 能力测试台应用 | 需先启动并登录 Desktop |
+| `pnpm dev:zhiyu` | 启动 织羽 (Zhiyu) AI 伙伴应用 | 需先启动并登录 Desktop |
+| `pnpm dev:nimigo` | 启动 NimiGo 应用 | 需先启动并登录 Desktop |
+| `pnpm dev:nimiday` | 启动 NimiDay 应用 | 需先启动并登录 Desktop |
+| `pnpm dev:avatar` | 启动独立的桌面 Avatar 悬浮载体 | 与普通 `pnpm dev:desktop` 互斥 |
+| `nimi-app dev --shell electron` | 启动第三方生态应用工程 | 由 Desktop supervisor 监督启动 |
 
-根目录 `dev:<app>` 默认使用 Electron，并默认启用仅监听 `127.0.0.1` 的 CDP：
-Desktop `9333`、Zhiyu `9334`、Nimi Lab `9335`、Avatar `9336`、NimiGo `9337`、NimiDay `9338`。使用
-`--cdp-port <port>` 覆盖默认端口，或使用 `--no-cdp` 显式关闭。端口被占用时启动会
-明确失败，不会自动选择另一个端口。例如：
+---
 
-```bash
-pnpm dev:zhiyu
-pnpm dev:lab --cdp-port 19468
-pnpm dev:desktop --no-cdp
-```
+## CDP 调试端口分配
 
-Zhiyu、Nimi Lab、NimiGo 与 NimiDay 不会自行启动第二个 Desktop；先运行并登录
-Desktop，再运行对应命令。Avatar Electron 使用 avatar-only Desktop carrier，不能
-与普通 `pnpm dev:desktop` 并行；它另外接受 `--agent-handle <handle>` 与
-`--instance-id <id>`。Tauri 不是任何根 `dev:<app>` 命令的本地开发载体，
-`--tauri` 等未列出的参数会以 `dev-app-option-unsupported` 拒绝。
+为了方便开发者进行自动化验收与 UI 调试，根目录下的各应用启动命令默认开启仅监听本地 `127.0.0.1` 的 Chrome DevTools Protocol (CDP)：
 
-Generic `nimi-app dev` 不共享固定 CDP 端口。Desktop supervisor 请求 Chromium 自动
-选择 ephemeral 端口，读取 App 私有 profile 中的实际端口，并由 CLI 输出
-`CDP http://127.0.0.1:<port>`。需要稳定端口时，使用 `--cdp-port <port>`，或在项目
-`.env` 中设置 `NIMI_APP_DEV_CDP_PORT=<port>`；命令行优先于 `.env`。使用
-`--no-cdp` 显式关闭。
+- **Nimi Desktop**：`9333`
+- **Zhiyu**：`9334`
+- **Nimi Lab**：`9335`
+- **Avatar**：`9336`
+- **NimiGo**：`9337`
+- **NimiDay**：`9338`
 
-## Windows
+### 自定义与关闭 CDP 端口
+- 指定端口：`pnpm dev:lab --cdp-port 19468`
+- 关闭 CDP：`pnpm dev:desktop --no-cdp`
 
-建议顺序：
+> **提示**：若默认端口被占用，启动将明确报错中断，系统不会随机切换其他端口，确保调试配置的可预测性。第三方 App 使用 `nimi-app dev` 时默认动态分配端口，并在控制台打印输出。
 
-1. 启动 Realm 与 Web。
-2. 在独立终端运行 `pnpm dev:runtime`，启动当前用户 source Runtime supervisor。
-3. 保持 Runtime 终端运行，另开终端运行 `pnpm dev:desktop`。
-4. 在 Desktop 中登录、开启 Developer Mode。
-5. 在目标 App 目录运行 `pnpm dev`。
+---
 
-`pnpm dev:runtime` 不接受 data-root、candidate、profile、trust override 或 fixed-service
-操作参数。fixed-service 的更新与验收使用 `pnpm accept:runtime:fixed-service`。已有
-Windows protected-local schema 与当前 schema 不一致时，使用一次性、非产品化的精确
-protected-state reset 后重新安装；不实现兼容读、自动迁移或 dual schema。
+## 推荐的开发流程
 
-## macOS
+### 平台通用步骤
+1. **启动 Runtime 守护进程**：在一个终端窗口运行 `pnpm dev:runtime`，保持该终端处于前台运行状态。
+2. **启动 Nimi Desktop**：在另一个终端运行 `pnpm dev:desktop`。
+3. **完成登录与授权**：首次启动 Desktop 时，选择数据根目录，并通过浏览器完成 Nimi 账号登录。
+4. **启动目标生态应用**：在 Desktop 保持运行的前提下，在新的终端窗口启动对应应用（如 `pnpm dev:zhiyu`，或在第三方 App 目录下运行 `pnpm dev`）。
 
-### 普通 Electron 迭代
+---
 
-```bash
-pnpm dev:runtime
-pnpm dev:desktop
-pnpm dev:desktop --cdp-port 19470
-```
+## 层次化热重载 (Hot Reload) 与变更响应
 
-第一个命令启动独立的当前用户 source Runtime supervisor，并一直占用终端；随后另开
-终端启动 workspace Electron。该组合适合 Runtime、UI、main、preload 与 loopback
-CDP 的真实本地迭代。
+在多组件协同开发时，代码变更的响应逻辑如下：
 
-### 音频与视频解码
+| 修改范围 | 响应行为 | 说明 |
+|---|---|---|
+| **Desktop Renderer** | Vite HMR | 页面毫秒级局部刷新 |
+| **Desktop Main / Preload** | 自动触发重新构建 | 重建后自动重启 Electron 宿主 |
+| **第三方 App Renderer** | Vite HMR | 保持在 Supervisor 宿主内热更新 |
+| **第三方 App `src-electron`** | 防抖重新构建 | 自动安全替换底层 Electron 宿主 |
+| **Runtime Go 核心** | 重启 `pnpm dev:runtime` | 守护进程重新编译并拉起服务 |
+| **SDK / Kit 共享库** | 自动 Watch 构建 | Desktop 启动时会自动 watch SDK/Kit，产物新鲜时直接生效 |
 
-源码 Runtime 的媒体准备还需要受管理的 FFmpeg/ffprobe；模型和 Python 环境准备成功不代表解码工具已就绪。当前 macOS arm64 固定路径是所选 Runtime 的 `dependencies/media-codec/ffmpeg-8.0.1-darwin-arm64/bin/{ffmpeg,ffprobe}`，版本由 `runtime/internal/videomedia/videomedia.go` 定义。
+---
 
-准备时核对两个工具的实际版本、arm64 架构及动态库可用性。Runtime 不从 PATH 查找替代工具；启动后才补齐依赖时，需要重启 Runtime 才会接入音频/视频准备链。本机 Homebrew 工具仍依赖其原有动态库，不能作为独立安装包交付。
+## 生态应用接入的最小契约
 
-### 固定 ad-hoc development candidate
+对于第三方或独立 App，工程根目录需满足以下基础规范：
 
-```bash
-pnpm accept:runtime:fixed-service -- --status
-pnpm accept:runtime:fixed-service -- --install
-pnpm accept:runtime:fixed-service
-NIMI_DESKTOP_DEV_CDP_PORT=9333 pnpm dev:macos:desktop:installed
-```
+### 1. `nimi.app.yaml` 清单
+必须声明唯一的 `app_id`、申请的能力权限列表（Permissions）以及本地渲染服务的 Origin 地址。
 
-`--install` 只用于 `absent` 状态的首次安装。此后无参数
-`pnpm accept:runtime:fixed-service` 是 fixed-service 更新入口：先构建完整候选，经 sudo
-授权后替换当前健康安装，并检查新 Runtime 回到 `running/healthy`。更新前状态不是健康
-`present` 时不会猜测性修复。更新保留已验证的 `_nimiruntimedev` principal、protected
-state 与 Keychain namespace；只有显式 `--uninstall` 才删除这些安装状态。
-
-macOS development candidate 的边界是固定的：
-
-- `/Applications/Nimi Dev.app`
-- `/Library/Application Support/Nimi/RuntimeDev`
-- `/Library/LaunchDaemons/ai.nimi.runtime.dev.plist`
-- `/usr/local/libexec/nimi-macos-dev-security`
-- `/private/var/run/nimi-dev`
-- 非登录 `_nimiruntimedev` principal
-
-candidate 使用 ad-hoc signing、固定 signing identifiers、hardened Runtime、严格
-code-seal 验证、固定 root-owned 安装路径与 Runtime-only Keychain custody。它不要求
-Apple certificate、Team ID 或 notarization，也不形成 production readiness。
-
-出现 `partial` 时先检查 status 报告的精确固定路径，再显式运行：
-
-```bash
-pnpm accept:runtime:fixed-service -- --uninstall
-```
-
-随后从 `absent` 做一次 fresh install。不要增加 FreshCarrier、signed-trial、
-acceptance round、profile、role record、receipt 或自动 repair 流程。
-
-## Product Control 与 data root
-
-Product Control 是普通产品状态，不属于 development candidate identity。Runtime、
-Desktop、installer、CLI、环境变量与测试输入都不能选择或覆盖 `dataRoot.path`。
-首次选择只通过正常 Product Control UI；后续服务与候选安装只读取该 canonical
-选择。
-
-Runtime/Desktop 安装、卸载、重启或 candidate replacement 不得重建 Product Control、
-改变 `installId` 或重置已完成 First Run。损坏状态进入正常 repair；fresh Product
-Control 只来自显式 destructive reset。
-
-## 修改后的动作
-
-| 修改对象 | 动作 |
-|---|---|
-| Desktop renderer | Vite HMR |
-| Desktop Electron main/preload | workspace 路径自动重建；fixed-service 路径运行 `pnpm accept:runtime:fixed-service` 更新 |
-| 第三方 App renderer | Desktop supervisor 保持 renderer 与 host 生命周期绑定 |
-| 第三方 App `src-electron` | supervisor 防抖构建并替换 host |
-| Runtime Go | Windows/macOS source development 均重启 `pnpm dev:runtime`；fixed-service 验收使用 `pnpm accept:runtime:fixed-service` |
-| SDK/Kit | Desktop 开发 carrier 自动 ensure 并持续 watch；无需由 Zhiyu/Nimi Lab 重建 |
-
-`pnpm dev:desktop` 会在构建自身 Electron host 前启动 SDK/Kit canonical watcher，
-等待共享 `dist` 可用且新鲜后再启动 renderer。已有 freshness stamp 且源码未变化时
-不会重复构建。avatar-only Electron carrier 复用同一个 Desktop 入口，因此遵循相同
-规则；Zhiyu 与 Nimi Lab 的 `build:electron` 只校验并消费这份产物。
-
-仅在不启动 Desktop、单独迭代 SDK/Kit 时使用根命令
-`pnpm dev:prepare:watch`；不要与 Desktop 托管的 watcher 并行运行。
-
-Runtime restart、host replacement、renderer dev server 退出、authority 刷新失败或
-supervisor 结束都必须终止旧 host carrier。持久项目同意可以保留，但每次需要新的
-进程绑定、lease 与 session。
-
-## 项目准入与 operation permission
-
-1. Desktop 开启 Developer Mode；该开关不授予 API permission。
-2. `nimi-app dev` 提交 canonical project root、manifest/app id、Electron entry、
-   renderer origin 与 capability fingerprint。
-3. 用户选择本次运行或记住项目。
-4. Desktop supervisor 构建并启动 exact Electron host。
-5. App 请求具体 operation/resource；Runtime 根据当前账号与 permission 判定。
-6. revoke、账号切换、Runtime replacement 或 supervisor termination 后，旧 carrier
-   不得继续运行或恢复受保护访问。
-
-## 验证原则
-
-日常修改只运行最近的 build/test。涉及 fixed carrier 时，在 candidate 稳定后执行
-一次真实旅程：
-
-```text
-absent
-→ install
-→ healthy status
-→ installed Desktop
-→ loopback CDP
-→ one third-party Electron App
-→ Runtime restart/revoke
-→ uninstall
-→ absent
-```
-
-这条真实旅程和相关直接测试就是当前验收。不要建立 owner-minimal、
-fresh-prepared、candidate-bound evidence、checkpoint harness 或多轮自动证明流程。
-
-## 第三方 App 最小合同
-
-`nimi.app.yaml` 必须声明固定 `app_id`、精确 permission 请求和 canonical loopback
-Electron renderer origin。`package.json` 至少提供：
-
+### 2. `package.json` 基础脚本
 ```json
 {
   "scripts": {
     "dev": "nimi-app dev --shell electron",
     "dev:shell": "nimi-app dev",
     "dev:renderer": "vite --host 127.0.0.1 --port <manifest-port> --strictPort",
-    "build:electron": "<deterministic main/preload build>"
+    "build:electron": "vite build --config vite.electron.config.ts"
   }
 }
 ```
 
-Electron 主进程使用 `registerNimiElectronAppBridge`；预加载脚本（Preload）使用 Kit 标准桥接；渲染进程不直接接触 Node.js 原生 API 或私有通信句柄。应用统一通过受保护的 SDK 客户端与宿主安全交互，严禁私自绕过受控通道或硬编码系统直连。
+### 3. 主进程与 Preload 架构
+- **Electron 主进程**：统一通过 `registerNimiElectronAppBridge` 建立安全连接。
+- **Preload 预加载层**：使用 Kit 提供的标准 Bridge 暴露安全的 API 接口。
+- **Renderer 渲染层**：保持纯前端环境，不直接接触 Node.js 原生 API 或本地文件系统。Nimi 能力调用统一通过 `@nimiplatform/sdk` 完成；应用自身的业务桥接则由应用自行维护。
+
+---
+
+## 验证与发布前检查
+
+完成日常功能迭代后，建议依次执行以下检查：
+
+1. **类型检查与测试**：
+   ```bash
+   pnpm run typecheck
+   pnpm run test
+   ```
+2. **打包与生产环境一致性校验**：
+   ```bash
+   pnpm exec nimi-app check --production
+   pnpm exec nimi-app build --target macos-aarch64 --production
+   pnpm exec nimi-app pack --target macos-aarch64 --production
+   ```
+   以上命令以 Apple Silicon Mac（`macos-aarch64`）为例；在 Windows 主机上请将 `--target` 改为 `windows-x86_64`。日常验证本地归档依赖时使用普通 `check` / `build` 即可，正式公开发布前再使用 `check --production` 进行预检。
+3. **全流程联调测试**：在真实 Desktop 中完成从「应用启动 → 访问就绪 → AI 响应 → 状态保存 → 重启恢复」的闭环验证。

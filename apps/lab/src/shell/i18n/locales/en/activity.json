@@ -1,7 +1,7 @@
 {
   "Activity": {
     "title": "App activity",
-    "blurb": "Activity and to-dos that apps have published to this account, read through the same public client every App uses. Viewing here never marks anything read.",
+    "blurb": "Activity and to-dos published to this account by your apps, read through the same public client every app uses. Viewing items here never marks them as read.",
     "scopeLabel": "Activity scope",
     "scope": {
       "openTodos": "Open to-dos",
@@ -42,7 +42,7 @@
       "not-openable": "This item can't be opened.",
       "activity-unavailable": "This item is no longer available.",
       "source-unavailable": "{{source}} is not available on this device.",
-      "object-unavailable": "{{source}} could not find this item anymore.",
+      "object-unavailable": "{{source}} can no longer find this item.",
       "source-not-ready": "{{source}} didn't respond in time. Try again.",
       "canceled": "Opening was cancelled.",
       "host-unavailable": "Nimi can't open apps right now.",

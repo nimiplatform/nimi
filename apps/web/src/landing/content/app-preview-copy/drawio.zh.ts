@@ -21,14 +21,14 @@ export const drawioMessagesZh = {
   'drawio.editor.selectedNodeLabel': '选中节点的标签',
   'drawio.editor.applyLabel': '应用标签',
   'drawio.assistant.diagramAssistant': '图表助手',
-  'drawio.assistant.describeAChangeThenExploreASaved': '描述要修改的内容，再探索一个已保存的示例。',
+  'drawio.assistant.describeAChangeThenExploreASaved': "描述你想做的修改，再查看预设示例。",
   'drawio.assistant.sampleConversation': '示例对话',
   'drawio.assistant.aClearFlowFromIdeaToResult': '从想法到结果的清晰流程',
   'drawio.assistant.theCanvasContainsFourEditableStepsSelect':
     '画布中有四个可编辑步骤。选中形状修改标签，或通过工具栏添加示例步骤。',
-  'drawio.assistant.savedSuggestion': '已保存的建议',
+  'drawio.assistant.savedSuggestion': "预设建议",
   'drawio.assistant.aReviewStepBelongsBetweenCreatingThe':
-    '审阅应位于创建草稿与分享之间。此示例已包含这个步骤，你可以在画布中重命名。',
+    "审阅环节适合放在创建草稿与分享结果之间。此示例已包含这一步，你可以在画布中直接重命名。",
   'drawio.assistant.diagramRequest': '图表修改请求',
   'drawio.assistant.showExampleDiagramSuggestion': '查看图表示例建议',
   'drawio.history.localExampleHistory': '本地示例历史',

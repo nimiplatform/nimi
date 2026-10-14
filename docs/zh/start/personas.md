@@ -1,6 +1,6 @@
 # 用户画像与阅读路径
 
-本章根据不同读者的技术背景与核心目标，提供针对性的文档阅读路径。各路径之间相互交叉引用，便于横向拓展查阅。
+本指南根据不同读者的技术背景与核心目标，提供针对性的文档阅读路径。各路径之间相互交叉引用，便于横向拓展查阅。
 
 ## 平台初探者
 
@@ -12,11 +12,11 @@
 4. [Nimi Coding → 概览](/zh/nimicoding/)：了解仓库中使用的规范治理与规范驱动开发工具。
 5. [参考 → 术语表](/zh/reference/glossary)：查阅核心概念与统一术语对照。
 
-完成此路径后，您将能清晰向他人介绍 Nimi 的核心架构与平台价值。
+完成此路径后，您将建立起对 Nimi 架构体系与核心能力的整体认知。
 
 ## 数字世界创作者
 
-如果您的目标是设计并发布一个数字世界（包括世界观规则、设定、角色 Character 及交互场景）：
+如果您的目标是设计并发布一个数字世界（包括世界观规则、设定、角色与交互场景）：
 
 1. [平台 → 愿景](/zh/platform/vision)：了解 Nimi 体系中“数字世界”的定义。
 2. [Realm 核心](/zh/realm/)：掌握数字世界底座的三大要素：权威状态、实体关系及历史轨迹。
@@ -28,9 +28,9 @@
 
 如果您计划使用 Nimi SDK 开发桌面端或 Web 应用：
 
-1. [快速入门 → 创建 Nimi App](/zh/start/create-an-app)：使用 App Tools 脚手架初始化一个现代化应用工程。
-2. [SDK → 第一次 AI 调用](/zh/sdk/first-ai-call)：通过能力意图发起文本生成调用，让 Runtime 智能调度本地与云端模型。
-3. [SDK → 概览](/zh/sdk/) 与 [SDK → 架构边界](/zh/sdk/boundaries)：了解公开 API 与底层运行时之间的安全与职责边界。
+1. [快速入门 → 创建 Nimi App](/zh/start/create-an-app)：使用 App Tools 脚手架快速搭建现代应用工程。
+2. [SDK → 第一次 AI 调用](/zh/sdk/first-ai-call)：通过能力意图发起文本生成调用，交由 Runtime 统一调度本地与云端模型。
+3. [SDK → 概览](/zh/sdk/) 与 [SDK → 架构边界](/zh/sdk/boundaries)：理解公开应用边界与各模块职责划分。
 4. [平台 → 在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)：复用平台提供的 UI 组件、认证会话、AI 配置面板与监控能力。
 5. [快速入门 → 使用 Nimi Lab](/zh/start/use-nimi-lab)：参考官方实验台中的能力集成范式与最佳实践。
 6. [快速入门 → 故障排查](/zh/start/troubleshooting)：定位并解决开发调试过程中的常见问题。
@@ -50,7 +50,7 @@
 如果您希望将规范驱动开发与权威约束（Nimi Coding）引入自有团队或项目中：
 
 1. [Nimi Coding → 概览](/zh/nimicoding/)：了解规范治理工具的设计理念与适用边界。
-2. [Nimi Coding → 宿主环境集成](/zh/nimicoding/installation)：了解项目受管文件组织方式与同步流程。
+2. [Nimi Coding → 宿主环境集成](/zh/nimicoding/installation)：了解项目中受管文件的组织方式与同步工作流。
 3. [Nimi Coding → CLI 参考手册](/zh/nimicoding/cli-reference)：查阅受支持的校验、格式化与分析命令。
 4. [参考 → 架构约束与反模式](/zh/reference/forbidden-claims)：了解开发规范中明确禁止的反模式与设计红线。
 

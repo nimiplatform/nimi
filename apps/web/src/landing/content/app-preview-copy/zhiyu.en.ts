@@ -48,7 +48,7 @@ export const zhiyuMessagesEn = {
   'zhiyu.copy.chat.bubbleUserLabel': 'You',
   'zhiyu.copy.chat.bubbleAssistantLabel': 'Companion',
   'zhiyu.copy.chat.streamInterruptedLabel': '[Interrupted]',
-  'zhiyu.copy.chat.markdownCopyLabel': 'Duplicate',
+  'zhiyu.copy.chat.markdownCopyLabel': "Copy",
   'zhiyu.copy.chat.markdownCopiedLabel': 'Copied',
   'zhiyu.demo.runtimeSettingsNotice':
     'Runtime settings open in Nimi. This preview uses sample data only.',

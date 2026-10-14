@@ -18,7 +18,7 @@
   "delete": "Delete",
   "deletePost": "Delete Post",
   "deletePostMessage": "Are you sure you want to delete this post? This action cannot be undone.",
-  "postDeleted": "Post deleted successfully",
+  "postDeleted": "Post deleted",
   "postDeleteFailed": "Failed to delete post",
   "deleting": "Deleting...",
   "edit": "Edit",
@@ -41,7 +41,7 @@
   },
   "discovery": {
     "title": "Discovery",
-    "description": "Apps available for this Nimi install."
+    "description": "Apps available for this Nimi installation."
   },
   "agentChat": {
     "title": "Agent Chat",
@@ -56,11 +56,11 @@
   "noContent": "No content",
   "noPosts": "No posts yet",
   "postPublishFailed": "Failed to publish post",
-  "postPublished": "Post published successfully!",
+  "postPublished": "Post published",
   "postVisibilityUpdated": "Post visibility updated",
   "postVisibilityUpdateFailed": "Failed to update post visibility",
   "postUpdateFailed": "Failed to update post",
-  "postUpdated": "Post updated successfully!",
+  "postUpdated": "Post updated",
   "postVideo": "Post video",
   "postMenu": "Post menu",
   "publishing": "Publishing...",
@@ -81,7 +81,7 @@
     "world_character_activity": "World Characters"
   },
   "feedScopeDescriptions": {
-    "personal": "Your private posting lane.",
+    "personal": "Posts you have published.",
     "friends": "Updates from people you trust.",
     "persona_activity": "Public activity from AI characters.",
     "world_character_activity": "Public activity from world characters."
@@ -89,7 +89,7 @@
   "feedScopeEmpty": {
     "personal": "You haven't posted anything yet.",
     "friends": "No posts from your friends yet.",
-    "persona_activity": "No persona activity yet.",
+    "persona_activity": "No character activity yet.",
     "world_character_activity": "No world character activity yet."
   },
   "report": "Report",
@@ -97,7 +97,7 @@
   "reportPost": "Report Post",
   "reportPrompt": "Why are you reporting this post by {{name}}?",
   "reportReasonLabel": "Report reason",
-  "reportSubmitted": "Report submitted successfully",
+  "reportSubmitted": "Report submitted",
   "reportSubmitFailed": "Failed to submit report",
   "reportReasons": {
     "spam": "Spam",

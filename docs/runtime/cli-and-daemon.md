@@ -1,6 +1,6 @@
 # Runtime CLI and Startup Paths
 
-The source development supervisor and an installed fixed service use different entry points. Identify the environment before choosing startup or diagnostic commands.
+The source development supervisor and the installed fixed service rely on different entry points. Identify your target environment before choosing startup or diagnostic commands.
 
 ## Source Development
 
@@ -10,13 +10,13 @@ At the Nimi repository root, run this in a dedicated terminal:
 pnpm dev:runtime
 ```
 
-The script starts the current-user source Runtime supervisor and prints its logs in the terminal. Then run `pnpm dev:desktop` and sign in through Home. Prepare dependencies, Realm/Web, and OS prerequisites using [Development Environment Setup](/start/install) and the repository's LOCAL_DEVELOPMENT.md.
+The script starts the current-user source Runtime supervisor and prints its logs directly to the terminal. Next, run `pnpm dev:desktop` and sign in through Home. Ensure dependencies, Realm/Web, and OS prerequisites are prepared according to [Development Environment Setup](/start/install) and the repository's LOCAL_DEVELOPMENT.md.
 
-An ordinary Windows development terminal cannot use `nimi serve` as a substitute. That command enters the production daemon path and requires the fixed Windows service identity.
+You cannot substitute `pnpm dev:runtime` with `nimi serve` in a standard Windows development terminal. The `nimi serve` command enters the production daemon lifecycle and requires the fixed Windows service identity.
 
 ## Installed Windows Fixed Service
 
-These commands require the corresponding fixed service to be installed and its control prerequisites to be satisfied. The current macOS/Linux builds do not provide this background service controller. These commands also do not manage the source supervisor.
+These commands require the corresponding fixed service to be installed and its control prerequisites satisfied. Current macOS/Linux builds do not provide this background service controller. These commands also do not manage the source supervisor.
 
 | Command | Purpose |
 | --- | --- |
@@ -25,15 +25,15 @@ These commands require the corresponding fixed service to be installed and its c
 | `nimi stop` | Stop that fixed service |
 | `nimi logs` | Inspect its logs |
 
-`nimi serve` is a production daemon entry point, not permission to start the protected service from an ordinary terminal.
+`nimi serve` is an entry point for the production daemon itself; executing it in an unprivileged terminal will not launch or manage the protected service.
 
 ## Environment and Service Diagnostics
 
 - `nimi doctor` checks local environment and dependency prerequisites.
 - `nimi version` reports the binary version.
-- `nimi health --json` reads the corresponding running service's health summary, subject to reachability and its access conditions.
+- `nimi health --json` reads the running service's health summary, subject to reachability and access conditions.
 
-READY means the daemon is serving RPCs. A particular AI operation still needs a valid Loadout, model, session, and execution configuration. The source supervisor's current-user mode does not establish the identity or configuration of a production fixed service.
+A `READY` state indicates that the daemon is actively serving RPC requests. However, executing a specific AI operation still requires a valid session and execution configuration, plus a ready local Loadout or supported cloud target according to the selected route. Running the source supervisor in current-user mode does not establish the identity or configuration of a production fixed service.
 
 ## Related Documentation
 

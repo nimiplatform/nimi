@@ -1,24 +1,28 @@
 # Realm Authoritative State and Architectural Boundaries
 
-In Nimi's distributed architecture, shared invariants across all digital worlds—including universal account identities, social relationship graphs, creator economics, digital asset ownership, and world lifecycle rules—are authoritatively governed by Realm as the **Single Source of Truth**.
+In Nimi's architecture, shared facts that span digital worlds—including global account identities, the social relationship graph, `WorldCore` metadata, character profiles and settings, and world lifecycle rules—are governed by Realm as the **Single Source of Truth**.
 
-Local applications and desktop clients do not define or mutate these global invariants unilaterally. Instead, they interact with and consume authoritative state projections through type-safe interfaces provided by the SDK.
+Desktop, Web, and third-party applications do not unilaterally define or mutate these global facts. Instead, they consume state projections from Realm through typed interfaces in `@nimiplatform/sdk`, while Runtime mediates credentials and proxy channels for protected App access.
 
 ## Division of Responsibilities
 
 | Platform Component | Primary Responsibility |
 | --- | --- |
-| **SDK Generated Realm Core** | Type-safe data access models and schemas compiled from Realm OpenAPI specifications |
-| **SDK Realm Facade** | Manages session credential injection, retries, fail-closed error mapping, and transport scheduling |
-| **Runtime / Desktop / Web** | Presentation and consumer surfaces that render read-only projections received from Realm |
+| **Realm** | Holds service authority and persistent truth for global identities, social relationships, `WorldCore`, and character settings |
+| **SDK (`@nimiplatform/sdk`)** | Typed client compiled from Realm OpenAPI specifications; provides schemas, retry policies, and fail-closed error handling without holding service authority |
+| **Runtime** | Protected consumption intermediary (not a UI surface); manages credentials and proxy channels required for protected App requests |
+| **Desktop / Web / Apps** | Consumer surfaces that present and act on state projections from Realm without overriding owner permissions |
 
-## Core Invariants and Boundaries
+## Core Invariants and Current Boundaries
 
-- **Unified Authority**: Cross-world social networks, asset transfers, and creator payout rules are enforced centrally by Realm; local clients do not maintain conflicting local arbitration engines.
-- **Identity Integrity**: Universal cryptographic identities and cross-world travel passes are issued exclusively by Realm.
-- **Fail-Closed Semantics**: If Realm connectivity is interrupted or schema mismatch occurs, the platform surfaces explicit unavailable states, preventing fabricated local success.
+- **Unified Authority**: Global account identities, friendship records, `WorldCore` definitions, and character settings are maintained centrally by Realm. Local clients and individual worlds do not run conflicting private ledgers.
+- **Owner and Permission Boundaries**: Shared protocol interfaces and SDK methods never authorize an application or world to bypass the resource owner or mutate global state without permission.
+- **Planned Contracts vs. Live Capabilities**:
+  - `WorldState` and `WorldHistory` remain planned protocol contracts; they are not an executable full world-state ledger in current Home.
+  - In creator economics, revenue split previews only reflect configuration previews—they do not represent live financial settlement, and creator payouts/withdrawals are not yet connected.
+- **Fail-Closed Semantics**: If Realm connectivity is interrupted or a schema mismatch occurs, the platform surfaces explicit unavailable states rather than fabricating local success.
 
-Application developers should consume Realm services exclusively via `@nimiplatform/sdk`, avoiding manual endpoint stitching or synthesized local mock schemas.
+Application developers should access Realm exclusively through `@nimiplatform/sdk` (and Runtime-mediated channels where required), avoiding manual HTTP endpoint stitching or local mock state that mimics authoritative truth.
 
 ## Related Documentation
 

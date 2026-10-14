@@ -1,6 +1,6 @@
 # Model Capabilities and Mapping
 
-A model package must describe the facts of its selected Live2D or VRM backend. Avatar validates those facts before using a route. A file's presence, a confidence score, or a creator's JavaScript does not establish support.
+A model package must describe the concrete facts of its selected Live2D or VRM backend. Avatar validates those facts before admitting any route. A file's presence on disk, a loose confidence score, or creator-supplied JavaScript does not establish support.
 
 ## Capability Profile
 
@@ -8,14 +8,14 @@ Follow the backend capability profile schema:
 
 - `profile_id`, `backend_kind`, and `model_fingerprint` identify the profile and model.
 - `generated_motion` declares disjoint supported and unsupported routes plus safety limits.
-- A VRM profile records humanoid bones, expression presets, look-at, and pose limits.
+- A VRM profile records humanoid bones, expression presets, look-at targets, and pose limits.
 - A Live2D profile records motion groups, expression IDs, and parameter IDs.
 
-Declare capabilities that the model actually has. A missing or mismatched profile and unsupported targets fail closed.
+Declare only the capabilities that the model actually possesses. A missing or mismatched profile, as well as unsupported route targets, will fail closed.
 
 ## Mapping Sidecar
 
-The current generated-motion catalog targets VRM, and its sidecar parser requires backend_kind=vrm. Live2D uses built-in mapping from its own motion groups, expressions, and parameter facts rather than gaining routes through these VRM sidecars.
+The current generated-motion catalog targets VRM, and its sidecar parser requires `backend_kind=vrm`. Live2D uses built-in mapping from its own motion groups, expressions, and parameter facts rather than gaining routes through these VRM sidecars.
 
 A sidecar associates one admitted Avatar route with validated model targets. It uses `route_id`, the matching `profile_id`, confidence and threshold, source classification, confirmation, and target fields. It does not contain keyframes or a fallback route. See [Generated Motion Provider](/avatar/generated-motion-provider) for the exact fields and a structural example.
 
@@ -26,7 +26,7 @@ For an LLM-derived name mapping, manual confirmation is required before admissio
 1. Match the model fingerprint and backend kind to its capability profile.
 2. Check each claimed route against the current route catalog and model facts.
 3. Validate any sidecar against the closed schema and matching profile.
-4. Run the real Avatar presentation path for the changed behavior; inspect the returned failure when unsupported.
+4. Run the full Avatar presentation path for the changed behavior, and inspect the returned failure diagnostics if unsupported.
 
 Local diagnostics help inspect a selected model, but fixture output alone does not establish live product readiness. See [Backend Diagnostics](/avatar/debug-workbench) and [Visual Acceptance](/avatar/visual-acceptance).
 

@@ -9,7 +9,7 @@
     "heading": "选择 Nimi 存储模型、应用和大型本地数据的位置。",
     "subline": "Nimi 会把模型、应用和大型本地数据保存在你选择的文件夹中。",
     "selectedHeading": "确认 Nimi 的本地数据存储位置。",
-    "selectedSubline": "继续以确认所选文件夹并完成初始设置。",
+    "selectedSubline": "点击“继续”确认使用所选文件夹，并完成初始设置。",
     "preparing": "Nimi 正在准备本地运行环境…",
     "pathPlaceholder": "尚未选择文件夹",
     "chooseFolder": "选择文件夹…",
@@ -67,6 +67,6 @@
     "dataRootPickFailed": "打开文件夹选择器失败。",
     "dataRootRecordFailed": "保存数据存储位置失败。",
     "dataRootUnavailable": "无法将此文件夹用作数据存储目录。请选择一个非磁盘根目录且具有读写权限的文件夹。",
-    "finalizationRequestFailed": "完成初始化设置失败，请重试。"
+    "finalizationRequestFailed": "无法完成初始化设置，请重试。"
   }
 }

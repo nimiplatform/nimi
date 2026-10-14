@@ -1,31 +1,36 @@
-# 发现世界与角色源
+# 发现世界与数字角色
 
-探索页用于浏览公开世界与角色源。世界详情展示设定、场景、关系和角色档案，帮助你决定关注什么内容、添加哪位伙伴。
+在 Nimi Home 的「探索」模块中，你可以漫游创作者构建的各类数字世界，了解其中的世界观与法则设定，结识生活在这些世界里的数字角色（Character），并在满足条件时将他们添加为本机运行的个人伙伴（LocalAgent）。
 
-## 当前世界操作
+---
 
-- 阅读世界的公开设定、场景和关系。
-- 在提供该操作时关注世界。
-- 打开角色源，查看它的公开信息。
-- 将受支持的角色源添加为本地伙伴，或打开已有伙伴的对话。
+## 探索世界的核心体验
 
-动作取决于当前账号、角色源以及 Runtime 返回的结果。查看公开角色源，不代表可以读取其他用户的私有对话或 Cognition 记忆。
+1. **浏览公开世界**
+   - 漫游不同题材与风格的虚拟设定——从奇幻群岛、赛博朋克都市到宁静的心灵栖息地。
+   - 查看世界的权威设定、运行规则、地理标志以及角色之间的关系网络。
+2. **结识原住角色**
+   - 查看每个角色的公开档案，包括性格特征、背景故事与独特的对话语气。
+   - 角色设定来自 Realm 中的公开源记录，来源清晰可查。
+3. **添加为个人伙伴 (LocalAgent)**
+   - 遇到心仪的角色且当前账号与角色来源满足条件时，可通过页面操作将其添加为伙伴。
+   - 本地 Runtime 会依据该角色的源定义，在你的设备上初始化一个专属的 **LocalAgent**。
+   - 该 LocalAgent 拥有独立的对话线程与可选记忆；若选用云端推理，相关上下文会发送至所选服务商。
 
-## 从世界中找到伙伴
+---
 
-1. 在探索页打开一个世界。
-2. 浏览公开内容和角色档案。
-3. 打开选中的角色源；条件满足时，使用页面提供的动作添加伙伴。
-4. Runtime 创建或解析伙伴后，打开该伙伴的对话。
+## 隐私与交互边界
 
-世界详情里的链接打开对应分区或角色源，不会触发 Realm Transit、经过 OASIS 漫游，也不会把整个 Home 聊天上下文切换为某个活跃世界。
+- **公开设定与私人记忆隔离**：浏览公开角色资料时，绝不会暴露其他用户与该角色的私人对话或个人记忆。
+- **浏览与当前会话解耦**：在探索页浏览世界和地标属于只读体验，不会打断或覆盖你在 Nimi Home 中正在进行的聊天上下文。
 
-## 相关文档
+## 延伸阅读
 
-- [Transit 协议](/zh/realm/transit)
+- [Realm 权威边界与世界状态](/zh/realm/truth)
+- [跨世界漫游协议 (Transit)](/zh/realm/transit)
+- [开发 Nimi App](/zh/start/)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
 - [`apps/desktop/src/shell/renderer/features/world/world-detail.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail.tsx)
-- [`apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx)

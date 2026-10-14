@@ -5,7 +5,7 @@
 LocalAgent 则是 Runtime 将静态角色定义在本地设备上实例化为可交互运行态的标准机制。当用户开启一段体验时，Runtime 读取 Realm 签发的结构化角色源描述（Character Source），在本地设备上启动并调度该智能体。LocalAgent 负责维护本次运行期间的实时会话上下文与执行状态，而角色的核心身份定义始终安全地保存在 Realm 中。
 
 核心概念清晰划分：
-- **Character（角色）**：由 Realm 维护的持久化实体，拥有关系网络、世界归属与外貌设定。PersonaCharacter 与 WorldCharacter 是角色的具体业务形态，而非不同的底层智能体类型。
+- **Character（角色）**：由 Realm 维护的持久化实体，拥有关系图谱、世界归属与核心设定。`PersonaCharacter` 与 `WorldCharacter` 是角色的具体业务形态，而非不同的底层智能体类型。
 - **Character Source（角色源描述）**：由 Realm 签发的标准化数据契约，定义了 Runtime 实例化角色所需的人格与基础属性。
 - **LocalAgent（本地运行态智能体）**：Runtime 在本地为当前用户启动的执行实例。Runtime 负责管理其完整的生命周期、会话上下文、记忆检索通道、模型路由、就绪检测、Token 预算及运行状态。
 
@@ -21,11 +21,11 @@ Avatar 负责接收并渲染 Runtime 投递的结构化视觉动作指令，独�
 
 ## 专题索引
 
-- [会话锚点机制（Conversation Anchor）](./conversation-anchor)
-- [跨界面连续性保障（Cross-Surface Continuity）](./cross-surface-continuity)
+- [会话锚点（Conversation Anchor）](./conversation-anchor)
+- [跨界面连续性（Cross-Surface Continuity）](./cross-surface-continuity)
 - [LocalAgent 访问控制与应用授权](./participation-authority)
-- [跨世界身份一致性（Cross-World Identity）](./cross-world-identity)
-- [外部智能体与第三方生态接入机制](./external-agents)
+- [跨世界身份连续性（Cross-World Identity）](./cross-world-identity)
+- [外部智能体与生态接入（External Participation）](./external-agents)
 
 > [!NOTE]
 > 长期记忆由 Cognition 系统按智能体独立管理；Runtime 仅作为授权数据调度的中介通道。当前版本的知识库系统（Knowledge V1）未开放公共调用接口。

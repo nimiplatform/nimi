@@ -3,15 +3,15 @@ export const vaneMessagesZh = {
   'vane.workspace.streetDesignFieldNotes': '街道设计田野笔记',
   'vane.workspace.sampleSource1': '示例来源 1',
   'vane.workspace.shortCrossingDistancesShadeAndPlacesTo':
-    '较短的过街距离、树荫与休息处，可以让步行路线更舒适。',
+    "更短的过街距离、树荫与歇脚处，能让步行路线更舒适。",
   'vane.workspace.aPublicSpaceReadingList': '公共空间阅读清单',
   'vane.workspace.sampleSource2': '示例来源 2',
   'vane.workspace.aUsefulWalkingNetworkLinksEverydayDestinations':
-    '实用的步行网络连接商店、学校、公园和公共交通等日常目的地。',
+    "好用的步行网络，会把商店、学校、公园和公共交通等日常去处串联起来。",
   'vane.workspace.accessForEveryone': '让每个人都能到达',
   'vane.workspace.sampleSource3': '示例来源 3',
   'vane.workspace.stepFreeRoutesClearWayfindingAndPredictableCrossings':
-    '无台阶路线、清晰的指引和可预期的过街方式，帮助更多人使用公共空间。',
+    "无台阶路线、清晰的路标和可预期的过街设计，能让更多人自如地使用公共空间。",
   'vane.workspace.howCanSmallCitiesMakeWalkingMore': '小城市怎样让步行更愉快？',
   'vane.workspace.home': '首页',
   'vane.workspace.discover': '发现',
@@ -19,7 +19,7 @@ export const vaneMessagesZh = {
   'vane.workspace.settings': '设置',
   'vane.page.settings': '设置',
   'vane.page.chooseResearchPreferencesAndConfigureNimiAi':
-    '在已安装 App 中选择研究偏好并配置 Nimi AI。',
+    "在已安装的 App 中设置研究偏好并配置 Nimi AI。",
   'vane.page.exampleSearchMode': '示例搜索模式',
   'vane.page.web': '网页',
   'vane.page.academic': '学术',
@@ -37,7 +37,7 @@ export const vaneMessagesZh = {
   'vane.page.howCanSmallCitiesMakeWalkingMore': '小城市怎样让步行更愉快？',
   'vane.page.exploreSavedExample': '探索已保存的示例',
   'vane.main.researchBeginsHere': '研究，从这里开始。',
-  'vane.main.followAQuestionExploreItsSources': '追随一个问题，探索它的来源。',
+  'vane.main.followAQuestionExploreItsSources': "顺着一个问题，探索背后的信息来源。",
   'vane.main.walkingFriendlyCities': '步行友好的城市',
   'vane.main.savedResearchExample': '已保存的研究示例',
   'vane.main.savedToLibrary': '已保存到资料库',
@@ -46,15 +46,15 @@ export const vaneMessagesZh = {
   'vane.sourceExcerpt.illustrativeExcerptAuthoredForThisPreview': '为本预览编写的示例摘录。',
   'vane.main.makeTheEverydayJourneyEasier': '让每天的路更好走',
   'vane.main.aComfortableWalkCombinesAConnectedRoute':
-    '舒适的步行既需要连贯的路线，也需要能停一停的地方。示例来源给出了三个主题：',
+    "舒适的步行既需要连贯的路线，也需要能停一停的地方。示例来源梳理出三个重点：",
   'vane.main.connectDailyDestinations': '连接日常目的地。',
-  'vane.main.startWithTheRoutesPeopleAlready': ' 从人们已经需要走的路线开始。',
+  'vane.main.startWithTheRoutesPeopleAlready': " 从人们日常原本就要走的路线入手。",
   'vane.main.makeCrossingsPredictable': '让过街可预期。',
   'vane.main.clearPathsHelpEveryoneNavigate': ' 清晰的路径帮助每个人找到方向。',
   'vane.main.offerShadeAndRest': '提供树荫和休息处。',
   'vane.main.treesBenchesAndShelterMakeLonger': ' 树木、长椅与遮蔽设施让长距离步行更轻松。',
   'vane.main.thisPrewrittenAnswerDemonstratesTheReadingFlow':
-    '此预设回复演示阅读流程，不会回答新输入的问题。',
+    "这是一段预设回复，用于演示阅读流程，不会响应新输入的问题。",
   'vane.main.researchQuestion': '研究问题',
   'vane.main.askAnything': '问点什么…',
   'vane.main.web': '网页',
@@ -62,6 +62,6 @@ export const vaneMessagesZh = {
   'vane.main.writing': '写作',
   'vane.main.searchFocus': '搜索范围',
   'vane.main.viewSavedResearchExample': '查看已保存的研究示例',
-  'vane.main.exploreASavedResearchExample': '探索一个已保存的研究示例',
+  'vane.main.exploreASavedResearchExample': "探索已保存的研究示例",
   'vane.preview.notice': '静态产品预览 · 已保存的研究示例与虚构来源，不发送联网搜索或 AI 请求。',
 } as const;

@@ -12,11 +12,11 @@ If you are exploring Nimi for the first time and want to quickly understand its 
 4. [Nimi Coding → Overview](/nimicoding/) — The canonical-authority specification tooling used across the codebase.
 5. [Reference → Glossary](/reference/glossary) — Terminology reference for key platform concepts.
 
-Following this path gives you a solid grasp of Nimi's architecture and capabilities.
+Following this path gives you a solid grasp of Nimi's architecture and platform capabilities.
 
 ## World Creator
 
-If you are designing and publishing a digital world (including rules, lore, Characters, and scenes):
+If you are designing and publishing a digital world (including rules, lore, characters, and scenes):
 
 1. [Platform → Vision](/platform/vision) — The concept and role of a digital world in Nimi.
 2. [Realm](/realm/) — Authoritative state, entities, and historical trajectories.
@@ -28,7 +28,7 @@ If you are designing and publishing a digital world (including rules, lore, Char
 
 If you are building desktop or web applications with the Nimi SDK:
 
-1. [Start → Create a Nimi App](/start/create-an-app) — Scaffold a modern developer application using App Tools.
+1. [Start → Create a Nimi App](/start/create-an-app) — Scaffold a modern application using App Tools.
 2. [SDK → First AI Call](/sdk/first-ai-call) — Execute text generation using capability intents, letting Runtime manage local and cloud models.
 3. [SDK → Overview](/sdk/) and [SDK → Boundaries](/sdk/boundaries) — Understand the public application boundary and module responsibilities.
 4. [Platform → Use Kit in an App](/platform/kit/use-kit-in-app) — Integrate shared UI components, authentication, and AI configuration panels.

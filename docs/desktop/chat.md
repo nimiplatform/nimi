@@ -1,36 +1,40 @@
-# Chat Modes and Conversation History
+# Conversation Modes & Messaging
 
-Nimi Home offers human messaging, ordinary AI/Nimi Chat, and Agent Conversation in the chat surface. Their request, interruption, and history behavior differs.
+Catch up with a friend, ask the assistant a quick question, or pick up an ongoing conversation with an Agent. Nimi Home brings all three together in one place while keeping their histories, storage, and controls separate.
 
-| Mode | Execution and storage | Current response behavior |
+## Choose a Conversation
+
+| Mode | Where the history lives | What to expect |
 | --- | --- | --- |
-| Human | Realm message threads | Messages and read state synchronize through Realm |
-| AI/Nimi Chat | App AI candidate request and this mode's local message storage | Waits for a complete response, then saves the messages |
-| Agent | Runtime-managed canonical Conversation | Shows text updates and supports a turn-interruption request |
+| **Direct messages** | Realm message threads | Human-to-human messaging where membership, delivery, and read state follow Realm rules. |
+| **Assistant chat (Nimi Chat)** | This mode’s local message store | Waits for the complete response, then saves the exchange. |
+| **Agent dialogue** | Runtime’s `Conversation` for the selected `LocalAgent` | Streams text updates as they arrive and lets you request an interruption with **Stop**. |
 
-## Ordinary AI/Nimi Chat
+## Continue an Agent Dialogue
 
-Send a query and wait for the complete result. This path uses `generateCandidate`; it does not provide the Agent mode's token-by-token display or Stop handler. A pending request is not a committed Agent Conversation turn. Do not assume that closing or reopening the window preserves that pending execution as canonical Conversation state.
+Select an Agent partner and send text or a supported image. The composer accepts at most one image per turn, and the active capability must support image input.
 
-## Agent Conversation
+Clicking **Stop** requests an interruption to the current reply. It keeps all previously committed turns intact and cannot undo external actions that have already completed. When Nimi Home reconnects or reloads, it restores the committed `Conversation` snapshot from Runtime—an unsent draft or an interrupted, unfinished response does not count as a saved turn.
 
-Select the Agent and open its Runtime Conversation. Send text or a supported image to start a turn. While generation runs, the interface shows updates; Stop requests interruption without deleting previously committed turns.
+To keep your dialogue continuous, Runtime issues a Conversation anchor. Each `LocalAgent` maintains a single durable `Conversation` across authorized surfaces. The anchor simply links that ongoing conversation; it is not an access credential and does not represent a separate topic, location, or new session.
 
-After a reconnect or refresh, the client reads the committed Runtime snapshot. Local drafts, pending fragments, and the displayed status remain separate from that history.
+## Ask the Assistant or Message a Friend
 
-## Human Messaging
+Nimi Chat uses `client.ai.text.generateCandidate` for quick, one-off tasks like proofreading text or explaining code. Because it waits for the full response rather than streaming, it does not include Agent dialogue’s **Stop** button, and reopening its window will not convert a pending request into a committed Agent turn.
 
-Human messages use Realm threads and their own membership and delivery rules. They do not create Agent Conversation anchors or inherit AI generation controls.
+Direct messages with friends run on Realm threads. They do not create Agent Conversation anchors or use AI generation controls.
 
-## Related Documentation
+## Your Conversation and Memory
 
-- [Agent Actions](/desktop/message-actions)
-- [Voice Interaction](/desktop/voice-session)
+Runtime manages each `LocalAgent`’s `Conversation`, while Cognition manages its optional long-term memory. Every `LocalAgent` keeps its own isolated memory. Keep in mind that local storage only determines where history and memories rest: if you configure a cloud provider for inference, relevant conversation turns and recalled memory context may be sent to that provider to generate a response.
+
+## Next Steps
+
+- [Agent actions](/desktop/message-actions)
+- [Voice input and realtime sessions](/desktop/voice-session)
+- [Avatar presentation](/desktop/agent-avatar)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx)

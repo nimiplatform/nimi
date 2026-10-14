@@ -64,8 +64,8 @@ export const openmontageMessagesEn = {
   'openmontage.script.narrator': 'Narrator',
   'openmontage.script.estimatedDuration': 'Estimated duration:',
   'openmontage.script.secondsSample': ' seconds · sample',
-  'openmontage.script.sampleReviewKept': 'Sample review kept',
-  'openmontage.script.keepThisSampleReview': 'Keep this sample review',
+  'openmontage.script.sampleReviewKept': "Sample marked as reviewed",
+  'openmontage.script.keepThisSampleReview': "Mark sample as reviewed",
   'openmontage.board.storyboard': 'Storyboard',
   'openmontage.board.chooseASceneToContinueEditing': 'Choose a scene to continue editing',
   'openmontage.board.reviewScene': 'Review scene {i1}',
@@ -77,7 +77,7 @@ export const openmontageMessagesEn = {
   'openmontage.production.narratedShortLandscape720p': 'Narrated short → landscape 720p',
   'openmontage.production.status': 'Status',
   'openmontage.production.savedExampleNoGenerationTaskSubmitted':
-    'Saved example; no generation task submitted',
+    "Preset sample · No generation task submitted",
   'openmontage.production.viewIllustrativeOutput': 'View illustrative output',
   'openmontage.preview.notice':
     'Static product preview · sample production plans, scripts, and storyboards. No media is generated, rendered, or published.',

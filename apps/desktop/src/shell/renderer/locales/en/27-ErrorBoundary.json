@@ -1,5 +1,5 @@
 {
-  "rendererFailed": "Renderer crashed",
-  "rendererHint": "Restart the app, or inspect renderer log chain in devtools.",
+  "rendererFailed": "The interface encountered an unexpected error",
+  "rendererHint": "Try reloading the page. If the issue persists, restart the app or check Support diagnostics.",
   "reload": "Reload"
 }

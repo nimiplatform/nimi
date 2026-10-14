@@ -4,7 +4,7 @@ Local diagnostics inspect the selected model, capability profile, route, and pre
 
 ## Current Result Shape
 
-The internal factory returns AvatarDebugSession, not DiagnosticSessionResult:
+The internal factory returns `AvatarDebugSession`, not `DiagnosticSessionResult`:
 
 | Field | Meaning |
 | --- | --- |
@@ -13,17 +13,17 @@ The internal factory returns AvatarDebugSession, not DiagnosticSessionResult:
 | `avatarInstanceId` | Nullable instance reference |
 | `avatarPackageRef` | Nullable package reference |
 | `backendCapabilityProfileRef` | Nullable capability-profile reference |
-| `backendKind` | live2d or vrm |
+| `backendKind` | `live2d` or `vrm` |
 | `observedAt` | Observation timestamp |
-| `evidence` | One AvatarDebugEvidence object, not an array |
+| `evidence` | Single `AvatarDebugEvidence` object, not an array |
 
-Evidence contains evidenceId, evidenceKind, status, source, nullable reasonCode, and bounded refs. Status is passed, failed, unsupported, or invalid. Read the single evidence object rather than calling evidence.map. The backend field is backendKind, not backend.
+`evidence` contains `evidenceId`, `evidenceKind`, `status`, `source`, nullable `reasonCode`, and bounded `refs`. `status` is `passed`, `failed`, `unsupported`, or `invalid`. Read the single `evidence` object directly rather than calling `evidence.map`. The backend discriminator field is named `backendKind`, not `backend`.
 
 ## Interpreting a Result
 
-An evaluation can check package descriptors, backend loading, profiles, route support, generated motion, expressions, lipsync, or carrier results. It proves only the object and conditions actually inspected. Structural or local diagnostic success does not establish a live App session, arbitrary model support, or another backend's acceptance.
+An evaluation can check package descriptors, backend loading, profiles, route support, generated motion, expressions, lipsync, or carrier results. It proves only the object and conditions actually inspected. Structural or local diagnostic success does not establish a live App session, arbitrary model support, or acceptance by another backend.
 
-Keep the returned reasonCode and refs on failure, then repair the implicated model or profile. Do not reinterpret unsupported as successful idle playback. The source below defines the actual return type and factory.
+Retain the returned `reasonCode` and `refs` on failure, then repair the implicated model or profile. Do not reinterpret `unsupported` as successful idle playback. The source references below define the actual return types and factory implementation.
 
 ## Source Basis
 

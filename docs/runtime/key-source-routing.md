@@ -13,8 +13,8 @@ This brokered routing pattern keeps user credentials secure while allowing appli
 
 ## Configuration and Troubleshooting
 
-- **Configuration Workflow**: Users input and update API keys under "Cloud Services" in Nimi Home. In application AI settings, developers or users simply select the desired connector from a dropdown.
-- **Credential Rotation**: If a key expires or requires replacement, updating the connector under Cloud Services immediately updates all dependent applications without requiring reconfigurations.
+- **Configuration Workflow**: Users enter and update API keys under "Cloud Services" in Nimi Home. In application AI settings, developers or users simply select the desired connector from the dropdown list.
+- **Credential Rotation**: If a key expires or requires replacement, updating the connector under Cloud Services lets later admitted requests use the new credential without changing each App’s connector reference. Existing Jobs retain their captured execution context.
 
 ## Source Basis
 

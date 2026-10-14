@@ -10,20 +10,20 @@ Live2D 是 Avatar 支持的核心图形渲染后端之一。它依托官方 Cubi
 | --- | --- |
 | 底层 SDK 内核 | 官方 Cubism SDK for Web |
 | 前端画布渲染器 | `apps/avatar` 统筹管理的 WebGL Canvas 上下文 |
-| 模型入口描述 | `model3.json`，及其声明的骨骼动作、表情贴图、物理物理量、纹理集与碰撞区 |
+| 模型入口描述 | `model3.json`，及其声明的动作、表情、物理仿真配置、纹理集与碰撞区 |
 | 逐帧逻辑更新 | Cubism `model.update()` 结合 Avatar 后端时钟调度 |
 | 音频口型驱动 | `wLipSync` 算法驱动 `ParamMouthOpenY`，配合可选嘴型参数计算 |
 | 模型包元数据 | 经由 Adapter Manifest 校验的兼容性评级 |
 
-在 Avatar 的封闭渲染引擎枚举中，Live2D 分支标识符为 `kind: 'live2d'`。Avatar 自有的载体转换通过后端中立接口与之通信；创作者脚本不获得 Cubism 私有类或 Live2D 参数扩展。
+在 Avatar 的封闭渲染引擎枚举中，Live2D 分支标识符为 `kind: 'live2d'`。Avatar 内部的宿主载体适配层只面向中立具身接口工作，创作者脚本不会直接接触 Cubism 内部类或 Live2D 的底层参数扩展。
 
 ## 模型资产加载流程
 
 Avatar 加载一个 Live2D 资产包经过以下四个确定性步骤：
 
-1. **安全解析**：通过 Avatar 资产解析器定位并校验本地资源路径；
-2. **完整加载**：加载指定的 `model3.json` 及其声明的 Moc 核心数据、贴图与动作文件；
-3. **兼容性验真**：严格核对 Adapter 适配声明、版权许可凭据与实际包含的文件证据；
+1. **安全解析**：通过 Avatar 资产解析器定位并校验本地资源路径。
+2. **完整加载**：加载指定的 `model3.json` 及其声明的 Moc 核心数据、贴图与动作文件。
+3. **兼容性验真**：严格核对 Adapter 适配声明、版权许可凭据与实际包含的文件证据。
 4. **窗口边界测算**：向桌面宿主上报模型的名义物理边界与网格包围盒，以便桌面透明悬浮窗根据角色身材自适应贴合调整尺寸。
 
 校验未通过的包绝不会被当作正常就绪的模型加载。若缺失必要的核心文件将直接阻断退出；若仅缺失可选的装饰性表情，系统会自动平滑降低兼容层级，并向开发者返回结构化排错信息。
@@ -137,21 +137,21 @@ Adapter 配置文件头部固定声明：
 
 ## 编写与验收检查清单
 
-- [ ] 模型根目录下包含唯一指定的 `*.model3.json` 主入口；
-- [ ] `target_model.model_id` 与解析出的模型 ID 精确一致；
-- [ ] `FileReferences.Moc` 核心网格与所有引用的纹理贴图文件完整无缺失；
-- [ ] 必须包含可正常循环播放的 `idle` 待机动作组；
-- [ ] 若申请 `semantic_basic` 层级，必须将 `neutral`、`greet`、`listening`、`thinking` 映射至有效动作组；
-- [ ] 映射的所有表情 ID 必须在 `FileReferences.Expressions` 中明确声明；
-- [ ] 口型同步参数准确指向可用的开合通道（如 `ParamMouthOpenY`）；
-- [ ] 碰撞区域别名准确指向模型声明的 Hit Area，或配置 Alpha 遮罩兜底；
+- [ ] 模型根目录下包含唯一指定的 `*.model3.json` 主入口。
+- [ ] `target_model.model_id` 与解析出的模型 ID 精确一致。
+- [ ] `FileReferences.Moc` 核心网格与所有引用的纹理贴图文件完整无缺失。
+- [ ] 必须包含可正常循环播放的 `idle` 待机动作组。
+- [ ] 若申请 `semantic_basic` 层级，必须将 `neutral`、`greet`、`listening`、`thinking` 映射至有效动作组。
+- [ ] 映射的所有表情 ID 必须在 `FileReferences.Expressions` 中明确声明。
+- [ ] 口型同步参数准确指向可用的开合通道（如 `ParamMouthOpenY`）。
+- [ ] 碰撞区域别名准确指向模型声明的 Hit Area，或配置 Alpha 遮罩兜底。
 - [ ] 提交或分发前，已认真核对版权与分发许可证明。
 
 ## 强类型排错诊断码速查
 
 | 诊断错误码 | 常见原因与排查方案 |
 | --- | --- |
-| `AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID` | Adapter JSON 语法错误或未通过模式 Schema 校验 |
+| `AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID` | Adapter JSON 语法错误或未通过 Schema 模式校验 |
 | `AVATAR_LIVE2D_COMPAT_MODEL_ID_MISMATCH` | Adapter 中指定的模型 ID 与实际加载的模型不一致 |
 | `AVATAR_LIVE2D_COMPAT_LICENSE_UNVERIFIED` | 缺少版权许可字段或合规证据声明不足 |
 | `AVATAR_LIVE2D_COMPAT_MOTION_MISSING` | 配置声明的动作组在模型文件中实际不存在 |

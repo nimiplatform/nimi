@@ -1,12 +1,12 @@
-# Catalog Source README
+# Catalog Source
 
 ## 1. Purpose
 
 `runtime/catalog/source/` stores human-maintained source catalogs.
-`runtime/catalog/providers/*.yaml` stores runtime-consumed flattened active snapshots.
+`runtime/catalog/providers/*.yaml` stores runtime-consumed, flattened active snapshots.
 
-Source is optimized for long-term editing.
-Provider snapshot is optimized for runtime resolver compatibility.
+Source files are optimized for long-term editing and maintenance;
+provider snapshots are optimized for runtime resolver compatibility and fast lookup.
 
 ## 2. Catalog Layout
 
@@ -14,23 +14,23 @@ Provider snapshot is optimized for runtime resolver compatibility.
   `runtime/catalog/source/providers/<provider>/*.yaml` fragments
 - Snapshot: `runtime/catalog/providers/*.yaml`
 
-Runtime only loads `runtime/catalog/providers/*.yaml`.
+The runtime only loads `runtime/catalog/providers/*.yaml`.
 
 `config/runtime-provider-catalog.yaml` and
 `config/runtime-provider-capabilities.yaml` are generated mirrors of
-source-provider runtime metadata. Runtime routing facts must be authored here
-first, then projected into snapshot / registry / spec tables.
+source-provider runtime metadata. Runtime routing facts must be authored in this
+source directory first, then projected into snapshot, registry, and spec tables.
 
 ## 3. Schema Versioning
 
 - `schema_version: 3` is required.
-- v3 unifies model definitions for both speech and video generation.
+- v3 unifies model definitions across speech, image, and video generation.
 
 ## 4. v3 Core Structure
 
-Each source provider entry should contain the following after merge. The entry
-may be a single `<provider>.source.yaml` file or a `<provider>/` directory whose
-YAML fragments are merged by source tooling:
+Each source provider entry contains the following fields after merge. The entry
+may live in a single `<provider>.source.yaml` file or inside a `<provider>/` directory whose
+YAML fragments are merged by tooling:
 
 - `schema_version`
 - `provider`
@@ -115,7 +115,7 @@ Remote providers must choose exactly one endpoint policy:
 - `default_endpoint` set + `requires_explicit_endpoint=false`
 - `default_endpoint=null` + `requires_explicit_endpoint=true`
 
-`local` must keep `default_endpoint=null` and `requires_explicit_endpoint=false`.
+Local providers must keep `default_endpoint=null` and `requires_explicit_endpoint=false`.
 
 Inventory mode rule:
 
@@ -180,7 +180,7 @@ When a model declares `audio.transcribe`, it may define `transcription`:
 `voice_sets` only stores preset/system voices.
 Custom user voices are represented by `dynamic_user_scoped` and generated as synthetic placeholder rows.
 
-Provider-native multi-step create-voice flows (for example preview -> create) must be modeled as one workflow model and stay internal to provider adapter orchestration.
+Provider-native multi-step voice creation flows (for example, preview -> create) must be modeled as one workflow model and remain internal to provider adapter orchestration.
 
 ### 5.6 Language Profile Rule
 
@@ -273,6 +273,7 @@ Compatibility rule:
 - generated snapshot `default_text_model` is projected from that reviewed choice
 - while migration remains incremental, `defaults.default_text_model` may remain
   as a same-value compatibility field only
+- if both are present and differ, generator must fail-close
 
 For `runtime.inventory_mode=dynamic_endpoint` providers:
 
@@ -295,9 +296,8 @@ Reusable maintenance docs that apply across providers live here as well:
   candidate discovery
 - `prompts/providers/*.md` — provider-specific prompts for recurring special
   cases
-- if both are present and differ, generator must fail-close
 
-## 6. Validation Requirements
+## 7. Validation Requirements
 
 At minimum, generator/schema validation must enforce:
 
@@ -317,7 +317,7 @@ At minimum, generator/schema validation must enforce:
 14. `dynamic_endpoint` providers must declare `runtime.dynamic_inventory`.
 15. `dynamic_endpoint` providers must not rely on catalog fallback `default_text_model` semantics.
 
-## 7. Workflow
+## 8. Workflow
 
 1. Edit source at `runtime/catalog/source/providers/<provider>.source.yaml`, or
    in `runtime/catalog/source/providers/<provider>/*.yaml` when the provider is
@@ -334,7 +334,7 @@ Drift check commands:
 - `pnpm check:runtime-provider-yaml-first-hardcut`
 - `pnpm check:runtime-provider-endpoint-ssot`
 
-## 8. Non-goals
+## 9. Non-goals
 
 - Do not encode runtime fallback logic in source files.
 - Do not hand-maintain flattened snapshots long-term.

@@ -1,36 +1,40 @@
-# 对话模式与消息历史
+# 对话模式与消息机制
 
-Nimi Home 的聊天界面提供人与人消息、普通 AI/Nimi Chat 和 Agent 对话。三种模式的请求、中断和历史保存方式不同。
+和朋友聊聊近况，向助手问一个问题，或回到与某位 Agent 的长谈。Nimi Home 将这些体验汇集在同一个入口中，同时各自保留独立的历史记录与交互控制。
 
-| 模式 | 执行与保存方式 | 当前回复行为 |
+## 选择一种对话
+
+| 模式 | 历史存放位置 | 使用方式 |
 | --- | --- | --- |
-| 人与人消息 | Realm 消息线程 | 消息与已读状态通过 Realm 同步 |
-| 普通 AI/Nimi Chat | App 的 AI candidate 请求及该模式的本地消息存储 | 等待完整回答返回，再保存消息 |
-| Agent 对话 | Runtime 管理的正式 Conversation | 显示文字更新，并支持请求中断当前轮次 |
+| **好友私信** | Realm 消息线程 | 人与人交流，成员权限、消息投递与已读状态由 Realm 管理。 |
+| **基础助手（Nimi Chat）** | 该模式的本地消息存储 | 等待完整回答生成后，再保存本次问答。 |
+| **Agent 对话** | Runtime 中该 LocalAgent 的 Conversation | 实时查看流式生成的文字，可随时点击「停止」请求中断。 |
 
-## 普通 AI/Nimi Chat
+## 接续与 Agent 的对话
 
-发送问题后，等待完整结果。当前路径使用 `generateCandidate`，没有 Agent 模式的逐 token 显示和停止处理。待完成的请求不是已提交的 Agent 对话轮次，不能假定关闭或重开窗口后会按正式 Conversation 状态接续这次执行。
+选定伙伴后，即可发送文字或受支持的图片。当前输入框每轮最多支持附加一张图片，且所选能力需支持图片输入。
 
-## Agent 对话
+生成过程中点击**「停止」**会请求中断，此前已提交的对话轮次将完整保留，已经完成的外部操作也不会被撤销。断线重连或重新加载后，Nimi Home 会从 Runtime 读取已提交的对话快照；未发送的草稿或未完成的回复片段不代表该轮对话已保存。
 
-选择 Agent 并打开由 Runtime 管理的对话，发送文字或受支持的图片开始一轮交互。生成过程中，界面显示更新；点击停止会请求中断，不删除此前已提交的消息。
+Runtime 通过签发会话锚点来维持对话连续性，使同一个 LocalAgent 能在不同已授权界面之间接续同一份持久 Conversation。锚点本身不是访问凭证，也不代表某个话题、地点或新会话。
 
-连接恢复或刷新界面后，客户端重新读取 Runtime 中已提交的快照。草稿、待提交片段和界面状态与这份历史分别处理。
+## 问助手，或给朋友发消息
 
-## 人与人消息
+Nimi Chat 通过 `client.ai.text.generateCandidate` 完成文本润色、代码解释等快捷任务。它会等待完整回答返回，不提供 Agent 对话的流式输出与「停止」按钮；重新打开窗口也不会将待完成的请求变成已提交的 Agent 轮次。
 
-人与人消息使用 Realm 线程及其成员和投递规则，不创建 Agent 会话锚点，也不使用 AI 生成控件。
+好友消息使用 Realm 线程，不会创建 Agent 会话锚点，也不沿用 AI 生成的控制方式。
 
-## 相关文档
+## 对话与记忆如何保存
 
-- [Agent 对话操作](/zh/desktop/message-actions)
-- [语音交互](/zh/desktop/voice-session)
+LocalAgent 的 Conversation 由 Runtime 管理，启用后的长期记忆由 Cognition 管理，且不同 LocalAgent 的记忆彼此独立。需要注意，本地存储并不意味着推理内容永远不会离开设备——当配置了云端推理时，相关的对话与召回的记忆上下文仍可能发送给所选的云端服务商。
+
+## 延伸阅读
+
+- [智能体对话操作](/zh/desktop/message-actions)
+- [录音输入与实时会话](/zh/desktop/voice-session)
+- [虚拟形象呈现](/zh/desktop/agent-avatar)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx)

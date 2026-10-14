@@ -1,6 +1,6 @@
 # AIConfig Ownership & Scoping
 
-AI execution configurations (`AIConfig`) belong to a single canonical owner within the authenticated user account. System architecture recognizes exactly two kinds of owners: an independent App identified by its canonical application identity, and the shared Runtime LocalAgent subsystem shared across all LocalAgents in that account.
+AI execution configurations (`AIConfig`) belong to a single canonical owner within the authenticated user account. System architecture recognizes exactly two kinds of owners: an independent App identified by its canonical application identity, and the Runtime LocalAgent subsystem shared across all LocalAgents in that account.
 
 | Consumer Context | AIConfig Owner |
 | --- | --- |

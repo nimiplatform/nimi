@@ -34,16 +34,16 @@
   },
   "activity": {
     "title": "开发活动",
-    "description": "查看受监管的实时运行与最近的关闭状态。此处不会显示会话、凭据或 Runtime endpoint。",
+    "description": "查看受监管的实时运行状态与最近的停止记录。此处不会显示会话、凭据或 Runtime endpoint。",
     "empty": "本次 Desktop 会话中尚无本地开发活动。",
     "hostGeneration": "宿主第 {{count}} 代",
     "retryable": "只要当前命令保持运行，Desktop 就会继续自动重试。"
   },
   "management": {
     "title": "已注册的开发项目",
-    "description": "注册用于标识确切的本地项目根目录，并保留原始 App Access 声明。注册不会授予受保护访问。",
+    "description": "注册记录用于绑定本地项目根目录，并保留原始 App Access 声明。注册本身不会授予受保护的访问权限。",
     "empty": "尚未注册本地开发项目。",
-    "removeConfirm": "正在运行的开发宿主将停止，且此注册不可复用。",
+    "removeConfirm": "移除后，正在运行的开发宿主将停止，且原注册记录不可复用。",
     "generations": "源代码代次 {{source}} · 声明代次 {{declaration}}"
   }
 }

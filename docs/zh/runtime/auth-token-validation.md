@@ -1,22 +1,22 @@
 # 身份令牌（Token）校验与授权规范
 
-在 Nimi 的网络边界上，公开 API 与远程交互采用基于业界标准的 JWT 令牌校验机制。受保护的桌面端应用则使用经过验证的本地宿主会话与 Runtime 通信，详情请参阅[账号与会话](/zh/runtime/account-and-session)。
+在 Nimi 的网络边界上，公开 API 与远程调用采用标准 JWT 令牌校验机制；受保护的桌面端应用则通过本地验证的宿主会话与 Runtime 通信，详情请参阅[账号与会话](/zh/runtime/account-and-session)。
 
 ## 承载令牌（Bearer Token）传输规范
 
 | 规范项目 | 约定规则 | 异常处理说明 |
 | --- | --- | --- |
-| **传输头部** | gRPC 元数据 `authorization` 或 HTTP Header `Authorization` | 格式统一标准化处理 |
+| **传输头部** | gRPC 元数据 `authorization` 或 HTTP Header `Authorization` | 统一规范化读取 |
 | **令牌格式** | 严格遵循 `Bearer <jwt>` 格式 | 缺少前缀视为格式错误 |
 | **匿名访问** | 允许公开接口在未携带头部时以匿名访客模式执行 | 仅限于公开接口 |
 | **格式错误处理** | 返回 `UNAUTHENTICATED` 并携带 `AUTH_TOKEN_INVALID` 原因代码 | 格式错误的令牌不会被当作匿名用户降级放行 |
 
 ## JWT 必需声明（Claims）
 
-一个合法的 Realm 身份 JWT 必须包含以下核心标准声明：
+合法的 Realm 身份 JWT 必须包含以下核心声明：
 
 - `iss`（Issuer）：令牌签发方域名（必须与 `auth.jwt.issuer` 一致）；
-- `aud`（Audience）：目标受众服务（令牌 aud 必须等于配置的 `auth.jwt.audience`，或其 audience 数组包含该配置值）；
+- `aud`（Audience）：目标受众服务（令牌 `aud` 必须等于配置的 `auth.jwt.audience`，或在其 audience 数组中包含该配置值）；
 - `sub`（Subject）：持有该凭证的用户或主体的唯一标识；
 - `exp`（Expiration Time）：令牌到期时间（在固定的 `±60 秒` 时钟偏移窗口内校验）；
 - `iat`（Issued At）：令牌签发时间戳；

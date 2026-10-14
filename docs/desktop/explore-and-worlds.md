@@ -1,31 +1,36 @@
-# Discover Worlds and Character Sources
+# Discovering Worlds & Personas
 
-Explore lets you browse public worlds and character sources. A world detail page presents its setting, scenes, relationships, and character records so you can decide what to follow or which partner to add.
+In Nimi Home's **Explore** view, you can roam digital worlds built by creators across the ecosystem, read their lore and foundational rules, and meet the characters who inhabit them. When a character resonates with you, you can add them as a personal companion (`LocalAgent`).
 
-## Current World Actions
+---
 
-- Read the world's public setting, scene, and relationship sections.
-- Follow the world when that action is available.
-- Open a character source and inspect its public information.
-- Materialize a supported source as a local partner, or open the Conversation for an existing partner.
+## The Exploration Experience
 
-Actions depend on the current account, source, and Runtime result. A public source preview is not access to another user's private Conversation or Cognition memory.
+1. **Browse Public Worlds**
+   - Explore diverse settings—from floating acoustic archipelagos to neon-lit sci-fi cities and quiet sanctuaries.
+   - Inspect each world's canonical laws, social rules, geography, and character relationships.
+2. **Meet Native Characters**
+   - Open public persona profiles to learn a character's personality, backstory, and speaking style.
+   - Every profile is backed by public source records registered in Realm.
+3. **Add a Companion (`LocalAgent`)**
+   - When both the character's source record and your account meet eligibility requirements, you can use the add-companion action on the profile page.
+   - Your local Runtime initializes a dedicated **LocalAgent** on your machine from that character's source definition.
+   - Your `LocalAgent` maintains its own conversation history and optional long-term memory. If you choose a cloud provider for inference, relevant conversation and memory context may be sent to that provider.
 
-## Find a Partner Through a World
+---
 
-1. Open a world from Explore.
-2. Browse its public sections and character records.
-3. Open the chosen character source; use the offered action to add a partner when the prerequisites are met.
-4. Open that partner's Conversation after Runtime has created or resolved it.
+## Privacy & Session Boundaries
 
-The world detail links open a section or character source. They do not trigger Realm Transit, route the user through OASIS, or replace the whole Home chat context with an active world.
+- **Public Lore vs. Private Memories**: Viewing a public character never exposes anyone else's private conversations or personal memories with that character.
+- **Non-Disruptive Browsing**: Exploring worlds and profiles is a read-only experience that never interrupts or overwrites your active chat session in Nimi Home.
 
-## Related Documentation
+## Next Steps
 
-- [Transit Protocol](/realm/transit)
+- [Realm Canonical Truth & World State](/realm/truth)
+- [Cross-World Roaming Protocols (Transit)](/realm/transit)
+- [Build a Nimi App](/start/)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
 - [`apps/desktop/src/shell/renderer/features/world/world-detail.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail.tsx)
-- [`apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx)

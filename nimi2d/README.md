@@ -8,20 +8,11 @@ adapter behavior.
 
 ## Current character package availability
 
-Layer input validation and atlas materialization are available. Character
-package solving and admission currently return
-`NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE`: the input carries hints and the package
-wire carries references, but there is no implementation producing and validating
-the required solved skeleton, morphology, deformation and action data. Complete
-hint names or opaque IDs cannot establish a proven character package, including
-tier-0. `solve-package` writes no package on rejection; package-based CLI render,
-visual proof and action commands require admission first. The current tier matrix also requires a proven base-body channel for
-non-character packages; an absent channel is not a proof, so these packages
-remain unadmitted too. Asset byte/structure checks and layer input validation
-remain available.
+Layer input validation, asset byte/structure checks, and atlas materialization are currently available.
 
-The pure reference helpers remain usable with explicit test fixtures. Their
-results do not establish package admission or production readiness.
+However, character package solving and admission return `NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE`: while inputs provide hints and the package wire carries references, no implementation currently produces or validates the required solved skeleton, morphology, deformation, and action data. Complete hint names or opaque IDs do not establish a proven character package, even for tier-0. `solve-package` writes no package on rejection, and package-based CLI render, visual proof, and action commands require prior admission. The current tier matrix also requires a proven base-body channel for non-character packages; an absent channel does not count as proof, leaving those packages unadmitted as well.
+
+The pure reference helpers remain usable with explicit test fixtures, but their results do not establish package admission or production readiness.
 
 ## Package Entries
 
@@ -55,12 +46,12 @@ results do not establish package admission or production readiness.
 
 The layer workflow verifies a supplied provider artifact against the actual PNG,
 normalizes the atlas, writes a transparent copy and atlas spec, cuts layer PNGs,
-validates the generated layer input, and attempts package solving. With the
-current missing character topology producer it exits unsuccessfully at
-`package_solve`, retains the completed source/atlas/layer files, and reports
-their paths without a package or render-plan success. These retained files can
-be inspected through the direct layer and atlas commands.
+validates the generated layer input, and attempts package solving. Because the
+character topology producer is currently unavailable, it exits unsuccessfully at
+`package_solve`, retains the completed source, atlas, and layer files, and reports
+their paths without package or render-plan success. These retained files can
+be inspected using the direct layer and atlas commands.
 
 Use the nearest direct command while developing. Command success confirms only
 the behavior checked by that owner; final product experience and cross-app
-connectivity remain user validation.
+connectivity require user validation.

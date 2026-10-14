@@ -1,291 +1,246 @@
-# Nimi Onboarding
+# Nimi 开发者首日入门指南 (Onboarding)
 
-本指南面向首次加入 `nimi` 仓库的开发者，目标是让你在第一天完成以下结果：
+欢迎加入 Nimi 仓库！这篇文档的目标是帮助你在第一天顺畅走通本地开发环境，并快速达成以下里程碑：
 
-1. 本地环境安装完成。
-2. `runtime` 可启动并返回健康状态。
-3. `sdk`、`desktop`、`web` 至少一个开发面可运行。
-4. 了解最基本的仓库边界、质量门禁和提交流程。
+1. **环境就绪**：安装好所需的基础工具链。
+2. **本地 Runtime 运行中**：本地 AI 服务守护进程启动成功并通过健康检查。
+3. **前端工作台跑通**：至少成功启动 `desktop` 或 `web` 的本地开发界面。
+4. **掌握基本准则**：了解 monorepo 边界划分、核心命令与协作流程。
 
-## 1. 仓库与组件
+---
 
-`nimi` 是一个多组件 monorepo，组件如下：
+## 1. 核心架构与代码目录
 
-### 核心基础
+Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：
 
-| 组件 | 目录 | 语言 | 说明 |
+### 基础与核心服务
+
+| 模块 | 目录 | 语言 / 框架 | 职责 |
 |---|---|---|---|
-| runtime | `runtime/` | Go | 本地 AI daemon 和 CLI |
-| sdk | `sdks/typescript/` | TypeScript | 统一 SDK (`@nimiplatform/sdk`) |
-| kit | `kit/` | TypeScript + React | 跨 app 工具包：设计系统、auth、telemetry、feature 模块 |
-| proto | `proto/` | Protocol Buffers | gRPC 协议定义 |
-| spec | `.nimi/spec/` | YAML + Markdown | 产品权威（canonical authority） |
-| docs | `docs/` | VitePress | 开发者文档站点 |
+| **Runtime** | `runtime/` | Go | 本地核心守护进程 (Daemon) 与 CLI，负责模型调度与受保护 App 访问 |
+| **SDK** | `sdks/typescript/` | TypeScript | 面向生态应用的统一开发接口 (`@nimiplatform/sdk`) |
+| **Kit** | `kit/` | TypeScript + React | 跨 App 共享工具包：基础 UI 组件、身份认证、监控与 Feature 模块 |
+| **Proto** | `proto/` | Protocol Buffers | 核心 gRPC 通信协议契约 |
+| **Authority** | `.nimi/spec/` | YAML + Markdown | 平台产品权威规范 (Canonical Authority) |
+| **Docs** | `docs/` | VitePress | 官方开发者文档站点 |
 
-### 应用（Apps）
+### 官方应用与宿主
 
 | 应用 | 目录 | 技术栈 | 说明 |
 |---|---|---|---|
-| desktop | `apps/desktop/` | Electron + React | 主桌面 host、agent 交互、本地 AI |
-| avatar | `apps/avatar/` | Electron + React | 由 Desktop 交接启动的桌面 Avatar 悬浮 carrier |
-| web | `apps/web/` | React | 浏览器客户端（Cloudflare Pages） |
-| install-gateway | `apps/install-gateway/` | Cloudflare Worker | 发行分发网关 |
+| **Desktop** | `apps/desktop/` | Electron + React | 主桌面宿主 (Nimi Home)，整合 Agent 对话、应用工作区与本地 AI 管理 |
+| **Avatar** | `apps/avatar/` | Electron + React | 桌面浮动角色具身载体，由 Desktop 联动唤起 |
+| **Web** | `apps/web/` | React | 官方展示站与 Web 登录入口 |
+| **Install Gateway** | `apps/install-gateway/` | Cloudflare Worker | 跨平台安装包分发网关 |
 
-### 扩展
+---
 
-| 组件 | 目录 | 说明 |
-|---|---|---|
-| kit shell tauri | `kit/shell/tauri/` | Tauri 宿主共享的 Rust host glue，只承载标准 shell 的一部分；当前一方 App 均使用 Electron |
-| examples | `examples/` | App SDK 示例与 Runtime CLI 示例（脚手架由 `@nimiplatform/app-tools` 生成） |
+## 2. 准备工具链
 
-## 2. 前置环境
+请先确保你的开发机器已安装以下工具：
 
-最低要求：
+- **Node.js**：`>= 24`
+- **pnpm**：`>= 10`
+- **Go**：`>= 1.26.9`（编译和调试 Runtime 必备，具体版本以 `runtime/go.mod` 为准）
+- **Git**
 
-1. Go `1.24+`
-2. Node.js `24+`
-3. pnpm `10+`
-4. Git
+*可选工具（按需安装）：*
+- **Rust toolchain**：涉及 Kit 原生组件、Desktop 原生底层包或 Tauri 实验宿主时需要。
+- **Buf CLI**：修改 `proto/` 协议并重新生成代码时使用。
 
-可选但常用：
-
-1. Rust toolchain（构建 Kit 原生 carrier、Desktop 原生 Product Control 包或检查 Tauri shell crate 时需要）
-2. `buf`（开发 proto 时常用）
-
-快速检查：
-
+快速验证版本：
 ```bash
 go version
 node -v
 pnpm -v
 ```
 
-## 3. 首次初始化（先配 `.env`）
+---
 
-在执行任何 `build` 前，先完成基础运行环境配置。
+## 3. 首次配置与安装依赖
 
-统一在仓库根目录 `nimi/.env` 创建环境文件：
+在编译任何项目前，先在仓库根目录下创建环境配置文件：
+
+### 步骤 1：创建 `.env`
+在仓库根目录新建 `.env`（可参考 `.env.example`）：
 
 ```bash
 # nimi/.env
 NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
 NIMI_REALM_URL=http://localhost:3002
 NIMI_CONTROL_PLANE_URL=http://localhost:46372
-NIMI_WEB_URL=http://localhost:1420
+NIMI_WEB_URL=http://localhost:3000
 ```
 
-说明：
+> **参数说明**：
+> - `NIMI_RUNTIME_BRIDGE_MODE`：本地源码联调请固定使用 `RUNTIME`（发布测试使用 `RELEASE`）。
+> - `NIMI_REALM_URL`：Realm 服务地址。
+> - `NIMI_CONTROL_PLANE_URL`：本地 Runtime 控制面 HTTP 监听地址（默认端口 `46372`）。
+> - `NIMI_WEB_URL`：面向 Web 功能的基础地址（注：Desktop 登录 URL 与一次性回环回调由 Runtime 签发，不从此变量拼接）。
+> - *提示：请勿将包含私有配置或密钥的 `.env` 提交到 Git。*
 
-1. Desktop 构建与运行统一只读取仓库根 `.env`（`nimi/.env`）。
-2. 显式 `export` 的 shell 环境变量优先级最高。
-3. `NIMI_RUNTIME_BRIDGE_MODE` 仅允许 `RUNTIME`/`RELEASE`；本地开发应使用 `RUNTIME`，发布环境使用 `RELEASE`。
-6. 开源仓库只允许提交 `.env*.example` 模板；`*.env` 与 `*.env.*` 本地文件禁止提交。
-7. `NIMI_REALM_URL` 是 Realm API 地址；`NIMI_CONTROL_PLANE_URL` 是 Runtime 控制面地址；`NIMI_WEB_URL` 是桌面网页登录入口地址（不要混用）。
-
-完成 `.env` 后，在仓库根目录执行：
+### 步骤 2：安装依赖与初始编译
+在仓库根目录执行：
 
 ```bash
+# 安装所有 workspace 依赖
 pnpm install
-```
 
-可选构建检查（需要上面的 `.env` 已配置）：
-
-```bash
+# 编译各组件（可选快速检查）
 pnpm build
-pnpm build:runtime
 ```
 
-## 4. Runtime 快速启动（推荐先做）
+---
 
-### 4.1 准备 Product Control
+## 4. 启动与验证本地 Runtime
 
-先通过正常 Desktop 首次设置选择一次 Nimi 数据存储位置。选择记录固定写入
-`~/.nimi/nimi.json` 的 `dataRoot.path`；后续 Desktop、Runtime、CLI 与测试均复用
-该记录，不再要求第二个 root、路径参数或环境变量。
+Runtime 是支撑本地 AI 任务与受保护 App 调用的核心引擎。
 
-Windows 生产 Runtime 的私有配置和派生验证状态固定保存在
-`%ProgramData%\Nimi\Runtime\Protected`，它不是第二份 Product Control，也不能覆盖
-`dataRoot.path`。
-
-`runtime:config:*` 只用于显式 nonproduction portable-config 实验；它没有默认文件
-路径，且不得用于发现或覆盖 Nimi 数据根目录。
-
-### 4.2 启动与健康检查
-
-首次验证无需配置任何 provider 密钥。直接启动 runtime：
+### 步骤 1：启动本地 Runtime
+启动本地 Runtime 无需预先配置云端 API 密钥，直接运行：
 
 ```bash
 pnpm dev:runtime
 ```
 
-新开一个终端：
+该命令会在前台启动源码模式的 Runtime supervisor 并持续输出日志。
+
+> **联调前置条件**：
+> - **本地 Realm 服务**：当前源码启动器固定连接 `http://127.0.0.1:3002` 的本地 Realm，需另行准备可用的 Realm 服务才能完成账号登录。
+> - **首次数据目录初始化**：首次使用时需在 Nimi Home 中选择数据存储位置；若遇到「未完成设置」提示，在客户端完成设置后重试即可。
+
+### 步骤 2：检查健康状态
+新开一个终端窗口，运行健康检查命令：
 
 ```bash
 pnpm runtime:health
 ```
 
-默认地址：
+如果输出健康状态（`ok` 或 `serving`），说明 Runtime 已正常监听在默认端口：
+- **gRPC 服务**：`127.0.0.1:46371`
+- **HTTP 控制面**：`127.0.0.1:46372`
 
-1. gRPC: `127.0.0.1:46371`
-2. HTTP: `127.0.0.1:46372`
+**（可选）配置云端模型连接器**：
+如需调用 Gemini 或 OpenAI 等云端模型，可在启动 Desktop 客户端后，在 Nimi Home 的「云服务」中添加对应的 Connector，再为所需能力选择模型。标准 App 通过受保护会话调用模型能力，不会直接接管云端凭据。
 
-### 4.3 配置 AI Provider 凭据（可选）
+---
 
-如需调用云端 AI Provider（如 Gemini、OpenAI 等），建议直接通过 Desktop 桌面端界面管理 Connector。
+## 5. 启动桌面客户端 (Nimi Desktop)
 
-启动 Home 后，进入「云服务」设置页面添加 Connector。API Key 在桌面端表单中输入后，将通过加密通道提交给 Runtime 的 ConnectorService 安全托管。为保障安全，已保存的真实密钥不会回传给渲染进程，也不会泄漏至日志中。
-
-本地 CLI 配置不持有 Provider 凭据；业务级 AI 调用统一由受权 App 通过 SDK 强类型 Client 向 Runtime 发起。
-
-## 5. SDK 快速验证
-
-第三方 App 通过 Desktop 监督的宿主运行，并使用绑定宿主的 SDK client：
-
-```ts
-import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
-import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
-
-const client: NimiLocalAppClient = createNimiClient({
-  localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
-});
-```
-
-App 不传入 App ID、账号、token 或 Runtime 地址；Runtime 从受保护会话确定这些信息。
-用 `@nimiplatform/app-tools` 生成的项目已包含这个 client。完整路径见
-`docs/start/create-an-app.md` 与 `docs/sdk/first-ai-call.md`，可编译的示例在
-`examples/sdk/`。带 App ID 的直连 `createNimiClient({ appId, runtime })` 只用于
-Nimi App 之外的程序；通过普通 loopback gRPC 连接，Runtime 会拒绝 AI 执行、App
-存储等 App 范围操作。
-
-Kit 工具包（多数 app 均依赖）：
-
-```ts
-import { Button } from '@nimiplatform/kit/ui';
-import { DesktopBrowserAuthGate } from '@nimiplatform/kit/auth/shell';
-```
-
-## 6. Desktop 与 Web 开发
-
-### 6.1 Desktop
-
-`.env` 配置规则见第 3 节。也可以临时用 shell 导出：
+在保持 Runtime 运行的前提下，新开终端启动主桌面客户端：
 
 ```bash
 pnpm dev:desktop
 ```
 
-### 6.2 Desktop 监督的 App
+启动后：
+1. 客户端首次运行会引导选择数据存储目录（存储于 `~/.nimi/nimi.json` 中的 `dataRoot.path`）。
+2. 在浏览器弹出的页面中完成 Nimi 账号登录授权。
+3. 登录后即可在 Nimi Home 中体验角色对话、本地模型管理与内置应用。
 
-先运行并登录 Desktop，再从仓库根目录启动一方 App：
+### 启动 Desktop 监督的生态应用
+在 Desktop 保持运行并处于登录状态时，你可以在根目录下直接启动受其监管的生态应用：
 
 ```bash
-pnpm dev:lab
-pnpm dev:zhiyu
-pnpm dev:nimigo
-pnpm dev:nimiday
+pnpm dev:lab       # Nimi Lab 能力测试台
+pnpm dev:zhiyu     # 织羽 (Zhiyu) AI 伙伴
+pnpm dev:nimigo    # NimiGo
+pnpm dev:nimiday   # NimiDay
 ```
 
-这些 App 都由 Desktop supervisor 以 Electron 宿主启动。`pnpm dev:avatar` 单独启动
-avatar-only Desktop carrier，不能与普通 `pnpm dev:desktop` 并行。端口与参数见
-`LOCAL_DEVELOPMENT.md`。第三方 App 在自己的项目中运行 `pnpm dev`。
+*注意：`pnpm dev:avatar` 用于启动独立的桌面 Avatar 浮动窗口，与普通的 `pnpm dev:desktop` 互斥。*
 
-### 6.3 Web
+---
+
+## 6. Web 端开发
+
+如需调试基于浏览器的官网与 Web 页面：
 
 ```bash
 pnpm --filter @nimiplatform/web dev
 ```
 
-## 7. 常用开发命令
+浏览器打开 `http://127.0.0.1:3000` 即可实时预览。
 
-仓库根目录：
+---
+
+## 7. 在第三方 App 中使用 SDK
+
+生态应用在 Desktop 监管的宿主中运行时，直接通过标准 Bridge 注入的 Client 即可发起调用：
+
+```ts
+import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
+import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
+
+// 创建受管 App 专属 Client（无需手动传递 Token、App ID 或 RPC 端口）
+const client: NimiLocalAppClient = createNimiClient({
+  localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
+});
+
+// 发起一次文本生成
+const response = await client.ai.text.generateCandidate({
+  messages: [{ role: 'user', text: '你好，请帮我列出今天的三项核心待办。' }],
+});
+console.log(response.text);
+```
+
+使用 `@nimiplatform/app-tools` 脚手架新建的项目已经为你配置好了这套机制。
+
+---
+
+## 8. 日常高频开发命令
 
 ```bash
+# 全局代码检查与单元测试
 pnpm lint
 pnpm test
-pnpm build
-```
 
-聚焦 SDK：
-
-```bash
-pnpm --filter @nimiplatform/sdk lint
+# 针对特定包进行迭代
 pnpm --filter @nimiplatform/sdk test
-```
+pnpm --filter @nimiplatform/kit test
+pnpm --filter @nimiplatform/desktop typecheck
 
-代码生成与协议：
-
-```bash
-pnpm generate:realm-sdk
+# 协议重新生成
 pnpm proto:generate
 pnpm proto:lint
-```
 
-Spec 一致性检查（PR 提交前必须通过）：
-
-```bash
+# 权威规范一致性校验
 pnpm spec:authority:check
 ```
 
-## 8. 必读规范（开始改代码前）
+---
 
-请先阅读以下文件：
+## 9. 核心架构约束与开发准则
 
-1. `AGENTS.md`（仓库级规则，最高优先级）
-2. 就近目录的 `*/AGENTS.md`（按改动路径匹配组件规则）
-3. `.nimi/methodology/authority-authoring.yaml`（当改动 `.nimi/spec/**` 时必须遵循）
-4. `.nimi/spec/` 目录下对应域的 canonical authority（规则内容本体）
+为了保持代码库的健康与安全，请时刻谨记以下几条底线：
 
-兼容说明（避免歧义）：
+1. **分层依赖清晰**：
+   - `desktop` 与 `web` **严禁** 直接导入 `runtime/internal/*`。
+   - `sdks` 不得与 Realm 或 Runtime 的私有内部逻辑耦合。
+2. **凭据零泄露**：
+   - 前端 UI 与 App 渲染进程不持有底层系统凭据或长效 Token，所有受控操作通过 Runtime 授权中继。
+3. **以 Spec 为产品权威**：
+   - 产品的行为语义与状态机定义以 `.nimi/spec/**` 为准。在改动跨域核心契约前，先明确规范归属。
+4. **先就近阅读规范**：
+   - 深入改动某一模块前，先查阅对应目录下的 `AGENTS.md`。
 
-- `CLAUDE.md`、`.github/copilot-instructions.md`、`*context.md` 仅作为工具兼容入口，不定义独立规则。
-- 与任意 AGENTS 规则冲突时，以 `AGENTS.md` 与路径级 `*/AGENTS.md` 为准。
+---
 
-高频边界规则：
+## 10. 遇到问题？常见排查思路
 
-1. desktop/web 不得 import `runtime/internal/*`
-2. SDK 不得跨 realm/runtime 不当耦合
-3. 新增能力优先走 spec 契约定义，再做实现
+### Q1：修改了 Runtime 配置但似乎没有生效？
+Runtime 目前以守护进程方式运行，配置更新后需要重启 Runtime 进程以使新配置生效。
 
-## 9. 建议的开发流程
+### Q2：调用 AI 接口报凭据或连接错误？
+1. 检查本地 Runtime 是否正常运行（`pnpm runtime:health`）。
+2. 在 Nimi Home 的「云服务」中确认已添加对应的 Connector，且该模型提供商处于正常可用状态。
+3. 如果调用的是本地模型，请在 Nimi 的 AI 能力设置中确认对应的本地运行方案与依赖已经就绪。
 
-1. 拉取最新代码并确保工作区干净。
-2. 先跑最小验证（runtime health + 目标组件 lint/test）。
-3. 修改代码并运行对应局部测试。
-4. 变更跨组件时再跑根目录 `pnpm lint` 与 `pnpm test`。
-5. 变更 `.nimi/spec/**` 时，按 authoring methodology 执行 context/diff/impact/fmt，并跑 `pnpm spec:authority:check`。
-6. 提交时按"可独立审查/可独立回滚"的边界拆 commit。
-
-## 10. 常见问题
-
-### Q1: Runtime 配置改了但没生效？
-
-`nimi config set` 修改后必须重启 runtime；不支持热加载。
-
-### Q2: AI 调用报凭据错误？
-
-请在 Home 的「云服务」中检查对应 Connector 的状态与凭据有效性，并确认目标 App 的 AIConfig 已绑定有效的云端连接与模型。本地 CLI 不持有云端凭据，因此无法直接通过环境变量覆盖已授权应用的云端配置。若异步任务执行中断，系统会保留原任务上下文便于排查，无需重复触发生成。
-
-## 11. 参考文档
-
-1. `README.md`
-2. `docs/start/index.md`
-3. `runtime/README.md`
-4. `docs/runtime/index.md`
-5. `docs/sdk/index.md`
-6. `.nimi/spec/runtime/ai-provider.authority.yaml`（Connector 与 Provider 领域 authority）
-7. `.nimi/spec/runtime/security-core.authority.yaml`（Runtime 安全核与凭据路由 authority）
-
-## 12. 附：统一 Runtime 命令入口
-
-除快捷脚本外，也可以使用通用透传命令：
-
-```bash
-pnpm runtime:cmd -- <subcommand> [args]
-```
-
-例如：
-
+### Q3：想使用统一的 Runtime CLI 调试底层？
+可以使用根目录提供的命令透传工具：
 ```bash
 pnpm runtime:cmd -- health --json
 pnpm runtime:cmd -- doctor --json
 ```
+
+祝你开发愉快！如果遇到未涵盖的问题，欢迎在 Discord 或 GitHub Issue 中与团队交流。

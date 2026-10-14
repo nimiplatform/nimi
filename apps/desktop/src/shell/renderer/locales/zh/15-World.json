@@ -23,7 +23,7 @@
   "chronoFlow": "时间流速：{{value}}X",
   "header": {
     "kicker": "World Atlas",
-    "description": "公开世界背景、规则与角色目录，探索属于你的故事伙伴。"
+    "description": "浏览公开世界的背景、规则与角色目录，寻找属于你的故事伙伴。"
   },
   "atlas": {
     "discovery": {
@@ -36,7 +36,7 @@
     "sourceDiscovery": "探索角色",
     "sourceCount": "{{value}} 位角色",
     "followed": {
-      "title": "我的关注世界",
+      "title": "我关注的世界",
       "summary": "{{value}} 个世界 · 仅本机保存",
       "empty": {
         "title": "还没有关注的世界",
@@ -49,7 +49,7 @@
       "unavailable": "登录后才能关注世界。"
     },
     "publicWorld": "公开世界",
-    "emptySources": "当这个世界有公开角色时，会显示在这里。",
+    "emptySources": "这个世界有公开角色后会显示在这里。",
     "schemaTabs": {
       "overview": "概览",
       "entities": "实体",
@@ -57,21 +57,21 @@
     },
     "entityKinds": "实体类型",
     "relationshipGraph": "关系图谱",
-    "worldCharacters": "WorldCharacter",
+    "worldCharacters": "世界角色",
     "sourceBoundaryNote": "{{characters}} 个世界角色；{{personas}} 个专属角色。",
     "noEntityKinds": "暂无公开实体类型。",
     "noRelationshipTypes": "暂无公开关系类型。",
     "totalSources": "总计",
     "sourceKinds": {
-      "worldCharacter": "WorldCharacter",
-      "persona": "Persona"
+      "worldCharacter": "世界角色",
+      "persona": "专属角色"
     },
     "recentHighlights": "近期亮点",
     "categories": "世界分类",
     "more": "更多",
     "featured": {
       "title": "精选世界",
-      "body": "公共世界精选，用于探索精彩设定与角色伙伴。",
+      "body": "精选公开世界，带你探索精彩设定与角色伙伴。",
       "viewAll": "查看全部",
       "open": "打开 {{name}}"
     },
@@ -112,10 +112,10 @@
         "joinLocalAgent": "添加角色",
         "localAgentReady": "已在本地",
         "localAgentUnavailable": "暂不可加入",
-        "openProfile": "打开 {{name}} 资料",
-        "materializedFeedback": "{{name}} 已加入本地，可在我的角色中打开聊天。",
+        "openProfile": "打开 {{name}} 的资料",
+        "materializedFeedback": "{{name}} 已加入本地，可在「我的角色」中开始聊天。",
         "empty": "这个世界还没有可结识的人物。",
-        "unavailable": "人物数据暂时无法加载。"
+        "unavailable": "暂时无法加载人物数据。"
       },
       "status": {
         "friends": "已加入本地 {{count}} 位",

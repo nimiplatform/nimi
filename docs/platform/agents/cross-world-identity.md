@@ -1,6 +1,6 @@
 # Cross-World Identity Continuity
 
-A character remains itself in every digital world. That identity continuity is grounded in Realm's Character identity layer rather than within any single world boundary.
+A character remains itself in every digital world. That identity continuity is grounded in Realm's Character identity layer rather than within any single world boundary. The active conversation stream and runtime memory remain independently governed by Runtime and Cognition for each LocalAgent instance.
 
 A Character participates in multiple worlds under Realm's governance regarding identity, relationships, world memberships, and access controls. Entering a new world never duplicates the character or creates a secondary persona. Furthermore, a world's local configuration cannot autonomously establish a globally recognized LocalAgent identity.
 

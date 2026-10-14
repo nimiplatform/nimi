@@ -1,38 +1,24 @@
-# Local Environment Projection
+# Local Environment Information and Installation Progress
 
-> Status: Standardized core contract; public capabilities are gated by official SDK package exports.
+Nimi Home needs to show where a model download stands, whether dependency work has finished, and when the user needs to confirm the next step. The SDK local environment client brings Runtime’s results to the host UI, preserving identities, ordering, and failure details so the interface does not have to guess.
 
-The Local Environment Projection contract governs **how application developers safely consume local environment state and dependency readiness evaluated by Runtime**—and strictly restricts guessing readiness via out-of-band heuristics or bypassing platform boundaries.
+## Who Can Use It
 
-## Export Boundary
+`createNimiRuntimeLocalEnvironmentClient` in `@nimiplatform/sdk/runtime` serves hosts and system integrations with the required access. The ordinary App `NimiLocalAppClient` has no general environment installation or management surface. Importing a type or constructing a direct client does not grant that access.
 
-Supported SDK public capabilities are exposed strictly via explicit package exports in `package.json` and typed root-client surfaces. Product semantics are governed by canonical platform specifications; package manifests project these semantics for consumer use. Applications cannot introduce unauthorized imports by convention.
+Apps should use their existing host-bound AI configuration and call results, guiding users to prepare resources in Nimi Home. Do not create a parallel platform model installer or infer platform state by scanning files, Python environments, or engine ports.
 
-## Key Forbidden Paths
+## What a Host Can Present
 
-| Forbidden Path | Rationale & Architectural Rule |
-| --- | --- |
-| `runtime/internal/**` | Runtime private implementation; applications must consume official SDK clients exclusively |
-| `kit/internal/**` | Kit private internals without backwards-compatibility guarantees |
-| App-layer code (`apps/**`) of other apps | Applications remain decoupled and must not depend on another app's internal business code |
+- Runtime-provided model assets, integrity results, and download or dependency-job progress.
+- Environment installation plans, explicit confirmation requirements, and admitted cancellation, retry, and repair actions.
+- Environment plans and revision conditions for saved candidate Loadouts; reread returned state when a conflict occurs.
 
-## Typical Scenario: An Application Queries the Local Environment Setup Plan
+These projections do not establish model selection, AIConfig routing, Loadout selection, execution binding, or capability admission. A downloaded file alone is not evidence that an inference request will succeed.
 
-An application wishes to present the environment readiness and model setup progress to the user:
+## Keep the Integration Boundary Clear
 
-1. **Instantiate client**: Use the root SDK client or `@nimiplatform/sdk/runtime`.
-2. **Query projected state**: Read the setup plan, selected model assets, activation gates, and dependency jobs via standard environment projection helpers.
-3. **Preserve Runtime authority**: SDK helpers faithfully reflect strongly-typed Runtime state; applications must not guess readiness by scanning filesystem directories, inspecting Python virtualenvs, probing `PATH` variables, or polling local engine ports directly.
-4. **Retired compatibility paths fail closed**: Legacy experimental subpaths (such as ad-hoc `local-env` paths) fail closed unless formally admitted and exported.
-
-Attempts to invoke `import { internal } from '@nimiplatform/sdk/runtime/internal'` trigger immediate compilation errors.
-
-## Architectural Boundaries
-
-- Applications cannot access `runtime/internal/**`.
-- Applications cannot bypass Runtime private boundaries.
-- Applications cannot fork local environment management or state machines within client application layers.
-- Ad-hoc conventions outside formal specification cannot introduce new integration boundaries.
+Use public exports and their typed clients. Do not import `runtime/internal/**`, `kit/internal/**`, or another App’s business code. Show failed installation, unknown state, and unavailable resources as distinct outcomes rather than turning them into a “ready” result.
 
 ## Source Basis
 

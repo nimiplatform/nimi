@@ -1,7 +1,7 @@
 {
   "title": "Profile",
   "loading": "Loading profile...",
-  "error": "Failed to load profile",
+  "error": "Couldn't load profile.",
   "tabPosts": "Posts",
   "tabCollections": "Collections",
   "message": "Chat",

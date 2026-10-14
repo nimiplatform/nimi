@@ -33,63 +33,27 @@ After mitigation is available, we coordinate responsible disclosure and publish 
 
 ## Signed Artifact Verification
 
-Windows production signing is not active. The SignPath Foundation application
-has not yet been submitted. As checked on 2026-10-10, the public
-[GitHub Releases API](https://api.github.com/repos/nimiplatform/nimi/releases)
-returns no releases, and the claimed `v0.2.2-preview.1` prerelease is unavailable.
-Earlier developer previews were withdrawn, as recorded in [README.md](README.md).
-The unsigned Runtime bootstrap remains a planned application prerequisite;
-its build script is not evidence of a published artifact. There is no production
-Authenticode signer configured and no current Nimi
-Windows artifact should be treated as production signed or SignPath-signed. The
-repository's self-signed development certificate path is for local testing only
-and is never a release-signing substitute.
+### Current Public Beta Release and Official Entry Points
 
-Explicit `vX.Y.Z-preview.N` GitHub prereleases are intended as unsigned previews,
-not RC or Stable releases. A future unsigned Windows Runtime bootstrap must
-report `NotSigned` when inspected on Windows. Its portable ZIP is intended to
-contain no Nimi Home app, installer or service package. Preview assets must be
-marked `UNSIGNED PREVIEW — NOT PROMOTABLE`, must not update `latest`, and must
-never be retroactively described as signed. No unavailable preview asset's
-contents or signature status should be treated as currently verified.
+Official installers and release status are available on the [Download page](https://nimi.ai/download) and [GitHub Releases](https://github.com/nimiplatform/nimi/releases). As verified on 2026-10-14, the immutable GitHub prerelease `nimi/v0.2.4` is published as a **Public Beta** on the `beta` channel, which is tracked independently from `stable` / `latest`.
 
-The current [Runtime bootstrap build script](scripts/build-windows-runtime-unsigned-bootstrap.mjs)
-stages `nimi.exe`, Runtime's Apache-2.0 license and explicit bootstrap instructions.
-Runtime also embeds third-party source and notices, including the
-[LocateAnything loader](runtime/internal/engine/assets/locateanything_loader/NOTICE.md),
-and links third-party Go libraries. The package-root license alone is not a
-complete distribution license inventory; the actual payload and applicable
-third-party attribution requirements need review before publication.
-The bootstrap has no installer or service path. A user would extract
-it, run `.\nimi.exe version --json`, and remove it by closing the process and
-deleting the extracted directory. It does not modify `PATH`, Program Files,
-ProgramData, or Windows certificate stores, and it does not make protected-local
-production available.
+- **Supported platforms and requirements**:
+  - **macOS (`arm64`)**: `Nimi-0.2.4-macos-arm64.pkg` (`minimumOsVersion: 13.0`).
+  - **Windows (`x86_64`)**: `Nimi-0.2.4-windows-amd64.exe` (`minimumOsVersion: 10.0.19041`, Windows 10 version 2004 or later).
+  - Linux and Intel macOS are not supported full-product installer targets at this stage. Using Nimi requires a Nimi account with browser sign-in.
+- **Installed components**: The installers deploy Desktop, Runtime, Avatar, and required system services/helpers into protected program locations while keeping user data separate from program files (with explicit authorization required for data deletion). For uninstallation or recovery details, follow the instructions and support channels accompanying the specific version you downloaded.
+- **Tagging and channel identification**: Full-product releases use the `nimi/v<version>` tag format (component tags retain independent ownership). Because Beta tags do not necessarily carry a `-preview.N` suffix, always determine the release stage from the GitHub release flags and the signed `metadata.channel` field rather than filename or tag suffixes alone.
 
-The planned initial SignPath application scope is only the Nimi-maintained
-Windows x64 Runtime executable `nimi.exe`, distributed in a portable ZIP;
-Desktop installers, third-party Apps and separately acquired upstream binaries
-are excluded from that signing target. This scope does not exempt embedded
-third-party source, linked libraries or runtime-acquired dependencies from
-license review. Under the [SignPath Foundation conditions](https://signpath.org/terms.html)
-(checked 2026-10-10), eligibility depends on component licensing and source/build
-ownership as well as an existing release in the form to be signed. The
-LocateAnything source-channel ambiguity and the full dependency/distribution
-inventory must be resolved before representing this artifact as eligible.
-Nimi's signing identity is never used for a third-party App or upstream binary.
-Authenticode on the Kit protected-local
-`.node` addon is not a Phase 4A release gate; after SignPath approval, that
-package consumes the leaf certificate SubjectPublicKeyInfo (SPKI) SHA-256 of
-the formally signed Runtime solely for Runtime peer verification. The order is:
-publish the explicit unsigned Runtime bootstrap, apply to SignPath Foundation,
-receive approval and the project certificate, build and sign the formal
-Runtime, derive that public SPKI digest, and only then publish the production
-protected-local package.
+### Release Metadata and Platform Verification
 
-The canonical [Code signing policy](https://nimi.ai/code-signing) describes the
-planned signing scope and verification procedure. Release status and official
-entry points are listed on the [Download page](https://nimi.ai/download). Until a
-Windows artifact's Authenticode signature verifies successfully, do not infer a
-Windows publisher identity from a release filename, checksum, SBOM, or cosign
-blob signature. A cosign `.sig`/`.pem` pair authenticates the release blob; it
-does not make an embedded `.exe` or `.node` file Authenticode-signed.
+The `nimi/v0.2.4` release publishes 7 release-owned assets: the macOS `.pkg` installer, the Windows `.exe` installer, build and update JSON manifests for both platforms, and the Windows installed inventory JSON.
+
+- **Ed25519 update manifests**: In the 2026-10-14 check, both the macOS and Windows update manifests were verified against the repository's platform Ed25519 public key and passed schema and freshness checks (`channel: "beta"`), binding the exact installer SHA-256 digest, byte size, and cohort.
+- **macOS signing expectations**: The release notes describe an admitted macOS `arm64` PKG, and the platform release pipeline requires Apple Developer ID signing, notarization, and stapling. (Manifest signature verification confirms release metadata integrity and does not replace OS-level signature verification on the downloaded binary.)
+- **Windows unsigned Beta and `P-SUPD-012` trust model**: Windows production Authenticode signing is not active, and there is no confirmed formal SignPath signing integration. `Nimi-0.2.4-windows-amd64.exe` is explicitly distributed as an unsigned installer (`NotSigned`). Under `P-SUPD-012`, the Windows Public Beta establishes protected-local trust for Desktop, Runtime, Avatar, and Nimi App sessions through the combination of Ed25519-signed platform update metadata, the complete Windows installed inventory JSON, and protected `Program Files` ownership with locked-byte verification. An unsigned file (`NotSigned`) never grants privileges on its own.
+
+### Certificates, Historical Previews, and Third-Party Scope
+
+- **No development certificates required**: The current Public Beta does not require installing development root certificates or disabling OS security features. The repository's self-signed development certificate tooling is strictly for local source builds and is never used as a release-signing substitute. Any `Root` or `TrustedPublisher` certificate cleanup notes apply only to historical local development setups or withdrawn early previews.
+- **Metadata vs. Authenticode**: Ed25519-signed release metadata and blob signatures authenticate release manifests and asset digests; they do not make an `.exe` or `.node` binary Windows Authenticode-signed. Until a Windows artifact carries a verified Authenticode signature, do not infer a Windows publisher identity from filenames or release metadata.
+- **Signing boundaries and third-party notices**: Nimi's signing identity is never applied to third-party Apps or separately acquired upstream binaries. Runtime embeds and links third-party open-source components—including the [LocateAnything loader](runtime/internal/engine/assets/locateanything_loader/NOTICE.md) and Go libraries—which remain governed by their respective licenses and attribution notices. See the canonical [Code signing policy](https://nimi.ai/code-signing) for full policy details.
