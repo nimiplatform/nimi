@@ -11,22 +11,22 @@ import (
 // never retry a failed request against another host.
 // https://help.aliyun.com/zh/model-studio/qwen-tts-api
 // https://help.aliyun.com/en/model-studio/base-url
-func materializeDashScopeSpeechEndpoint(endpoint string, target providerTargetIdentity) string {
+func materializeDashScopeSpeechEndpoint(endpoint string, target providerTargetIdentity) (string, string) {
 	media, ok := target.(interface{ CapabilityContract() string })
 	if !ok || target.Provider() != "dashscope" || media.CapabilityContract() != "audio.synthesize" {
-		return endpoint
+		return endpoint, ""
 	}
 	model := strings.ToLower(target.ProviderModelID())
 	if !(model == "qwen-tts" || strings.HasPrefix(model, "qwen-tts-") || strings.HasPrefix(model, "qwen3-tts-")) || strings.Contains(model, "-realtime") {
-		return endpoint
+		return endpoint, ""
 	}
 	u, err := url.Parse(endpoint)
 	if err != nil || u.Scheme != "https" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Port() != "" && u.Port() != "443") {
-		return endpoint
+		return endpoint, ""
 	}
 	labels := strings.Split(strings.ToLower(u.Hostname()), ".")
 	if len(labels) != 5 || strings.Join(labels[2:], ".") != "maas.aliyuncs.com" || !isDashScopeWorkspaceLabel(labels[0]) {
-		return endpoint
+		return endpoint, ""
 	}
 	var host string
 	switch labels[1] {
@@ -35,13 +35,16 @@ func materializeDashScopeSpeechEndpoint(endpoint string, target providerTargetId
 	case "ap-southeast-1":
 		host = "dashscope-intl.aliyuncs.com"
 	default:
-		return endpoint
+		return endpoint, ""
 	}
 	if u.Port() != "" {
 		host += ":" + u.Port()
 	}
 	u.Host = host
-	return u.String()
+	// The shared origin accepts keys from multiple workspaces. Keep the
+	// workspace selected by the captured hostname explicit in the native
+	// request, as MultiModalConversation(workspace=...) does in the SDK.
+	return u.String(), labels[0]
 }
 
 func isDashScopeWorkspaceLabel(label string) bool {

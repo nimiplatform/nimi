@@ -87,11 +87,18 @@ func requestScopedProviderTarget(
 	if endpoint == "" {
 		endpoint = connector.ResolveEndpoint(connectorRecord.Provider, "")
 	}
-	endpoint = materializeDashScopeSpeechEndpoint(endpoint, target)
+	endpoint, workspace := materializeDashScopeSpeechEndpoint(endpoint, target)
 	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopback); err != nil {
 		credential.APIKey = ""
 		credential.Headers = nil
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{Message: "connector endpoint is not allowed"})
+	}
+	if workspace != "" {
+		credential.Headers = cloneRemoteHeaders(credential.Headers)
+		if credential.Headers == nil {
+			credential.Headers = make(map[string]string)
+		}
+		credential.Headers["X-DashScope-WorkSpace"] = workspace
 	}
 	return &nimillm.RemoteTarget{
 		ProviderType:         target.Provider(),

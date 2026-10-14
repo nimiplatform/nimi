@@ -19,8 +19,8 @@ func TestDashScopeSpeechEndpointMaterialization(t *testing.T) {
 		} {
 			t.Run(model+"/"+tc.endpoint, func(t *testing.T) {
 				target := speechEndpointTarget{"dashscope", model, "audio.synthesize"}
-				if got := materializeDashScopeSpeechEndpoint(tc.endpoint, target); got != tc.want {
-					t.Fatalf("endpoint=%q want=%q", got, tc.want)
+				if got, workspace := materializeDashScopeSpeechEndpoint(tc.endpoint, target); got != tc.want || workspace != "ws-test" {
+					t.Fatalf("endpoint=%q workspace=%q want=%q ws-test", got, workspace, tc.want)
 				}
 			})
 		}
@@ -42,8 +42,8 @@ func TestDashScopeSpeechEndpointPreservesOtherProtocolsAndDestinations(t *testin
 		{"openai", "qwen3-tts-flash", "audio.synthesize"},
 	} {
 		t.Run(tc.provider+"/"+tc.model+"/"+tc.capability, func(t *testing.T) {
-			if got := materializeDashScopeSpeechEndpoint(workspace, speechEndpointTarget(tc)); got != workspace {
-				t.Fatalf("unrelated target retargeted: %q", got)
+			if got, scope := materializeDashScopeSpeechEndpoint(workspace, speechEndpointTarget(tc)); got != workspace || scope != "" {
+				t.Fatalf("unrelated target retargeted: %q workspace=%q", got, scope)
 			}
 		})
 	}
@@ -58,8 +58,8 @@ func TestDashScopeSpeechEndpointPreservesOtherProtocolsAndDestinations(t *testin
 		"https://ws-test.cn-beijing.maas.aliyuncs.com/v1#fragment",
 	} {
 		t.Run(endpoint, func(t *testing.T) {
-			if got := materializeDashScopeSpeechEndpoint(endpoint, speechEndpointTarget{"dashscope", "qwen3-tts-flash", "audio.synthesize"}); got != endpoint {
-				t.Fatalf("custom or unmapped endpoint retargeted: %q", got)
+			if got, scope := materializeDashScopeSpeechEndpoint(endpoint, speechEndpointTarget{"dashscope", "qwen3-tts-flash", "audio.synthesize"}); got != endpoint || scope != "" {
+				t.Fatalf("custom or unmapped endpoint retargeted: %q workspace=%q", got, scope)
 			}
 		})
 	}

@@ -41,6 +41,44 @@ func TestAlibabaQwenTTSVolumePresence(t *testing.T) {
 	}
 }
 
+func TestAlibabaQwenTTSPreservesWorkspaceOnlyOnInference(t *testing.T) {
+	audio := finiteASRTestWAV()
+	inferenceCalls, artifactCalls := 0, 0
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/services/aigc/multimodal-generation/generation":
+			inferenceCalls++
+			if r.Header.Get("X-DashScope-WorkSpace") != "ws-captured" || r.Header.Get("Authorization") != "Bearer fixture-key" {
+				t.Error("inference lost captured workspace or credential")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"output": map[string]any{"finish_reason": "stop", "audio": map[string]any{"url": server.URL + "/result.wav"}}})
+		case "/result.wav":
+			artifactCalls++
+			if r.Header.Get("Authorization") != "" || r.Header.Get("X-DashScope-WorkSpace") != "" {
+				t.Error("inference credential or workspace leaked to artifact download")
+			}
+			w.Header().Set("Content-Type", "audio/wav")
+			_, _ = w.Write(audio)
+		default:
+			t.Errorf("unexpected request path %q", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	artifacts, _, _, err := ExecuteAlibabaNative(context.Background(), MediaAdapterConfig{
+		BaseURL: server.URL + "/compatible-mode/v1", APIKey: "fixture-key", AllowLoopbackEndpoint: true,
+		Headers: map[string]string{"X-DashScope-WorkSpace": "ws-captured"},
+	}, noopJobStateUpdater{}, "job", &runtimev1.SubmitScenarioJobRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello", AudioFormat: "wav"}}},
+	}, "qwen3-tts-flash")
+	if err != nil || len(artifacts) != 1 || string(artifacts[0].GetBytes()) != string(audio) || inferenceCalls != 1 || artifactCalls != 1 {
+		t.Fatalf("inference=%d artifact=%d error=%v", inferenceCalls, artifactCalls, err)
+	}
+}
+
 func TestAlibabaQwenTTSRetainsNativeReportedUsage(t *testing.T) {
 	for _, test := range []struct {
 		name   string

@@ -215,7 +215,7 @@ func ExecuteAlibabaNative(
 		if spec.GetTimingMode() == runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD {
 			return executeCosyVoiceWordSynthesis(ctx, JoinURL(baseURL, ttsPath), apiKey, modelResolved, spec, payload)
 		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload, nil)
+		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload, cfg.Headers)
 		if err != nil {
 			return nil, nil, "", err
 		}
