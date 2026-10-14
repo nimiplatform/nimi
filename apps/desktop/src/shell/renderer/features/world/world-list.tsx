@@ -30,11 +30,12 @@ export type WorldCatalogPaging = {
   offlineIncomplete: boolean; onLoadMore: () => void;
 };
 
-export function WorldCatalogContent({ worlds, paging, embedded = false, searchQuery, onSearchQueryChange, railFlap }: {
+export function WorldCatalogContent({ worlds, paging, embedded = false, searchQuery, onSearchQueryChange, railFlap, topics = [], topicId = '', onTopicChange, topicsFailed = false, onRetryTopics }: {
   worlds: WorldListItem[]; paging: WorldCatalogPaging; embedded?: boolean;
+  topics?: readonly { id: string; title: string; titleEn: string }[]; topicId?: string; onTopicChange?: (value: string) => void; topicsFailed?: boolean; onRetryTopics?: () => void;
   searchQuery?: string; onSearchQueryChange?: (value: string) => void; railFlap?: ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useHomeNavigation();
   const query = searchQuery ?? '';
   return (
@@ -42,13 +43,15 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3"><NimiText role="section-title">{t('World.title')}</NimiText><NimiText role="caption">{t('World.atlas.worldCount', { value: paging.totalCount })}</NimiText></div>
         <div className="flex flex-wrap items-center gap-3">
+          {onTopicChange ? <label className="flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]">{t('World.topics')}<select aria-label={t('World.topics')} value={topicId} onChange={(event) => onTopicChange(event.target.value)} className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[var(--nimi-text-primary)]"><option value="">{t('World.allTopics')}</option>{topics.map((topic) => <option key={topic.id} value={topic.id}>{i18n.language.startsWith('zh') ? topic.title : topic.titleEn}</option>)}</select></label> : null}
+          {topicsFailed ? <Button tone="secondary" size="sm" onClick={onRetryTopics}>{t('World.retryTopics')}</Button> : null}
           <SearchField value={query} onChange={(event) => onSearchQueryChange?.(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') onSearchQueryChange?.(''); }} placeholder={t('World.searchByNameOrDescription')} aria-label={t('World.searchByNameOrDescription')} className="w-72" />
           {query ? <IconButton tone="ghost" size="sm" icon={<X size={15} />} aria-label={t('World.clearSearch')} onClick={() => onSearchQueryChange?.('')} /> : null}
           {railFlap}
         </div>
       </div>
       <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-[1440px] px-4 pb-6 pt-2">
-        {!worlds.length ? <EmptyState title={t(query ? 'World.noSearchResults' : 'World.noWorlds')} /> : (
+        {!worlds.length ? <EmptyState title={t(query ? 'World.noSearchResults' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} /> : (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))' }}>
             {worlds.map((world) => (
               <Surface key={world.id} as="article" tone="card" padding="none" className="flex min-w-0 flex-col overflow-hidden shadow-none" data-testid="world-discovery-card">

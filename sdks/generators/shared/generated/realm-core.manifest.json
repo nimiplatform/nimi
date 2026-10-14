@@ -14234,6 +14234,21 @@
           }
         },
         {
+          "name": "topicId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
           "name": "limit",
           "in": "query",
           "required": false,
@@ -14298,6 +14313,21 @@
         },
         {
           "name": "genre",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "topicId",
           "in": "query",
           "required": false,
           "schema": {
@@ -14538,6 +14568,41 @@
           "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
         }
       ]
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldTopics",
+      "method": "GET",
+      "path": "/api/world/topics",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicTopicDto",
+              "ref_name": "WorldPublicTopicDto"
+            },
+            "min_items": null,
+            "max_items": null
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
     }
   ],
   "operation_maps": [
@@ -15608,6 +15673,12 @@
       "service": "World",
       "method": "GET",
       "path": "/api/world/by-id/{worldId}/characters/catalog"
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldTopics",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/topics"
     }
   ],
   "service_registry": [
@@ -15895,7 +15966,8 @@
         "WorldPublicController_getWorldDetailWithCharacters",
         "WorldPublicController_listPersonaCharacterCatalog",
         "WorldPublicController_listWorldCatalog",
-        "WorldPublicController_listWorldCharacterCatalog"
+        "WorldPublicController_listWorldCharacterCatalog",
+        "WorldPublicController_listWorldTopics"
       ]
     },
     {
@@ -16771,10 +16843,16 @@
       "name": "WorldCoreValueDtoAuthoringReview"
     },
     {
+      "name": "WorldCoreValueDtoDiscovery"
+    },
+    {
       "name": "WorldCoreValueDtoEntitiesItem"
     },
     {
       "name": "WorldCoreValueDtoIdentity"
+    },
+    {
+      "name": "WorldCoreValueDtoNarrative"
     },
     {
       "name": "WorldCoreValueDtoOntology"
@@ -16921,7 +16999,13 @@
       "name": "WorldPublicStatsDto"
     },
     {
+      "name": "WorldPublicSystemDto"
+    },
+    {
       "name": "WorldPublicTimelineEventDto"
+    },
+    {
+      "name": "WorldPublicTopicDto"
     },
     {
       "name": "WorldPublicViewerRelationDto"
@@ -20006,6 +20090,20 @@
         "kind": "object",
         "properties": [
           {
+            "name": "ageDescription",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "aliases",
             "required": false,
             "schema": {
@@ -20025,6 +20123,20 @@
             }
           },
           {
+            "name": "bodyDescription",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "handle",
             "required": false,
             "schema": {
@@ -20039,8 +20151,36 @@
             }
           },
           {
+            "name": "lifeStageDescription",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "name",
             "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "speciesDescription",
+            "required": false,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -20549,6 +20689,20 @@
               },
               "min_items": null,
               "max_items": null
+            }
+          },
+          {
+            "name": "disposition",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
             }
           },
           {
@@ -21150,6 +21304,20 @@
               "kind": "object",
               "properties": [
                 {
+                  "name": "ageDescription",
+                  "required": false,
+                  "schema": {
+                    "kind": "scalar",
+                    "type": "string",
+                    "format": null,
+                    "minimum": null,
+                    "maximum": null,
+                    "min_length": 1,
+                    "max_length": null,
+                    "pattern": null
+                  }
+                },
+                {
                   "name": "aliases",
                   "required": false,
                   "schema": {
@@ -21169,6 +21337,20 @@
                   }
                 },
                 {
+                  "name": "bodyDescription",
+                  "required": false,
+                  "schema": {
+                    "kind": "scalar",
+                    "type": "string",
+                    "format": null,
+                    "minimum": null,
+                    "maximum": null,
+                    "min_length": 1,
+                    "max_length": null,
+                    "pattern": null
+                  }
+                },
+                {
                   "name": "handle",
                   "required": false,
                   "schema": {
@@ -21183,8 +21365,36 @@
                   }
                 },
                 {
+                  "name": "lifeStageDescription",
+                  "required": false,
+                  "schema": {
+                    "kind": "scalar",
+                    "type": "string",
+                    "format": null,
+                    "minimum": null,
+                    "maximum": null,
+                    "min_length": 1,
+                    "max_length": null,
+                    "pattern": null
+                  }
+                },
+                {
                   "name": "name",
                   "required": true,
+                  "schema": {
+                    "kind": "scalar",
+                    "type": "string",
+                    "format": null,
+                    "minimum": null,
+                    "maximum": null,
+                    "min_length": 1,
+                    "max_length": null,
+                    "pattern": null
+                  }
+                },
+                {
+                  "name": "speciesDescription",
+                  "required": false,
                   "schema": {
                     "kind": "scalar",
                     "type": "string",
@@ -21693,6 +21903,20 @@
                     },
                     "min_items": null,
                     "max_items": null
+                  }
+                },
+                {
+                  "name": "disposition",
+                  "required": false,
+                  "schema": {
+                    "kind": "scalar",
+                    "type": "string",
+                    "format": null,
+                    "minimum": null,
+                    "maximum": null,
+                    "min_length": 1,
+                    "max_length": null,
+                    "pattern": null
                   }
                 },
                 {
@@ -41194,6 +41418,15 @@
             }
           },
           {
+            "name": "discovery",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#generated/materialization/WorldCoreValueDtoDiscovery",
+              "ref_name": "WorldCoreValueDtoDiscovery"
+            }
+          },
+          {
             "name": "entities",
             "required": true,
             "schema": {
@@ -41214,6 +41447,15 @@
               "kind": "ref",
               "ref": "#generated/materialization/WorldCoreValueDtoIdentity",
               "ref_name": "WorldCoreValueDtoIdentity"
+            }
+          },
+          {
+            "name": "narrative",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#generated/materialization/WorldCoreValueDtoNarrative",
+              "ref_name": "WorldCoreValueDtoNarrative"
             }
           },
           {
@@ -41709,6 +41951,38 @@
       }
     },
     {
+      "name": "WorldCoreValueDtoDiscovery",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "topicIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": 64,
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+              },
+              "min_items": null,
+              "max_items": 32
+            }
+          }
+        ],
+        "required_properties": [
+          "topicIds"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldCoreValueDtoEntitiesItem",
       "schema": {
         "kind": "object",
@@ -41909,6 +42183,33 @@
         "required_properties": [
           "name",
           "summary"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldCoreValueDtoNarrative",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "setting",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "setting"
         ],
         "closed": true,
         "additional_properties": null
@@ -44635,6 +44936,21 @@
             }
           },
           {
+            "name": "setting",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "stats",
             "required": true,
             "schema": {
@@ -44663,14 +44979,9 @@
             "schema": {
               "kind": "array",
               "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSystemDto",
+                "ref_name": "WorldPublicSystemDto"
               },
               "min_items": null,
               "max_items": null
@@ -44749,6 +45060,26 @@
             }
           },
           {
+            "name": "topicIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": 64,
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+              },
+              "min_items": null,
+              "max_items": 32,
+              "nullable": true
+            }
+          },
+          {
             "name": "type",
             "required": true,
             "schema": {
@@ -44795,6 +45126,7 @@
           "visibility",
           "genre",
           "themes",
+          "topicIds",
           "era",
           "entityKinds",
           "relationshipTypes",
@@ -44803,6 +45135,7 @@
           "stats",
           "createdAt",
           "updatedAt",
+          "setting",
           "rules",
           "systems",
           "scenes",
@@ -45122,6 +45455,26 @@
             }
           },
           {
+            "name": "topicIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": 64,
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+              },
+              "min_items": null,
+              "max_items": 32,
+              "nullable": true
+            }
+          },
+          {
             "name": "type",
             "required": true,
             "schema": {
@@ -45168,6 +45521,7 @@
           "visibility",
           "genre",
           "themes",
+          "topicIds",
           "era",
           "entityKinds",
           "relationshipTypes",
@@ -45677,6 +46031,36 @@
         "kind": "object",
         "properties": [
           {
+            "name": "ageDescription",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "bodyDescription",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "characterBiography",
             "required": false,
             "schema": {
@@ -45698,6 +46082,21 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "disposition",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -45727,6 +46126,21 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "lifeStageDescription",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -45793,6 +46207,21 @@
               "kind": "ref",
               "ref": "#/components/schemas/CharacterSourceRefV3Dto",
               "ref_name": "CharacterSourceRefV3Dto"
+            }
+          },
+          {
+            "name": "speciesDescription",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -45899,6 +46328,11 @@
           "summary",
           "worldId",
           "worldName",
+          "disposition",
+          "ageDescription",
+          "speciesDescription",
+          "bodyDescription",
+          "lifeStageDescription",
           "traits",
           "topics",
           "media",
@@ -46383,6 +46817,83 @@
       }
     },
     {
+      "name": "WorldPublicSystemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "principles",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "systemId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "systemId",
+          "name",
+          "summary",
+          "principles"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicTimelineEventDto",
       "schema": {
         "kind": "object",
@@ -46609,6 +47120,108 @@
           "entityRefs",
           "characterRefs",
           "sourceRefs"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicTopicDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "criterion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "description",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "title",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "titleEn",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "id",
+          "title",
+          "titleEn",
+          "description",
+          "criterion",
+          "status"
         ],
         "closed": false,
         "additional_properties": null

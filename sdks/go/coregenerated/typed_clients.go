@@ -13188,10 +13188,14 @@ func (value *CharacterProfileCoreDtoCapabilitiesToolsItem) UnmarshalJSON(data []
 }
 
 type CharacterProfileCoreDtoIdentity struct {
-	Aliases []string `json:"aliases,omitempty"`
-	Handle  string   `json:"handle,omitempty"`
-	Name    string   `json:"name"`
-	Summary string   `json:"summary"`
+	AgeDescription       string   `json:"ageDescription,omitempty"`
+	Aliases              []string `json:"aliases,omitempty"`
+	BodyDescription      string   `json:"bodyDescription,omitempty"`
+	Handle               string   `json:"handle,omitempty"`
+	LifeStageDescription string   `json:"lifeStageDescription,omitempty"`
+	Name                 string   `json:"name"`
+	SpeciesDescription   string   `json:"speciesDescription,omitempty"`
+	Summary              string   `json:"summary"`
 }
 
 func (value *CharacterProfileCoreDtoIdentity) UnmarshalJSON(data []byte) error {
@@ -13361,8 +13365,9 @@ func (value *CharacterProfileCoreDtoPresentation) UnmarshalJSON(data []byte) err
 }
 
 type CharacterProfileCoreDtoPsychology struct {
-	Boundaries []string `json:"boundaries,omitempty"`
-	Drives     []string `json:"drives,omitempty"`
+	Boundaries  []string `json:"boundaries,omitempty"`
+	Disposition string   `json:"disposition,omitempty"`
+	Drives      []string `json:"drives,omitempty"`
 }
 
 func (value *CharacterProfileCoreDtoPsychology) UnmarshalJSON(data []byte) error {
@@ -21147,8 +21152,10 @@ func (value *WorldCoreDto) UnmarshalJSON(data []byte) error {
 type WorldCoreValueDto struct {
 	Assets        *WorldCoreValueDtoAssets             `json:"assets"`
 	Authoring     *WorldCoreValueDtoAuthoring          `json:"authoring"`
+	Discovery     *WorldCoreValueDtoDiscovery          `json:"discovery,omitempty"`
 	Entities      []WorldCoreValueDtoEntitiesItem      `json:"entities"`
 	Identity      *WorldCoreValueDtoIdentity           `json:"identity"`
+	Narrative     *WorldCoreValueDtoNarrative          `json:"narrative,omitempty"`
 	Ontology      *WorldCoreValueDtoOntology           `json:"ontology"`
 	Presentation  *WorldCoreValueDtoPresentation       `json:"presentation"`
 	Relationships []WorldCoreValueDtoRelationshipsItem `json:"relationships"`
@@ -21362,6 +21369,27 @@ func (value *WorldCoreValueDtoAuthoringReview) UnmarshalJSON(data []byte) error 
 	return nil
 }
 
+type WorldCoreValueDtoDiscovery struct {
+	TopicIds []string `json:"topicIds"`
+}
+
+func (value *WorldCoreValueDtoDiscovery) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoDiscovery: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "topicIds", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoDiscovery: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoDiscovery
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoDiscovery: %w", err)
+	}
+	*value = WorldCoreValueDtoDiscovery(decoded)
+	return nil
+}
+
 type WorldCoreValueDtoEntitiesItem struct {
 	EntityId string `json:"entityId"`
 	Kind     string `json:"kind"`
@@ -21417,6 +21445,27 @@ func (value *WorldCoreValueDtoIdentity) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldCoreValueDtoIdentity: %w", err)
 	}
 	*value = WorldCoreValueDtoIdentity(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoNarrative struct {
+	Setting string `json:"setting"`
+}
+
+func (value *WorldCoreValueDtoNarrative) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoNarrative: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "setting", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoNarrative: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoNarrative
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoNarrative: %w", err)
+	}
+	*value = WorldCoreValueDtoNarrative(decoded)
 	return nil
 }
 
@@ -22430,13 +22479,15 @@ type WorldPublicDetailDto struct {
 	RelationshipTypes []string                      `json:"relationshipTypes"`
 	Rules             []string                      `json:"rules"`
 	Scenes            []WorldPublicSceneDto         `json:"scenes"`
+	Setting           *string                       `json:"setting"`
 	Stats             *WorldPublicStatsDto          `json:"stats"`
 	Summary           string                        `json:"summary"`
-	Systems           []string                      `json:"systems"`
+	Systems           []WorldPublicSystemDto        `json:"systems"`
 	Tagline           *string                       `json:"tagline,omitempty"`
 	Themes            []string                      `json:"themes"`
 	Time              any                           `json:"time"`
 	Timeline          []WorldPublicTimelineEventDto `json:"timeline"`
+	TopicIds          *[]string                     `json:"topicIds"`
 	Type              string                        `json:"type"`
 	UpdatedAt         string                        `json:"updatedAt"`
 	Visibility        string                        `json:"visibility"`
@@ -22477,6 +22528,9 @@ func (value *WorldPublicDetailDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "scenes", false); err != nil {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
+	if err := requireRealmJSONField(raw, "setting", true); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
 	if err := requireRealmJSONField(raw, "stats", false); err != nil {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
@@ -22493,6 +22547,9 @@ func (value *WorldPublicDetailDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "timeline", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "topicIds", true); err != nil {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "type", false); err != nil {
@@ -22579,6 +22636,7 @@ type WorldPublicItemDto struct {
 	Tagline           *string              `json:"tagline,omitempty"`
 	Themes            []string             `json:"themes"`
 	Time              any                  `json:"time"`
+	TopicIds          *[]string            `json:"topicIds"`
 	Type              string               `json:"type"`
 	UpdatedAt         string               `json:"updatedAt"`
 	Visibility        string               `json:"visibility"`
@@ -22623,6 +22681,9 @@ func (value *WorldPublicItemDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "time", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "topicIds", true); err != nil {
 		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "type", false); err != nil {
@@ -22821,22 +22882,27 @@ func (value *WorldPublicSceneResourceDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicSourceCardDto struct {
-	CharacterBiography *WorldPublicCharacterBiographyDto `json:"characterBiography,omitempty"`
-	DisplayName        string                            `json:"displayName"`
-	Handle             *string                           `json:"handle,omitempty"`
-	Id                 string                            `json:"id"`
-	Media              *WorldPublicSourceMediaDto        `json:"media"`
-	Ownership          string                            `json:"ownership"`
-	Relation           *WorldPublicViewerRelationDto     `json:"relation"`
-	Role               *string                           `json:"role,omitempty"`
-	SourceKind         string                            `json:"sourceKind"`
-	SourceRef          *CharacterSourceRefV3Dto          `json:"sourceRef"`
-	Summary            string                            `json:"summary"`
-	Topics             []string                          `json:"topics"`
-	Traits             []string                          `json:"traits"`
-	UpdatedAt          string                            `json:"updatedAt"`
-	WorldId            string                            `json:"worldId"`
-	WorldName          string                            `json:"worldName"`
+	AgeDescription       *string                           `json:"ageDescription"`
+	BodyDescription      *string                           `json:"bodyDescription"`
+	CharacterBiography   *WorldPublicCharacterBiographyDto `json:"characterBiography,omitempty"`
+	DisplayName          string                            `json:"displayName"`
+	Disposition          *string                           `json:"disposition"`
+	Handle               *string                           `json:"handle,omitempty"`
+	Id                   string                            `json:"id"`
+	LifeStageDescription *string                           `json:"lifeStageDescription"`
+	Media                *WorldPublicSourceMediaDto        `json:"media"`
+	Ownership            string                            `json:"ownership"`
+	Relation             *WorldPublicViewerRelationDto     `json:"relation"`
+	Role                 *string                           `json:"role,omitempty"`
+	SourceKind           string                            `json:"sourceKind"`
+	SourceRef            *CharacterSourceRefV3Dto          `json:"sourceRef"`
+	SpeciesDescription   *string                           `json:"speciesDescription"`
+	Summary              string                            `json:"summary"`
+	Topics               []string                          `json:"topics"`
+	Traits               []string                          `json:"traits"`
+	UpdatedAt            string                            `json:"updatedAt"`
+	WorldId              string                            `json:"worldId"`
+	WorldName            string                            `json:"worldName"`
 }
 
 func (value *WorldPublicSourceCardDto) UnmarshalJSON(data []byte) error {
@@ -22844,10 +22910,22 @@ func (value *WorldPublicSourceCardDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
+	if err := requireRealmJSONField(raw, "ageDescription", true); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bodyDescription", true); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
 	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
+	if err := requireRealmJSONField(raw, "disposition", true); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lifeStageDescription", true); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "media", false); err != nil {
@@ -22863,6 +22941,9 @@ func (value *WorldPublicSourceCardDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "speciesDescription", true); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "summary", false); err != nil {
@@ -23086,6 +23167,39 @@ func (value *WorldPublicStatsDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type WorldPublicSystemDto struct {
+	Name       string   `json:"name"`
+	Principles []string `json:"principles"`
+	Summary    string   `json:"summary"`
+	SystemId   string   `json:"systemId"`
+}
+
+func (value *WorldPublicSystemDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSystemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSystemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "principles", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSystemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSystemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "systemId", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSystemDto: %w", err)
+	}
+	type modelAlias WorldPublicSystemDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSystemDto: %w", err)
+	}
+	*value = WorldPublicSystemDto(decoded)
+	return nil
+}
+
 type WorldPublicTimelineEventDto struct {
 	CharacterRefs []string `json:"characterRefs"`
 	EndsAt        *string  `json:"endsAt,omitempty"`
@@ -23134,6 +23248,47 @@ func (value *WorldPublicTimelineEventDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
 	}
 	*value = WorldPublicTimelineEventDto(decoded)
+	return nil
+}
+
+type WorldPublicTopicDto struct {
+	Criterion   string `json:"criterion"`
+	Description string `json:"description"`
+	Id          string `json:"id"`
+	Status      string `json:"status"`
+	Title       string `json:"title"`
+	TitleEn     string `json:"titleEn"`
+}
+
+func (value *WorldPublicTopicDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "criterion", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "description", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "titleEn", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	type modelAlias WorldPublicTopicDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicTopicDto: %w", err)
+	}
+	*value = WorldPublicTopicDto(decoded)
 	return nil
 }
 
@@ -26544,11 +26699,12 @@ type RealmWorldPublicControllerListWorldCatalogOperationPath struct {
 }
 
 type RealmWorldPublicControllerListWorldCatalogOperationQuery struct {
-	Theme  string  `json:"theme,omitempty"`
-	Genre  string  `json:"genre,omitempty"`
-	Limit  float64 `json:"limit,omitempty"`
-	Q      string  `json:"q,omitempty"`
-	Cursor string  `json:"cursor,omitempty"`
+	Theme   string  `json:"theme,omitempty"`
+	Genre   string  `json:"genre,omitempty"`
+	TopicId string  `json:"topicId,omitempty"`
+	Limit   float64 `json:"limit,omitempty"`
+	Q       string  `json:"q,omitempty"`
+	Cursor  string  `json:"cursor,omitempty"`
 }
 
 type RealmWorldPublicControllerListWorldCatalogOperationHeaders struct {
@@ -26579,6 +26735,22 @@ type RealmWorldPublicControllerListWorldCharacterCatalogOperationRequest struct 
 	Query   RealmWorldPublicControllerListWorldCharacterCatalogOperationQuery   `json:"query,omitempty"`
 	Headers RealmWorldPublicControllerListWorldCharacterCatalogOperationHeaders `json:"headers,omitempty"`
 	Body    struct{}                                                            `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldTopicsOperationPath struct {
+}
+
+type RealmWorldPublicControllerListWorldTopicsOperationQuery struct {
+}
+
+type RealmWorldPublicControllerListWorldTopicsOperationHeaders struct {
+}
+
+type RealmWorldPublicControllerListWorldTopicsOperationRequest struct {
+	Path    RealmWorldPublicControllerListWorldTopicsOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListWorldTopicsOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListWorldTopicsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                  `json:"body,omitempty"`
 }
 
 type RealmTypedClient struct {
@@ -28003,4 +28175,12 @@ func (c RealmTypedClient) WorldPublicControllerListWorldCharacterCatalog(ctx con
 		return WorldPublicSourceCardPageDto{}, err
 	}
 	return decodeTypedResponse[WorldPublicSourceCardPageDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerListWorldTopics(ctx context.Context, request RealmWorldPublicControllerListWorldTopicsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldPublicTopicDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorldTopics", request, metadata, timeoutMS)
+	if err != nil {
+		return []WorldPublicTopicDto{}, err
+	}
+	return decodeTypedResponse[[]WorldPublicTopicDto](raw)
 }

@@ -30,6 +30,7 @@ surfaces:
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
   - WorldPublicController_listWorldCatalog
+  - WorldPublicController_listWorldTopics
   - WorldPublicController_listWorldCharacterCatalog
   - WorldPublicController_listPersonaCharacterCatalog
   - getMe
@@ -382,6 +383,14 @@ operations:
     path_template: /api/world/by-id/{worldId}/detail-with-characters
     request_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/response
+
+  - <<: *desktop_source_read
+    operation_id: WorldPublicController_listWorldTopics
+    authority_ref: realm:.nimi/spec/realm/core.authority.yaml#rule.realm.core.world-discovery
+    http_method: GET
+    path_template: /api/world/topics
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldTopics/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorldTopics/response
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_listWorldCatalog

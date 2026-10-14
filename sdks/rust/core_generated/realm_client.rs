@@ -1069,6 +1069,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         method: "GET",
         path: Some("/api/world/by-id/{worldId}/characters/catalog"),
     },
+    RealmOperationDescriptor {
+        operation_id: "WorldPublicController_listWorldTopics",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world/topics"),
+    },
 ];
 
 pub struct RealmGeneratedClient<T, A>

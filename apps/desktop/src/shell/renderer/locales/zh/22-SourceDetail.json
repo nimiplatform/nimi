@@ -115,5 +115,10 @@
   "anotherPartnerListPending": "新伙伴已创建，但伙伴列表尚未刷新。请刷新列表后再继续。",
   "choosePartner": "选择伙伴",
   "partnerCreatedAt": "创建于 {{date}}",
-  "partnerCreationUnknown": "创建时间暂不可用"
+  "partnerCreationUnknown": "创建时间暂不可用",
+  "disposition": "性格",
+  "ageDescription": "年龄",
+  "speciesDescription": "族类",
+  "bodyDescription": "身体形态",
+  "lifeStageDescription": "生命阶段"
 }

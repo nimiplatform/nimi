@@ -79,10 +79,10 @@ export function toWorldDisplayFallback(world: WorldListItem) {
 
 // Memory-only catalog pages are keyed by contract version, Realm target and server query; they
 // never share a key with another query or Realm and are not persisted as offline results.
-export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v1';
+export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v2';
 
-export function worldCatalogQueryKey(realmBaseUrl: string, query: string) {
-  return ['world-catalog', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, query.trim()] as const;
+export function worldCatalogQueryKey(realmBaseUrl: string, query: string, filters: { topicId?: string; genre?: string; theme?: string } = {}) {
+  return ['world-catalog', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, query.trim(), filters.topicId ?? null, filters.genre ?? null, filters.theme ?? null] as const;
 }
 
 export type WorldCatalogPage = {
@@ -96,8 +96,9 @@ export async function fetchWorldCatalogPage(
   realmWorldData: RealmWorldData,
   query: string,
   cursor: string | null,
+  filters: { topicId?: string; genre?: string; theme?: string } = {},
 ): Promise<WorldCatalogPage> {
-  const page = await realmWorldData.loadWorldCatalogPage({ q: query, cursor });
+  const page = await realmWorldData.loadWorldCatalogPage({ q: query, cursor, ...filters });
   return { ...page, items: page.items.map((world) => toWorldListItem(world)) };
 }
 

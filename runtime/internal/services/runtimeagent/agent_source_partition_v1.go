@@ -370,6 +370,10 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		agentTurnContextTextField{Name: "name", Values: []string{profile.Identity.Name}},
 		agentTurnContextTextField{Name: "summary", Values: []string{profile.Identity.Summary}},
 		agentTurnContextTextField{Name: "aliases", Values: agentTurnContextOptionalStrings(profile.Identity.Aliases)},
+		agentTurnContextTextField{Name: "age_description", Values: agentTurnContextOptionalString(profile.Identity.AgeDescription)},
+		agentTurnContextTextField{Name: "species_description", Values: agentTurnContextOptionalString(profile.Identity.SpeciesDescription)},
+		agentTurnContextTextField{Name: "body_description", Values: agentTurnContextOptionalString(profile.Identity.BodyDescription)},
+		agentTurnContextTextField{Name: "life_stage_description", Values: agentTurnContextOptionalString(profile.Identity.LifeStageDescription)},
 		agentTurnContextTextField{Name: "handle", Values: agentTurnContextOptionalString(profile.Identity.Handle)}); err != nil {
 		return err
 	}
@@ -437,6 +441,11 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 			return err
 		}
 	} else {
+		if profile.Psychology.Disposition != nil {
+			if err := appendOptionalStrings("source.psychology.disposition", "behavior_detail", "semanticPayload.canonicalSource.profile.psychology.disposition", characterRef, agentTurnContextV3PriorityCoreBehavior, "Source disposition", "disposition", agentTurnContextOptionalString(profile.Psychology.Disposition)); err != nil {
+				return err
+			}
+		}
 		if err := appendOptionalStrings("source.psychology.drives", "behavior_detail", "semanticPayload.canonicalSource.profile.psychology.drives", characterRef, agentTurnContextV3PriorityOptional, "Source psychology drives", "drives", agentTurnContextOptionalStrings(profile.Psychology.Drives)); err != nil {
 			return err
 		}
@@ -489,6 +498,11 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		agentTurnContextTextField{Name: "era", Values: agentTurnContextOptionalString(world.Identity.Era)},
 		agentTurnContextTextField{Name: "divergences", Values: agentTurnContextOptionalStrings(world.Identity.Divergences)}); err != nil {
 		return err
+	}
+	if world.Narrative != nil {
+		if err := appendUnit("source.world.setting", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.narrative.setting", worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world setting", agentTurnContextTextField{Name: "setting", Values: []string{world.Narrative.Setting}}); err != nil {
+			return err
+		}
 	}
 	worldPresentationPresent := world.Presentation.Title != nil || world.Presentation.DisplayName != nil || world.Presentation.Tagline != nil || world.Presentation.Palette != nil || world.Presentation.IconResourceRef != nil || world.Presentation.BannerResourceRef != nil || world.Presentation.HeroResourceRef != nil
 	if !worldPresentationPresent {

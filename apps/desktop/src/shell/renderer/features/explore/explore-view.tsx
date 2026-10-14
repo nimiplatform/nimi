@@ -36,6 +36,11 @@ type ExploreViewProps = {
   personaSources: ExplorePersonaSourceCardData[];
   worldCatalogItems: WorldListItem[];
   worldCatalogPaging: WorldCatalogPaging;
+  worldTopics?: readonly { id: string; title: string; titleEn: string }[];
+  worldTopicId?: string;
+  onWorldTopicChange?: (value: string) => void;
+  worldTopicsFailed?: boolean;
+  onRetryWorldTopics?: () => void;
   worldSearchText: string;
   onWorldSearchTextChange: (value: string) => void;
   personaSearchText: string;
@@ -243,6 +248,11 @@ export function ExploreView(props: ExploreViewProps) {
             <WorldCatalogContent
               worlds={props.worldCatalogItems}
               paging={props.worldCatalogPaging}
+              topics={props.worldTopics}
+              topicId={props.worldTopicId}
+              onTopicChange={props.onWorldTopicChange}
+              topicsFailed={props.worldTopicsFailed}
+              onRetryTopics={props.onRetryWorldTopics}
               searchQuery={props.worldSearchText}
               onSearchQueryChange={props.onWorldSearchTextChange}
               railFlap={sourceModeFlap}

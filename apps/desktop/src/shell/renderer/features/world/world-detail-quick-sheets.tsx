@@ -114,6 +114,7 @@ export function WorldCharacterQuickSheet({
                   </div>
                 </div>
 
+                {character.disposition ? <section className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4"><h4 className="text-sm font-medium">{t('SourceDetail.disposition')}</h4><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{character.disposition}</p></section> : null}
                 {character.stats?.vitalityScore != null ? (
                   <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm text-[var(--nimi-text-secondary)]">
                     {t('WorldDetail.xianxia.v2.characters.vitality')} {character.stats.vitalityScore}

@@ -66,69 +66,105 @@ func (s *Service) resolveRealmCharacterPublicSource(
 	if s == nil {
 		return nil, fmt.Errorf("resolve Realm character public avatar: account service is unavailable")
 	}
-	expectedSourceRef, err := realmSourceMaterializationSourceRefJSON(sourceRef)
-	if err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: %w", err)
+	if _, err := realmSourceMaterializationSourceRefJSON(sourceRef); err != nil {
+		return nil, fmt.Errorf("resolve Realm public source binding: %w", err)
 	}
-	operation, admitted := realmBrokerOperations[realmCharacterPublicAvatarOperationID]
-	if !admitted {
-		return nil, fmt.Errorf("resolve Realm character public avatar: fixed Realm operation is unavailable")
-	}
-	body, err := json.Marshal(map[string]any{"sourceRef": expectedSourceRef})
-	if err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: encode source binding: %w", err)
-	}
-	request := realmUnaryRequestJSON{Body: body}
-	if err := validateRealmUnaryRequestShape(operation, request); err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: validate fixed request: %w", err)
-	}
-
-	operationCtx, operationCancel := context.WithTimeout(ctx, realmUnaryDefaultTimeout)
-	defer operationCancel()
+	operationCtx, cancel := context.WithTimeout(ctx, realmUnaryDefaultTimeout)
+	defer cancel()
 	credential, err := s.captureRealmSourceMaterializationCredential(operationCtx, accountID)
 	if err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: %w", err)
+		return nil, err
 	}
-	if err := s.RevalidateRealmSourceMaterializationAccount(operationCtx, credential.lease); err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: %w", err)
-	}
-	targetURL, err := buildRealmUnaryURL(credential.baseURL, operation, request)
-	if err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: build fixed Realm endpoint: %w", err)
-	}
-
 	client := s.realmHTTP
 	if client == nil {
 		client = &http.Client{Timeout: realmUnaryDefaultTimeout}
 	}
 	clientCopy := *client
-	clientCopy.CheckRedirect = func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	clientCopy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	if clientCopy.Timeout <= 0 || clientCopy.Timeout > realmUnaryDefaultTimeout {
 		clientCopy.Timeout = realmUnaryDefaultTimeout
 	}
-	result := s.doRealmUnaryHTTP(operationCtx, &clientCopy, targetURL, operation, request, credential.bearer)
-	if result.err != nil {
-		if callerErr := ctx.Err(); callerErr != nil {
-			return nil, callerErr
+	read := func(operationID string, request realmUnaryRequestJSON) (string, error) {
+		operation, admitted := realmBrokerOperations[operationID]
+		if !admitted {
+			return "", fmt.Errorf("fixed Realm public source operation unavailable")
 		}
-		return nil, fmt.Errorf("resolve Realm character public avatar: Realm request failed: %w", result.err)
+		if err := validateRealmUnaryRequestShape(operation, request); err != nil {
+			return "", err
+		}
+		if err := s.RevalidateRealmSourceMaterializationAccount(operationCtx, credential.lease); err != nil {
+			return "", err
+		}
+		targetURL, err := buildRealmUnaryURL(credential.baseURL, operation, request)
+		if err != nil {
+			return "", err
+		}
+		result := s.doRealmUnaryHTTP(operationCtx, &clientCopy, targetURL, operation, request, credential.bearer)
+		if result.err != nil {
+			return "", result.err
+		}
+		if result.failure != nil {
+			return "", fmt.Errorf("Realm public source request rejected")
+		}
+		if err := s.RevalidateRealmSourceMaterializationAccount(operationCtx, credential.lease); err != nil {
+			return "", err
+		}
+		projected := projectRealmUnaryHTTPResult(result)
+		if !projected.GetAccepted() {
+			return "", fmt.Errorf("Realm public source unavailable (HTTP %d)", projected.GetHttpStatus())
+		}
+		return projected.GetResponseJson(), nil
 	}
-	if result.failure != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: Realm request was rejected")
+	// A LocalAgent pins its materialized content, not the publication revision.
+	// Resolve current publication by the immutable identity on every read, then
+	// require the exact current public card. No stale-hash retry or source rewrite.
+	operationID, pathKey := "WorldCoreController_getWorldCharacter", "characterId"
+	if sourceRef.Kind == "personaCharacter" {
+		operationID, pathKey = "WorldCoreController_getPersonaCharacter", "personaCharacterId"
 	}
-	if err := s.RevalidateRealmSourceMaterializationAccount(operationCtx, credential.lease); err != nil {
-		return nil, fmt.Errorf("resolve Realm character public avatar: %w", err)
+	raw, err := read(operationID, realmUnaryRequestJSON{Path: map[string]any{pathKey: sourceRef.ID}})
+	if err != nil {
+		return nil, err
 	}
-	projected := projectRealmUnaryHTTPResult(result)
-	if !projected.GetAccepted() {
-		return nil, fmt.Errorf(
-			"resolve Realm character public avatar: Realm projection failed with %s (HTTP %d): %s",
-			projected.GetAccountReasonCode().String(), projected.GetHttpStatus(), projected.GetErrorMessage(),
-		)
+	var current struct {
+		ID             string `json:"id"`
+		WorldID        string `json:"worldId"`
+		OwnerAccountID string `json:"ownerAccountId"`
+		SourceHash     string `json:"sourceHash"`
+		WorldEntityRef *struct {
+			Kind     string `json:"kind"`
+			WorldID  string `json:"worldId"`
+			EntityID string `json:"entityId"`
+		} `json:"worldEntityRef"`
 	}
-	return decodeRealmCharacterPublicSource(projected.GetResponseJson(), expectedSourceRef)
+	if err := json.Unmarshal([]byte(raw), &current); err != nil {
+		return nil, fmt.Errorf("decode current Realm source identity: %w", err)
+	}
+	if current.ID != sourceRef.ID || current.WorldID != sourceRef.WorldID {
+		return nil, fmt.Errorf("current Realm source identity mismatch")
+	}
+	if sourceRef.Kind == "worldCharacter" {
+		if current.WorldEntityRef == nil || current.WorldEntityRef.Kind != "worldEntity" || current.WorldEntityRef.WorldID != sourceRef.WorldEntityRef.WorldID || current.WorldEntityRef.EntityID != sourceRef.WorldEntityRef.EntityID {
+			return nil, fmt.Errorf("current Realm source entity binding mismatch")
+		}
+	} else if current.OwnerAccountID != sourceRef.OwnerAccountID {
+		return nil, fmt.Errorf("current Realm source owner mismatch")
+	}
+	publicationRef := sourceRef
+	publicationRef.SourceHash = current.SourceHash
+	expectedSourceRef, err := realmSourceMaterializationSourceRefJSON(publicationRef)
+	if err != nil {
+		return nil, err
+	}
+	body, err := json.Marshal(map[string]any{"sourceRef": expectedSourceRef})
+	if err != nil {
+		return nil, err
+	}
+	raw, err = read(realmCharacterPublicAvatarOperationID, realmUnaryRequestJSON{Body: body})
+	if err != nil {
+		return nil, err
+	}
+	return decodeRealmCharacterPublicSource(raw, expectedSourceRef)
 }
 
 func decodeRealmCharacterPublicAvatar(raw string, expectedSourceRef any) (*string, error) {

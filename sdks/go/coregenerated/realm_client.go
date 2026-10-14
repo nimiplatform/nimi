@@ -194,6 +194,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "WorldPublicController_listPersonaCharacterCatalog", Service: "World", Method: "GET", Path: "/api/world/persona-characters/catalog"},
 	{OperationID: "WorldPublicController_listWorldCatalog", Service: "World", Method: "GET", Path: "/api/world/catalog"},
 	{OperationID: "WorldPublicController_listWorldCharacterCatalog", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/characters/catalog"},
+	{OperationID: "WorldPublicController_listWorldTopics", Service: "World", Method: "GET", Path: "/api/world/topics"},
 }
 
 var RealmOperationByID = func() map[string]RealmOperationDescriptor {

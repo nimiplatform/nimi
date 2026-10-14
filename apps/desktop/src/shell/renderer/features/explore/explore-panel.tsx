@@ -1,4 +1,4 @@
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
@@ -48,6 +48,7 @@ type ExplorePanelProps = {
 export function ExplorePanel(props: ExplorePanelProps) {
 
   const navigation = useHomeNavigation();
+  const destination = useHomeDestination();
   const bindings = useDesktopRendererBindings();
   const appStore = useAppStoreApi();
   const mounted = useRef(true);
@@ -74,11 +75,15 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
 
   // The world rail owns its own search; worlds and personas never share one query string.
-  const [worldSearchText, setWorldSearchText] = useState('');
+  const worldSearchText = destination.worldSearch ?? '';
+  const setWorldSearchText = (value: string) => { void navigation.replace({ ...destination, worldSearch: value }); };
   const worldQuery = useDebouncedSearch(worldSearchText);
+  const worldTopicId = destination.worldTopicId ?? '';
+  const setWorldTopicId = (value: string) => { void navigation.replace({ ...destination, worldTopicId: value || undefined }); };
+  const worldTopics = useQuery({ queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl], queryFn: () => realmWorldData.loadWorldTopics(), enabled: bootstrapReady && !networkOffline, staleTime: 60_000 });
   const worldCatalog = useExploreCatalogQuery({
-    queryKey: worldCatalogQueryKey(realmBaseUrl, worldQuery),
-    loadPage: (cursor) => fetchWorldCatalogPage(realmWorldData, worldQuery, cursor),
+    queryKey: worldCatalogQueryKey(realmBaseUrl, worldQuery, { topicId: worldTopicId || undefined }),
+    loadPage: (cursor) => fetchWorldCatalogPage(realmWorldData, worldQuery, cursor, { topicId: worldTopicId || undefined }),
     enabled: bootstrapReady,
     networkOffline,
     staleTime: 30_000,
@@ -298,6 +303,11 @@ export function ExplorePanel(props: ExplorePanelProps) {
         personaSources={personaSources}
         worldCatalogItems={worldCatalogItems}
         worldCatalogPaging={worldCatalogPaging}
+        worldTopics={worldTopics.data ?? []}
+        worldTopicId={worldTopicId}
+        onWorldTopicChange={setWorldTopicId}
+        worldTopicsFailed={worldTopics.isError}
+        onRetryWorldTopics={() => { void worldTopics.refetch(); }}
         worldSearchText={worldSearchText}
         onWorldSearchTextChange={setWorldSearchText}
         personaSearchText={props.searchText}

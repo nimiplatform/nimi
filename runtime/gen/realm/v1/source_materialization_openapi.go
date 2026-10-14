@@ -12,7 +12,7 @@ const (
 	GetSourceMaterializationJwksOperationID                         = "getSourceMaterializationJwks"
 	GetSourceMaterializationJwksMethod                              = "GET"
 	GetSourceMaterializationJwksPath                                = "/api/auth/jwks/source-materialization"
-	MaterializationSchemaClosureSHA256                              = "d81298f2af3b4bcaa9d32c71b9afe8e0ca32c73ffe44f6cdafd7ef10048bd484"
+	MaterializationSchemaClosureSHA256                              = "f9145fac7c14c397b8fe4a1f1760e1b034c53a188ac33387eba593f5f39189a3"
 )
 
 var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
@@ -130,7 +130,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"CharacterProfileCoreDtoIdentity": {
 		Required: []string{"name", "summary"},
-		Optional: []string{"aliases", "handle"},
+		Optional: []string{"ageDescription", "aliases", "bodyDescription", "handle", "lifeStageDescription", "speciesDescription"},
 	},
 	"CharacterProfileCoreDtoInteractionProfile": {
 		Required: []string{"interactionModes"},
@@ -158,7 +158,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"CharacterProfileCoreDtoPsychology": {
 		Required: []string{},
-		Optional: []string{"boundaries", "drives"},
+		Optional: []string{"boundaries", "disposition", "drives"},
 	},
 	"CharacterProfileCoreDtoRelationshipsItem": {
 		Required: []string{"relationType", "relationshipId", "targetRef"},
@@ -338,7 +338,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"WorldCoreValueDto": {
 		Required: []string{"assets", "authoring", "entities", "identity", "ontology", "presentation", "relationships", "scenes", "systems", "timeModel", "timeline"},
-		Optional: []string{},
+		Optional: []string{"discovery", "narrative"},
 	},
 	"WorldCoreValueDtoAssets": {
 		Required: []string{"intents", "resourceRefs"},
@@ -364,6 +364,10 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"status"},
 		Optional: []string{"reviewedAt", "reviewedBy"},
 	},
+	"WorldCoreValueDtoDiscovery": {
+		Required: []string{"topicIds"},
+		Optional: []string{},
+	},
 	"WorldCoreValueDtoEntitiesItem": {
 		Required: []string{"entityId", "kind"},
 		Optional: []string{"label", "summary"},
@@ -371,6 +375,10 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	"WorldCoreValueDtoIdentity": {
 		Required: []string{"name", "summary"},
 		Optional: []string{"divergences", "era", "genre", "tagline", "themes", "worldType"},
+	},
+	"WorldCoreValueDtoNarrative": {
+		Required: []string{"setting"},
+		Optional: []string{},
 	},
 	"WorldCoreValueDtoOntology": {
 		Required: []string{"entityKinds", "relationshipTypes"},
@@ -551,7 +559,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.authoring.extensions.*":                                         {{Required: []string{"extensionSchemaVersion", "fields", "namespace", "productSemantic"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.capabilities":                                                   {{Required: []string{}, Optional: []string{"tools"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.capabilities.tools[]":                                           {{Required: []string{"toolId"}, Optional: []string{"name", "summary"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.identity":                                                       {{Required: []string{"name", "summary"}, Optional: []string{"aliases", "handle"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.identity":                                                       {{Required: []string{"name", "summary"}, Optional: []string{"ageDescription", "aliases", "bodyDescription", "handle", "lifeStageDescription", "speciesDescription"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.interactionProfile":                                             {{Required: []string{"interactionModes"}, Optional: []string{"cadence", "dialogueExemplars", "greeting", "greetingVariants", "scenario", "tone"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.interactionProfile.dialogueExemplars[]":                         {{Required: []string{"character", "exemplarId"}, Optional: []string{"user"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.knowledge":                                                      {{Required: []string{}, Optional: []string{"constraints", "topics"}}},
@@ -564,7 +572,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.profileCoverage.optionalSections[]":                             {{Required: []string{"path", "state"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.profileCoverage.requiredRefs[]":                                 {{Required: []string{"path", "refId", "refKind", "state"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.profileCoverage.requiredSections[]":                             {{Required: []string{"path", "state"}, Optional: []string{}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.psychology":                                                     {{Required: []string{}, Optional: []string{"boundaries", "drives"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.psychology":                                                     {{Required: []string{}, Optional: []string{"boundaries", "disposition", "drives"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.relationships[]":                                                {{Required: []string{"relationType", "relationshipId", "targetRef"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.relationships[].targetRef":                                      {{Required: []string{"entityId", "kind", "worldId"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.validity":                                                               {{Required: []string{"issues", "status"}, Optional: []string{}}},
@@ -629,15 +637,17 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.presentation":     {{Required: []string{}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].origin":                {{Required: []string{"kind"}, Optional: []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld":                                                     {{Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "lorebookDeclaration", "origin", "schemaVersion", "updatedAt", "visibility"}, Optional: []string{"creatorId"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core":                                                {{Required: []string{"assets", "authoring", "entities", "identity", "ontology", "presentation", "relationships", "scenes", "systems", "timeModel", "timeline"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core":                                                {{Required: []string{"assets", "authoring", "entities", "identity", "ontology", "presentation", "relationships", "scenes", "systems", "timeModel", "timeline"}, Optional: []string{"discovery", "narrative"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets":                                         {{Required: []string{"intents", "resourceRefs"}, Optional: []string{"externalRefs"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.externalRefs[]":                          {{Required: []string{"kind", "refId", "uri"}, Optional: []string{"label", "purpose"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.intents[]":                               {{Required: []string{"intentId", "kind"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.resourceRefs[]":                          {{Required: []string{"kind", "refId"}, Optional: []string{"label", "purpose"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.authoring":                                      {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.authoring.review":                               {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.discovery":                                      {{Required: []string{"topicIds"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.entities[]":                                     {{Required: []string{"entityId", "kind"}, Optional: []string{"label", "summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.identity":                                       {{Required: []string{"name", "summary"}, Optional: []string{"divergences", "era", "genre", "tagline", "themes", "worldType"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.narrative":                                      {{Required: []string{"setting"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.ontology":                                       {{Required: []string{"entityKinds", "relationshipTypes"}, Optional: []string{"concepts"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.ontology.concepts[]":                            {{Required: []string{"conceptId", "name"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.presentation":                                   {{Required: []string{}, Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title"}}},

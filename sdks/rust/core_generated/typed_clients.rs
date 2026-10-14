@@ -16778,9 +16778,13 @@ pub struct CharacterProfileCoreDtoCapabilitiesToolsItem {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CharacterProfileCoreDtoIdentity {
+    pub age_description: String,
     pub aliases: Vec<String>,
+    pub body_description: String,
     pub handle: String,
+    pub life_stage_description: String,
     pub name: String,
+    pub species_description: String,
     pub summary: String,
 }
 
@@ -16836,6 +16840,7 @@ pub struct CharacterProfileCoreDtoPresentation {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CharacterProfileCoreDtoPsychology {
     pub boundaries: Vec<String>,
+    pub disposition: String,
     pub drives: Vec<String>,
 }
 
@@ -18991,8 +18996,10 @@ pub struct WorldCoreDto {
 pub struct WorldCoreValueDto {
     pub assets: Box<WorldCoreValueDtoAssets>,
     pub authoring: Box<WorldCoreValueDtoAuthoring>,
+    pub discovery: Box<WorldCoreValueDtoDiscovery>,
     pub entities: Vec<WorldCoreValueDtoEntitiesItem>,
     pub identity: Box<WorldCoreValueDtoIdentity>,
+    pub narrative: Box<WorldCoreValueDtoNarrative>,
     pub ontology: Box<WorldCoreValueDtoOntology>,
     pub presentation: Box<WorldCoreValueDtoPresentation>,
     pub relationships: Vec<WorldCoreValueDtoRelationshipsItem>,
@@ -19049,6 +19056,11 @@ pub struct WorldCoreValueDtoAuthoringReview {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreValueDtoDiscovery {
+    pub topic_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldCoreValueDtoEntitiesItem {
     pub entity_id: String,
     pub kind: String,
@@ -19066,6 +19078,11 @@ pub struct WorldCoreValueDtoIdentity {
     pub tagline: String,
     pub themes: Vec<String>,
     pub world_type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreValueDtoNarrative {
+    pub setting: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19365,13 +19382,15 @@ pub struct WorldPublicDetailDto {
     pub relationship_types: Vec<String>,
     pub rules: Vec<String>,
     pub scenes: Vec<WorldPublicSceneDto>,
+    pub setting: Option<String>,
     pub stats: Box<WorldPublicStatsDto>,
     pub summary: String,
-    pub systems: Vec<String>,
+    pub systems: Vec<WorldPublicSystemDto>,
     pub tagline: Option<String>,
     pub themes: Vec<String>,
     pub time: String,
     pub timeline: Vec<WorldPublicTimelineEventDto>,
+    pub topic_ids: Option<Vec<String>>,
     pub r#type: String,
     pub updated_at: String,
     pub visibility: String,
@@ -19406,6 +19425,7 @@ pub struct WorldPublicItemDto {
     pub tagline: Option<String>,
     pub themes: Vec<String>,
     pub time: String,
+    pub topic_ids: Option<Vec<String>>,
     pub r#type: String,
     pub updated_at: String,
     pub visibility: String,
@@ -19462,16 +19482,21 @@ pub struct WorldPublicSceneResourceDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceCardDto {
+    pub age_description: Option<String>,
+    pub body_description: Option<String>,
     pub character_biography: Option<Box<WorldPublicCharacterBiographyDto>>,
     pub display_name: String,
+    pub disposition: Option<String>,
     pub handle: Option<String>,
     pub id: String,
+    pub life_stage_description: Option<String>,
     pub media: Box<WorldPublicSourceMediaDto>,
     pub ownership: String,
     pub relation: Box<WorldPublicViewerRelationDto>,
     pub role: Option<String>,
     pub source_kind: String,
     pub source_ref: Box<CharacterSourceRefV3Dto>,
+    pub species_description: Option<String>,
     pub summary: String,
     pub topics: Vec<String>,
     pub traits: Vec<String>,
@@ -19534,6 +19559,14 @@ pub struct WorldPublicStatsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSystemDto {
+    pub name: String,
+    pub principles: Vec<String>,
+    pub summary: String,
+    pub system_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicTimelineEventDto {
     pub character_refs: Vec<String>,
     pub ends_at: Option<String>,
@@ -19548,6 +19581,16 @@ pub struct WorldPublicTimelineEventDto {
     pub summary: Option<String>,
     pub timestamp: Option<String>,
     pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicTopicDto {
+    pub criterion: String,
+    pub description: String,
+    pub id: String,
+    pub status: String,
+    pub title: String,
+    pub title_en: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

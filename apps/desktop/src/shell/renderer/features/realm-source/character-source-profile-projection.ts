@@ -32,6 +32,12 @@ export type CharacterProfileInteractionProjection = {
 };
 
 export type CharacterProfileProjection = {
+  disposition?: string | null;
+  ageDescription?: string | null;
+  speciesDescription?: string | null;
+  bodyDescription?: string | null;
+  lifeStageDescription?: string | null;
+
   role: string | null;
   archetype: string | null;
   traits: string[];
@@ -184,6 +190,12 @@ export function projectCharacterSourceProfile(
       runtimeSourceRef: nonEmpty(source.relation.runtimeSourceRef),
     },
     characterProfile: {
+      disposition: nonEmpty(profile.psychology?.disposition),
+      ageDescription: nonEmpty(profile.identity.ageDescription),
+      speciesDescription: nonEmpty(profile.identity.speciesDescription),
+      bodyDescription: nonEmpty(profile.identity.bodyDescription),
+      lifeStageDescription: nonEmpty(profile.identity.lifeStageDescription),
+
       role: nonEmpty(source.role),
       archetype: nonEmpty(profile.narrative.archetype),
       traits: uniqueStrings(profile.narrative.traits ?? []),

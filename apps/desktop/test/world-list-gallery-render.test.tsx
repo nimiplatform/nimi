@@ -102,3 +102,12 @@ test('canonical world navigation restores the originating people query after sou
   await navigation.back();
   assert.deepEqual(navigation.getSnapshot().current.destination, { id: 'world-detail', worldId: 'world-1', search: '采薇' });
 });
+
+
+test('world catalog navigation preserves its topic and independent search when returning from a world', async () => {
+  const navigation = createHomeNavigation();
+  await navigation.push({ id: 'explore', exploreSection: 'worlds', search: 'persona query', worldSearch: '富春', worldTopicId: 'history' });
+  await navigation.push({ id: 'world-detail', worldId: 'world-1' });
+  await navigation.back();
+  assert.deepEqual(navigation.getSnapshot().current.destination, { id: 'explore', exploreSection: 'worlds', search: 'persona query', worldSearch: '富春', worldTopicId: 'history' });
+});

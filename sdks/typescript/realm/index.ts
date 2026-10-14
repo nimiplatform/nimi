@@ -155,6 +155,7 @@ export const REALM_WORLD_PUBLIC_METHODS = [
   'worldPublicControllerGetWorldDetailWithCharacters',
   'worldPublicControllerListPersonaCharacterCatalog',
   'worldPublicControllerListWorldCatalog',
+  'worldPublicControllerListWorldTopics',
   'worldPublicControllerListWorldCharacterCatalog',
 ] as const satisfies readonly RealmTypedMethodName[];
 

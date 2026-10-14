@@ -178,5 +178,9 @@
     "view": "查看世界",
     "featured": "精选设定",
     "noMatch": "没有匹配的世界。"
-  }
+  },
+  "topics": "专题",
+  "allTopics": "全部世界",
+  "retryTopics": "专题加载失败，重试",
+  "noTopicWorlds": "此专题暂无公开世界"
 }

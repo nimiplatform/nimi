@@ -1062,6 +1062,12 @@ REALM_OPERATIONS = [
     "service": "World",
     "method": "GET",
     "path": "/api/world/by-id/{worldId}/characters/catalog"
+  },
+  {
+    "operation_id": "WorldPublicController_listWorldTopics",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/topics"
   }
 ]
 REALM_OPERATION_BY_ID = {operation["operation_id"]: operation for operation in REALM_OPERATIONS}

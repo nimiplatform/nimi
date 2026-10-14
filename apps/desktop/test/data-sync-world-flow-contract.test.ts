@@ -71,7 +71,8 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
       timelineEventCount: 1,
     },
     rules: ['WorldCore admitted as public setting background.'],
-    systems: ['Archive stewardship'],
+    setting: 'An archive community with its own ongoing life.',
+    systems: [{ systemId: 'archive-stewardship', name: 'Archive stewardship', summary: 'Archive stewardship', principles: [] }],
     scenes: [{
       sceneId: 'arrival-point',
       name: 'Arrival Point',
@@ -88,7 +89,7 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
         relatedResourceCount: 0,
       },
     }],
-    timeline: ['Foundation'],
+    timeline: [{ eventId: 'foundation', title: 'Foundation', summary: null, sequence: 1, timestamp: null, startsAt: null, endsAt: null, importance: null, sceneRefs: [], locationRefs: [], entityRefs: [], characterRefs: [], sourceRefs: [] }],
     createdAt: '2026-06-18T00:00:00.000Z',
     updatedAt: '2026-06-18T00:00:00.000Z',
     ...overrides,

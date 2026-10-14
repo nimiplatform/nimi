@@ -27,6 +27,12 @@ export type WorldCharacterSummaryDto = {
   name: string;
   handle?: string | null;
   bio?: string | null;
+  disposition?: string | null;
+  ageDescription?: string | null;
+  speciesDescription?: string | null;
+  bodyDescription?: string | null;
+  lifeStageDescription?: string | null;
+
   avatarUrl?: string | null;
   portraitUrl?: string | null;
   profileCoverUrl?: string | null;
@@ -327,6 +333,14 @@ export function requireWorldPublicDetailDto(value: unknown, expectedWorldId?: st
       `World public detail is missing ${field}`,
     );
   }
+  if (record.setting !== null && typeof record.setting !== 'string') {
+    failRealmWorldContract('SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', 'World detail setting must be a string or null');
+  }
+  for (const value of record.systems as unknown[]) {
+    const system = requireRecord(value, 'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', 'World systems must be structured objects');
+    for (const field of ['systemId', 'name', 'summary']) requireStringField(system, field, 'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', `World system requires ${field}`);
+    requireArrayField(system, 'principles', 'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', 'World system requires principles');
+  }
   return value as WorldPublicDetailDto;
 }
 
@@ -443,6 +457,7 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     visibility: world.visibility,
     tags,
     themes,
+    topicIds: world.topicIds,
     genre,
     era,
     entityKinds: readArray<string>(record, 'entityKinds').filter((item) => typeof item === 'string'),
@@ -480,7 +495,8 @@ export function projectWorldPublicDetail(world: WorldPublicDetailDto): WorldDeta
   return {
     ...projectWorldPublicItem(world),
     rules: readArray<string>(record, 'rules').filter((item) => typeof item === 'string'),
-    systems: readArray<string>(record, 'systems').filter((item) => typeof item === 'string'),
+    setting: world.setting,
+    systems: world.systems.map((system) => ({ ...system })),
     scenes: readArray<unknown>(record, 'scenes').map(projectWorldPublicScene),
     timeline: readArray<unknown>(record, 'timeline').map((item) => (
       typeof item === 'string' ? item : asRecord(item)
@@ -512,6 +528,12 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
     name: source.displayName,
     handle: source.handle ?? null,
     bio: source.summary,
+    disposition: source.disposition,
+    ageDescription: source.ageDescription,
+    speciesDescription: source.speciesDescription,
+    bodyDescription: source.bodyDescription,
+    lifeStageDescription: source.lifeStageDescription,
+
     avatarUrl:
       avatarAsset?.url ??
       readPublicUrl(media, 'avatarUrl') ??
@@ -602,29 +624,19 @@ export function attachWorldEntryRecommendations(
 export function buildWorldPublicHistoryItems(world: CoreRecord): WorldHistoryPayload {
   return {
     items: readArray<unknown>(world, 'timeline').map((item, index) => {
-      if (typeof item === 'string') {
-        return {
-          id: `world-timeline-${index + 1}`,
-          eventId: `world-timeline-${index + 1}`,
-          sequence: index + 1,
-          title: item,
-          summary: item,
-          time: null,
-          eventType: 'worldSetting',
-        };
-      }
-      const event = asRecord(item);
-      const eventId = readString(event, 'eventId', 'id') || `world-timeline-${index + 1}`;
+      const event = requireRecord(item, 'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', 'World timeline requires structured events');
+      const eventId = requireStringField(event, 'eventId', 'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', 'World event requires eventId');
+      const title = requireStringField(event, 'title', 'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID', 'World event requires title');
       return {
         ...event,
         id: eventId,
         eventId,
         sequence: readNumber(event, 'sequence') ?? index + 1,
-        title: readString(event, 'title', 'name', 'summary') || eventId,
+        title,
         summary: readString(event, 'summary') || null,
         // Only an explicit event time is shown; world or artifact time never stands in for it.
-        time: readString(event, 'time', 'timestamp', 'startsAt'),
-        eventType: readString(event, 'eventType', 'type') || 'worldSetting',
+        time: readString(event, 'timestamp', 'startsAt'),
+        eventType: 'worldSetting',
       };
     }),
   };
@@ -644,23 +656,18 @@ export function buildWorldPublicSemanticBundle(world: CoreRecord): WorldSemantic
       })),
     },
     coreSystem: {
-      powerSystems: readArray<string>(world, 'systems').map((system, index) => ({
-        name: system,
-        description: system,
+      powerSystems: readArray<CoreRecord>(world, 'systems').map((system) => ({
+        name: system.name,
+        description: system.summary,
         levels: [],
-        rules: [],
-        id: `system-${index + 1}`,
+        rules: readArray<string>(system, 'principles'),
+        id: system.systemId,
       })),
       levels: [],
       taboos: [],
     },
-    worldviewEvents: readArray<string>(world, 'timeline').map((event, index) => ({
-      id: `worldview-event-${index + 1}`,
-      title: event,
-      summary: event,
-      eventType: 'worldSetting',
-      createdAt: null,
-    })),
+    // Typed timeline belongs exclusively to the history projection.
+    worldviewEvents: [],
     worldviewSnapshots: [],
     timeModel: world.time,
   };

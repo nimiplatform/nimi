@@ -11,7 +11,7 @@ import {
   toWorldDisplayFallback,
   worldPublicHighlightImages,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
-import { projectWorldPublicSourceCard } from '../src/shell/renderer/features/world/data/world-public-projection.js';
+import { buildWorldPublicSemanticBundle, requireWorldPublicDetailDto, projectWorldPublicDetail, projectWorldPublicSourceCard } from '../src/shell/renderer/features/world/data/world-public-projection.js';
 import { toWorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
 type RealmWorldDataError = {
@@ -94,7 +94,8 @@ function publicWorld(overrides: PublicWorld = {}) {
     entityKinds: ['person', 'place', 'office', 'text'],
     relationshipTypes: ['serves', 'authored', 'locatedIn'],
     rules: ['Magic has an observable cost.'],
-    systems: ['High Magic'],
+    setting: 'A complete world setting, separate from individual mechanisms.',
+    systems: [{ systemId: 'high-magic', name: 'High Magic', summary: 'Magic has an observable cost.', principles: ['Power is bounded.'] }],
     scenes: [
       publicScene('sky-citadel', 'Sky Citadel', 'Sky Citadel'),
       publicScene('lower-market', 'Lower Market', 'Lower Market'),
@@ -585,4 +586,41 @@ test('World detail highlight model prefers accepted public highlight assets over
     'https://cdn.example.test/world/highlight-2.png',
     'https://cdn.example.test/world/highlight-3.png',
   ]);
+});
+
+
+test('world setting and structured systems retain independent identity and prose', () => {
+  const detail = requireWorldPublicDetailDto(publicWorld());
+  const projected = projectWorldPublicDetail(detail);
+  assert.equal(projected.setting, 'A complete world setting, separate from individual mechanisms.');
+  const semantic = buildWorldPublicSemanticBundle(projected) as { coreSystem: { powerSystems: { id: string; name: string; description: string }[] } };
+  assert.equal(semantic.coreSystem.powerSystems[0]?.id, 'high-magic');
+  assert.equal(semantic.coreSystem.powerSystems[0]?.name, 'High Magic');
+  assert.throws(() => requireWorldPublicDetailDto(publicWorld({ systems: ['old prose slot'] })), /structured objects/);
+});
+
+test('undated typed events appear once without inventing world, artifact or epoch time', async () => {
+  const { buildWorldPublicHistoryItems } = await import('../src/shell/renderer/features/world/data/world-public-projection.js');
+  const { toWorldDisplayHistoryBundle } = await import('../src/shell/renderer/features/world/world-detail-history-projection.js');
+  const { toWorldDisplaySemanticBundle } = await import('../src/shell/renderer/features/world/world-detail-semantic-projection.js');
+  const { worldReadingEntries } = await import('../src/shell/renderer/features/world/world-detail-reading-model.js');
+  const payload = publicWorld({ timeline: [{ eventId: 'start', title: 'Beginning', summary: 'A beginning.', timestamp: null, startsAt: null, createdAt: '2026-10-15T00:00:00Z' }] });
+  const history = toWorldDisplayHistoryBundle(buildWorldPublicHistoryItems(payload));
+  const semantic = toWorldDisplaySemanticBundle(buildWorldPublicSemanticBundle(payload));
+  assert.equal(history.items[0]?.time, '');
+  assert.throws(() => buildWorldPublicHistoryItems(publicWorld({ timeline: ['Legacy event'] })), /structured events/);
+  assert.deepEqual(semantic.worldviewEvents, []);
+  const entries = worldReadingEntries({ name: 'World' } as never, semantic, history).filter((entry) => entry.section === 'history');
+  assert.equal(entries.length, 1);
+  assert.deepEqual(entries[0]?.text, ['Beginning', 'A beginning.']);
+});
+
+test('structured system principles have one reading location', async () => {
+  const { toWorldDisplaySemanticBundle } = await import('../src/shell/renderer/features/world/world-detail-semantic-projection.js');
+  const { worldReadingEntries } = await import('../src/shell/renderer/features/world/world-detail-reading-model.js');
+  const payload = publicWorld({ rules: ['Explicit principle'], systems: [{ systemId: 'system', name: 'Mechanism', summary: 'Concise mechanism overview', principles: ['Explicit principle'] }] });
+  const semantic = toWorldDisplaySemanticBundle(buildWorldPublicSemanticBundle(payload));
+  const entries = worldReadingEntries({ name: 'World' } as never, semantic, { items: [], summary: null });
+  assert.equal(entries.flatMap((entry) => entry.text).filter((text) => text === 'Explicit principle').length, 1);
+  assert.ok(entries.some((entry) => entry.section === 'systems' && entry.text.includes('Concise mechanism overview')));
 });

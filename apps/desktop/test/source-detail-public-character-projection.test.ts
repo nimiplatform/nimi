@@ -187,6 +187,7 @@ test('source detail loads one public Character projection without the full-world
     id: sourceRef.worldId,
     name: 'Ming World',
     summary: 'A world of scholars.',
+    setting: null,
     type: 'CREATOR',
     visibility: 'public',
     media: { bannerUrl: 'https://cdn.example.test/ming-world-banner.png' },

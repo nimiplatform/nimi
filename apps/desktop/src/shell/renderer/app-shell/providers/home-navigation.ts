@@ -28,6 +28,8 @@ export type HomeDestination = {
   readonly exploreSection?: 'worlds' | 'personas' | 'activity';
   readonly search?: string;
   readonly exploreWorldId?: string;
+  readonly worldSearch?: string;
+  readonly worldTopicId?: string;
   readonly appId?: string;
   readonly appEntryKey?: string;
   readonly appSection?: NimiDesktopOpenAppsSection;
@@ -44,7 +46,7 @@ export type HomeChatPosition = {
   readonly conversationAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
-  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId'],
+  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   activity: ['postId'], settings: ['settingsSection'], support: [], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
@@ -63,7 +65,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   if (Object.keys(input).some(key => key !== 'id' && !CATALOG[id].includes(key))) throw new Error('Unexpected Home destination fields.');
   const result: Record<string, unknown> = { id };
   for (const key of CATALOG[id]) if (input[key] !== undefined) result[key] = input[key];
-  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'appId', 'appEntryKey', 'postId']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
+  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'worldTopicId', 'appId', 'appEntryKey', 'postId']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
   if (id === 'profile' && typeof result.profileId === 'string' && /^(local-agent:|runtime-source:)/.test(result.profileId)) throw new Error('A human profile requires an account reference.');
   if (id === 'world-detail' && !result.worldId) throw new Error('World detail requires a world reference.');
   if (id === 'source-detail') {
@@ -78,6 +80,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   closed('appSection', ['overview', 'ai-models']);
   closed('settingsSection', ['profile', 'appearance', 'privacy', 'security', 'notifications', 'developer', 'data', 'about-legal']);
   if (result.search !== undefined && typeof result.search !== 'string') throw new Error('Invalid Home search.');
+  if (result.worldSearch !== undefined && typeof result.worldSearch !== 'string') throw new Error('Invalid Home world search.');
   if (!result.appId && (result.appSection || result.appEntryKey)) throw new Error('App detail requires an App reference.');
   if (id === 'home') result.homeSection ??= 'overview';
   if (id === 'explore') { result.exploreSection ??= 'worlds'; result.search ??= ''; }

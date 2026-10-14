@@ -44,6 +44,7 @@ export type WorldDetailData = {
   readonly id: string;
   readonly name: string;
   readonly description: string | null;
+  readonly setting?: string | null;
   readonly tagline?: string | null;
   readonly motto?: string | null;
   readonly overview?: string | null;
@@ -91,6 +92,12 @@ export type WorldCharacter = {
   readonly name: string;
   readonly handle: string;
   readonly bio: string;
+  readonly disposition?: string | null;
+  readonly ageDescription?: string | null;
+  readonly speciesDescription?: string | null;
+  readonly bodyDescription?: string | null;
+  readonly lifeStageDescription?: string | null;
+
   readonly sourceRef: CharacterSourceRefV3;
   readonly sourceKind?: CharacterSourceRefV3['kind'];
   readonly ownership?: 'worldOwned' | 'userOwned';

@@ -84,7 +84,7 @@ func TestResolveRealmCharacterPublicAvatarUsesWorldPublicMediaPriority(t *testin
 	}
 }
 
-func TestResolveRealmCharacterPublicAvatarRejectsMismatchedSourceRef(t *testing.T) {
+func TestResolveRealmCharacterPublicAvatarTracksPublicationWithoutRewritingSnapshotBinding(t *testing.T) {
 	sourceRef := realmCharacterPublicAvatarTestSourceRef()
 	returnedRef := sourceRef
 	returnedRef.SourceHash = strings.Repeat("b", 64)
@@ -95,8 +95,8 @@ func TestResolveRealmCharacterPublicAvatarRejectsMismatchedSourceRef(t *testing.
 	svc := newRealmUnaryHarnessService(t, server.URL)
 	completeLogin(t, svc)
 
-	if avatarURL, err := svc.ResolveRealmCharacterPublicAvatar(context.Background(), "acct-1", sourceRef); err == nil || avatarURL != nil {
-		t.Fatalf("mismatched sourceRef entered avatar projection = (%v, %v)", avatarURL, err)
+	if avatarURL, err := svc.ResolveRealmCharacterPublicAvatar(context.Background(), "acct-1", sourceRef); err != nil || avatarURL == nil || *avatarURL != "https://cdn.example.test/avatar.png" {
+		t.Fatalf("updated publication not available to pinned source = (%v, %v)", avatarURL, err)
 	}
 }
 
@@ -147,6 +147,18 @@ func realmCharacterPublicAvatarServer(
 ) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodGet && (request.URL.Path == "/api/realm/core/world-characters/by-id/"+sourceRef.ID || request.URL.Path == "/api/realm/core/persona-characters/by-id/"+sourceRef.ID) {
+			if request.Header.Get("Authorization") != "Bearer access-1" {
+				t.Fatal("missing account authorization")
+			}
+			current, err := realmSourceMaterializationSourceRefJSON(sourceRef)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(response).Encode(current)
+			return
+		}
 		if request.Method != http.MethodPost ||
 			request.URL.Path != "/api/world/character-sources/public-projection" ||
 			request.Header.Get("Authorization") != "Bearer access-1" {
@@ -188,5 +200,86 @@ func realmCharacterPublicAvatarTestSourceRef() RealmSourceMaterializationSourceR
 			WorldID:  "world-ming",
 			EntityID: "entity-song-lian",
 		},
+	}
+}
+
+func TestPublicSourceRevisionResolutionKeepsIdentityAndPublicationGuards(t *testing.T) {
+	for _, kind := range []string{"worldCharacter", "personaCharacter"} {
+		for _, invalid := range []string{"", "world", "binding", "hash", "withdrawn", "race"} {
+			t.Run(kind+"/"+invalid, func(t *testing.T) {
+				pinned := realmCharacterPublicAvatarTestSourceRef()
+				pinned.Kind = kind
+				if kind == "personaCharacter" {
+					pinned.WorldEntityRef = nil
+					pinned.OwnerAccountID = "owner-1"
+				}
+				current := pinned
+				current.SourceHash = strings.Repeat("b", 64)
+				calls := 0
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					calls++
+					w.Header().Set("Content-Type", "application/json")
+					if r.Method == http.MethodGet {
+						value, err := realmSourceMaterializationSourceRefJSON(current)
+						if err != nil {
+							t.Fatal(err)
+						}
+						raw, _ := json.Marshal(value)
+						var record map[string]any
+						_ = json.Unmarshal(raw, &record)
+						switch invalid {
+						case "world":
+							record["worldId"] = "another-world"
+						case "binding":
+							if kind == "worldCharacter" {
+								record["worldEntityRef"].(map[string]any)["entityId"] = "another-entity"
+							} else {
+								record["ownerAccountId"] = "another-owner"
+							}
+						case "hash":
+							record["sourceHash"] = "invalid"
+						}
+						_ = json.NewEncoder(w).Encode(record)
+						return
+					}
+					if invalid == "withdrawn" {
+						w.WriteHeader(http.StatusForbidden)
+						_, _ = w.Write([]byte(`{"message":"not public"}`))
+						return
+					}
+					expected, _ := realmSourceMaterializationSourceRefJSON(current)
+					var body struct {
+						SourceRef json.RawMessage `json:"sourceRef"`
+					}
+					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := decodeRealmCharacterPublicSource(`{"sourceRef":`+string(body.SourceRef)+`}`, expected); err != nil {
+						t.Fatal("did not request exact current publication", err)
+					}
+					if invalid == "race" {
+						current.SourceHash = strings.Repeat("c", 64)
+						expected, _ = realmSourceMaterializationSourceRefJSON(current)
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"sourceRef": expected, "media": map[string]any{"avatarUrl": "https://cdn.example.test/avatar.png"}})
+				}))
+				defer server.Close()
+				svc := newRealmUnaryHarnessService(t, server.URL)
+				completeLogin(t, svc)
+				avatar, err := svc.ResolveRealmCharacterPublicAvatar(context.Background(), "acct-1", pinned)
+				if invalid == "" && (err != nil || avatar == nil) {
+					t.Fatalf("current publication failed: %v", err)
+				}
+				if invalid != "" && (err == nil || avatar != nil) {
+					t.Fatalf("invalid publication accepted: %s", invalid)
+				}
+				if pinned.SourceHash != strings.Repeat("a", 64) {
+					t.Fatal("pinned source changed")
+				}
+				if (invalid == "world" || invalid == "binding" || invalid == "hash") && calls != 1 {
+					t.Fatal("invalid identity reached public card")
+				}
+			})
+		}
 	}
 }

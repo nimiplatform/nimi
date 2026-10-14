@@ -24,11 +24,12 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getCharacterSource":           {method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		"WorldPublicController_getWorld":                     {method: http.MethodGet, path: "/api/world/by-id/{worldId}"},
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
+		"WorldPublicController_listWorldTopics":              {method: http.MethodGet, path: "/api/world/topics"},
 		"WorldPublicController_listWorldCatalog":             {method: http.MethodGet, path: "/api/world/catalog"},
 		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 	}
-	if len(realmBrokerOperations) != 75 {
-		t.Fatalf("Realm broker operation count = %d, want 75", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 76 {
+		t.Fatalf("Realm broker operation count = %d, want 76", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -265,6 +266,7 @@ func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testin
 		{name: "public character source", methodID: "WorldPublicController_getCharacterSource", requestJSON: `{"body":{"sourceRef":{"kind":"worldCharacter","id":"character-1","worldId":"world-1","worldEntityRef":{"kind":"worldEntity","worldId":"world-1","entityId":"entity-1"},"sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}`, method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		{name: "world detail", methodID: "WorldPublicController_getWorld", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1"},
 		{name: "world sources", methodID: "WorldPublicController_getWorldDetailWithCharacters", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/detail-with-characters"},
+		{name: "world topics", methodID: "WorldPublicController_listWorldTopics", requestJSON: `{}`, method: http.MethodGet, path: "/api/world/topics", responseJSON: `[]`},
 		{name: "world catalog", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{}`, method: http.MethodGet, path: "/api/world/catalog"},
 	}
 	for _, tc := range cases {

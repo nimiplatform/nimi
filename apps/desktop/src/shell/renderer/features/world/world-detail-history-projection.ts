@@ -17,7 +17,7 @@ export function toWorldDisplayHistoryItem(rawValue: unknown, index: number): Wor
   const raw = asRecord(rawValue);
   const id = readString(raw, 'id', 'eventId') || `world-history-${index + 1}`;
   const eventType = readString(raw, 'eventType', 'type');
-  const happenedAt = readString(raw, 'happenedAt', 'timestamp', 'timeRef', 'time', 'createdAt') || new Date(0).toISOString();
+  const happenedAt = readString(raw, 'happenedAt', 'timestamp', 'timeRef', 'time', 'startsAt');
   const eventTypeLower = eventType.toLowerCase();
   const eventHorizon = eventTypeLower.includes('future')
     ? 'FUTURE'

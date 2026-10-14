@@ -420,6 +420,14 @@ function WorldCharacterOverviewSection({
               </div>
             </div>
           ) : null}
+          <dl className="mt-4 grid gap-2 text-sm" data-testid="character-identity-descriptions">
+            {(['ageDescription', 'speciesDescription', 'bodyDescription', 'lifeStageDescription'] as const).map((field) => source.characterProfile[field] ? (
+              <div key={field}><dt className="font-medium text-[var(--nimi-text-primary)]">{t(`SourceDetail.${field}`)}</dt><dd className="mt-1 leading-6 text-[var(--nimi-text-secondary)]">{source.characterProfile[field]}</dd></div>
+            ) : null)}
+          </dl>
+          {source.characterProfile.disposition ? (
+            <section className="mt-4" data-testid="character-disposition"><h3 className="text-sm font-semibold">{t('SourceDetail.disposition')}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[var(--nimi-text-secondary)]">{source.characterProfile.disposition}</p></section>
+          ) : null}
           <WorldCharacterWorksBlock source={source} />
         </div>
         {referenceImageUrl ? (

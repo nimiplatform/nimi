@@ -375,8 +375,12 @@ class CharacterProfileCoreDtoCapabilitiesToolsItem:
 class CharacterProfileCoreDtoIdentity:
     name: str
     summary: str
+    ageDescription: str | None = None
     aliases: tuple[str, ...] = field(default_factory=tuple)
+    bodyDescription: str | None = None
     handle: str | None = None
+    lifeStageDescription: str | None = None
+    speciesDescription: str | None = None
 
 @dataclass(frozen=True)
 class CharacterProfileCoreDtoInteractionProfile:
@@ -424,6 +428,7 @@ class CharacterProfileCoreDtoPresentation:
 @dataclass(frozen=True)
 class CharacterProfileCoreDtoPsychology:
     boundaries: tuple[str, ...] = field(default_factory=tuple)
+    disposition: str | None = None
     drives: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
@@ -2286,6 +2291,8 @@ class WorldCoreValueDto:
     systems: tuple[WorldCoreValueDtoSystemsItem, ...]
     timeModel: WorldCoreValueDtoTimeModel
     timeline: WorldCoreValueDtoTimeline
+    discovery: WorldCoreValueDtoDiscovery | None = None
+    narrative: WorldCoreValueDtoNarrative | None = None
 
 @dataclass(frozen=True)
 class WorldCoreValueDtoAssets:
@@ -2328,6 +2335,10 @@ class WorldCoreValueDtoAuthoringReview:
     reviewedBy: str | None = None
 
 @dataclass(frozen=True)
+class WorldCoreValueDtoDiscovery:
+    topicIds: tuple[str, ...]
+
+@dataclass(frozen=True)
 class WorldCoreValueDtoEntitiesItem:
     entityId: str
     kind: str
@@ -2344,6 +2355,10 @@ class WorldCoreValueDtoIdentity:
     tagline: str | None = None
     themes: tuple[str, ...] = field(default_factory=tuple)
     worldType: str | None = None
+
+@dataclass(frozen=True)
+class WorldCoreValueDtoNarrative:
+    setting: str
 
 @dataclass(frozen=True)
 class WorldCoreValueDtoOntology:
@@ -2589,12 +2604,14 @@ class WorldPublicDetailDto:
     relationshipTypes: tuple[str, ...]
     rules: tuple[str, ...]
     scenes: tuple[WorldPublicSceneDto, ...]
+    setting: str | None
     stats: WorldPublicStatsDto
     summary: str
-    systems: tuple[str, ...]
+    systems: tuple[WorldPublicSystemDto, ...]
     themes: tuple[str, ...]
     time: WorldPublicStaticTimeDto | WorldPublicWallClockTimeDto
     timeline: tuple[WorldPublicTimelineEventDto, ...]
+    topicIds: tuple[str, ...] | None
     type: Literal["OASIS", "CREATOR"]
     updatedAt: str
     visibility: Literal["public", "system"]
@@ -2626,6 +2643,7 @@ class WorldPublicItemDto:
     summary: str
     themes: tuple[str, ...]
     time: WorldPublicStaticTimeDto | WorldPublicWallClockTimeDto
+    topicIds: tuple[str, ...] | None
     type: Literal["OASIS", "CREATOR"]
     updatedAt: str
     visibility: Literal["public", "system"]
@@ -2677,13 +2695,18 @@ class WorldPublicSceneResourceDto:
 
 @dataclass(frozen=True)
 class WorldPublicSourceCardDto:
+    ageDescription: str | None
+    bodyDescription: str | None
     displayName: str
+    disposition: str | None
     id: str
+    lifeStageDescription: str | None
     media: WorldPublicSourceMediaDto
     ownership: Literal["worldOwned", "userOwned"]
     relation: WorldPublicViewerRelationDto
     sourceKind: Literal["worldCharacter", "personaCharacter"]
     sourceRef: CharacterSourceRefV3Dto
+    speciesDescription: str | None
     summary: str
     topics: tuple[str, ...]
     traits: tuple[str, ...]
@@ -2742,6 +2765,13 @@ class WorldPublicStatsDto:
     timelineEventCount: float
 
 @dataclass(frozen=True)
+class WorldPublicSystemDto:
+    name: str
+    principles: tuple[str, ...]
+    summary: str
+    systemId: str
+
+@dataclass(frozen=True)
 class WorldPublicTimelineEventDto:
     characterRefs: tuple[str, ...]
     entityRefs: tuple[str, ...]
@@ -2756,6 +2786,15 @@ class WorldPublicTimelineEventDto:
     startsAt: str | None = None
     summary: str | None = None
     timestamp: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicTopicDto:
+    criterion: str
+    description: str
+    id: str
+    status: str
+    title: str
+    titleEn: str
 
 @dataclass(frozen=True)
 class WorldPublicViewerRelationDto:
@@ -6810,6 +6849,7 @@ class RealmWorldPublicControllerListWorldCatalogOperationPath:
 class RealmWorldPublicControllerListWorldCatalogOperationQuery:
     theme: str | None = None
     genre: str | None = None
+    topicId: str | None = None
     limit: float | None = None
     q: str | None = None
     cursor: str | None = None
@@ -6849,6 +6889,28 @@ class RealmWorldPublicControllerListWorldCharacterCatalogOperationRequest:
     path: RealmWorldPublicControllerListWorldCharacterCatalogOperationPath
     query: RealmWorldPublicControllerListWorldCharacterCatalogOperationQuery | None = None
     headers: RealmWorldPublicControllerListWorldCharacterCatalogOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldTopicsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldTopicsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldTopicsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldTopicsOperationRequest:
+    path: RealmWorldPublicControllerListWorldTopicsOperationPath
+    query: RealmWorldPublicControllerListWorldTopicsOperationQuery | None = None
+    headers: RealmWorldPublicControllerListWorldTopicsOperationHeaders | None = None
     body: None | None = None
 
 
@@ -8615,3 +8677,13 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorldCharacterCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicSourceCardPageDto, raw)
+
+    async def world_public_controller_list_world_topics(self, request: RealmWorldPublicControllerListWorldTopicsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListWorldTopicsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorldTopics", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldPublicTopicDto, ...], raw)

@@ -591,3 +591,12 @@ test('world character biographical timeline without timed events renders one clu
   assert.match(markup, /翰林学士/);
   assert.doesNotMatch(markup, /data-testid="world-character-biography-primary-node"/);
 });
+
+
+test('shared character detail renders explicit age and disposition without reading trait prose', () => {
+  const source = toSourceDetailData({ ...liBaiRaw, characterProfile: { ...liBaiRaw.characterProfile, disposition: '自负豪迈而敏感。', ageDescription: '四十多岁', speciesDescription: '人类', bodyDescription: '普通人类身体', lifeStageDescription: '成年' } }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(React.createElement(SourceDetailView, { source, loading: false, error: false, onOpenWorld: () => {}, onPrimaryAction: () => {} }));
+  assert.match(markup, /data-testid="character-disposition"/);
+  assert.match(markup, /自负豪迈而敏感/);
+  assert.match(markup, /四十多岁/);
+});

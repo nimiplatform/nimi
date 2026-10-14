@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 )
 
@@ -32,10 +33,14 @@ type realmSourceCompilerProfileV3 struct {
 }
 
 type realmSourceCompilerProfileIdentityV3 struct {
-	Name    string    `json:"name"`
-	Summary string    `json:"summary"`
-	Handle  *string   `json:"handle,omitempty"`
-	Aliases *[]string `json:"aliases,omitempty"`
+	Name                 string    `json:"name"`
+	Summary              string    `json:"summary"`
+	Handle               *string   `json:"handle,omitempty"`
+	Aliases              *[]string `json:"aliases,omitempty"`
+	AgeDescription       *string   `json:"ageDescription,omitempty"`
+	SpeciesDescription   *string   `json:"speciesDescription,omitempty"`
+	BodyDescription      *string   `json:"bodyDescription,omitempty"`
+	LifeStageDescription *string   `json:"lifeStageDescription,omitempty"`
 }
 
 type realmSourceCompilerProfilePresentationV3 struct {
@@ -61,8 +66,9 @@ type realmSourceCompilerProfileMilestoneV3 struct {
 }
 
 type realmSourceCompilerProfilePsychologyV3 struct {
-	Drives     *[]string `json:"drives,omitempty"`
-	Boundaries *[]string `json:"boundaries,omitempty"`
+	Disposition *string   `json:"disposition,omitempty"`
+	Drives      *[]string `json:"drives,omitempty"`
+	Boundaries  *[]string `json:"boundaries,omitempty"`
 }
 
 type realmSourceCompilerProfileKnowledgeV3 struct {
@@ -123,7 +129,16 @@ type realmSourceCompilerDialogueExemplarV3 struct {
 	Character  string  `json:"character"`
 }
 
+type realmSourceCompilerWorldNarrativeV3 struct {
+	Setting string `json:"setting"`
+}
+type realmSourceCompilerWorldDiscoveryV3 struct {
+	TopicIDs []string `json:"topicIds"`
+}
+
 type realmSourceCompilerWorldCoreV3 struct {
+	Narrative     *realmSourceCompilerWorldNarrativeV3     `json:"narrative,omitempty"`
+	Discovery     *realmSourceCompilerWorldDiscoveryV3     `json:"discovery,omitempty"`
 	Identity      realmSourceCompilerWorldIdentityV3       `json:"identity"`
 	Presentation  realmSourceCompilerWorldPresentationV3   `json:"presentation"`
 	Ontology      realmSourceCompilerWorldOntologyV3       `json:"ontology"`
@@ -335,8 +350,42 @@ func decodeRealmSourceCompilerWorldCoreV3(value sourceMaterializationJSONValue) 
 	worldValue := value.interfaceValue()
 	if _, err := sourceMaterializationClosedObjectV3(worldValue, "$.snapshot.semantic.owningWorld.core", []string{
 		"identity", "presentation", "ontology", "timeModel", "timeline", "entities", "relationships", "systems", "scenes", "assets", "authoring",
-	}, nil); err != nil {
+	}, []string{"narrative", "discovery"}); err != nil {
 		return realmSourceCompilerWorldCoreV3{}, fmt.Errorf("validate SnapshotV2 WorldCore: %w", err)
+	}
+	// Typed optional sections preserve absence; discovery is presentation metadata.
+	fields := worldValue.(map[string]any)
+	if value, exists := fields["narrative"]; exists {
+		section, err := sourceMaterializationClosedObjectV3(value, "$.world.core.narrative", []string{"setting"}, nil)
+		if err != nil {
+			return realmSourceCompilerWorldCoreV3{}, err
+		}
+		if err := sourceMaterializationProfileRequiredStringV3(section["setting"], "$.world.core.narrative.setting"); err != nil {
+			return realmSourceCompilerWorldCoreV3{}, err
+		}
+	}
+	if value, exists := fields["discovery"]; exists {
+		section, err := sourceMaterializationClosedObjectV3(value, "$.world.core.discovery", []string{"topicIds"}, nil)
+		if err != nil {
+			return realmSourceCompilerWorldCoreV3{}, err
+		}
+		if err := sourceMaterializationProfileStringArrayV3(section["topicIds"], "$.world.core.discovery.topicIds", sourceMaterializationProfileArraySortedSetV3); err != nil {
+			return realmSourceCompilerWorldCoreV3{}, err
+		}
+		// Wire limits follow Realm rule.realm.core.world-discovery.
+		// Realm owns dictionary admission. Snapshots retain extensible wire IDs;
+		// never reject an admitted source because this Runtime predates its topic.
+		items := section["topicIds"].([]any)
+		if len(items) > 32 {
+			return realmSourceCompilerWorldCoreV3{}, sourceMaterializationSchemaErrorV3("$.world.core.discovery.topicIds", "must contain at most 32 identities")
+		}
+		pattern := regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
+		for _, item := range items {
+			id := item.(string)
+			if len(id) > 64 || !pattern.MatchString(id) {
+				return realmSourceCompilerWorldCoreV3{}, sourceMaterializationSchemaErrorV3("$.world.core.discovery.topicIds", "requires canonical topic identities of at most 64 ASCII characters")
+			}
+		}
 	}
 	raw, err := canonicalizeSourceMaterializationRealmV3(worldValue)
 	if err != nil {

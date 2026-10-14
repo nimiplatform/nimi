@@ -56,6 +56,9 @@ export type RealmCatalogPage<T> = {
 };
 
 export type RealmCatalogPageRequest = {
+  topicId?: string;
+  genre?: string;
+  theme?: string;
   q?: string;
   cursor?: string | null;
   limit?: number;
@@ -88,6 +91,9 @@ function catalogQuery(request: RealmCatalogPageRequest) {
   const q = request.q?.trim();
   return {
     ...(q ? { q } : {}),
+    ...(request.topicId ? { topicId: request.topicId } : {}),
+    ...(request.genre ? { genre: request.genre } : {}),
+    ...(request.theme ? { theme: request.theme } : {}),
     ...(request.cursor ? { cursor: request.cursor } : {}),
     limit: request.limit ?? WORLD_CATALOG_PAGE_LIMIT,
   };
@@ -363,6 +369,14 @@ export function createRealmWorldData(sdk: DesktopRendererSdkPort) {
   const callRealmApi = sdk.socialData.callApi;
   const emitRealmDataError = sdk.socialData.emitDataError;
   return {
+    loadWorldTopics: async () => {
+      try {
+        return await callRealmApi((realm) => realm.worldPublic.worldPublicControllerListWorldTopics({ path: {} }), 'Failed to load world topics');
+      } catch (error) {
+        if (!isRealmOfflineError(error)) emitRealmDataError('load-world-topics', error);
+        throw error;
+      }
+    },
     loadWorldCatalogPage: (request: RealmCatalogPageRequest) =>
       loadWorldCatalogPage(callRealmApi, emitRealmDataError, request),
     loadPersonaCharacterCatalogPage: (request: RealmCatalogPageRequest & { worldId?: string }) =>

@@ -190,7 +190,7 @@ func validateSourceMaterializationProfileShapeJSONV3(value any, path string) err
 		return err
 	}
 
-	identity, err := sourceMaterializationClosedObjectV3(profile["identity"], path+".identity", []string{"name", "summary"}, []string{"handle", "aliases"})
+	identity, err := sourceMaterializationClosedObjectV3(profile["identity"], path+".identity", []string{"name", "summary"}, []string{"handle", "aliases", "ageDescription", "speciesDescription", "bodyDescription", "lifeStageDescription"})
 	if err != nil {
 		return err
 	}
@@ -202,6 +202,11 @@ func validateSourceMaterializationProfileShapeJSONV3(value any, path string) err
 	}
 	if err := sourceMaterializationProfileOptionalStringV3(identity, "handle", path+".identity.handle", false); err != nil {
 		return err
+	}
+	for _, field := range []string{"ageDescription", "speciesDescription", "bodyDescription", "lifeStageDescription"} {
+		if err := sourceMaterializationProfileOptionalStringV3(identity, field, path+".identity."+field, true); err != nil {
+			return err
+		}
 	}
 	if aliases, exists := identity["aliases"]; exists {
 		if err := sourceMaterializationProfileStringArrayV3(aliases, path+".identity.aliases", sourceMaterializationProfileArraySortedSetV3); err != nil {
@@ -282,7 +287,7 @@ func validateSourceMaterializationProfileShapeJSONV3(value any, path string) err
 	}
 	for _, field := range []string{"psychology", "knowledge"} {
 		if child, exists := profile[field]; exists {
-			allowed := []string{"drives", "boundaries"}
+			allowed := []string{"drives", "boundaries", "disposition"}
 			if field == "knowledge" {
 				allowed = []string{"topics", "constraints"}
 			}
@@ -291,6 +296,12 @@ func validateSourceMaterializationProfileShapeJSONV3(value any, path string) err
 				return err
 			}
 			for _, childField := range allowed {
+				if childField == "disposition" {
+					if err := sourceMaterializationProfileOptionalStringV3(section, childField, path+"."+field+"."+childField, true); err != nil {
+						return err
+					}
+					continue
+				}
 				if values, exists := section[childField]; exists {
 					if err := sourceMaterializationProfileStringArrayV3(values, path+"."+field+"."+childField, sourceMaterializationProfileArraySortedSetV3); err != nil {
 						return err

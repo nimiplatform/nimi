@@ -814,13 +814,25 @@ components:
           allOf:
             - additionalProperties: false
               properties:
+                ageDescription:
+                  minLength: 1
+                  type: string
                 aliases:
                   items:
                     type: string
                   type: array
+                bodyDescription:
+                  minLength: 1
+                  type: string
                 handle:
                   type: string
+                lifeStageDescription:
+                  minLength: 1
+                  type: string
                 name:
+                  minLength: 1
+                  type: string
+                speciesDescription:
                   minLength: 1
                   type: string
                 summary:
@@ -949,6 +961,9 @@ components:
               items:
                 type: string
               type: array
+            disposition:
+              minLength: 1
+              type: string
             drives:
               items:
                 type: string
@@ -1131,13 +1146,25 @@ components:
         identity:
           additionalProperties: false
           properties:
+            ageDescription:
+              minLength: 1
+              type: string
             aliases:
               items:
                 type: string
               type: array
+            bodyDescription:
+              minLength: 1
+              type: string
             handle:
               type: string
+            lifeStageDescription:
+              minLength: 1
+              type: string
             name:
+              minLength: 1
+              type: string
+            speciesDescription:
               minLength: 1
               type: string
             summary:
@@ -1258,6 +1285,9 @@ components:
               items:
                 type: string
               type: array
+            disposition:
+              minLength: 1
+              type: string
             drives:
               items:
                 type: string
@@ -6801,6 +6831,27 @@ components:
           required:
             - source
           type: object
+        discovery:
+          additionalProperties: false
+          properties:
+            topicIds:
+              description: >-
+                Stable topic IDs in lexical order. [] means reviewed
+                non-membership; omitted discovery means unreviewed. On authoring
+                and Realm writes, every ID must be registered in the active
+                dictionary exposed by GET /api/world/topics. The wire format is
+                not a frozen enumeration; readers preserve structurally valid
+                IDs without inferring membership.
+              items:
+                maxLength: 64
+                pattern: ^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$
+                type: string
+              maxItems: 32
+              type: array
+              uniqueItems: true
+          required:
+            - topicIds
+          type: object
         entities:
           items:
             additionalProperties: false
@@ -6850,6 +6901,15 @@ components:
           required:
             - name
             - summary
+          type: object
+        narrative:
+          additionalProperties: false
+          properties:
+            setting:
+              minLength: 1
+              type: string
+          required:
+            - setting
           type: object
         ontology:
           additionalProperties: false
@@ -7591,13 +7651,17 @@ components:
           items:
             $ref: '#/components/schemas/WorldPublicSceneDto'
           type: array
+        setting:
+          description: Explicitly authored complete setting prose.
+          nullable: true
+          type: string
         stats:
           $ref: '#/components/schemas/WorldPublicStatsDto'
         summary:
           type: string
         systems:
           items:
-            type: string
+            $ref: '#/components/schemas/WorldPublicSystemDto'
           type: array
         tagline:
           nullable: true
@@ -7620,6 +7684,22 @@ components:
           items:
             $ref: '#/components/schemas/WorldPublicTimelineEventDto'
           type: array
+        topicIds:
+          description: >-
+            Stable topic IDs in lexical order. [] means reviewed non-membership;
+            omitted discovery means unreviewed. On authoring and Realm writes,
+            every ID must be registered in the active dictionary exposed by GET
+            /api/world/topics. The wire format is not a frozen enumeration;
+            readers preserve structurally valid IDs without inferring
+            membership. Public null means unreviewed.
+          items:
+            maxLength: 64
+            pattern: ^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$
+            type: string
+          maxItems: 32
+          nullable: true
+          type: array
+          uniqueItems: true
         type:
           enum:
             - OASIS
@@ -7640,6 +7720,7 @@ components:
         - visibility
         - genre
         - themes
+        - topicIds
         - era
         - entityKinds
         - relationshipTypes
@@ -7648,6 +7729,7 @@ components:
         - stats
         - createdAt
         - updatedAt
+        - setting
         - rules
         - systems
         - scenes
@@ -7726,6 +7808,22 @@ components:
           oneOf:
             - $ref: '#/components/schemas/WorldPublicStaticTimeDto'
             - $ref: '#/components/schemas/WorldPublicWallClockTimeDto'
+        topicIds:
+          description: >-
+            Stable topic IDs in lexical order. [] means reviewed non-membership;
+            omitted discovery means unreviewed. On authoring and Realm writes,
+            every ID must be registered in the active dictionary exposed by GET
+            /api/world/topics. The wire format is not a frozen enumeration;
+            readers preserve structurally valid IDs without inferring
+            membership. Public null means unreviewed.
+          items:
+            maxLength: 64
+            pattern: ^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$
+            type: string
+          maxItems: 32
+          nullable: true
+          type: array
+          uniqueItems: true
         type:
           enum:
             - OASIS
@@ -7746,6 +7844,7 @@ components:
         - visibility
         - genre
         - themes
+        - topicIds
         - era
         - entityKinds
         - relationshipTypes
@@ -7898,6 +7997,14 @@ components:
       type: object
     WorldPublicSourceCardDto:
       properties:
+        ageDescription:
+          description: Authored age with its original counting basis.
+          nullable: true
+          type: string
+        bodyDescription:
+          description: Authored physical form.
+          nullable: true
+          type: string
         characterBiography:
           allOf:
             - $ref: '#/components/schemas/WorldPublicCharacterBiographyDto'
@@ -7905,10 +8012,18 @@ components:
           type: object
         displayName:
           type: string
+        disposition:
+          description: Canonical personality prose.
+          nullable: true
+          type: string
         handle:
           nullable: true
           type: string
         id:
+          type: string
+        lifeStageDescription:
+          description: Authored life stage, independent of numeric age.
+          nullable: true
           type: string
         media:
           $ref: '#/components/schemas/WorldPublicSourceMediaDto'
@@ -7929,6 +8044,10 @@ components:
           type: string
         sourceRef:
           $ref: '#/components/schemas/CharacterSourceRefV3Dto'
+        speciesDescription:
+          description: Authored species description.
+          nullable: true
+          type: string
         summary:
           type: string
         topics:
@@ -7956,6 +8075,11 @@ components:
         - summary
         - worldId
         - worldName
+        - disposition
+        - ageDescription
+        - speciesDescription
+        - bodyDescription
+        - lifeStageDescription
         - traits
         - topics
         - media
@@ -8110,6 +8234,24 @@ components:
         - systemCount
         - timelineEventCount
       type: object
+    WorldPublicSystemDto:
+      properties:
+        name:
+          type: string
+        principles:
+          items:
+            type: string
+          type: array
+        summary:
+          type: string
+        systemId:
+          type: string
+      required:
+        - systemId
+        - name
+        - summary
+        - principles
+      type: object
     WorldPublicTimelineEventDto:
       properties:
         characterRefs:
@@ -8162,6 +8304,28 @@ components:
         - entityRefs
         - characterRefs
         - sourceRefs
+      type: object
+    WorldPublicTopicDto:
+      properties:
+        criterion:
+          type: string
+        description:
+          type: string
+        id:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        titleEn:
+          type: string
+      required:
+        - id
+        - title
+        - titleEn
+        - description
+        - criterion
+        - status
       type: object
     WorldPublicViewerRelationDto:
       properties:
@@ -13049,6 +13213,12 @@ paths:
           required: false
           schema:
             type: string
+        - description: Stable ID from the public topic dictionary.
+          in: query
+          name: topicId
+          required: false
+          schema:
+            type: string
         - description: Page size from 1 to 100; default 20.
           in: query
           name: limit
@@ -13396,6 +13566,22 @@ paths:
       summary: Get public post by ID (no auth required)
       tags:
         - Posts
+  /api/world/topics:
+    get:
+      operationId: WorldPublicController_listWorldTopics
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldPublicTopicDto'
+                type: array
+          description: ''
+      summary: List editorial world topics with stable identities
+      tags:
+        - World
   /api/world/transit:
     get:
       operationId: TransitController_listTransits

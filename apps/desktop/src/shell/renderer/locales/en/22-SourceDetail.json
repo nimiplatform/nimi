@@ -115,5 +115,10 @@
   "anotherPartnerListPending": "Your partner was created, but the partner list has not refreshed. Refresh the list before continuing.",
   "choosePartner": "Choose a partner",
   "partnerCreatedAt": "Created {{date}}",
-  "partnerCreationUnknown": "Creation time unavailable"
+  "partnerCreationUnknown": "Creation time unavailable",
+  "disposition": "Personality",
+  "ageDescription": "Age",
+  "speciesDescription": "Species",
+  "bodyDescription": "Physical form",
+  "lifeStageDescription": "Life stage"
 }

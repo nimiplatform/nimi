@@ -105,7 +105,7 @@ function worldListItemToDisplayData(listItem: WorldListItem): WorldDetailData {
 
 export function toWorldDisplayData(detailValue: unknown): WorldDetailData {
   const listItem = toWorldListItem(asRecord(detailValue));
-  return worldListItemToDisplayData(listItem);
+  return { ...worldListItemToDisplayData(listItem), setting: readString(asRecord(detailValue), 'setting') || null };
 }
 
 export function toWorldDisplayFallback(world: WorldListItem): WorldDetailData {
@@ -131,6 +131,12 @@ export function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt:
     name: readString(character, 'name', 'displayName') || 'Unknown',
     handle: readString(character, 'handle'),
     bio: readString(character, 'bio', 'description'),
+    disposition: readString(character, 'disposition') || null,
+    ageDescription: readString(character, 'ageDescription') || null,
+    speciesDescription: readString(character, 'speciesDescription') || null,
+    bodyDescription: readString(character, 'bodyDescription') || null,
+    lifeStageDescription: readString(character, 'lifeStageDescription') || null,
+
     sourceRef,
     sourceKind: sourceRef.kind,
     ownership: ownership === 'userOwned' ? 'userOwned' : 'worldOwned',

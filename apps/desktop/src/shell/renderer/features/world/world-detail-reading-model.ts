@@ -16,10 +16,12 @@ export function worldReadingEntries(world: WorldDetailData, semantic: WorldSeman
   const add = (section: WorldReadingEntry['section'], id: string, text: string[]) => {
     if (text.length) entries.push({ id, section, text });
   };
-  add('description', 'description', texts(world.tagline, world.motto, world.overview, world.description));
+  add('description', 'description', texts(world.tagline, world.motto, world.overview, world.description, world.setting));
   const overview = texts(world.name, world.tagline, world.motto, world.overview, world.description);
   add('rules', 'operation', texts(semantic.operationTitle, semantic.operationDescription).filter((text) => !overview.includes(text)));
-  semantic.operationRules.forEach((rule, index) => add('rules', `rule-${index}`, texts(rule.title, rule.value)));
+  const systemPrinciples = new Set(semantic.powerSystems.flatMap((system) => system.rules.map((rule) => rule.trim())));
+  semantic.operationRules.forEach((rule, index) => add('rules', `rule-${index}`,
+    texts(rule.title, rule.value).filter((text) => !systemPrinciples.has(text))));
   semantic.powerSystems.forEach((system, index) => add('systems', `system-${index}`, texts(
     system.name, system.description, ...system.rules,
     ...system.levels.map((level) => texts(level.name, level.description, level.extra).join('\n')),

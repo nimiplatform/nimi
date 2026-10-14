@@ -408,8 +408,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             runtimeActive={runtimeActive}
             runtimeEverMounted={runtimeEverMounted}
             onHomeFeedScopeChange={setHomeFeedScope}
-            onExploreSectionChange={section => void navigation.push({ id: 'explore', exploreSection: section, search: destination.search ?? '' })}
-            onExploreSearchTextChange={search => void navigation.replace({ id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search, exploreWorldId: destination.exploreWorldId })}
+            onExploreSectionChange={section => void navigation.push({ id: 'explore', exploreSection: section, search: destination.search ?? '', worldSearch: destination.worldSearch, worldTopicId: destination.worldTopicId })}
+            onExploreSearchTextChange={search => void navigation.replace({ id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search, exploreWorldId: destination.exploreWorldId, worldSearch: destination.worldSearch, worldTopicId: destination.worldTopicId })}
           />
         </div>
       </div>
