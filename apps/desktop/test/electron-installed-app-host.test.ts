@@ -1,6 +1,79 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { NimiElectronInstalledAppError } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopInstalledAppHost } from '../src-electron/installed-app-host.js';
+import { runDesktopShutdownSteps } from '../src-electron/product-update-shutdown.js';
+
+test('ordinary quit stops a real child while offline lease cleanup stays pending and strict handoff still fails', async () => {
+  const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore', windowsHide: true });
+  const exited = once(child, 'exit');
+  await once(child, 'spawn');
+  const id = '12'.repeat(32);
+  const releases: string[] = [];
+  let offline = true;
+  let stopFails = true;
+  const host = createDesktopInstalledAppHost({
+    async launch() { return { launchId: id, processId: child.pid!, appId: 'example', version: '1' }; },
+    async status() { return { running: child.exitCode === null && child.signalCode === null, exitCode: child.exitCode }; },
+    async stop() {
+      if (stopFails) throw new NimiElectronInstalledAppError('runtime-service-unavailable');
+      if (child.exitCode === null && child.signalCode === null) child.kill();
+      await exited;
+    },
+    async end(launchId) {
+      releases.push(launchId);
+      assert.ok(child.exitCode !== null || child.signalCode !== null);
+      if (offline) throw new NimiElectronInstalledAppError('runtime-service-unavailable');
+    },
+    async focus() {}, async completeUninstall() {},
+    async access() { return { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }; },
+  });
+  try {
+    await host.commandHandlers.installed_app_launch!({ payload: { payload: { launchSelector: [1] } } });
+    await assert.rejects(host.shutdown('quit-after-process-exit'), /runtime-service-unavailable/);
+    assert.doesNotThrow(() => process.kill(child.pid!, 0));
+    assert.deepEqual(releases, [], 'failed process cleanup cannot be excused as an offline lease');
+    stopFails = false;
+    await host.shutdown('quit-after-process-exit');
+    assert.ok(child.exitCode !== null || child.signalCode !== null);
+    assert.deepEqual(releases, [id]);
+    const report = await runDesktopShutdownSteps([
+      { operation: 'installed-app-host', critical: true, timeoutMs: 1000, run: () => host.shutdown() },
+    ]);
+    assert.equal(report.criticalCleanupComplete, false, 'ordinary quit did not fabricate a Runtime receipt for update or data-root handoff');
+    assert.deepEqual(report.criticalFailures, [{ operation: 'installed-app-host', reason: 'runtime-service-unavailable' }]);
+    offline = false;
+    await host.shutdown();
+    assert.deepEqual(releases, [id, id, id], 'retry keeps the exact unacknowledged lease');
+    await host.shutdown();
+    assert.equal(releases.length, 3);
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) child.kill();
+    await exited;
+  }
+});
+
+test('ordinary quit keeps denied, untrusted and untyped lease failures blocking', async () => {
+  for (const error of [
+    new NimiElectronInstalledAppError('runtime-permission-denied'),
+    new NimiElectronInstalledAppError('runtime-service-untrusted'),
+    new Error('runtime-service-unavailable'),
+  ]) {
+    let running = true;
+    const host = createDesktopInstalledAppHost({
+      async launch() { return { launchId: '13'.repeat(32), processId: 123, appId: 'example', version: '1' }; },
+      async status() { return { running, exitCode: running ? null : 0 }; },
+      async stop() { running = false; }, async end() { throw error; },
+      async focus() {}, async completeUninstall() {},
+      async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
+    });
+    await host.commandHandlers.installed_app_launch!({ payload: { payload: { launchSelector: [1] } } });
+    await assert.rejects(host.shutdown('quit-after-process-exit'), (actual) => actual === error);
+    assert.equal(running, false);
+  }
+});
 
 test('installed self-restart releases the exited child and reuses only its owner selector', async () => {
   const selector = [...new TextEncoder().encode('opaque-source-selector')];

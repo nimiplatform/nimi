@@ -1139,7 +1139,9 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   const steps = [
     { operation: 'product-update-download', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => productUpdateHost?.stop() },
     { operation: 'local-app-host', critical: true, timeoutMs: 30_000, run: () => localHost?.shutdown() },
-    { operation: 'installed-app-host', critical: true, timeoutMs: 30_000, run: () => installedHost?.shutdown() },
+    { operation: 'installed-app-host', critical: true, timeoutMs: 30_000, run: () => installedHost?.shutdown(
+      forUpdate || homeRelaunchRequested || maintenanceRelaunchRequested ? 'required' : 'quit-after-process-exit',
+    ) },
     { operation: 'formal-app-resources', critical: true, abortRemainingOnFailure: false, timeoutMs: DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS, run: () => runtimeBridge?.disposeFormalAppResources?.() },
     { operation: 'avatar-host', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => avatarHost?.shutdown() },
     { operation: 'chat-store', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => chatStoreHost?.close() },

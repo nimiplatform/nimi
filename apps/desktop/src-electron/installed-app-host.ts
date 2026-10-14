@@ -1,4 +1,5 @@
 import type { DesktopExecutorObservation } from './execution-notices-host.js';
+import { writeDesktopStderr } from './stderr-log.js';
 import {
   createNimiElectronInstalledAppControl,
   NIMI_APP_HOST_RESTART_EXIT_CODE,
@@ -242,7 +243,7 @@ export function createDesktopInstalledAppHost(
       return false;
     },
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [command, (context: { readonly payload: Readonly<Record<string, unknown>> }) => invoke(command, context.payload)])),
-    async shutdown(): Promise<void> {
+    async shutdown(releasePolicy: 'required' | 'quit-after-process-exit' = 'required'): Promise<void> {
       closing = true;
       if (observationTimer) clearInterval(observationTimer);
       observationTimer = undefined;
@@ -256,7 +257,19 @@ export function createDesktopInstalledAppHost(
           await control.stop(id);
           run.exitState = 'stopped';
           run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
-          await releaseLease(run, id);
+          try {
+            await releaseLease(run, id);
+          } catch (error) {
+            // Ordinary quit needs confirmed native process cleanup, not a live
+            // Runtime just to acknowledge its now-inactive lease. Keep the
+            // unacknowledged lease for retry if another owner blocks quit.
+            // Update/data-root handoff and explicit Stop remain strict.
+            if (releasePolicy !== 'quit-after-process-exit'
+              || !(error instanceof NimiElectronInstalledAppError)
+              || error.reasonCode !== 'runtime-service-unavailable') throw error;
+            writeDesktopStderr('[installed-app-shutdown] stage=run-release code=runtime-service-unavailable\n');
+            continue;
+          }
         }
         runs.delete(key);
       }
