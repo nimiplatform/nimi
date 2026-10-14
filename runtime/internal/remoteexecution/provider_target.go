@@ -87,6 +87,7 @@ func requestScopedProviderTarget(
 	if endpoint == "" {
 		endpoint = connector.ResolveEndpoint(connectorRecord.Provider, "")
 	}
+	endpoint = materializeDashScopeSpeechEndpoint(endpoint, target)
 	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopback); err != nil {
 		credential.APIKey = ""
 		credential.Headers = nil
