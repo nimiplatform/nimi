@@ -149,10 +149,11 @@ it('returns focus to the connected Help trigger after closing a keyboard-opened 
 
 it.each([false, true])('preserves Help dialog return focus and the original Edit selection with compact=%s', async compact => {
   const editing = createNimiChromeEditingOwner(document);
+  const restoreEditFocus = vi.fn(() => editing.restore('copy'));
   function MenuDialog() {
     const [open, setOpen] = useState(false);
     return <><input aria-label="Draft" defaultValue="Original draft" /><NimiMenubar locale="en" compact={compact}
-      onCaptureSelection={() => editing.capture()} onRestoreEditFocus={() => editing.restore('copy')}
+      onCaptureSelection={() => editing.capture()} onRestoreEditFocus={restoreEditFocus}
       onExecute={id => { if (id === 'nimi.edit.copy') editing.restore('copy'); else setOpen(true); }} commands={[
         { id: 'nimi.edit.copy', label: 'Copy', menu: 'edit', state: { enabled: true, visible: true } },
         { id: 'app.help', label: 'About', menu: 'help', state: { enabled: true, visible: true } },
@@ -174,6 +175,9 @@ it.each([false, true])('preserves Help dialog return focus and the original Edit
   if (compact) await key(button('Edit'), 'ArrowRight');
   await click(button('Copy'));
   await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
+  // Radix restores focus after removing the portal. Wait for both closing
+  // scopes in compact mode before asserting focus or unmounting the editor.
+  await vi.waitFor(() => expect(restoreEditFocus).toHaveBeenCalledTimes(compact ? 2 : 1));
   expect(document.activeElement).toBe(input);
   expect([input.selectionStart, input.selectionEnd]).toEqual([2, 8]);
   expect(input.value).toBe('Original draft');
