@@ -1,7 +1,7 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { ArrowRight, ArrowUp, Compass, MessageCircle } from 'lucide-react';
+import { Compass, MessageCircle } from 'lucide-react';
 import { useCallback, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -95,7 +95,6 @@ function AgentComposer({ agentName, onSendMessage }: { agentName: string; onSend
         />
         <Button type="submit" tone="primary" size="sm" disabled={!text.trim()} data-testid="home-agent-send">
           {t('runtimeConfig.overview.composerSend')}
-          <ArrowUp size={14} strokeWidth={2.4} />
         </Button>
       </form>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -134,16 +133,11 @@ export function HomeAgentCardView({
   const ready = state === 'ready' && Boolean(agent);
   return (
     <section
-      className="relative overflow-hidden rounded-[28px] bg-[var(--nimi-surface-panel)] p-6 shadow-[var(--nimi-elevation-base)] lg:p-7 lg:pl-9"
+      className="px-2 py-1"
       data-testid="home-agent-card"
       data-state={state}
     >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(circle 420px at 100% 0%, var(--nimi-accent-soft), transparent 70%)' }}
-      />
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:gap-7">
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-7">
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-6 pt-1">
           <div className="flex flex-col gap-2">
             {heading}
@@ -229,7 +223,6 @@ export function HomeAgentCardView({
                     data-testid="home-agent-view-all"
                   >
                     {t('runtimeConfig.overview.agentCard.viewAllAgents')}
-                    <ArrowRight size={13} />
                   </button>
                 </div>
               ) : null}

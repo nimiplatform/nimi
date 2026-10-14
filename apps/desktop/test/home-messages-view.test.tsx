@@ -8,7 +8,8 @@ import type { NimiAppActivityRecord, NimiAppActivityViewSnapshot } from '@nimipl
 import { changeLocale, i18n, initI18n, productionDesktopI18n } from '../src/shell/renderer/i18n';
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context.js';
 import type { HomeMessageCardContext } from '../src/shell/renderer/features/home/home-message-card.js';
-import { HomeMessageCenter, messageSourceOptions } from '../src/shell/renderer/features/home/home-message-center.js';
+import { HomeMessageCenter } from '../src/shell/renderer/features/home/home-message-center.js';
+import { messageSourceOptions, searchMessageSources } from '../src/shell/renderer/features/home/home-message-source-filter.js';
 import { HomeMessagesColumn } from '../src/shell/renderer/features/home/home-messages-column.js';
 import { HomeExecutionNotices } from '../src/shell/renderer/features/home/execution-notices.js';
 import type { HomeMessagePlacement, HomeMessages } from '../src/shell/renderer/features/home/home-messages-controller.js';
@@ -168,7 +169,6 @@ function renderColumn(messages: HomeMessages, cardContext = context()) {
       messages={messages}
       context={cardContext}
       onViewAll={noop}
-      onViewPending={noop}
       onViewActivity={noop}
       onOpenSettings={noop}
     />,
@@ -209,18 +209,21 @@ const download = systemMessage({
   progress: { value: 43, max: 100 }, time: new Date(2026, 8, 20).toISOString(), app: null, open: noop,
 });
 
-test('Home shows one Messages list: system first, stacked source groups, and only real actions', async () => {
+test('Home mixes sources chronologically with compact navigation above the preview', async () => {
   await initI18n(); await changeLocale('en');
   const html = renderColumn(controller({
     messages: [growthOpen, growthRead, rijing, turn, agentPost, download],
     pending: view([growthOpen.record, growthRead.record], { complete: false, hasMore: true }),
   }));
   assert.match(html, /data-testid="home-messages"/);
-  assert.ok(html.indexOf('home-message:system:download:install-1') < html.indexOf('home-message-stack:app:src_parentos'), 'work in progress leads');
-  assert.match(html, /data-testid="home-message-stack:app:src_parentos"/);
+  assert.ok(html.indexOf('home-message:system:download:install-1') > html.indexOf('home-message-stack:app:src_parentos'), 'old downloads do not override chronology');
+  assert.ok(html.indexOf('home-messages-view-all') < html.indexOf('home-messages-list'));
+  assert.ok(html.indexOf('home-messages-pending') < html.indexOf('home-messages-list'));
+  assert.doesNotMatch(html, /home-messages-section-activity|home-messages-section-items/);
+  assert.match(html, /data-testid="home-message-stack:app:src_parentos:/);
   assert.match(html, /1 more · Expand/);
   assert.match(html, />43%</, 'download progress comes from real totals');
-  assert.match(html, /3\+ pending/, 'an incomplete open-todo listing never claims a total');
+  assert.match(html, /Pending 3\+/, 'an incomplete open-todo listing never claims a total');
   // ShiJing and Runtime summaries have no open target; the Realm Post opens that Post.
   assert.doesNotMatch(cardHtml(html, rijing.key), />Open</);
   assert.match(cardHtml(html, rijing.key), /Mark as read/);
@@ -232,7 +235,7 @@ test('Home shows one Messages list: system first, stacked source groups, and onl
   assert.equal((html.match(/aria-label="Hide from Home"/g) ?? []).length, 3, 'ShiJing, Runtime and Realm cards can be hidden');
   assert.match(html, /aria-label="Hide these 2 messages from Home"/, 'a stack hides its counted members');
   assert.match(html, /View all messages/);
-  assert.match(html, /View activity/);
+  assert.match(html, /aria-label="Filter"/);
   assert.doesNotMatch(html, /runtimeConfig\.overview\./);
 });
 
@@ -250,14 +253,14 @@ test('one unavailable source keeps the others and never claims an empty list', a
   assert.doesNotMatch(html, /没有消息/);
 });
 
-test('Home limits item and Activity previews independently', async () => {
+test('Home applies one chronological preview limit across every source', async () => {
   await initI18n(); await changeLocale('en');
   const items = Array.from({ length: 6 }, (_, index) => activityMessage(record(index + 10, {
     source: { ...PARENTOS, sourceRef: `src_${index}`, appId: `app.example.${index}` },
   })));
   const html = renderColumn(controller({ messages: [...items, agentPost] }));
-  assert.match(cardHtml(html, agentPost.key), /Practised calligraphy/);
-  assert.equal(items.filter((item) => html.includes(`data-testid="home-message:${item.key}"`)).length, 5);
+  assert.ok(!html.includes(`data-testid="home-message:${agentPost.key}"`), 'older Posts do not reserve a separate section');
+  assert.equal(items.filter((item) => html.includes(`data-testid="home-message:${item.key}"`)).length, 6);
   assert.doesNotMatch(html, /No activity yet/);
 });
 
@@ -266,14 +269,17 @@ test('Home empty states distinguish hidden, complete and not yet loaded', async 
   const hidden = renderColumn(controller({ messages: [growthOpen], homeMessages: [], offHomeCount: 1 }));
   assert.match(hidden, /首页消息已隐藏，可在消息中心查看。/);
   const empty = renderColumn(controller({ messages: [] }));
-  assert.match(empty, /暂无消息与事项/);
-  assert.match(empty, /暂无动态/);
+  assert.match(empty, /没有消息/);
+  assert.doesNotMatch(empty, /暂无动态/);
   const partial = renderColumn(controller({ messages: [], realm: { hasMore: true } }));
   assert.match(partial, /尚未加载到匹配事项/);
   assert.doesNotMatch(partial, /没有消息/);
+  const pendingPartial = renderColumn(controller({ messages: [], pending: view([], { complete: false, hasMore: true }) }));
+  assert.match(pendingPartial, /尚未加载到匹配事项/);
+  assert.doesNotMatch(pendingPartial, /没有消息/);
   const loading = renderColumn(controller({ messages: [growthOpen], homeMessages: null, preferencesStatus: 'loading' }));
   assert.doesNotMatch(loading, /data-testid="home-message-stack/, 'no card flashes before display preferences are known');
-  assert.match(loading, /data-testid="home-messages-view-activity"/, 'Activity stays reachable while display preferences load');
+  assert.match(loading, /data-testid="home-messages-filter"/, 'navigation stays reachable while display preferences load');
   assert.doesNotMatch(loading, /暂无消息与事项|暂无动态/);
   const unreadable = renderColumn(controller({ messages: [growthOpen], preferencesStatus: 'unavailable' }), context({ canHide: false }));
   assert.match(unreadable, /data-testid="home-messages-preferences-unavailable"/);
@@ -323,15 +329,23 @@ test('center empty results are definite only after the relevant listing is compl
   assert.match(posts, /No matching items loaded yet/);
 });
 
-test('same-named registrations stay distinct source options', async () => {
+test('center sources collect registrations by app identity and search every source name', async () => {
   await initI18n(); await changeLocale('en');
   const t = i18n.t.bind(i18n) as never;
   const current = activityMessage(record(7, { source: { ...PARENTOS, sourceRef: 'src_rws_now', appId: 'app.rws', displayName: 'Realm World Studio' } }));
   const previous = activityMessage(record(8, { source: { ...PARENTOS, sourceRef: 'src_rws_old', appId: 'app.rws', displayName: 'Realm World Studio', available: false } }));
   const options = messageSourceOptions([current, previous], t);
-  assert.deepEqual(options.map((option) => option.value).sort(), ['app:src_rws_now', 'app:src_rws_old']);
-  assert.equal(new Set(options.map((option) => option.label)).size, 2);
-  assert.ok(options.some((option) => option.label === 'Realm World Studio (unavailable)'));
+  assert.deepEqual(options.map((option) => option.value), ['app-id:app.rws']);
+  assert.equal(options[0]!.label, 'Realm World Studio');
+  const differentApp = activityMessage(record(9, { source: { ...PARENTOS, appId: 'another.app', displayName: 'Realm World Studio' } }));
+  const renamed = activityMessage(record(10, { source: { ...PARENTOS, appId: 'app.rws', displayName: 'World Studio' } }));
+  const grouped = messageSourceOptions([current, previous, differentApp, renamed, turn, agentPost, download], t);
+  assert.deepEqual(grouped.map((option) => option.domain), ['app', 'app', 'runtime-agent', 'realm-post', 'system']);
+  assert.deepEqual(searchMessageSources(grouped, '  REALM world  ').map((option) => option.value).sort(), ['app-id:another.app', 'app-id:app.rws']);
+  assert.equal(searchMessageSources(grouped, 'no-such-source').length, 0);
+  const duplicates = messageSourceOptions([current, differentApp], t);
+  assert.deepEqual(duplicates.map((option) => option.detail).sort(), ['another.app', 'app.rws']);
+  assert.equal(messageSourceOptions([turn], t)[0]!.label, 'Qilan');
 });
 
 test('Settings can reach an off-Home source beyond the first activity page without claiming no sources', async () => {
@@ -417,18 +431,17 @@ test('a collapsed stack only expands, and a group hide covers exactly its shown 
             },
           })}
           onViewAll={noop}
-          onViewPending={noop}
           onViewActivity={noop}
           onOpenSettings={noop}
         />,
       ));
     });
     const { document } = dom.window;
-    const stack = document.querySelector('[data-testid="home-message-stack:app:src_parentos"] button[aria-expanded="false"]');
+    const stack = document.querySelector('[data-testid^="home-message-stack:app:src_parentos:"] button[aria-expanded="false"]');
     assert.ok(stack, 'expected the collapsed ParentOS stack');
     await act(async () => { stack.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })); });
     assert.equal(opened.length, 0, 'expanding never opens the source object');
-    const group = document.querySelector('[data-testid="home-message-group:app:src_parentos"]');
+    const group = document.querySelector('[data-testid^="home-message-group:app:src_parentos:"]');
     assert.ok(group, 'the group is expanded');
     assert.equal(document.activeElement?.textContent, 'Collapse', 'focus follows the replaced control');
     assert.equal(group.querySelectorAll('article').length, 2);
@@ -440,7 +453,7 @@ test('a collapsed stack only expands, and a group hide covers exactly its shown 
     assert.equal(document.activeElement?.getAttribute('data-testid'), 'home-messages-list', 'a saved hide keeps focus in the list');
     const collapse = [...group.querySelectorAll('button')].find((button) => button.textContent === 'Collapse');
     await act(async () => { collapse!.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })); });
-    assert.ok(document.querySelector('[data-testid="home-message-stack:app:src_parentos"]'), 'collapsing restores the stack');
+    assert.ok(document.querySelector('[data-testid^="home-message-stack:app:src_parentos:"]'), 'collapsing restores the stack');
     assert.equal(document.activeElement?.getAttribute('aria-expanded'), 'false', 'focus returns to the stack');
   } finally {
     await act(async () => { root.unmount(); });

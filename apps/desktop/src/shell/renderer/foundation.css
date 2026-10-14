@@ -7,6 +7,16 @@
 @import "tailwindcss" source(none);
 @source "./**/*.{ts,tsx}";
 
+/* Home dashboard modules rest on a softer, more diffuse shadow than the base
+   elevation so stacked cards do not read as heavy black-edged slabs. */
+:root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"], [data-nimi-scheme="light"] {
+  --nimi-home-card-elevation: 0 10px 28px rgba(15,23,42,0.05);
+}
+
+.dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"] {
+  --nimi-home-card-elevation: 0 10px 28px rgba(2,6,23,0.2);
+}
+
 /* macOS root-scroller rubber-banding: a downward fling on a non-scrollable
    region pulls the whole document upward, and because body is transparent it
    reveals the Electron window's white backing as a full-width strip. Disable

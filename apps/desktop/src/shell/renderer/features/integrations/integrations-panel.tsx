@@ -56,6 +56,22 @@ type PermissionIntent = Readonly<{
   consumers: readonly string[];
   operations: readonly string[];
 }>;
+/** One-shot entry position handed over when Home routes into this panel. */
+export type IntegrationsPanelIntent = Readonly<{
+  /** Service kind (or the all-permissions / all-calls views) to preselect. */
+  service?: string;
+  /** Open the connection setup drawer directly. */
+  connect?: boolean;
+}>;
+/** Admits service kinds and the two aggregate views; anything else falls back to the default visit. */
+function requestedEntryService(value: string | undefined): string {
+  return value &&
+    ((INTEGRATION_SERVICES as readonly string[]).includes(value) ||
+      value === 'all-permissions' ||
+      value === 'all-calls')
+    ? value
+    : '';
+}
 
 // @nimi-authority: rule.nimi.runtime.integration.fixed-operations
 // Home projects Runtime-owned connection and standing resource policy. Merely
@@ -64,9 +80,13 @@ type PermissionIntent = Readonly<{
 export function IntegrationsPanel({
   onBack,
   appIconUrls,
+  intent = null,
+  onIntentConsumed,
 }: {
   onBack: () => void;
   appIconUrls?: ReadonlyMap<string, string | null>;
+  intent?: IntegrationsPanelIntent | null;
+  onIntentConsumed?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const sdk = useDesktopRendererSdk();
@@ -74,7 +94,8 @@ export function IntegrationsPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [service, setService] = useState('mcp');
+  const entryServiceRef = useRef(requestedEntryService(intent?.service));
+  const [service, setService] = useState(() => entryServiceRef.current || 'mcp');
   const [tab, setTab] = useState<IntegrationTab>('permissions');
   const [setupOpen, setSetupOpen] = useState(false);
   const [cancelingSetup, setCancelingSetup] = useState(false);
@@ -409,9 +430,15 @@ export function IntegrationsPanel({
     if (!snapshot) return;
     if (!initialized.current) {
       initialized.current = true;
-      const first =
-        INTEGRATION_SERVICES.flatMap((kind) => snapshot.targets.filter((item) => item.kind === kind))[0] ||
-        snapshot.targets[0];
+      // An entry intent keeps its requested service even when nothing is
+      // connected there yet; the default visit still lands on the first
+      // connected service.
+      const requested = entryServiceRef.current;
+      if (requested === 'all-permissions' || requested === 'all-calls') return;
+      const first = requested
+        ? snapshot.targets.find((item) => item.kind === requested)
+        : INTEGRATION_SERVICES.flatMap((kind) => snapshot.targets.filter((item) => item.kind === kind))[0] ||
+          snapshot.targets[0];
       if (first) {
         setService(first.kind);
         selectTarget(first.targetRef);
@@ -484,6 +511,18 @@ export function IntegrationsPanel({
       setSetupOpen(false);
     }
   };
+  // Consume the Home entry intent once: the requested service is already the
+  // initial selection; a connect intent opens its setup drawer directly.
+  const intentConsumedRef = useRef(false);
+  useEffect(() => {
+    if (intentConsumedRef.current) return;
+    intentConsumedRef.current = true;
+    if (!intent) return;
+    if (intent.connect && INTEGRATION_SERVICES.includes(service as (typeof INTEGRATION_SERVICES)[number])) {
+      openConnection();
+    }
+    onIntentConsumed?.();
+  }, []);
   const editPermission = (permission?: NimiIntegrationPermission) => {
     if (permission) {
       const source = snapshot?.targets.find((item) => item.targetRef === permission.targetRef);

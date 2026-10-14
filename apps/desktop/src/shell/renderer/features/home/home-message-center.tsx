@@ -1,48 +1,16 @@
 import { HomeExecutionNotices } from './execution-notices.js';
-import { Button, LoadingSkeleton, PillTabs, SelectField } from '@nimiplatform/kit/ui';
+import { Button, LoadingSkeleton, PillTabs } from '@nimiplatform/kit/ui';
 import { ArrowLeft, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { HomeMessageCard, messageSourceLabel, type HomeMessageCardContext } from './home-message-card.js';
+import { HomeMessageCard, type HomeMessageCardContext } from './home-message-card.js';
+import { HomeMessageSourceFilter, messageSourceOptions } from './home-message-source-filter.js';
 import type { HomeMessages } from './home-messages-controller.js';
 import { HomeMessageSourceNotices, pendingSummary } from './home-messages-column.js';
 import {
   filterCenterMessages,
-  groupMessages,
   messageDomainOfGroup,
-  type HomeMessage,
   type HomeMessageFilter,
 } from './home-messages-model.js';
-
-const ALL_SOURCES = 'all';
-
-type Translate = ReturnType<typeof useTranslation>['t'];
-
-/** One option per loaded source group; same-named registrations stay distinguishable. */
-export function messageSourceOptions(messages: readonly HomeMessage[], t: Translate) {
-  const options = groupMessages(messages).map((group) => {
-    const lead = group.messages[0]!;
-    return {
-      value: group.key,
-      label: messageSourceLabel(lead, t),
-      unavailable: lead.sourceKind === 'app' && !lead.record.source.available,
-    };
-  });
-  const seen = new Map<string, number>();
-  return options
-    .sort((left, right) => left.label.localeCompare(right.label) || left.value.localeCompare(right.value))
-    .map((option) => {
-      const index = (seen.get(option.label) ?? 0) + 1;
-      seen.set(option.label, index);
-      const duplicate = options.filter((other) => other.label === option.label).length > 1;
-      if (!duplicate) return { value: option.value, label: option.label };
-      return {
-        value: option.value,
-        label: option.unavailable
-          ? t('runtimeConfig.overview.messages.sourceUnavailableOption', { source: option.label })
-          : t('runtimeConfig.overview.messages.sourceNumberedOption', { source: option.label, index }),
-      };
-    });
-}
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r036
 /**
@@ -89,7 +57,6 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
           <h1 id="home-message-center-title" className="text-[28px] font-semibold leading-tight tracking-tight">
             {t('runtimeConfig.overview.messages.centerTitle')}
           </h1>
-          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.messages.centerSubtitle')}</p>
         </div>
         <Button tone="secondary" size="sm" onClick={onOpenSettings}>{t('runtimeConfig.overview.messages.settings')}</Button>
       </div>
@@ -109,14 +76,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
             },
           ]}
         />
-        <SelectField
-          aria-label={t('runtimeConfig.overview.messages.sourceFilterLabel')}
-          className="w-full sm:w-64"
-          value={selectedSource ?? ALL_SOURCES}
-          onValueChange={(value) => onSourceChange(value === ALL_SOURCES ? null : value)}
-          options={[{ value: ALL_SOURCES, label: t('runtimeConfig.overview.messages.allSources') }, ...sourceOptions]}
-          data-testid="home-message-center-source"
-        />
+        <HomeMessageSourceFilter options={sourceOptions} value={selectedSource} onChange={onSourceChange} appIconUrl={context.appIconUrl} />
       </div>
 
       <HomeExecutionNotices />

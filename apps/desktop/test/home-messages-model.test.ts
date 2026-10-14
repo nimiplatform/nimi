@@ -5,10 +5,12 @@ import { mergeActivitySnapshots } from '../src/shell/renderer/features/home/home
 import {
   activityMessage,
   filterCenterMessages,
+  filterTimelineMessages,
   groupMessages,
   homePreviewGroups,
   isPendingMessage,
   messageDomainOfGroup,
+  quickFilterSelection,
   realmPostMessage,
   systemMessage,
   type HomeRealmPost,
@@ -132,20 +134,43 @@ test('work in progress leads, then owner time newest first, then items without a
   assert.deepEqual(order, [download.key, newest.key, setup.key, older.key, update.key]);
 });
 
-test('the Home preview keeps every system category and at most five source groups', () => {
-  const sources = Array.from({ length: 7 }, (_, index) => activityMessage(record(20 + index, {
-    source: { kind: 'app', sourceRef: `src_${index}`, appId: `com.example.app${index}`, displayName: `App ${index}`, available: true },
-  })));
-  const systems = [
-    systemMessage(system('download', 'install-1', null)),
-    systemMessage(system('setup', 'task-1', null)),
-    systemMessage(system('update', 'com.example.app0', null)),
-    systemMessage(system('update', 'com.example.app1', null)),
-  ];
-  const groups = homePreviewGroups([...sources, ...systems]);
-  assert.equal(groups.filter((group) => group.sourceKind === 'system').length, 3, 'one card or stack per system category');
-  assert.equal(groups.filter((group) => group.sourceKind !== 'system').length, 5);
-  assert.equal(groups.find((group) => group.key === 'system:update')!.messages.length, 2, 'each update keeps its own App target');
+test('Home is a bounded time stream: interleaved, old and different-type messages never join a stack', () => {
+  const first = activityMessage(record(1));
+  const second = activityMessage(record(2));
+  const old = activityMessage(record(3, { occurredAt: '2026-09-22T02:00:00Z' }));
+  const between = realmPostMessage(post('between', { createdAt: '2026-09-23T02:01:30Z' }));
+  const otherType = activityMessage(record(4, { type: 'com.example.other.v1' }));
+  const download = systemMessage(system('download', 'install', '2026-09-20T00:00:00Z'));
+  const unknown = systemMessage(system('update', 'update', null));
+  const groups = homePreviewGroups([old, first, second, between, otherType, download, unknown]);
+  assert.deepEqual(groups.flatMap((group) => group.messages.map((message) => message.key)),
+    [otherType.key, second.key, between.key, first.key, old.key, download.key]);
+  assert.equal(new Set(groups.map((group) => group.key)).size, groups.length);
+  const contiguous = homePreviewGroups([first, second, old, otherType]);
+  assert.deepEqual(contiguous.map((group) => group.messages.length), [1, 2, 1]);
+});
+
+test('quick filters pin one type/status pair each', () => {
+  assert.deepEqual(quickFilterSelection('all'), { type: 'all', status: 'all' });
+  assert.deepEqual(quickFilterSelection('unread'), { type: 'all', status: 'unread' });
+  assert.deepEqual(quickFilterSelection('pending'), { type: 'all', status: 'pending' });
+  assert.deepEqual(quickFilterSelection('post'), { type: 'post', status: 'all' });
+  assert.deepEqual(quickFilterSelection('todo'), { type: 'todo', status: 'all' });
+});
+
+test('timeline filters distinguish todos, summaries and Posts without inventing unread state', () => {
+  const todo = activityMessage(record(1));
+  const readTodo = activityMessage(record(2, { userView: { readThroughRevision: 1, unread: false, needsAttention: false } }));
+  const summary = activityMessage(record(3, { kind: 'activity', todoState: null }));
+  const realm = realmPostMessage(post('post'));
+  const update = systemMessage(system('update', 'update', null));
+  const messages = [todo, readTodo, summary, realm, update];
+  assert.deepEqual(filterTimelineMessages(messages, 'all', 'pending'), [todo, readTodo, update]);
+  assert.deepEqual(filterTimelineMessages(messages, 'all', 'unread'), [todo, summary]);
+  assert.deepEqual(filterTimelineMessages(messages, 'message', 'all'), [summary]);
+  assert.deepEqual(filterTimelineMessages(messages, 'todo', 'unread'), [todo]);
+  assert.deepEqual(filterTimelineMessages(messages, 'post', 'all'), [realm]);
+  assert.deepEqual(filterTimelineMessages(messages, 'post', 'unread'), []);
 });
 
 test('Pending holds open todos and system items only', () => {
@@ -157,13 +182,26 @@ test('Pending holds open todos and system items only', () => {
   const setup = systemMessage(system('setup', 'task-2', null));
   const pending = filterCenterMessages([openRead, completed, summary, turn, realm, setup], 'pending', null);
   assert.deepEqual(pending.map((message) => message.key), [openRead.key, setup.key]);
-  assert.deepEqual(filterCenterMessages([openRead, completed, realm], 'all', 'app:src_studio').map((message) => message.key).sort(), [completed.key, openRead.key].sort());
+  assert.deepEqual(filterCenterMessages([openRead, completed, realm], 'all', 'app-id:com.example.studio').map((message) => message.key).sort(), [completed.key, openRead.key].sort());
   assert.equal(messageDomainOfGroup(null), null);
   assert.equal(messageDomainOfGroup('app:src_studio'), 'app');
+  assert.equal(messageDomainOfGroup('app-id:com.example.studio'), 'app');
   assert.equal(messageDomainOfGroup('runtime-agent:agr_nova'), 'runtime-agent');
   assert.equal(messageDomainOfGroup('realm-post:p5'), 'realm-post');
   assert.equal(messageDomainOfGroup('realm-author:personaCharacter:persona_lumi'), 'realm-post');
   assert.equal(messageDomainOfGroup('system:setup'), 'system');
+});
+
+test('center app filtering includes every registration while preserving action identities and pending semantics', () => {
+  const first = activityMessage(record(34));
+  const second = activityMessage(record(35, { source: { ...first.record.source, sourceRef: 'src_second', available: false } }));
+  const completed = activityMessage(record(36, { todoState: 'completed' }));
+  const namesake = activityMessage(record(37, { source: { ...first.record.source, appId: 'different.app', sourceRef: 'src_different' } }));
+  const messages = [first, second, completed, namesake];
+  assert.deepEqual(filterCenterMessages(messages, 'all', 'app-id:com.example.studio'), [completed, second, first]);
+  assert.deepEqual(filterCenterMessages(messages, 'pending', 'app-id:com.example.studio'), [second, first]);
+  assert.notEqual(first.groupKey, second.groupKey, 'source-owned grouping and action records remain distinct');
+  assert.equal(filterCenterMessages(messages, 'all', null).length, 4, 'clearing restores all sources');
 });
 
 test('Home hiding keeps the displayed revision; a read change stays hidden and a new revision returns', () => {

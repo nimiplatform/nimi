@@ -34,6 +34,9 @@ export type HomeMessageCardContext = Readonly<{
 
 const CARD_CLASS = 'relative flex gap-3 rounded-[20px] px-3.5 py-3';
 
+/** Dense message lists rest cards on the Home card elevation; the promoted-glass raised default reads as a heavy shadow under every card. */
+const LIST_CARD_ELEVATION = 'shadow-[var(--nimi-home-card-elevation)]';
+
 export function messageSourceLabel(message: HomeMessage, t: Translate): string {
   switch (message.sourceKind) {
     case 'app':
@@ -353,7 +356,7 @@ function HomeMessageCardCompact({ message, context }: {
       kind="promoted-glass"
       as="article"
       aria-label={title}
-      className="group/message relative flex items-center gap-3 rounded-[20px] px-3.5 py-2.5"
+      className={`group/message relative flex items-center gap-3 rounded-[20px] px-3.5 py-2.5 ${LIST_CARD_ELEVATION}`}
       data-testid={`home-message:${message.key}`}
       data-unread={unread ? 'true' : 'false'}
     >
@@ -569,18 +572,18 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
   const pending = group.sourceKind !== 'system' && group.messages.some(isPendingMessage);
   return (
     <div className="relative pb-3" data-testid={`home-message-stack:${group.key}`}>
-      {/* Layers only peek out below the glass card, so nothing shows through it. */}
+      {/* Layers only peek out below the glass card; the lead card's shadow lifts the whole stack, so the layers carry none of their own. */}
       <span
         aria-hidden="true"
-        className="absolute inset-x-2.5 bottom-1.5 h-1.5 rounded-b-[14px] border border-t-0 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-promoted-glass-elevated)] shadow-[var(--nimi-elevation-base)]"
+        className="absolute inset-x-2.5 bottom-1.5 h-1.5 rounded-b-[14px] border border-t-0 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-promoted-glass-elevated)]"
       />
       {others > 1 ? (
         <span
           aria-hidden="true"
-          className="absolute inset-x-5 bottom-0 h-1.5 rounded-b-[12px] border border-t-0 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-promoted-glass-elevated)] opacity-80 shadow-[var(--nimi-elevation-base)]"
+          className="absolute inset-x-5 bottom-0 h-1.5 rounded-b-[12px] border border-t-0 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-promoted-glass-elevated)] opacity-80"
         />
       ) : null}
-      <AppCardSurface kind="promoted-glass" as="article" aria-label={label} className="group/message relative rounded-[20px]">
+      <AppCardSurface kind="promoted-glass" as="article" aria-label={label} className={`group/message relative rounded-[20px] ${LIST_CARD_ELEVATION}`}>
         {hideable ? (
           <HideButton
             label={t('runtimeConfig.overview.messages.hideGroup', { count: group.messages.length })}

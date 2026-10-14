@@ -695,7 +695,6 @@
     "statusCapabilities": "这台电脑有 {{count}} 项 AI 能力可用，点击查看",
     "statusDownloading": "{{count}} 项下载进行中",
     "setupFailed": "{{capability}} · 设置需要处理",
-    "devTag": "开发",
     "updateTag": "有更新",
     "firstRunTitle": "三步开始使用",
     "firstRun": {
@@ -744,6 +743,20 @@
       "story": "给我讲个故事"
     },
     "messages": {
+      "viewAllShort": "查看全部",
+      "filters": "筛选",
+      "filtersActive": "筛选（已启用）",
+      "quickFilterTypeGroup": "类型筛选",
+      "quickFilters": {
+        "all": "全部消息",
+        "unread": "未读消息",
+        "pending": "待处理事项",
+        "message": "仅看消息",
+        "post": "仅看动态",
+        "todo": "仅看事项"
+      },
+      "clearFilters": "清除筛选",
+      "noMatches": "首页暂无符合筛选的内容，可在消息中心查看全部。",
       "title": "消息",
       "settings": "消息设置",
       "sectionItems": "消息与事项",
@@ -754,7 +767,6 @@
       "viewAll": "查看全部消息",
       "viewActivity": "查看动态",
       "centerTitle": "消息中心",
-      "centerSubtitle": "查看已收到的消息与待处理事项",
       "back": "返回首页",
       "filterLabel": "消息范围",
       "filterAll": "全部",
@@ -763,8 +775,15 @@
       "filterPendingCountMore": "待处理 {{count}}+",
       "sourceFilterLabel": "来源筛选",
       "allSources": "全部来源",
-      "sourceUnavailableOption": "{{source}}（不可用）",
-      "sourceNumberedOption": "{{source}}（{{index}}）",
+      "searchSources": "搜索来源",
+      "clearSourceFilter": "清除来源筛选",
+      "noMatchingSources": "未找到匹配来源，试试其他名称",
+      "sourceGroups": {
+        "app": "应用",
+        "runtime-agent": "助手消息",
+        "realm-post": "动态",
+        "system": "系统通知"
+      },
       "hide": "从首页隐藏",
       "hideGroup": "从首页隐藏这 {{count}} 条消息",
       "hiddenFromHome": "首页已隐藏",

@@ -1,7 +1,7 @@
 import { Button } from '@nimiplatform/kit/ui';
 import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import { UsageWindow, type GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
-import { ArrowRight, Coins } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatEstimatedCost, useUsageEstimate } from '../runtime-config/runtime-config-cost-estimator.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
@@ -107,7 +107,7 @@ export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnos
     : undefined;
   return (
     <section
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-full bg-[var(--nimi-surface-panel)] px-2 py-1.5 shadow-[var(--nimi-elevation-base)]"
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-full bg-[var(--nimi-surface-panel)] px-2 py-1.5 shadow-[var(--nimi-home-card-elevation)]"
       aria-label={t('runtimeConfig.overview.machineStatus')}
       data-testid="home-machine-status"
     >
@@ -165,7 +165,6 @@ export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnos
       </button>
       <Button tone="ghost" size="sm" className="rounded-full" onClick={() => onOpenDiagnostics('services')}>
         {t('runtimeConfig.nav.advancedDiagnostics')}
-        <ArrowRight size={14} />
       </Button>
     </section>
   );

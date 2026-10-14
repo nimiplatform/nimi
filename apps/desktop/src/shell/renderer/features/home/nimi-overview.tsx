@@ -1,8 +1,8 @@
 import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
-import { IntegrationsPanel } from '../integrations/integrations-panel.js';
+import { IntegrationsPanel, type IntegrationsPanelIntent } from '../integrations/integrations-panel.js';
 import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, ArrowUp } from 'lucide-react';
+import { ArrowRight, ArrowUp, ChevronRight } from 'lucide-react';
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
@@ -20,14 +20,20 @@ import { isDownloadTerminal } from '../runtime-config/runtime-config-model-cente
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import { runtimeSetupFailureText } from '../runtime-config/runtime-setup-failure-message.js';
 import { HomeAgentCard } from './home-agent-card.js';
+import { HomeIntegrationsCard } from './home-integrations-card.js';
 import { HomeMachineStatus, homeRuntimeState } from './home-machine-status.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessageCenter } from './home-message-center.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
 import { useHomeMessages, type HomeMessages } from './home-messages-controller.js';
 import { systemMessage, type HomeMessageFilter, type HomeSystemItemMessage } from './home-messages-model.js';
+import { useHomeRowCapacity } from './use-home-row-capacity.js';
 
 const HOME_APP_LIMIT = 8;
+// Tile geometry of the Home app buttons (w-[92px] + gap-1): only as many
+// tiles as fit one row are rendered, measured from the row itself.
+const HOME_APP_TILE_WIDTH = 92;
+const HOME_APP_TILE_GAP = 4;
 
 /** Matches Tailwind's xl breakpoint, where the overview switches to split columns. */
 const XL_SPLIT_MEDIA_QUERY = '(min-width: 1280px)';
@@ -58,7 +64,6 @@ function SectionHeader({ title, action, onAction }: { title: string; action?: st
       {action && onAction ? (
         <Button tone="ghost" size="sm" onClick={onAction}>
           {action}
-          <ArrowRight size={14} />
         </Button>
       ) : null}
     </div>
@@ -93,7 +98,17 @@ export function NimiOverview() {
   const setView = (homeSection: 'overview' | 'center' | 'integrations') => void navigation.push({ id: 'home', homeSection });
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
   const [centerSource, setCenterSource] = useState<string | null>(null);
+  const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
+  const openIntegrations = (intent?: IntegrationsPanelIntent) => {
+    setIntegrationIntent(intent ?? null);
+    void navigation.push({ id: 'home', homeSection: 'integrations' });
+  };
   const splitColumns = useXlSplitColumns();
+  const { ref: appsRowRef, capacity: appsRowCapacity } = useHomeRowCapacity({
+    tileWidth: HOME_APP_TILE_WIDTH,
+    tileGap: HOME_APP_TILE_GAP,
+    limit: HOME_APP_LIMIT,
+  });
   const health = useQuery({
     queryKey: ['nimi-overview', 'runtime-health'],
     queryFn: () => sdk.machineProduct().audit.getRuntimeHealth({}),
@@ -209,7 +224,7 @@ export function NimiOverview() {
   });
 
   const heading = (
-    <h1 className="text-[28px] font-semibold leading-tight tracking-tight lg:text-[34px]">
+    <h1 className="text-[34px] font-bold leading-tight tracking-tight text-[var(--nimi-text-primary)] lg:text-[42px]">
       {displayName
         ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
         : t(greetingKey(now.getHours()))}
@@ -224,11 +239,12 @@ export function NimiOverview() {
       ) : inventory.isPending ? null : (
         <button
           type="button"
-          className="rounded-md text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+          className="inline-flex items-center gap-0.5 rounded-md text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
           onClick={() => navigation.push({ id: 'runtime' })}
           data-testid="home-status-capabilities"
         >
           {t('runtimeConfig.overview.statusCapabilities', { count: prepared.length })}
+          <ChevronRight size={15} aria-hidden="true" />
         </button>
       )}
       {activeTransfers.length ? (
@@ -256,52 +272,40 @@ export function NimiOverview() {
   );
 
   const renderOverview = (messages: HomeMessages | null) => (
-    // Narrow windows stack the greeting, then Messages, then the longer
-    // sections in one page scroll. From xl the greeting pins to the top
-    // while the main sections and the Messages column each scroll on their
-    // own inside the viewport.
-    <div className="grid items-start gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[auto_minmax(0,1fr)]">
-      <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+    // Narrow windows stack the date, greeting, Messages, then the longer
+    // sections in one page scroll. From xl the date and greeting pin to the
+    // top of the left column while the Messages column starts level with the
+    // date, and the main sections and Messages each scroll on their own
+    // inside the viewport.
+    <div className="grid items-start gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[auto_auto_minmax(0,1fr)]">
+      <p className="min-w-0 px-2 text-[13px] text-[var(--nimi-text-secondary)] xl:col-start-1 xl:row-start-1" data-testid="home-date">
+        {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
+      </p>
+      <div className="min-w-0 xl:col-start-1 xl:row-start-2">
         <HomeAgentCard heading={heading} status={status} />
       </div>
       {messages ? (
-        <div className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:min-h-0 xl:self-stretch">
+        <div className="min-w-0 xl:col-start-2 xl:row-span-3 xl:row-start-1 xl:min-h-0 xl:self-stretch">
           <ScrollArea className="xl:h-full" viewportClassName="bg-transparent [&>div]:!block">
             <HomeMessagesColumn
               messages={messages}
               context={cardContext(messages)}
               onViewAll={() => openCenter('all')}
-              onViewPending={() => openCenter('pending')}
-              onViewActivity={() => navigation.push({ id: 'activity' })}
+              onViewActivity={() => { void navigation.push({ id: 'activity' }); }}
               onOpenSettings={openMessageSettings}
             />
           </ScrollArea>
         </div>
       ) : null}
-      <div className="min-w-0 xl:col-start-1 xl:row-start-2 xl:min-h-0 xl:self-stretch">
+      <div className="min-w-0 xl:col-start-1 xl:row-start-3 xl:min-h-0 xl:self-stretch">
         <ScrollArea
           className="xl:h-full"
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >
-        <section className="rounded-[24px] bg-[var(--nimi-surface-panel)] px-5 py-3.5 shadow-[var(--nimi-elevation-base)]" data-testid="home-integrations">
-          <button
-            type="button"
-            onClick={() => navigation.push({ id: 'home', homeSection: 'integrations' })}
-            className="group flex w-full items-center gap-3 text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-          >
-            <span className="flex min-w-0 flex-1 items-baseline gap-2.5">
-              <span className="shrink-0 text-sm font-semibold">{t('Integrations.title')}</span>
-              <span className="truncate text-[13px] text-[var(--nimi-text-secondary)]">{t('Integrations.homeBody')}</span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1 text-[13px] font-medium text-[var(--nimi-text-secondary)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">
-              {t('Integrations.manage')}
-              <ArrowRight size={14} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </button>
-        </section>
+        <HomeMachineStatus runtime={homeRuntimeState(health)} onOpenDiagnostics={openDiagnostics} />
         {firstRun ? (
-          <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-elevation-base)]" data-testid="home-first-run">
+          <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-first-run">
             <h2 className="text-base font-semibold">{t('runtimeConfig.overview.firstRunTitle')}</h2>
             <ol className="grid gap-3 md:grid-cols-3">
               {(['model', 'chat', 'apps'] as const).map((step, index) => (
@@ -326,7 +330,7 @@ export function NimiOverview() {
             </ol>
           </section>
         ) : (
-          <section className="flex flex-col gap-3 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-elevation-base)]" data-testid="home-apps">
+          <section className="flex flex-col gap-3 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-apps">
             <SectionHeader
               title={t('runtimeConfig.overview.apps')}
               action={t('runtimeConfig.overview.allApps')}
@@ -340,8 +344,8 @@ export function NimiOverview() {
             ) : null}
             {apps.isPending ? <LoadingSkeleton lines={2} label={t('Common.loading')} /> : null}
             {unique.length ? (
-              <div className="flex flex-wrap gap-1">
-                {unique.slice(0, HOME_APP_LIMIT).map((entry) => {
+              <div ref={appsRowRef} className="flex flex-wrap gap-1">
+                {unique.slice(0, appsRowCapacity).map((entry) => {
                   const update = hasAvailableCatalogUpdate(entry);
                   return (
                     <button
@@ -370,11 +374,6 @@ export function NimiOverview() {
                       </span>
                       <span className="flex w-full flex-col items-center gap-0.5">
                         <span className="w-full truncate text-xs font-medium">{entry.identity.displayName}</span>
-                        {!entry.committedRelease ? (
-                          <span className="rounded-md bg-[var(--nimi-surface-active)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--nimi-text-secondary)]">
-                            {t('runtimeConfig.overview.devTag')}
-                          </span>
-                        ) : null}
                       </span>
                     </button>
                   );
@@ -386,15 +385,19 @@ export function NimiOverview() {
             ) : null}
           </section>
         )}
-
-        <HomeMachineStatus runtime={homeRuntimeState(health)} onOpenDiagnostics={openDiagnostics} />
+        <HomeIntegrationsCard appIconUrls={iconUrls} onOpen={openIntegrations} />
         </ScrollArea>
       </div>
     </div>
   );
 
   const renderPage = (messages: HomeMessages | null) => view === 'integrations' ? (
-    <IntegrationsPanel appIconUrls={iconUrls} onBack={() => navigation.push({ id: 'home', homeSection: 'overview' })} />
+    <IntegrationsPanel
+      appIconUrls={iconUrls}
+      onBack={() => navigation.push({ id: 'home', homeSection: 'overview' })}
+      intent={integrationIntent}
+      onIntentConsumed={() => setIntegrationIntent(null)}
+    />
   ) : (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       {view === 'center' && messages ? (
@@ -421,9 +424,6 @@ export function NimiOverview() {
         // display:table div that always grows with the content, so no
         // bounded height reaches the columns.
         <div className={`${SHELL_PAGE_WIDTH_CLASS} flex min-h-0 flex-1 flex-col pb-7 pt-5`}>
-          <p className="px-2 pb-4 text-[13px] text-[var(--nimi-text-muted)]" data-testid="home-date">
-            {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
-          </p>
           {renderOverview(messages)}
         </div>
       ) : (
@@ -432,9 +432,6 @@ export function NimiOverview() {
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
         >
-          <p className="px-2 pb-4 text-[13px] text-[var(--nimi-text-muted)]" data-testid="home-date">
-            {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
-          </p>
           {renderOverview(messages)}
         </ScrollArea>
       )}

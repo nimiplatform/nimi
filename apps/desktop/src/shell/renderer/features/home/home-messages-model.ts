@@ -1,8 +1,37 @@
 import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import { isPendingTodo } from './home-app-activity-model.js';
 
-/** Non-system source groups previewed on Home; system categories are always shown. */
-export const HOME_MESSAGE_GROUP_LIMIT = 5;
+/** A bounded preview; the Message center retains the complete loaded listing. */
+export const HOME_MESSAGE_GROUP_LIMIT = 6;
+
+export type HomeTimelineType = 'all' | 'message' | 'todo' | 'post';
+export type HomeTimelineStatus = 'all' | 'unread' | 'pending';
+
+/** Home toolbar quick filters; each preset pins one type/status pair. */
+export type HomeTimelineQuickFilter = 'all' | 'unread' | 'pending' | 'message' | 'post' | 'todo';
+
+export function quickFilterSelection(filter: HomeTimelineQuickFilter): Readonly<{ type: HomeTimelineType; status: HomeTimelineStatus }> {
+  switch (filter) {
+    case 'unread': return { type: 'all', status: 'unread' };
+    case 'pending': return { type: 'all', status: 'pending' };
+    case 'message': return { type: 'message', status: 'all' };
+    case 'post': return { type: 'post', status: 'all' };
+    case 'todo': return { type: 'todo', status: 'all' };
+    default: return { type: 'all', status: 'all' };
+  }
+}
+
+export function timelineType(message: HomeMessage): Exclude<HomeTimelineType, 'all'> {
+  if (message.sourceKind === 'realm-post') return 'post';
+  if (message.sourceKind === 'system' || message.record.kind === 'todo') return 'todo';
+  return 'message';
+}
+
+export function filterTimelineMessages(messages: readonly HomeMessage[], type: HomeTimelineType, status: HomeTimelineStatus): HomeMessage[] {
+  return messages.filter((message) => (type === 'all' || timelineType(message) === type)
+    && (status === 'all' || (status === 'pending' ? isPendingMessage(message)
+      : (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent') && message.record.userView.unread)));
+}
 
 export type HomeSystemMessageKind = 'download' | 'setup' | 'update';
 
@@ -137,6 +166,11 @@ function factTime(message: HomeMessage): number | null {
 export function compareMessages(left: HomeMessage, right: HomeMessage): number {
   const progress = Number(isInProgressMessage(right)) - Number(isInProgressMessage(left));
   if (progress !== 0) return progress;
+  return compareTimelineMessages(left, right);
+}
+
+/** Home uses only owner fact time, never progress or pending priority. */
+export function compareTimelineMessages(left: HomeMessage, right: HomeMessage): number {
   const leftTime = factTime(left);
   const rightTime = factTime(right);
   if (leftTime !== null && rightTime !== null && leftTime !== rightTime) return rightTime - leftTime;
@@ -158,13 +192,31 @@ export function groupMessages(messages: readonly HomeMessage[]): HomeMessageGrou
     .sort((left, right) => compareMessages(left.messages[0]!, right.messages[0]!));
 }
 
-/** Home preview: every system category plus the leading non-system source groups. */
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r015
+/** Only consecutive, same-type messages within an hour of the lead may fold together. */
 export function homePreviewGroups(
   messages: readonly HomeMessage[],
   limit = HOME_MESSAGE_GROUP_LIMIT,
 ): HomeMessageGroup[] {
-  let sources = 0;
-  return groupMessages(messages).filter((group) => group.sourceKind === 'system' || (sources += 1) <= limit);
+  const groups: { key: string; sourceKind: HomeMessage['sourceKind']; messages: HomeMessage[] }[] = [];
+  for (const message of [...messages].sort(compareTimelineMessages)) {
+    const group = groups.at(-1);
+    const lead = group?.messages[0];
+    const time = factTime(message);
+    const leadTime = lead ? factTime(lead) : null;
+    const sameType = lead && (lead.sourceKind === 'app' || lead.sourceKind === 'runtime-agent')
+      && (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent')
+      && lead.record.type === message.record.type && lead.record.kind === message.record.kind
+      && lead.record.todoState === message.record.todoState;
+    if (group && lead && sameType && lead.groupKey === message.groupKey
+      && time !== null && leadTime !== null && leadTime - time <= 60 * 60 * 1000) {
+      group.messages.push(message);
+    } else {
+      if (groups.length >= limit) break;
+      groups.push({ key: `${message.groupKey}:${message.key}`, sourceKind: message.sourceKind, messages: [message] });
+    }
+  }
+  return groups;
 }
 
 export function filterCenterMessages(
@@ -173,16 +225,25 @@ export function filterCenterMessages(
   groupKey: string | null,
 ): HomeMessage[] {
   return messages
-    .filter((message) => (filter === 'all' || isPendingMessage(message)) && (!groupKey || message.groupKey === groupKey))
+    .filter((message) => (filter === 'all' || isPendingMessage(message))
+      && (!groupKey || messageCenterSourceKey(message) === groupKey))
     .sort(compareMessages);
 }
 
 export type HomeMessageDomain = 'app' | 'runtime-agent' | 'realm-post' | 'system';
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r036
+/** Center filtering aggregates App registrations only; records and actions retain their exact source. */
+export function messageCenterSourceKey(message: HomeMessage): string {
+  return message.sourceKind === 'app' && message.record.source.appId
+    ? `app-id:${message.record.source.appId}`
+    : message.groupKey;
+}
+
 /** Owner domain of a source filter; null selects every source. */
 export function messageDomainOfGroup(groupKey: string | null): HomeMessageDomain | null {
   if (!groupKey) return null;
-  if (groupKey.startsWith('app:')) return 'app';
+  if (groupKey.startsWith('app:') || groupKey.startsWith('app-id:')) return 'app';
   if (groupKey.startsWith('runtime-agent')) return 'runtime-agent';
   if (groupKey.startsWith('system:')) return 'system';
   return 'realm-post';

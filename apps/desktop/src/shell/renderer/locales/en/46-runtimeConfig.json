@@ -695,7 +695,6 @@
     "statusCapabilities": "AI features ready on this computer: {{count}}. Click to view",
     "statusDownloading": "{{count}} downloading",
     "setupFailed": "{{capability}} · setup needs attention",
-    "devTag": "Dev",
     "updateTag": "Update",
     "firstRunTitle": "Three steps to get going",
     "firstRun": {
@@ -744,6 +743,20 @@
       "story": "Tell me a story"
     },
     "messages": {
+      "viewAllShort": "View all",
+      "filters": "Filter",
+      "filtersActive": "Filter (active)",
+      "quickFilterTypeGroup": "Type filters",
+      "quickFilters": {
+        "all": "All messages",
+        "unread": "Unread messages",
+        "pending": "Pending items",
+        "message": "Messages only",
+        "post": "Activity only",
+        "todo": "Items only"
+      },
+      "clearFilters": "Clear filters",
+      "noMatches": "No matching items on Home. View all in the Message center.",
       "title": "Messages",
       "settings": "Message settings",
       "sectionItems": "Messages & items",
@@ -754,7 +767,6 @@
       "viewAll": "View all messages",
       "viewActivity": "View activity",
       "centerTitle": "Message center",
-      "centerSubtitle": "Messages and pending items you have received",
       "back": "Back to Home",
       "filterLabel": "Message scope",
       "filterAll": "All",
@@ -763,8 +775,15 @@
       "filterPendingCountMore": "Pending {{count}}+",
       "sourceFilterLabel": "Filter by source",
       "allSources": "All sources",
-      "sourceUnavailableOption": "{{source}} (unavailable)",
-      "sourceNumberedOption": "{{source}} ({{index}})",
+      "searchSources": "Search sources",
+      "clearSourceFilter": "Clear source filter",
+      "noMatchingSources": "No matching sources. Try another name.",
+      "sourceGroups": {
+        "app": "Apps",
+        "runtime-agent": "Assistant messages",
+        "realm-post": "Posts",
+        "system": "System notifications"
+      },
       "hide": "Hide from Home",
       "hideGroup": "Hide these {{count}} messages from Home",
       "hiddenFromHome": "Hidden from Home",
