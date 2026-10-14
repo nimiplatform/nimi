@@ -8,7 +8,7 @@ catalog_id: desktop_nimi_kit_compositions
 entries:
   - desktop.chat.relationship_rail
   - desktop.shell.main_layout_view
-  - desktop.shell.main_layout_topbar
+  - desktop.shell.home_chrome
   - desktop.shell.settings_menu
 app: desktop
 components:
@@ -32,15 +32,15 @@ components:
     shared_targets:
       - '@nimiplatform/kit/ui'
     source_rule: D-SHELL-090
-  - id: desktop.shell.main_layout_topbar
+  - id: desktop.shell.home_chrome
     app: desktop
-    module: apps/desktop/src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx
-    component: MainLayoutTopBar
+    module: apps/desktop/src/shell/renderer/app-shell/providers/home-chrome.tsx
+    component: HomeChrome
     classification: app_owned_composition
     shared_families:
-      - tooltip
+      - app_chrome
     shared_targets:
-      - '@nimiplatform/kit/ui'
+      - '@nimiplatform/kit/ui/app-chrome'
     source_rule: D-SHELL-090
   - id: desktop.shell.settings_menu
     app: desktop
