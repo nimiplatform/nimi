@@ -47,7 +47,7 @@ type EntryCopy = Readonly<{
 const ENTRY_COPY = Object.freeze({
   en: Object.freeze({
     title: 'Agent Center',
-    description: 'Choose a current Agent, then manage the same canonical owner surface available to every covered App.',
+    description: "Choose a current Agent to manage settings shared across all supported apps.",
     loading: 'Loading current Agents…',
     loadFailed: 'Current Agents could not be loaded.',
     retry: 'Retry',
@@ -57,7 +57,7 @@ const ENTRY_COPY = Object.freeze({
   }),
   zh: Object.freeze({
     title: 'Agent Center',
-    description: '选择当前 Agent，然后使用所有同 coverage App 共用的规范 owner surface。',
+    description: "选择当前 Agent，统一管理在所有支持的 App 中通用的设定。",
     loading: '正在加载当前 Agent…',
     loadFailed: '无法加载当前 Agent。',
     retry: '重试',

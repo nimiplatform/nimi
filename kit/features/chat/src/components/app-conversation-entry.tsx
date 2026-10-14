@@ -72,7 +72,7 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
   }),
   zh: Object.freeze<AppConversationEntryCopy>({
     title: 'Agent 对话',
-    description: '请明确选择当前 Agent，以打开其规范 Conversation。',
+    description: "请先选择当前 Agent，打开它的对话。",
     loadingReferences: '正在加载当前 Agent…',
     empty: '当前 App session 没有可用 Agent。',
     select: '打开对话',

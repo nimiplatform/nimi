@@ -33,14 +33,9 @@ Foundation design system for shared tokens, primitives, themes, and generated vi
 
 ## Standard App chrome
 
-`@nimiplatform/kit/ui/app-chrome` exports `NimiAppChrome`,
-`NimiNavigationProvider`, navigation hooks and `NimiNavigationLink`. The App
-creates one core controller and defines its destination validator and leave
-policy. Render content from its snapshot, and route every entry through that
-controller. Supply real App metadata, `locale`, and an optional `sidebar` layout
-description; omitting the sidebar hides its button, menu item and shortcut help.
-`scopeKey` is local UI invalidation, never a Host credential. Help and window
-commands belong outside business/login gates; disable navigation while those
-gates are closed. The chrome restores the original writable or readonly selection
-before an edit menu action. Business data, drafts and one-shot effects stay in the
-App; history carries references only.
+`@nimiplatform/kit/ui/app-chrome` exports `NimiAppChrome`, `NimiNavigationProvider`, navigation hooks, and `NimiNavigationLink`.
+
+- **Controller & Navigation**: The App creates one core controller and defines its destination validator and leave policy. Render views from controller snapshots, and route every navigation entry through that controller.
+- **Chrome Configuration**: Supply real App metadata, `locale`, and an optional `sidebar` layout description. Omitting the sidebar hides its toggle button, menu item, and shortcut help. `scopeKey` is strictly for local UI invalidation, never a Host credential.
+- **Window Commands & Gating**: Help and window management commands belong outside business/login gates; disable navigation while those gates are closed. Chrome restores the original writable or readonly selection before executing an edit menu action.
+- **State Boundaries**: App business data, drafts, and one-shot side effects remain inside the App; history carries references only.

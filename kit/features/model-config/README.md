@@ -1,10 +1,6 @@
 # Kit Feature: Model Config
 
-## What It Is
-
-The public Nimi configuration presentation toolkit for canonical App AIConfig,
-shared LocalAgent AIConfig, and first-party machine Loadout
-surfaces. Every mount declares exactly one owner and consumer context.
+The public Nimi configuration presentation toolkit for canonical App AIConfig, shared LocalAgent AIConfig, and first-party machine Loadout surfaces. Every mount declares exactly one owner and consumer context.
 
 ## Public Surfaces
 
@@ -12,45 +8,42 @@ surfaces. Every mount declares exactly one owner and consumer context.
 - `@nimiplatform/kit/features/model-config/headless`
 - `@nimiplatform/kit/features/model-config/ui`
 
-The UI requires Kit's Tailwind 4 stylesheet and a foundation theme in the same
-CSS compilation entry as `@import 'tailwindcss'`; see the package README's
-Themes section. Importing Kit CSS through a separate JavaScript entry can leave
-model-picker layout utilities uncompiled, even when ordinary App styles work.
+### Styling Requirements
+
+Import Kit's Tailwind 4 stylesheet and a foundation theme in the same CSS compilation entry as `@import 'tailwindcss'` (see the package README's Theming section). Importing Kit CSS through a separate JavaScript entry can leave model-picker layout utilities uncompiled even when ordinary App styles work.
 
 ## Ownership Boundary
 
-Kit owns controlled presentation, draft interaction, and effective-resource
-projection. Hosts inject canonical reads, bounded options, and
-whole-object mutations. Kit never persists AIConfig, invents an owner, mutates
-machine selection from an App/Agent surface, or presents execution readiness.
+- **Kit owns**: Controlled presentation, draft interaction, and effective-resource projection.
+- **Host injects**: Canonical reads, bounded options, and whole-object mutations.
+- **Out of scope for Kit**: Kit never persists AIConfig, invents an owner, mutates machine selection from an App or Agent surface, or presents execution readiness.
 
-The AIConfig presentation keeps the established AI Model hub, capability
-detail, Active Model trigger, and Local/Cloud picker flow. A host may request
-one initial capability detail while preserving Back navigation to the complete
-hub. Local projects the
-owner's exact Loadout options. Every covered App uses the same options manager:
-the user selects a Connector, then Model Config requests that Connector's
-provider-model targets. One Save atomically commits the exact `connectorRef`,
-implementation, `providerModelId`, and Connector-scoped
-`remoteModelCatalogId`. Reloaded intent
-with missing or inconsistent exact target identity remains not configured and
-is never repaired by provider-name inference.
+### AIConfig Hub and Picker Flow
 
-The retired `core/model-config` scoped configuration ontology is not restored.
+The AIConfig presentation provides the standard AI Model hub, capability detail, Active Model trigger, and Local/Cloud picker flow. A Host may open directly into an initial capability detail view while preserving Back navigation to the full hub.
 
-The Kit-owned current-machine Local action is built from the surface's existing
-explicit CapabilityContracts, observed whole-owner configuration, opaque
-revision, options reader, and whole-owner overwrite manager. It reads the
-current Local selection for every explicit contract exactly once, withholds all
-mutation if any projection is unavailable or invalid, preserves all existing
-intent fields except the selected covered routes, appends missing selected
-intents in explicit order, skips canonical no-ops, and otherwise performs one
-compare-and-swap overwrite. It never reads a global capability catalog or
-mutates Loadouts, Connectors, ModelAssets, another App, or another AIConfig
-owner. The candidate remains unmounted until the single active product cutover.
+- **Local selection**: Projects the owner's exact Loadout options.
+- **Cloud / Connector selection**: Every covered App uses the same options manager:
+  1. The user selects a Connector.
+  2. Model Config requests that Connector's provider-model targets.
+  3. A single Save atomically commits the exact `connectorRef`, implementation, `providerModelId`, and Connector-scoped `remoteModelCatalogId`.
+
+If a reloaded intent has a missing or inconsistent exact target identity, it remains unconfigured and is never repaired by provider-name inference. The retired `core/model-config` scoped configuration ontology is not restored.
+
+### Current-Machine Local Action
+
+The Kit-owned current-machine Local action is constructed from the surface's explicit `CapabilityContracts`, observed whole-owner configuration, opaque revision, options reader, and whole-owner overwrite manager. It remains unmounted until the single active product cutover and enforces the following invariants:
+
+- Reads the current Local selection for every explicit contract exactly once.
+- Withholds all mutations if any projection is unavailable or invalid.
+- Preserves all existing intent fields except the selected covered routes, appending any missing selected intents in explicit order.
+- Skips canonical no-ops and performs a single compare-and-swap overwrite when changes are valid.
+- Never reads a global capability catalog or mutates Loadouts, Connectors, ModelAssets, another App, or another AIConfig owner.
 
 ## Verification
 
-- `pnpm --filter @nimiplatform/kit build`
-- `pnpm --filter @nimiplatform/kit test`
-- `pnpm check:nimi-kit`
+```bash
+pnpm --filter @nimiplatform/kit build
+pnpm --filter @nimiplatform/kit test
+pnpm check:nimi-kit
+```

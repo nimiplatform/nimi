@@ -3,14 +3,16 @@
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes.
 
-From 0.19.2 the public macOS native package supports both the production Local
+Starting in 0.19.2, the public macOS native package supports both the production Local
 App service and explicitly Desktop-supervised installed Apps in a source Runtime
 environment. Installed Apps keep this package in their own payload; Desktop
 provides only the exact source Runtime observation. Native peer verification and
 Runtime-owned installed-source/session admission remain required. A failed check
 never selects another Runtime profile, and production Desktop control is unchanged.
 
-For Host diagnostics, the existing `NIMI_PROTECTED_LOCAL_DIAGNOSTICS=1` switch also writes the exact admitted control-invalidation reason and an available numeric gRPC status to stderr. It does not log status messages or other error metadata.
+For Host diagnostics, setting `NIMI_PROTECTED_LOCAL_DIAGNOSTICS=1` writes the exact
+admitted control-invalidation reason and any available numeric gRPC status to stderr.
+It does not log status messages or other error metadata.
 
 The 0.19 production candidate builds the public Windows npm artifact for the
 formal Runtime service and its Platform-signed complete-product inventory.
@@ -19,31 +21,31 @@ refuses the build. The release workflow does not substitute a D2 artifact.
 
 The previously published 0.18.1 Windows artifact uses the separate
 `windows-source-local-development` Cargo feature for D2 Runtime. Existing D2
-projects retain their explicit dependency combination. Its process, App Access
+projects retain their explicit dependency combination. Its process, App Access,
 and source-admission checks remain distinct from formal service admission.
 
-The addon exposes exact Local App operations, including:
+The addon exposes exact Local App operations:
 
-- session status, same-scope renewal, and explicit Host-private rebind;
-- App AIConfig reads and revision-checked configuration;
-- narrow text candidate generation, and model turns with tools, structured
-  output, ordered continuity and user image parts;
-- Realm world-core list and create;
-- App storage read, write, and remove;
-- session-scoped Agent reference listing;
-- independent `agentWork` references, bounded execution, status, result,
-  ordered events and single tool-result handoff without Conversation access;
-- fixed Integration discovery, call, provider and trusted-management operations;
-  provider polls have a 25-second maximum and never become a workflow owner; and
-- typed Conversation open, send, attachments, interrupt, snapshot, and stream lifecycle;
-- App-owned Artifact upload and reads;
-- bounded `agent.local` embodiment snapshot and ordered stream lifecycle;
+- Session status, same-scope renewal, and explicit Host-private rebind
+- App AIConfig reads and revision-checked configuration
+- Narrow text candidate generation, and model turns with tools, structured
+  output, ordered continuity, and user image parts
+- Realm world-core list and create
+- App storage read, write, and remove
+- Session-scoped Agent reference listing
+- Independent `agentWork` references, bounded execution, status, result,
+  ordered events, and single tool-result handoff without Conversation access
+- Fixed Integration discovery, call, provider, and trusted-management operations
+  (provider polls have a 25-second maximum and never become a workflow owner)
+- Typed Conversation open, send, attachments, interrupt, snapshot, and stream lifecycle
+- App-owned Artifact upload and reads
+- Bounded `agent.local` embodiment snapshot and ordered stream lifecycle
 - App activity put, list, change subscription, mark-read, source open, and the
   source App's open-request subscription and completion, with streams pulled
   through `localAppRealtimeStreamNext` / `Close` (the source-open stream's
-  Host-private open request id stays in the Electron main process);
-- shared LocalAgent-subsystem AIConfig read and overwrite; and
-- Agent autonomy snapshot/update and presentation snapshot/commit with independent revision CAS.
+  Host-private open request id stays in the Electron main process)
+- Shared LocalAgent-subsystem AIConfig read and overwrite
+- Agent autonomy snapshot/update and presentation snapshot/commit with independent revision CAS
 
 Runtime derives the App AIConfig owner and every Agent authority input from the
 authenticated Local App process binding. Agent operations accept only opaque
@@ -57,14 +59,13 @@ Embodiment results carry only Runtime-owned activity, emotion, semantic
 posture, provenance, and bounded voice-timing correlation; renderer motion,
 lipsync, audio clock, replay, and backend diagnostics are not native exports.
 
-For Nimi Desktop it additionally exposes the generated first-party product
-families:
+For Nimi Desktop, it additionally exposes generated first-party product families:
 
-- `desktopMachineProductUnary` and `desktopMachineProductStreamOpen`;
-- `desktopAccountProductUnary` and `desktopAccountProductStreamOpen`; and
-- request-keyed `desktopFirstPartyProductUnaryCancel` for active machine, account, and bundled Avatar unary work; and
-- internal `desktopFirstPartyProductUnaryRelease` cleanup after the Node promise has observed completion; and
-- shared opaque `desktopFirstPartyProductStreamNext` / `Close` lifecycle calls.
+- `desktopMachineProductUnary` and `desktopMachineProductStreamOpen`
+- `desktopAccountProductUnary` and `desktopAccountProductStreamOpen`
+- Request-keyed `desktopFirstPartyProductUnaryCancel` for active machine, account, and bundled Avatar unary work
+- Internal `desktopFirstPartyProductUnaryRelease` cleanup after the Node promise has observed completion
+- Shared opaque `desktopFirstPartyProductStreamNext` / `Close` lifecycle calls
 
 Each method is converted to the generated profile-and-kind-specific native enum
 before the verified channel opens. Machine and account profile markers are fixed

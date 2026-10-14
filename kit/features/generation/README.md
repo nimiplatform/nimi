@@ -11,21 +11,11 @@ Reusable UI, headless state, and typed modality contracts for Nimi generation.
 
 ## Execution Posture
 
-Kit request types do not accept scoped configuration, binding, model, route,
-connector, target, readiness, ranking, or fallback authority.
+Kit request types do not accept scoped configuration, binding, model, route, connector, target, readiness, ranking, or fallback authority.
 
-`text.generate` dispatches through the SDK owner-driven Runtime AI model with
-App identity and request content only. Runtime composes the canonical AIConfig
-and validates its exact committed Loadout or Connector reference at request time.
-Kit does not infer a target, restore a retired binding layer, or fabricate
-success data. Unsupported consume capabilities remain typed
-`AI_ROUTE_UNSUPPORTED` before dispatch; modality-specific job helpers retain
-their own typed contracts.
-
-`runRuntimeVoiceCatalog(...)` remains active for owner-scoped `voice_asset_id`
-references. It does not expose preset discovery because the generated preset
-wire still requires retired model and connector fields that handwritten callers
-must omit.
+- **`text.generate`**: Dispatches through the SDK owner-driven Runtime AI model using only App identity and request content. Runtime composes the canonical AIConfig and validates its exact committed Loadout or Connector reference at request time. Kit never infers a target, restores a retired binding layer, or fabricates success data.
+- **Unsupported capabilities**: Unsupported consume capabilities fail prior to dispatch as typed `AI_ROUTE_UNSUPPORTED`; modality-specific job helpers retain their own typed contracts.
+- **`runRuntimeVoiceCatalog(...)`**: Active for owner-scoped `voice_asset_id` references. It does not expose preset discovery because the generated preset wire still requires retired model and connector fields that handwritten callers must omit.
 
 ## What Remains Reusable
 
@@ -35,77 +25,52 @@ must omit.
 - Runtime job-status labels and mapping for already-owned job projections.
 - Owner-scoped voice-asset reference listing.
 
-App-specific artifact persistence, media decoding, and downstream domain writes
-remain app-owned.
+App-specific artifact persistence, media decoding, and downstream domain writes remain app-owned.
 
-## Speech transcription
+## Modality Contracts
 
-SDK 0.14.0 / Kit 0.10.0 preserve optional `transcription` in speech-transcribe
-job and `runRuntimeSpeechTranscribe` results. It contains original text,
-model-reported language, ordered word/character times in seconds, and explicit
-`transcribed` or `no-speech` status. `text` remains convenient for text consumers.
-Use `timestamps: true` only with an aligned transcription resource; unsupported
-resources fail rather than synthesize timings. No-speech is distinct from a
-failed inference.
+### Speech Transcription
 
-The local Qwen3 Transformers aligned recipe needs both recognition and aligner
-assets in the selected Loadout and accepts up to 300 seconds per input. Times
-start at input zero; the App owns chunk offsets, subtitle assembly and export.
-See the SDK README for language and result bounds. This transcription recipe
-does not provide diarization or source separation.
+SDK 0.14.0 and Kit 0.10.0 preserve an optional `transcription` payload in speech-transcribe jobs and `runRuntimeSpeechTranscribe` results:
+- **Result structure**: Contains original text, model-reported language, ordered word/character times in seconds, and an explicit `transcribed` or `no-speech` status (`no-speech` is distinct from a failed inference). Top-level `text` remains available for plain-text consumers.
+- **Timestamps**: Pass `timestamps: true` only with an aligned transcription resource; unsupported resources fail rather than synthesize timings.
+- **Local recipes (up to 300 seconds per input)**:
+  - **Qwen3 Transformers aligned recipe**: Requires both recognition and aligner assets in the selected Loadout. Timestamps start at input zero; the App owns chunk offsets, subtitle assembly, and export. Does not provide diarization or source separation. (See the SDK README for language and result bounds.)
+  - **Faster Whisper recipe**: Uses a Whisper recognition model and a Silero voice activity detector. Returns actual word timestamps with no diarization or prompt support. Uses the exact same typed result and App-owned chunk offsets—no alternate SDK call is needed.
+- **Configuration**: Select the active transcription Loadout in Nimi's model configuration. App AIConfig declares `local: {}` without naming or selecting a specific local resource.
 
-The Faster Whisper recipe captures a Whisper recognition model and a Silero
-voice activity detector instead. It returns actual word timestamps for inputs
-up to 300 seconds, with no diarization or prompt support. It uses the same
-typed result and App-owned chunk offsets; no alternate SDK call is needed.
+### Source Separation
 
-Choose the current transcription Loadout in Nimi's model configuration. App
-AIConfig declares `local: {}`; it does not name or choose another local resource.
+- **Submission**: Call `ai.scenarioJobs.submit` on the Host-bound Local App client with an `audio-separate` spec and its own `audio.separate` AIConfig intent.
+- **Artifacts**: Completed Jobs return `audioSeparation.vocalsArtifactId` and `backgroundArtifactId`, both identifying owned audio artifacts on the same timeline. A failed or canceled Job never produces a successful pair.
+- **Custody & chunking**: Adopt large WAVs via `storage.assets.adoptArtifact` and read them with `storage.assets.read`. See the SDK README for the initial Driver's input limits and App chunking responsibilities.
 
-## Source separation
+### Embeddings
 
-Use the Host-bound Local App client's `ai.scenarioJobs.submit` with an
-`audio-separate` spec and its own `audio.separate` AIConfig intent. Completed Jobs
-carry `audioSeparation.vocalsArtifactId` and `backgroundArtifactId`; both identify
-owned audio artifacts with the same timeline. Receive large WAVs through
-`storage.assets.adoptArtifact` and read them with `storage.assets.read`.
-The SDK README documents the initial Driver's input limits and App chunking
-responsibility. A failed or canceled Job does not provide a successful pair.
+- **Execution**: `runRuntimeAIConsumeCapability` accepts batch `inputs` and an optional positive integer `dimensions` for `text.embed`. A protected App submits the same fields through `client.ai.scenario.execute({ type: 'text-embed', inputs, dimensions })`.
+- **Dimensions**: Omit `dimensions` to keep the selected implementation's native default. Runtime allows shortening only for supported exact targets and rejects the option for unsupported compositions.
+- **Output**: The result summary retains actual width, `spaceId`, and at most eight sample values. Compare vectors only within the same `spaceId`. Missing usage is unspecified.
 
-## Embeddings
+## Observing and Canceling Jobs
 
-`runRuntimeAIConsumeCapability` accepts batch `inputs` and optional positive
-integer `dimensions` for `text.embed`. A protected App submits the same fields
-through `client.ai.scenario.execute({ type: 'text-embed', inputs, dimensions })`.
-Omit `dimensions` to retain the selected implementation's native default.
-Runtime admits shortening only for supported exact targets and rejects the
-option for unsupported compositions. The result summary retains actual width,
-`spaceId` and at most eight sample values. Compare vectors only within the same
-space. Missing usage is unspecified.
+### Polling and Observation Semantics
+- All Job runners and observers poll the original Job using `getIntervalMs` (default `1000` milliseconds, positive integer) even when an event subscription is healthy and silent.
+- `Get` requests are serialized. `onObservation` receives every full `Get`, including any transient `observationIssue` (which does not alter the Job status).
+- `runNimiRuntimeScenarioJob` and `observeNimiRuntimeScenarioJob` return the complete terminal response as `response`, including typed outer results.
+
+### Cancellation Signals
+- **Runner `signal`**: Requests an explicit user Cancel.
+- **Runner `observationSignal`**: Stops observation (e.g., on view disposal or navigation) without canceling the Job.
+- **Observer `signal` vs `cancelSignal`**: For `observeNimiRuntimeScenarioJob` and Kit `observeRuntime*` helpers, `signal` only detaches observation, whereas the optional `cancelSignal` explicitly requests Cancel.
+- **Cancel resolution**: A rejected Cancel is reported as an observation error with the original Job ID and never fabricates a terminal state. A successful Cancel still requires a full terminal `Get`.
+- **Call budgets**: Technical `callOptions` budgets remain independent of Job lifetime.
+
+### Submission and Persistence
+Save the business action before calling Submit and persist the returned Job ID. Reopen jobs by their original ID or submission lookup—missing or expired actions must never trigger a new Submit. Observers do not own App history or media custody; read or adopt results through their formal typed, artifact, or resource owners while retention permits.
 
 ## Verification
 
-- `pnpm --filter @nimiplatform/kit build`
-- `pnpm --filter @nimiplatform/kit test`
-
-### Observing and canceling Jobs
-
-All Job runners and observers use `getIntervalMs` (default `1000` milliseconds,
-positive integer) to query the same original Job even when an event subscription
-is healthy and silent. Gets are serialized. `onObservation` receives each full
-Get, including a transient `observationIssue`; the issue does not change the Job
-status. `runNimiRuntimeScenarioJob` and `observeNimiRuntimeScenarioJob` return that
-complete terminal response as `response`, including typed outer results.
-
-A runner's `signal` is an explicit user Cancel request. Use its
-`observationSignal` for view disposal, navigation or stopping observation. For
-`observeNimiRuntimeScenarioJob` and Kit `observeRuntime*` helpers, `signal` only
-detaches and optional `cancelSignal` requests Cancel explicitly. Cancel rejection
-is reported as an observation error with the original Job ID, without a fabricated
-terminal state. A successful Cancel still requires a full terminal Get. Technical
-`callOptions` budgets remain independent of Job lifetime.
-
-Save the business action before Submit and persist its returned Job ID. Reopen
-by original ID or submission lookup; missing or expired actions never trigger a
-new Submit. Observers do not own App history or media custody. Read/adopt results
-through their formal typed, artifact or resource owners while retention permits.
+```bash
+pnpm --filter @nimiplatform/kit build
+pnpm --filter @nimiplatform/kit test
+```

@@ -60,7 +60,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'Current revision {{revision}}: {{summary}}',
       { revision, summary },
     ),
-    advancedLabel: t('AgentCenter.aiConfig.advancedLabel', 'Advanced intent'),
+    advancedLabel: t('AgentCenter.aiConfig.advancedLabel', "Advanced settings"),
     advancedHint: t(
       'AgentCenter.aiConfig.advancedHint',
       'Required features and default parameters apply to this shared LocalAgent AIConfig intent.',
@@ -68,7 +68,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     requiredFeaturesLabel: t('AgentCenter.aiConfig.requiredFeaturesLabel', 'Required features'),
     requiredFeaturesPlaceholder: t(
       'AgentCenter.aiConfig.requiredFeaturesPlaceholder',
-      'Comma-separated CapabilityContract features',
+      "Comma-separated capability features",
     ),
     defaultsLabel: t('AgentCenter.aiConfig.defaultsLabel', 'Default parameters'),
     defaultsPlaceholder: t('AgentCenter.aiConfig.defaultsPlaceholder', 'Leave a field empty to keep that parameter unset.'),
@@ -141,14 +141,14 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'AgentCenter.aiConfig.openCloudConnectorsLabel',
       'Configure Cloud Connectors',
     ),
-    cloudImplementationLabel: t('AgentCenter.aiConfig.cloudImplementationLabel', 'Cloud implementation'),
+    cloudImplementationLabel: t('AgentCenter.aiConfig.cloudImplementationLabel', "Cloud service"),
     cloudImplementationPlaceholder: t(
       'AgentCenter.aiConfig.cloudImplementationPlaceholder',
-      'Choose an existing implementation',
+      "Choose a cloud service",
     ),
-    cloudTargetLabel: t('AgentCenter.aiConfig.cloudTargetLabel', 'Provider-model target'),
-    cloudTargetPlaceholder: t('AgentCenter.aiConfig.cloudTargetPlaceholder', 'Choose an existing target'),
-    cloudTargetDialogTitle: t('AgentCenter.aiConfig.cloudTargetDialogTitle', 'Choose a Cloud target'),
+    cloudTargetLabel: t('AgentCenter.aiConfig.cloudTargetLabel', "Cloud model"),
+    cloudTargetPlaceholder: t('AgentCenter.aiConfig.cloudTargetPlaceholder', "Choose a cloud model"),
+    cloudTargetDialogTitle: t('AgentCenter.aiConfig.cloudTargetDialogTitle', "Choose a cloud model"),
     cloudTargetDialogDescription: t(
       'AgentCenter.aiConfig.cloudTargetDialogDescription',
       'Review the provider-model details, then confirm the target explicitly.',
@@ -167,7 +167,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     technicalDetailsLabel: t('AgentCenter.aiConfig.technicalDetailsLabel', 'Technical details'),
     unsupportedCapabilityLabel: t(
       'AgentCenter.aiConfig.unsupportedCapabilityLabel',
-      'This capability is not admitted by the canonical Kit catalog.',
+      "This capability is not available in the Kit catalog.",
     ),
     notConfiguredLabel: t('AgentCenter.aiConfig.notConfiguredLabel', 'Not configured'),
     configuredLabel: t('AgentCenter.aiConfig.configuredLabel', 'Configured'),

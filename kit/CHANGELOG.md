@@ -1,3 +1,5 @@
+> Reading this history: versioned and development entries describe their recorded stage, including older dependency and shell choices. They are not current setup instructions or proof of publication. Use the current package manifest and README for setup; App release notes and the matching immutable release describe release-specific status.
+
 # Changelog
 
 ## 0.21.0 — 2026-10-13

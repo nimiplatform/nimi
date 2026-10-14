@@ -7,21 +7,23 @@ current-user pipe/socket and process adapters. Both expose the same two
 connection-bound surfaces:
 
 - Desktop control for fixed-service account, Developer Mode, exact product
-  control, and exact Desktop runtime-consumer unary operations; and
-- the common third-party Local App carrier.
+  control, and exact Desktop runtime-consumer unary operations
+- The common third-party Local App carrier
 
 The Local App carrier connects only to the active profile's native protected
 endpoint, verifies the live Runtime process under that profile, performs
 the request-empty `OpenLocalAppSession`, and retains the verified process,
-channel, and Runtime boot epoch privately. On macOS the trust
-boundary is the fixed root-owned Runtime path and socket, `LOCAL_PEERTOKEN` /
-`LOCAL_PEERPID`, exact PID/EUID/start and exit/exec liveness, and strict
-SecCode validation. The local-development build requires an ad-hoc signature,
+channel, and Runtime boot epoch privately.
+
+On macOS, the trust boundary relies on the fixed root-owned Runtime path and socket,
+`LOCAL_PEERTOKEN` / `LOCAL_PEERPID`, exact PID/EUID/start and exit/exec liveness, and
+strict SecCode validation. The local-development build requires an ad-hoc signature,
 exact signing identifiers, and hardened runtime without consuming a Team ID,
-Apple certificate chain, or notarization result. The mutually exclusive
-production build requires its compile-time Team ID, Apple trust anchor,
-Developer ID, and notarization policy. Neither path consumes release, role,
-compatibility, artifact-hash, or CDHash records.
+Apple certificate chain, or notarization result. The mutually exclusive production
+build requires its compile-time Team ID, Apple trust anchor, Developer ID, and
+notarization policy. Neither path consumes release, role, compatibility,
+artifact-hash, or CDHash records.
+
 Windows source D2 derives owner-only named-pipe endpoints from the current OS
 user, binds the pipe server to Desktop's exact child Runtime process, and keeps
 production service, installer, signing, and update trust unchanged outside that
@@ -29,13 +31,13 @@ feature. Native profile choice adds no App access or reason semantics.
 
 The published macOS Local App carrier also supports installed Apps supervised
 by a source-development Home. It consumes the Host's exact Runtime executable
-observation, derives the current user's fixed local-App socket and runs the same
+observation, derives the current user's fixed local-App socket, and runs the same
 per-user native peer checks as the development carrier. The Host strips workspace
 carrier overrides, so the App continues to load its admitted package bytes.
-Missing observation uses the production Local App profile; invalid observation
-or a mismatched peer fails closed without a production/source fallback. This
-does not redirect production Desktop control or bypass Runtime's independent
-installed-source, session or App Access admission.
+A missing observation defaults to the production Local App profile; an invalid
+observation or mismatched peer fails closed without a production/source fallback.
+This does not redirect production Desktop control or bypass Runtime's independent
+installed-source, session, or App Access admission.
 
 Windows production unsigned Beta uses the compiled Platform product public key
 to authenticate the complete installed Desktop/Runtime/Avatar inventory in the
@@ -43,10 +45,10 @@ fixed administrative non-reparse Program Files product tree. The native carrier
 retains the exact live SCM Runtime process and locked executable, verifies all
 inventory bytes and ACLs, then opens the protected channel. Runtime independently
 admits the matching Home product release and source revision while retaining its
-fixed service SID, session and protected-data custody checks. An unsigned PE or
+fixed service SID, session, and protected-data custody checks. An unsigned PE or
 development certificate carries no product identity. The Host-only updater query
 has no arguments and returns the fixed admitted helper and public-key projection;
-it never replaces code, selects a release or controls the service.
+it never replaces code, selects a release, or controls the service.
 
 Its complete admitted Local App operation surface is session status, three
 protected principal-partitioned JSON storage operations, exact WorldCore
@@ -61,9 +63,9 @@ revision CAS. Presentation commit projects the previous profile needed for
 restore. AI profile mutation and Artifact operations are not exposed.
 
 Independent `agent.work` requests use business Agent references, execution IDs,
-ordered bounded events and tool-result handoff. No work input or tool result is
+ordered bounded events, and tool-result handoff. No work input or tool result is
 accepted by Conversation. Fixed Integration methods carry dynamic descriptors
-and operation data while Runtime retains identity, resource permission and
+and operation data while Runtime retains identity, resource permission, and
 credential custody. The native boundary exposes no dynamic Runtime method
 selector; Home management is revalidated by its protected Runtime owner.
 

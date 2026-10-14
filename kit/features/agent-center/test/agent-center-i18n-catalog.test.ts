@@ -91,6 +91,6 @@ describe('Agent Center canonical i18n catalogs', () => {
     expect(binding.t('AgentCenter.aiConfig.activeModelLabel')).toBe('当前模型');
     expect(binding.t('AgentCenter.aiConfig.modelPickerTitle')).toBe('选择模型');
     expect(binding.t('AgentCenter.aiConfig.cloudNoticeLabel')).toBe('云端执行');
-    expect(binding.t('AgentCenter.aiConfig.cloudNoticeDescription')).toBe('请求可能离开本机，并产生服务商费用。');
+    expect(binding.t('AgentCenter.aiConfig.cloudNoticeDescription')).toBe('使用云端模型时，请求及相关上下文可能离开本机，并产生服务商费用。');
   });
 });

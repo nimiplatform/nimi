@@ -1,62 +1,59 @@
 # Kit Feature: Avatar
 
-## What It Is
-Reusable agent avatar surface for Runtime-adjacent presentation records, voice playback cues, and surface-local interaction state.
+Reusable agent avatar surfaces for Runtime-adjacent presentation records, voice playback cues, and surface-local interaction state.
 
 ## Public Surfaces
-- `@nimiplatform/kit/features/avatar`
-- `@nimiplatform/kit/features/avatar/headless`
-- `@nimiplatform/kit/features/avatar/ui`
-- `@nimiplatform/kit/features/avatar/runtime`
-- `@nimiplatform/kit/features/avatar/vrm`
-- `@nimiplatform/kit/features/avatar/live2d`
-- Current surfaces:
-  - `headless`: admitted for normalized presentation and transient interaction contracts
-  - `ui`: admitted for the default avatar stage shell and the Agent Center preview facade
-  - `runtime`: admitted for avatar presentation records, playback cue envelopes, and estimator helpers after Runtime/SDK has exposed typed projection data
-  - `vrm`: admitted optional renderer surface for backend-specific VRM adapters without forcing 3D runtime assumptions into the default `ui` surface
-  - `live2d`: admitted optional renderer and helper surface for backend-specific Live2D adapters without moving desktop-local source loading or Cubism bootstrapping into kit
-  - `realm`: none
+
+| Subpath | Responsibility |
+| :--- | :--- |
+| `@nimiplatform/kit/features/avatar` | Root feature entry |
+| `@nimiplatform/kit/features/avatar/headless` | Normalized presentation and transient interaction contracts |
+| `@nimiplatform/kit/features/avatar/ui` | Default avatar stage shell and Agent Center preview facade |
+| `@nimiplatform/kit/features/avatar/runtime` | Avatar presentation records, playback cue envelopes, and estimator helpers (consumes typed projection data from Runtime/SDK) |
+| `@nimiplatform/kit/features/avatar/vrm` | Optional renderer surface for VRM adapters; keeps 3D runtime assumptions out of the default `ui` surface |
+| `@nimiplatform/kit/features/avatar/live2d` | Optional renderer and helper surface for Live2D adapters; keeps desktop-local source loading and Cubism bootstrapping out of Kit |
+| `realm` | None |
 
 ## When To Use It
-- Reuse a shared avatar stage instead of rebuilding a chat-private or app-private agent renderer shell.
-- Normalize runtime-owned presentation profiles and app-owned interaction cues before they reach renderer code.
-- Bind first-party Runtime-adjacent avatar presentation records and playback cues without moving transient voice/session state into Runtime truth.
-- Opt into VRM-specific renderer behavior only when a consumer truly needs a 3D avatar backend.
-- Opt into Live2D-specific renderer behavior only when a consumer truly needs a Live2D backend while keeping consumer-local runtime bootstrap separate.
 
-The canonical Host handoff port keeps launch, focus, and presence
-as native mechanics over the same opaque handle-and-anchor target plus optional
-opaque committed-presentation, temporary-custody, and instance references. It
-does not carry configuration, declaration, coverage, product availability,
-Runtime result/error, raw identity, renderer, backend, motion, lipsync, path, or
-storage truth and never determines product availability.
+- **Shared stage shell**: Reuse a common avatar stage instead of building a chat-private or app-private agent renderer shell.
+- **Contract normalization**: Normalize runtime-owned presentation profiles and app-owned interaction cues before passing them to renderer code.
+- **Runtime-adjacent playback**: Bind first-party avatar presentation records and playback cues without pushing transient voice or session state into Runtime truth.
+- **Optional 3D / Live2D backends**: Opt into `avatar/vrm` or `avatar/live2d` only when your app actually renders those backends, keeping consumer-local runtime bootstrapping separate.
+
+### Host Handoff Mechanics
+
+The canonical Host handoff port handles launch, focus, and presence as native mechanics over a single opaque handle-and-anchor target, plus optional opaque references for committed-presentation, temporary-custody, and instance state.
+
+It never determines product availability, nor does it carry truth for configuration, declaration, coverage, product availability, Runtime result/error, raw identity, renderer, backend, motion, lipsync, path, or storage.
 
 ## Before Building Locally
-- Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
-- Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is ready only when the Avatar renderer binds the exact committed asset, backend, and presentation revision, reports the typed backend terminal state, and returns an Avatar-controlled blob or same-origin render-surface URL.
-- Check `avatar/headless` before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
-- Check `avatar/runtime` before rebuilding avatar presentation-record or playback-cue helpers in app code. Runtime event schedule decisions belong in `@nimiplatform/sdk/runtime`.
-- Check `avatar/vrm` before introducing app-local R3F/VRM renderer code; prefer injecting that implementation through the admitted optional VRM surface.
-- Check `avatar/live2d` before introducing app-local Live2D framing, motion-choice, or viewport-state policy; keep source loading and concrete Cubism runtime bootstrap on the consumer side.
-- Prefer lazy-loading the concrete VRM viewport from the consumer side so heavyweight 3D runtime code only loads when a VRM backend is actually rendered.
-- Prefer lazy-loading the concrete Live2D viewport from the consumer side so backend runtime code only loads when a Live2D backend is actually rendered.
+
+- **`avatar/ui`**: Check here before building a new avatar stage, idle shell, or reusable agent render container.
+- **`avatar/ui` + `avatar/headless` (Agent Center previews)**: Check both before rendering Agent Center avatar previews. A configured Agent Center avatar is ready only when the Avatar renderer binds the exact committed asset, backend, and presentation revision, reports a typed backend terminal state, and returns an Avatar-controlled blob or same-origin render-surface URL.
+- **`avatar/headless`**: Check here before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
+- **`avatar/runtime`**: Check here before rebuilding avatar presentation-record or playback-cue helpers in app code. Runtime event scheduling decisions belong in `@nimiplatform/sdk/runtime`.
+- **`avatar/vrm`**: Check here before writing app-local R3F/VRM renderer code. Inject the implementation through this optional surface and lazy-load the concrete VRM viewport on the consumer side so heavyweight 3D runtime code loads only when a VRM backend is rendered.
+- **`avatar/live2d`**: Check here before writing app-local Live2D framing, motion-choice, or viewport-state policy. Keep source loading and concrete Cubism runtime bootstrap on the consumer side, and lazy-load the concrete Live2D viewport so backend runtime code loads only when a Live2D backend is rendered.
 
 ## What Stays Outside
+
 - Runtime canonical agent identity, canonical memory, and autonomy truth.
-- Voice workflow, voice asset lifecycle, and standalone voice-library semantics.
+- Voice workflows, voice asset lifecycle, and standalone voice-library semantics.
 - App-specific layout placement, permissions, and shell orchestration.
-- Agent Center asset bytes, file adaptation, and preview rendering; Kit renders fail-closed when Avatar preview output is missing.
+- Agent Center asset bytes, file adaptation, and preview rendering (Kit renders fail-closed when Avatar preview output is missing).
 - Desktop-only thread/session meaning and app-local store ownership.
 - VRM runtime engine dependencies and concrete WebGL host configuration unless the consumer explicitly opts into `avatar/vrm`.
-- Desktop-local asset binding, file adaptation, and concrete Cubism runtime lifecycle even when the consumer opts into `avatar/live2d`.
+- Desktop-local asset binding, file adaptation, and concrete Cubism runtime lifecycle, even when opting into `avatar/live2d`.
 
 ## Current Consumers
-- `desktop`
-  Planned first-party consumer for agent chat and runtime-driven avatar presentation.
-- `web`
-  Planned first-party consumer for shared avatar presentation surfaces without desktop-specific shell semantics.
+
+- `desktop`: Planned first-party consumer for agent chat and runtime-driven avatar presentation.
+- `web`: Planned first-party consumer for shared avatar presentation surfaces without desktop-specific shell semantics.
 
 ## Verification
-- `pnpm --filter @nimiplatform/kit lint`
-- `pnpm check:nimi-kit`
+
+```bash
+pnpm --filter @nimiplatform/kit lint
+pnpm check:nimi-kit
+```

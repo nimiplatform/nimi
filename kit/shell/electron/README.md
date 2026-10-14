@@ -1,9 +1,7 @@
 # Kit Electron Shell
 
-Desktop-supervised Electron Apps can use `createNimiElectronAppExitController(app)` from the public main entry. `requestRestart()` requests graceful App quit; complete the App's own teardown by calling the controller's `exit()` instead of forcing an ordinary zero exit. Desktop observes only the exact child it launched, releases the old Runtime lease and prepares a fresh Host for the same selected source. The support marker is protocol availability, never admission or App Access authority. Unsupported launches refuse the request. No private registration selector, Desktop descriptor or raw native handle crosses into the App, and requested restart is not proof that the next Host started. Active business capture and persistence remain the App's responsibility; interrupted work must not replay.
-
-`kit/shell/electron` is the shared Electron main/preload host glue for Nimi
-apps. It is consumed from Electron host code through:
+`kit/shell/electron` is the shared Electron main/preload host glue for Nimi apps.
+It is consumed from Electron host code through:
 
 - `@nimiplatform/kit/shell/electron/main`
 - `@nimiplatform/kit/shell/electron/preload`
@@ -11,6 +9,8 @@ apps. It is consumed from Electron host code through:
 Renderer application code must not import this module. Renderer code consumes
 host-neutral bridge APIs from `@nimiplatform/kit/shell/renderer/*` and SDK
 Runtime access through the explicit `electron-ipc` transport.
+
+## Bridge Registration and Protocols
 
 Desktop-supervised local apps register the fixed catalogued Local App host from
 their Electron main process. The admitted surface includes Runtime-selected
@@ -54,6 +54,8 @@ registration calls can leave the App renderer unable to fetch its own API even
 while IPC and the business worker work. Keep the App's own protocol privileges
 appropriate to its actual resources; do not copy or alter Kit's descriptor.
 
+## Canonical Agent Configuration
+
 The admitted Agent configuration carrier is the canonical `agent.configure`
 family: bounded Manager snapshot, shared AIConfig, autonomy, presentation, and
 Memory operations. It is identical for every equally covered protected App;
@@ -62,6 +64,8 @@ The same formal client carries the `agent.local` embodiment snapshot and
 ordered event subscription: activity, emotion, semantic posture, and bounded
 voice-timing correlation only. Renderer motion, lipsync, audio-clock, replay,
 and backend diagnostics remain outside the standard shell.
+
+## Session Lifecycle and Invalidation
 
 Protected-session unavailability does not terminate the App, request a Host
 reopen, or unregister the renderer bridge. Protected calls continue to return
@@ -72,64 +76,62 @@ After a maintenance failure, a successful session status read or same-Host
 rebind resumes periodic renewal. Failed sessions are not retried by that timer,
 and resuming maintenance does not replay interrupted business work.
 
-App-owned Node modules use `bridge.services.ai`, `bridge.services.aiConfig`,
-`bridge.services.storage`, `bridge.services.agentWork`, `bridge.services.integration`,
-`bridge.services.activity` and `bridge.services.realm.worldCore`, which are SDK feature clients over this same
-Host. Register fixed business commands through `appCommandHandlers` and use
-`onSessionInvalidated` to abort application tasks and clear their account-scoped
-memory. These handlers never occupy the reserved `nimi.shell.*` namespace.
-Use `onSessionReady(services)` to bind Node business modules to each ready
-scope. It fires once on initial readiness or real rebind, and never on routine
-renewal. Objects retained from an invalidated `bridge.services` stay permanently
-closed, including calls initiated by old callbacks after readiness returns.
-Before a new explicit Node/CLI task, call `await bridge.prepareSession(signal)`.
-This uses the same Host's bounded technical status/rebind path; it returns no
-protected identity and never retries a business operation. Cancellation or an
-unavailable/closed Host rejects preparation. After it succeeds, obtain the current
-services supplied by `onSessionReady`; keep App policy, account generation and
-task cancellation checks around preparation and commit. A failed old task still
-requires a new explicit request.
-Business requests carry their own cancellation signal into the SDK model
-binding and check it before committing asynchronous work.
-The callback runs before rebind; it must synchronously make old App work
-unusable. Business reads and writes made during rebind are refused, and old
-in-flight responses cannot become a successful response in the new scope.
-Only the technical session-status probe may finish across rebind; after readiness,
-new business services make their own fresh reads. Standard App
-Tools Hosts destroy the old renderer windows and create new ones in the same
-Host on this callback, so old renderer timers and queues cannot retry into the
-new scope. Load a fresh store there; never flush or copy the invalidated store.
-Normal successful technical renewal extends the same live scope and does not
-trigger this callback. Renderer disconnect
-does not itself replay or cancel a business workflow; the App owns that policy.
-Synchronous Scenario calls (`ai.scenario.execute(spec, { signal, timeoutMs })`)
-settle an abort or an elapsed deadline at once, drop the pending native call by
-its Host-generated identity and never return a late result; session invalidation
-cancels every outstanding call, while a caller deadline leaves the session valid.
+### Business Services and Handlers
+App-owned Node modules consume SDK feature clients over this same Host via:
+- `bridge.services.ai`
+- `bridge.services.aiConfig`
+- `bridge.services.storage`
+- `bridge.services.agentWork`
+- `bridge.services.integration`
+- `bridge.services.activity`
+- `bridge.services.realm.worldCore`
+
+Register fixed business commands through `appCommandHandlers` (which never occupy
+the reserved `nimi.shell.*` namespace). Use `onSessionInvalidated` to abort
+application tasks and clear account-scoped memory.
+
+### Scope Readiness and Task Preparation
+
+Business requests carry their own cancellation signal into the SDK model binding and check it before committing asynchronous work. Only the technical session-status probe may finish across rebind; after readiness, new business services make fresh reads. Renderer disconnect does not itself decide whether to replay or cancel a business workflow; the App owns that policy.
+
+- **Readiness binding**: Use `onSessionReady(services)` to bind Node business modules to each ready scope. It fires once on initial readiness or real rebind, and never on routine renewal. Objects retained from an invalidated `bridge.services` stay permanently closed, including calls initiated by old callbacks after readiness returns.
+- **Session preparation**: Before an explicit Node/CLI task, run `await bridge.prepareSession(signal)`. This uses the Host's bounded status/rebind path, returns no protected identity, and never retries business operations. Cancellation or an unavailable/closed Host rejects preparation. After it succeeds, obtain current services from `onSessionReady`. Keep App policy, account generation, and task cancellation checks around preparation and commit. A failed old task still requires a new explicit request.
+- **Synchronous invalidation**: The invalidation callback runs before rebind and must synchronously make old App work unusable. Business reads and writes during rebind are refused, and old in-flight responses cannot become successful responses in the new scope. Standard App Tools Hosts destroy old renderer windows and create fresh ones in the same Host on this callback so old timers and queues cannot retry into the new scope. Load a fresh store; never flush or copy the invalidated store.
+- **Deadlines and cancellations**: Synchronous Scenario calls (`ai.scenario.execute(spec, { signal, timeoutMs })`) settle an abort or an elapsed deadline immediately, drop the pending native call by its Host-generated identity, and never return a late result. Session invalidation cancels every outstanding call, whereas a caller deadline leaves the session valid. Normal successful renewal extends the live scope without triggering the invalidation callback; renderer disconnect does not automatically replay or cancel business workflows.
+
+## Background Work and Integrations
 
 The `agentWork` namespace uses business Agent references and independent execution
-IDs. Its finite status, tool calls, events and successful output never read or
-write canonical chat. `integration.invoke` returns an accepted call; observe
-`getCall` for its actual outcome and call `cancelCall` when the App stops waiting.
-Do not resend an unconfirmed write. App providers register declared operations,
-use bounded `pollProvider({ waitMs })` and complete each delivered call once;
-validate business objects in the App handler and stop handling old-scope calls
-on invalidation. The trusted Home management owner alone can configure shared
-connections and permissions.
+IDs. Its finite status, tool calls, events, and successful output never read or
+write canonical chat.
+
+`integration.invoke` returns an accepted call. Observe `getCall` for its actual outcome
+and call `cancelCall` when the App stops waiting; do not resend an unconfirmed write.
+App providers register declared operations, use bounded `pollProvider({ waitMs })`,
+and complete each delivered call once. Validate business objects in the App handler
+and stop handling old-scope calls upon invalidation. The trusted Home management
+owner alone can configure shared connections and permissions.
 
 This entrypoint has no Runtime endpoint, ordinary gRPC factory, native-host
-injection or capability-set selection. Services become unavailable when the
+injection, or capability-set selection. Services become unavailable when the
 bridge is unregistered, and old resource handles cannot cross a session rebind.
 
-The public Windows native package targets the existing D2 Runtime. A
-Desktop-launched installed App loads that binding from its own package;
-workspace native-entry overrides remain limited to the default Electron
-development host. Both use the current non-elevated Runtime peer checks,
-Desktop parent supervision, and Runtime-owned registration/session/App Access.
-This carrier does not enable Catalog or installed launch by itself, and does
-not claim compatibility with the separately governed production Runtime service.
+## App Exit Controller
 
-## Managed asset previews
+Desktop-supervised Electron Apps can use `createNimiElectronAppExitController(app)`
+from the public main entry. `requestRestart()` requests a graceful App quit;
+complete the App's own teardown by calling the controller's `exit()` instead of
+forcing an ordinary zero exit.
+
+Desktop observes only the exact child it launched, releases the old Runtime
+lease, and prepares a fresh Host for the same selected source. The support marker
+is protocol availability, never admission or App Access authority. Unsupported
+launches refuse the request. No private registration selector, Desktop descriptor,
+or raw native handle crosses into the App, and a requested restart is not proof
+that the next Host started. Active business capture and persistence remain the
+App's responsibility; interrupted work must not replay.
+
+## Managed Asset Previews
 
 Renderer code can call `openNimiLocalAppAssetMediaUrl(relativePath)` from
 `@nimiplatform/kit/shell/renderer/bridge` to preview an App-managed asset.
@@ -138,11 +140,13 @@ returned URL is scoped to that renderer and asset; call its `revoke()` method
 when the preview is released. It streams byte ranges without assembling the
 whole asset into a renderer Blob.
 
-Supported media types are PNG, JPEG, WebP and GIF images; WAV (`audio/wav` or
-`audio/x-wav`), MP3 (`audio/mpeg`) and Ogg Opus/Vorbis (`audio/ogg`); and MP4 (`video/mp4`) and WebM
-(`video/webm`) video. The host checks both the stored media type and the actual
-container signature. A supported container still needs codecs supported by the
-running browser.
+Supported media types are:
+- Images: PNG, JPEG, WebP, GIF
+- Audio: WAV (`audio/wav` or `audio/x-wav`), MP3 (`audio/mpeg`), Ogg Opus/Vorbis (`audio/ogg`)
+- Video: MP4 (`video/mp4`), WebM (`video/webm`)
+
+The host checks both the stored media type and the actual container signature.
+A supported container still requires codecs supported by the running browser.
 
 QuickTime/MOV (`video/quicktime`) is not accepted by this preview API. An App can
 keep that original asset for its own media processing and use FFmpeg or another
@@ -151,20 +155,30 @@ Changing only the filename or media type does not convert a container. Preview
 rejection with `invalid-payload` does not establish that the original input is
 invalid for processing or that a Runtime AI capability is unavailable.
 
-## Boundary
+## Boundary and Window Shell
 
 For standard chrome, create `createNimiElectronAppChromeHost` in main with the
-App metadata, exact renderer URLs and injected Electron `app`/`Menu` adapters.
+App metadata, exact renderer URLs, and injected Electron `app`/`Menu` adapters.
 Pass it as `chromeHost` to the App bridge (or Home's standard shell host), then
 call `bindWindow(window)` on each actual BrowserWindow before loading it. Spread
 `createNimiElectronAppChromeWindowOptions()` into the App's existing window
 options; keep security and lifecycle options App-owned. The binding requires the
 exact WebContents/mainFrame objects and current document. Real destruction,
-document navigation, Host session invalidation and unregister revoke it; a
+document navigation, Host session invalidation, and unregister revoke it; a
 cancelled close or hide does not. Close/quit call the App's existing lifecycle.
 macOS Edit items use native roles with no renderer callbacks; other shortcuts
 have one declared owner. Every registered WebContents uses isolated zoom.
 
+### Platform Runtime Carrier
+The public Windows native package targets the existing D2 Runtime. A
+Desktop-launched installed App loads that binding from its own package;
+workspace native-entry overrides remain limited to the default Electron
+development host. Both use the current non-elevated Runtime peer checks,
+Desktop parent supervision, and Runtime-owned registration/session/App Access.
+This carrier does not enable Catalog or installed launch by itself, and does
+not claim compatibility with the separately governed production Runtime service.
+
+### Architectural Invariants
 - Main process code owns app-scoped IPC command registration, origin
   allowlisting, Runtime gRPC proxying, stream forwarding, and artifact URL
   serving.
@@ -174,7 +188,7 @@ have one declared owner. Every registered WebContents uses isolated zoom.
 - Electron never owns Runtime lifecycle or configuration. It consumes the
   shared native protected-local carrier for exact typed fixed-service
   `status/start/restart` and protected calls. Stop, external-daemon fallback,
-  executable/service/path selection, generic config JSON, bearer injection and
+  executable/service/path selection, generic config JSON, bearer injection, and
   renderer-visible protected material are forbidden.
 - The local-app entrypoint carries only catalogued protected operations under
   the Runtime-owned App session, including typed AI scenario/Job operations,

@@ -1,464 +1,149 @@
-# `@nimiplatform/app-tools`
+# @nimiplatform/app-tools
 
-`app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. It owns repository scaffolding, dependency and managed-file synchronization, local validation, Desktop-supervised development, App-declared test/build orchestration, deterministic packaging, and managed GitHub workflow setup.
+The official full-stack developer CLI and toolchain for building, testing, and packaging Nimi desktop applications.
 
-The App Tools 0.13.0 candidate defaults to SDK 0.21.0 and Kit/native npm 0.21.0,
-with native ABI 0.10.0, Nimi Coding 0.6.5 and Electron 44. New scaffolds use one
-Kit navigation controller, shared App chrome, and an App-owned destination catalog.
-With no selected feature there is no sidebar or fold control. AI Studio history
-positions carry record references; drafts and saved results remain business data.
-Candidate manifest versions do not establish registry publication.
+`@nimiplatform/app-tools` manages the entire application lifecycle—from project scaffolding and dependency synchronization to Desktop-supervised development, test orchestration, and deterministic `.nimiapp` distribution packaging.
 
-The scaffold contract is `2026-10-13.standard-app-navigation-v1`. An older
-managed scaffold cannot upgrade only its tool, Kit, or Host glue: init/sync/check
-refuse the old contract before file writes or owner calls. Complete the explicit
-App-owned navigation, managed Host, Kit and intent/lock migration described in
-[Platform upgrade](skills/nimi-app-lifecycle/references/upgrade-platform.md).
-Existing adoption preserves App-owned Host and product files and creates no
-fresh scaffold intent or lock; its author performs the navigation integration.
+---
 
-It does not own GitHub publisher or repository truth, registry review/main, Runtime installed state, Desktop process state, or Nimi Access. Nimi Account and the private Nimi backend are not publisher credentials or App-release infrastructure.
+## 1. The Application Lifecycle
 
-For your first public release, start with [Publishing on GitHub](#publishing-on-github), including the read-only repository-settings credential.
-
-Simulator integration is retired. Remove `nimi-app check --conformance simulator`
-and imports of `@nimiplatform/app-tools/simulator-conformance` or
-`@nimiplatform/app-tools/simulator-css-profile` from active projects. Use the
-normal App lifecycle checks and Desktop-supervised development for current
-Apps; the archived preview implementation is no longer a release prerequisite.
-
-## AI development and existing projects
-
-The package includes one `skills/nimi-app-lifecycle/SKILL.md` with on-demand
-guides for adaptation audits, creating, adapting, platform gaps and upgrades, upstream sync, releases and
-acceptance. Read it inside the installed package before initializing an existing
-repository. `nimi-app --help` prints its resolved location. Installation does
-not activate instructions; explicit init/sync maintains the project skill under
-`.agents/skills/nimi-app-lifecycle/` and an independent AGENTS.md block.
-
-For a feasibility, capability-fit or cost decision, start with [Audit](skills/nimi-app-lifecycle/references/audit.md). It uses existing public consumption paths and the target's actual workflows without requiring adoption or a running reference App. When implementation follows a report, preserve its evidence and uncertainty boundaries through the guide's handoff.
-
-Install the selected app-tools and the exact nimi-coding version declared in
-its `nimiScaffoldVersions`. For first integration, generate a minimal reference
-App under `.nimi/local/` with its own identity and the needed admitted features,
-using this same SDK/Kit/native package combination. Run its generated foundation
-and reuse or align its Host, preload, renderer bridge, session, App Access,
-AIConfig and AI call wiring in the existing App. SDK/Kit documentation explains
-the contracts; it does not replace working generated code.
-
-When the task includes installation, establish the reference's local installed
-Access baseline as described in the packaged acceptance guide. Compare under
-the same conditions to separate toolchain failures from App wiring differences.
-Reuse passing results for ordinary business changes; no extra evidence ledger
-or repeated full reference run is needed.
-
-Preserve the original product's workflows and business settings while preparing
-its actual renderer and build/test scripts. A reference workbench or passing
-sample is not the complete App. Init does not convert a server framework,
-invent tests or replace product UI. Preview adoption after this preparation:
-
-```bash
-pnpm exec nimi-app init --adopt --dry-run --json
-pnpm exec nimi-app init --adopt
-pnpm install
-pnpm exec nimi-app check
-```
-
-Existing nimi.app.yaml and `.nimi/config/build-profile.yaml` supply the inputs.
-If either is missing, pass `--input .nimi/local/adopt-input.json`. This temporary
-JSON accepts only `manifest` and `build_profile`, using those same schemas.
-For an App whose named scripts are already implemented, an input is:
-
-```json
-{
-  "manifest": {
-    "app_id": "example.editor", "display_name": "Example Editor", "version": "0.1.0",
-    "profile": "standalone", "manifest_role": "submitted-input",
-    "app_access": ["runtime.consume"], "capability_contract_refs": ["text.generate"],
-    "required_standardized_feature_refs": [], "storage_policy": { "kind": "nimi-mediated-default" },
-    "local_development": { "electron": { "renderer_origin": "http://127.0.0.1:1466" } }
-  },
-  "build_profile": {
-      "build_profile_ref": "electron-packager-pnpm-vite", "profile_role": "developer-workflow-input",
-    "test_command": "pnpm run test:app", "build_command": "pnpm run build:electron:production",
-    "targets": {
-      "windows-x86_64": {
-        "os": "windows", "arch": "x86_64",
-        "payload_path": "dist-electron-package/example-editor-shell-win32-x64",
-        "runtime_entry": "payload/example-editor-shell.exe"
-      }
-    }
-  }
-}
-```
-
-Use actual identity, version, declarations and target outputs. Complete portable
-App information before packaging. Supplied input must agree with an existing
-file. Unknown managed-file collisions and broken markers fail before writes;
-existing Host, business code, README and license remain App-owned. Adoption
-creates no fresh scaffold intent/lock. Init validates output declarations;
-build/pack later verify actual payloads.
-
-An existing Next.js or other renderer can use `build_profile_ref: electron-pnpm`
-with its real test/build commands and target outputs. Declare `dev:renderer` in
-`package.json`, for example `next dev --hostname 127.0.0.1 --port 1466`, matching
-the manifest's loopback origin. Init/sync preserve the command for this profile. The App
-owns the renderer and any required local backend; `build:electron` produces the
-supervised Host at `dist-electron/main.js`. Fresh scaffolds keep their generated
-Vite recipe and existing `electron-packager-pnpm-vite` profiles remain supported.
-When Host sources are outside `src-electron`, declare their existing relative
-directory as `local_development.electron.host_source_directory` in `nimi.app.yaml`
-(for example `electron`). Desktop validates that directory before launch and
-watches it for Host rebuilds; init/sync preserve this App-owned declaration.
-Real development requires a Desktop version that accepts App-owned renderer
-commands; older Desktop versions enforcing Vite reject this project even after
-app-tools validation passes. Do not introduce a Vite placeholder to bypass it.
-
-Use the selected package's `nimiScaffoldVersions` declarations in `package.json`
-and commit the matching lockfile to pin resolved versions. Fresh `create` uses
-the tool default SDK/Kit combination. An existing App keeps its current SDK/Kit
-combination when it is one of the supported combinations app-tools declares:
-`sync` preserves it, `check` verifies the same combination in the manifest,
-lockfile and Cargo inputs, and only the app-tools and nimi-coding tool
-dependencies follow the selected tool version. An unlisted SDK x Kit pairing is
-rejected rather than normalized. A matrix range in the manifest does not
-require an automatic upgrade; install with the frozen lockfile until
-deliberately selecting and synchronizing a new component combination.
-
-The production Beta candidate guide uses App Tools 0.12.3 with SDK `^0.21.0`,
-Kit/native `^0.20.0`, the matching production Runtime, and Tauri `0.10.0` when
-selected. Existing production `^0.19.0` and D2 `^0.18.1` projects retain their
-declared Kit combination. Before explicitly upgrading to Kit 0.20, follow the
-[Realtime and conversation setup migration notes](../kit/CHANGELOG.md). Fresh scaffold
-defaults still come from `nimiScaffoldVersions` in `package.json`; explicitly
-select the current SDK/Kit pair to use this guide. On an initialized App, run
-`nimi-app sync`, install the resulting dependencies, then run `nimi-app check`
-and the App build. A fresh project installs dependencies and runs `init` first.
-Sync preserves admitted explicit pairs and never supplies an older Host fallback.
-
-### Music reference flow
-
-The admitted `studio-media` feature includes the music workflow maintained in
-Nimi Lab. Its source is read from Lab during development and materialized into
-the existing packaged App source during build; it is not a separate sample copy.
-It consumes the protected SDK/Kit interfaces, reads `musicInput` from the current
-AIConfig resource, imports ABC into App assets, and preserves every returned
-artifact and the reported generation ending. A missing input projection is not
-inferred from a model name.
-
-A music action saves its `clientSubmissionId` before submission. The recovery
-view looks up the original Job and observes or saves it without generating
-again. Runtime recovery has a 24-hour lifetime; adopted App assets and the
-saved result are used for later reopening. Generation budgets and generated
-plan scores must not be presented as proof of a complete song, accurate
-transcription, original melody or a requested singer.
-
-Use the current complete SDK/Kit/native/Runtime combination above for this
-source. Package declarations are not a publication claim. Real model and
-Desktop-supervised acceptance apply to the exact tested combination, separately
-from generator checks and subjective listening.
-
-### Local development packages
-
-Development does not require publishing every SDK/Kit or app-tools change.
-Keep the selected version matrix in `package.json`, and use explicit npm tarball
-overrides in the App's own `pnpm-workspace.yaml`:
-
-```yaml
-packages:
-  - .
-overrides:
-  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.12.0.tgz
-  '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.21.0.tgz
-  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.19.0.tgz
-```
-
-These are example artifact locations; use the complete packages you were given.
-Override Kit's matching native optional package too when that component changes;
-keep the native carrier Kit-owned rather than adding it as an App dependency.
-Local archives may also use paths relative to the App. Install, run sync and
-check, then use the normal dev/test/build/pack loop. Sync retains these choices;
-check verifies matrix compatibility and compares the selected tarball version,
-source and integrity with pnpm's installed dependency lock and package manifest.
-The default SDK `^0.21.0` / Kit `^0.20.0` / Rust carrier `0.10.0`
-combination also admits complete local archives for development. Select the
-matching Runtime and native packages. A local archive does not establish public
-registry availability; production preflight checks the registry resolutions.
-Workspace members declare their own SDK/Kit dependencies and share the root
-tarball overrides. pnpm writes each member's `specifier` relative to that member,
-while resolved versions and package records remain workspace-relative; check
-compares the resulting archive identities and installed importer bindings.
-Do not rewrite member lock entries to look identical to the root importer.
-Updating only the lockfile does not update installed packages: run `pnpm install`
-after selecting another local package combination. Directory links and
-source-workspace overrides stay invalid.
-The generated Electron packager rebases archive paths for its isolated dependency
-staging so a local build uses the same packages.
-
-`check --production` is the final public-release preflight and requires registry
-resolutions. It is not a prerequisite for development or local build/pack;
-the normal build still executes the actual declared production payload command.
-
-For local installed-App acceptance, keep these tarball overrides and run:
-
-```bash
-pnpm exec nimi-app check
-pnpm exec nimi-app build --target windows-x86_64
-pnpm exec nimi-app pack --target windows-x86_64 --production
-```
-
-Use the actual target on its matching host. `pack --production` observes the
-payload's native signature and execution permissions; it does not run registry
-dependency preflight or publish anything. Plain `pack` writes a development
-archive that Runtime local import rejects. Import the resulting package through
-Desktop's Apps → Add App → Import local package, then verify its installed launch
-and business use. This exercises the `user_imported` source independently of
-Catalog admission and download.
-
-When preparing a public release after development acceptance, remove local
-overrides, install the published matched versions and complete release preflight.
-Local import creates no GitHub Release or Registry approval and does not verify
-Catalog download or installation on a machine without the development environment.
-
-`init --dry-run --json` and `sync --dry-run --json` show app-tools file/field
-changes without writes, installation or owner mutation. The separate
-nimi-coding step and expected version are listed without simulating its internals.
-For an upgrade, install the target app-tools and exact nimi-coding before apply.
-Sync recomputes fresh scaffold derived projections while retaining immutable
-identity/direct features and App-owned code; then install the normalized
-dependencies, refresh package-manager locks, check and verify the affected task.
-The checkout directory is reported in command output, not persisted as App
-identity; syncing an upgraded project after relocating it does not dirty its
-intent/lock merely because the absolute path changed.
-An installed nimi-coding version that differs from the selected tool matrix is
-rejected before its projection command runs.
-
-## Command family
-
-The public CLI has exactly eight commands:
+The CLI exposes an eight-command toolkit designed for rapid local iteration and secure production releases:
 
 ```text
-create -> dependency install -> init -> sync -> check
-       -> dev / test / build -> pack
+create ➔ install ➔ init ➔ sync ➔ check ➔ dev / test / build ➔ pack
 ```
 
-- `create` writes a standalone private App project with a dotted App ID, exact version, public dependency declarations, developer build/submission inputs and one managed workflow. It does not install dependencies or create admission truth.
-- `init` materializes package-owned projections and lifecycle guidance after dependencies are installed. Fresh scaffolds also receive their scaffold lock; `init --adopt` preserves an existing App without creating scaffold intent or lock.
-- `sync` refreshes only scaffold-managed dependencies, configuration, workflow and glue. App-owned product code and the project `LICENSE` are preserved.
-- `check` is non-mutating and incorporates the former scaffold validation behavior.
-- `dev` requests the official Desktop-supervised Electron development Host.
-- `test` and `build` execute the real owner commands declared in `.nimi/config/build-profile.yaml`; there is no fallback success.
-- `pack` is the sole local/CI `.nimiapp` packaging owner and never uploads.
+| Command | Role |
+| :--- | :--- |
+| **`create`** | Scaffolds a standalone project with reverse-domain App ID, manifest declarations, and build workflows. |
+| **`init`** | Materializes managed files and lifecycle guidance after installation; fresh scaffolds also receive a scaffold lock. |
+| **`sync`** | Refreshes managed build configs, CI workflows, and glue code without touching your business logic. |
+| **`check`** | Validates scaffold, package constraints, and declared inputs. Run App-owned typechecks separately. |
+| **`dev`** | Launches your app in the official Desktop-supervised Electron shell with a protected session bridge. |
+| **`test`** | Executes the test suite declared in your `.nimi/config/build-profile.yaml`. |
+| **`build`** | Compiles production binaries and assets for target platforms (macOS / Windows). |
+| **`pack`** | Deterministically packages verified binaries and metadata into an immutable `.nimiapp` bundle. |
 
-`doctor`, `update`, and local `publish` are absent without aliases. Use `check`
-and `sync`; production publication runs only from a protected version tag whose
-commit is already contained in the publisher repository's canonical default
-branch, through the managed GitHub workflow.
+---
 
-Run the checked-in CLI help for the admitted feature catalog and exact options:
+## 2. Quickstart: Creating a New App
 
-```bash
-node app-tools/bin/nimi-app.mjs --help
-```
-
-## Create
-
-Interactive use validates every field, shows the resolved plan and asks for confirmation. The optional `author` names one person or team; include `--author` when creating a Windows release project because the standard packager uses it for executable metadata. Non-interactive use supplies the same inputs directly:
+Run the interactive creator or pass parameters directly:
 
 ```bash
-node app-tools/bin/nimi-app.mjs create \
-  --dir path/to/app \
+# Using published App Tools (recommended)
+pnpm dlx --package @nimiplatform/app-tools nimi-app create \
+  --dir my-editor-app \
   --profile standalone \
-  --app-id example.app \
+  --features studio-create \
+  --app-id com.example.editor \
   --version 0.1.0 \
-  --title "Example App" \
-  --package-name example-app \
-  --author "Example Team"
-```
+  --title "Example Editor" \
+  --package-name example-editor \
+  --author "Your Team"
 
-The base is identity-neutral and combines only explicitly admitted `--features` plus their dependency closure. `--features all` means all currently admitted features, not all Nimi Lab source.
-
-Standalone output keeps public npm and Cargo dependency version declarations. Complete local npm tarballs are supported development resolutions through the documented overrides; public-release preflight requires registry resolutions. Source-workspace paths, parent-source aliases and App-owned direct native-carrier dependencies remain outside the standalone dependency boundary.
-
-## Development and build
-
-After creation:
-
-```bash
-cd path/to/app
+cd my-editor-app
 pnpm install
 pnpm run init
-pnpm run sync
-pnpm run check
-pnpm run test
-pnpm run app:build -- --target windows-x86_64
 pnpm dev
 ```
 
-`dev` uses the Desktop supervisor. Direct Electron, Tauri or renderer launch cannot claim protected Nimi access. Process running and Nimi Access ready remain separate states.
+### Feature Profiles
+- `--features studio-create`: Injects creative text and multimodal generation capabilities along with `runtime.consume` permissions.
+- `--features studio-media`: Includes music, audio separation, and speech transcription capabilities.
 
-Use `nimi-app dev --list-registrations` and `--resume <selector>` to continue an existing development registration and its App data. Refresh the list after Desktop restarts: selectors belong to that Desktop session. A plain `dev` launch creates a registration only when this project has none. Otherwise it asks you to select an existing registration in an interactive terminal; in scripts, pass `--resume <selector>`. Use `--new-registration` only when you want a separate identity and separate App data. A rejected or expired selection never falls back to creating a registration. Remove unwanted registrations from their source row in Apps or Settings > Developer; this stops that registration and leaves project files intact.
+### Dependencies & Existing Projects
 
-Every `build`, including non-production builds, requires the selected target's
-declared payload and exact Runtime entry to exist after its owner command exits
-successfully. Building a macOS payload cannot report success for a missing
-Windows target. The default recipes build for their host platform; use the
-matching build host or provide a real App-owned build command. This file check
-does not prove executable architecture or signing: production App information
-is checked with `--production`, and native package facts are verified by
-`pack --production`.
+- **SDK and Kit Version Alignment**: Keep the SDK/Kit version combination declared by your selected App Tools release and its lockfile (`sync` preserves supported existing combinations and rejects unlisted ones). This checkout's `0.13.0` candidate defaults to SDK `0.21.0` and Kit/native `0.21.0`—note that a version in a source manifest is not proof of npm publication.
+- **Testing Local Tarballs**: During local development, you can select complete `.tgz` archives via `pnpm-workspace.yaml` overrides, including Kit's matching optional native package. Re-run `pnpm install` whenever you change an archive. For local acceptance, run ordinary `check` and `build`, followed by `pack --production` to inspect the actual payload (`check --production` requires dependencies resolved from the public registry).
+- **Adopting or Upgrading Projects**: Follow the [adoption guide](skills/nimi-app-lifecycle/SKILL.md) and [platform upgrade reference](skills/nimi-app-lifecycle/references/upgrade-platform.md). Preview managed changes before applying them with `init --adopt --dry-run --json` or `sync --dry-run --json`. Adoption preserves your App-owned product and Host code rather than converting an application framework; migrating from an older scaffold contract requires following the documented migration steps, not just bumping dependency versions.
 
-To continue an existing development App and its data, select a registration explicitly:
+---
+
+## 3. Desktop-Supervised Development
+
+Nimi Apps run inside a Desktop-supervised Electron shell. The host provides a protected session for SDK calls without exposing Nimi credentials to the App renderer (note that this session bridge does not create an OS-level sandbox for the entire application).
+
+### Continuing an Existing Session
+To keep your app data and registrations intact across restarts:
 
 ```bash
+# List active registrations
 pnpm dev -- --list-registrations
+
+# Resume a specific registration
 pnpm dev -- --resume <selector>
 ```
 
-The list shows the current project's registrations and creation times. Copy the desired selector from that list; Desktop resolves it to the exact existing Runtime-owned registration. Selectors last for the current Desktop session, so list again after restarting Desktop. No selector is stored in the App repository, and no App ID or path automatically reopens a subject. Plain `pnpm dev` keeps its fresh-registration behavior when no matching run is active. These options require a Desktop build that supports explicit launcher selection.
+---
 
-The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with ASAR packaging, native `.node` addons unpacked, and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
+## 4. Production Packaging & Distribution
 
-App Tools prepares the `macos-aarch64` target on an Apple Silicon Mac.
-The same owner command produces `dist-electron-package/<app>-shell-darwin-arm64/`
-with a native `.app` bundle and a direct `Contents/MacOS` entry. The publisher's
-build applies an ad-hoc integrity seal without a Developer ID identity or Apple
-notarization; production pack observes that absence and rejects invalid seals.
-Relative framework links are preserved inside the immutable payload. The App
-continues to consume the macOS native binding through Kit's optional dependency.
-Nimi installation never signs or repairs the publisher's code.
+### Building for Targets
+```bash
+# macOS (Apple Silicon)
+pnpm exec nimi-app build --target macos-aarch64 --production
+pnpm exec nimi-app pack --target macos-aarch64 --production
 
-Existing `.nimi/config/build-profile.yaml` target choices are App-owned and are
-preserved by sync. To add macOS, declare `macos-aarch64` with `os: macos`,
-`arch: arm64`, the same production build command, the Darwin output directory
-above as `payload_path`, and
-`payload/<app>-shell.app/Contents/MacOS/<app>-shell` as `runtime_entry`.
-The managed workflow resolves that declared target to `macos-15`; Windows keeps
-its existing runner and profile. These authoring/build capabilities do not by
-themselves establish Registry admission or a completed Desktop lifecycle.
-
-Tauri remains an explicit alternative through `pnpm run build:tauri:production`; selecting it requires an explicit Tauri build profile rather than changing the default Electron carrier.
-
-## Canonical release boundary
-
-The Registry publication chain uses the stages below. Publisher GitHub Release
-is available for configured pilot repositories. Protected Registry admission and
-installed App lifecycle use their separate Platform, Runtime and Desktop owners;
-each App's declared target still needs its own acceptance.
-
-```text
-public App repository
-  -> reviewed canonical default-branch commit
-  -> immutable protected version tag
-  -> tag-triggered publisher GitHub Actions
-  -> immutable GitHub Release assets
-  -> publisher-owned registry pull request
-  -> human-reviewed static registry main
-  -> Runtime download/install
-  -> Desktop exact Host launch
+# Windows (x86_64)
+pnpm exec nimi-app build --target windows-x86_64 --production
+pnpm exec nimi-app pack --target windows-x86_64 --production
 ```
 
-External publishers submit from their own fork. An authorized publisher sharing
-the Registry namespace can use a same-repository branch. Both paths use one
-publisher-owned branch and pull request for the exact App version and Release;
-human maintainers own admission.
+`pack --production` verifies native signatures and unpacked native `.node` addons, producing a `.nimiapp` bundle alongside an `<app_id>-<version>-<target>.app-info.json` metadata sidecar.
 
-The registry references publisher Release assets and never mirrors bytes. GitHub Release is not catalog admission; catalog admission is not installed; installed is not running; running is not Nimi Access ready.
+### Local Import Testing
+Before publishing publicly, verify the `.nimiapp` package on your own machine:
+1. Open Nimi Home.
+2. Go to **Apps → Add App → Import local package**.
+3. Select your `.nimiapp` file and verify installation, launch, and AI workflows.
 
-Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Protected Registry submission and approved Windows x86_64 and macOS arm64 installation, update, launch/focus/stop, current-session Nimi Access and uninstall are available through their Platform, Runtime and Desktop owners. Other-platform installed lifecycle and ordinary repair remain unavailable. Explicit immutable local-package import has source-qualified Desktop and Runtime implementations on Windows x86_64 and macOS arm64; combined product acceptance and public release readiness remain unverified.
-
-Registry projects must be open source with an explicit license and reviewable release source. Consistently observed unsigned packages are eligible; invalid signatures cannot be downgraded to unsigned. These Registry admission requirements do not apply to user-imported packages or Developer Mode projects. Registry approval is not a guarantee that third-party code is harmless.
+---
 
 ## Publishing on GitHub
 
-Before the first release, configure `NIMI_REPOSITORY_ADMIN_TOKEN` as an Actions
-secret in the App repository. It needs only **Administration: Read-only**, to
-check tag protection and Release immutability. Local App development does not
-need this credential.
+### Canonical release boundary
+Public publishing is currently available for configured pilot repositories. Keep in mind how lifecycle stages are separated:
+- **Independent milestones**: Creating a publisher GitHub Release, passing Registry human admission, installing the package, launching the process, and obtaining ready Nimi Access are separate outcomes. App Tools never approves or installs an App as a side effect of packaging or releasing.
+- **Platform support**: Local-import implementations are available on `macos-aarch64` (macOS arm64) and `windows-x86_64`; combined end-to-end product acceptance and public release readiness require their own verification. Package lifecycles for other platforms and ordinary repair flows are not yet available.
 
-The built-in `GITHUB_TOKEN` has no Administration permission for the
-[repository immutability-settings API](https://docs.github.com/en/rest/repos/repos#check-if-immutable-releases-are-enabled-for-a-repository).
-That is why the current release preflight needs a separate credential. Actual
-Release uploads use GitHub's built-in token, and build attestations use OIDC.
-This secret is neither a Nimi login token nor Registry approval, and needs no
-repository write permission.
-
-Repository secrets are scoped to their repository: configuring another App,
-even under the same organization, does not configure this one. If you do not
-administer the repository, ask its maintainer to complete the setup below.
-
-`nimi-app check --production` checks local inputs; it does not inspect remote
-settings or secrets. Complete the following setup before pushing a release tag.
-
-### 1. Configure the publisher repository
-
-Use a public repository owned by the publisher. You need administrator access
-for this setup.
-
+### Step 1: Configure the Publisher Repository
+Use a public GitHub repository owned by the publisher (administrator access is required):
 - In **Settings → General → Releases**, enable **Release immutability**.
-- In **Settings → Rules → Rulesets**, create a **tag** ruleset, set enforcement
-  to **Active**, and include tags matching `v*`. Enable **Restrict updates**
-  and **Restrict deletions**. Tag creation must remain available to the publisher.
+- In **Settings → Rules → Rulesets**, create a **tag** ruleset with enforcement set to **Active** for tags matching `v*`. Enable **Restrict updates** and **Restrict deletions**, while leaving tag creation available to the publisher.
 
-These settings protect published versions. The workflow only checks them; it
-does not change repository settings.
+These settings protect published versions. The release workflow only verifies them—it does not modify repository settings.
 
-### 2. Create the read-only settings token
-
-Open [GitHub's fine-grained token page](https://github.com/settings/personal-access-tokens/new).
-
-1. Name the token so you can recognize its purpose, and choose an expiration date.
+### Step 2: Create a Read-Only Settings Token
+Open [GitHub's fine-grained token page](https://github.com/settings/personal-access-tokens/new) to create a token that lets the release workflow verify your tag protection and release immutability settings:
+1. Name the token clearly and choose an expiration date.
 2. Set **Resource owner** to the user or organization that owns the App repository.
-3. Under **Repository access**, choose **Only select repositories** and select
-   this App repository.
-4. Under **Repository permissions**, set **Administration** to **Read-only**.
-   GitHub includes read-only Metadata automatically. No Contents write,
-   Actions write, Secrets write, or organization-wide access is needed.
-5. Generate the token. If the organization requires approval, complete that
-   approval before publishing.
+3. Under **Repository access**, choose **Only select repositories** and select this App repository.
+4. Under **Repository permissions**, set **Administration** to **Read-only** (GitHub automatically includes read-only **Metadata**). Do not grant write access to Contents, Actions, or Secrets, and do not enable organization-wide access.
+5. Generate the token. If your organization requires token approval, complete that approval before publishing.
 
-This token reads tag-protection and release-immutability settings. The workflow
-uses GitHub's separate built-in token to publish artifacts and its OIDC
-permission to create build attestations.
+The workflow uses GitHub's separate built-in token to publish release artifacts and GitHub OIDC permissions to generate build attestations.
 
-### 3. Save it as an Actions secret
+### Step 3: Save the Token as an Actions Secret
+In your App repository, open **Settings → Secrets and variables → Actions → New repository secret**:
+- **Name**: `NIMI_REPOSITORY_ADMIN_TOKEN`
+- **Secret**: Paste the fine-grained token value from Step 2.
 
-In the App repository, open **Settings → Secrets and variables → Actions →
-New repository secret**.
+Save it as a **secret** (not an Actions variable) and confirm the exact name appears in your Actions secrets. An organization secret is also supported when its repository-access list includes this App. Never place the token value in source files, `.env`, or release notes.
 
-- **Name:** `NIMI_REPOSITORY_ADMIN_TOKEN`
-- **Secret:** the fine-grained token value from step 2
+### Step 4: Prepare, Verify, and Tag a Release
 
-Save it and confirm the exact name appears in the repository's Actions secrets.
-Use a **secret**, not an Actions variable. An organization secret is also
-supported when its repository-access list includes this App. Keep the value
-out of source files, `.env`, and release notes.
+#### License Ownership & Byte Stability
+- **App-owned `LICENSE`**: The root `LICENSE` file belongs to your App. `create` initializes it once as an MIT license naming `--author` (or the App title if omitted); replace it with your App's actual license terms and set the matching `package.json.license` identifier. `sync` never rewrites `LICENSE`, and `check` does not lock it. The scaffold template's own MIT notice stays in the managed `licenses/nimi-app-template.txt` file.
+- **Handover from older scaffolds**: Projects created by an earlier `app-tools` version that managed `LICENSE` retain their existing file byte-for-byte—running `sync` records the App as the owner, reports the handover, and adds `licenses/nimi-app-template.txt` (`check` will prompt you to run `sync` first).
+- **Preventing line-ending mutation**: The packaged `LICENSE` must remain byte-for-byte identical to the reviewed Git source. Fresh scaffolds include `LICENSE -text` in `.gitattributes`. For existing repositories, add `LICENSE -text` to `.gitattributes` (preserving your other rules) and commit it before tagging so Windows checkout conversion cannot alter the bytes verified by the Registry against the source tag.
 
-### 4. Check, build, and publish a version
+#### Native Addon Unpacking
+Electron packages must keep native add-ons and their companion libraries outside the ASAR archive with their relative directory layout intact. The scaffold configures `asar: { unpack: '**/*.{node,dylib,dll}' }` on macOS and Windows. Apply the equivalent rule to any custom App-owned packager configuration and verify native module loading from the packaged layout—unpacking only `.node` files can leave companion libraries such as Sharp's `libvips` unavailable to the OS dynamic loader.
 
-The project `LICENSE` belongs to the App. `create` writes it once as an MIT
-license naming `--author`, or the App title when no author is given; replace it
-with the App's own terms and set the matching `package.json.license`
-identifier. `sync` never rewrites it and `check` does not lock it. The
-template's own MIT notice stays in the scaffold-managed
-`licenses/nimi-app-template.txt`. A project created by an app-tools version
-that still managed `LICENSE` keeps its file byte for byte: `sync` records the
-App as its owner, reports the handover, and adds the template notice, while
-`check` asks for that sync first.
-
-Keep the packaged `LICENSE` identical to the reviewed Git source. New scaffolds
-include `LICENSE -text` in `.gitattributes`. Add the same rule to an existing
-repository while preserving its other attributes, and commit it before tagging.
-This prevents Windows checkout conversion from changing the license bytes that
-Registry verifies against the exact source tag.
-
-Electron packages keep native add-ons and their companion libraries outside ASAR
-with their relative layout intact. The scaffold uses
-`asar: { unpack: '**/*.{node,dylib,dll}' }` on Mac/Windows. Apply the equivalent rule
-to existing App-owned packagers and verify native loading from the packaged layout;
-unpacking only `.node` can leave Sharp's libvips unavailable to the OS loader.
-
-Run the existing local path from the App repository:
+#### Local Pre-Release Check & Tagging
+Run the production verification path locally from the App repository:
 
 ```bash
 pnpm run sync
@@ -468,54 +153,27 @@ pnpm exec nimi-app build --target windows-x86_64 --production
 pnpm exec nimi-app pack --target windows-x86_64 --production
 ```
 
-Commit the release changes and get that exact commit onto the repository's
-canonical default branch. Keep `package.json` and `nimi.app.yaml` versions
-equal. Use that version for the annotated tag; `0.1.0` below is an example:
+Ensure `package.json` and `nimi.app.yaml` declare the exact same version, commit all release changes, and land that exact commit on the repository's canonical default branch. Then create and push an annotated tag matching that version (`0.1.0` shown as an example):
 
 ```bash
 git tag -a v0.1.0 -m "Release 0.1.0"
 git push origin v0.1.0
 ```
 
-Open **Actions → nimi-app-release**. A successful run produces the immutable
-GitHub Release containing the `.nimiapp` package and aggregate candidate JSON.
-Manual workflow dispatch checks the development path and does not publish.
+Open **Actions → nimi-app-release**. A successful run produces the immutable GitHub Release containing the `.nimiapp` bundle and aggregate candidate JSON (native code signing remains publisher-owned). Triggering the workflow manually checks the development path only and does not publish.
 
-If setup fails, the failed step points to the required setting. Add or replace
-the secret, fix its repository selection/permissions, or enable the named
-setting, then use **Re-run failed jobs** on the same run. A tag outside the
-default branch requires merging its exact commit first. A code change requires
-a new version and tag. Newly published release proofs can take a short time to
-appear; the workflow waits for this specific delay and still requires successful
-verification.
+- **Troubleshooting**: If a setup check fails, the failed step points to the required setting. Add or replace the secret, fix its repository selection or permissions, or enable the named repository setting, then click **Re-run failed jobs** on the same workflow run. A tag pointing outside the default branch requires merging that exact commit into the default branch first. Any code change requires a new version and tag. Newly published release proofs can take a short time to appear; the workflow waits for this delay and still requires verification to succeed.
 
-GitHub Release publication is followed by the separate
-[Registry submission and human admission flow](https://github.com/nimiplatform/nimi-app-registry#ownership-boundary).
-App Tools does not create an approval or install the App as a side effect.
+### Step 5: Submit to the Nimi App Registry
+Once the GitHub Release is published, submit a Pull Request to the [Nimi App Registry](https://github.com/nimiplatform/nimi-app-registry) following the [Registry submission and human admission flow](https://github.com/nimiplatform/nimi-app-registry#ownership-boundary).
 
-## Acceptance status
+---
 
-Help output and focused tests prove only the inspected implementation contract. Any dependency install, build, target pack, GitHub workflow, Release, registry review, Runtime install or Desktop launch not actually run remains `NOT-VERIFIED`. Product acceptance remains user-owned.
+## Portable App Information (Package v2)
 
-Published CLI usage is:
+Every `pack`—including development-mode packaging and non-release CI—requires valid App information, and production `check`/`build` validates these inputs before compilation starts. Incomplete projects remain editable with `dev` and ordinary non-production builds, but package-producing CI will fail until the required metadata and assets are in place.
 
-```bash
-pnpm dlx --package @nimiplatform/app-tools nimi-app --help
-```
-
-## Portable App information (package v2)
-
-A distribution package includes `app-info.json`, containing its actual icon,
-summary, available usage guide and version notes, license, portable requirements
-and, when declared, the publisher safety declaration from `nimi.app.yaml`
-`safety_profile` (see the lifecycle skill's safety-declaration reference). An
-undeclared `safety_profile` stays absent and blocks nothing locally. The
-Registry's current admission policy determines whether a public submission
-requires the complete declaration; App Tools does not fetch that policy during
-local checks.
-Every `pack`, including development-mode packaging and non-release CI, requires
-valid App information. Complete `nimi.app.yaml` and its resources before packing;
-production check/build validates them before the build starts:
+Configure your metadata, capability references, and storage policy in `nimi.app.yaml`:
 
 ```yaml
 metadata:
@@ -532,66 +190,29 @@ storage_policy:
   kind: nimi-mediated-default
 ```
 
-Use the canonical requirement references your App needs; an explicitly empty
-list is valid. Apps with their own OS storage must declare
-`kind: app-owned-os-storage` and `os_storage_disclosure` entries containing
-`path_pattern`, `purpose` and `expected_size_band`. These paths are disclosures,
-not instructions for Nimi to delete files. The author, homepage and support
-links are optional claims for local/private imports; Registry admission keeps
-its independent public-source, open-source license and support requirements.
+Scaffold `sync` preserves your author-edited `metadata`, requirement, and storage fields while continuing to validate managed identity and carrier fields.
 
-The icon must be a complete static PNG, square, 128–1024 pixels, no larger than
-512 KiB, and not fully transparent. Supply your App's real artwork: the old
-1×1 scaffold native icon is not distribution artwork. `metadata` paths are
-relative to the App repository. README and version notes are optional for local or
-private packages; omit their metadata paths when not provided. Registry admission
-requires both documents. Supplied README is limited to 96 KiB, version notes to
-32 KiB, and the root LICENSE to 128 KiB. `package.json.license` supplies the
-explicit license identifier; it does not turn a private license into an
-open-source Registry license. Name and summary allow 120 and 280 characters.
-Scaffold `sync` preserves these author-edited metadata, requirement and storage
-fields while continuing to check the managed identity and carrier fields.
-The scaffold does not supply finished artwork. Add the declared icon, a summary
-and license information; provide any declared documents or omit optional document
-paths for local/private packages. Until then, package-producing CI will fail.
-Incomplete projects remain editable with `dev` and ordinary non-production builds.
+### Field & Asset Requirements
+All `metadata` file paths are relative to the App repository root:
 
-Pack writes `nimi.app-package/v2` and emits the exact embedded information bytes
-as `<app_id>-<version>-<target_id>.app-info.json` next to the `.nimiapp` and
-`.target.json`. Aggregate verifies both files and their equality with the
-embedded document. The managed Release workflow uploads this sidecar; a Registry
-candidate must reference its actual immutable Release asset identity, URL, size
-and digest. No App icon or document is copied into Registry storage.
+| Item | Constraints & Admission Rules |
+| :--- | :--- |
+| **Name & Summary** | Up to **120 characters** for the App name and **280 characters** for `metadata.summary`. |
+| **App Icon (`icon`)** | Required. Complete static PNG, square (`128–1024` pixels), max **512 KiB**, and not fully transparent. The scaffold does not supply finished artwork (the legacy `1×1` scaffold native icon is not valid distribution artwork). |
+| **Root `LICENSE` & `package.json.license`** | Required (`LICENSE` max **128 KiB**). `package.json.license` provides the explicit license identifier; setting an identifier does not turn a private license into an open-source Registry license. |
+| **Usage Guide (`readme`) & Version Notes (`release_notes`)** | Optional for local or private packages (omit their paths in `metadata` when not provided), but **both are required for Registry admission**. Size limits: `README` up to **96 KiB**, version notes up to **32 KiB**. |
+| **Author, Homepage & Support URLs** | Optional claims for local/private imports. Public Registry admission enforces its own independent public-source, open-source license, and support requirements. |
+| **Capability & Feature Refs** | Use the canonical requirement references your App needs; an explicitly empty list (`[]`) is valid. |
+| **Storage Policy (`storage_policy`)** | Declare `kind: nimi-mediated-default` for Nimi-mediated storage. Apps managing their own OS storage must declare `kind: app-owned-os-storage` along with `os_storage_disclosure` entries specifying `path_pattern`, `purpose`, and `expected_size_band` (these are disclosures only, not instructions for Nimi to delete files). |
+| **Safety Declaration (`safety_profile`)** | When declared in `nimi.app.yaml`, included in `app-info.json` (see the lifecycle skill's safety-declaration reference). An undeclared `safety_profile` stays absent and blocks nothing locally; the Registry's current admission policy determines whether public submissions require it (App Tools does not fetch Registry policy during local checks). |
 
-App Tools releases independently of SDK, Kit and Tauri shell. Its `nimiScaffoldVersions`
-declares the tested public SDK, Kit and Tauri shell versions used by new Apps and
-explicit `sync`; workspace development version bumps do not change those ranges.
-The release workflow requires those public versions before publishing App Tools.
+### Package v2 Output & Sidecar Verification
+`pack` writes the `nimi.app-package/v2` format and emits the exact embedded `app-info.json` bytes as a sidecar file named `<app_id>-<version>-<target_id>.app-info.json` alongside the `.nimiapp` bundle and `.target.json`. Aggregate verification checks both files and confirms they match the embedded document byte-for-byte.
 
-Existing Apps follow the [platform upgrade guide](skills/nimi-app-lifecycle/references/upgrade-platform.md).
-Select a published app-tools version and the exact nimi-coding version in that
-release's `nimiScaffoldVersions`. Install both in the App's `devDependencies`
-before invoking the target tool. Read the SDK/Kit migration notes and update the
-affected App-owned API uses, then preview and apply:
+During release, the managed GitHub Actions workflow uploads this sidecar to the immutable GitHub Release. A Registry candidate must reference the actual immutable Release asset identity, URL, size, and digest—no App icon or documentation is copied into Registry storage.
 
-```bash
-pnpm exec nimi-app sync --dry-run --json
-pnpm exec nimi-app sync
-pnpm install
-pnpm exec nimi-app check
-pnpm exec nimi-app test
-pnpm exec nimi-app build --target windows-x86_64
-```
+---
 
-Use the App's declared target for the final build. `sync` preserves App-owned
-product code; update any affected SDK/Kit API usage in that code before release.
+## License
 
-The v2 Runtime rejects v1 packages. Existing immutable publisher Releases and
-approved descriptors must not be edited to invent the missing asset. Prepare a
-new App version and real target builds, publish new immutable assets, and follow
-normal Registry review. The coordinated pre-release Registry data cutover must
-retire v1 entries/descriptors from the active dataset, retaining their history
-in Git; adding v2 releases alone cannot make old descriptors satisfy the new
-required-field schema. Do not deploy the v2 consumer before that reviewed
-cutover is ready. Installed information is source-qualified and stored offline
-by Runtime; metadata does not grant Registry verification or App Access.
+Licensed under [Apache-2.0](../licenses/Apache-2.0.txt).
