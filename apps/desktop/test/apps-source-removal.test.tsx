@@ -101,7 +101,7 @@ test('source removal confirms the exact sibling without changing the open source
     await act(async () => button().click());
     assert.deepEqual(calls, []);
     const dialog = () => dom.window.document.querySelector('[role="alertdialog"], [role="dialog"]')!;
-    assert.match(dialog().textContent ?? '', /不会删除项目文件/);
+    assert.match(dialog().textContent ?? '', /本地项目文件不会删除/);
     await act(async () => [...dialog().querySelectorAll('button')].find(b => b.textContent === '取消')!.click());
     assert.deepEqual(calls, []);
     await act(async () => button().click());

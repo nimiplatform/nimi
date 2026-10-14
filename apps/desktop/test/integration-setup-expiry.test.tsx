@@ -45,7 +45,7 @@ test(`Home presents a safe, actionable native identity conflict in ${locale}`, a
     await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
     await act(async () => { t.mock.timers.tick(1000); });
     const panel = dom.window.document.querySelector('[data-testid="integration-setup"]')!;
-    assert.match(panel.textContent || '', locale === 'en' ? /already connected.*existing connection.*remove.*Nimi account/iu : /已有连接.*不能重复添加.*已有连接.*Nimi 账号.*移除/u);
+    assert.match(panel.textContent || '', locale === 'en' ? /already connected.*existing connection.*remove.*Nimi account/iu : /已有连接.*不能重复添加.*现有连接.*Nimi 账号.*移除/u);
     assert.equal(panel.textContent?.includes('INTEGRATION_'), false);
     assert.equal(panel.querySelector('a'), null);
     assert.equal(form.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled, false);
@@ -95,7 +95,7 @@ test('Home recovers setup controls and clears QR and OTP after persistent RPC fa
     assert.equal(form.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled, false);
     assert.equal(otp.value, ''); assert.equal(panel.querySelector('input[autocomplete="one-time-code"]'), null);
     assert.equal(panel.querySelector('a[href="https://liteapp.weixin.qq.com/fixture"]'), null);
-    assert.match(panel.textContent || '', /final status could not be confirmed/u);
+    assert.match(panel.textContent || '', /expired before its final status could be confirmed/u);
     assert.equal(canceled, 0, 'local observation expiry must not claim or issue remote cancellation');
     await act(async () => { t.mock.timers.tick(60000); }); assert.equal(queries, 3);
   } finally {

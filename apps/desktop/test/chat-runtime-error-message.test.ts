@@ -26,7 +26,7 @@ test('Agent Chat does not parse internal capacity text into product truth', () =
 
 test('Agent busy gives a bounded retry explanation without business detail', () => {
   const projected = toChatUserFacingRuntimeError({ reasonCode: 'AGENT_BUSY', message: 'private business material' }, 'Agent response failed', i18n.t);
-  assert.match(projected.message, /input is saved.*try sending again/u);
+  assert.match(projected.message, /draft is saved.*try sending again/u);
   assert.doesNotMatch(projected.message, /private business material/u);
 });
 
@@ -47,7 +47,7 @@ test('Nimi Chat explains a stale saved model instead of showing its raw reason c
     'Nimi Chat could not complete this request.',
     i18n.t,
   );
-  assert.match(projected.message, /Choose it again in AI Capabilities/u);
+  assert.match(projected.message, /Select it again in AI Capabilities/u);
   assert.doesNotMatch(projected.message, /AI_REMOTE_MODEL_CATALOG_STALE/u);
 });
 

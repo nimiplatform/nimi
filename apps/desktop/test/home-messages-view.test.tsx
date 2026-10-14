@@ -151,7 +151,7 @@ test('Home summarizes interruptions while the message center retains every notic
   const details = renderToStaticMarkup(wrap(<HomeExecutionNotices />, client));
   assert.equal((details.match(/>Dismiss</g) ?? []).length, 16);
   assert.match(details, /App 15:.*execution stopped/);
-  assert.match(details, /The technical connection is available again/);
+  assert.match(details, /Connection restored/);
   client.clear();
 });
 

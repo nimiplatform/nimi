@@ -53,7 +53,7 @@ test('no agent keeps the greeting but replaces the composer with explore guidanc
   await initI18n(); await changeLocale('zh');
   const html = render({ state: 'none', agent: null });
   assert.match(html, /Good afternoon, Halliday/);
-  assert.match(html, /还没有 agent/);
+  assert.match(html, /还没有 Agent/);
   assert.match(html, /data-testid="home-agent-explore"/);
   assert.doesNotMatch(html, /data-testid="home-agent-composer"/);
   assert.doesNotMatch(html, /data-testid="home-agent-chat"/);

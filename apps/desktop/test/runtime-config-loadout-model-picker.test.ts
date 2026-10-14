@@ -300,7 +300,7 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
     loadouts: { slotLabels: Record<string, string>; quantSemantic: Record<string, string>; picker: Record<string, string> };
   };
   assert.equal(zh.loadouts.slotLabels.mainModel, '主模型');
-  assert.equal(zh.loadouts.slotLabels.visionProjector, '视觉模型');
+  assert.equal(zh.loadouts.slotLabels.visionProjector, '视觉投影器');
   assert.equal(zh.loadouts.quantSemantic.balanced, '均衡');
   assert.equal(zh.loadouts.picker.installAndUse, '安装并使用');
 });

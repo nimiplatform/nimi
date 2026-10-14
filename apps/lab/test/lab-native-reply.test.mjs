@@ -308,7 +308,7 @@ test('the actual session-loss observation invalidates a pending draft and cannot
   const surface=observeLabLocalAppSessionLoss({operation:async()=>{throw Object.assign(new Error('Account changed'),{reasonCode:'account-changed'})}});
   await act(async()=>{await assert.rejects(surface.operation(),/Account changed/u)});
   await act(async()=>held.resolve(result('late after lost scope')));
-  assert.equal(pane().querySelector('textarea'),null);assert.equal(button('Generate draft').disabled,true);assert.equal(calls.aiRecords.length,0);assert.equal(calls.messages.length,0);assert.match(document.getElementById('root').textContent,/session ended/u);
+  assert.equal(pane().querySelector('textarea'),null);assert.equal(button('Generate draft').disabled,true);assert.equal(calls.aiRecords.length,0);assert.equal(calls.messages.length,0);assert.match(document.getElementById('root').textContent,/session has ended/u);
  }finally{await act(async()=>renderer.unmount())}
 });
 

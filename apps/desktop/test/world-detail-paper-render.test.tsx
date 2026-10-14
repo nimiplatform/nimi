@@ -465,7 +465,7 @@ test('world scene detail page renders structured scene DTO data after entry with
   assert.match(markup, /data-testid="world-detail-scene-detail-page"/);
   assert.doesNotMatch(markup, /class="fixed inset-0/);
   assert.doesNotMatch(markup, /bg-black\/55/);
-  assert.match(markup, /Scene detail card/);
+  assert.match(markup, /Scene details/);
   assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
   assert.match(markup, /Active entities/);
   assert.match(markup, /Related characters/);
@@ -642,7 +642,7 @@ test('the full world reader does not lose levels or realms beyond old visual-car
 
 test('failed supplemental content stays explicit while character discovery remains usable', () => {
   const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={{ scenes: [], resourceRefs: [], externalRefs: [], intents: [] }} readingIncomplete publicAssetsIncomplete onRetryReading={() => {}} onViewCharacter={() => {}} />)).window.document;
-  assert.ok(document.body.textContent?.includes('Some world setting or history could not be loaded'));
+  assert.ok(document.body.textContent?.includes('Some world settings or history could not be loaded'));
   assert.ok(document.body.textContent?.includes('Places and references could not be loaded'));
   assert.equal(document.querySelectorAll('button[aria-label^="View "]').length, characters.length);
 });

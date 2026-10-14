@@ -284,7 +284,7 @@ for(const kind of ['qq-official','onebot-v11'])for(const available of [true,fals
     const form=document.querySelector('form')!;
     assert.equal(form.querySelector('select'),null);
     assert.equal(form.querySelector<HTMLInputElement>('input[type=password]')!.value,'');
-    assert.match(form.parentElement!.textContent||'',/original.*retains this connection and its app permissions/iu);
+    assert.match(form.parentElement!.textContent||'',/original.*keeping this connection and its app permissions/iu);
     await act(async()=>{form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));});
     assert.equal(started.length,1);assert.equal(started[0]!.targetRef,target.targetRef);assert.equal(started[0]!.adapter,kind);
   });
@@ -404,11 +404,11 @@ test('Home corrects invalid Weixin codes locally and preserves a typed Runtime i
     for(const input of ['', 'letters',' 123','1'.repeat(33)]){
       code.value=input;await clickNamed(document,'Submit code');
       assert.equal(code.value,input);assert.equal(submitted.length,0);assert.equal(document.activeElement,code);
-      assert.match(document.body.textContent||'',/nonempty numeric verification code/u);
+      assert.match(document.body.textContent||'',/Enter the numeric verification code shown in WeChat/u);
     }
     code.value='12345';await clickNamed(document,'Submit code');
     assert.equal(submitted.length,1);assert.equal(code.value,'');
-    assert.match(document.body.textContent||'',/nonempty numeric verification code/u);
+    assert.match(document.body.textContent||'',/Enter the numeric verification code shown in WeChat/u);
     assert.doesNotMatch(document.body.textContent||'',/integration service is unavailable/iu);
   });
 });

@@ -120,7 +120,7 @@ test('a paused people catalog reads as offline and loads its pages once the conn
   try {
     assert.equal(view.value('status'), 'offline', 'a paused first page is not loading');
     assert.equal(view.value('offline'), 'true');
-    assert.match(view.text(), /You're offline\. This World's people will load when you're back online\./);
+    assert.match(view.text(), /You're offline\. This world's people will load when you're back online\./);
     assert.doesNotMatch(view.text(), /Loading people…|Try again/);
     assert.deepEqual(characterCursors, [], 'nothing is requested while offline');
 
@@ -164,7 +164,7 @@ test('with the Desktop reporting Realm unreachable a failed first page asks for 
   try {
     assert.equal(view.value('status'), 'error', 'a failed first page is never an empty World');
     assert.equal(view.value('offline'), 'true');
-    assert.match(view.text(), /Couldn't connect to load this World's people\. Check your connection and try again\./);
+    assert.match(view.text(), /Couldn't connect to load this world's people\. Check your connection and try again\./);
     const retry = view.button(/Try again/);
     assert.ok(retry, 'a retry is offered');
 

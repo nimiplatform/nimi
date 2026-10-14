@@ -278,7 +278,7 @@ describe('CompanionSurface', () => {
     fireEvent.click(screen.getByLabelText('Stop and send voice input'));
 
     expect((await screen.findByRole('alert')).textContent).toContain(
-      'Voice input could not be processed; try again.',
+      "Couldn't process voice input. Please try again.",
     );
     expect(screen.queryByText(/SDK_LOCAL_APP_INPUT_INVALID/)).toBeNull();
   });

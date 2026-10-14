@@ -218,7 +218,7 @@ test('relationship explorer browses every character neutrally without guessed re
   assert.match(markup, /data-testid="world-relationship-profile"/);
   assert.match(markup, /Mira maps the outer ring of The Last Star\./);
   assert.match(markup, /Station cartographer/);
-  assert.match(markup, /Same identity/);
+  assert.match(markup, /Shared identity/);
   assert.doesNotMatch(markup, /Contemporaries/);
 });
 

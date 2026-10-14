@@ -119,8 +119,9 @@ test('landing copy states download availability and the account requirement with
     const content = await loadLandingContent(locale);
     const serialized = JSON.stringify(content);
     assert.doesNotMatch(content.hero.downloadNote, /Available for macOS and Windows|支持 macOS 与 Windows/u);
-    assert.match(content.hero.downloadNote, locale === 'zh' ? /Nimi 账号/u : /Nimi account/);
-    assert.match(content.getStarted.availability, locale === 'zh' ? /Nimi 账号/u : /Nimi account/);
+    const accountRequirement = locale === 'zh' ? /使用 Nimi 需要(?: Nimi )?账号/u : /Nimi account/;
+    assert.match(content.hero.downloadNote, accountRequirement);
+    assert.match(content.getStarted.availability, accountRequirement);
     assert.doesNotMatch(serialized, /Mastra/);
   }
 });
