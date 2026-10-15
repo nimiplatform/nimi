@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-10-12-dashscope-retire-qwen-voice-design
+catalog_version: 2026-10-15-dashscope-retire-qwen3-tts
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,10 @@ defaults:
     notes: Official document does not provide stable public pricing in a unified schema.
 
 sources:
+  - source_id: dashscope_qwen3_tts_retirement_doc
+    url: https://www.aliyun.com/notice/118434
+    retrieved_at: 2026-10-15
+    note: Qwen3 VC, VD, Instruct and dated Flash targets retired on 2026-10-10. Undated Flash and current Qwen-Audio/CosyVoice remain active; persisted voice assets are not deleted.
   - source_id: dashscope_retirement_audit_doc
     url: https://help.aliyun.com/zh/model-studio/rate-limit
     retrieved_at: 2026-09-30
@@ -124,7 +128,7 @@ sources:
   - source_id: dashscope_voice_design_retirement_doc
     url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
     retrieved_at: 2026-10-12
-    note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
+    note: Qwen voice design creation retired under this notice; notice 118434 subsequently retired its synthesis targets too. Persisted voice references remain stored; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
   - source_id: dashscope_qwen_realtime_tts_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
     retrieved_at: 2026-04-18
@@ -206,7 +210,6 @@ sources:
 
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
-  short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
   cosyvoice_v3_multi: [zh, en, fr, de, ja, ko, ru, pt, th, id, vi]
   cosyvoice_v3_system: [zh, en, ja, ko]
   cosyvoice_design_v1: [zh, en]
@@ -251,60 +254,6 @@ voice_sets:
         name: Serena
       - voice_id: sunny
         name: Sunny
-  - voice_set_id: instruct_flash_voice_set
-    langs_ref: region_v1
-    source_ids: [dashscope_doc]
-    voices:
-      - voice_id: arthur
-        name: Arthur
-      - voice_id: bella
-        name: Bella
-      - voice_id: bellona
-        name: Bellona
-      - voice_id: bunny
-        name: Bunny
-      - voice_id: chelsie
-        name: Chelsie
-      - voice_id: cherry
-        name: Cherry
-      - voice_id: ebona
-        name: Ebona
-      - voice_id: eldric_sage
-        name: Eldric Sage
-      - voice_id: elias
-        name: Elias
-      - voice_id: ethan
-        name: Ethan
-      - voice_id: kai
-        name: Kai
-      - voice_id: maia
-        name: Maia
-      - voice_id: mia
-        name: Mia
-      - voice_id: mochi
-        name: Mochi
-      - voice_id: momo
-        name: Momo
-      - voice_id: moon
-        name: Moon
-      - voice_id: neil
-        name: Neil
-      - voice_id: nini
-        name: Nini
-      - voice_id: nofish
-        name: Nofish
-      - voice_id: pip
-        name: Pip
-      - voice_id: seren
-        name: Seren
-      - voice_id: serena
-        name: Serena
-      - voice_id: stella
-        name: Stella
-      - voice_id: vincent
-        name: Vincent
-      - voice_id: vivian
-        name: Vivian
   - voice_set_id: flash_voice_set
     langs_ref: region_v1
     source_ids: [dashscope_doc]
@@ -501,67 +450,16 @@ models:
           namespace: nimi.scenario.speech_synthesize.request
           schema_version: dashscope-cosyvoice-v1
 
-  - model_id: qwen3-tts-instruct-flash
-    updated_at: 2026-01-26
-    capabilities: [audio.synthesize]
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: instruct_flash_voice_set
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: region_v1
-    aliases:
-      - qwen3-tts-instruct-flash-2026-01-26
   - model_id: qwen3-tts-flash
-    updated_at: 2025-11-27
+    updated_at: 2026-10-15
     capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: flash_voice_set
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: region_v1
-    aliases:
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-  - model_id: qwen3-tts-vc
-    api_model_id: qwen3-tts-vc-2026-01-22
-    updated_at: 2026-01-22
-    source_ids: [dashscope_voice_cloning_doc]
-    capabilities: [audio.synthesize, voice.create]
-    features: [input.audio]
-    voice:
-      discovery_mode: dynamic_user_scoped
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
-      langs_ref: short_v1
-    aliases:
-      - qwen3-tts-vc-2026-01-22
-  - model_id: qwen3-tts-vd
-    api_model_id: qwen3-tts-vd-2026-01-26
-    updated_at: 2026-10-12
-    source_ids: [dashscope_voice_design_retirement_doc, dashscope_voice_design_doc]
-    capabilities: [audio.synthesize]
-    voice:
-      discovery_mode: dynamic_user_scoped
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
-      langs_ref: short_v1
-    aliases:
-      - qwen3-tts-vd-2026-01-26
-  - model_id: qwen3-tts-instruct-flash-realtime
-    updated_at: 2026-04-18
-    capabilities: [audio.synthesize]
-    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_models_pricing_doc]
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: instruct_flash_voice_set
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: region_v1
-      request_options:
-        timing_modes: [none]
-        audio_formats: [wav, pcm, mp3, opus]
-        supports_language: true
-    aliases:
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
   - model_id: qwen3-tts-flash-realtime
-    updated_at: 2026-04-18
+    updated_at: 2026-10-15
     capabilities: [audio.synthesize]
     source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_models_pricing_doc]
     voice:
@@ -573,39 +471,6 @@ models:
         timing_modes: [none]
         audio_formats: [wav, pcm, mp3, opus]
         supports_language: true
-    aliases:
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-  - model_id: qwen3-tts-vc-realtime-2026-01-15
-    updated_at: 2026-04-18
-    capabilities: [audio.synthesize, voice.create]
-    features: [input.audio]
-    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_voice_cloning_doc, dashscope_models_pricing_doc]
-    voice:
-      discovery_mode: dynamic_user_scoped
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
-      langs_ref: short_v1
-      request_options:
-        timing_modes: [none]
-        audio_formats: [wav, pcm, mp3, opus]
-        supports_language: true
-    aliases:
-      - qwen3-tts-vc-realtime-2025-11-27
-  - model_id: qwen3-tts-vd-realtime-2026-01-15
-    updated_at: 2026-10-12
-    capabilities: [audio.synthesize]
-    source_ids: [dashscope_voice_design_retirement_doc, dashscope_qwen_realtime_tts_doc, dashscope_voice_design_doc, dashscope_models_pricing_doc]
-    voice:
-      discovery_mode: dynamic_user_scoped
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
-      langs_ref: short_v1
-      request_options:
-        timing_modes: [none]
-        audio_formats: [wav, pcm, mp3, opus]
-        supports_language: true
-    aliases:
-      - qwen3-tts-vd-realtime-2025-12-16
-
   - model_id: qwen3.8-flash
     model_type: chat
     updated_at: 2026-09-29
@@ -1569,24 +1434,6 @@ models:
     source_ids: [dashscope_models_pricing_doc]
 
 voice_workflow_models:
-  - workflow_model_id: qwen-voice-enrollment
-    workflow_type: reference_audio
-    workflow_family: dashscope
-    input_contract_ref: dashscope_voice_clone_input_v1
-    output_persistence: provider_persistent
-    request_options:
-      text_prompt_mode: unsupported
-      supports_language_hints: false
-      supports_preferred_name: true
-      reference_audio_uri_input: true
-      reference_audio_bytes_input: true
-      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
-    target_model_refs:
-      - qwen3-tts-vc
-      - qwen3-tts-vc-2026-01-22
-      - qwen3-tts-vc-realtime-2026-01-15
-    langs_ref: short_v1
-    source_ids: [dashscope_voice_cloning_doc, dashscope_qwen_realtime_tts_doc]
   - workflow_model_id: voice-enrollment-qwen-audio-clone
     workflow_type: reference_audio
     workflow_family: cosyvoice
@@ -1659,15 +1506,6 @@ model_workflow_bindings:
   - model_id: qwen-audio-3.0-tts-flash
     workflow_model_refs: [voice-enrollment-qwen-audio-clone, voice-enrollment-design]
     workflow_types: [reference_audio, text_description]
-  - model_id: qwen3-tts-vc
-    workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [reference_audio]
-  - model_id: qwen3-tts-vc-2026-01-22
-    workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [reference_audio]
-  - model_id: qwen3-tts-vc-realtime-2026-01-15
-    workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [reference_audio]
   - model_id: cosyvoice-v3.5-plus
     workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
     workflow_types: [reference_audio, text_description]

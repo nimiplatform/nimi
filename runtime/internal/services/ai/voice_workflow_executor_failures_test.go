@@ -111,9 +111,10 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
 	req := voiceReferenceAudioRequest()
+	req.GetSpec().GetVoiceCreate().TargetModelId = "qwen-audio-3.0-tts-plus"
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice.create", fixture.targetRef)
 	submitted, err := svc.SubmitScenarioJob(ctx, req)
 	if err != nil {
@@ -152,8 +153,9 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 }
 
 func TestCloudVoiceResolvedAssemblyCapturesGeneratedPreferredNameBeforeWorkerRebuild(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", "https://example.com", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", "https://example.com", Config{})
 	req := voiceReferenceAudioRequest()
+	req.GetSpec().GetVoiceCreate().TargetModelId = "qwen-audio-3.0-tts-plus"
 	req.GetSpec().GetVoiceCreate().GetReferenceAudio().PreferredName = ""
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice.create", fixture.targetRef)
 	effective, err := fixture.service.captureCloudVoiceWorkflowEffectiveInputs(ctx, req)

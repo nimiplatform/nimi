@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-10-12-dashscope-retire-qwen-voice-design
+catalog_version: 2026-10-15-dashscope-retire-qwen3-tts
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -242,53 +242,10 @@ models:
       - preset_voice_id
       - voice_asset_id
       - provider_voice_ref
-  - model_id: qwen3-tts-instruct-flash
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-26
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    voice_set_id: dashscope:instruct_flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: &a1
-      - preset_voice_id
-      - provider_voice_ref
-  - model_id: qwen3-tts-instruct-flash-2026-01-26
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-26
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    api_model_id: qwen3-tts-instruct-flash
-    voice_set_id: dashscope:instruct_flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a1
   - model_id: qwen3-tts-flash
     provider: dashscope
     model_type: tts
-    updated_at: 2025-11-27
+    updated_at: 2026-10-15
     capabilities:
       - audio.synthesize
     pricing:
@@ -304,202 +261,13 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_ref_kinds: &a2
+    voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
-  - model_id: qwen3-tts-flash-2025-09-18
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-09-18
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    api_model_id: qwen3-tts-flash
-    voice_set_id: dashscope:flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a2
-  - model_id: qwen3-tts-flash-2025-11-27
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-11-27
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    api_model_id: qwen3-tts-flash
-    voice_set_id: dashscope:flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a2
-  - model_id: qwen3-tts-vc
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-22
-    capabilities:
-      - audio.synthesize
-      - voice.create
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
-      retrieved_at: 2026-03-05
-      note: qwen tts voice cloning documentation
-    api_model_id: qwen3-tts-vc-2026-01-22
-    features:
-      - input.audio
-    voice_set_id: dashscope:qwen3-tts-vc-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a3
-      - voice_asset_id
-      - provider_voice_ref
-  - model_id: qwen3-tts-vc-2026-01-22
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-22
-    capabilities:
-      - audio.synthesize
-      - voice.create
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
-      retrieved_at: 2026-03-05
-      note: qwen tts voice cloning documentation
-    api_model_id: qwen3-tts-vc-2026-01-22
-    features:
-      - input.audio
-    voice_set_id: dashscope:qwen3-tts-vc-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a3
-  - model_id: qwen3-tts-vd
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-10-12
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
-      retrieved_at: 2026-10-12
-      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
-    api_model_id: qwen3-tts-vd-2026-01-26
-    voice_set_id: dashscope:qwen3-tts-vd-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a4
-      - voice_asset_id
-      - provider_voice_ref
-  - model_id: qwen3-tts-vd-2026-01-26
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-26
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
-      retrieved_at: 2026-10-12
-      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
-    api_model_id: qwen3-tts-vd-2026-01-26
-    voice_set_id: dashscope:qwen3-tts-vd-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a4
-  - model_id: qwen3-tts-instruct-flash-realtime
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-04-18
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    voice_set_id: dashscope:instruct_flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_request_options: &a5
-      timing_modes:
-        - none
-      audio_formats:
-        - wav
-        - pcm
-        - mp3
-        - opus
-      supports_language: true
-    voice_ref_kinds: &a6
-      - preset_voice_id
-      - provider_voice_ref
-  - model_id: qwen3-tts-instruct-flash-realtime-2026-01-22
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-22
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    api_model_id: qwen3-tts-instruct-flash-realtime
-    voice_set_id: dashscope:instruct_flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_request_options: *a5
-    voice_ref_kinds: *a6
   - model_id: qwen3-tts-flash-realtime
     provider: dashscope
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-10-15
     capabilities:
       - audio.synthesize
     pricing:
@@ -515,7 +283,7 @@ models:
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_request_options: &a7
+    voice_request_options:
       timing_modes:
         - none
       audio_formats:
@@ -524,165 +292,9 @@ models:
         - mp3
         - opus
       supports_language: true
-    voice_ref_kinds: &a8
+    voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
-  - model_id: qwen3-tts-flash-realtime-2025-11-27
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-11-27
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    api_model_id: qwen3-tts-flash-realtime
-    voice_set_id: dashscope:flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_request_options: *a7
-    voice_ref_kinds: *a8
-  - model_id: qwen3-tts-flash-realtime-2025-09-18
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-09-18
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    api_model_id: qwen3-tts-flash-realtime
-    voice_set_id: dashscope:flash_voice_set
-    voice_discovery_mode: static_catalog
-    voice_request_options: *a7
-    voice_ref_kinds: *a8
-  - model_id: qwen3-tts-vc-realtime-2026-01-15
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-15
-    capabilities:
-      - audio.synthesize
-      - voice.create
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    features:
-      - input.audio
-    voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_request_options: &a9
-      timing_modes:
-        - none
-      audio_formats:
-        - wav
-        - pcm
-        - mp3
-        - opus
-      supports_language: true
-    voice_ref_kinds: &a10
-      - voice_asset_id
-      - provider_voice_ref
-  - model_id: qwen3-tts-vc-realtime-2025-11-27
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-11-27
-    capabilities:
-      - audio.synthesize
-      - voice.create
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    api_model_id: qwen3-tts-vc-realtime-2026-01-15
-    features:
-      - input.audio
-    voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_request_options: *a9
-    voice_ref_kinds: *a10
-  - model_id: qwen3-tts-vd-realtime-2026-01-15
-    provider: dashscope
-    model_type: tts
-    updated_at: 2026-01-15
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
-      retrieved_at: 2026-10-12
-      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
-    voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_request_options: &a11
-      timing_modes:
-        - none
-      audio_formats:
-        - wav
-        - pcm
-        - mp3
-        - opus
-      supports_language: true
-    voice_ref_kinds: &a12
-      - voice_asset_id
-      - provider_voice_ref
-  - model_id: qwen3-tts-vd-realtime-2025-12-16
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-12-16
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
-      retrieved_at: 2026-10-12
-      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
-    api_model_id: qwen3-tts-vd-realtime-2026-01-15
-    voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
-    voice_discovery_mode: dynamic_user_scoped
-    voice_request_options: *a11
-    voice_ref_kinds: *a12
   - model_id: qwen3.8-flash
     provider: dashscope
     model_type: chat
@@ -1773,7 +1385,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a13
+    image_request_options: &a1
       response_formats:
         - b64_json
         - url
@@ -1807,7 +1419,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a13
+    image_request_options: *a1
   - model_id: qwen-image-2.0
     provider: dashscope
     model_type: image
@@ -1828,7 +1440,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a14
+    image_request_options: &a2
       response_formats:
         - b64_json
         - url
@@ -1862,7 +1474,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a14
+    image_request_options: *a2
   - model_id: z-image-turbo
     provider: dashscope
     model_type: image
@@ -2522,606 +2134,6 @@ voices:
       url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
       retrieved_at: 2026-06-06
       note: Official CosyVoice system voice list for v3 flash.
-  - voice_id: arthur
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Arthur
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: bella
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Bella
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: bellona
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Bellona
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: bunny
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Bunny
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: chelsie
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Chelsie
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: cherry
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Cherry
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: ebona
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Ebona
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: eldric_sage
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Eldric Sage
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: elias
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Elias
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: ethan
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Ethan
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: kai
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Kai
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: maia
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Maia
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: mia
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Mia
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: mochi
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Mochi
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: momo
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Momo
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: moon
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Moon
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: neil
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Neil
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: nini
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Nini
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: nofish
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Nofish
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: pip
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Pip
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: seren
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Seren
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: serena
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Serena
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: stella
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Stella
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: vincent
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Vincent
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: vivian
-    voice_set_id: dashscope:instruct_flash_voice_set
-    provider: dashscope
-    name: Vivian
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-instruct-flash
-      - qwen3-tts-instruct-flash-2026-01-26
-      - qwen3-tts-instruct-flash-realtime
-      - qwen3-tts-instruct-flash-realtime-2026-01-22
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: aiden
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
@@ -3139,11 +2151,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3165,11 +2173,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3191,11 +2195,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3217,11 +2217,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3243,11 +2239,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3269,11 +2261,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3295,11 +2283,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3321,11 +2305,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3347,11 +2327,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3373,11 +2349,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3399,11 +2371,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3425,11 +2393,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3451,11 +2415,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3477,11 +2437,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3503,11 +2459,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3529,11 +2481,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3555,11 +2503,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3581,11 +2525,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3607,11 +2547,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3633,11 +2569,7 @@ voices:
       - ko-kr
     model_ids:
       - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
       - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -3740,94 +2672,6 @@ voices:
       url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
       retrieved_at: 2026-06-06
       note: Official speech synthesis model selection and current model matrix.
-  - voice_id: user-custom
-    voice_set_id: dashscope:qwen3-tts-vc-dynamic
-    provider: dashscope
-    name: User Custom Voice
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - qwen3-tts-vc
-      - qwen3-tts-vc-2026-01-22
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
-      retrieved_at: 2026-03-05
-      note: qwen tts voice cloning documentation
-  - voice_id: user-custom
-    voice_set_id: dashscope:qwen3-tts-vd-dynamic
-    provider: dashscope
-    name: User Custom Voice
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - qwen3-tts-vd
-      - qwen3-tts-vd-2026-01-26
-    source_ref:
-      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
-      retrieved_at: 2026-10-12
-      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
-  - voice_id: user-custom
-    voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
-    provider: dashscope
-    name: User Custom Voice
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - qwen3-tts-vc-realtime-2026-01-15
-      - qwen3-tts-vc-realtime-2025-11-27
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-  - voice_id: user-custom
-    voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
-    provider: dashscope
-    name: User Custom Voice
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - qwen3-tts-vd-realtime-2026-01-15
-      - qwen3-tts-vd-realtime-2025-12-16
-    source_ref:
-      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
-      retrieved_at: 2026-10-12
-      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
 selection_profiles:
   - provider: dashscope
     profile_id: text.general
@@ -3851,43 +2695,6 @@ selection_profiles:
     freshness_sla_days: 21
     rationale: Callable Qwen 3.7 Max, text-only with thinking on by default; Alibaba now lists it under legacy models and names Qwen 3.8 Max for the strongest reasoning, which is not admitted in this catalog yet.
 voice_workflow_models:
-  - workflow_model_id: qwen-voice-enrollment
-    workflow_type: reference_audio
-    workflow_family: dashscope
-    input_contract_ref: dashscope_voice_clone_input_v1
-    output_persistence: provider_persistent
-    request_options:
-      text_prompt_mode: unsupported
-      supports_language_hints: false
-      supports_preferred_name: true
-      reference_audio_uri_input: true
-      reference_audio_bytes_input: true
-      allowed_reference_audio_mime_types:
-        - audio/wav
-        - audio/mpeg
-        - audio/ogg
-        - audio/flac
-        - audio/mp4
-        - audio/m4a
-    target_model_refs:
-      - qwen3-tts-vc
-      - qwen3-tts-vc-2026-01-22
-      - qwen3-tts-vc-realtime-2026-01-15
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
-      retrieved_at: 2026-03-05
-      note: qwen tts voice cloning documentation
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
   - workflow_model_id: voice-enrollment-qwen-audio-clone
     workflow_type: reference_audio
     workflow_family: cosyvoice
@@ -4015,21 +2822,6 @@ model_workflow_bindings:
     workflow_types:
       - reference_audio
       - text_description
-  - model_id: qwen3-tts-vc
-    workflow_model_refs:
-      - qwen-voice-enrollment
-    workflow_types:
-      - reference_audio
-  - model_id: qwen3-tts-vc-2026-01-22
-    workflow_model_refs:
-      - qwen-voice-enrollment
-    workflow_types:
-      - reference_audio
-  - model_id: qwen3-tts-vc-realtime-2026-01-15
-    workflow_model_refs:
-      - qwen-voice-enrollment
-    workflow_types:
-      - reference_audio
   - model_id: cosyvoice-v3.5-plus
     workflow_model_refs:
       - voice-enrollment-clone

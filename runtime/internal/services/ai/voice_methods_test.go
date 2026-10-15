@@ -168,8 +168,8 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 			return
 		}
 		input, _ := body["input"].(map[string]any)
-		if input["action"] == "delete" {
-			if body["model"] != "qwen-voice-enrollment" || input["voice"] != "voice-methods-lifecycle" {
+		if input["action"] == "delete_voice" {
+			if body["model"] != "voice-enrollment" || input["voice_id"] != "voice-methods-lifecycle" {
 				t.Errorf("delete lost captured workflow or voice: %+v", body)
 			}
 			if deleteCalls.Add(1) == 1 {
@@ -183,7 +183,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		_, _ = io.WriteString(w, `{"voice_id":"voice-methods-lifecycle","job_id":"job-methods-lifecycle"}`)
 	}))
 	defer server.Close()
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
 
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
@@ -197,9 +197,9 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
 				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-					TargetModelId: "dashscope/qwen3-tts-vc",
+					TargetModelId: "dashscope/qwen-audio-3.0-tts-plus",
 					Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
-						ReferenceAudioUri: "file://sample.wav",
+						ReferenceAudioUri: "https://example.com/sample.wav",
 					}},
 				},
 			},

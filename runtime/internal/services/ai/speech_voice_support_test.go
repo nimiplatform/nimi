@@ -34,10 +34,10 @@ func TestIsSpeechVoiceSupported(t *testing.T) {
 }
 
 func TestValidateConnectorTTSModelSupportAllowsProviderVoiceRefOutsidePresetCatalog(t *testing.T) {
-	svc, remoteTarget := newConnectorTTSValidationTestService(t, "dashscope", "qwen3-tts-vc")
+	svc, remoteTarget := newConnectorTTSValidationTestService(t, "dashscope", "cosyvoice-v3.5-plus")
 	req := connectorTTSValidationRequest(
 		"dashscope-connector",
-		"qwen3-tts-vc",
+		"cosyvoice-v3.5-plus",
 		&runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
 			Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
@@ -46,16 +46,16 @@ func TestValidateConnectorTTSModelSupportAllowsProviderVoiceRefOutsidePresetCata
 		},
 	)
 
-	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "qwen3-tts-vc", remoteTarget, svc.cloudProvider, svc.speechCatalog); err != nil {
+	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "cosyvoice-v3.5-plus", remoteTarget, svc.cloudProvider, svc.speechCatalog); err != nil {
 		t.Fatalf("validateConnectorTTSModelSupport(provider voice ref): %v", err)
 	}
 }
 
 func TestValidateConnectorTTSModelSupportAllowsVoiceAssetRefAfterRuntimeResolution(t *testing.T) {
-	svc, remoteTarget := newConnectorTTSValidationTestService(t, "dashscope", "qwen3-tts-vc")
+	svc, remoteTarget := newConnectorTTSValidationTestService(t, "dashscope", "cosyvoice-v3.5-plus")
 	req := connectorTTSValidationRequest(
 		"dashscope-connector",
-		"qwen3-tts-vc",
+		"cosyvoice-v3.5-plus",
 		&runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
 			Reference: &runtimev1.VoiceReference_VoiceAssetId{
@@ -73,16 +73,16 @@ func TestValidateConnectorTTSModelSupportAllowsVoiceAssetRefAfterRuntimeResoluti
 		},
 	}
 
-	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, effectiveSpec, "qwen3-tts-vc", remoteTarget, svc.cloudProvider, svc.speechCatalog); err != nil {
+	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, effectiveSpec, "cosyvoice-v3.5-plus", remoteTarget, svc.cloudProvider, svc.speechCatalog); err != nil {
 		t.Fatalf("validateConnectorTTSModelSupport(voice asset): %v", err)
 	}
 }
 
 func TestValidateConnectorTTSModelSupportRejectsUnsupportedPresetVoice(t *testing.T) {
-	svc, remoteTarget := newConnectorTTSValidationTestService(t, "dashscope", "qwen3-tts-vc")
+	svc, remoteTarget := newConnectorTTSValidationTestService(t, "dashscope", "cosyvoice-v3.5-plus")
 	req := connectorTTSValidationRequest(
 		"dashscope-connector",
-		"qwen3-tts-vc",
+		"cosyvoice-v3.5-plus",
 		&runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
 			Reference: &runtimev1.VoiceReference_PresetVoiceId{
@@ -91,7 +91,7 @@ func TestValidateConnectorTTSModelSupportRejectsUnsupportedPresetVoice(t *testin
 		},
 	)
 
-	err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "qwen3-tts-vc", remoteTarget, svc.cloudProvider, svc.speechCatalog)
+	err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "cosyvoice-v3.5-plus", remoteTarget, svc.cloudProvider, svc.speechCatalog)
 	if err == nil {
 		t.Fatal("expected unsupported preset voice to fail")
 	}

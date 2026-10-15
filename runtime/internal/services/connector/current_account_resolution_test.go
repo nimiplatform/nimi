@@ -22,7 +22,7 @@ func TestResolveExactAccountConnectorBindingUsesCommittedTarget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref := catalogRefForConnectorTest(t, resolver, "account-a", current, "qwen3-tts-vc")
+	ref := catalogRefForConnectorTest(t, resolver, "account-a", current, "qwen-audio-3.0-tts-plus")
 
 	resolved, binding, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	if err != nil {
@@ -38,7 +38,7 @@ func TestResolveExactAccountConnectorBindingFailsClosedWithoutExactTarget(t *tes
 	createConnectorResolutionRecord(t, store, "connector-current", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "valid-current-credential")
 
 	resolved, binding, err := ResolveExactAccountConnectorBinding(store, newCurrentAccountCatalogResolver(t), "account-a", RemoteModelCatalogRef{
-		ProviderModelID: "qwen3-tts-vc",
+		ProviderModelID: "qwen-audio-3.0-tts-plus",
 		Provider:        "dashscope",
 	})
 	if resolved.ConnectorID != "" || binding != nil {
@@ -69,7 +69,7 @@ func TestResolveExactAccountConnectorBindingFailsClosedForForeignConnector(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	foreignRef := catalogRefForConnectorTest(t, resolver, "account-b", foreign, "qwen3-tts-vc")
+	foreignRef := catalogRefForConnectorTest(t, resolver, "account-b", foreign, "qwen-audio-3.0-tts-plus")
 
 	_, _, err = ResolveExactAccountConnectorBinding(store, resolver, "account-a", foreignRef)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
@@ -89,7 +89,7 @@ func TestResolveExactAccountConnectorBindingFailsClosedWithoutCredential(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref := catalogRefForConnectorTest(t, resolver, "account-a", record, "qwen3-tts-vc")
+	ref := catalogRefForConnectorTest(t, resolver, "account-a", record, "qwen-audio-3.0-tts-plus")
 
 	_, _, err = ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
@@ -99,7 +99,7 @@ func TestResolveExactAccountConnectorBindingSelectedDisabledWithUnrelatedActiveR
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	selected := createConnectorResolutionRecord(t, store, "connector-selected", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "selected-credential")
-	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen3-tts-vc")
+	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen-audio-3.0-tts-plus")
 	disabled := runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED
 	if _, err := store.Update(selected.ConnectorID, ConnectorMutations{Status: &disabled}); err != nil {
 		t.Fatal(err)
@@ -115,7 +115,7 @@ func TestResolveExactAccountConnectorBindingForeignRefDoesNotLeakDisabledConnect
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	createConnectorResolutionRecord(t, store, "connector-current-disabled", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED, "current-credential")
 	foreign := createConnectorResolutionRecord(t, store, "connector-foreign", "account-b", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "foreign-credential")
-	foreignRef := catalogRefForConnectorTest(t, resolver, "account-b", foreign, "qwen3-tts-vc")
+	foreignRef := catalogRefForConnectorTest(t, resolver, "account-b", foreign, "qwen-audio-3.0-tts-plus")
 
 	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", foreignRef)
 	assertCurrentAccountResolutionReason(t, err, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
@@ -125,7 +125,7 @@ func TestResolveExactAccountConnectorBindingStaleRefDoesNotReportUnrelatedDisabl
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	record := createConnectorResolutionRecord(t, store, "connector-current-disabled", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED, "current-credential")
-	ref := catalogRefForConnectorTest(t, resolver, "account-a", record, "qwen3-tts-vc")
+	ref := catalogRefForConnectorTest(t, resolver, "account-a", record, "qwen-audio-3.0-tts-plus")
 	ref.RemoteModelCatalogID += "-stale"
 
 	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
@@ -136,7 +136,7 @@ func TestResolveExactAccountConnectorBindingSelectedMissingCredentialWithUnrelat
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	selected := createConnectorResolutionRecord(t, store, "connector-selected", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "")
-	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen3-tts-vc")
+	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen-audio-3.0-tts-plus")
 	createConnectorResolutionRecord(t, store, "connector-unrelated", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "unrelated-credential")
 
 	_, _, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
@@ -147,7 +147,7 @@ func TestResolveExactAccountConnectorBindingCredentialRemovedAfterSelectionRetur
 	resolver := newCurrentAccountCatalogResolver(t)
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	selected := createConnectorResolutionRecord(t, store, "connector-selected", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "selected-credential")
-	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen3-tts-vc")
+	ref := catalogRefForConnectorTest(t, resolver, "account-a", selected, "qwen-audio-3.0-tts-plus")
 	empty := ""
 	if _, err := store.Update(selected.ConnectorID, ConnectorMutations{SecretPayload: &empty}); err != nil {
 		t.Fatal(err)
@@ -164,9 +164,9 @@ func TestRemoteModelCatalogIdentityIgnoresCredentialAvailability(t *testing.T) {
 		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "account-a",
 		Provider: "dashscope", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	withoutCredential := catalogIdentityForConnectorTest(t, resolver, "account-a", record, "qwen3-tts-vc")
+	withoutCredential := catalogIdentityForConnectorTest(t, resolver, "account-a", record, "qwen-audio-3.0-tts-plus")
 	record.HasCredential = true
-	withCredential := catalogIdentityForConnectorTest(t, resolver, "account-a", record, "qwen3-tts-vc")
+	withCredential := catalogIdentityForConnectorTest(t, resolver, "account-a", record, "qwen-audio-3.0-tts-plus")
 	if withoutCredential != withCredential {
 		t.Fatalf("credential availability changed remote catalog identity: without=%+v with=%+v", withoutCredential, withCredential)
 	}

@@ -27,7 +27,7 @@ func TestResolveSpeechVoicesVolcengineCatalogForBareModel(t *testing.T) {
 func TestResolveSpeechVoicesDashScopeCatalogExcludesHaruto(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	voices, source, _, err := resolveSpeechVoicesForModelWithProviderType(
-		"qwen3-tts-instruct-flash-2026-01-26",
+		"qwen3-tts-flash",
 		"dashscope",
 		svc.speechCatalog,
 	)

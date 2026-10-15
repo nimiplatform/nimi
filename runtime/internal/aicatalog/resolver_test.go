@@ -15,7 +15,7 @@ func TestResolveVoicesDashScopeModel(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	result, err := resolver.ResolveVoices("dashscope", "qwen3-tts-instruct-flash-2026-01-26")
+	result, err := resolver.ResolveVoices("dashscope", "qwen3-tts-flash")
 	if err != nil {
 		t.Fatalf("ResolveVoices: %v", err)
 	}
@@ -56,12 +56,12 @@ func TestDashScopeCosyVoiceCatalogAdmitsNativeStreamTTSOnlyForRealtimeCapableRou
 		t.Fatalf("cosyvoice-v3-flash must advertise native WebSocket TTS stream support")
 	}
 
-	batchQwen, err := resolver.ResolveModelEntry("dashscope", "qwen3-tts-vc")
+	batchQwen, err := resolver.ResolveModelEntry("dashscope", "qwen3-tts-flash")
 	if err != nil {
-		t.Fatalf("ResolveModelEntry(qwen3-tts-vc): %v", err)
+		t.Fatalf("ResolveModelEntry(qwen3-tts-flash): %v", err)
 	}
 	if batchQwen.VoiceRequestOptions != nil && batchQwen.VoiceRequestOptions.SupportsNativeStreamTTS {
-		t.Fatalf("non-realtime qwen3-tts-vc must not advertise native stream support")
+		t.Fatalf("non-realtime qwen3-tts-flash must not advertise native stream support")
 	}
 }
 
@@ -371,7 +371,7 @@ func TestResolveVoicesRequiresExplicitProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewResolver: %v", err)
 	}
-	if _, err := resolver.ResolveVoices("", "qwen3-tts-instruct-flash"); err != ErrModelNotFound {
+	if _, err := resolver.ResolveVoices("", "qwen3-tts-flash"); err != ErrModelNotFound {
 		t.Fatalf("provider-less ResolveVoices error = %v, want ErrModelNotFound", err)
 	}
 }
@@ -396,7 +396,7 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vc", "reference_audio")
+	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen-audio-3.0-tts-plus", "reference_audio")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -409,10 +409,10 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
 		t.Fatalf("workflow model id must be set")
 	}
-	if got := strings.TrimSpace(resolved.APIModelID); got != "qwen3-tts-vc-2026-01-22" {
-		t.Fatalf("api model id mismatch: got=%q", got)
+	if got := strings.TrimSpace(resolved.ModelID); got != "qwen-audio-3.0-tts-plus" {
+		t.Fatalf("model id mismatch: got=%q", got)
 	}
-	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "dashscope" {
+	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "cosyvoice" {
 		t.Fatalf("workflow family mismatch: got=%q", got)
 	}
 	if got := strings.TrimSpace(resolved.HandlePolicyID); got != "dashscope_provider_persistent_default" {
@@ -426,34 +426,25 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 	}
 }
 
-func TestDashScopeRetiredQwenDesignKeepsSynthesis(t *testing.T) {
+func TestDashScopeRetiredQwenTTSTargetsAreUnavailable(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {
-		t.Fatalf("NewResolver: %v", err)
+		t.Fatal(err)
 	}
-
-	for _, model := range []string{"qwen3-tts-vd", "qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15", "qwen3-tts-vd-realtime-2025-12-16"} {
+	for _, model := range []string{"qwen3-tts-vc", "qwen3-tts-vc-2026-01-22", "qwen3-tts-vc-realtime-2026-01-15", "qwen3-tts-vc-realtime-2025-11-27", "qwen3-tts-vd", "qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15", "qwen3-tts-vd-realtime-2025-12-16", "qwen3-tts-instruct-flash", "qwen3-tts-instruct-flash-2026-01-26", "qwen3-tts-instruct-flash-realtime", "qwen3-tts-instruct-flash-realtime-2026-01-22", "qwen3-tts-flash-2025-09-18", "qwen3-tts-flash-2025-11-27", "qwen3-tts-flash-realtime-2025-09-18", "qwen3-tts-flash-realtime-2025-11-27"} {
 		t.Run(model, func(t *testing.T) {
-			if _, err := resolver.ResolveVoiceWorkflow("dashscope", model, "text_description"); err != ErrVoiceWorkflowUnsupported {
-				t.Fatalf("retired design must be unsupported, got %v", err)
+			if _, err := resolver.ResolveModelEntry("dashscope", model); err != ErrModelNotFound {
+				t.Fatalf("retired target remains admitted: %v", err)
 			}
-			entry, err := resolver.ResolveModelEntry("dashscope", model)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !slices.Equal(entry.Capabilities, []string{"audio.synthesize"}) || len(entry.Features) != 0 {
-				t.Fatalf("retired design must retain only synthesis: %+v", entry)
-			}
-			if entry.VoiceDiscoveryMode != "dynamic_user_scoped" || !slices.Equal(entry.VoiceRefKinds, []string{"voice_asset_id", "provider_voice_ref"}) {
-				t.Fatalf("existing voice references lost: %+v", entry)
-			}
-			if supported, err := resolver.SupportsScenario("dashscope", model, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE); err != nil || supported {
-				t.Fatalf("retired creation advertised: %v %v", supported, err)
-			}
-			if supported, err := resolver.SupportsScenario("dashscope", model, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE); err != nil || !supported {
-				t.Fatalf("existing synthesis unavailable: %v %v", supported, err)
+			if _, err := resolver.ResolveVoiceWorkflow("dashscope", model, "reference_audio"); err != ErrModelNotFound {
+				t.Fatalf("retired workflow remains admitted: %v", err)
 			}
 		})
+	}
+	for _, model := range []string{"qwen3-tts-flash", "qwen3-tts-flash-realtime", "qwen-audio-3.0-tts-plus", "cosyvoice-v3.5-plus"} {
+		if supported, err := resolver.SupportsScenario("dashscope", model, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE); err != nil || !supported {
+			t.Fatalf("active synthesis %s lost: %v", model, err)
+		}
 	}
 }
 
@@ -691,7 +682,7 @@ func TestResolveVoiceWorkflowUnsupportedReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-instruct-flash", "reference_audio")
+	_, err = resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-flash", "reference_audio")
 	if err == nil {
 		t.Fatalf("expected voice workflow unsupported error")
 	}
@@ -758,20 +749,20 @@ func TestSupportsScenarioVoiceWorkflowUsesBindings(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	supported, err := resolver.SupportsScenario("dashscope", "qwen3-tts-vc", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE)
+	supported, err := resolver.SupportsScenario("dashscope", "qwen-audio-3.0-tts-plus", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE)
 	if err != nil {
 		t.Fatalf("SupportsScenario voice cloning: %v", err)
 	}
 	if !supported {
-		t.Fatalf("expected voice cloning to be supported for dashscope/qwen3-tts-vc")
+		t.Fatalf("expected voice cloning to be supported for dashscope/qwen-audio-3.0-tts-plus")
 	}
 
-	supported, err = resolver.SupportsFeatureForSubject("", "dashscope", "qwen3-tts-vc", "input.text")
+	supported, err = resolver.SupportsFeatureForSubject("", "dashscope", "qwen-audio-3.0-tts-plus", "input.video")
 	if err != nil {
-		t.Fatalf("SupportsFeature input.text: %v", err)
+		t.Fatalf("SupportsFeature input.video: %v", err)
 	}
 	if supported {
-		t.Fatalf("expected text-description creation to be unsupported for dashscope/qwen3-tts-vc")
+		t.Fatalf("expected video input to be unsupported for dashscope/qwen-audio-3.0-tts-plus")
 	}
 }
 

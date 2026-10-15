@@ -79,7 +79,7 @@ provider: dashscope
 catalog_version: custom-test
 models:
   - provider: dashscope
-    model_id: qwen3-tts-instruct-flash-2026-01-26
+    model_id: qwen3-tts-flash
     model_type: tts
     updated_at: "2026-01-26"
     capabilities: [audio.synthesize]
@@ -103,7 +103,7 @@ voices:
     voice_id: CustomCherry
     name: CustomCherry
     langs: [zh-cn]
-    model_ids: [qwen3-tts-instruct-flash-2026-01-26]
+    model_ids: [qwen3-tts-flash]
     source_ref:
       url: https://example.com/model
       retrieved_at: "2026-03-05"

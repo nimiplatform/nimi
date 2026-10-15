@@ -320,13 +320,13 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 	}
 	var descriptor *runtimev1.ConnectorModelDescriptor
 	for _, candidate := range models.GetModels() {
-		if candidate.GetProviderModelId() == "qwen3-tts-vc-2026-01-22" {
+		if candidate.GetProviderModelId() == "qwen-audio-3.0-tts-plus" {
 			descriptor = candidate
 			break
 		}
 	}
 	if descriptor == nil {
-		t.Fatal("qwen3-tts-vc descriptor not found")
+		t.Fatal("qwen-audio-3.0-tts-plus descriptor not found")
 	}
 	providerTarget, _ := structpb.NewStruct(map[string]any{
 		"provider": descriptor.GetProvider(), "providerModelId": descriptor.GetProviderModelId(), "remoteModelCatalogId": descriptor.GetRemoteModelCatalogId(),

@@ -136,7 +136,7 @@ func TestCloudRequiredFeaturesPublicConfigAndCapture(t *testing.T) {
 }
 
 func TestCloudVoiceRequiredFeaturesRejectBeforePublication(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", "https://provider.example.test", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "elevenlabs", "eleven_multilingual_sts_v2", "https://provider.example.test", Config{})
 	const appID = "app.voice-required-features"
 	intent := publicCloudFeatureIntent(t, fixture, appID, "voice.create")
 	intent.RequiredFeatures = []string{"input.text"}

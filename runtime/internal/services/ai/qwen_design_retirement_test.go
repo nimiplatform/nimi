@@ -16,8 +16,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestRetiredQwenDesignOptionsAndSavedConfigFailClosed(t *testing.T) {
-	for _, model := range []string{"qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15"} {
+func TestRetiredQwenTTSOptionsAndSavedConfigFailClosed(t *testing.T) {
+	for _, model := range []string{"qwen3-tts-vc-2026-01-22", "qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15"} {
 		t.Run(model, func(t *testing.T) {
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -25,7 +25,7 @@ func TestRetiredQwenDesignOptionsAndSavedConfigFailClosed(t *testing.T) {
 				w.WriteHeader(http.StatusGone)
 			}))
 			defer server.Close()
-			fixture := newManagedCloudScenarioTestFixture(t, "dashscope", model, server.URL, Config{AllowLoopbackEndpoint: true})
+			fixture := retiredQwenTargetFixture(t, model, server.URL)
 			const appID = "app.retired-design"
 			options, err := fixture.service.ListAppAIConfigOptions(localAppAIConfigContext("user-001", appID, accountservice.LocalAppOperationAppAIConfigOptionsList), &runtimev1.ListAppAIConfigOptionsRequest{
 				Query: &runtimev1.ListAppAIConfigOptionsRequest_CloudTargets{CloudTargets: &runtimev1.AIConfigCloudTargetOptionsQuery{CapabilityContract: "voice.create", ConnectorRef: fixture.connectorID}},
@@ -56,7 +56,7 @@ func TestRetiredQwenDesignOptionsAndSavedConfigFailClosed(t *testing.T) {
 					Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "Hello from Nimi."}},
 				}},
 			})
-			assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+			assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 			if response != nil || calls.Load() != 0 {
 				t.Fatalf("retired selection published a job or reached provider: %v calls=%d", response, calls.Load())
 			}
@@ -64,8 +64,8 @@ func TestRetiredQwenDesignOptionsAndSavedConfigFailClosed(t *testing.T) {
 	}
 }
 
-func TestRetiredQwenDesignAssetSurvivesReopenForSynthesis(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://provider.example.test", Config{})
+func TestRetiredQwenAssetSurvivesReopenWithoutRetargeting(t *testing.T) {
+	fixture := retiredQwenTargetFixture(t, "qwen3-tts-vd-2026-01-26", "https://provider.example.test")
 	svc := fixture.service
 	statePath := filepath.Join(t.TempDir(), "state.json")
 	store, err := newVoiceAssetStoreForLocalStatePath(statePath)
@@ -98,8 +98,22 @@ func TestRetiredQwenDesignAssetSurvivesReopenForSynthesis(t *testing.T) {
 	if err != nil || len(listed.GetAssets()) != 1 || !proto.Equal(listed.GetAssets()[0], asset) {
 		t.Fatalf("existing asset missing from list: %v %v", listed, err)
 	}
-	spec, err := svc.resolveSynthesizeSpeechSpecVoiceRefForTarget(context.Background(), &runtimev1.ScenarioRequestHead{AppId: asset.GetAppId(), SubjectUserId: asset.GetSubjectUserId()}, fixture.targetRef, runtimeAgentVoiceAssetTestSpec(asset.GetVoiceAssetId()))
-	if err != nil || spec.GetVoiceRef().GetProviderVoiceRef() != asset.GetProviderVoiceRef() {
-		t.Fatalf("existing synthesis reference lost: %v %v", spec, err)
+	// Keeping an asset does not make its retired synthesis target executable.
+	if _, err := svc.speechCatalog.ResolveModelEntry("dashscope", asset.GetTargetModelId()); err == nil {
+		t.Fatal("retired asset synthesis model remains executable")
 	}
+	if target := svc.voiceAssets.targets[asset.GetVoiceAssetId()]; target == nil || target.GetCloud().ProviderModelID != asset.GetTargetModelId() {
+		t.Fatal("persisted asset target was silently reassigned")
+	}
+}
+
+// Recreate the shape of a saved selection from an obsolete catalog snapshot.
+// It is intentionally not obtained from today's selectable model inventory.
+func retiredQwenTargetFixture(t *testing.T, model, endpoint string) managedCloudScenarioTestFixture {
+	t.Helper()
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", endpoint, Config{AllowLoopbackEndpoint: true})
+	fixture.descriptor.ProviderModelId = model
+	fixture.descriptor.RemoteModelCatalogId = "retired-dashscope-catalog-" + model
+	fixture.targetRef = cloudScenarioTargetRefForDescriptor(fixture.connectorID, fixture.descriptor)
+	return fixture
 }

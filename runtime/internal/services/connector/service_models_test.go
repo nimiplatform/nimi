@@ -148,9 +148,21 @@ func TestListConnectorModelsCanonicalizesAliasesByExecutableProviderModelID(t *t
 	}
 }
 
-func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing.T) {
-	svc := newTestService(t)
+func TestListConnectorModelsDashScopeAliasHasOneExecutableTarget(t *testing.T) {
+	svc := newTestServiceWithModelCatalog(t)
 	ctx := userContext("user-1")
+	// Alias identity is a catalog contract, independent of provider model retirement.
+	model, err := svc.modelCatalogResolver().ResolveModelEntry("dashscope", "qwen3.8-flash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.ApiModelID = "test-model-2026-10-15"
+	for _, id := range []string{"test-model", "test-model-2026-10-15"} {
+		model.ModelID = id
+		if _, _, err := svc.modelCatalogResolver().UpsertModelOverlayForSubject("user-1", "dashscope", model, nil, nil, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "dashscope",
 		ApiKey:   "managed-key",
@@ -165,7 +177,7 @@ func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing
 	if err != nil {
 		t.Fatalf("ListConnectorModels: %v", err)
 	}
-	const providerModelID = "qwen3-tts-vc-2026-01-22"
+	const providerModelID = "test-model-2026-10-15"
 	var matches []*runtimev1.ConnectorModelDescriptor
 	for _, model := range resp.GetModels() {
 		if model.GetProviderModelId() == providerModelID {
@@ -176,14 +188,14 @@ func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing
 		t.Fatalf("provider_model_id %q projected %d descriptors, want 1", providerModelID, len(matches))
 	}
 	found := matches[0]
-	if found.GetModelLabel() != "qwen3-tts-vc" {
-		t.Fatalf("model_label = %q want canonical catalog model label qwen3-tts-vc", found.GetModelLabel())
+	if found.GetModelLabel() != "test-model" {
+		t.Fatalf("model_label = %q want canonical catalog model label test-model", found.GetModelLabel())
 	}
 	capabilities := map[string]bool{}
 	for _, capability := range found.GetCapabilities() {
 		capabilities[strings.TrimSpace(capability)] = true
 	}
-	if !capabilities["voice.create"] || !capabilities["audio.synthesize"] {
+	if !capabilities["text.generate"] {
 		t.Fatalf("canonical descriptor capabilities = %v", found.GetCapabilities())
 	}
 
@@ -199,14 +211,14 @@ func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing
 	providerRecord := catalogProviderRecordForSubject(modelCatalog, "user-1", "dashscope")
 	identities := map[string]remoteModelCatalogIdentity{}
 	for _, model := range models {
-		if model.Model.ModelID == "qwen3-tts-vc" || model.Model.ModelID == providerModelID {
+		if model.Model.ModelID == "test-model" || model.Model.ModelID == providerModelID {
 			identities[model.Model.ModelID] = remoteModelCatalogIdentityForConnector(record, providerRecord, model)
 		}
 	}
-	canonical, canonicalOK := identities["qwen3-tts-vc"]
+	canonical, canonicalOK := identities["test-model"]
 	alias, aliasOK := identities[providerModelID]
 	if !canonicalOK || !aliasOK {
-		t.Fatalf("voice catalog identities missing: %v", identities)
+		t.Fatalf("catalog alias identities missing: %v", identities)
 	}
 	if canonical.remoteModelCatalogID != alias.remoteModelCatalogID {
 		t.Fatalf("same executable provider model produced different remote identities: canonical=%q alias=%q", canonical.remoteModelCatalogID, alias.remoteModelCatalogID)
@@ -214,7 +226,7 @@ func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing
 	_, err = ResolveRemoteModelCatalogBinding(modelCatalog, "user-1", record, RemoteModelCatalogRef{
 		ConnectorID:          record.ConnectorID,
 		RemoteModelCatalogID: canonical.remoteModelCatalogID,
-		ProviderModelID:      "qwen3-tts-vc",
+		ProviderModelID:      "test-model",
 		Provider:             "dashscope",
 	})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
@@ -339,9 +351,6 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 		modelID := strings.TrimSpace(model.GetModelLabel())
 		switch model.GetProviderModelId() {
 		case "qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15":
-			if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "audio.synthesize" {
-				t.Fatalf("retired design must remain synthesis-only: %v", model)
-			}
 			foundRetiredDesignModels[model.GetProviderModelId()] = true
 		}
 		for _, capability := range model.GetCapabilities() {
@@ -367,11 +376,11 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if !foundSpeechSynthesizeModels["cosyvoice-v3.5-flash"] || !foundSpeechSynthesizeModels["qwen3-tts-flash"] {
 		t.Fatalf("expected representative dashscope audio.synthesize models, found %v", foundSpeechSynthesizeModels)
 	}
-	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice.create" {
-		t.Fatalf("expected qwen3-tts-vc voice.create, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "" {
+		t.Fatal("retired VC creation remains available")
 	}
-	if len(foundRetiredDesignModels) != 2 {
-		t.Fatalf("existing design synthesis models missing: %v", foundRetiredDesignModels)
+	if len(foundRetiredDesignModels) != 0 {
+		t.Fatalf("retired design synthesis models still advertised: %v", foundRetiredDesignModels)
 	}
 	for _, model := range []string{"qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash", "cosyvoice-v3.5-plus", "cosyvoice-v3.5-flash"} {
 		if foundVoiceWorkflowCapabilities[model] != "voice.create" {
