@@ -459,6 +459,38 @@ func TestLocalAppAgentOwnershipFallsBackToAdmittedCanonicalExternalAvatar(t *tes
 	}
 }
 
+func TestLocalAppAgentOwnershipProjectsPersonaResourceAvatar(t *testing.T) {
+	snapshot := localAppAgentOwnershipPersonaAvatarSnapshot(t, "https://assets.example.test/unused.png")
+	profile := snapshot.Semantic.Source.Profile.interfaceValue().(map[string]any)
+	profile["presentation"].(map[string]any)["avatarResourceRef"] = "persona-avatar-resource"
+	assets := profile["assets"].(map[string]any)
+	delete(assets, "externalRefs")
+	assets["resourceRefs"] = []any{map[string]any{"refId": "persona-avatar-resource", "kind": "avatar", "purpose": "avatar"}}
+	var err error
+	snapshot.Semantic.Source.Profile, err = normalizeSourceMaterializationJSONValue(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := localAppAgentOwnershipAvatarService(snapshot)
+	calls := 0
+	svc.SetRealmCharacterPublicAvatarResolver(localAppAgentPublicAvatarResolverFunc(func(_ context.Context, accountID string, ref accountservice.RealmSourceMaterializationSourceRefV3) (*string, error) {
+		calls++
+		expected := snapshot.Semantic.SourceRef
+		if accountID != "acct-1" || ref.Kind != "personaCharacter" || ref.ID != expected.ID || ref.WorldID != expected.WorldID || ref.OwnerAccountID != expected.OwnerAccountID || ref.SourceHash != expected.SourceHash {
+			t.Fatalf("persona avatar identity changed: account %q ref %+v", accountID, ref)
+		}
+		uri := "https://assets.example.test/persona-resource.png"
+		return &uri, nil
+	}))
+	inventory, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(inventory) != 1 || inventory[0].AvatarURL == nil || *inventory[0].AvatarURL != "https://assets.example.test/persona-resource.png" {
+		t.Fatalf("persona resource avatar projection = (%+v, %v)", inventory, err)
+	}
+	if calls != 1 {
+		t.Fatalf("public resolver calls = %d, want 1", calls)
+	}
+}
+
 func TestLocalAppAgentOwnershipPersonaCharacterSkipsWorldPublicResolver(t *testing.T) {
 	snapshot := localAppAgentOwnershipPersonaAvatarSnapshot(
 		t,

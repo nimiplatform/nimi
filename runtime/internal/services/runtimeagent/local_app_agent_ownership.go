@@ -261,6 +261,7 @@ func (s *Service) resolvePreparedLocalAppAgentDisplayAvatar(
 	)
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.agent-introduction
 func (s *Service) prepareLocalAppAgentDisplayAvatar(
 	ctx context.Context,
 	localAgentRef string,
@@ -306,7 +307,7 @@ func (s *Service) prepareLocalAppAgentDisplayAvatar(
 			}
 		}
 	}
-	if snapshot.Semantic.SourceRef.Kind == "worldCharacter" &&
+	if (snapshot.Semantic.SourceRef.Kind == "worldCharacter" || snapshot.Semantic.SourceRef.Kind == "personaCharacter") &&
 		snapshot.Semantic.SourceRef.validate() == nil {
 		return localAppAgentDisplayAvatarCacheEntry{
 			resolvePublic:   true,
