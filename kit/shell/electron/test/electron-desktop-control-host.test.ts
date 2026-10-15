@@ -17,6 +17,8 @@ import { LocalAppSessionState, ReasonCode as RuntimeReasonCode } from '@nimiplat
 import { OpenLocalAppSessionResponse } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/auth.js';
 import { toSerializedElectronShellError } from '../src/main/errors.js';
 import { toShellBridgeNimiError } from '../../renderer/src/bridge/nimi-error.js';
+import { invoke } from '../../renderer/src/bridge/invoke.js';
+import { getNimiContentRefusalNotice, retireNimiContentRefusalPresentation } from '../../renderer/src/bridge/content-refusal.js';
 
 const MACHINE_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 const ACCOUNT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource';
@@ -77,6 +79,53 @@ function unusedPublicClient(onUnary?: () => void): RuntimeGrpcBridgeClient {
 }
 
 describe('Electron verified Desktop control host', () => {
+  it.each([undefined, { rule_id: 'pem-private-key', failure_stage: 'input', content_part: 'message' }])(
+    'keeps a first-party content refusal through the formal Host and renderer: %j', async (reasonMetadata) => {
+      const sessionBytes = Uint8Array.from(OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+        state: LocalAppSessionState.READY, reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
+        currentUserReasonCode: RuntimeReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+      })));
+      const calls: string[] = [];
+      const control = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductUnary: async ({ methodId }) => {
+        calls.push(methodId);
+        return methodId.endsWith('/OpenLocalAppSession') ? { status: 'ok', value: sessionBytes }
+          : { status: 'error', reasonCode: 'AI_CONTENT_FILTER_BLOCKED', retryable: false, reasonMetadata };
+      } }));
+      const host = createNimiElectronFormalAppLocalHost({ profile: 'desktop', appId: 'nimi.desktop', control });
+      await host.sessionStatus();
+      const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'];
+      retireNimiContentRefusalPresentation();
+      (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+        invoke: async (name: string, input: { payload: unknown }) => {
+          try { return await dispatchElectronLocalAppCommand({ host, command: name, payload: input.payload }); }
+          catch (error) { throw toSerializedElectronShellError(error); }
+        },
+      };
+      try {
+        await expect(invoke(command, { payload: { messages: [{ role: 'user', text: 'synthetic boundary test' }] } })).rejects.toMatchObject({ reasonCode: 'AI_CONTENT_FILTER_BLOCKED' });
+        expect(calls).toEqual(['/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession', '/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate']);
+        expect(getNimiContentRefusalNotice()).toMatchObject({ reasonCode: 'AI_CONTENT_FILTER_BLOCKED', ...(reasonMetadata ? { ruleId: 'pem-private-key', stage: 'input' } : {}) });
+      } finally {
+        delete (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__;
+        retireNimiContentRefusalPresentation();
+      }
+    },
+  );
+
+  it.each([
+    ['AI_CONTENT_FILTER_BLOCKED', { rule_id: 'private-secret' }],
+    ['AI_CONTENT_FILTER_BLOCKED', { failure_stage: 'provider-body' }],
+    ['AI_CONTENT_FILTER_BLOCKED', { content_part: 'secret-value' }],
+    ['AI_CONTENT_FILTER_BLOCKED', { diagnostic_stage: 'private detail' }],
+    ['AI_PROVIDER_UNAVAILABLE', { rule_id: 'pem-private-key' }],
+  ])('rejects untrusted content diagnostics on the first-party carrier: %s %j', async (reasonCode, reasonMetadata) => {
+    const host = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductUnary: async () => ({
+      status: 'error', reasonCode: reasonCode as string, retryable: false, reasonMetadata: reasonMetadata as Record<string, string>,
+    }) }));
+    await expect(host.accountProductUnary({ methodId: ACCOUNT_METHOD, requestBytes: new Uint8Array() }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+
   it('carries the bounded Integration owner code through formal Home and renderer error details', async () => {
     const sessionBytes = Uint8Array.from(OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
       state: LocalAppSessionState.READY, reasonCode: RuntimeReasonCode.ACTION_EXECUTED,

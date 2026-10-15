@@ -9,11 +9,11 @@ use nimi_shell_protected_local::{
     LocalAppActivityListRequest, LocalAppActivityMarkReadRequest, LocalAppActivityOpenRequest,
     LocalAppActivityOpenRequestCompleteRequest, LocalAppActivityPutRequest,
     LocalAppActivitySubscribeRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest,
-    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
-    LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
-    LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentManagerSnapshotRequest,
+    LocalAppAgentMemoryCorrectRequest, LocalAppAgentMemoryDeleteRequest,
+    LocalAppAgentMemoryForgetRequest, LocalAppAgentMemoryInspectRequest,
+    LocalAppAgentMemorySwitchRequest, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConversationContextRequest,
     LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
     LocalAppAssetMoveRequest, LocalAppAssetRange, LocalAppAssetReadReceiver,
     LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
@@ -710,6 +710,20 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.agent_update_autonomy(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_update_conversation_context(
+        &self,
+        request: LocalAppAgentUpdateConversationContextRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_update_conversation_context(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

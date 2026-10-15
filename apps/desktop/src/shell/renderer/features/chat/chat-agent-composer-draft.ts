@@ -20,14 +20,19 @@ export function createAgentComposerDraftRef(
   store: AgentComposerDraftStore,
   accountId: string,
   agentHandle: string,
-): { current: string } {
+): { current: string; readonly revision: number } {
   const key = agentComposerDraftKey(accountId, agentHandle);
+  let revision = 0;
   return {
+    get revision() { return revision; },
     get current() {
       return key ? store.getState().agentComposerDrafts[key] ?? '' : '';
     },
     set current(text: string) {
-      if (key) store.getState().setAgentComposerDraft(accountId, agentHandle, text);
+      if (key) {
+        if ((store.getState().agentComposerDrafts[key] ?? '') !== text) revision++;
+        store.getState().setAgentComposerDraft(accountId, agentHandle, text);
+      }
     },
   };
 }

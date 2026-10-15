@@ -532,6 +532,7 @@ enum ReasonCode {
   // 400=AUTH_TOKEN_INVALID→300,
   // 401=AUTH_TOKEN_EXPIRED→301.
   reserved 104, 106, 115, 116, 118, 203, 400, 401;
+  AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT = 775;
 }
 
 enum ExternalPrincipalType {

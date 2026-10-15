@@ -4,6 +4,16 @@
 
 ## Unreleased
 
+AI content refusal now has one nonmodal notice in standard App chrome, with
+bounded safe diagnostics. Ordinary Conversation controls retain a Home handoff
+for a known Conversation, separate from the notice. Agent
+Center can explicitly select the future history range and supplemental-context
+mode for the same Conversation. Existing messages and App workflows stay intact.
+This is a minor API change under the 0.x policy: use matching source-built SDK,
+Kit/native and Runtime contracts. Custom standard Shell carriers must implement
+the new `agentConfigure.conversationContext.update` method; ordinary App AI
+requests and access declarations do not change. No package release is implied.
+
 Minor API addition: `NimiAppCommand` and `NimiMenubarCommand` accept optional
 `order` and `group` presentation hints. Lower order values appear first within
 a menu (default 50); adjacent differing groups receive a separator. Existing

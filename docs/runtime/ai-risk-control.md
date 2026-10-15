@@ -68,11 +68,21 @@ A clear user-facing message is:
 
 Cancellation, timeouts, permission errors, Runtime shutdown, and transport failures keep their own error codes and priority. Content-check diagnostics record the rule, stage, and related information without storing the matched secret. Known usage may remain in the existing Job record; missing usage does not mean a failed call was free.
 
+Matching source builds of Home and the standard Kit Shell add one nonmodal content-check notice while preserving the App's original failure result. Safe diagnostics contain only the reason and available fixed rule/stage values. A format match means the input may contain a credential; it does not establish validity, malicious model behavior, or a leak. Users can edit their input and continue other tasks without submitting a report or disabling checks. A RuntimeAgent rejection in a later model round does not mean the entire user operation stayed on the device.
+
 ## History and conversation recovery
 
 Runtime never globally rewrites or scrubs stored App history, and a diagnostic event does not mean earlier records were cleaned. Old turns remain readable, but any history or summary selected into a new request is checked again. If matched material stays in the selected context, even a harmless follow-up question will be refused.
 
-Apps can let users remove the offending material through their existing context-editing or new-conversation controls. Reopening a `RuntimeAgent` conversation reuses its anchor rather than clearing context, and Runtime does not add automatic history cleanup, history exemptions, or a new reset protocol. If a conversation still includes blocked context and your App has no existing recovery entry point to remove it, tell the user clearly that inference cannot continue in that conversation.
+Apps that own their context use their existing input and context editors. Reopening a `RuntimeAgent` conversation reuses its anchor and does not clear it.
+
+Current source builds add a Conversation context control in Agent Center's State & memory section. After reviewing its scope, the user can select where future history starts and optionally stop referencing supplemental Memory and retrieval in that Conversation. Existing messages stay readable, and new messages use the same anchor. This choice affects the same Agent in every App and remains in effect after reopening or restarting until the user changes it again. It does not delete Memory, turn Memory off, or send the current draft.
+
+The operation requires existing `agent.configure` access. A chat-only App can hand the known anchor to Home with `open-agent-center`; Home resolves the target under its own current management access. A busy Agent or stale revision prevents the change. Restoring the full range also restores normal checking of earlier material, so it can cause refusal again. Required character or App instructions must be corrected by their source owner; changing history cannot remove them.
+
+The new notice and context controls require matching source-built SDK, Kit/native, Home and Runtime. The Windows Home → Desktop-supervised Lab journey has been verified with DeepSeek `deepseek-v4-pro`, including normal streaming, a tool round trip, stopping, input refusal, and continuing the same RuntimeAgent conversation after an explicit context change and a full restart. This is an unreleased developer preview; it does not establish coverage for older packages, other operating systems, or arbitrary App hosts. Check the release notes for a prebuilt installation.
+
+Memory keeps its existing rules for accepting stored content. If it rejects a proposed correction, the original memory stays unchanged and the proposed text remains editable. Choosing not to reference supplemental context does not disable those rules or grant an exception to content checks.
 
 ## Continue building
 
@@ -84,6 +94,7 @@ Apps can let users remove the offending material through their existing context-
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
+- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`runtime/internal/riskcontrol/detector.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/riskcontrol/detector.go)
 - [`runtime/internal/services/ai/text_risk_checks.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/services/ai/text_risk_checks.go)

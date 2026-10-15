@@ -67,6 +67,8 @@ import {
   type SetLocalAppAgentMemoryEnabledRequest,
   type SetLocalAppAgentMemoryEnabledResponse,
   type UpdateLocalAppAgentAutonomyRequest,
+  type UpdateLocalAppAgentConversationContextRequest,
+  type UpdateLocalAppAgentConversationContextResponse,
 } from '../../core-generated/runtime-typed-client.js';
 import { projectNimiTextBehaviorCapabilities } from '../../runtime/text-behavior-projections.js';
 import {
@@ -461,6 +463,23 @@ export type NimiLocalAppAgentManagerActionAvailabilityProjection = Readonly<
  * no raw Agent/account/source identity, hashes, prompt or reasoning material,
  * provider/model/storage facts, or owner generations.
  */
+export type NimiLocalAppConversationContextUpdateInput = NimiLocalAppAgentScopedInput & Readonly<{
+  conversationAnchorId: string;
+  expectedContextRevision: string;
+  firstTurnSequence: string;
+  omitSupplementalContext: boolean;
+}>;
+export type NimiLocalAppAgentConversationContextProjection = Readonly<{
+  conversationAnchorId: string;
+  contextRevision: string;
+  firstTurnSequence: string;
+  omitSupplementalContext: boolean;
+  committedTurnCount: string;
+  suggestedFirstTurnSequence: string | null;
+  busy: boolean;
+  canUpdate: boolean;
+}>;
+
 export type NimiLocalAppAgentManagerSnapshot = Readonly<{
   lifecycleStatus: NimiLocalAppAgentLifecycleStatus;
   executionState: NimiLocalAppAgentExecutionState;
@@ -468,6 +487,7 @@ export type NimiLocalAppAgentManagerSnapshot = Readonly<{
   currentEmotion: string;
   source: NimiLocalAppAgentManagerSourceProjection | null;
   context: NimiLocalAppAgentManagerContextProjection | null;
+  conversationContext: NimiLocalAppAgentConversationContextProjection | null;
   actionAvailability: NimiLocalAppAgentManagerActionAvailabilityProjection;
 }>;
 
@@ -476,6 +496,7 @@ export type NimiLocalAppAgentManagerSnapshotInput = NimiLocalAppAgentScopedInput
 };
 
 export type NimiLocalAppAgentConfigureShell = {
+  readonly conversationContext: { readonly update: (input: NimiLocalAppConversationContextUpdateInput) => Promise<unknown> };
   readonly sharedAIConfig: {
     readonly get: () => Promise<unknown>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<unknown>;
@@ -529,6 +550,7 @@ type AgentConfigureRuntimeUnary<Request, Response> = (
  * it creates no first-party product semantics or identity sideband.
  */
 export interface NimiLocalAppAgentConfigureRuntime {
+  readonly updateLocalAppAgentConversationContext: AgentConfigureRuntimeUnary<UpdateLocalAppAgentConversationContextRequest, UpdateLocalAppAgentConversationContextResponse>;
   readonly getLocalAppAgentManagerSnapshot: AgentConfigureRuntimeUnary<
     GetLocalAppAgentManagerSnapshotRequest,
     GetLocalAppAgentManagerSnapshotResponse
@@ -588,6 +610,7 @@ export interface NimiLocalAppAgentConfigureRuntime {
 }
 
 export type NimiLocalAppAgentConfigureClient = {
+  readonly conversationContext: { readonly update: (input: NimiLocalAppConversationContextUpdateInput) => Promise<NimiLocalAppAgentConversationContextProjection> };
   readonly sharedAIConfig: {
     readonly get: () => Promise<NimiSharedLocalAgentAIConfigSnapshot>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
@@ -705,6 +728,12 @@ export function createNimiLocalAppAgentConfigureRuntimeShell(
   runtime: NimiLocalAppAgentConfigureRuntime,
 ): NimiLocalAppAgentConfigureShell {
   return Object.freeze({
+    conversationContext: Object.freeze({
+      update: async (input: NimiLocalAppConversationContextUpdateInput) => {
+        const wire = requireWireProjection((await runtime.updateLocalAppAgentConversationContext(validateConversationContextInput(input))).projection, 'Conversation context');
+        return projectConversationContextUpdate(input, { ...wire, suggestedFirstTurnSequence: wire.suggestedFirstTurnSequence ?? null });
+      },
+    }),
     manager: Object.freeze({
       snapshot: async (input: Parameters<NimiLocalAppAgentConfigureShell['manager']['snapshot']>[0]) => projectRuntimeManagerSnapshot(
         requireWireProjection(
@@ -845,6 +874,9 @@ export function createNimiLocalAppAgentConfigureClient(
         }
         return projectSharedAIConfigOptions(await shell.sharedAIConfig.listOptions(query));
       },
+    }),
+    conversationContext: Object.freeze({
+      update: async (input: NimiLocalAppConversationContextUpdateInput) => projectConversationContextUpdate(input, await shell.conversationContext.update(validateConversationContextInput(input))),
     }),
     autonomy: Object.freeze({
       snapshot: async (
@@ -998,6 +1030,61 @@ function decimalRevision(value: unknown, field: string, allowZero: boolean): str
     );
   }
   return value;
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.conversation-context-selection
+function validateConversationContextInput(input: NimiLocalAppConversationContextUpdateInput): NimiLocalAppConversationContextUpdateInput {
+  assertExactKeys(input, ['agentHandle', 'conversationAnchorId', 'expectedContextRevision', 'firstTurnSequence', 'omitSupplementalContext'], 'Conversation context update');
+  assertNoAuthorityMaterial(input);
+  if (typeof input.conversationAnchorId !== 'string' || !input.conversationAnchorId.trim()
+    || input.conversationAnchorId.trim() !== input.conversationAnchorId || input.conversationAnchorId.length > 512
+    || typeof input.omitSupplementalContext !== 'boolean') {
+    return localAppError('Conversation context selection is invalid.', 'SDK_LOCAL_APP_INPUT_INVALID', 'review_context_selection');
+  }
+  validateAgentHandle(input.agentHandle);
+  for (const [value, allowZero] of [[input.expectedContextRevision, false], [input.firstTurnSequence, true]] as const) {
+    decimalRevision(value, 'context selection', allowZero);
+    if (value.length > 20 || BigInt(value) > 18446744073709551615n) return localAppError('Conversation context selection is out of range.', 'SDK_LOCAL_APP_INPUT_INVALID', 'review_context_selection');
+  }
+  return {
+    agentHandle: input.agentHandle,
+    conversationAnchorId: input.conversationAnchorId,
+    expectedContextRevision: decimalRevision(input.expectedContextRevision, 'expectedContextRevision', false),
+    firstTurnSequence: decimalRevision(input.firstTurnSequence, 'firstTurnSequence', true),
+    omitSupplementalContext: input.omitSupplementalContext,
+  };
+}
+
+function projectConversationContext(value: unknown): NimiLocalAppAgentConversationContextProjection {
+  const row = asRecord(value);
+  assertExactProjectionKeys(row, ['conversationAnchorId', 'contextRevision', 'firstTurnSequence', 'omitSupplementalContext', 'committedTurnCount', 'suggestedFirstTurnSequence', 'busy', 'canUpdate'], 'Conversation context');
+  const decimal = (value: unknown, positive = false): string => {
+    if (typeof value !== 'string' || !/^(0|[1-9][0-9]{0,19})$/u.test(value)
+      || BigInt(value) > 18446744073709551615n || (positive && value === '0')) return localAppProjectionError('Conversation context sequence or revision');
+    return value;
+  };
+  const first = decimal(row.firstTurnSequence);
+  const count = decimal(row.committedTurnCount);
+  const suggested = row.suggestedFirstTurnSequence == null ? null : decimal(row.suggestedFirstTurnSequence);
+  if (typeof row.conversationAnchorId !== 'string' || !row.conversationAnchorId.trim()
+    || row.conversationAnchorId.trim() !== row.conversationAnchorId || row.conversationAnchorId.length > 512
+    || typeof row.omitSupplementalContext !== 'boolean' || typeof row.busy !== 'boolean' || typeof row.canUpdate !== 'boolean' || (row.busy && row.canUpdate)
+    || BigInt(first) > BigInt(count) || (suggested !== null && (BigInt(suggested) < BigInt(first) || BigInt(suggested) > BigInt(count)))) {
+    return localAppProjectionError('Conversation context');
+  }
+  return Object.freeze({ conversationAnchorId: row.conversationAnchorId, contextRevision: decimal(row.contextRevision, true), firstTurnSequence: first,
+    omitSupplementalContext: row.omitSupplementalContext, committedTurnCount: count, suggestedFirstTurnSequence: suggested, busy: row.busy, canUpdate: row.canUpdate });
+}
+
+function projectConversationContextUpdate(input: NimiLocalAppConversationContextUpdateInput, value: unknown): NimiLocalAppAgentConversationContextProjection {
+  const projection = projectConversationContext(value);
+  if (projection.conversationAnchorId !== input.conversationAnchorId
+    || projection.firstTurnSequence !== input.firstTurnSequence
+    || projection.omitSupplementalContext !== input.omitSupplementalContext
+    || BigInt(projection.contextRevision) <= BigInt(input.expectedContextRevision)) {
+    return localAppProjectionError('Conversation context update binding');
+  }
+  return projection;
 }
 
 function validateAutonomyIntent(value: unknown): NimiLocalAppAgentAutonomyIntent {
@@ -1920,6 +2007,7 @@ function projectRuntimeManagerSnapshot(
       privateRecallCount: snapshot.context.privateRecallCount,
     } : null,
     actionAvailability: projectRuntimeManagerActionAvailability(snapshot.actionAvailability),
+    conversationContext: snapshot.conversationContext ? { ...snapshot.conversationContext, suggestedFirstTurnSequence: snapshot.conversationContext.suggestedFirstTurnSequence ?? null } : null,
   };
 }
 
@@ -2182,7 +2270,7 @@ function projectManagerSnapshot(value: unknown): NimiLocalAppAgentManagerSnapsho
   const projection = asRecord(value);
   assertExactProjectionKeys(
     projection,
-    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context', 'actionAvailability'],
+    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context', 'actionAvailability', ...(projection && Object.hasOwn(projection, 'conversationContext') ? ['conversationContext'] : [])],
     'Agent Center manager snapshot',
   );
   assertSafeProjection(projection);
@@ -2201,6 +2289,7 @@ function projectManagerSnapshot(value: unknown): NimiLocalAppAgentManagerSnapsho
     currentEmotion: managerText(projection.currentEmotion, 'Agent Center manager currentEmotion'),
     source: projectManagerSource(projection.source),
     context: projectManagerContext(projection.context),
+    conversationContext: projection.conversationContext == null ? null : projectConversationContext(projection.conversationContext),
     actionAvailability: projectManagerActionAvailability(projection.actionAvailability),
   });
 }
@@ -2519,7 +2608,10 @@ function projectMemoryMutation(value: unknown): NimiLocalAppAgentMemoryMutationR
     return localAppProjectionError('agent Memory mutation affected ids');
   }
   const projection = projectMemoryProjection(result.projection);
-  if (result.outcome !== projection.outcome && !['committed', 'admitted', 'forgotten', 'deleted', 'no_effect'].includes(String(result.outcome))) {
+  if (result.outcome === 'rejected' && result.affectedMemoryIds.length !== 0) {
+    return localAppProjectionError('rejected Memory mutation affected ids');
+  }
+  if (result.outcome !== projection.outcome && !['committed', 'admitted', 'forgotten', 'deleted', 'no_effect', 'rejected'].includes(String(result.outcome))) {
     return localAppProjectionError('agent Memory mutation outcome');
   }
   return Object.freeze({ outcome: result.outcome, affectedMemoryIds: Object.freeze([...result.affectedMemoryIds]), projection }) as NimiLocalAppAgentMemoryMutationResult;

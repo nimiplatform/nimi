@@ -7,6 +7,7 @@ describe('AgentCenter cognition projection surface', () => {
   it('projects cognition status only from the canonical Manager and Memory owners', async () => {
     const session = await sessionFor({
       manager: {
+        conversationContext: null,
         lifecycleStatus: 'active', executionState: 'idle', statusText: 'ready', currentEmotion: 'calm',
         source: null, context: null,
         actionAvailability: testManagerActionAvailability(),

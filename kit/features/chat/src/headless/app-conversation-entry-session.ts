@@ -34,6 +34,7 @@ export type AppConversationEntryState = Readonly<{
   recording: boolean;
   error: string | null;
   actionError: string | null;
+  lastTurnFailure: Readonly<{ turnId: string; reasonCode: string }> | null;
 }>;
 
 export type AppConversationPendingAttachment = Readonly<{
@@ -129,7 +130,7 @@ export type AppConversationEntrySession = Readonly<{
   send: (input: Readonly<{
     requestId: string;
     parts: readonly NimiLocalAppConversationInputPart[];
-  }>) => Promise<void>;
+  }>) => Promise<{ readonly turnId: string }>;
   interrupt: () => Promise<void>;
   pickAttachment: () => Promise<AppConversationPendingAttachment | AppConversationHostUnavailable>;
   clearAttachment: () => void;
@@ -168,6 +169,7 @@ const EMPTY_STATE: AppConversationEntryState = Object.freeze({
   recording: false,
   error: null,
   actionError: null,
+  lastTurnFailure: null,
 });
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -449,6 +451,7 @@ export function createAppConversationEntrySession(input: Readonly<{
       recording: false,
       error: null,
       actionError: null,
+      lastTurnFailure: null,
     });
     for (let index = 0; index < session.pendingEvents.length; index += 1) {
       const pendingEvent = session.pendingEvents[index];
@@ -475,6 +478,7 @@ export function createAppConversationEntrySession(input: Readonly<{
     if (eventSequence <= session.throughSequence) return true;
     let messages = state.messages;
     let activeTurnId = state.activeTurnId;
+    let lastTurnFailure = state.lastTurnFailure;
     if (event.type === 'message-committed') {
       if (event.message.turnId !== event.turnId) {
         markSessionFailure(session, 'stale', 'Conversation message linkage is invalid.');
@@ -494,6 +498,7 @@ export function createAppConversationEntrySession(input: Readonly<{
       }
     } else if (event.type === 'turn-accepted' || event.type === 'turn-started') {
       activeTurnId = event.turnId;
+      lastTurnFailure = null;
     } else if (
       (event.type === 'turn-completed'
         || event.type === 'turn-failed'
@@ -501,6 +506,7 @@ export function createAppConversationEntrySession(input: Readonly<{
       && activeTurnId === event.turnId
     ) {
       activeTurnId = null;
+      if (event.type === 'turn-failed') lastTurnFailure = { turnId: event.turnId, reasonCode: event.reasonCode };
     }
     session.throughSequence = eventSequence;
     publish({
@@ -509,6 +515,7 @@ export function createAppConversationEntrySession(input: Readonly<{
       throughSequence: event.sequence,
       activeTurnId,
       messages,
+      lastTurnFailure,
       error: null,
     });
     return true;
@@ -696,7 +703,7 @@ export function createAppConversationEntrySession(input: Readonly<{
     try {
       session = requireReadySession();
       publish({ ...state, actionError: null });
-      await input.client.conversation.send({
+      const accepted = await input.client.conversation.send({
         agentHandle: session.reference.agentHandle,
         conversationAnchorId: session.conversationAnchorId,
         requestId: sendInput.requestId,
@@ -711,6 +718,7 @@ export function createAppConversationEntrySession(input: Readonly<{
       ))) {
         publish({ ...state, pendingAttachment: null });
       }
+      return accepted;
     } catch (error) {
       if (!session || (active === session && session.epoch === epoch)) {
         publishActionError(error, 'Message could not be sent.');

@@ -66,6 +66,10 @@ function replaceByIdentity<T>(
   return Object.freeze(values.map((item, itemIndex) => itemIndex === index ? value : item));
 }
 
+function actionIdentity(action: { readonly turnId: string; readonly actionId: string }): string {
+  return JSON.stringify([action.turnId, action.actionId]);
+}
+
 export function seedCanonicalConversationProjection(
   snapshot: NimiLocalAppConversationSnapshot,
 ): CanonicalConversationProjection {
@@ -169,7 +173,7 @@ export function reduceCanonicalConversationEvent(
       break;
     }
     case 'live-action':
-      liveActions = replaceByIdentity(liveActions, event.action, (action) => action.actionId);
+      liveActions = replaceByIdentity(liveActions, event.action, actionIdentity);
       break;
     case 'live-tool':
       liveTools = replaceByIdentity(liveTools, event.tool, (tool) => tool.toolId);
@@ -181,10 +185,10 @@ export function reduceCanonicalConversationEvent(
     case 'action-started':
     case 'action-completed':
     case 'action-failed':
-      actions = replaceByIdentity(actions, event.action, (action) => action.actionId);
+      actions = replaceByIdentity(actions, event.action, actionIdentity);
       break;
     case 'artifact-ready': {
-      const action = actions.find((candidate) => candidate.actionId === event.actionId);
+      const action = actions.find((candidate) => candidate.turnId === event.turnId && candidate.actionId === event.actionId);
       if (action) {
         actions = replaceByIdentity(actions, {
           ...action,
@@ -193,7 +197,7 @@ export function reduceCanonicalConversationEvent(
           artifactId: event.artifactId,
           reasonCode: null,
           message: null,
-        }, (candidate) => candidate.actionId);
+        }, actionIdentity);
       }
       break;
     }
@@ -321,8 +325,10 @@ export async function materializeCanonicalConversationBundle(input: {
 
   const messageIds = new Set(messages.map((message) => message.id));
   for (const action of input.projection.actions) {
-    const messageId = action.projectionMessageId || `canonical-action:${action.actionId}`;
+    const messageId = action.projectionMessageId || `canonical-action:${actionIdentity(action)}`;
     if (messageIds.has(messageId) || (action.status === 'completed' && !action.artifactId)) continue;
+    const original = input.projection.messages.find(message => message.turnId === action.turnId && message.role === 'user');
+    const textOnlyInput = original?.parts.length === 1 && original.parts[0]?.kind === 'text' ? original.parts[0].text : '';
     const resolved = action.artifactId
       ? await resolveArtifact(input.conversation, input.thread, input.projection.conversationAnchorId, action.artifactId)
       : { mediaUrl: null, mimeType: null };
@@ -341,6 +347,11 @@ export async function materializeCanonicalConversationBundle(input: {
           canonicalActionId: action.actionId,
           canonicalActionStatus: action.status,
           canonicalThroughSequence: input.projection.throughSequence,
+          ...(action.status === 'failed' ? {
+            imageFailureReasonCode: action.reasonCode,
+            imageOperationId: action.actionId,
+            ...(textOnlyInput ? { retryPrompt: textOnlyInput } : {}),
+          } : {}),
         },
       }),
       artifactId: action.artifactId,

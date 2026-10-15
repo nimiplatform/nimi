@@ -32,6 +32,7 @@
   { "reasonCode": "realm-unavailable", "actionHint": "retry_later" },
   { "reasonCode": "rate-limited", "actionHint": "retry_later" },
   { "reasonCode": "agent-presentation-revision-conflict", "actionHint": "refresh_presentation_snapshot" },
+  { "reasonCode": "agent-conversation-context-revision-conflict", "actionHint": "refresh_conversation_context_snapshot" },
   { "reasonCode": "agent-presentation-asset-type-invalid", "actionHint": "repair_agent_presentation_material" },
   { "reasonCode": "agent-presentation-asset-too-large", "actionHint": "repair_agent_presentation_material" },
   { "reasonCode": "agent-presentation-asset-structure-invalid", "actionHint": "repair_agent_presentation_material" },

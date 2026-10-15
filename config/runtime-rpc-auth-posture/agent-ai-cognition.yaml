@@ -54,6 +54,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation

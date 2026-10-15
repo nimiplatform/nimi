@@ -44,6 +44,8 @@ export type HomeChatPosition = {
   readonly threadId?: string;
   readonly agentHandle?: string;
   readonly conversationAnchorId?: string;
+  /** Pending management navigation only; never an admitted Agent selector. */
+  readonly managerAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId'],
@@ -125,7 +127,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     const chat = result.chat ?? { mode: 'ai', targetId: 'ai:assistant' };
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
-    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId'] : ['mode', 'targetId', 'threadId'];
+    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId'] : ['mode', 'targetId', 'threadId'];
     if (!['ai', 'human', 'agent'].includes(fields.mode as string) || Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
     for (const key of keys) if (key !== 'mode' && fields[key] !== undefined) normalized[key] = stringRef(fields[key]);

@@ -512,6 +512,7 @@ export function resolveCompletedAgentSubmitSession(input: {
   state: AgentSubmitSessionState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   streamSnapshot: StreamState;
+  preserveComposerText?: string;
 }): AgentSubmitSessionCompletedResult {
   const hostInteractionPatch = resolveCompletedAgentHostInteraction({
     optimisticBundle: input.state.workingBundle,
@@ -525,6 +526,7 @@ export function resolveCompletedAgentSubmitSession(input: {
       hostInteractionPatch: null,
     };
   }
+  if (input.preserveComposerText !== undefined) hostInteractionPatch.composerText = input.preserveComposerText;
   return {
     state: {
       ...input.state,
@@ -542,6 +544,7 @@ export function resolveInterruptedAgentSubmitSession(input: {
   streamSnapshot: StreamState;
   /** False when the text reached Runtime, so the composer is not refilled for resending. */
   restoreSubmittedText?: boolean;
+  preserveComposerText?: string;
 }): AgentSubmitSessionInterruptedResult {
   const traceId = resolveTraceId(input.state, input.streamSnapshot);
   const interruptedStreamSnapshot = (
@@ -582,6 +585,7 @@ export function resolveInterruptedAgentSubmitSession(input: {
     lifecycle: input.state.lifecycle,
     streamSnapshot: interruptedStreamSnapshot,
   });
+  if (input.preserveComposerText !== undefined) hostInteractionPatch.composerText = input.preserveComposerText;
 
   return {
     state: {

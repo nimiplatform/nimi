@@ -223,6 +223,7 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
 
   const manager = await client.manager.snapshot({ agentHandle: HANDLE, conversationAnchorId: 'conversation-1' });
   assert.deepEqual(manager, {
+    conversationContext: null,
     lifecycleStatus: 'active',
     executionState: 'idle',
     statusText: 'Ready',

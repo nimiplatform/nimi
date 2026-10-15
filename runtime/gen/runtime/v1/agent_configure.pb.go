@@ -1408,6 +1408,228 @@ func (x *LocalAppAgentUpdateAutonomyResponse) GetProjection() *LocalAppAgentAuto
 	return nil
 }
 
+// One explicit model-input selection on the existing Conversation. The
+// transcript and Cognition Memory remain unchanged.
+type LocalAppAgentConversationContextProjection struct {
+	state                      protoimpl.MessageState `protogen:"open.v1"`
+	ConversationAnchorId       string                 `protobuf:"bytes,1,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
+	ContextRevision            uint64                 `protobuf:"varint,2,opt,name=context_revision,json=contextRevision,proto3" json:"context_revision,omitempty"`
+	FirstTurnSequence          uint64                 `protobuf:"varint,3,opt,name=first_turn_sequence,json=firstTurnSequence,proto3" json:"first_turn_sequence,omitempty"`
+	OmitSupplementalContext    bool                   `protobuf:"varint,4,opt,name=omit_supplemental_context,json=omitSupplementalContext,proto3" json:"omit_supplemental_context,omitempty"`
+	CommittedTurnCount         uint64                 `protobuf:"varint,5,opt,name=committed_turn_count,json=committedTurnCount,proto3" json:"committed_turn_count,omitempty"`
+	SuggestedFirstTurnSequence *uint64                `protobuf:"varint,6,opt,name=suggested_first_turn_sequence,json=suggestedFirstTurnSequence,proto3,oneof" json:"suggested_first_turn_sequence,omitempty"`
+	Busy                       bool                   `protobuf:"varint,7,opt,name=busy,proto3" json:"busy,omitempty"`
+	CanUpdate                  bool                   `protobuf:"varint,8,opt,name=can_update,json=canUpdate,proto3" json:"can_update,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *LocalAppAgentConversationContextProjection) Reset() {
+	*x = LocalAppAgentConversationContextProjection{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppAgentConversationContextProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppAgentConversationContextProjection) ProtoMessage() {}
+
+func (x *LocalAppAgentConversationContextProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppAgentConversationContextProjection.ProtoReflect.Descriptor instead.
+func (*LocalAppAgentConversationContextProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetConversationAnchorId() string {
+	if x != nil {
+		return x.ConversationAnchorId
+	}
+	return ""
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetContextRevision() uint64 {
+	if x != nil {
+		return x.ContextRevision
+	}
+	return 0
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetFirstTurnSequence() uint64 {
+	if x != nil {
+		return x.FirstTurnSequence
+	}
+	return 0
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetOmitSupplementalContext() bool {
+	if x != nil {
+		return x.OmitSupplementalContext
+	}
+	return false
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetCommittedTurnCount() uint64 {
+	if x != nil {
+		return x.CommittedTurnCount
+	}
+	return 0
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetSuggestedFirstTurnSequence() uint64 {
+	if x != nil && x.SuggestedFirstTurnSequence != nil {
+		return *x.SuggestedFirstTurnSequence
+	}
+	return 0
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetBusy() bool {
+	if x != nil {
+		return x.Busy
+	}
+	return false
+}
+
+func (x *LocalAppAgentConversationContextProjection) GetCanUpdate() bool {
+	if x != nil {
+		return x.CanUpdate
+	}
+	return false
+}
+
+type UpdateLocalAppAgentConversationContextRequest struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	AgentHandle             string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
+	ConversationAnchorId    string                 `protobuf:"bytes,2,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
+	ExpectedContextRevision uint64                 `protobuf:"varint,3,opt,name=expected_context_revision,json=expectedContextRevision,proto3" json:"expected_context_revision,omitempty"`
+	FirstTurnSequence       uint64                 `protobuf:"varint,4,opt,name=first_turn_sequence,json=firstTurnSequence,proto3" json:"first_turn_sequence,omitempty"`
+	OmitSupplementalContext bool                   `protobuf:"varint,5,opt,name=omit_supplemental_context,json=omitSupplementalContext,proto3" json:"omit_supplemental_context,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) Reset() {
+	*x = UpdateLocalAppAgentConversationContextRequest{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLocalAppAgentConversationContextRequest) ProtoMessage() {}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLocalAppAgentConversationContextRequest.ProtoReflect.Descriptor instead.
+func (*UpdateLocalAppAgentConversationContextRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) GetAgentHandle() string {
+	if x != nil {
+		return x.AgentHandle
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) GetConversationAnchorId() string {
+	if x != nil {
+		return x.ConversationAnchorId
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) GetExpectedContextRevision() uint64 {
+	if x != nil {
+		return x.ExpectedContextRevision
+	}
+	return 0
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) GetFirstTurnSequence() uint64 {
+	if x != nil {
+		return x.FirstTurnSequence
+	}
+	return 0
+}
+
+func (x *UpdateLocalAppAgentConversationContextRequest) GetOmitSupplementalContext() bool {
+	if x != nil {
+		return x.OmitSupplementalContext
+	}
+	return false
+}
+
+type UpdateLocalAppAgentConversationContextResponse struct {
+	state         protoimpl.MessageState                      `protogen:"open.v1"`
+	Projection    *LocalAppAgentConversationContextProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateLocalAppAgentConversationContextResponse) Reset() {
+	*x = UpdateLocalAppAgentConversationContextResponse{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLocalAppAgentConversationContextResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLocalAppAgentConversationContextResponse) ProtoMessage() {}
+
+func (x *UpdateLocalAppAgentConversationContextResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLocalAppAgentConversationContextResponse.ProtoReflect.Descriptor instead.
+func (*UpdateLocalAppAgentConversationContextResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdateLocalAppAgentConversationContextResponse) GetProjection() *LocalAppAgentConversationContextProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
 type LocalAppAgentPresentationProjection struct {
 	state                 protoimpl.MessageState      `protogen:"open.v1"`
 	Profile               *AgentPresentationProfile   `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
@@ -1422,7 +1644,7 @@ type LocalAppAgentPresentationProjection struct {
 
 func (x *LocalAppAgentPresentationProjection) Reset() {
 	*x = LocalAppAgentPresentationProjection{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1434,7 +1656,7 @@ func (x *LocalAppAgentPresentationProjection) String() string {
 func (*LocalAppAgentPresentationProjection) ProtoMessage() {}
 
 func (x *LocalAppAgentPresentationProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1447,7 +1669,7 @@ func (x *LocalAppAgentPresentationProjection) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LocalAppAgentPresentationProjection.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentPresentationProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *LocalAppAgentPresentationProjection) GetProfile() *AgentPresentationProfile {
@@ -1503,7 +1725,7 @@ type LocalAppAgentPresentationIntent struct {
 
 func (x *LocalAppAgentPresentationIntent) Reset() {
 	*x = LocalAppAgentPresentationIntent{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[22]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1737,7 @@ func (x *LocalAppAgentPresentationIntent) String() string {
 func (*LocalAppAgentPresentationIntent) ProtoMessage() {}
 
 func (x *LocalAppAgentPresentationIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[22]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +1750,7 @@ func (x *LocalAppAgentPresentationIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppAgentPresentationIntent.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentPresentationIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LocalAppAgentPresentationIntent) GetPatch() *AgentPresentationProfilePatch {
@@ -1561,7 +1783,7 @@ type GetLocalAppAgentPresentationSnapshotRequest struct {
 
 func (x *GetLocalAppAgentPresentationSnapshotRequest) Reset() {
 	*x = GetLocalAppAgentPresentationSnapshotRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[23]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1573,7 +1795,7 @@ func (x *GetLocalAppAgentPresentationSnapshotRequest) String() string {
 func (*GetLocalAppAgentPresentationSnapshotRequest) ProtoMessage() {}
 
 func (x *GetLocalAppAgentPresentationSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[23]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1586,7 +1808,7 @@ func (x *GetLocalAppAgentPresentationSnapshotRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use GetLocalAppAgentPresentationSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppAgentPresentationSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetLocalAppAgentPresentationSnapshotRequest) GetAgentHandle() string {
@@ -1605,7 +1827,7 @@ type LocalAppAgentPresentationSnapshotResponse struct {
 
 func (x *LocalAppAgentPresentationSnapshotResponse) Reset() {
 	*x = LocalAppAgentPresentationSnapshotResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[24]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1617,7 +1839,7 @@ func (x *LocalAppAgentPresentationSnapshotResponse) String() string {
 func (*LocalAppAgentPresentationSnapshotResponse) ProtoMessage() {}
 
 func (x *LocalAppAgentPresentationSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[24]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1630,7 +1852,7 @@ func (x *LocalAppAgentPresentationSnapshotResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use LocalAppAgentPresentationSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentPresentationSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *LocalAppAgentPresentationSnapshotResponse) GetProjection() *LocalAppAgentPresentationProjection {
@@ -1652,7 +1874,7 @@ type CommitLocalAppAgentPresentationRequest struct {
 
 func (x *CommitLocalAppAgentPresentationRequest) Reset() {
 	*x = CommitLocalAppAgentPresentationRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[25]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1664,7 +1886,7 @@ func (x *CommitLocalAppAgentPresentationRequest) String() string {
 func (*CommitLocalAppAgentPresentationRequest) ProtoMessage() {}
 
 func (x *CommitLocalAppAgentPresentationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[25]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1677,7 +1899,7 @@ func (x *CommitLocalAppAgentPresentationRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use CommitLocalAppAgentPresentationRequest.ProtoReflect.Descriptor instead.
 func (*CommitLocalAppAgentPresentationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CommitLocalAppAgentPresentationRequest) GetAgentHandle() string {
@@ -1717,7 +1939,7 @@ type LocalAppAgentCommitPresentationResponse struct {
 
 func (x *LocalAppAgentCommitPresentationResponse) Reset() {
 	*x = LocalAppAgentCommitPresentationResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[26]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1729,7 +1951,7 @@ func (x *LocalAppAgentCommitPresentationResponse) String() string {
 func (*LocalAppAgentCommitPresentationResponse) ProtoMessage() {}
 
 func (x *LocalAppAgentCommitPresentationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[26]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1742,7 +1964,7 @@ func (x *LocalAppAgentCommitPresentationResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use LocalAppAgentCommitPresentationResponse.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentCommitPresentationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *LocalAppAgentCommitPresentationResponse) GetProjection() *LocalAppAgentPresentationProjection {
@@ -1840,6 +2062,27 @@ const file_runtime_v1_agent_configure_proto_rawDesc = "" +
 	"#LocalAppAgentUpdateAutonomyResponse\x12P\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v20.nimi.runtime.v1.LocalAppAgentAutonomyProjectionR\n" +
+	"projection\"\xc8\x03\n" +
+	"*LocalAppAgentConversationContextProjection\x124\n" +
+	"\x16conversation_anchor_id\x18\x01 \x01(\tR\x14conversationAnchorId\x12)\n" +
+	"\x10context_revision\x18\x02 \x01(\x04R\x0fcontextRevision\x12.\n" +
+	"\x13first_turn_sequence\x18\x03 \x01(\x04R\x11firstTurnSequence\x12:\n" +
+	"\x19omit_supplemental_context\x18\x04 \x01(\bR\x17omitSupplementalContext\x120\n" +
+	"\x14committed_turn_count\x18\x05 \x01(\x04R\x12committedTurnCount\x12F\n" +
+	"\x1dsuggested_first_turn_sequence\x18\x06 \x01(\x04H\x00R\x1asuggestedFirstTurnSequence\x88\x01\x01\x12\x12\n" +
+	"\x04busy\x18\a \x01(\bR\x04busy\x12\x1d\n" +
+	"\n" +
+	"can_update\x18\b \x01(\bR\tcanUpdateB \n" +
+	"\x1e_suggested_first_turn_sequence\"\xb0\x02\n" +
+	"-UpdateLocalAppAgentConversationContextRequest\x12!\n" +
+	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x124\n" +
+	"\x16conversation_anchor_id\x18\x02 \x01(\tR\x14conversationAnchorId\x12:\n" +
+	"\x19expected_context_revision\x18\x03 \x01(\x04R\x17expectedContextRevision\x12.\n" +
+	"\x13first_turn_sequence\x18\x04 \x01(\x04R\x11firstTurnSequence\x12:\n" +
+	"\x19omit_supplemental_context\x18\x05 \x01(\bR\x17omitSupplementalContext\"\x8d\x01\n" +
+	".UpdateLocalAppAgentConversationContextResponse\x12[\n" +
+	"\n" +
+	"projection\x18\x01 \x01(\v2;.nimi.runtime.v1.LocalAppAgentConversationContextProjectionR\n" +
 	"projection\"\xbb\x03\n" +
 	"#LocalAppAgentPresentationProjection\x12C\n" +
 	"\aprofile\x18\x01 \x01(\v2).nimi.runtime.v1.AgentPresentationProfileR\aprofile\x126\n" +
@@ -1895,7 +2138,7 @@ func file_runtime_v1_agent_configure_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_agent_configure_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_agent_configure_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_runtime_v1_agent_configure_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_runtime_v1_agent_configure_proto_goTypes = []any{
 	(LocalAgentCapabilityParticipationRole)(0),                  // 0: nimi.runtime.v1.LocalAgentCapabilityParticipationRole
 	(LocalAppAgentAutonomyMode)(0),                              // 1: nimi.runtime.v1.LocalAppAgentAutonomyMode
@@ -1920,73 +2163,77 @@ var file_runtime_v1_agent_configure_proto_goTypes = []any{
 	(*LocalAppAgentAutonomySnapshotResponse)(nil),               // 20: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
 	(*UpdateLocalAppAgentAutonomyRequest)(nil),                  // 21: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
 	(*LocalAppAgentUpdateAutonomyResponse)(nil),                 // 22: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
-	(*LocalAppAgentPresentationProjection)(nil),                 // 23: nimi.runtime.v1.LocalAppAgentPresentationProjection
-	(*LocalAppAgentPresentationIntent)(nil),                     // 24: nimi.runtime.v1.LocalAppAgentPresentationIntent
-	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),         // 25: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
-	(*LocalAppAgentPresentationSnapshotResponse)(nil),           // 26: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
-	(*CommitLocalAppAgentPresentationRequest)(nil),              // 27: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
-	(*LocalAppAgentCommitPresentationResponse)(nil),             // 28: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
-	(*AIConfig)(nil),                           // 29: nimi.runtime.v1.AIConfig
-	(*AIConfigEffectiveSelection)(nil),         // 30: nimi.runtime.v1.AIConfigEffectiveSelection
-	(*AIConfigCapabilityIntent)(nil),           // 31: nimi.runtime.v1.AIConfigCapabilityIntent
-	(ReasonCode)(0),                            // 32: nimi.runtime.v1.ReasonCode
-	(*AIConfigLocalLoadoutOptionsQuery)(nil),   // 33: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	(*AIConfigCloudConnectorOptionsQuery)(nil), // 34: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
-	(*AIConfigCloudTargetOptionsQuery)(nil),    // 35: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
-	(*AIConfigLocalLoadoutOptions)(nil),        // 36: nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	(*AIConfigCloudConnectorOptions)(nil),      // 37: nimi.runtime.v1.AIConfigCloudConnectorOptions
-	(*AIConfigCloudTargetOptions)(nil),         // 38: nimi.runtime.v1.AIConfigCloudTargetOptions
-	(*durationpb.Duration)(nil),                // 39: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),              // 40: google.protobuf.Timestamp
-	(*AgentPresentationProfile)(nil),           // 41: nimi.runtime.v1.AgentPresentationProfile
-	(*AgentResourcePackSelection)(nil),         // 42: nimi.runtime.v1.AgentResourcePackSelection
-	(*AgentPresentationProfilePatch)(nil),      // 43: nimi.runtime.v1.AgentPresentationProfilePatch
-	(*AgentPresentationAssetMaterial)(nil),     // 44: nimi.runtime.v1.AgentPresentationAssetMaterial
+	(*LocalAppAgentConversationContextProjection)(nil),          // 23: nimi.runtime.v1.LocalAppAgentConversationContextProjection
+	(*UpdateLocalAppAgentConversationContextRequest)(nil),       // 24: nimi.runtime.v1.UpdateLocalAppAgentConversationContextRequest
+	(*UpdateLocalAppAgentConversationContextResponse)(nil),      // 25: nimi.runtime.v1.UpdateLocalAppAgentConversationContextResponse
+	(*LocalAppAgentPresentationProjection)(nil),                 // 26: nimi.runtime.v1.LocalAppAgentPresentationProjection
+	(*LocalAppAgentPresentationIntent)(nil),                     // 27: nimi.runtime.v1.LocalAppAgentPresentationIntent
+	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),         // 28: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
+	(*LocalAppAgentPresentationSnapshotResponse)(nil),           // 29: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
+	(*CommitLocalAppAgentPresentationRequest)(nil),              // 30: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
+	(*LocalAppAgentCommitPresentationResponse)(nil),             // 31: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
+	(*AIConfig)(nil),                           // 32: nimi.runtime.v1.AIConfig
+	(*AIConfigEffectiveSelection)(nil),         // 33: nimi.runtime.v1.AIConfigEffectiveSelection
+	(*AIConfigCapabilityIntent)(nil),           // 34: nimi.runtime.v1.AIConfigCapabilityIntent
+	(ReasonCode)(0),                            // 35: nimi.runtime.v1.ReasonCode
+	(*AIConfigLocalLoadoutOptionsQuery)(nil),   // 36: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	(*AIConfigCloudConnectorOptionsQuery)(nil), // 37: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	(*AIConfigCloudTargetOptionsQuery)(nil),    // 38: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	(*AIConfigLocalLoadoutOptions)(nil),        // 39: nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	(*AIConfigCloudConnectorOptions)(nil),      // 40: nimi.runtime.v1.AIConfigCloudConnectorOptions
+	(*AIConfigCloudTargetOptions)(nil),         // 41: nimi.runtime.v1.AIConfigCloudTargetOptions
+	(*durationpb.Duration)(nil),                // 42: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),              // 43: google.protobuf.Timestamp
+	(*AgentPresentationProfile)(nil),           // 44: nimi.runtime.v1.AgentPresentationProfile
+	(*AgentResourcePackSelection)(nil),         // 45: nimi.runtime.v1.AgentResourcePackSelection
+	(*AgentPresentationProfilePatch)(nil),      // 46: nimi.runtime.v1.AgentPresentationProfilePatch
+	(*AgentPresentationAssetMaterial)(nil),     // 47: nimi.runtime.v1.AgentPresentationAssetMaterial
 }
 var file_runtime_v1_agent_configure_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalAgentCapabilityParticipation.role:type_name -> nimi.runtime.v1.LocalAgentCapabilityParticipationRole
-	29, // 1: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.config:type_name -> nimi.runtime.v1.AIConfig
-	30, // 2: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
+	32, // 1: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.config:type_name -> nimi.runtime.v1.AIConfig
+	33, // 2: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
 	2,  // 3: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.participation:type_name -> nimi.runtime.v1.LocalAgentCapabilityParticipation
 	3,  // 4: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse.projection:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
-	31, // 5: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	34, // 5: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
 	3,  // 6: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse.projection:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
-	32, // 7: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 7: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	9,  // 8: nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions.options:type_name -> nimi.runtime.v1.SharedLocalAgentPresetVoiceOption
 	12, // 9: nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions.options:type_name -> nimi.runtime.v1.SharedLocalAgentVoiceAssetOption
-	33, // 10: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	34, // 11: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
-	35, // 12: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	36, // 10: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	37, // 11: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	38, // 12: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
 	8,  // 13: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.SharedLocalAgentPresetVoiceOptionsQuery
 	11, // 14: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest.voice_assets:type_name -> nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery
-	36, // 15: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	37, // 16: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
-	38, // 17: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
+	39, // 15: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	40, // 16: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
+	41, // 17: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
 	10, // 18: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions
 	13, // 19: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse.voice_assets:type_name -> nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions
-	39, // 20: nimi.runtime.v1.LocalAppAgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
-	40, // 21: nimi.runtime.v1.LocalAppAgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
+	42, // 20: nimi.runtime.v1.LocalAppAgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
+	43, // 21: nimi.runtime.v1.LocalAppAgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
 	1,  // 22: nimi.runtime.v1.LocalAppAgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyMode
 	16, // 23: nimi.runtime.v1.LocalAppAgentAutonomyProjection.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
-	40, // 24: nimi.runtime.v1.LocalAppAgentAutonomyProjection.window_started_at:type_name -> google.protobuf.Timestamp
-	40, // 25: nimi.runtime.v1.LocalAppAgentAutonomyProjection.suspended_until:type_name -> google.protobuf.Timestamp
+	43, // 24: nimi.runtime.v1.LocalAppAgentAutonomyProjection.window_started_at:type_name -> google.protobuf.Timestamp
+	43, // 25: nimi.runtime.v1.LocalAppAgentAutonomyProjection.suspended_until:type_name -> google.protobuf.Timestamp
 	16, // 26: nimi.runtime.v1.LocalAppAgentAutonomyIntent.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
 	17, // 27: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
 	18, // 28: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyIntent
 	17, // 29: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
-	41, // 30: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	41, // 31: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	42, // 32: nimi.runtime.v1.LocalAppAgentPresentationProjection.resource_pack_selection:type_name -> nimi.runtime.v1.AgentResourcePackSelection
-	43, // 33: nimi.runtime.v1.LocalAppAgentPresentationIntent.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
-	23, // 34: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	24, // 35: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
-	44, // 36: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
-	23, // 37: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	38, // [38:38] is the sub-list for method output_type
-	38, // [38:38] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	23, // 30: nimi.runtime.v1.UpdateLocalAppAgentConversationContextResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentConversationContextProjection
+	44, // 31: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	44, // 32: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	45, // 33: nimi.runtime.v1.LocalAppAgentPresentationProjection.resource_pack_selection:type_name -> nimi.runtime.v1.AgentResourcePackSelection
+	46, // 34: nimi.runtime.v1.LocalAppAgentPresentationIntent.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
+	26, // 35: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	27, // 36: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
+	47, // 37: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
+	26, // 38: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	39, // [39:39] is the sub-list for method output_type
+	39, // [39:39] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_configure_proto_init() }
@@ -2012,13 +2259,14 @@ func file_runtime_v1_agent_configure_proto_init() {
 		(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse_VoiceAssets)(nil),
 	}
 	file_runtime_v1_agent_configure_proto_msgTypes[16].OneofWrappers = []any{}
+	file_runtime_v1_agent_configure_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_configure_proto_rawDesc), len(file_runtime_v1_agent_configure_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   27,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

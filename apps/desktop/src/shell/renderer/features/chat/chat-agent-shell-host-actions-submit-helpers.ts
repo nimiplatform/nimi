@@ -31,17 +31,19 @@ export async function rollbackOptimisticUserProjection(input: {
   optimisticBaseThread: AgentLocalThreadRecord | null;
   optimisticUserMessageIds: readonly string[];
   submittedTextForRecovery: string;
+  restoreComposerText: boolean;
 }): Promise<void> {
+  // Projection rollback also applies to image-only input. Whether the old
+  // composer may restore text is a separate decision below.
   if (
     !input.optimisticThreadId
     || !input.optimisticBaseThread
-    || !input.submittedTextForRecovery
   ) {
     return;
   }
   const rollbackThreadId = input.optimisticThreadId;
   const rollbackThread = input.optimisticBaseThread;
-  input.hostInput.currentComposerTextRef.current = input.submittedTextForRecovery;
+  if (input.restoreComposerText) input.hostInput.currentComposerTextRef.current = input.submittedTextForRecovery;
   input.hostInput.setBundleCache(rollbackThreadId, (current) => {
     const base = current || createEmptyAgentThreadBundle(rollbackThread);
     return {

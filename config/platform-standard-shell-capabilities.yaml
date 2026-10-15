@@ -347,6 +347,7 @@ capability_sets:
       - local-app.agentManagerSnapshot
       - local-app.agentAutonomySnapshot
       - local-app.agentUpdateAutonomy
+      - local-app.agentUpdateConversationContext
       - local-app.agentPresentationSnapshot
       - local-app.agentPresentationReadAsset
       - local-app.agentCommitPresentation
@@ -1401,7 +1402,7 @@ local_app_operation_contract:
       command: local-app.agentManagerSnapshot
       operation_id: runtime.agent.manager.snapshot.get
       request_fields: [agentHandle, conversationAnchorId]
-      response_fields: [lifecycleStatus, executionState, statusText, currentEmotion, source, context]
+      response_fields: [lifecycleStatus, executionState, statusText, currentEmotion, source, context, conversationContext]
       transport_boundary: unary
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
@@ -1420,6 +1421,15 @@ local_app_operation_contract:
       operation_id: runtime.agent.autonomy.update
       request_fields: [agentHandle, expectedAutonomyRevision, intent]
       response_fields: [enabled, config, usedTokensInWindow, windowStartedAt, budgetExhausted, suspendedUntil, autonomyRevision]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentUpdateConversationContext:
+      command: local-app.agentUpdateConversationContext
+      operation_id: runtime.agent.conversation-context.update
+      request_fields: [agentHandle, conversationAnchorId, expectedContextRevision, firstTurnSequence, omitSupplementalContext]
+      response_fields: [conversationAnchorId, contextRevision, firstTurnSequence, omitSupplementalContext, committedTurnCount, suggestedFirstTurnSequence, busy, canUpdate]
       transport_boundary: unary
       effect_boundary: write
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
@@ -2042,6 +2052,9 @@ capabilities:
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
       - id: agentUpdateAutonomy
         command: nimi.shell.localApp.agentUpdateAutonomy
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentUpdateConversationContext
+        command: nimi.shell.localApp.agentUpdateConversationContext
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
       - id: agentPresentationSnapshot
         command: nimi.shell.localApp.agentPresentationSnapshot

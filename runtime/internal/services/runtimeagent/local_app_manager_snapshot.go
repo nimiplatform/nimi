@@ -45,9 +45,13 @@ func (s *Service) GetLocalAppAgentManagerSnapshot(
 		CurrentEmotion:  strings.TrimSpace(entry.State.GetCurrentEmotion()),
 		Source:          projectLocalAppAgentManagerSource(entry.Agent.GetSourceContextStatus()),
 	}
-	snapshot.ActionAvailability = projectLocalAppAgentManagerActionAvailability(
-		s.localAppManagerActionOwnerState(ctx, resolved, entry),
-	)
+	selection, err := s.managerConversationContext(resolved, req.GetConversationAnchorId())
+	if err != nil {
+		return nil, err
+	}
+	snapshot.ConversationContext = selection
+	actionState := s.localAppManagerActionOwnerState(ctx, resolved, entry)
+	snapshot.ActionAvailability = projectLocalAppAgentManagerActionAvailability(actionState)
 	if req.ConversationAnchorId != nil {
 		summary, err := s.localAppAgentManagerContextSummary(resolved, strings.TrimSpace(req.GetConversationAnchorId()))
 		if err != nil {

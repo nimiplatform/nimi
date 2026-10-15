@@ -222,6 +222,8 @@ export type {
   NimiLocalAppAgentManagerLaneState,
   NimiLocalAppAgentManagerReasonCode,
   NimiLocalAppAgentManagerSnapshot,
+  NimiLocalAppAgentConversationContextProjection,
+  NimiLocalAppConversationContextUpdateInput,
   NimiLocalAppAgentManagerSnapshotInput,
   NimiLocalAppAgentManagerSourceCognitionStatus,
   NimiLocalAppAgentManagerSourceProjection,

@@ -558,6 +558,11 @@ export function createDemoZhiyuAgentClient(
   });
 
   const client: ConfigureClient = {
+    conversationContext: {
+      async update() {
+        throw new DemoZhiyuMockError('LOCAL_APP_OPERATION_UNAVAILABLE', 'Conversation context controls are unavailable in this preview.');
+      },
+    },
     sharedAIConfig: {
       async get() {
         return {
@@ -785,6 +790,7 @@ export function createDemoZhiyuAgentClient(
           currentEmotion: partner.manager.currentEmotion,
           source: managerSource(activePartner, now()),
           context: managerContext(activePartner, hasCurrentMemory ? memory.currentCount : 0),
+          conversationContext: null,
           actionAvailability: {
             getSharedAIConfig: available,
             overwriteSharedAIConfig: available,

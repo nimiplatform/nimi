@@ -689,6 +689,15 @@ pub struct NativeAgentUpdateAutonomyInput {
 }
 
 #[napi(object)]
+pub struct NativeAgentUpdateConversationContextInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub expected_context_revision: String,
+    pub first_turn_sequence: String,
+    pub omit_supplemental_context: bool,
+}
+
+#[napi(object)]
 pub struct NativeAgentPresentationAssetInput {
     pub role: String,
     pub file_name: String,

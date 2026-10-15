@@ -191,6 +191,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentManagerSnapshot'], 'agentManagerSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConversationContext'], 'agentUpdateConversationContext'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationReadAsset'], 'agentPresentationReadAsset'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'], 'agentCommitPresentation'],
@@ -952,6 +953,16 @@ function validatePayload(
         pageToken: memoryPageToken(payload.pageToken ?? '', command),
       };
     }
+    case 'agentUpdateConversationContext':
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'expectedContextRevision', 'firstTurnSequence', 'omitSupplementalContext'], command);
+      if (typeof payload.omitSupplementalContext !== 'boolean') throw invalidPayload(command, 'omitSupplementalContext must be boolean');
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+        expectedContextRevision: decimalRevision(payload.expectedContextRevision, 'expectedContextRevision', command, false),
+        firstTurnSequence: decimalRevision(payload.firstTurnSequence, 'firstTurnSequence', command, true),
+        omitSupplementalContext: payload.omitSupplementalContext,
+      };
     case 'agentUpdateAutonomy':
       assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
       assertNoForbiddenAuthorityValue(payload.intent, command);
@@ -2382,7 +2393,8 @@ function standardCode(reasonCode: string) {
     case 'access-denied': return 'access-denied' as const;
     case 'owner-authority-missing': return 'owner-authority-missing' as const;
     case 'content-conflict': return 'content-conflict' as const;
-    case 'agent-presentation-revision-conflict': return 'content-conflict' as const;
+    case 'agent-presentation-revision-conflict':
+    case 'agent-conversation-context-revision-conflict': return 'content-conflict' as const;
     case 'realm-unavailable': return 'realm-unavailable' as const;
     case 'rate-limited': return 'rate-limited' as const;
     case 'upstream-failed': return 'upstream-failed' as const;
@@ -2496,6 +2508,7 @@ function actionHint(reasonCode: string): string {
     case 'realm-unavailable':
     case 'rate-limited': return 'retry_later';
     case 'agent-presentation-revision-conflict': return 'refresh_presentation_snapshot';
+    case 'agent-conversation-context-revision-conflict': return 'refresh_conversation_context_snapshot';
     case 'agent-presentation-asset-type-invalid':
     case 'agent-presentation-asset-too-large':
     case 'agent-presentation-asset-structure-invalid':

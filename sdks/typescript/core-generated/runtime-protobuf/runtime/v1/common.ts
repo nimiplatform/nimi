@@ -1590,7 +1590,11 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_PROVIDER_TASK_EXPIRED = 774;
      */
-    AI_PROVIDER_TASK_EXPIRED = 774
+    AI_PROVIDER_TASK_EXPIRED = 774,
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT = 775;
+     */
+    AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT = 775
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

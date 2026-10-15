@@ -3274,6 +3274,8 @@ pub enum ReasonCode {
     AIPROVIDERTASKCANCELED,
     #[serde(rename = "AI_PROVIDER_TASK_EXPIRED")]
     AIPROVIDERTASKEXPIRED,
+    #[serde(rename = "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT")]
+    AGENTCONVERSATIONCONTEXTREVISIONCONFLICT,
 }
 
 impl Default for ReasonCode {
@@ -3911,6 +3913,8 @@ impl ReasonCode {
             "AIPROVIDERTASKCANCELED" => Some(Self::AIPROVIDERTASKCANCELED),
             "AI_PROVIDER_TASK_EXPIRED" => Some(Self::AIPROVIDERTASKEXPIRED),
             "AIPROVIDERTASKEXPIRED" => Some(Self::AIPROVIDERTASKEXPIRED),
+            "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => Some(Self::AGENTCONVERSATIONCONTEXTREVISIONCONFLICT),
+            "AGENTCONVERSATIONCONTEXTREVISIONCONFLICT" => Some(Self::AGENTCONVERSATIONCONTEXTREVISIONCONFLICT),
             _ => None,
         }
     }
@@ -10128,6 +10132,18 @@ pub struct LocalAppAgentCommitPresentationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentConversationContextProjection {
+    pub conversation_anchor_id: Option<String>,
+    pub context_revision: Option<u64>,
+    pub first_turn_sequence: Option<u64>,
+    pub omit_supplemental_context: Option<bool>,
+    pub committed_turn_count: Option<u64>,
+    pub suggested_first_turn_sequence: Option<u64>,
+    pub busy: Option<bool>,
+    pub can_update: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentIntroduction {
     pub world_name: Option<String>,
     pub era: Option<String>,
@@ -10182,6 +10198,7 @@ pub struct LocalAppAgentManagerSnapshot {
     pub source: Option<Box<LocalAppAgentManagerSourceProjection>>,
     pub context: Option<Box<LocalAppAgentManagerContextProjection>>,
     pub action_availability: Vec<Box<LocalAppAgentManagerActionAvailability>>,
+    pub conversation_context: Option<Box<LocalAppAgentConversationContextProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15105,6 +15122,20 @@ pub struct UpdateLocalAppAgentAutonomyRequest {
     pub agent_handle: Option<String>,
     pub expected_autonomy_revision: Option<u64>,
     pub intent: Option<Box<LocalAppAgentAutonomyIntent>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppAgentConversationContextRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub expected_context_revision: Option<u64>,
+    pub first_turn_sequence: Option<u64>,
+    pub omit_supplemental_context: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppAgentConversationContextResponse {
+    pub projection: Option<Box<LocalAppAgentConversationContextProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

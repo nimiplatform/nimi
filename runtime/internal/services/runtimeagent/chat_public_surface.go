@@ -146,6 +146,7 @@ type publicChatVoiceSidecarState struct {
 // continuity token; OwnerUserID plus LocalAgentRef resolves the singleton.
 // SubjectUserID is captured at first open and must equal OwnerUserID.
 type publicChatAnchorState struct {
+	ConversationContext      publicChatConversationContextSelection
 	persistedTranscriptCount int
 	ConversationAnchorID     string
 	AgentID                  string
@@ -185,8 +186,9 @@ type publicChatAnchorState struct {
 }
 
 type publicChatConversationSummaryState struct {
-	LastValid   *publicChatConversationSummaryValidState  `json:"lastValid,omitempty"`
-	LastAttempt publicChatConversationSummaryAttemptState `json:"lastAttempt"`
+	ContextRevision uint64                                    `json:"contextRevision,omitempty"`
+	LastValid       *publicChatConversationSummaryValidState  `json:"lastValid,omitempty"`
+	LastAttempt     publicChatConversationSummaryAttemptState `json:"lastAttempt"`
 }
 
 // publicChatConversationSummaryValidState is the last summary payload that

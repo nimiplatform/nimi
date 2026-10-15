@@ -656,6 +656,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LocalAppAgentUpdateAutonomyResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+        service: "RuntimeAgentService",
+        method: "UpdateLocalAppAgentConversationContext",
+        kind: "unary",
+        request_type: "UpdateLocalAppAgentConversationContextRequest",
+        response_type: "UpdateLocalAppAgentConversationContextResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
         service: "RuntimeAgentService",
         method: "UploadLocalAppConversationAttachment",

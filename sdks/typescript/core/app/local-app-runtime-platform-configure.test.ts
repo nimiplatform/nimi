@@ -95,6 +95,7 @@ const MEMORY_PROJECTION = {
 } as const;
 
 const MANAGER_PROJECTION = {
+  conversationContext: null,
   lifecycleStatus: 'active',
   executionState: 'idle',
   statusText: 'Ready',
@@ -181,6 +182,14 @@ const RUNTIME_MANAGER_ACTION_AVAILABILITY = [
 
 function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
   return {
+    conversationContext: {
+      update: async (input) => {
+        calls.push(['conversationContext.update', input]);
+        return { conversationAnchorId: input.conversationAnchorId, contextRevision: (BigInt(input.expectedContextRevision) + 1n).toString(),
+          firstTurnSequence: input.firstTurnSequence, omitSupplementalContext: input.omitSupplementalContext,
+          committedTurnCount: '8', suggestedFirstTurnSequence: null, busy: false, canUpdate: true };
+      },
+    },
     sharedAIConfig: {
       get: async () => {
         calls.push(['sharedAIConfig.get']);
@@ -266,6 +275,54 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
 function reasonCode(error: unknown): string | undefined {
   return (error as { reasonCode?: string }).reasonCode;
 }
+
+test('Memory owner rejection is a typed no-effect result even when existing Memory remains ready', async () => {
+  const base = shell([]);
+  const client = createNimiLocalAppAgentConfigureClient({ ...base, memory: { ...base.memory,
+    correct: async () => ({ outcome: 'rejected', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
+  } });
+  const result = await client.memory.correct({ agentHandle: HANDLE, memoryId: 'memory-1', correctedContent: 'proposed correction' });
+  assert.equal(result.outcome, 'rejected'); assert.deepEqual(result.affectedMemoryIds, []);
+  assert.equal(result.projection.outcome, 'ready');
+  const inconsistent = createNimiLocalAppAgentConfigureClient({ ...base, memory: { ...base.memory,
+    correct: async () => ({ outcome: 'rejected', affectedMemoryIds: ['memory-1'], projection: MEMORY_PROJECTION }),
+  } });
+  await assert.rejects(() => inconsistent.memory.correct({ agentHandle: HANDLE, memoryId: 'memory-1', correctedContent: 'proposal' }));
+});
+
+test('conversation context binds its result to the same anchor and preserves a single explicit mutation', async () => {
+  const calls: unknown[] = [];
+  const input = { agentHandle: HANDLE, conversationAnchorId: 'agent_anchor_context', expectedContextRevision: '1', firstTurnSequence: '2', omitSupplementalContext: true };
+  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
+  assert.equal((await client.conversationContext.update(input)).contextRevision, '2');
+  assert.deepEqual(calls, [['conversationContext.update', input]]);
+  for (const patch of [{ approved: true }, { expectedContextRevision: '01' }, { firstTurnSequence: '-1' }, { expectedContextRevision: '18446744073709551616' }]) {
+    await assert.rejects(() => client.conversationContext.update({ ...input, ...patch } as never), error => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID');
+  }
+  assert.equal(calls.length, 1);
+  const base = shell([]);
+  const valid = await base.conversationContext.update(input) as Record<string, unknown>;
+  for (const patch of [{ conversationAnchorId: 'another-anchor' }, { contextRevision: '1' }, { firstTurnSequence: '0' }, { omitSupplementalContext: false }, { busy: true }, { secret: 'untrusted' }]) {
+    const malformed = createNimiLocalAppAgentConfigureClient({ ...base, conversationContext: { update: async () => ({ ...valid, ...patch }) } });
+    await assert.rejects(() => malformed.conversationContext.update(input));
+  }
+  let attempts = 0;
+  const stale = Object.assign(new Error('revision changed'), { reasonCode: 'AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT' });
+  const conflicting = createNimiLocalAppAgentConfigureClient({ ...base, conversationContext: { update: async () => { attempts++; throw stale; } } });
+  await assert.rejects(() => conflicting.conversationContext.update(input), error => error === stale);
+  assert.equal(attempts, 1);
+});
+
+test('context selection admits zero as the history start for full restore and supplemental-only changes', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
+  for (const omitSupplementalContext of [false, true]) {
+    const input = { agentHandle: HANDLE, conversationAnchorId: 'agent_anchor_restore', expectedContextRevision: '3', firstTurnSequence: '0', omitSupplementalContext };
+    assert.equal((await client.conversationContext.update(input)).firstTurnSequence, '0');
+  }
+  await assert.rejects(() => client.conversationContext.update({ agentHandle: HANDLE, conversationAnchorId: 'agent_anchor_restore', expectedContextRevision: '0', firstTurnSequence: '0', omitSupplementalContext: false }), error => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID');
+  assert.equal(calls.length, 2);
+});
 
 test('sharedAIConfig get/overwrite round-trips the subsystem-owned projection', async () => {
   const calls: unknown[] = [];

@@ -395,6 +395,7 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 		localappop.IngressAgentAIConfigOptionsList,
 		localappop.IngressAgentAutonomySnapshotGet,
 		localappop.IngressAgentAutonomyUpdate,
+		localappop.IngressAgentConversationContextUpdate,
 		localappop.IngressAgentPresentationSnapshotGet,
 		localappop.IngressAgentPresentationCommit,
 		localappop.IngressAgentMemoryInspect,
@@ -416,7 +417,7 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 		t.Fatal(err)
 	}
 	for _, ingress := range agentConfigureIngresses {
-		if err := configureOnly.service.AdmitLocalAppIngress(configureOnly.context, ingress); err != nil {
+		if _, err := configureOnly.service.AuthorizeLocalAppIngress(configureOnly.context, ingress); err != nil {
 			t.Fatalf("agent.configure admission for %v: %v", ingress, err)
 		}
 	}

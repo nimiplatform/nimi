@@ -322,6 +322,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     close: unavailableCarrier,
   },
   agentConfigure: {
+    conversationContext: { update: unavailableCarrier },
     sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier, listOptions: unavailableCarrier },
     autonomy: { snapshot: unavailableCarrier, update: unavailableCarrier },
     presentation: {

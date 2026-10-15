@@ -42,6 +42,7 @@ const activityPutInput = {
 };
 
 const calls = [
+  ['localAppAgentUpdateConversationContext', { agentHandle, conversationAnchorId: 'contract-anchor', expectedContextRevision: '1', firstTurnSequence: '0', omitSupplementalContext: false }],
   ['desktopLocalDevelopmentRunAccess', {}],
   ['localAppAgentWorkReferenceList', {}],
   ['localAppAgentWorkStart', {}],

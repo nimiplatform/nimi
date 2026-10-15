@@ -450,6 +450,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       close: touched('agentRealtime.close'),
     },
     agentConfigure: {
+      conversationContext: { update: touched('agentConfigure.conversationContext.update') },
       sharedAIConfig: {
         get: touched('agentConfigure.sharedAIConfig.get'),
         overwrite: touched('agentConfigure.sharedAIConfig.overwrite'),
@@ -582,7 +583,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.realm.chat), ['list']);
   assert.deepEqual(Object.keys(client.realm.realtime).sort(), ['ack', 'closeChannel', 'closeSubscription', 'open', 'subscribe']);
   assert.deepEqual(Object.keys(client.embodiment).sort(), ['snapshot', 'subscribe']);
-  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'manager', 'memory', 'presentation', 'sharedAIConfig']);
+  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'conversationContext', 'manager', 'memory', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
   assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'readAsset', 'snapshot']);

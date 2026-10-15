@@ -1219,7 +1219,7 @@ describe('renderer local-app standard-shell surface', () => {
       'activity', 'agentWork', 'integration',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
-      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory',
+      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory', 'conversationContext',
     ].sort());
   });
 

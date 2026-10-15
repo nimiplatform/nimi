@@ -198,6 +198,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
 		"/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
 		"/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+		"/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
 		"/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
 		"/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
 		"/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",

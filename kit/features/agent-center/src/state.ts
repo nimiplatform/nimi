@@ -127,6 +127,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     : null;
 
   return {
+    conversationContext: input.manager?.conversationContext ?? null,
     runtimeStatus: input.runtimeError
       ? 'failed'
       : (input.sharedAIConfig === undefined

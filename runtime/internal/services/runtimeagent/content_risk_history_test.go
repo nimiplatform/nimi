@@ -2,6 +2,8 @@ package runtimeagent
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,6 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
@@ -26,9 +29,28 @@ import (
 
 func TestContentRiskHistoryRefusesThroughScenarioAndRemainsReadable(t *testing.T) {
 	var dispatches atomic.Int32
+	var allowDispatch atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		dispatches.Add(1)
-		http.Error(w, "unexpected dispatch", 500)
+		if !allowDispatch.Load() {
+			http.Error(w, "unexpected dispatch", 500)
+			return
+		}
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), "ghp_") {
+			t.Error("excluded history reached model dispatch")
+		}
+		var request struct {
+			Stream bool `json:"stream"`
+		}
+		_ = json.Unmarshal(body, &request)
+		if request.Stream {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Ordinary reply.\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"Ordinary reply."},"finish_reason":"stop"}]}`)
+		}
 	}))
 	defer server.Close()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -64,9 +86,27 @@ func TestContentRiskHistoryRefusesThroughScenarioAndRemainsReadable(t *testing.T
 	}
 	executor := NewAIBackedPublicChatTurnExecutor(aiSvc)
 	checkContentRiskHistory(t, func(messages []*runtimev1.ChatMessage) error {
+		before := dispatches.Load()
 		err := executor.StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{AppID: "nimi.desktop", SubjectUserID: "user-001", Messages: messages, ReservedOutputTokens: 4096, Binding: binding}, func(*runtimev1.StreamScenarioEvent) error { t.Error("input refusal fabricated an event"); return nil })
-		if dispatches.Load() != 0 {
+		if dispatches.Load() != before {
 			t.Fatal("restricted history dispatched model")
+		}
+		return err
+	}, func(messages []*runtimev1.ChatMessage) error {
+		allowDispatch.Store(true)
+		defer allowDispatch.Store(false)
+		completed := false
+		err := executor.StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{AppID: "nimi.desktop", SubjectUserID: "user-001", Messages: messages, ReservedOutputTokens: 4096, Binding: binding}, func(event *runtimev1.StreamScenarioEvent) error {
+			if event.GetCompleted() != nil {
+				completed = true
+			}
+			if event.GetFailed() != nil {
+				return fmt.Errorf("normal fixture failed: %s", event.GetFailed().GetReasonCode())
+			}
+			return nil
+		})
+		if err == nil && !completed {
+			return fmt.Errorf("normal Scenario did not complete")
 		}
 		return err
 	})
@@ -74,7 +114,7 @@ func TestContentRiskHistoryRefusesThroughScenarioAndRemainsReadable(t *testing.T
 
 // The caller supplies the existing AI-backed executor fixture. This verifies
 // owner composition and actual Scenario refusal, not a real model journey.
-func checkContentRiskHistory(t *testing.T, run func([]*runtimev1.ChatMessage) error) {
+func checkContentRiskHistory(t *testing.T, run func([]*runtimev1.ChatMessage) error, runRecovered func([]*runtimev1.ChatMessage) error) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	secret := "ghp_" + strings.Repeat("aB3", 12)
@@ -83,6 +123,7 @@ func checkContentRiskHistory(t *testing.T, run func([]*runtimev1.ChatMessage) er
 			turns := testPublicChatCommittedTranscript([2]string{"historical " + secret, "recorded response"})
 			anchor := svc.chatAnchors[anchorID]
 			anchor.CommittedTranscript = turns
+			anchor.ConversationContext = publicChatConversationContextSelection{}
 			anchor.ConversationSummary = nil
 			if summary {
 				for i := 0; i < 6; i++ {
@@ -135,6 +176,60 @@ func checkContentRiskHistory(t *testing.T, run func([]*runtimev1.ChatMessage) er
 						t.Fatalf("same summary target retried: %v", err)
 					}
 				}
+			}
+			anchor.LastTurnSnapshot = &publicChatTurnProjectionState{ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED, ActionHint: "adjust_conversation_history"}
+			decision, managerCtx := localAppConfigureContext(accountservice.LocalAppOperationUpdateConversationContext, 0x53, "user-1")
+			request := &runtimev1.UpdateLocalAppAgentConversationContextRequest{AgentHandle: mintLocalAppAgentHandle(decision, anchor.LocalAgentRef), ConversationAnchorId: anchorID, ExpectedContextRevision: 1, FirstTurnSequence: 1, OmitSupplementalContext: true}
+			if suggestion := svc.projectConversationContextLocked(anchor).GetSuggestedFirstTurnSequence(); suggestion != 1 {
+				t.Fatalf("suggestion cut unrelated later history: %d", suggestion)
+			}
+			if _, err := svc.UpdateLocalAppAgentConversationContext(managerCtx, request); err != nil {
+				t.Fatal(err)
+			}
+			for next := 0; next < 2; next++ {
+				if opened := openPublicChatTestAnchor(t, svc, "agent-alpha", "other-app", "user-1"); opened != anchorID {
+					t.Fatal("recovery changed anchor")
+				}
+				input := agentTurnContextTestInput(t, "worldCharacter")
+				recent, err := publicChatAgentTurnTranscriptInput(*anchor)
+				if err != nil {
+					t.Fatal(err)
+				}
+				input.Transcript = recent
+				input.ConversationSummary, err = publicChatAgentTurnConversationSummaryInput(*anchor, input.Transcript)
+				if err != nil {
+					t.Fatal(err)
+				}
+				compiled, err := compileAgentTurnContext(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := runRecovered(publicChatAgentTurnProviderMessages(compiled.ProviderPrompt.Messages)); err != nil {
+					t.Fatal(err)
+				}
+				if err := svc.commitPublicChatTurnTranscriptForTurn(anchorID, fmt.Sprintf("recovered-turn-%d", next), &runtimev1.ChatMessage{Role: "user", Content: fmt.Sprintf("ordinary follow-up %d", next)}, "Ordinary reply."); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if len(anchor.CommittedTranscript) != len(original)+2 || !reflect.DeepEqual(original, anchor.CommittedTranscript[:len(original)]) {
+				t.Fatal("recovery did not append to unchanged original records")
+			}
+			request.ExpectedContextRevision, request.FirstTurnSequence, request.OmitSupplementalContext = 2, 0, false
+			if _, err := svc.UpdateLocalAppAgentConversationContext(managerCtx, request); err != nil {
+				t.Fatal(err)
+			}
+			selected, err := publicChatAgentTurnTranscriptInput(*anchor)
+			if err != nil {
+				t.Fatal(err)
+			}
+			input := agentTurnContextTestInput(t, "worldCharacter")
+			input.Transcript = selected
+			compiled, err := compileAgentTurnContext(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if reason, _ := grpcerr.ExtractReasonCode(run(publicChatAgentTurnProviderMessages(compiled.ProviderPrompt.Messages))); reason != runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+				t.Fatal("restoring full history bypassed checks")
 			}
 		})
 	}

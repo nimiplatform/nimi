@@ -36,7 +36,7 @@ func validatePublicChatConversationSummary(summary *publicChatConversationSummar
 		return fmt.Errorf("Runtime conversation summary is invalid")
 	}
 	valid := summary.LastValid
-	if valid != nil && (valid.Revision == 0 || valid.CoveredSequenceStart != 0 || valid.CoveredSequenceEnd >= uint64(len(transcript)) || strings.TrimSpace(valid.Text) == "" || valid.Text != strings.TrimSpace(valid.Text) || len(valid.Text) > publicChatConversationSummaryMaxBytes || valid.GeneratedAt.IsZero() || !validSHA256Hex(valid.RouteCorrelation)) {
+	if valid != nil && (valid.Revision == 0 || valid.CoveredSequenceStart > valid.CoveredSequenceEnd || valid.CoveredSequenceEnd >= uint64(len(transcript)) || strings.TrimSpace(valid.Text) == "" || valid.Text != strings.TrimSpace(valid.Text) || len(valid.Text) > publicChatConversationSummaryMaxBytes || valid.GeneratedAt.IsZero() || !validSHA256Hex(valid.RouteCorrelation)) {
 		return fmt.Errorf("Runtime conversation summary is invalid")
 	}
 	if attempt.Status == "ready" {
@@ -54,13 +54,14 @@ func admittedPublicChatConversationSummaryAttemptStatus(value string) bool {
 }
 
 type publicChatConversationSummaryJob struct {
-	Identity     publicChatConversationSummaryIdentity
-	LatestTarget uint64
-	Dirty        bool
-	Context      context.Context
-	Cancel       context.CancelFunc
-	Done         chan struct{}
-	finishOnce   sync.Once
+	ContextRevision uint64
+	Identity        publicChatConversationSummaryIdentity
+	LatestTarget    uint64
+	Dirty           bool
+	Context         context.Context
+	Cancel          context.CancelFunc
+	Done            chan struct{}
+	finishOnce      sync.Once
 }
 
 func (job *publicChatConversationSummaryJob) finish() {
@@ -150,7 +151,7 @@ func (s *Service) schedulePublicChatConversationSummary(anchorID string) bool {
 		s.chatConversationSummaryJobs = make(map[string]*publicChatConversationSummaryJob)
 	}
 	if running != nil {
-		if targetEnd > running.LatestTarget && running.Identity == identity {
+		if targetEnd > running.LatestTarget && running.Identity == identity && running.ContextRevision == conversationContextRevision(anchor.ConversationContext) {
 			running.LatestTarget = targetEnd
 			running.Dirty = true
 		}
@@ -166,7 +167,7 @@ func (s *Service) schedulePublicChatConversationSummary(anchorID string) bool {
 	lifetime = executionintent.WithRuntimeAccountSubject(lifetime, identity.OwnerUserID)
 	jobCtx, cancel := context.WithCancel(lifetime)
 	job := &publicChatConversationSummaryJob{
-		Identity: identity, LatestTarget: targetEnd,
+		Identity: identity, LatestTarget: targetEnd, ContextRevision: conversationContextRevision(anchor.ConversationContext),
 		Context: jobCtx, Cancel: cancel, Done: make(chan struct{}),
 	}
 	s.chatConversationSummaryJobs[anchorID] = job
@@ -246,10 +247,10 @@ func pendingPublicChatConversationSummaryTargetForAnchor(anchor *publicChatAncho
 	if err != nil || !shouldSummarize {
 		return targetEnd, false, err
 	}
-	if valid := publicChatLastValidConversationSummary(anchor.ConversationSummary); valid != nil && valid.CoveredSequenceEnd >= targetEnd {
+	if valid := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); valid != nil && valid.CoveredSequenceEnd >= targetEnd {
 		return targetEnd, false, nil
 	}
-	if state := anchor.ConversationSummary; state != nil && !state.LastAttempt.AttemptedAt.IsZero() && state.LastAttempt.TargetSequenceEnd >= targetEnd {
+	if state := activeConversationSummary(anchor); state != nil && !state.LastAttempt.AttemptedAt.IsZero() && state.LastAttempt.TargetSequenceEnd >= targetEnd {
 		return targetEnd, false, nil
 	}
 	return targetEnd, true, nil
@@ -342,13 +343,16 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 	if anchor == nil {
 		return nil
 	}
+	if job != nil && job.ContextRevision != conversationContextRevision(anchor.ConversationContext) {
+		return context.Canceled
+	}
 	if targetEnd >= uint64(len(anchor.CommittedTranscript)) {
 		return fmt.Errorf("conversation summary target is no longer valid")
 	}
-	if valid := publicChatLastValidConversationSummary(anchor.ConversationSummary); valid != nil && valid.CoveredSequenceEnd >= targetEnd {
+	if valid := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); valid != nil && valid.CoveredSequenceEnd >= targetEnd {
 		return nil
 	}
-	if state := anchor.ConversationSummary; state != nil && !state.LastAttempt.AttemptedAt.IsZero() && state.LastAttempt.TargetSequenceEnd >= targetEnd {
+	if state := activeConversationSummary(anchor); state != nil && !state.LastAttempt.AttemptedAt.IsZero() && state.LastAttempt.TargetSequenceEnd >= targetEnd {
 		return nil
 	}
 	input, err := publicChatConversationSummaryInput(anchor, targetEnd)
@@ -390,7 +394,7 @@ func publicChatConversationSummaryTarget(anchor *publicChatAnchorState) (uint64,
 	if anchor == nil {
 		return 0, false, nil
 	}
-	eligible, err := publicChatEligibleCommittedTranscript(anchor.CommittedTranscript)
+	eligible, err := selectedCommittedTranscript(anchor)
 	if err != nil {
 		return 0, false, err
 	}
@@ -405,12 +409,12 @@ func publicChatConversationSummaryTarget(anchor *publicChatAnchorState) (uint64,
 }
 
 func publicChatConversationSummaryInput(anchor *publicChatAnchorState, targetEnd uint64) (string, error) {
-	if anchor == nil || targetEnd >= uint64(len(anchor.CommittedTranscript)) {
+	if anchor == nil || targetEnd >= uint64(len(anchor.CommittedTranscript)) || targetEnd < anchor.ConversationContext.FirstTurnSequence {
 		return "", fmt.Errorf("conversation summary coverage is invalid")
 	}
 	var builder strings.Builder
-	start := uint64(0)
-	if current := publicChatLastValidConversationSummary(anchor.ConversationSummary); current != nil {
+	start := anchor.ConversationContext.FirstTurnSequence
+	if current := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); current != nil {
 		builder.WriteString("Prior sequence-bound summary:\n")
 		builder.WriteString(current.Text)
 		builder.WriteString("\nNew committed whole turns:\n")
@@ -560,18 +564,22 @@ func (s *Service) commitPublicChatConversationSummaryForJob(job *publicChatConve
 		return fmt.Errorf("conversation summary commit target changed")
 	}
 	previous := clonePublicChatConversationSummary(anchor.ConversationSummary)
-	if valid := publicChatLastValidConversationSummary(previous); valid != nil && valid.CoveredSequenceEnd >= coveredEnd {
+	if job != nil && job.ContextRevision != conversationContextRevision(anchor.ConversationContext) {
+		return context.Canceled
+	}
+	if valid := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); valid != nil && valid.CoveredSequenceEnd >= coveredEnd {
 		return nil
 	}
 	versionBefore := s.chatSurfaceVersion
 	revision := uint64(1)
-	if valid := publicChatLastValidConversationSummary(previous); valid != nil {
+	if valid := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); valid != nil {
 		revision = valid.Revision + 1
 	}
 	now := time.Now().UTC()
 	anchor.ConversationSummary = &publicChatConversationSummaryState{
+		ContextRevision: conversationContextRevision(anchor.ConversationContext),
 		LastValid: &publicChatConversationSummaryValidState{
-			Revision: revision, CoveredSequenceStart: 0, CoveredSequenceEnd: coveredEnd,
+			Revision: revision, CoveredSequenceStart: anchor.ConversationContext.FirstTurnSequence, CoveredSequenceEnd: coveredEnd,
 			Text: strings.TrimSpace(text), GeneratedAt: now, RouteCorrelation: routeCorrelation,
 		},
 		LastAttempt: publicChatConversationSummaryAttemptState{
@@ -608,14 +616,18 @@ func (s *Service) commitPublicChatConversationSummaryAttemptForJob(job *publicCh
 		return fmt.Errorf("conversation summary attempt target changed")
 	}
 	previous := clonePublicChatConversationSummary(anchor.ConversationSummary)
-	if valid := publicChatLastValidConversationSummary(previous); valid != nil && valid.CoveredSequenceEnd >= coveredEnd {
+	if job != nil && job.ContextRevision != conversationContextRevision(anchor.ConversationContext) {
+		return context.Canceled
+	}
+	if valid := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); valid != nil && valid.CoveredSequenceEnd >= coveredEnd {
 		return nil
 	}
 	versionBefore := s.chatSurfaceVersion
-	next := clonePublicChatConversationSummary(previous)
+	next := clonePublicChatConversationSummary(activeConversationSummary(anchor))
 	if next == nil {
 		next = &publicChatConversationSummaryState{}
 	}
+	next.ContextRevision = conversationContextRevision(anchor.ConversationContext)
 	next.LastAttempt = publicChatConversationSummaryAttemptState{
 		Status: attemptStatus, TargetSequenceEnd: coveredEnd, AttemptedAt: time.Now().UTC(),
 	}

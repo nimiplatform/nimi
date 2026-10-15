@@ -132,6 +132,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.agent.ai-config.options.list", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.autonomy.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.autonomy.update", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.conversation-context.update", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.presentation.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.presentation.commit", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.memory.inspect", class: AuthorityClassAppAccess, domain: "agent.configure"},

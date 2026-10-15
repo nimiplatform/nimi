@@ -106,6 +106,7 @@ const (
 	LocalAppOperationManagerSnapshot                  = localappop.OperationAgentManagerSnapshotGet
 	LocalAppOperationAutonomySnapshot                 = localappop.OperationAgentAutonomySnapshotGet
 	LocalAppOperationUpdateAutonomy                   = localappop.OperationAgentAutonomyUpdate
+	LocalAppOperationUpdateConversationContext        = localappop.OperationAgentConversationContextUpdate
 	LocalAppOperationPresentationSnapshot             = localappop.OperationAgentPresentationSnapshotGet
 	LocalAppOperationCommitPresentation               = localappop.OperationAgentPresentationCommit
 	LocalAppOperationMemoryInspect                    = localappop.OperationAgentMemoryInspect

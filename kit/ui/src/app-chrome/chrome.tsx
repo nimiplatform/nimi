@@ -10,6 +10,7 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { createNimiChromeEditingOwner } from './editing.js';
 import { NimiMenubar, type NimiMenubarCommand } from './menubar.js';
 import { useOptionalNimiNavigation } from './navigation.js';
+import { NimiContentRefusalNotice } from './content-refusal.js';
 
 const noSubscription = () => () => undefined;
 const noSnapshot = () => null;
@@ -78,6 +79,8 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
   const editing = useMemo(() => createNimiChromeEditingOwner(document), []);
   const lastEdit = useRef<NimiChromeNativeCommand>('select-all');
   const scope = useMemo(() => ({}), [navigation, nav?.generation, props.scopeKey, retry]);
+  // Window binding retries do not retire the App's running operations.
+  const refusalScope = useMemo(() => ({}), [navigation, nav?.generation, props.scopeKey]);
   const desired = useRef(scope); desired.current = scope;
   const active = useRef<{ scope: object; state: NimiChromeState } | null>(null);
   const bindingQueue = useRef(Promise.resolve());
@@ -262,6 +265,7 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
       {capabilities?.menuPlacement !== 'system' ? <NimiMenubar key={`${nav?.generation ?? 0}:${props.scopeKey ?? ''}`} commands={menuCommands} locale={locale} compact={compact} onExecute={dispatch} onCaptureSelection={() => editing.capture()}
         onRestoreEditFocus={() => { try { editing.restore(lastEdit.current); } catch { /* The command path already surfaced a stale target. */ } }} /> : null}
     </header>
+    <NimiContentRefusalNotice locale={locale} scopeKey={refusalScope} />
     {error ? <div role="alert" className="px-3 py-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-danger)]">
       {locale === 'zh' ? '窗口操作未完成：' : 'Window action failed: '}{error instanceof Error ? error.message : String(error)}
       <Button size="sm" tone="ghost" onClick={() => setRetry(value => value + 1)}>{locale === 'zh' ? '重新连接' : 'Reconnect'}</Button>

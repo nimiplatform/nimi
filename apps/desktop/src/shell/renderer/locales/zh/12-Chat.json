@@ -698,5 +698,10 @@
   "chatgptPlanUsageLimited": "你的 ChatGPT 计划在 Nimi 中的用量已达上限。请在 ChatGPT 中管理用量，或在 AI 能力中选择其他模型。",
   "chatgptPlanSignInEnded": "ChatGPT 登录会话已结束。请先在“云服务”中重新登录 ChatGPT，再发送消息。",
   "chatgptPlanModelUnavailable": "当前 ChatGPT 账户不支持所选模型。请先在“AI 能力”中选择其他模型，再发送消息。",
-  "chatgptPlanManageUsage": "管理用量"
+  "chatgptPlanManageUsage": "管理用量",
+  "agentCenterOpenPending": "正在打开此对话的管理设置…",
+  "agentCenterOpenFailed": "暂时无法打开此对话的管理设置，上下文未被修改。可以返回应用，或选择当前可用的 Agent。",
+  "agentCenterNoticeDismiss": "关闭提示",
+  "contentRefusalEditInput": "取回失败输入并编辑",
+  "contentRefusalKeepNewDraft": "已保留新草稿。如需取回之前的输入，请先清空当前草稿。"
 }

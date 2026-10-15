@@ -84,6 +84,7 @@ const (
 	protectedAgentManagerSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
 	protectedAutonomySnapshotMethod               = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod                 = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+	protectedUpdateConversationContextMethod      = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext"
 	protectedPresentationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedPresentationAssetMethod              = "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset"
 	protectedCommitPresentationMethod             = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
@@ -211,6 +212,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedAgentManagerSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:               localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:                 localAppSessionMethodPolicy(),
+	protectedUpdateConversationContextMethod:      localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedPresentationAssetMethod:              localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:             localAppSessionMethodPolicy(),
@@ -730,6 +732,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentAutonomySnapshotGet
 	case protectedUpdateAutonomyMethod:
 		return localappop.IngressAgentAutonomyUpdate
+	case protectedUpdateConversationContextMethod:
+		return localappop.IngressAgentConversationContextUpdate
 	case protectedPresentationSnapshotMethod, protectedPresentationAssetMethod:
 		return localappop.IngressAgentPresentationSnapshotGet
 	case protectedCommitPresentationMethod:
@@ -783,7 +787,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedEmbodimentSnapshotMethod,
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
 		protectedAgentManagerSnapshotMethod,
-		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod,
+		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod, protectedUpdateConversationContextMethod,
 		protectedPresentationSnapshotMethod, protectedPresentationAssetMethod, protectedCommitPresentationMethod,
 		protectedInspectAgentMemoryMethod, protectedCorrectAgentMemoryMethod, protectedForgetAgentMemoryMethod,
 		protectedSwitchAgentMemoryMethod, protectedDeleteAgentMemoryMethod:

@@ -43,7 +43,8 @@ export type UseAgentConversationHostActionsInput = {
   activeThreadId: string | null;
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof import('./chat-agent-shell-submit-driver').reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
-  currentComposerTextRef: { current: string };
+  currentComposerTextRef: { current: string; readonly revision?: number };
+  pendingAttachments?: readonly PendingAttachment[];
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;
@@ -77,6 +78,8 @@ export type UseAgentConversationHostActionsInput = {
 export type AgentConversationSubmitPayload = {
   text: string;
   attachments: readonly PendingAttachment[];
+  /** The submitting composer still owns its unchanged draft, including attachments. */
+  canUpdateDraft?: () => boolean;
 };
 
 export type ActiveAgentSubmit = {

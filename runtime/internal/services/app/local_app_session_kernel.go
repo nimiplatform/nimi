@@ -620,6 +620,7 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationAgentAIConfigOptionsList,
 		localappop.OperationAgentAutonomySnapshotGet,
 		localappop.OperationAgentAutonomyUpdate,
+		localappop.OperationAgentConversationContextUpdate,
 		localappop.OperationAgentPresentationSnapshotGet,
 		localappop.OperationAgentPresentationCommit,
 		localappop.OperationAgentMemoryInspect,

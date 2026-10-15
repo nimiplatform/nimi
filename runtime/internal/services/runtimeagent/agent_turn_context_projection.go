@@ -256,7 +256,7 @@ func projectAgentSourceCognitionStatus(status string) runtimev1.AgentSourceCogni
 		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_FAILURE
 	case "no_hits":
 		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_NO_HITS
-	case "no_result":
+	case "no_result", "not_requested":
 		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_NO_RESULT
 	default:
 		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED

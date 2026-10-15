@@ -766,6 +766,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     agentManagerSnapshot: (record) => configure.manager.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentAutonomySnapshot: (record) => configure.autonomy.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateAutonomy: (record) => configure.autonomy.update(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentUpdateConversationContext: (record) => configure.conversationContext.update(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentPresentationSnapshot: (record) => configure.presentation.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentPresentationReadAsset: (record) => configure.presentation.readAsset(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     agentCommitPresentation: (record) => configure.presentation.commit(record as never) as Promise<NimiElectronLocalAppRecord>,

@@ -113,7 +113,7 @@ test('partner handles are nominal agent references distinct per partner', () => 
 });
 
 test('the kit Agent Center session loads a ready snapshot from the mock client', async () => {
-  const { session: current } = session('p-qingzhao');
+  const { session: current, client } = session('p-qingzhao');
   await current.refresh();
   const snapshot = current.getSnapshot();
   assert.equal(snapshot.phase, 'ready');
@@ -128,12 +128,18 @@ test('the kit Agent Center session loads a ready snapshot from the mock client',
   assert.equal(snapshot.state.appearance.backendKind, 'live2d');
   assert.equal(snapshot.state.appearance.status, 'ready');
   assert.equal(snapshot.state.sourceContext.status, 'ready');
-  // Every product action is available; the Appearance section can select a
+  // The Appearance section can select a
   // Resource Pack because the demo supplies a target controller.
   assert.equal(snapshot.availability.updateAutonomy.state, 'available');
   assert.equal(snapshot.availability.replaceAppearance.state, 'available');
   assert.equal(typeof current.appearance.selectResourcePack, 'function');
   assert.equal(typeof current.appearance.replaceAvatar, 'function');
+  assert.equal(snapshot.state.conversationContext, null);
+  assert.equal(snapshot.availability.updateConversationContext.state, 'unavailable');
+  await assert.rejects(client.client.conversationContext.update({
+    agentHandle: client.handle, conversationAnchorId: 'demo-no-runtime-conversation',
+    expectedContextRevision: '1', firstTurnSequence: '0', omitSupplementalContext: false,
+  }), /unavailable in this preview/u);
   current.dispose();
 });
 

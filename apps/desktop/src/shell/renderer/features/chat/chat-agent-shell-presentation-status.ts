@@ -1,4 +1,17 @@
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
+import type { AgentLocalMessageRecord } from '../../bridge/runtime-bridge/types';
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.content-refusal-presentation
+export function resolveAgentRefusedInput(messages: readonly AgentLocalMessageRecord[] | undefined): string | null {
+  const failure = messages?.at(-1);
+  if (failure?.error?.code !== 'AI_CONTENT_FILTER_BLOCKED') return null;
+  const turnId = failure.metadataJson?.canonicalTurnId;
+  // Canonical children are appended after messages, not ordered as new turns.
+  // An older image failure must never recover a later successful user input.
+  const original = messages?.slice().reverse().find(message => message.role === 'user'
+    && (turnId === undefined || message.metadataJson?.canonicalTurnId === turnId));
+  return original?.contentText || null;
+}
 
 type AgentMessageWithDebugMetadata = {
   role?: string;

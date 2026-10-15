@@ -144,6 +144,7 @@ export {
   subscribeNimiLocalAppConversation,
   commitNimiLocalAppAgentPresentation,
   updateNimiLocalAppAgentAutonomy,
+  updateNimiLocalAppAgentConversationContext,
   writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {
@@ -235,3 +236,5 @@ export {
   completeNimiLocalAppActivityOpenRequest,
 } from './local-app.js';
 export type { NimiLocalAppActivityShellSurface } from './local-app.js';
+export { getNimiContentRefusalNotice, subscribeNimiContentRefusalNotice, dismissNimiContentRefusalNotice, retireNimiContentRefusalPresentation } from './content-refusal.js';
+export type { NimiContentRefusalNotice } from './content-refusal.js';

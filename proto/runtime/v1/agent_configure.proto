@@ -116,6 +116,29 @@ message UpdateLocalAppAgentAutonomyRequest {
 }
 message LocalAppAgentUpdateAutonomyResponse { LocalAppAgentAutonomyProjection projection = 1; }
 
+// One explicit model-input selection on the existing Conversation. The
+// transcript and Cognition Memory remain unchanged.
+message LocalAppAgentConversationContextProjection {
+  string conversation_anchor_id = 1;
+  uint64 context_revision = 2;
+  uint64 first_turn_sequence = 3;
+  bool omit_supplemental_context = 4;
+  uint64 committed_turn_count = 5;
+  optional uint64 suggested_first_turn_sequence = 6;
+  bool busy = 7;
+  bool can_update = 8;
+}
+message UpdateLocalAppAgentConversationContextRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  uint64 expected_context_revision = 3;
+  uint64 first_turn_sequence = 4;
+  bool omit_supplemental_context = 5;
+}
+message UpdateLocalAppAgentConversationContextResponse {
+  LocalAppAgentConversationContextProjection projection = 1;
+}
+
 message LocalAppAgentPresentationProjection {
   AgentPresentationProfile profile = 1;
   string default_voice_reference = 2;

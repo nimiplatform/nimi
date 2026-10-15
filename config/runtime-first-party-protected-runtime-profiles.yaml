@@ -165,6 +165,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
@@ -331,6 +332,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
         capability: agent.configure
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
         capability: agent.configure
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
         capability: agent.configure

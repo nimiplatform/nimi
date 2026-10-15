@@ -1,3 +1,4 @@
+import { createNimiContentRefusalObserver, createNimiScenarioJobRefusalObserver, getNimiContentRefusalPresentationEpoch, observeNimiSubmittedJob, rememberNimiScenarioJobSubmission, reportNimiContentRefusal } from './content-refusal.js';
 import { RuntimeReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
 import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell } from '@nimiplatform/kit/core/sdk-contract';
@@ -423,6 +424,7 @@ export type NimiLocalAppEmbodimentShellSurface = {
 };
 
 export type NimiLocalAppAgentConfigureShellSurface = {
+  readonly conversationContext: { readonly update: (input: { readonly agentHandle: string; readonly conversationAnchorId: string; readonly expectedContextRevision: string; readonly firstTurnSequence: string; readonly omitSupplementalContext: boolean }) => Promise<JsonObject> };
   readonly manager: {
     readonly snapshot: (input: {
       readonly agentHandle: string;
@@ -719,6 +721,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       listReferences: listNimiLocalAppAgentReferences,
     },
     agentConfigure: {
+      conversationContext: { update: updateNimiLocalAppAgentConversationContext },
       manager: {
         snapshot: getNimiLocalAppAgentManagerSnapshot,
       },
@@ -1052,6 +1055,8 @@ export function submitNimiLocalAppScenarioJob(
   options: NimiLocalAppScenarioJobSubmitOptions = {},
 ): Promise<NimiLocalAppScenarioJobSubmitResult> {
   const command = AIC_COMMANDS.scenarioJobSubmit;
+  const refusalEpoch = getNimiContentRefusalPresentationEpoch();
+  const startedAtMs = Date.now();
   const timeoutMs = options.timeoutMs ?? 0;
   const clientSubmissionId = options.clientSubmissionId;
   if (clientSubmissionId !== undefined && (typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
@@ -1062,16 +1067,23 @@ export function submitNimiLocalAppScenarioJob(
     timeoutMs: boundedSafeInteger(timeoutMs, 'timeoutMs', command, 0, 2_147_483_647),
     ...(clientSubmissionId !== undefined ? { clientSubmissionId } : {}),
   } },
-    (value) => parseScenarioJobSubmit(value, command));
+    (value) => parseScenarioJobSubmit(value, command)).then(result => {
+      rememberNimiScenarioJobSubmission(result.job, refusalEpoch, startedAtMs);
+      return result;
+    });
 }
 
 export function getNimiLocalAppScenarioJob(jobId: string, clientSubmissionId?: string): Promise<NimiLocalAppScenarioJobGetResult> {
+  const refusalEpoch = getNimiContentRefusalPresentationEpoch();
   const command = AIC_COMMANDS.scenarioJobGet;
   if (clientSubmissionId !== undefined && (jobId !== '' || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
     throw invalidInput(command, 'exactly one bounded Job selector is required');
   }
   return invokeChecked(command, { payload: clientSubmissionId === undefined ? { jobId: requiredText(jobId, 'jobId', command, 128) } : { clientSubmissionId } },
-    (value) => parseScenarioJobGet(value, command));
+    (value) => parseScenarioJobGet(value, command)).then(result => {
+      if (result.job) observeNimiSubmittedJob(result.job, refusalEpoch);
+      return result;
+    });
 }
 
 export async function subscribeNimiLocalAppScenarioJob(
@@ -1082,6 +1094,7 @@ export async function subscribeNimiLocalAppScenarioJob(
     command,
     { jobId: requiredText(jobId, 'jobId', command, 128) },
     (value) => parseScenarioJobEvent(value, command) as NimiLocalAppScenarioJobEvent,
+    jobId,
   );
 }
 
@@ -1423,6 +1436,19 @@ export function getNimiLocalAppAgentAutonomySnapshot(
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
   return invokeAgentConfigureHandle('local-app.agentAutonomySnapshot', input);
+}
+
+export function updateNimiLocalAppAgentConversationContext(input: { readonly agentHandle: string; readonly conversationAnchorId: string; readonly expectedContextRevision: string; readonly firstTurnSequence: string; readonly omitSupplementalContext: boolean }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConversationContext'];
+  assertExactInput(input, ['agentHandle','conversationAnchorId','expectedContextRevision','firstTurnSequence','omitSupplementalContext'], command);
+  if (typeof input.omitSupplementalContext !== 'boolean') throw invalidInput(command, 'omitSupplementalContext must be boolean');
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+    expectedContextRevision: decimalRevision(input.expectedContextRevision, 'expectedContextRevision', command, false),
+    firstTurnSequence: decimalRevision(input.firstTurnSequence, 'firstTurnSequence', command, true),
+    omitSupplementalContext: input.omitSupplementalContext,
+  });
 }
 
 export function updateNimiLocalAppAgentAutonomy(input: {
@@ -1848,6 +1874,7 @@ export function interruptNimiLocalAppConversationTurn(
 export async function subscribeNimiLocalAppConversation(
   input: NimiLocalAppConversationScopeInput,
 ): Promise<NimiLocalAppConversationSubscription> {
+  const refusalEpoch = getNimiContentRefusalPresentationEpoch();
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'];
   const scope = identifiers(input, ['agentHandle', 'conversationAnchorId'], command);
   const opened = await invokeChecked(command, { payload: scope }, (value) => {
@@ -1858,7 +1885,7 @@ export async function subscribeNimiLocalAppConversation(
       eventName: requiredText(record.eventName, 'eventName', command, MAX_IDENTIFIER_LENGTH),
     };
   });
-  const subscription = new LocalAppConversationEventSubscription(command, opened.subscriptionId);
+  const subscription = new LocalAppConversationEventSubscription(command, opened.subscriptionId, refusalEpoch);
   try {
     subscription.attach(await listenShell(opened.eventName, ({ payload }) => subscription.accept(payload)));
   } catch (error) {
@@ -2128,6 +2155,7 @@ async function subscribeNimiLocalAppRealtime(
   command: string,
   input: JsonObject,
 ): Promise<NimiLocalAppRealtimeSubscription> {
+  const refusalEpoch = getNimiContentRefusalPresentationEpoch();
   const opened = await invokeChecked(command, { payload: input }, (value) => {
     const record = assertRecord(value, `${command} returned invalid payload`);
     assertProjectionKeys(record, ['subscriptionId', 'eventName'], command, 'Realtime subscription');
@@ -2136,7 +2164,7 @@ async function subscribeNimiLocalAppRealtime(
       eventName: requiredText(record.eventName, 'eventName', command, MAX_IDENTIFIER_LENGTH),
     };
   });
-  const subscription = new LocalAppRealtimeEventSubscription(command, opened.subscriptionId);
+  const subscription = new LocalAppRealtimeEventSubscription(command, opened.subscriptionId, refusalEpoch);
   try {
     subscription.attach(await listenShell(opened.eventName, ({ payload }) => subscription.accept(payload)));
   } catch (error) {
@@ -3015,7 +3043,10 @@ async function openNimiLocalAppAIStream<T>(
   command: string,
   payload: JsonObject,
   parser: (value: unknown) => T,
+  jobId?: string,
 ): Promise<NimiLocalAppStream<T>> {
+  const refusalEpoch = getNimiContentRefusalPresentationEpoch();
+  const openedAtMs = Date.now();
   const opened = await invokeChecked(command, { payload }, (value) => {
     const record = assertRecord(value, `${command}: stream open is invalid`);
     assertProjectionKeys(record, ['subscriptionId', 'eventName'], command, 'AI stream');
@@ -3024,7 +3055,8 @@ async function openNimiLocalAppAIStream<T>(
       eventName: requiredText(record.eventName, 'eventName', command, MAX_IDENTIFIER_LENGTH),
     };
   });
-  const subscription = new LocalAppAIEventSubscription(command, opened.subscriptionId, parser);
+  const subscription = new LocalAppAIEventSubscription(command, opened.subscriptionId, parser, refusalEpoch,
+    jobId ? createNimiScenarioJobRefusalObserver(jobId, refusalEpoch, openedAtMs) : undefined);
   try {
     subscription.attach(await listenShell(opened.eventName, ({ payload: event }) => subscription.accept(event)));
   } catch (error) {
@@ -3038,6 +3070,7 @@ async function openNimiLocalAppAIStream<T>(
 }
 
 class LocalAppAIEventSubscription<T> implements NimiLocalAppStream<T> {
+  private readonly observeRefusal: (value: unknown) => void;
   readonly events: AsyncIterable<T> = this;
   private readonly queued: T[] = [];
   private readonly waiting: Array<{ resolve: (result: IteratorResult<T>) => void; reject: (error: unknown) => void }> = [];
@@ -3048,7 +3081,10 @@ class LocalAppAIEventSubscription<T> implements NimiLocalAppStream<T> {
   private cancelPromise: Promise<void> | undefined;
 
   constructor(private readonly command: string, private readonly subscriptionId: string,
-    private readonly parser: (value: unknown) => T) {}
+    private readonly parser: (value: unknown) => T, private readonly refusalEpoch: number,
+    observeRefusal?: (value: unknown) => void) {
+    this.observeRefusal = observeRefusal ?? createNimiContentRefusalObserver(subscriptionId, false, refusalEpoch);
+  }
 
   attach(unlisten: () => void): void { if (this.done) unlisten(); else this.unlisten = unlisten; }
   [Symbol.asyncIterator](): AsyncIterator<T> {
@@ -3076,13 +3112,16 @@ class LocalAppAIEventSubscription<T> implements NimiLocalAppStream<T> {
       }
       if (record.eventType === 'error') {
         assertProjectionKeys(record, ['subscriptionId', 'eventType', 'error'], this.command, 'AI stream error');
-        this.fail(parseConversationStreamError(record.error, this.command)); return;
+        const failure = parseConversationStreamError(record.error, this.command);
+        reportNimiContentRefusal({ presentationEpoch: this.refusalEpoch, correlation: this.subscriptionId, reasonCode: failure.reasonCode, metadata: failure.details?.reasonMetadata });
+        this.fail(failure); return;
       }
       if (record.eventType !== 'next') throw new Error(`${this.command}: stream event type is invalid`);
       assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'AI stream event');
       let event: T;
       try {
         event = this.parser(record.event);
+        this.observeRefusal(event);
       } catch (error) {
         throw new BridgeError(
           error instanceof Error && !(error instanceof BridgeError)
@@ -3115,6 +3154,7 @@ class LocalAppAIEventSubscription<T> implements NimiLocalAppStream<T> {
 }
 
 class LocalAppConversationEventSubscription implements NimiLocalAppConversationSubscription {
+  private readonly observeRefusal: (value: unknown) => void;
   readonly events: AsyncIterable<unknown> = this;
   private readonly queued: unknown[] = [];
   private readonly waiting: Array<{
@@ -3130,7 +3170,8 @@ class LocalAppConversationEventSubscription implements NimiLocalAppConversationS
   constructor(
     private readonly command: string,
     private readonly subscriptionId: string,
-  ) {}
+    private readonly refusalEpoch: number,
+  ) { this.observeRefusal = createNimiContentRefusalObserver(subscriptionId, true, refusalEpoch); }
 
   attach(unlisten: () => void): void {
     if (this.done) unlisten();
@@ -3183,12 +3224,15 @@ class LocalAppConversationEventSubscription implements NimiLocalAppConversationS
       }
       if (record.eventType === 'error') {
         assertProjectionKeys(record, ['subscriptionId', 'eventType', 'error'], this.command, 'conversation error');
-        this.fail(parseConversationStreamError(record.error, this.command));
+        const failure = parseConversationStreamError(record.error, this.command);
+        reportNimiContentRefusal({ presentationEpoch: this.refusalEpoch, correlation: this.subscriptionId, reasonCode: failure.reasonCode, metadata: failure.details?.reasonMetadata });
+        this.fail(failure);
         return;
       }
       if (record.eventType !== 'next') throw new Error(`${this.command}: conversation event type is invalid`);
       assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'conversation event');
       const event = parseConversationEvent(record.event, this.command);
+      this.observeRefusal(event);
       const waiter = this.waiting.shift();
       if (waiter) waiter.resolve({ done: false, value: event });
       else if (this.queued.length < 32) this.queued.push(event);
@@ -3254,7 +3298,7 @@ class LocalAppRealtimeEventSubscription implements NimiLocalAppRealtimeSubscript
   private remoteCompleted = false;
   private cancelPromise: Promise<void> | undefined;
 
-  constructor(private readonly command: string, private readonly subscriptionId: string) {}
+  constructor(private readonly command: string, private readonly subscriptionId: string, private readonly refusalEpoch: number) {}
 
   attach(unlisten: () => void): void { if (this.done) unlisten(); else this.unlisten = unlisten; }
 
@@ -3293,7 +3337,9 @@ class LocalAppRealtimeEventSubscription implements NimiLocalAppRealtimeSubscript
       }
       if (record.eventType === 'error') {
         assertProjectionKeys(record, ['subscriptionId', 'eventType', 'error'], this.command, 'Realtime error');
-        this.fail(parseConversationStreamError(record.error, this.command));
+        const failure = parseConversationStreamError(record.error, this.command);
+        reportNimiContentRefusal({ presentationEpoch: this.refusalEpoch, correlation: this.subscriptionId, reasonCode: failure.reasonCode, metadata: failure.details?.reasonMetadata });
+        this.fail(failure);
         return;
       }
       if (record.eventType !== 'next') throw new Error(`${this.command}: Realtime event type is invalid`);

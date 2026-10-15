@@ -123,6 +123,7 @@ describe('Agent Center state projection', () => {
           ],
         },
         manager: {
+          conversationContext: null,
           lifecycleStatus: 'active',
           executionState: 'idle',
           statusText: 'configured',

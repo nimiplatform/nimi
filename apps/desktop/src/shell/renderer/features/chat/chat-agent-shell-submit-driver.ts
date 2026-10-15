@@ -96,11 +96,13 @@ export function resolveCompletedAgentSubmitDriverCheckpoint(input: {
   state: AgentSubmitDriverState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   streamSnapshot: StreamState;
+  preserveComposerText?: string;
 }): AgentSubmitDriverEffectQueue {
   const completed = resolveCompletedAgentSubmitSession({
     state: input.state,
     refreshedBundle: input.refreshedBundle,
     streamSnapshot: input.streamSnapshot,
+    preserveComposerText: input.preserveComposerText,
   });
   return createEffectQueue({
     finalSession: completed.state,
@@ -116,6 +118,7 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
   updatedAtMs: number;
   streamSnapshot: StreamState;
   restoreSubmittedText?: boolean;
+  preserveComposerText?: string;
 }): AgentSubmitDriverEffectQueue {
   const interrupted = resolveInterruptedAgentSubmitSession({
     state: input.state,
@@ -124,6 +127,7 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
     updatedAtMs: input.updatedAtMs,
     streamSnapshot: input.streamSnapshot,
     restoreSubmittedText: input.restoreSubmittedText,
+    preserveComposerText: input.preserveComposerText,
   });
   return createEffectQueue({
     finalSession: interrupted.state,

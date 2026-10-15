@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { cn } from '@nimiplatform/kit/ui';
+import type { AgentConversationSubmitPayload } from './chat-agent-shell-host-actions-types';
 import {
   appendPendingAttachment,
   formatPendingAttachmentSize,
@@ -307,7 +308,7 @@ export function AgentCanonicalComposer(props: {
   pendingAttachments: readonly PendingAttachment[];
   onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
   onInputCaptureText: (text: string) => void;
-  onSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
+  onSubmit: (input: AgentConversationSubmitPayload) => Promise<void>;
   voiceState?: ChatComposerVoiceState;
   runtimeHint?: string | null;
   leadingSlot?: ReactNode;
@@ -326,6 +327,14 @@ export function AgentCanonicalComposer(props: {
   const pickerResolverRef = useRef<((attachments: readonly PendingAttachment[] | null) => void) | null>(null);
   const [composerText, setComposerText] = useState(props.initialText);
   const attachmentsRef = useRef<readonly PendingAttachment[]>(props.pendingAttachments);
+  const scope = useMemo(() => ({ active: true, edits: 0 }), [props.composerKey]);
+  const currentScope = useRef(scope);
+  currentScope.current = scope;
+
+  useEffect(() => {
+    scope.active = true;
+    return () => { scope.active = false; };
+  }, [scope]);
 
   useEffect(() => {
     attachmentsRef.current = props.pendingAttachments;
@@ -340,6 +349,8 @@ export function AgentCanonicalComposer(props: {
   }, []);
 
   const replaceAttachments = useCallback((nextAttachments: readonly PendingAttachment[]) => {
+    if (!scope.active || currentScope.current !== scope) return;
+    scope.edits++;
     const nextUrlSet = new Set(nextAttachments.map((attachment) => attachment.previewUrl));
     for (const attachment of attachmentsRef.current) {
       if (!nextUrlSet.has(attachment.previewUrl)) {
@@ -347,7 +358,7 @@ export function AgentCanonicalComposer(props: {
       }
     }
     props.onAttachmentsChange(nextAttachments);
-  }, [props]);
+  }, [props, scope]);
 
   const buildIncomingAttachments = useCallback((files: readonly File[]) => {
     const imageFile = files.find((file) => file.type.toLowerCase().startsWith('image/'));
@@ -416,9 +427,11 @@ export function AgentCanonicalComposer(props: {
   }, [buildIncomingAttachments, replaceAttachments]);
 
   const handleComposerTextChange = useCallback((text: string) => {
+    if (!scope.active || currentScope.current !== scope) return;
+    scope.edits++;
     setComposerText(text);
     props.onInputCaptureText(text);
-  }, [props]);
+  }, [props, scope]);
 
   const handleComposerSubmit = useCallback(async (input: {
     text: string;
@@ -426,6 +439,8 @@ export function AgentCanonicalComposer(props: {
   }) => {
     const submittedText = input.text;
     const submittedAttachments = input.attachments as readonly PendingAttachment[];
+    const submittedEdits = scope.edits;
+    const canUpdateDraft = () => scope.active && currentScope.current === scope && scope.edits === submittedEdits;
     setComposerText('');
     props.onInputCaptureText('');
     if (submittedAttachments.length > 0) {
@@ -435,8 +450,12 @@ export function AgentCanonicalComposer(props: {
       await props.onSubmit({
         text: submittedText,
         attachments: submittedAttachments,
+        canUpdateDraft,
       });
     } catch (error) {
+      // A retired composer cannot write into the same partner's newer draft.
+      // Keep live edits too; a failure is not permission to replace them.
+      if (!canUpdateDraft()) throw error;
       setComposerText(submittedText);
       props.onInputCaptureText(submittedText);
       if (submittedAttachments.length > 0) {
@@ -449,7 +468,7 @@ export function AgentCanonicalComposer(props: {
       }
       throw error;
     }
-  }, [props]);
+  }, [props, scope]);
 
   return (
     <div onPasteCapture={handlePasteCapture}>

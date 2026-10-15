@@ -1901,6 +1901,7 @@ const (
 	AIRESULTUNAVAILABLE                             ReasonCode = "AI_RESULT_UNAVAILABLE"
 	AIPROVIDERTASKCANCELED                          ReasonCode = "AI_PROVIDER_TASK_CANCELED"
 	AIPROVIDERTASKEXPIRED                           ReasonCode = "AI_PROVIDER_TASK_EXPIRED"
+	AGENTCONVERSATIONCONTEXTREVISIONCONFLICT        ReasonCode = "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
 )
 
 type ReasoningActivation string
@@ -5862,6 +5863,17 @@ type LocalAppAgentCommitPresentationResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
 }
 
+type LocalAppAgentConversationContextProjection struct {
+	ConversationAnchorId       string  `json:"conversation_anchor_id,omitempty"`
+	ContextRevision            uint64  `json:"context_revision,omitempty"`
+	FirstTurnSequence          uint64  `json:"first_turn_sequence,omitempty"`
+	OmitSupplementalContext    bool    `json:"omit_supplemental_context,omitempty"`
+	CommittedTurnCount         uint64  `json:"committed_turn_count,omitempty"`
+	SuggestedFirstTurnSequence *uint64 `json:"suggested_first_turn_sequence,omitempty"`
+	Busy                       bool    `json:"busy,omitempty"`
+	CanUpdate                  bool    `json:"can_update,omitempty"`
+}
+
 type LocalAppAgentIntroduction struct {
 	WorldName              *string                          `json:"world_name,omitempty"`
 	Era                    *string                          `json:"era,omitempty"`
@@ -5905,13 +5917,14 @@ type LocalAppAgentManagerContextProjection struct {
 }
 
 type LocalAppAgentManagerSnapshot struct {
-	LifecycleStatus    AgentLifecycleStatus                     `json:"lifecycle_status,omitempty"`
-	ExecutionState     AgentExecutionState                      `json:"execution_state,omitempty"`
-	StatusText         string                                   `json:"status_text,omitempty"`
-	CurrentEmotion     string                                   `json:"current_emotion,omitempty"`
-	Source             *LocalAppAgentManagerSourceProjection    `json:"source,omitempty"`
-	Context            *LocalAppAgentManagerContextProjection   `json:"context,omitempty"`
-	ActionAvailability []LocalAppAgentManagerActionAvailability `json:"action_availability,omitempty"`
+	LifecycleStatus     AgentLifecycleStatus                        `json:"lifecycle_status,omitempty"`
+	ExecutionState      AgentExecutionState                         `json:"execution_state,omitempty"`
+	StatusText          string                                      `json:"status_text,omitempty"`
+	CurrentEmotion      string                                      `json:"current_emotion,omitempty"`
+	Source              *LocalAppAgentManagerSourceProjection       `json:"source,omitempty"`
+	Context             *LocalAppAgentManagerContextProjection      `json:"context,omitempty"`
+	ActionAvailability  []LocalAppAgentManagerActionAvailability    `json:"action_availability,omitempty"`
+	ConversationContext *LocalAppAgentConversationContextProjection `json:"conversation_context,omitempty"`
 }
 
 type LocalAppAgentManagerSourceProjection struct {
@@ -9264,6 +9277,18 @@ type UpdateLocalAppAgentAutonomyRequest struct {
 	Intent                   *LocalAppAgentAutonomyIntent `json:"intent,omitempty"`
 }
 
+type UpdateLocalAppAgentConversationContextRequest struct {
+	AgentHandle             string `json:"agent_handle,omitempty"`
+	ConversationAnchorId    string `json:"conversation_anchor_id,omitempty"`
+	ExpectedContextRevision uint64 `json:"expected_context_revision,omitempty"`
+	FirstTurnSequence       uint64 `json:"first_turn_sequence,omitempty"`
+	OmitSupplementalContext bool   `json:"omit_supplemental_context,omitempty"`
+}
+
+type UpdateLocalAppAgentConversationContextResponse struct {
+	Projection *LocalAppAgentConversationContextProjection `json:"projection,omitempty"`
+}
+
 type UploadArtifactChunk struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Bytes    []byte `json:"bytes,omitempty"`
@@ -10385,6 +10410,14 @@ func (c RuntimeTypedClient) UpdateLocalAppAgentAutonomy(ctx context.Context, req
 		return LocalAppAgentUpdateAutonomyResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[LocalAppAgentUpdateAutonomyResponse](raw, "LocalAppAgentUpdateAutonomyResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppAgentConversationContext(ctx context.Context, request UpdateLocalAppAgentConversationContextRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppAgentConversationContextResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateLocalAppAgentConversationContextResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateLocalAppAgentConversationContextResponse](raw, "UpdateLocalAppAgentConversationContextResponse")
 }
 
 func (c RuntimeTypedClient) UploadLocalAppConversationAttachment(ctx context.Context, request UploadLocalAppConversationAttachmentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UploadLocalAppConversationAttachmentResponse, error) {

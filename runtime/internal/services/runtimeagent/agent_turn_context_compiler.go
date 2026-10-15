@@ -187,7 +187,7 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 		if !hasValidMetadata && (summary.CoveredSequenceStart != 0 || summary.CoveredSequenceEnd != 0 || hasValidPayload || strings.TrimSpace(summary.RouteCorrelation) != "" || summary.Status == "ready") {
 			return fmt.Errorf("agent turn conversation summary availability is invalid")
 		}
-		if hasValidMetadata && summary.CoveredSequenceStart != 0 {
+		if hasValidMetadata && summary.CoveredSequenceStart > summary.CoveredSequenceEnd {
 			return fmt.Errorf("agent turn conversation summary valid payload is invalid")
 		}
 		if hasValidPayload && (!hasValidMetadata || !validSHA256Hex(summary.RouteCorrelation)) {

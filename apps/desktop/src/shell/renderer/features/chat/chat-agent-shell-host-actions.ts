@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   normalizeText,
 } from './chat-agent-shell-core';
@@ -31,6 +31,19 @@ export function useAgentConversationHostActions(
 
   const activeSubmitsByThreadRef = useRef<Map<string, ActiveAgentSubmit>>(new Map());
   const submittingLockTokenRef = useRef(0);
+  const draftScope = useMemo(() => ({ active: true }), [input.currentComposerTextRef]);
+  const currentDraftScope = useRef(draftScope);
+  currentDraftScope.current = draftScope;
+  const attachmentDraft = useRef({ items: input.pendingAttachments, revision: 0 });
+  const previousAttachments = attachmentDraft.current.items ?? [];
+  const nextAttachments = input.pendingAttachments ?? [];
+  if (previousAttachments.length !== nextAttachments.length
+    || previousAttachments.some((item, index) => item !== nextAttachments[index])) attachmentDraft.current.revision++;
+  attachmentDraft.current.items = input.pendingAttachments;
+  useEffect(() => {
+    draftScope.active = true;
+    return () => { draftScope.active = false; };
+  }, [draftScope]);
 
   const handleSelectAgent = useCallback((agentHandle: string | null) => {
     if (input.submittingThreadId) {
@@ -57,14 +70,23 @@ export function useAgentConversationHostActions(
   }, [input]);
 
   const handleSubmit = useCallback(async (payload: AgentConversationSubmitPayload) => {
+    const revision = input.currentComposerTextRef.revision;
+    const attachmentRevision = attachmentDraft.current.revision;
+    // Voice and image-retry submissions have no composer callback. They may
+    // only fill an untouched empty draft in the same mounted owner scope.
+    const startedEmpty = input.currentComposerTextRef.current === '' && (input.pendingAttachments?.length ?? 0) === 0;
+    const canUpdateDraft = () => draftScope.active && currentDraftScope.current === draftScope
+      && (payload.canUpdateDraft ? payload.canUpdateDraft()
+        : startedEmpty && input.currentComposerTextRef.current === ''
+          && input.currentComposerTextRef.revision === revision && attachmentDraft.current.revision === attachmentRevision);
     await submitAgentConversationTurn({
       hostInput: input,
-      payload,
+      payload: { ...payload, canUpdateDraft },
       activeSubmitsByThreadRef,
       submittingLockTokenRef,
       visibleProjections,
     });
-  }, [input]);
+  }, [input, draftScope]);
 
   const ensureConversationAnchor = useCallback(async () => {
     if (!input.activeTarget) {

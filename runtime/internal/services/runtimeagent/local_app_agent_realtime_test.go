@@ -197,21 +197,31 @@ func TestAgentRealtimeOwnerContextFailureFencesNeutralSession(t *testing.T) {
 }
 
 func TestAgentRealtimeUsesPlainTextOwnerOutputContract(t *testing.T) {
-	svc, session, decision, _ := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeInputAppend)
-	var contexts []string
-	executor := agentRealtimeExecutorStub{onAppend: func(req *runtimev1.AppendRealtimeInputRequest) error {
-		if owner := req.GetOwnerContext(); owner != nil {
-			contexts = append(contexts, owner.GetText())
+	for _, omit := range []bool{false, true} {
+		name := "normal"
+		if omit {
+			name = "omit-supplemental"
 		}
-		return nil
-	}}
-	ownerCtx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
-	if err := svc.composeAgentRealtimeTurnContext(ownerCtx, session, "hello", executor); err != nil {
-		t.Fatalf("compose Realtime owner context: %v", err)
-	}
-	joined := strings.Join(contexts, "\n")
-	if !strings.Contains(joined, agentRealtimeOutputInstruction) || strings.Contains(joined, "Runtime APML contract") {
-		t.Fatalf("Realtime output contract is inconsistent: %q", joined)
+		t.Run(name, func(t *testing.T) {
+			svc, session, decision, _ := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeInputAppend)
+			// The active turn carries the selection captured before Realtime started.
+			session.turn.session.ConversationContext = publicChatConversationContextSelection{Revision: 2, OmitSupplementalContext: omit}
+			var contexts []string
+			executor := agentRealtimeExecutorStub{onAppend: func(req *runtimev1.AppendRealtimeInputRequest) error {
+				if owner := req.GetOwnerContext(); owner != nil {
+					contexts = append(contexts, owner.GetText())
+				}
+				return nil
+			}}
+			ownerCtx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
+			if err := svc.composeAgentRealtimeTurnContext(ownerCtx, session, "hello", executor); err != nil {
+				t.Fatalf("compose Realtime owner context: %v", err)
+			}
+			joined := strings.Join(contexts, "\n")
+			if !strings.Contains(joined, agentRealtimeOutputInstruction) || strings.Contains(joined, "Runtime APML contract") {
+				t.Fatalf("Realtime output contract is inconsistent: %q", joined)
+			}
+		})
 	}
 }
 

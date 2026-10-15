@@ -464,7 +464,7 @@ units:
     kind: rule
     title: Desktop Open navigation uses Desktop-owned target mappings
     modality: must
-    statement: Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state.
+    statement: "Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state. An open-agent-center request is a pending anchor correlation, not a proven chat identity: Home resolves it using its current-account reference list and agent.configure manager snapshot, then navigates to the same proven Agent Conversation and opens its shared manager. A failed resolution is visible without selecting another Agent or changing permissions."
     condition: Whenever a validated Desktop Open Intent reaches renderer navigation.
     failure: Reject unknown targets and report failure when the complete target mapping cannot be applied.
     relations:

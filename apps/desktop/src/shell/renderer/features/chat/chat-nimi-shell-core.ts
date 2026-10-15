@@ -82,6 +82,20 @@ export function createEmptyBundle(thread: ChatAiThreadRecord): ChatAiThreadBundl
   };
 }
 
+export function chatAiThreadBundleQueryOptions(
+  threadId: string | null,
+  ephemeralThreadId: string | null,
+  readBundle: (id: string) => Promise<ChatAiThreadBundle | null>,
+) {
+  return {
+    queryKey: threadId ? bundleQueryKey(threadId) : ['chat-ai-thread-bundle', 'inactive'],
+    queryFn: () => readBundle(threadId as string),
+    // An unsaved thread lives in this cache. Reading storage would return
+    // null and erase its pending message or restored failure draft.
+    enabled: Boolean(threadId) && threadId !== ephemeralThreadId,
+  };
+}
+
 /**
  * Shows the sent text in the transcript before Runtime answers. The message is
  * `pending` and lives only in the query cache until the send is persisted.

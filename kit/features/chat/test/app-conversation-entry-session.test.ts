@@ -223,6 +223,19 @@ async function readySession(testHarness: ReturnType<typeof harness>): Promise<vo
 }
 
 describe('App Conversation entry session', () => {
+  it('keeps a refused turn separate from the healthy session and admits another explicit send', async () => {
+    const testHarness = harness();
+    await readySession(testHarness);
+    const before = testHarness.session.getState().messages;
+    const accepted = await testHarness.session.send({ requestId: 'refused-input', parts: [{ kind: 'text', text: 'synthetic input' }] });
+    testHarness.queue.push({ type: 'turn-accepted', conversationAnchorId: 'anchor-a', sequence: '3', turnId: accepted.turnId });
+    testHarness.queue.push({ type: 'turn-failed', conversationAnchorId: 'anchor-a', sequence: '4', turnId: accepted.turnId, reasonCode: 'AI_CONTENT_FILTER_BLOCKED', message: null });
+    await vi.waitFor(() => expect(testHarness.session.getState().lastTurnFailure?.turnId).toBe(accepted.turnId));
+    expect(testHarness.session.getState()).toMatchObject({ status: 'ready', activeTurnId: null, messages: before });
+    await testHarness.session.send({ requestId: 'ordinary-next-question', parts: [{ kind: 'text', text: 'hello again' }] });
+    expect(testHarness.calls.filter(call => call.method === 'send')).toHaveLength(2);
+    await testHarness.session.dispose();
+  });
   it('requires an explicit handle selection and fences buffered events against a subscribe-before-snapshot high-water', async () => {
     const snapshotGate = deferred<NimiLocalAppConversationSnapshot>();
     const testHarness = harness({ snapshot: () => snapshotGate.promise });

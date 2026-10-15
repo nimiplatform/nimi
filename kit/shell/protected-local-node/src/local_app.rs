@@ -1467,6 +1467,32 @@ pub async fn local_app_agent_autonomy_snapshot(input: NativeAgentHandleInput) ->
     .await
 }
 
+#[napi(js_name = "localAppAgentUpdateConversationContext")]
+pub async fn local_app_agent_update_conversation_context(
+    input: NativeAgentUpdateConversationContextInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_context_revision, false) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    let first = match decimal_revision(&input.first_turn_sequence, true) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_update_conversation_context(LocalAppAgentUpdateConversationContextRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                expected_context_revision: revision,
+                first_turn_sequence: first,
+                omit_supplemental_context: input.omit_supplemental_context,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentUpdateAutonomy")]
 pub async fn local_app_agent_update_autonomy(
     input: NativeAgentUpdateAutonomyInput,

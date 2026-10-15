@@ -23,6 +23,7 @@ import {
   SectionShell,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
+import { AgentCenterConversationContext } from './AgentCenterConversationContext.js';
 import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
 
 export interface AgentCenterCognitionSectionProps {
@@ -122,6 +123,7 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
         id="agent-center-cognition-title"
         title={translateAgentCenter(i18n, 'AgentCenter.cognition.title', agentCenterEnCatalog["AgentCenter.cognition.title"])}
       />
+      <AgentCenterConversationContext session={session} snapshot={snapshot} i18n={i18n} />
       {availability.state === 'unavailable' ? (
         <AgentCenterProductActionNotice
           action="inspectMemory"
@@ -254,7 +256,11 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
                           onClick={() => {
                             setPendingAction(`correct:${item.memoryId}`);
                             setActionError(null);
-                            void session.correctMemory({ memoryId: item.memoryId, correctedContent: correction.trim() }).then(() => {
+                            void session.correctMemory({ memoryId: item.memoryId, correctedContent: correction.trim() }).then((result) => {
+                              if (result.outcome === 'rejected') {
+                                setActionError(translateAgentCenter(i18n, 'AgentCenter.cognition.memory.correctionRejected', agentCenterEnCatalog['AgentCenter.cognition.memory.correctionRejected']));
+                                return;
+                              }
                               setEditingMemoryId(null); setCorrection('');
                             }).catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error))).finally(() => setPendingAction(null));
                           }}

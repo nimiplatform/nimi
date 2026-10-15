@@ -5,6 +5,8 @@ import type {
   NimiSharedLocalAgentAIConfigOverwriteResult,
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentConversationContextProjection,
+  NimiLocalAppConversationContextUpdateInput,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationBackendKind,
   NimiRuntimeAgentAutonomySnapshot,
@@ -167,6 +169,7 @@ export type AgentCenterProductAction =
   | 'overwriteSharedAIConfig'
   | 'readAutonomy'
   | 'updateAutonomy'
+  | 'updateConversationContext'
   | 'inspectMemory'
   | 'correctMemory'
   | 'forgetMemory'
@@ -758,7 +761,10 @@ export interface AgentCenterAdvancedDiagnosticsState {
   readonly runtimeError: string | null;
 }
 
+export type AgentCenterConversationContextMutation = Omit<NimiLocalAppConversationContextUpdateInput, 'agentHandle'>;
+
 export interface AgentCenterState {
+  readonly conversationContext: NimiLocalAppAgentConversationContextProjection | null;
   readonly runtimeStatus: AgentCenterRuntimeStatus;
   readonly statusTone: AgentCenterStatusTone;
   readonly baseTextConfigured: boolean;
@@ -813,6 +819,7 @@ export interface AgentCenterSession {
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void>;
+  updateConversationContext(input: AgentCenterConversationContextMutation): Promise<void>;
   correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<AgentCenterMemoryMutationResult>;
   forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
   setMemoryEnabled(enabled: boolean): Promise<AgentCenterMemoryMutationResult>;

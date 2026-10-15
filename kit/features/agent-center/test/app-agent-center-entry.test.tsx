@@ -39,6 +39,7 @@ function ownerUnavailable(): never {
 
 function configureClient(managerCalls: unknown[]): NimiLocalAppAgentConfigureClient {
   return {
+    conversationContext: { update: async () => { throw new Error('No Conversation in this fixture'); } },
     sharedAIConfig: {
       get: async () => ownerUnavailable(),
       overwrite: async () => ownerUnavailable(),

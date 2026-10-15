@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -6,7 +6,7 @@ import type { DesktopConversationModeHost } from './chat-shared-mode-host-types'
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { createInitialAgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
-import { resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
+import { resolveAgentRefusedInput, resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
 import {
   isAgentStreamCancelReady,
   resolveAgentFooterViewState,
@@ -57,6 +57,9 @@ export function useAgentConversationPresentation(
   | 'transcriptProps'
 > {
   const { i18n } = useTranslation();
+  const [restoreNeedsEmptyDraft, setRestoreNeedsEmptyDraft] = useState(false);
+  useEffect(() => setRestoreNeedsEmptyDraft(false), [input.activeThreadId]);
+  const refusedInput = resolveAgentRefusedInput(input.bundle?.messages);
   const streamController = useStreamController();
   const targetSummaries = useMemo(
     () => resolveAgentTargetSummaries(input.targetSummariesInput),
@@ -314,6 +317,13 @@ export function useAgentConversationPresentation(
       adapter.composerAdapter ? (
         <div className="space-y-3">
           {hostFeedbackNode}
+          {refusedInput && input.onComposerPrefillRequest ? <div className="px-5 text-sm">
+            <Button size="sm" tone="secondary" onClick={() => {
+              if (input.currentComposerTextRef.current.trim() || input.pendingAttachments.length > 0) { setRestoreNeedsEmptyDraft(true); return; }
+              setRestoreNeedsEmptyDraft(false); input.onComposerPrefillRequest?.(refusedInput);
+            }}>{input.t('Chat.contentRefusalEditInput')}</Button>
+            {restoreNeedsEmptyDraft ? <p className="mt-1 text-[var(--nimi-text-secondary)]">{input.t('Chat.contentRefusalKeepNewDraft')}</p> : null}
+          </div> : null}
           <AgentCanonicalComposer
             composerKey={`${input.activeTarget?.agentHandle || 'none'}:${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
@@ -388,6 +398,8 @@ export function useAgentConversationPresentation(
   }), [
     adapter,
     hostFeedbackNode,
+    refusedInput,
+    restoreNeedsEmptyDraft,
     hostSnapshot,
     characterData.name,
     characterData.avatarUrl,

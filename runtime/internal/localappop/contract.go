@@ -210,6 +210,7 @@ const (
 	IngressAgentAIConfigOptionsList
 	IngressAgentAutonomySnapshotGet
 	IngressAgentAutonomyUpdate
+	IngressAgentConversationContextUpdate
 	IngressAgentPresentationSnapshotGet
 	IngressAgentPresentationCommit
 	IngressAgentMemoryInspect
@@ -340,6 +341,7 @@ const (
 	OperationAgentAIConfigOptionsList
 	OperationAgentAutonomySnapshotGet
 	OperationAgentAutonomyUpdate
+	OperationAgentConversationContextUpdate
 	OperationAgentPresentationSnapshotGet
 	OperationAgentPresentationCommit
 	OperationAgentMemoryInspect
@@ -517,6 +519,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentAIConfigOptionsList, OperationAgentAIConfigOptionsList, "runtime.agent.ai-config.options.list", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAutonomySnapshotGet, OperationAgentAutonomySnapshotGet, "runtime.agent.autonomy.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAutonomyUpdate, OperationAgentAutonomyUpdate, "runtime.agent.autonomy.update", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentConversationContextUpdate, OperationAgentConversationContextUpdate, "runtime.agent.conversation-context.update", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentPresentationSnapshotGet, OperationAgentPresentationSnapshotGet, "runtime.agent.presentation.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentPresentationCommit, OperationAgentPresentationCommit, "runtime.agent.presentation.commit", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentMemoryInspect, OperationAgentMemoryInspect, "runtime.agent.memory.inspect", AuthorityClassAppAccess, "agent.configure"},

@@ -698,5 +698,10 @@
   "chatgptPlanUsageLimited": "Your ChatGPT plan has reached its usage limit for Nimi. Manage usage in ChatGPT, or choose another model in AI Capabilities.",
   "chatgptPlanSignInEnded": "ChatGPT sign-in has ended. Sign in to ChatGPT again in Cloud Services, then send your message.",
   "chatgptPlanModelUnavailable": "This ChatGPT account doesn't offer the selected model. Choose another model in AI Capabilities, then send your message.",
-  "chatgptPlanManageUsage": "Manage usage"
+  "chatgptPlanManageUsage": "Manage usage",
+  "agentCenterOpenPending": "Opening settings for this conversation…",
+  "agentCenterOpenFailed": "This conversation’s settings could not be opened. No context was changed. You can return to the app or select an available Agent.",
+  "agentCenterNoticeDismiss": "Dismiss",
+  "contentRefusalEditInput": "Edit the failed input",
+  "contentRefusalKeepNewDraft": "Your new draft is kept. Clear it first to reuse the earlier input."
 }

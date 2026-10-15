@@ -363,6 +363,8 @@ export type {
   NimiLocalAppAgentAutonomyProjection,
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentConversationContextProjection,
+  NimiLocalAppConversationContextUpdateInput,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
   NimiLocalAppAgentPresentationBackendKind,

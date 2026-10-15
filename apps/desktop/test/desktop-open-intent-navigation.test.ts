@@ -4,6 +4,7 @@ import test from 'node:test';
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 import {
   applyDesktopOpenIntentToAppStore as applyDesktopOpenIntent,
+  resolveDesktopOpenAgentCenterTarget,
 } from '../src/shell/renderer/infra/desktop-open/desktop-open-intent-navigation';
 import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store';
 import {
@@ -31,6 +32,7 @@ type DesktopOpenTarget = {
 };
 
 const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
+  { rowId: 'target.agent-center', intent: { kind: 'open-agent-center', conversationAnchorId: 'agent_anchor_context' }, expected: { activeTab: 'chat' } },
   { rowId: 'target.explore-worlds-section', intent: { kind: 'open-explore', section: 'worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
   { rowId: 'target.explore-worlds', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
   { rowId: 'target.explore-personas-section', intent: { kind: 'open-explore', section: 'personas' }, expected: { activeTab: 'explore', section: 'personas' } },
@@ -78,6 +80,35 @@ class MemoryStorage implements Storage {
 }
 
 const initialState = productionAppStore.getState();
+
+test('Agent Center handoff resolves only a Home-owned handle for the same anchor and retires stale results', async () => {
+  const foreign = { agentHandle: 'home_foreign', displayName: 'Another Agent', avatarUrl: null };
+  const target = { agentHandle: 'home_target', displayName: 'Target Agent', avatarUrl: null };
+  const calls: unknown[] = [];
+  let current = true;
+  const client = {
+    agents: { listReferences: async () => [foreign, target] },
+    agentConfigure: { manager: { snapshot: async (input: { agentHandle: string; conversationAnchorId?: string }) => {
+      calls.push(input);
+      assert.equal(input.conversationAnchorId, undefined);
+      return { conversationContext: { conversationAnchorId: input.agentHandle === foreign.agentHandle ? 'another-anchor' : 'agent_anchor_context' } };
+    } } },
+  } as unknown as Parameters<typeof resolveDesktopOpenAgentCenterTarget>[0];
+  const resolved = await resolveDesktopOpenAgentCenterTarget(client, 'agent_anchor_context', () => current);
+  // A failed sidebar query has supplied no target. The fresh owner read must
+  // contain everything the normal target store and Manager require.
+  assert.equal(productionAppStore.getState().agentConversationTargetByHandle[target.agentHandle], undefined);
+  productionAppStore.getState().setAgentConversationTargetSnapshot(resolved);
+  const stored = productionAppStore.getState().agentConversationTargetByHandle[target.agentHandle];
+  assert.ok(stored);
+  assert.equal(stored.agentHandle, target.agentHandle);
+  assert.equal(stored.conversationAnchorId, 'agent_anchor_context');
+  assert.equal(stored.displayName, target.displayName);
+  assert.deepEqual(calls, [{ agentHandle: 'home_foreign' }, { agentHandle: 'home_target' }]);
+  current = false;
+  await assert.rejects(() => resolveDesktopOpenAgentCenterTarget(client, 'agent_anchor_context', () => current), /superseded/);
+  assert.equal(calls.length, 2);
+});
 const previousLocalStorage = globalThis.localStorage;
 const previousWindow = globalThis.window;
 let runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;

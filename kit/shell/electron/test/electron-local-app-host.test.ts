@@ -9,6 +9,27 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('carries explicit context selection and preserves conflicts without session reset or retry', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+    const input = { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor-1', expectedContextRevision: '1', firstTurnSequence: '1', omitSupplementalContext: true };
+    await expect(host.agentUpdateConversationContext(input)).resolves.toMatchObject({ conversationAnchorId: 'anchor-1', contextRevision: '2' });
+    expect(calls).toContainEqual({ method: 'localAppAgentUpdateConversationContext', input });
+    let attempts = 0, invalidations = 0;
+    const stale = createNimiElectronLocalAppHostForBinding({ ...binding([]), localAppAgentUpdateConversationContext: async () => {
+      attempts++; return { status: 'error' as const, reasonCode: 'agent-conversation-context-revision-conflict', retryable: false };
+    } }, () => { invalidations++; });
+    await expect(stale.agentUpdateConversationContext(input)).rejects.toMatchObject({ reasonCode: 'agent-conversation-context-revision-conflict' });
+    await expect(stale.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+    expect(attempts).toBe(1); expect(invalidations).toBe(0);
+  });
+  it('keeps safe content-check constants and rejects dynamic metadata', async () => {
+    let metadata: Record<string, string> = { rule_id: 'github-classic-pat', failure_stage: 'input', content_part: 'history' };
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]), localAppTextTurnSubscribe: async () => ({ status: 'error' as const, reasonCode: 'ai-content-filter-blocked', retryable: false, reasonMetadata: metadata }) });
+    await expect(host.textTurnSubscribe({ messages: [{ role: 'user', text: 'ordinary' }] })).rejects.toMatchObject({ reasonCode: 'ai-content-filter-blocked', reasonMetadata: metadata });
+    metadata = { ...metadata, matched_text: 'private-marker' };
+    await expect(host.textTurnSubscribe({ messages: [{ role: 'user', text: 'ordinary' }] })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
   it.each(['ai-media-job-not-found', 'ai-media-job-not-cancellable'])(
     'keeps Scenario cancellation rejection %s in the current healthy session', async (reasonCode) => {
       let invalidations = 0; let rebinds = 0;
@@ -536,6 +557,7 @@ describe('Electron protected local-app host', () => {
       'agentManagerSnapshot',
       'agentAutonomySnapshot',
       'agentUpdateAutonomy',
+      'agentUpdateConversationContext',
       'agentPresentationSnapshot',
       'agentCommitPresentation',
       'agentMemoryInspect',
@@ -1499,6 +1521,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', {
       enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,
       autonomyRevision: '1',
+    }),
+    localAppAgentUpdateConversationContext: record('localAppAgentUpdateConversationContext', {
+      conversationAnchorId: 'anchor-1', contextRevision: '2', firstTurnSequence: '1', omitSupplementalContext: true,
+      committedTurnCount: '8', suggestedFirstTurnSequence: null, busy: false, canUpdate: true,
     }),
     localAppAgentUpdateAutonomy: record('localAppAgentUpdateAutonomy', {
       enabled: true, config: null, usedTokensInWindow: 0, budgetExhausted: false,

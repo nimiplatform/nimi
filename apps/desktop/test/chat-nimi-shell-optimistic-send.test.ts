@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { QueryClient, QueryObserver } from '@tanstack/react-query';
 
 import {
   appendOptimisticUserMessage,
+  bundleQueryKey,
+  chatAiThreadBundleQueryOptions,
   createEmptyBundle,
   replaceMessage,
   restoreDraftAfterFailedSend,
@@ -74,4 +77,25 @@ test('optimistic send: a failed send removes the pending message and restores th
   assert.deepEqual(restored.messages, []);
   assert.deepEqual(restored.draft, draft);
   assert.equal(restoreDraftAfterFailedSend(null, 'm1', draft), null);
+});
+
+test('an unsaved thread keeps its failure draft instead of reading a missing persisted bundle', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  let reads = 0;
+  const read = async () => { reads++; return null; };
+  const key = bundleQueryKey(thread.id);
+  queryClient.setQueryData(key, appendOptimisticUserMessage(undefined, thread, userMessage('m1', 'original input', 101)));
+  const observer = new QueryObserver(queryClient, chatAiThreadBundleQueryOptions(thread.id, thread.id, read));
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    queryClient.setQueryData(key, (current: ReturnType<typeof createEmptyBundle> | undefined) => restoreDraftAfterFailedSend(current, 'm1', {
+      threadId: thread.id, text: 'original input', attachments: [], updatedAtMs: 200,
+    }));
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(reads, 0);
+    assert.equal(observer.getCurrentResult().data?.draft?.text, 'original input');
+    observer.setOptions(chatAiThreadBundleQueryOptions(thread.id, null, read));
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(reads, 1, 'persisted threads still read their owner');
+  } finally { unsubscribe(); queryClient.clear(); }
 });

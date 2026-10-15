@@ -164,6 +164,7 @@ function managerSnapshot(
       ? { state: 'unavailable' as const, reason: 'memory-disabled' as const }
       : { state: 'available' as const, reason: null };
   return {
+    conversationContext: null,
     lifecycleStatus: 'active',
     executionState: 'idle',
     statusText: '',
@@ -225,7 +226,9 @@ export async function sessionFor(
   },
   resourcePackTargetController?: AgentCenterResourcePackTargetController | null,
   resourcePackPlacement?: AgentCenterResourcePackPlacementAdapter | null,
+  contextMutations?: unknown[],
 ): Promise<AgentCenterSession> {
+  let conversationContext = projection.manager?.conversationContext ?? null;
   let sharedAIConfig = projection.sharedAIConfig === undefined
     ? defaultAIConfig()
     : projection.sharedAIConfig;
@@ -240,6 +243,12 @@ export async function sessionFor(
   let resourcePackSha256 = 'c'.repeat(64);
 
   const client: NimiLocalAppAgentConfigureClient = {
+    conversationContext: { update: async (input) => {
+      if (!conversationContext) throw new Error('No Conversation in this fixture');
+      contextMutations?.push(input);
+      conversationContext = { ...conversationContext, contextRevision: String(BigInt(input.expectedContextRevision) + 1n), firstTurnSequence: input.firstTurnSequence, omitSupplementalContext: input.omitSupplementalContext };
+      return conversationContext;
+    } },
     sharedAIConfig: {
       async get() {
         return {
@@ -444,7 +453,7 @@ export async function sessionFor(
             reasonCode: projection.runtimeError,
           });
         }
-        return managerSnapshot(projection, cognitionMemory, previousProfile);
+        return { ...managerSnapshot(projection, cognitionMemory, previousProfile), conversationContext };
       },
     },
   };

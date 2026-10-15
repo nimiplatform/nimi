@@ -314,6 +314,8 @@ export type {
   NimiLocalAppAgentManagerLaneState,
   NimiLocalAppAgentManagerReasonCode,
   NimiLocalAppAgentManagerSnapshot,
+  NimiLocalAppAgentConversationContextProjection,
+  NimiLocalAppConversationContextUpdateInput,
   NimiLocalAppAgentManagerSnapshotInput,
   NimiLocalAppAgentManagerSourceCognitionStatus,
   NimiLocalAppAgentManagerSourceProjection,
@@ -606,7 +608,8 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);
   if (!agentConfigure
-    || Object.keys(agentConfigure).length !== 5
+    || Object.keys(agentConfigure).length !== 6
+    || !Object.hasOwn(agentConfigure, 'conversationContext')
     || !Object.hasOwn(agentConfigure, 'sharedAIConfig')
     || !Object.hasOwn(agentConfigure, 'autonomy')
     || !Object.hasOwn(agentConfigure, 'presentation')
@@ -623,6 +626,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'readAsset', 'commit'], 'agentConfigure.presentation');
   assertExactMethodNamespace(agentConfigure.memory, ['inspect', 'correct', 'forget', 'setEnabled', 'deleteAll'], 'agentConfigure.memory');
   assertExactMethodNamespace(agentConfigure.manager, ['snapshot'], 'agentConfigure.manager');
+  assertExactMethodNamespace(agentConfigure.conversationContext, ['update'], 'agentConfigure.conversationContext');
   assertNimiLocalAppActivityShell(standardShell.activity);
 
   return Object.freeze({

@@ -14,6 +14,13 @@ import {
 const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   {
     schemaVersion: 1,
+    sourceApp: 'nimi.lab',
+    sourceHost: 'electron-standard-shell',
+    requestId: 'desktop-open-20261015-context',
+    intent: { kind: 'open-agent-center', conversationAnchorId: 'agent_anchor_context' },
+  },
+  {
+    schemaVersion: 1,
     sourceApp: 'nimi.zhiyu',
     sourceHost: 'desktop-electron-local-app-host',
     requestId: 'desktop-open-20260708-0001',

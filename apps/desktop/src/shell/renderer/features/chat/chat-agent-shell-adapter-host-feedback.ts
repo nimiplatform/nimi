@@ -58,6 +58,9 @@ export function useAgentConversationHostFeedback() {
       message: 'action:host-error',
       details,
     });
+    // Standard chrome owns the active content-refusal notice. The composer
+    // keeps its original inline failure and draft; do not add a second card.
+    if (userFacing.code.toUpperCase().replaceAll('-', '_') === 'AI_CONTENT_FILTER_BLOCKED') return;
     setHostFeedback({
       kind: 'error',
       message: userFacing.message,

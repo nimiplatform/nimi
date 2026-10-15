@@ -2,6 +2,19 @@
 
 # SDK migration notes
 
+## Unreleased — Conversation context management
+
+The covered `agentConfigure.conversationContext.update` client adds an explicit
+revision-checked selection on the existing Conversation. Manager snapshots can
+carry a nullable `conversationContext` projection; the existing Manager action
+set is unchanged. `open-agent-center` accepts only a Conversation anchor and Home
+resolves it under its own current management access.
+
+Use matching source-built Runtime and Kit/native contracts. Custom standard
+Shell implementations add `agentConfigure.conversationContext.update`; ordinary
+App requests do not gain required fields or management permission. This is an
+unreleased 0.x minor surface change, not a package publication.
+
 ## 0.21.0 — 2026-10-11
 
 Use this release with Kit/native 0.18.0 and a Runtime that implements the same

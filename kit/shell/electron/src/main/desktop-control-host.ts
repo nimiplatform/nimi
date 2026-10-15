@@ -528,8 +528,18 @@ function nativeError(value: {
 function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Record<string, string>> {
   if (value === undefined) return {};
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw untrusted();
+  // @nimi-authority: rule.nimi.runtime.ai-provider.content-refusal-presentation
+  const contentRefusal = reasonCode === 'AI_CONTENT_FILTER_BLOCKED' || reasonCode === 'ai-content-filter-blocked';
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
+    if (contentRefusal || ['rule_id', 'failure_stage', 'content_part'].includes(key)) {
+      const allowed = key === 'rule_id' ? ['pem-private-key', 'github-classic-pat']
+        : key === 'failure_stage' ? ['input', 'output']
+          : key === 'content_part' ? ['system', 'message', 'message_part', 'history', 'tool_name', 'tool_arguments', 'tool_result', 'tool_definition', 'tool_schema', 'text_options', 'response_schema', 'text', 'text_item'] : [];
+      if (!contentRefusal || typeof entry !== 'string' || !allowed.includes(entry)) throw untrusted();
+      metadata[key] = entry;
+      continue;
+    }
     if (key === 'integration_reason') {
       if (isIntegrationOwnerReasonMetadata(reasonCode, entry)) metadata[key] = entry;
       continue;

@@ -110,6 +110,17 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		secondDecision.RegisteredAppSubject != decision.RegisteredAppSubject || secondDecision.SessionID != decision.SessionID {
 		t.Fatalf("second built-in Desktop decision = %+v ok=%v, first = %+v", secondDecision, ok, decision)
 	}
+	contextAuthorized, err := service.AuthorizeFormalAppIngress(
+		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentConversationContextUpdate,
+	)
+	if err != nil {
+		t.Fatalf("formal conversation context update admission: %v", err)
+	}
+	contextDecision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(contextAuthorized)
+	if !ok || contextDecision.Operation != accountservice.LocalAppOperationUpdateConversationContext ||
+		contextDecision.OperationCapability != "agent.configure" || contextDecision.SessionID != decision.SessionID {
+		t.Fatalf("context update must use the existing management session: %+v", contextDecision)
+	}
 	embodimentAuthorized, err := service.AuthorizeFormalAppIngress(
 		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentEmbodimentSnapshotGet,
 	)

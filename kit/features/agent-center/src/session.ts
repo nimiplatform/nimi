@@ -8,6 +8,7 @@ import {
   type NimiSharedLocalAgentCapabilityParticipation,
   type NimiLocalAppAgentAutonomyProjection,
   type NimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentConversationContextProjection,
   type NimiLocalAppAgentHandle,
   type NimiLocalAppClient,
   type NimiLocalAppAgentPresentationIntent,
@@ -24,6 +25,7 @@ import type {
   AgentCenterActionAvailabilityProjection,
   AgentCenterActionUnavailableReason,
   AgentCenterAppManagerSnapshot,
+  AgentCenterConversationContextMutation,
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
   AgentCenterHostAppearanceSelection,
@@ -59,6 +61,7 @@ const ACTIONS: readonly AgentCenterProductAction[] = [
   'overwriteSharedAIConfig',
   'readAutonomy',
   'updateAutonomy',
+  'updateConversationContext',
   'inspectMemory',
   'correctMemory',
   'forgetMemory',
@@ -103,6 +106,10 @@ function projectOwnerActionAvailability(
   manager: AgentCenterAppManagerSnapshot,
 ): AgentCenterActionAvailabilityProjection {
   return Object.freeze(Object.fromEntries(ACTIONS.map((action) => {
+    if (action === 'updateConversationContext') {
+      const context = manager.conversationContext;
+      return [action, context?.canUpdate ? AVAILABLE : unavailable(context ? 'owner-rejected' : 'selection-required')];
+    }
     const owner = manager.actionAvailability[action];
     if (owner.state === 'available') return [action, AVAILABLE];
     const reason: AgentCenterActionUnavailableReason = owner.reason === 'operation-unavailable'
@@ -151,7 +158,7 @@ type MutationRunResult<T> = {
   readonly adopt: boolean;
 };
 
-type MutationDomain = 'shared-ai-config' | 'autonomy' | 'memory' | 'appearance';
+type MutationDomain = 'shared-ai-config' | 'autonomy' | 'memory' | 'appearance' | 'conversation-context';
 
 function mutationDomain(action: AgentCenterProductAction): MutationDomain {
   switch (action) {
@@ -161,6 +168,7 @@ function mutationDomain(action: AgentCenterProductAction): MutationDomain {
     case 'readAutonomy':
     case 'updateAutonomy':
       return 'autonomy';
+    case 'updateConversationContext': return 'conversation-context';
     case 'inspectMemory':
     case 'correctMemory':
     case 'forgetMemory':
@@ -190,6 +198,7 @@ interface SessionTransport {
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
+  updateConversationContext(input: AgentCenterConversationContextMutation): Promise<NimiLocalAppAgentConversationContextProjection>;
   correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<AgentCenterMemoryMutationResult>;
   forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
   setMemoryEnabled(enabled: boolean): Promise<AgentCenterMemoryMutationResult>;
@@ -339,6 +348,7 @@ class ManagerSession {
   #refreshToken = 0;
   #mutationTokens: Record<MutationDomain, number> = {
     'shared-ai-config': 0,
+    'conversation-context': 0,
     autonomy: 0,
     memory: 0,
     appearance: 0,
@@ -584,6 +594,13 @@ class ManagerSession {
   async listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
     return this.transport.listSharedAIConfigOptions(input);
+  }
+
+  async updateConversationContext(input: AgentCenterConversationContextMutation): Promise<void> {
+    this.#requireAvailable('updateConversationContext');
+    const mutation = await this.#runMutation('updateConversationContext', () => this.transport.updateConversationContext(input));
+    if (!mutation.adopt) return;
+    this.#set({ ...this.#snapshot, phase: 'ready', error: null, state: { ...this.#snapshot.state, conversationContext: mutation.result } });
   }
 
   async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
@@ -1642,6 +1659,7 @@ export function createAppAgentCenterSession(
     async listSharedAIConfigOptions(query) {
       return input.client.sharedAIConfig.listOptions(query);
     },
+    async updateConversationContext(mutation) { return input.client.conversationContext.update({ agentHandle: handle, ...mutation }); },
     async updateAutonomy(mutation) {
       const autonomy = await input.client.autonomy.update({
         agentHandle: handle,

@@ -109,6 +109,7 @@ pub enum LocalAppReasonCode {
     AiRemoteModelCatalogStale,
     AiConfigPersistenceUnavailable,
     AgentPresentationRevisionConflict,
+    AgentConversationContextRevisionConflict,
     AgentPresentationAssetTypeInvalid,
     AgentPresentationAssetTooLarge,
     AgentPresentationAssetStructureInvalid,
@@ -238,6 +239,9 @@ impl LocalAppReasonCode {
             Self::AiRemoteModelCatalogStale => "ai-remote-model-catalog-stale",
             Self::AiConfigPersistenceUnavailable => "ai-config-persistence-unavailable",
             Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
+            Self::AgentConversationContextRevisionConflict => {
+                "agent-conversation-context-revision-conflict"
+            }
             Self::AgentPresentationAssetTypeInvalid => "agent-presentation-asset-type-invalid",
             Self::AgentPresentationAssetTooLarge => "agent-presentation-asset-too-large",
             Self::AgentPresentationAssetStructureInvalid => {
@@ -996,6 +1000,15 @@ pub struct LocalAppAgentUpdateAutonomyRequest {
     pub agent_handle: String,
     pub expected_autonomy_revision: u64,
     pub intent: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentUpdateConversationContextRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub expected_context_revision: u64,
+    pub first_turn_sequence: u64,
+    pub omit_supplemental_context: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -2423,6 +2436,11 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn agent_update_autonomy(
         &self,
         request: LocalAppAgentUpdateAutonomyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_update_conversation_context(
+        &self,
+        request: LocalAppAgentUpdateConversationContextRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_presentation_snapshot(

@@ -23,6 +23,7 @@ import type {
   LocalAppAgentAutonomyProjection,
   LocalAppAgentAutonomySnapshotResponse,
   LocalAppAgentCommitPresentationResponse,
+  LocalAppAgentConversationContextProjection,
   LocalAppAgentPresentationIntent,
   LocalAppAgentPresentationProjection,
   LocalAppAgentPresentationSnapshotResponse,
@@ -37,6 +38,8 @@ import type {
   SharedLocalAgentVoiceAssetOptions,
   SharedLocalAgentVoiceAssetOptionsQuery,
   UpdateLocalAppAgentAutonomyRequest,
+  UpdateLocalAppAgentConversationContextRequest,
+  UpdateLocalAppAgentConversationContextResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/agent_configure";
 
 export type {
@@ -53,6 +56,7 @@ export type {
   LocalAppAgentAutonomyProjection,
   LocalAppAgentAutonomySnapshotResponse,
   LocalAppAgentCommitPresentationResponse,
+  LocalAppAgentConversationContextProjection,
   LocalAppAgentPresentationIntent,
   LocalAppAgentPresentationProjection,
   LocalAppAgentPresentationSnapshotResponse,
@@ -67,6 +71,8 @@ export type {
   SharedLocalAgentVoiceAssetOptions,
   SharedLocalAgentVoiceAssetOptionsQuery,
   UpdateLocalAppAgentAutonomyRequest,
+  UpdateLocalAppAgentConversationContextRequest,
+  UpdateLocalAppAgentConversationContextResponse,
 };
 
 import type {

@@ -53,18 +53,7 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) (*agentTurnContextCompilation, error) {
-	return r.composeLocalAgentTurnContext(
-		ctx,
-		session,
-		turn,
-		req,
-		agentTurnOutputContractInput{
-			ContractID:  publicChatContextOutputContractID,
-			Version:     publicChatContextOutputContractV1,
-			Instruction: publicChatAPMLOutputContractPrompt(turn.AvailableActions),
-		},
-		publicChatAgentTurnCapabilities(turn.AvailableActions),
-	)
+	return r.composePublicChatTurnContextWithRecall(ctx, session, turn, req, nil)
 }
 
 func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
@@ -75,8 +64,11 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 	privateRecall *agentTurnPrivateRecallInput,
 ) (*agentTurnContextCompilation, error) {
 	instruction := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
-	if privateRecall != nil {
+	if privateRecall != nil || session.ConversationContext.OmitSupplementalContext {
 		instruction = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
+	}
+	if session.ConversationContext.OmitSupplementalContext {
+		instruction = strings.Replace(instruction, publicChatRoundTwoFinalOnlyPrompt, "- Supplemental recall is disabled for this Conversation. Answer from the provided context; do not emit a query or claim a lookup occurred.", 1)
 	}
 	return r.composeLocalAgentTurnContextWithRecall(
 		ctx,
@@ -129,7 +121,13 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
 			status.Error(codes.DataLoss, "Runtime LocalAgent turn source identity mismatch"))
 	}
-	memory, err := r.loadPublicChatCognitionMemoryInputs(ctx, session, req)
+	var memory []agentTurnMemoryInput
+	var err error
+	if !session.ConversationContext.OmitSupplementalContext {
+		memory, err = r.loadPublicChatCognitionMemoryInputs(ctx, session, req)
+	} else {
+		privateRecall = nil
+	}
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
@@ -154,7 +152,10 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, err.Error()))
 	}
-	cognition := r.retrievePublicChatSourceCognition(ctx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
+	cognition := agentTurnCognitionInput{AdapterStatus: "not_requested", SelectionStatus: "not_requested"}
+	if !session.ConversationContext.OmitSupplementalContext {
+		cognition = r.retrievePublicChatSourceCognition(ctx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
+	}
 	catalogDigest, err := hashSourceMaterializationDomainJCS(publicChatCatalogRevisionHashDomain, struct {
 		CatalogRevision string `json:"catalogRevision"`
 		ModelRevision   string `json:"modelRevision"`
@@ -275,7 +276,7 @@ func newPublicChatContextCompositionError(
 }
 
 func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {
-	out, err := publicChatEligibleCommittedTranscript(session.CommittedTranscript)
+	out, err := selectedCommittedTranscript(&session)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +284,7 @@ func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentT
 	if len(out) > publicChatRecentVerbatimTurnLimit {
 		start = len(out) - publicChatRecentVerbatimTurnLimit
 	}
-	summary := session.ConversationSummary
+	summary := activeConversationSummary(&session)
 	valid := publicChatLastValidConversationSummary(summary)
 	expandAfterLastValid := summary != nil && summary.LastAttempt.Status != "ready" && valid != nil
 	targetEnd, due, err := publicChatConversationSummaryTarget(&session)
@@ -354,7 +355,7 @@ func publicChatCommittedTranscriptInputText(turn publicChatCommittedTranscriptTu
 }
 
 func publicChatAgentTurnConversationSummaryInput(session publicChatAnchorState, transcript []agentTurnTranscriptPairInput) (*agentTurnConversationSummaryInput, error) {
-	summary := session.ConversationSummary
+	summary := activeConversationSummary(&session)
 	if summary == nil {
 		return nil, nil
 	}

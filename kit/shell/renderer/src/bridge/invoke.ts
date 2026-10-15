@@ -1,5 +1,6 @@
 import { hasShellHostInvoke } from './env.js';
 import { invokeShell } from './tauri-api.js';
+import { getNimiContentRefusalPresentationEpoch, nextNimiContentRefusalCorrelation, reportNimiContentRefusal } from './content-refusal.js';
 import {
   isNimiStandardShellErrorEnvelope,
   type NimiStandardShellErrorEnvelope,
@@ -43,6 +44,8 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
     throw createUnavailableBridgeError(command);
   }
   const shellInvoke = resolveShellInvoke();
+  const correlation = nextNimiContentRefusalCorrelation();
+  const presentationEpoch = getNimiContentRefusalPresentationEpoch();
   try {
     return await shellInvoke(command, payload);
   } catch (error) {
@@ -57,6 +60,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
         cause: message || 'unknown host error',
       },
     };
+    reportNimiContentRefusal({ correlation, presentationEpoch, reasonCode: envelope.reasonCode, metadata: envelope.details?.reasonMetadata });
     throw new BridgeError(message || `invoke ${command} failed`, command, envelope);
   }
 }

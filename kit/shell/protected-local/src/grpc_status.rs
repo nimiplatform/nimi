@@ -38,6 +38,9 @@ pub(crate) fn desktop_runtime_reason_metadata(status: &Status) -> BTreeMap<Strin
     let Some(info) = runtime_error_info(status) else {
         return BTreeMap::new();
     };
+    if info.reason == "AI_CONTENT_FILTER_BLOCKED" {
+        return public_reason_metadata(Some(&info));
+    }
     if let Some(reason) = integration_reason_metadata(&info) {
         return BTreeMap::from([("integration_reason".to_string(), reason.to_string())]);
     }
@@ -236,7 +239,9 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_MODALITY_NOT_SUPPORTED" => LocalAppReasonCode::AiModalityNotSupported,
         "AI_INPUT_LIMIT_EXCEEDED" => LocalAppReasonCode::AiInputLimitExceeded,
         "AI_MEDIA_IDEMPOTENCY_CONFLICT" => LocalAppReasonCode::AiMediaIdempotencyConflict,
-        "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => LocalAppReasonCode::AiMusicRecoveryCapacityExceeded,
+        "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => {
+            LocalAppReasonCode::AiMusicRecoveryCapacityExceeded
+        }
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
         "AI_TEXT_BEHAVIOR_UNSUPPORTED" => LocalAppReasonCode::AiTextBehaviorUnsupported,
         "AI_TEXT_BEHAVIOR_AMBIGUOUS" => LocalAppReasonCode::AiTextBehaviorAmbiguous,
@@ -337,6 +342,9 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "APP_STORAGE_ENTRY_NOT_FOUND" | "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
         "APP_ACTIVITY_INPUT_INVALID" => LocalAppReasonCode::InvalidPayload,
         "APP_ACTIVITY_REVISION_CONFLICT" => LocalAppReasonCode::ContentConflict,
+        "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
+            LocalAppReasonCode::AgentConversationContextRevisionConflict
+        }
         "APP_ACTIVITY_NOT_FOUND"
         | "APP_ACTIVITY_AGENT_UNAVAILABLE"
         | "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => LocalAppReasonCode::NotFound,
@@ -403,6 +411,9 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
         "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH" => {
             NimiHostErrorReasonCode::AgentAiConfigModelTargetMismatch
         }
+        "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
+            NimiHostErrorReasonCode::AgentConversationContextRevisionConflict
+        }
         "AGENT_AUTONOMY_REVISION_CONFLICT" => {
             NimiHostErrorReasonCode::AgentAutonomyRevisionConflict
         }
@@ -424,6 +435,43 @@ fn public_reason_metadata(info: Option<&GoogleRpcErrorInfo>) -> BTreeMap<String,
     ];
     let mut metadata = BTreeMap::new();
     if let Some(info) = info {
+        // @nimi-authority: rule.nimi.runtime.ai-provider.content-refusal-presentation
+        // Only owner constants are public. This does not certify that a whole
+        // multi-call user operation had no earlier model dispatch.
+        if info.reason == "AI_CONTENT_FILTER_BLOCKED" {
+            if info.domain != ERROR_INFO_DOMAIN {
+                return metadata;
+            }
+            let rule = info.metadata.get("rule_id").map(String::as_str);
+            let stage = info.metadata.get("failure_stage").map(String::as_str);
+            if matches!(rule, Some("pem-private-key" | "github-classic-pat"))
+                && matches!(stage, Some("input" | "output"))
+            {
+                metadata.insert("rule_id".to_string(), rule.unwrap().to_string());
+                metadata.insert("failure_stage".to_string(), stage.unwrap().to_string());
+                if let Some(part) = info.metadata.get("content_part") {
+                    if matches!(
+                        part.as_str(),
+                        "system"
+                            | "message"
+                            | "message_part"
+                            | "history"
+                            | "tool_name"
+                            | "tool_arguments"
+                            | "tool_result"
+                            | "tool_definition"
+                            | "tool_schema"
+                            | "text_options"
+                            | "response_schema"
+                            | "text"
+                            | "text_item"
+                    ) {
+                        metadata.insert("content_part".to_string(), part.clone());
+                    }
+                }
+            }
+            return metadata;
+        }
         if let Some(reason) = integration_reason_metadata(info) {
             metadata.insert("integration_reason".to_string(), reason.to_string());
         }
@@ -551,6 +599,36 @@ fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn content_refusal_metadata_is_a_closed_set_without_dynamic_details() {
+        let mut info = GoogleRpcErrorInfo {
+            reason: "AI_CONTENT_FILTER_BLOCKED".into(),
+            domain: ERROR_INFO_DOMAIN.into(),
+            metadata: HashMap::from([
+                ("rule_id".into(), "github-classic-pat".into()),
+                ("failure_stage".into(), "input".into()),
+                ("content_part".into(), "history".into()),
+                ("diagnostic_stage".into(), "private-marker".into()),
+                ("capability".into(), "private-marker".into()),
+                ("provider_message".into(), "private-marker".into()),
+            ]),
+        };
+        let expected = BTreeMap::from([
+            ("rule_id".into(), "github-classic-pat".into()),
+            ("failure_stage".into(), "input".into()),
+            ("content_part".into(), "history".into()),
+        ]);
+        assert_eq!(public_reason_metadata(Some(&info)), expected);
+        info.metadata
+            .insert("content_part".into(), "private-marker".into());
+        assert!(!public_reason_metadata(Some(&info)).contains_key("content_part"));
+        info.metadata
+            .insert("rule_id".into(), "private-marker".into());
+        assert!(public_reason_metadata(Some(&info)).is_empty());
+        info.domain = "foreign-owner".into();
+        assert!(public_reason_metadata(Some(&info)).is_empty());
+    }
 
     fn integration_status(domain: &str, reason: &str, value: &str, code: Code) -> Status {
         let info = GoogleRpcErrorInfo {
@@ -739,12 +817,20 @@ mod tests {
                 value: info.encode_to_vec(),
             }],
         };
-        let provider = |deadline_elapsed| local_app_execute_error_from_status(Status::with_details(
-            Code::DeadlineExceeded,
-            "provider deadline",
-            details.encode_to_vec().into(),
-        ), deadline_elapsed);
-        assert_eq!(provider(false).reason_code(), LocalAppReasonCode::AiProviderTimeout);
+        let provider = |deadline_elapsed| {
+            local_app_execute_error_from_status(
+                Status::with_details(
+                    Code::DeadlineExceeded,
+                    "provider deadline",
+                    details.encode_to_vec().into(),
+                ),
+                deadline_elapsed,
+            )
+        };
+        assert_eq!(
+            provider(false).reason_code(),
+            LocalAppReasonCode::AiProviderTimeout
+        );
         // Past the call's own deadline the typed provider timeout is that deadline.
         assert_eq!(provider(true).reason_code(), LocalAppReasonCode::Timeout);
     }

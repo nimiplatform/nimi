@@ -176,7 +176,7 @@ export async function submitAgentConversationTurn(input: {
         lastMessageAtMs: optimisticUserProjection.lastMessageAtMs,
         targetSnapshot: activeTarget,
       };
-      input.hostInput.currentComposerTextRef.current = '';
+      if (input.payload.canUpdateDraft?.() !== false) input.hostInput.currentComposerTextRef.current = '';
       input.hostInput.setBundleCache(effectiveThreadId, (current) => {
         const base = current || createEmptyAgentThreadBundle(optimisticThreadRecord);
         return {
@@ -345,7 +345,10 @@ export async function submitAgentConversationTurn(input: {
       // Text Runtime already accepted is not offered back after a stop, so
       // Enter cannot send it twice; text stopped before admission stays.
       const restoreSubmittedText = !(stoppedByUser && isAgentTurnAdmitted(abortController.signal));
-      if (restoreSubmittedText) input.hostInput.currentComposerTextRef.current = submittedText;
+      const currentDraft = input.hostInput.currentComposerTextRef.current;
+      const preserveComposerText = input.payload.canUpdateDraft?.() === false
+        || currentDraft || runtimeError.code === 'AI_CONTENT_FILTER_BLOCKED' ? currentDraft : undefined;
+      if (restoreSubmittedText && preserveComposerText === undefined) input.hostInput.currentComposerTextRef.current = submittedText;
       submitSession = input.hostInput.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
         state: submitSession,
         refreshedBundle: null,
@@ -353,6 +356,7 @@ export async function submitAgentConversationTurn(input: {
         updatedAtMs: input.hostInput.now(),
         streamSnapshot,
         restoreSubmittedText,
+        preserveComposerText,
       }));
       // A stop the user asked for is the turn's end, not a failure to report.
       if (stoppedByUser && !admissionUnconfirmed) return;
@@ -380,6 +384,7 @@ export async function submitAgentConversationTurn(input: {
         optimisticBaseThread,
         optimisticUserMessageIds,
         submittedTextForRecovery,
+        restoreComposerText: input.payload.canUpdateDraft?.() !== false,
       });
     }
     releaseSubmittingIfCurrent();

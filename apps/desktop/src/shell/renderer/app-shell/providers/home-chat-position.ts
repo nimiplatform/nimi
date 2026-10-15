@@ -15,6 +15,7 @@ export function useHomeChatPosition() {
     const current = navigation.getSnapshot().current;
     if (current.key !== entryKey || current.destination.id !== 'chat') return;
     const explicit = current.destination.chat;
+    if (explicit?.managerAnchorId) return; // Only the correlated manager resolver may fulfill this request.
     if (explicit && (position.mode !== explicit.mode
       || explicit.targetId && !position.targetId || explicit.threadId && !position.threadId
       || explicit.conversationAnchorId && !position.conversationAnchorId)) return;
@@ -51,6 +52,15 @@ export function useHomeChatPosition() {
     if (!threadId || current.destination.chat.threadId) return;
     refine({ ...current.destination.chat, threadId: threadId ?? undefined });
   }, [entryKey, navigation, refine]);
+  const resolveAgentCenterRequest = useCallback((selection: AgentConversationSelection | null) => {
+    const entry = navigation.getSnapshot().current;
+    if (entry.key !== entryKey || entry.destination.chat?.mode !== 'agent' || !entry.destination.chat.managerAnchorId) return;
+    if (selection && selection.conversationAnchorId !== entry.destination.chat.managerAnchorId) return;
+    void navigation.replace({ id: 'chat', chat: selection
+      ? { mode: 'agent', agentHandle: selection.agentHandle ?? undefined, conversationAnchorId: selection.conversationAnchorId ?? undefined, targetId: selection.agentHandle ?? undefined }
+      : { mode: 'agent' } });
+  }, [entryKey, navigation]);
   return { mode, targetId: chat?.targetId ?? (mode === 'ai' ? 'ai:assistant' : null), nimiSelection, agentSelection,
+    managerAnchorId: chat?.managerAnchorId ?? null, resolveAgentCenterRequest,
     humanThreadId: mode === 'human' ? chat?.threadId ?? null : null, open, openMode, openTarget, refine, selectNimiThread, selectAgentConversation, resolveHumanThread };
 }

@@ -29,7 +29,8 @@ use crate::{
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
     LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError, LocalAppReasonCode,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConversationContextRequest,
+    LocalAppOperationError, LocalAppReasonCode,
 };
 
 use super::{base64_bytes_output, invalid_payload, untrusted};
@@ -41,6 +42,74 @@ const MAX_MEMORY_PAGE_TOKEN_BYTES: usize = 1024;
 const RESOURCE_PACK_MEDIA_TYPE: &str = "application/vnd.nimi.resource-pack+zip";
 const RESOURCE_PACK_TARGET_ID: &str = "zhiyu-experience-surface";
 const RESOURCE_PACK_TARGET_VERSION: u32 = 1;
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.conversation-context-selection
+pub(super) async fn update_conversation_context(
+    channel: Channel,
+    request: LocalAppAgentUpdateConversationContextRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    if request.expected_context_revision == 0
+        || request.conversation_anchor_id.is_empty()
+        || request.conversation_anchor_id.len() > 512
+        || request.conversation_anchor_id.trim() != request.conversation_anchor_id
+    {
+        return Err(invalid_payload());
+    }
+    let expected_anchor = request.conversation_anchor_id.clone();
+    let expected_revision = request.expected_context_revision;
+    let expected_first = request.first_turn_sequence;
+    let expected_omit = request.omit_supplemental_context;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .update_local_app_agent_conversation_context(
+            crate::generated::UpdateLocalAppAgentConversationContextRequest {
+                agent_handle: request.agent_handle,
+                conversation_anchor_id: request.conversation_anchor_id,
+                expected_context_revision: request.expected_context_revision,
+                first_turn_sequence: request.first_turn_sequence,
+                omit_supplemental_context: request.omit_supplemental_context,
+            },
+        )
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    let projection = response.projection.ok_or_else(untrusted)?;
+    if projection.conversation_anchor_id != expected_anchor
+        || projection.context_revision <= expected_revision
+        || projection.first_turn_sequence != expected_first
+        || projection.omit_supplemental_context != expected_omit
+    {
+        return Err(untrusted());
+    }
+    project_conversation_context(projection)
+}
+
+fn project_conversation_context(
+    input: crate::generated::LocalAppAgentConversationContextProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if input.conversation_anchor_id.is_empty()
+        || input.conversation_anchor_id.len() > 512
+        || input.conversation_anchor_id.trim() != input.conversation_anchor_id
+        || input.context_revision == 0
+        || input.first_turn_sequence > input.committed_turn_count
+        || (input.busy && input.can_update)
+        || input
+            .suggested_first_turn_sequence
+            .is_some_and(|v| v > input.committed_turn_count || v < input.first_turn_sequence)
+    {
+        return Err(untrusted());
+    }
+    Ok(json!({
+        "conversationAnchorId": input.conversation_anchor_id,
+        "contextRevision": input.context_revision.to_string(),
+        "firstTurnSequence": input.first_turn_sequence.to_string(),
+        "omitSupplementalContext": input.omit_supplemental_context,
+        "committedTurnCount": input.committed_turn_count.to_string(),
+        "suggestedFirstTurnSequence": input.suggested_first_turn_sequence.map(|v| v.to_string()),
+        "busy": input.busy,
+        "canUpdate": input.can_update,
+    }))
+}
 
 pub(super) async fn manager_snapshot(
     channel: Channel,
@@ -80,6 +149,7 @@ fn project_manager_snapshot(
         "source": snapshot.source.map(project_manager_source).transpose()?,
         "context": snapshot.context.map(project_manager_context).transpose()?,
         "actionAvailability": action_availability,
+        "conversationContext": snapshot.conversation_context.map(project_conversation_context).transpose()?,
     }))
 }
 
@@ -1333,6 +1403,7 @@ mod tests {
     #[test]
     fn manager_snapshot_projects_only_bounded_camel_case_status() {
         let projected = project_manager_snapshot(crate::generated::LocalAppAgentManagerSnapshot {
+            conversation_context: None,
             lifecycle_status: AgentLifecycleStatus::Active as i32,
             execution_state: AgentExecutionState::ChatActive as i32,
             status_text: "available".to_string(),
@@ -1412,7 +1483,8 @@ mod tests {
                 .map(JsonMap::len),
             Some(11)
         );
-        assert_eq!(projected.as_object().map(|record| record.len()), Some(7));
+        assert_eq!(projected.as_object().map(|record| record.len()), Some(8));
+        assert!(projected["conversationContext"].is_null());
         let serialized = projected.to_string();
         for forbidden in [
             "localAgentRef",

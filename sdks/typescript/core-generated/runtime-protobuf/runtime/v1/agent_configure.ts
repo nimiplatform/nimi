@@ -361,6 +361,80 @@ export interface LocalAppAgentUpdateAutonomyResponse {
     projection?: LocalAppAgentAutonomyProjection;
 }
 /**
+ * One explicit model-input selection on the existing Conversation. The
+ * transcript and Cognition Memory remain unchanged.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentConversationContextProjection
+ */
+export interface LocalAppAgentConversationContextProjection {
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 1
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: uint64 context_revision = 2
+     */
+    contextRevision: string;
+    /**
+     * @generated from protobuf field: uint64 first_turn_sequence = 3
+     */
+    firstTurnSequence: string;
+    /**
+     * @generated from protobuf field: bool omit_supplemental_context = 4
+     */
+    omitSupplementalContext: boolean;
+    /**
+     * @generated from protobuf field: uint64 committed_turn_count = 5
+     */
+    committedTurnCount: string;
+    /**
+     * @generated from protobuf field: optional uint64 suggested_first_turn_sequence = 6
+     */
+    suggestedFirstTurnSequence?: string;
+    /**
+     * @generated from protobuf field: bool busy = 7
+     */
+    busy: boolean;
+    /**
+     * @generated from protobuf field: bool can_update = 8
+     */
+    canUpdate: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppAgentConversationContextRequest
+ */
+export interface UpdateLocalAppAgentConversationContextRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: uint64 expected_context_revision = 3
+     */
+    expectedContextRevision: string;
+    /**
+     * @generated from protobuf field: uint64 first_turn_sequence = 4
+     */
+    firstTurnSequence: string;
+    /**
+     * @generated from protobuf field: bool omit_supplemental_context = 5
+     */
+    omitSupplementalContext: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppAgentConversationContextResponse
+ */
+export interface UpdateLocalAppAgentConversationContextResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentConversationContextProjection projection = 1
+     */
+    projection?: LocalAppAgentConversationContextProjection;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentPresentationProjection
  */
 export interface LocalAppAgentPresentationProjection {
@@ -1733,6 +1807,233 @@ class LocalAppAgentUpdateAutonomyResponse$Type extends MessageType<LocalAppAgent
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
  */
 export const LocalAppAgentUpdateAutonomyResponse = new LocalAppAgentUpdateAutonomyResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentConversationContextProjection$Type extends MessageType<LocalAppAgentConversationContextProjection> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentConversationContextProjection", [
+            { no: 1, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "context_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "first_turn_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "omit_supplemental_context", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "committed_turn_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "suggested_first_turn_sequence", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "busy", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "can_update", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentConversationContextProjection>): LocalAppAgentConversationContextProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.conversationAnchorId = "";
+        message.contextRevision = "0";
+        message.firstTurnSequence = "0";
+        message.omitSupplementalContext = false;
+        message.committedTurnCount = "0";
+        message.busy = false;
+        message.canUpdate = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentConversationContextProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentConversationContextProjection): LocalAppAgentConversationContextProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string conversation_anchor_id */ 1:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* uint64 context_revision */ 2:
+                    message.contextRevision = reader.uint64().toString();
+                    break;
+                case /* uint64 first_turn_sequence */ 3:
+                    message.firstTurnSequence = reader.uint64().toString();
+                    break;
+                case /* bool omit_supplemental_context */ 4:
+                    message.omitSupplementalContext = reader.bool();
+                    break;
+                case /* uint64 committed_turn_count */ 5:
+                    message.committedTurnCount = reader.uint64().toString();
+                    break;
+                case /* optional uint64 suggested_first_turn_sequence */ 6:
+                    message.suggestedFirstTurnSequence = reader.uint64().toString();
+                    break;
+                case /* bool busy */ 7:
+                    message.busy = reader.bool();
+                    break;
+                case /* bool can_update */ 8:
+                    message.canUpdate = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentConversationContextProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string conversation_anchor_id = 1; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* uint64 context_revision = 2; */
+        if (message.contextRevision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.contextRevision);
+        /* uint64 first_turn_sequence = 3; */
+        if (message.firstTurnSequence !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.firstTurnSequence);
+        /* bool omit_supplemental_context = 4; */
+        if (message.omitSupplementalContext !== false)
+            writer.tag(4, WireType.Varint).bool(message.omitSupplementalContext);
+        /* uint64 committed_turn_count = 5; */
+        if (message.committedTurnCount !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.committedTurnCount);
+        /* optional uint64 suggested_first_turn_sequence = 6; */
+        if (message.suggestedFirstTurnSequence !== undefined)
+            writer.tag(6, WireType.Varint).uint64(message.suggestedFirstTurnSequence);
+        /* bool busy = 7; */
+        if (message.busy !== false)
+            writer.tag(7, WireType.Varint).bool(message.busy);
+        /* bool can_update = 8; */
+        if (message.canUpdate !== false)
+            writer.tag(8, WireType.Varint).bool(message.canUpdate);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentConversationContextProjection
+ */
+export const LocalAppAgentConversationContextProjection = new LocalAppAgentConversationContextProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppAgentConversationContextRequest$Type extends MessageType<UpdateLocalAppAgentConversationContextRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppAgentConversationContextRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_context_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "first_turn_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "omit_supplemental_context", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppAgentConversationContextRequest>): UpdateLocalAppAgentConversationContextRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.conversationAnchorId = "";
+        message.expectedContextRevision = "0";
+        message.firstTurnSequence = "0";
+        message.omitSupplementalContext = false;
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppAgentConversationContextRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppAgentConversationContextRequest): UpdateLocalAppAgentConversationContextRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* uint64 expected_context_revision */ 3:
+                    message.expectedContextRevision = reader.uint64().toString();
+                    break;
+                case /* uint64 first_turn_sequence */ 4:
+                    message.firstTurnSequence = reader.uint64().toString();
+                    break;
+                case /* bool omit_supplemental_context */ 5:
+                    message.omitSupplementalContext = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppAgentConversationContextRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* uint64 expected_context_revision = 3; */
+        if (message.expectedContextRevision !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.expectedContextRevision);
+        /* uint64 first_turn_sequence = 4; */
+        if (message.firstTurnSequence !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.firstTurnSequence);
+        /* bool omit_supplemental_context = 5; */
+        if (message.omitSupplementalContext !== false)
+            writer.tag(5, WireType.Varint).bool(message.omitSupplementalContext);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppAgentConversationContextRequest
+ */
+export const UpdateLocalAppAgentConversationContextRequest = new UpdateLocalAppAgentConversationContextRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppAgentConversationContextResponse$Type extends MessageType<UpdateLocalAppAgentConversationContextResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppAgentConversationContextResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => LocalAppAgentConversationContextProjection }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppAgentConversationContextResponse>): UpdateLocalAppAgentConversationContextResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppAgentConversationContextResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppAgentConversationContextResponse): UpdateLocalAppAgentConversationContextResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAgentConversationContextProjection projection */ 1:
+                    message.projection = LocalAppAgentConversationContextProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppAgentConversationContextResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAgentConversationContextProjection projection = 1; */
+        if (message.projection)
+            LocalAppAgentConversationContextProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppAgentConversationContextResponse
+ */
+export const UpdateLocalAppAgentConversationContextResponse = new UpdateLocalAppAgentConversationContextResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAppAgentPresentationProjection$Type extends MessageType<LocalAppAgentPresentationProjection> {
     constructor() {

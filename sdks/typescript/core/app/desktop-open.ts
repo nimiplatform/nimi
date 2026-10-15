@@ -69,7 +69,8 @@ export type NimiDesktopOpenIntent =
   | NimiDesktopOpenRuntimeConfigIntent
   | NimiDesktopOpenAppsIntent
   | NimiDesktopOpenSettingsIntent
-  | NimiDesktopOpenIntegrationsIntent;
+  | NimiDesktopOpenIntegrationsIntent
+  | { readonly kind: 'open-agent-center'; readonly conversationAnchorId: string };
 
 export type NimiDesktopOpenIntentKind = NimiDesktopOpenIntent['kind'];
 
@@ -267,6 +268,12 @@ export function parseNimiDesktopOpenIntent(value: unknown): NimiDesktopOpenInten
     case 'open-integrations':
       assertAllowedFields(record, ['kind'], 'DesktopOpenIntent integrations intent');
       return { kind: 'open-integrations' };
+    case 'open-agent-center': {
+      assertAllowedFields(record, ['kind', 'conversationAnchorId'], 'DesktopOpenIntent Agent Center intent');
+      const conversationAnchorId = requireString(record.conversationAnchorId, 'intent.conversationAnchorId');
+      if (conversationAnchorId.length > 256 || !/^[A-Za-z0-9_-]+$/u.test(conversationAnchorId)) throw invalid('Invalid Conversation correlation.', 'intent.conversationAnchorId');
+      return { kind: 'open-agent-center', conversationAnchorId };
+    }
     case 'open-url':
       throw invalid('DesktopOpenIntent does not admit raw URL payloads.', 'intent.kind');
     default:
@@ -355,6 +362,7 @@ function parseIntentKind(value: unknown, field: string): NimiDesktopOpenIntentKi
     || kind === 'open-apps'
     || kind === 'open-settings'
     || kind === 'open-integrations'
+    || kind === 'open-agent-center'
   ) {
     return kind;
   }

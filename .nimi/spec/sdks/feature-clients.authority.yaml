@@ -1089,3 +1089,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-introduction
+  - id: rule.nimi.sdks.feature-clients.conversation-context-selection
+    kind: rule
+    title: Agent managers consume explicit Conversation context selection
+    modality: must
+    statement: The agent.configure client carries exactly runtime.agent.conversation-context.update with a current Manager Agent handle, Runtime-issued matching Conversation anchor, expected context revision, inclusive first-turn sequence and supplemental-context omission choice. The existing manager snapshot projects the current selection and availability without exposing private prompt or Memory. Plain agent.local clients receive no new management authority or mandatory request fields; supported shells may open the formal Home manager for the same authorized Agent without transferring its management capability to the calling App. The SDK preserves busy, stale revision, input and permission failures, never resets on open or automatically retries a context mutation or model turn.
+    condition: Whenever the SDK or shared Agent Center reads or updates Conversation context selection.
+    failure: Fail closed on unavailable operations, stale handles or malformed projection; preserve the original conversation and typed owner result without private transport or client-owned context truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane

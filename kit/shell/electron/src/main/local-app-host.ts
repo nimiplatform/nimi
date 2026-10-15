@@ -162,6 +162,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAgentManagerSnapshot',
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
+  'localAppAgentUpdateConversationContext',
   'localAppAgentPresentationSnapshot',
   'localAppAgentPresentationReadAsset',
   'localAppAgentCommitPresentation',
@@ -274,6 +275,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-remote-model-catalog-stale',
   'ai-config-persistence-unavailable',
   'agent-presentation-revision-conflict',
+  'agent-conversation-context-revision-conflict',
   'agent-busy',
   'agent-turn-not-active',
   'agent-presentation-asset-type-invalid',
@@ -304,6 +306,7 @@ const ADMITTED_REASON_METADATA_KEYS: ReadonlySet<string> = new Set([
   'capability',
   'grpc_status_code',
   'integration_reason',
+  'rule_id', 'failure_stage', 'content_part',
 ]);
 
 const FORBIDDEN_PORTABLE_APP_AI_CONFIG_KEYS: ReadonlySet<string> = new Set([
@@ -556,6 +559,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAgentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentUpdateConversationContext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -707,6 +711,7 @@ export type NimiElectronLocalAppHost = {
   readonly agentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentUpdateConversationContext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1630,6 +1635,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppAgentUpdateAutonomy(input));
   }
 
+  agentUpdateConversationContext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentUpdateConversationContext(input));
+  }
+
   agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentPresentationSnapshot(input));
   }
@@ -2020,6 +2029,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   agentUpdateAutonomy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentUpdateAutonomy(input);
+  }
+
+  agentUpdateConversationContext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentUpdateConversationContext(input);
   }
 
   agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -3398,6 +3411,14 @@ function validateReasonMetadata(value: unknown, reasonCode: string): Readonly<Re
   }
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
+    if (reasonCode === 'ai-content-filter-blocked' && !['rule_id', 'failure_stage', 'content_part'].includes(key)) throw untrustedRuntimeError();
+    if (key === 'rule_id' || key === 'failure_stage' || key === 'content_part') {
+      const allowed = key === 'rule_id' ? ['pem-private-key', 'github-classic-pat']
+        : key === 'failure_stage' ? ['input', 'output']
+          : ['system', 'message', 'message_part', 'history', 'tool_name', 'tool_arguments', 'tool_result', 'tool_definition', 'tool_schema', 'text_options', 'response_schema', 'text', 'text_item'];
+      if (reasonCode !== 'ai-content-filter-blocked' || typeof entry !== 'string' || !allowed.includes(entry)) throw untrustedRuntimeError();
+      metadata[key] = entry; continue;
+    }
     if (key === 'integration_reason') {
       if (isIntegrationOwnerReasonMetadata(reasonCode, entry)) metadata[key] = entry;
       continue;

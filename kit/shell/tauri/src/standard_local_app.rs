@@ -8,11 +8,11 @@ use nimi_shell_protected_local::{
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
     LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppEmbodimentSnapshotRequest,
-    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConversationContextRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
+    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
+    LocalAppAssetRevealRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
+    LocalAppEmbodimentSnapshotRequest, LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
     LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
@@ -334,6 +334,16 @@ pub struct LocalAppAgentUpdateAutonomyPayload {
     agent_handle: String,
     expected_autonomy_revision: String,
     intent: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentUpdateConversationContextPayload {
+    agent_handle: String,
+    conversation_anchor_id: String,
+    expected_context_revision: String,
+    first_turn_sequence: String,
+    omit_supplemental_context: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1436,6 +1446,33 @@ pub async fn agent_autonomy_snapshot_for_host(
     .map_err(map_local_app_error)
 }
 
+pub async fn agent_update_conversation_context_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let p: LocalAppAgentUpdateConversationContextPayload =
+        parse_payload(payload, "local_app_agent_update_conversation_context")?;
+    let expected_context_revision = decimal_revision(
+        &p.expected_context_revision,
+        false,
+        "local_app_agent_update_conversation_context",
+    )?;
+    let first_turn_sequence = decimal_revision(
+        &p.first_turn_sequence,
+        true,
+        "local_app_agent_update_conversation_context",
+    )?;
+    host.agent_update_conversation_context(LocalAppAgentUpdateConversationContextRequest {
+        agent_handle: p.agent_handle,
+        conversation_anchor_id: p.conversation_anchor_id,
+        expected_context_revision,
+        first_turn_sequence,
+        omit_supplemental_context: p.omit_supplemental_context,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
 pub async fn agent_update_autonomy_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
@@ -1956,6 +1993,7 @@ fn standard_code(reason: &str) -> &'static str {
         "access-denied" => "access-denied",
         "owner-authority-missing" => "owner-authority-missing",
         "content-conflict" => "content-conflict",
+        "agent-conversation-context-revision-conflict" => "content-conflict",
         "realm-unavailable" => "realm-unavailable",
         "rate-limited" => "rate-limited",
         "upstream-failed" => "upstream-failed",
@@ -2034,6 +2072,7 @@ fn action_hint(reason: &str) -> &'static str {
         | "realm-unavailable"
         | "rate-limited" => "retry_later",
         "agent-presentation-revision-conflict" => "refresh_presentation_snapshot",
+        "agent-conversation-context-revision-conflict" => "refresh_conversation_context_snapshot",
         "agent-presentation-asset-type-invalid"
         | "agent-presentation-asset-too-large"
         | "agent-presentation-asset-structure-invalid"
@@ -2405,6 +2444,7 @@ mod tests {
             R::RealmUnavailable,
             R::RateLimited,
             R::AgentPresentationRevisionConflict,
+            R::AgentConversationContextRevisionConflict,
             R::AgentPresentationAssetTypeInvalid,
             R::AgentPresentationAssetTooLarge,
             R::AgentPresentationAssetStructureInvalid,

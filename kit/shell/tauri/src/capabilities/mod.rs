@@ -916,6 +916,15 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_agent_update_conversation_context(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_update_conversation_context_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
     pub async fn local_app_agent_presentation_snapshot(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

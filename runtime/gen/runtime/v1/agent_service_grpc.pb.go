@@ -82,6 +82,7 @@ const (
 	RuntimeAgentService_ImportPortableAIProfile_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile"
 	RuntimeAgentService_ListPortableAIProfiles_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles"
 	RuntimeAgentService_GetLocalAppAgentManagerSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
+	RuntimeAgentService_UpdateLocalAppAgentConversationContext_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext"
 	RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
 	RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
 	RuntimeAgentService_ListLocalAppSharedLocalAgentAIConfigOptions_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
@@ -170,6 +171,7 @@ type RuntimeAgentServiceClient interface {
 	// domain). Shared AIConfig actions resolve the singular subsystem owner;
 	// autonomy and presentation stay per-Agent behind session-scoped handles.
 	GetLocalAppAgentManagerSnapshot(ctx context.Context, in *GetLocalAppAgentManagerSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppAgentManagerSnapshotResponse, error)
+	UpdateLocalAppAgentConversationContext(ctx context.Context, in *UpdateLocalAppAgentConversationContextRequest, opts ...grpc.CallOption) (*UpdateLocalAppAgentConversationContextResponse, error)
 	GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *GetLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetLocalAppSharedLocalAgentAIConfigResponse, error)
 	OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteLocalAppSharedLocalAgentAIConfigResponse, error)
 	ListLocalAppSharedLocalAgentAIConfigOptions(ctx context.Context, in *ListLocalAppSharedLocalAgentAIConfigOptionsRequest, opts ...grpc.CallOption) (*ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error)
@@ -858,6 +860,16 @@ func (c *runtimeAgentServiceClient) GetLocalAppAgentManagerSnapshot(ctx context.
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) UpdateLocalAppAgentConversationContext(ctx context.Context, in *UpdateLocalAppAgentConversationContextRequest, opts ...grpc.CallOption) (*UpdateLocalAppAgentConversationContextResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateLocalAppAgentConversationContextResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_UpdateLocalAppAgentConversationContext_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *GetLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetLocalAppSharedLocalAgentAIConfigResponse)
@@ -1052,6 +1064,7 @@ type RuntimeAgentServiceServer interface {
 	// domain). Shared AIConfig actions resolve the singular subsystem owner;
 	// autonomy and presentation stay per-Agent behind session-scoped handles.
 	GetLocalAppAgentManagerSnapshot(context.Context, *GetLocalAppAgentManagerSnapshotRequest) (*GetLocalAppAgentManagerSnapshotResponse, error)
+	UpdateLocalAppAgentConversationContext(context.Context, *UpdateLocalAppAgentConversationContextRequest) (*UpdateLocalAppAgentConversationContextResponse, error)
 	GetLocalAppSharedLocalAgentAIConfig(context.Context, *GetLocalAppSharedLocalAgentAIConfigRequest) (*GetLocalAppSharedLocalAgentAIConfigResponse, error)
 	OverwriteLocalAppSharedLocalAgentAIConfig(context.Context, *OverwriteLocalAppSharedLocalAgentAIConfigRequest) (*OverwriteLocalAppSharedLocalAgentAIConfigResponse, error)
 	ListLocalAppSharedLocalAgentAIConfigOptions(context.Context, *ListLocalAppSharedLocalAgentAIConfigOptionsRequest) (*ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error)
@@ -1261,6 +1274,9 @@ func (UnimplementedRuntimeAgentServiceServer) ListPortableAIProfiles(context.Con
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentManagerSnapshot(context.Context, *GetLocalAppAgentManagerSnapshotRequest) (*GetLocalAppAgentManagerSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentManagerSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) UpdateLocalAppAgentConversationContext(context.Context, *UpdateLocalAppAgentConversationContextRequest) (*UpdateLocalAppAgentConversationContextResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLocalAppAgentConversationContext not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppSharedLocalAgentAIConfig(context.Context, *GetLocalAppSharedLocalAgentAIConfigRequest) (*GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppSharedLocalAgentAIConfig not implemented")
@@ -2424,6 +2440,24 @@ func _RuntimeAgentService_GetLocalAppAgentManagerSnapshot_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_UpdateLocalAppAgentConversationContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateLocalAppAgentConversationContextRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppAgentConversationContext(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_UpdateLocalAppAgentConversationContext_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppAgentConversationContext(ctx, req.(*UpdateLocalAppAgentConversationContextRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetLocalAppSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
@@ -2882,6 +2916,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLocalAppAgentManagerSnapshot",
 			Handler:    _RuntimeAgentService_GetLocalAppAgentManagerSnapshot_Handler,
+		},
+		{
+			MethodName: "UpdateLocalAppAgentConversationContext",
+			Handler:    _RuntimeAgentService_UpdateLocalAppAgentConversationContext_Handler,
 		},
 		{
 			MethodName: "GetLocalAppSharedLocalAgentAIConfig",

@@ -72,7 +72,6 @@ export async function createThreadForTarget(
     targetSnapshot: canonicalTarget,
   };
   input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
-  input.currentComposerTextRef.current = '';
   input.syncSelectionToThread(thread);
   return thread;
 }

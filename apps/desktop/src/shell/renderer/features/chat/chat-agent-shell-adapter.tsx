@@ -457,6 +457,7 @@ export function useAgentConversationModeHost(
     applyDriverEffects,
     bundle,
     currentComposerTextRef,
+    pendingAttachments: activePendingAttachments,
     queryClient,
     reportHostError: reportRuntimeProductError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({
@@ -505,7 +506,6 @@ export function useAgentConversationModeHost(
     }
     const retry = pendingImageRetry;
     setPendingImageRetry(null);
-    currentComposerTextRef.current = '';
     void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportRuntimeProductError);
   }, [
     activeTarget?.agentHandle,

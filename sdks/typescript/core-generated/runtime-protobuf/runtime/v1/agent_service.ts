@@ -26,6 +26,8 @@ import { OverwriteLocalAppSharedLocalAgentAIConfigResponse } from "./agent_confi
 import { OverwriteLocalAppSharedLocalAgentAIConfigRequest } from "./agent_configure";
 import { GetLocalAppSharedLocalAgentAIConfigResponse } from "./agent_configure";
 import { GetLocalAppSharedLocalAgentAIConfigRequest } from "./agent_configure";
+import { UpdateLocalAppAgentConversationContextResponse } from "./agent_configure";
+import { UpdateLocalAppAgentConversationContextRequest } from "./agent_configure";
 import { GetDelegatedControlSurfaceSnapshotResponse } from "./delegated_control";
 import { GetDelegatedControlSurfaceSnapshotRequest } from "./delegated_control";
 import { GetDelegatedReplayTraceResponse } from "./delegated_control";
@@ -86,6 +88,7 @@ import { AIConfigCapabilityIntent } from "./capability_configuration";
 import { LocalAgentCapabilityParticipation } from "./agent_configure";
 import { AIConfigEffectiveSelection } from "./capability_configuration";
 import { AIConfig } from "./capability_configuration";
+import { LocalAppAgentConversationContextProjection } from "./agent_configure";
 import { AgentConversationSummaryStatus } from "./agent_source_materialization";
 import { AgentSourceCognitionStatus } from "./agent_source_materialization";
 import { AgentTurnContextTruncationSummary } from "./agent_source_materialization";
@@ -1876,6 +1879,10 @@ export interface LocalAppAgentManagerSnapshot {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentManagerActionAvailability action_availability = 7
      */
     actionAvailability: LocalAppAgentManagerActionAvailability[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentConversationContextProjection conversation_context = 8
+     */
+    conversationContext?: LocalAppAgentConversationContextProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
@@ -9621,7 +9628,8 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
             { no: 4, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "source", kind: "message", T: () => LocalAppAgentManagerSourceProjection },
             { no: 6, name: "context", kind: "message", T: () => LocalAppAgentManagerContextProjection },
-            { no: 7, name: "action_availability", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentManagerActionAvailability }
+            { no: 7, name: "action_availability", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentManagerActionAvailability },
+            { no: 8, name: "conversation_context", kind: "message", T: () => LocalAppAgentConversationContextProjection }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentManagerSnapshot>): LocalAppAgentManagerSnapshot {
@@ -9661,6 +9669,9 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
                 case /* repeated nimi.runtime.v1.LocalAppAgentManagerActionAvailability action_availability */ 7:
                     message.actionAvailability.push(LocalAppAgentManagerActionAvailability.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.LocalAppAgentConversationContextProjection conversation_context */ 8:
+                    message.conversationContext = LocalAppAgentConversationContextProjection.internalBinaryRead(reader, reader.uint32(), options, message.conversationContext);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9694,6 +9705,9 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
         /* repeated nimi.runtime.v1.LocalAppAgentManagerActionAvailability action_availability = 7; */
         for (let i = 0; i < message.actionAvailability.length; i++)
             LocalAppAgentManagerActionAvailability.internalBinaryWrite(message.actionAvailability[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentConversationContextProjection conversation_context = 8; */
+        if (message.conversationContext)
+            LocalAppAgentConversationContextProjection.internalBinaryWrite(message.conversationContext, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

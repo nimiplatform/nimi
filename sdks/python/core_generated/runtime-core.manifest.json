@@ -677,6 +677,15 @@
           "response_stream": false
         },
         {
+          "name": "UpdateLocalAppAgentConversationContext",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppAgentConversationContextRequest",
+          "response_type": "UpdateLocalAppAgentConversationContextResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetLocalAppSharedLocalAgentAIConfig",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
           "kind": "unary",
@@ -2746,6 +2755,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
     "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
@@ -3586,6 +3596,14 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentAutonomyRequest",
       "response_type": "LocalAppAgentUpdateAutonomyResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentConversationContext",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentConversationContextRequest",
+      "response_type": "UpdateLocalAppAgentConversationContextResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -5822,6 +5840,14 @@
       "response_type": "LocalAppAgentUpdateAutonomyResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentConversationContext",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentConversationContextRequest",
+      "response_type": "UpdateLocalAppAgentConversationContextResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
       "service": "RuntimeAgentService",
       "method": "UploadLocalAppConversationAttachment",
@@ -7951,6 +7977,7 @@
       "LocalAppAgentAutonomyProjection",
       "LocalAppAgentAutonomySnapshotResponse",
       "LocalAppAgentCommitPresentationResponse",
+      "LocalAppAgentConversationContextProjection",
       "LocalAppAgentIntroduction",
       "LocalAppAgentIntroductionTopic",
       "LocalAppAgentManagerActionAvailability",
@@ -8413,6 +8440,8 @@
       "UpdateLoadoutRequest",
       "UpdateLoadoutResponse",
       "UpdateLocalAppAgentAutonomyRequest",
+      "UpdateLocalAppAgentConversationContextRequest",
+      "UpdateLocalAppAgentConversationContextResponse",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
@@ -25553,6 +25582,68 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "LocalAppAgentConversationContextProjection",
+        "fields": [
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "context_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "first_turn_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "omit_supplemental_context",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "committed_turn_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "suggested_first_turn_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "busy",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "can_update",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "LocalAppAgentIntroduction",
         "fields": [
           {
@@ -25837,6 +25928,13 @@
             "repeated": true,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "conversation_context",
+            "type": "LocalAppAgentConversationContextProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -42433,6 +42531,60 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "UpdateLocalAppAgentConversationContextRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expected_context_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "first_turn_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "omit_supplemental_context",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "UpdateLocalAppAgentConversationContextResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentConversationContextProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "UploadArtifactChunk",
         "fields": [
           {
@@ -46497,7 +46649,8 @@
           "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED",
           "AI_RESULT_UNAVAILABLE",
           "AI_PROVIDER_TASK_CANCELED",
-          "AI_PROVIDER_TASK_EXPIRED"
+          "AI_PROVIDER_TASK_EXPIRED",
+          "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

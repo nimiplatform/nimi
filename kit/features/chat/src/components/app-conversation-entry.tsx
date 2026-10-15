@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/kit/core/sdk-contract';
 import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
+import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ChatCopy } from '../copy.js';
 import type { ConversationCanonicalMessage, ConversationViewMode } from '../types.js';
 import {
@@ -42,6 +43,10 @@ type AppConversationEntryCopy = Readonly<{
   transcriptEmptyTitle: string;
   transcriptEmptyDescription: string;
   requestIdUnavailable: string;
+  reuseInput: string;
+  preserveDraft: string;
+  conversationSettings: string;
+  conversationSettingsUnavailable: string;
   chatCopy: ChatCopy;
 }>;
 
@@ -68,6 +73,10 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     transcriptEmptyTitle: 'Start the first turn',
     transcriptEmptyDescription: 'Only committed Conversation messages appear here.',
     requestIdUnavailable: 'This App session cannot create a Conversation request identifier.',
+    reuseInput: 'Edit the failed input',
+    preserveDraft: 'Your new draft is kept. Clear it first to reuse the earlier input.',
+    conversationSettings: 'Review conversation settings in Nimi',
+    conversationSettingsUnavailable: 'Could not open Nimi. Check that Home is running. No context was changed.',
     chatCopy: {},
   }),
   zh: Object.freeze<AppConversationEntryCopy>({
@@ -92,6 +101,10 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     transcriptEmptyTitle: '开始第一个回合',
     transcriptEmptyDescription: '这里只显示已经提交的 Conversation 消息。',
     requestIdUnavailable: '当前 App session 无法创建 Conversation request identifier。',
+    reuseInput: '取回失败输入并编辑',
+    preserveDraft: '已保留新草稿。如需取回之前的输入，请先清空当前草稿。',
+    conversationSettings: '在 Nimi 中查看对话设置',
+    conversationSettingsUnavailable: '未能打开 Nimi。请确认 Home 正在运行，上下文未被修改。',
     chatCopy: {
       characterRailBackLabel: '返回 Agent 列表',
       characterRailOpenProfileLabel: '打开资料',
@@ -177,6 +190,9 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   const [state, setState] = useState<AppConversationEntryState | null>(null);
   const [viewMode, setViewMode] = useState<ConversationViewMode>('stage');
   const [composerText, setComposerText] = useState('');
+  const [submittedInput, setSubmittedInput] = useState<{ turnId: string; text: string } | null>(null);
+  const [settingsOpenFailed, setSettingsOpenFailed] = useState(false);
+  const settingsRequest = useRef<object | null>(null);
 
   useEffect(() => {
     const session = createAppConversationEntrySession({
@@ -189,6 +205,7 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
     return () => {
       removeObserver();
       if (sessionRef.current === session) sessionRef.current = null;
+      settingsRequest.current = null;
       void session.dispose();
     };
   }, [props.client, props.hostPort]);
@@ -196,6 +213,9 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   useEffect(() => {
     setViewMode('stage');
     setComposerText('');
+    setSubmittedInput(null);
+    setSettingsOpenFailed(false);
+    settingsRequest.current = null;
   }, [state?.conversationAnchorId]);
 
   const composerAdapter = useMemo(() => ({
@@ -208,11 +228,13 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
       if (current.pendingAttachment) {
         parts.push({ kind: 'artifact-ref' as const, artifactId: current.pendingAttachment.artifactId });
       }
-      await session.send({
+      const accepted = await session.send({
         requestId: createRequestId('send', copy),
         parts,
       });
-      setComposerText('');
+      if (sessionRef.current !== session) return;
+      setSubmittedInput({ turnId: accepted.turnId, text });
+      setComposerText((currentText) => currentText === text ? '' : currentText);
     },
   }), [copy]);
 
@@ -308,6 +330,19 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
     }).catch(() => {});
   };
   const voiceMessage = [...state.messages].reverse().find((message) => message.role === 'assistant') ?? null;
+  const openSettings = () => {
+    const session = sessionRef.current;
+    const anchor = state.conversationAnchorId;
+    const request = {};
+    settingsRequest.current = request;
+    setSettingsOpenFailed(false);
+    const finish = (failed: boolean) => {
+      if (settingsRequest.current === request && sessionRef.current === session
+        && session?.getState().conversationAnchorId === anchor) setSettingsOpenFailed(failed);
+    };
+    void openDesktopIntent({ intent: { kind: 'open-agent-center', conversationAnchorId: anchor } })
+      .then(result => finish(result.status !== 'accepted')).catch(() => finish(true));
+  };
 
   return (
     <div className={props.className} data-nimi-app-conversation-entry="true">
@@ -332,9 +367,17 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
         }}
         messages={state.messages}
         pendingFirstBeat={state.activeTurnId !== null}
-        topContent={state.actionError || voiceMessage ? (
-          <div className="flex items-center gap-2 px-5 pt-3">
+        topContent={(
+          <div className="flex flex-wrap items-center gap-2 px-5 pt-3">
+            <Button size="sm" tone="ghost" onClick={openSettings}>{copy.conversationSettings}</Button>
+            {settingsOpenFailed ? <InlineAlert tone="warning">{copy.conversationSettingsUnavailable}</InlineAlert> : null}
             {state.actionError ? <InlineAlert tone="warning">{state.actionError}</InlineAlert> : null}
+            {submittedInput?.text && state.lastTurnFailure?.turnId === submittedInput.turnId ? <div className="text-sm">
+              <Button size="sm" tone="secondary" disabled={composerText.length > 0} onClick={() => {
+                if (!composerText) setComposerText(submittedInput.text);
+              }}>{copy.reuseInput}</Button>
+              {composerText ? <p className="mt-1 text-[var(--nimi-text-secondary)]">{copy.preserveDraft}</p> : null}
+            </div> : null}
             {voiceMessage ? (
               <Button
                 size="sm"
@@ -346,7 +389,7 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
               </Button>
             ) : null}
           </div>
-        ) : null}
+        )}
         transcriptProps={{
           loading: false,
           loadingLabel: copy.transcriptLoading,

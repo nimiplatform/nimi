@@ -19,6 +19,7 @@ function manager(
   overrides: Partial<AgentCenterAppManagerSnapshot> = {},
 ): AgentCenterAppManagerSnapshot {
   return {
+    conversationContext: null,
     lifecycleStatus: 'active',
     executionState: 'idle',
     statusText: 'Ready',

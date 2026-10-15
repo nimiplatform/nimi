@@ -350,6 +350,12 @@ test('agent submit driver applies projection refresh after completed terminal fo
   state = completedCheckpoint.finalSession;
   assert.deepEqual(effectKinds(completedCheckpoint), ['host']);
   assert.equal(completedCheckpoint.hostPatchEffect?.footerViewState.displayState, 'hidden');
+  const withNewDraft = resolveCompletedAgentSubmitDriverCheckpoint({
+    state, refreshedBundle: authoritativeBundle(), streamSnapshot: streamState({ phase: 'done' }),
+    preserveComposerText: 'New draft written while the old turn was finishing',
+  });
+  assert.equal(withNewDraft.hostPatchEffect?.composerText, 'New draft written while the old turn was finishing');
+  assert.equal(withNewDraft.hostPatchEffect?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
 
   const followUpProjection = reduceAgentSubmitDriverEvent({
     state,
@@ -497,6 +503,19 @@ test('agent submit driver projects pre-commit text live without persisting or se
     code: 'AI_OUTPUT_INVALID',
     message: 'structured chat output must be complete',
   });
+});
+
+test('content refusal preserves a newer composer draft and keeps the failed input in its original message', () => {
+  const state = createDriverState();
+  const failed = resolveInterruptedAgentSubmitDriverCheckpoint({ state, refreshedBundle: null,
+    runtimeError: { code: 'AI_CONTENT_FILTER_BLOCKED', message: 'Content check blocked this operation.' },
+    updatedAtMs: 150, streamSnapshot: streamState({ phase: 'streaming' }), preserveComposerText: 'My new draft' });
+  assert.equal(failed.hostPatchEffect?.composerText, 'My new draft');
+  assert.notEqual(failed.hostPatchEffect?.bundle.messages.at(-1)?.status, 'complete');
+  const empty = resolveInterruptedAgentSubmitDriverCheckpoint({ state, refreshedBundle: null,
+    runtimeError: { code: 'AI_CONTENT_FILTER_BLOCKED', message: 'Content check blocked this operation.' },
+    updatedAtMs: 150, streamSnapshot: streamState({ phase: 'streaming' }), preserveComposerText: '' });
+  assert.equal(empty.hostPatchEffect?.composerText, '');
 });
 
 test('agent submit driver keeps sealed first-beat when canceled turn wins over late refresh', () => {

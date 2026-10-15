@@ -570,6 +570,7 @@ pub enum ReasonCode {
     /// Confirmed original provider task terminal, not an App Cancel or local budget.
     AiProviderTaskCanceled = 773,
     AiProviderTaskExpired = 774,
+    AgentConversationContextRevisionConflict = 775,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -973,6 +974,9 @@ impl ReasonCode {
             Self::AiResultUnavailable => "AI_RESULT_UNAVAILABLE",
             Self::AiProviderTaskCanceled => "AI_PROVIDER_TASK_CANCELED",
             Self::AiProviderTaskExpired => "AI_PROVIDER_TASK_EXPIRED",
+            Self::AgentConversationContextRevisionConflict => {
+                "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1445,6 +1449,9 @@ impl ReasonCode {
             "AI_RESULT_UNAVAILABLE" => Some(Self::AiResultUnavailable),
             "AI_PROVIDER_TASK_CANCELED" => Some(Self::AiProviderTaskCanceled),
             "AI_PROVIDER_TASK_EXPIRED" => Some(Self::AiProviderTaskExpired),
+            "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
+                Some(Self::AgentConversationContextRevisionConflict)
+            }
             _ => None,
         }
     }
@@ -18975,6 +18982,45 @@ pub struct LocalAppAgentUpdateAutonomyResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
 }
+/// One explicit model-input selection on the existing Conversation. The
+/// transcript and Cognition Memory remain unchanged.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentConversationContextProjection {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub context_revision: u64,
+    #[prost(uint64, tag = "3")]
+    pub first_turn_sequence: u64,
+    #[prost(bool, tag = "4")]
+    pub omit_supplemental_context: bool,
+    #[prost(uint64, tag = "5")]
+    pub committed_turn_count: u64,
+    #[prost(uint64, optional, tag = "6")]
+    pub suggested_first_turn_sequence: ::core::option::Option<u64>,
+    #[prost(bool, tag = "7")]
+    pub busy: bool,
+    #[prost(bool, tag = "8")]
+    pub can_update: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentConversationContextRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub expected_context_revision: u64,
+    #[prost(uint64, tag = "4")]
+    pub first_turn_sequence: u64,
+    #[prost(bool, tag = "5")]
+    pub omit_supplemental_context: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentConversationContextResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentConversationContextProjection>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentPresentationProjection {
     #[prost(message, optional, tag = "1")]
@@ -22372,6 +22418,10 @@ pub struct LocalAppAgentManagerSnapshot {
     #[prost(message, repeated, tag = "7")]
     pub action_availability: ::prost::alloc::vec::Vec<
         LocalAppAgentManagerActionAvailability,
+    >,
+    #[prost(message, optional, tag = "8")]
+    pub conversation_context: ::core::option::Option<
+        LocalAppAgentConversationContextProjection,
     >,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -26502,6 +26552,37 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "GetLocalAppAgentManagerSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_agent_conversation_context(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalAppAgentConversationContextRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateLocalAppAgentConversationContextResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppAgentConversationContext",
                     ),
                 );
             self.inner.unary(req, path, codec).await

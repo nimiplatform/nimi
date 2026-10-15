@@ -68,11 +68,21 @@ Runtime 本身负责识别调用方身份、托管服务商凭据并派发模型
 
 真实的取消、超时、权限错误、Runtime 关闭和传输失败仍保留各自的错误原因与优先级。内容检查的诊断只记录规则、阶段等信息，不保存命中的秘密。已知用量可随原 Job 记录保留；没有用量数据，并不代表失败的调用没有产生费用。
 
+配套的 Home 与标准 Kit Shell 源码构建会显示一次非模态提醒，同时保留 App 原有的失败结果。安全诊断只包含错误原因，以及已有的固定规则、阶段信息。格式命中表示内容可能属于凭据，不代表凭据有效、模型恶意或已经泄露。用户可以直接编辑输入、继续其他任务，无需先提交反馈或关闭检查。RuntimeAgent 在后续模型轮次被拒绝，也不能被描述为整次操作都没有发出设备。
+
 ## 历史记录与会话恢复
 
 Runtime 不会全局改写或清理 App 已保存的历史记录，诊断记录也不代表旧历史已被清理。旧记录依然可读，但只要历史消息或摘要被选入新的请求，就会再次接受检查；如果其中仍包含命中内容，后续哪怕是普通提问也会被拒绝。
 
-App 可以通过既有的上下文编辑或新建对话入口，让用户主动移除受限内容。`RuntimeAgent` 重新 Open 时会复用原有 anchor 而不会清空上下文，Runtime 也不会为此新增自动清理、历史免检或重置协议。如果某段会话的入选上下文仍包含受限内容，而 App 没有既有的恢复入口可供移除，请如实告知用户该会话无法继续推理。
+由 App 自己组织的上下文，继续通过该 App 原有的输入与上下文编辑入口处理。`RuntimeAgent` 重新 Open 时仍复用原 anchor，不会清空历史。
+
+当前源码构建在 Agent Center 的“状态与记忆”中增加了对话上下文控制。用户查看影响并确认后，可以调整后续历史引用的起点，也可选择此对话不引用补充 Memory 和检索内容。旧记录保持可读，新消息仍使用原 anchor。这项选择会影响所有 App 中同一 Agent 的后续对话，重新打开或重启后仍保留，直到用户再次调整；它不会删除记忆、关闭 Memory，也不会自动发送当前草稿。
+
+修改需要已有的 `agent.configure` 权限。只有聊天权限的 App 可通过正式 `open-agent-center` 入口把已知 anchor 交给 Home，由 Home 使用自身当前管理权限确认目标。Agent 正在运行或页面修订已过期时不能修改。恢复完整引用范围后，旧材料仍会接受检查，可能再次引发拒绝。必需的角色说明或 App 指令需要来源管理者更正，调整历史不能移除这些内容。
+
+新增提醒和上下文控制需要配套的 SDK、Kit/native、Home 与 Runtime 源码构建。Windows 的正式 Home → Desktop-supervised Lab 路径已使用 DeepSeek `deepseek-v4-pro` 验证正常流式、工具往返、停止、输入拒绝，以及显式调整后在同一 RuntimeAgent 会话继续、完整重启后继续。这仍是未发布的开发预览，不代表旧版本包、其他操作系统或任意 App 宿主均已验证。预构建安装包的支持情况请以对应版本发布说明为准。
+
+Memory 保留自身的记忆准入规则。修正未被接受时，原记忆保持不变，修改文本仍可编辑；选择不引用补充上下文，不会关闭这些规则，也不会赋予内容检查例外。
 
 ## 继续接入
 
@@ -84,6 +94,7 @@ App 可以通过既有的上下文编辑或新建对话入口，让用户主动�
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
+- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`runtime/internal/riskcontrol/detector.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/riskcontrol/detector.go)
 - [`runtime/internal/services/ai/text_risk_checks.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/services/ai/text_risk_checks.go)

@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { assertElectronGenericRuntimeMethodAllowed } from '../src/main/runtime-bridge-protocol.js';
+
+it('rejects Conversation context updates at the generic posture boundary', () => {
+  expect(() => assertElectronGenericRuntimeMethodAllowed('/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext'))
+    .toThrow(/protected_origin_required/);
+});
 import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import {

@@ -639,6 +639,7 @@ message LocalAppAgentManagerSnapshot {
   LocalAppAgentManagerSourceProjection source = 5;
   LocalAppAgentManagerContextProjection context = 6;
   repeated LocalAppAgentManagerActionAvailability action_availability = 7;
+  LocalAppAgentConversationContextProjection conversation_context = 8;
 }
 message GetLocalAppAgentManagerSnapshotRequest {
   string agent_handle = 1;
@@ -1231,6 +1232,7 @@ service RuntimeAgentService {
   // domain). Shared AIConfig actions resolve the singular subsystem owner;
   // autonomy and presentation stay per-Agent behind session-scoped handles.
   rpc GetLocalAppAgentManagerSnapshot(GetLocalAppAgentManagerSnapshotRequest) returns (GetLocalAppAgentManagerSnapshotResponse);
+  rpc UpdateLocalAppAgentConversationContext(UpdateLocalAppAgentConversationContextRequest) returns (UpdateLocalAppAgentConversationContextResponse);
   rpc GetLocalAppSharedLocalAgentAIConfig(GetLocalAppSharedLocalAgentAIConfigRequest) returns (GetLocalAppSharedLocalAgentAIConfigResponse);
   rpc OverwriteLocalAppSharedLocalAgentAIConfig(OverwriteLocalAppSharedLocalAgentAIConfigRequest) returns (OverwriteLocalAppSharedLocalAgentAIConfigResponse);
   rpc ListLocalAppSharedLocalAgentAIConfigOptions(ListLocalAppSharedLocalAgentAIConfigOptionsRequest) returns (ListLocalAppSharedLocalAgentAIConfigOptionsResponse);

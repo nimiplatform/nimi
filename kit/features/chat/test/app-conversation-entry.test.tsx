@@ -19,6 +19,7 @@ afterEach(() => {
   container?.remove();
   root = null;
   container = null;
+  vi.unstubAllGlobals();
 });
 
 async function flush(): Promise<void> {
@@ -32,11 +33,13 @@ async function flush(): Promise<void> {
 function entryHarness() {
   const calls: Array<{ method: string; input?: unknown }> = [];
   let closeStream: (() => void) | null = null;
+  let emitEvent: ((event: NimiLocalAppConversationEvent) => void) | null = null;
   const events: AsyncIterable<NimiLocalAppConversationEvent> = {
     [Symbol.asyncIterator]() {
       return {
         next: () => new Promise<IteratorResult<NimiLocalAppConversationEvent>>((resolve) => {
           closeStream = () => resolve({ done: true, value: undefined });
+          emitEvent = event => resolve({ done: false, value: event });
         }),
       };
     },
@@ -141,10 +144,61 @@ function entryHarness() {
       cancel: vi.fn(async () => {}),
     },
   };
-  return { calls, client, hostPort };
+  return { calls, client, hostPort, emit: (event: NimiLocalAppConversationEvent) => emitEvent?.(event) };
 }
 
 describe('AppConversationEntry', () => {
+  it('offers the existing Home handoff as a regular conversation action and fences late failure feedback', async () => {
+    let rejectOpen!: (error: Error) => void;
+    const invoke = vi.fn((_command: string, _input: unknown) => new Promise((_resolve, reject) => { rejectOpen = reject; }));
+    vi.stubGlobal('__NIMI_ELECTRON_RUNTIME__', { invoke });
+    const harness = entryHarness(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    await act(async () => root!.render(<AppConversationEntry client={harness.client} hostPort={harness.hostPort} language="en" />));
+    await flush();
+    const select = () => (container!.querySelector(`[data-nimi-app-conversation-agent-handle="${HANDLE_A}"]`) as HTMLButtonElement).click();
+    await act(async () => {
+      select();
+      await import('../src/components/canonical-character-rail.js');
+    }); await flush();
+    const settings = () => [...container!.querySelectorAll('button')].find(b => b.textContent === 'Review conversation settings in Nimi')!;
+    expect(settings()).toBeTruthy();
+    expect(harness.client.conversation.send).not.toHaveBeenCalled();
+    await act(async () => settings().click());
+    expect(invoke.mock.calls[0]?.[1]).toMatchObject({ payload: { intent: { kind: 'open-agent-center', conversationAnchorId: 'anchor-a' } } });
+    await act(async () => rejectOpen(new Error('Home unavailable')));
+    expect(container.textContent).toContain('Could not open Nimi.');
+    await act(async () => settings().click());
+    await act(async () => (container!.querySelector('[aria-label="Back to character space"]') as HTMLButtonElement).click());
+    await act(async () => select()); await flush();
+    await act(async () => rejectOpen(new Error('Late Home failure')));
+    expect(settings()).toBeTruthy();
+    expect(container.textContent).not.toContain('Could not open Nimi.');
+  });
+  it('offers explicit failed-input recovery without replacing a newer draft', async () => {
+    const harness = entryHarness(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    await act(async () => root!.render(<AppConversationEntry client={harness.client} hostPort={harness.hostPort} language="en" />));
+    await flush();
+    await act(async () => (container!.querySelector(`[data-nimi-app-conversation-agent-handle="${HANDLE_A}"]`) as HTMLButtonElement).click());
+    await flush();
+    const write = async (text: string) => act(async () => {
+      const textarea = container!.querySelector('textarea')!;
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, text);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await write('Earlier failed input');
+    await act(async () => (container!.querySelector('[data-chat-composer-send]') as HTMLButtonElement).click());
+    await flush();
+    await act(async () => harness.emit({ type: 'turn-accepted', sequence: '3', conversationAnchorId: 'anchor-a', turnId: 'turn-2' }));
+    await write('Keep this new draft');
+    await act(async () => harness.emit({ type: 'turn-failed', sequence: '4', conversationAnchorId: 'anchor-a', turnId: 'turn-2', reasonCode: 'AI_CONTENT_FILTER_BLOCKED', message: null }));
+    await flush();
+    const recover = () => [...container!.querySelectorAll('button')].find(b => b.textContent === 'Edit the failed input')!;
+    expect((container!.querySelector('textarea') as HTMLTextAreaElement).value).toBe('Keep this new draft');
+    expect(recover().disabled).toBe(true);
+    await write(''); await act(async () => recover().click());
+    expect((container!.querySelector('textarea') as HTMLTextAreaElement).value).toBe('Earlier failed input');
+    expect(harness.client.conversation.send).toHaveBeenCalledTimes(1);
+  });
   it('uses Kit-owned Chinese copy, requires explicit reference selection, and mounts the canonical shell', async () => {
     const harness = entryHarness();
     container = document.createElement('div');

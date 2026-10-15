@@ -1480,7 +1480,7 @@ units:
     kind: rule
     title: Content refusal does not rewrite history or exempt Local analysis
     modality: must
-    statement: Content inspection does not migrate, delete, rewrite, reauthenticate or certify existing records. Selected historical or summary content remains subject to current text.generate rules and can repeatedly refuse an otherwise harmless new request. Original records stay readable under their existing owner. Recovery uses only existing explicit App context editing or new conversation capabilities; reopening a RuntimeAgent anchor is not a context reset, and an affected RuntimeAgent conversation without an existing recovery entry remains unable to infer while the content is selected. No automatic summary retry loop, context omission, cleanup or exemption is introduced. Local sensitive-material analysis is also refused on a real match even for legitimate use; users may explicitly supply a redacted copy through existing business controls. Integration results and Delegation approval policy retain their original owners and behavior; inspection cannot grant authority or reverse an already performed business effect.
+    statement: Content inspection does not migrate, delete, rewrite, reauthenticate or certify existing records. Selected historical or summary content remains subject to current text.generate rules and can repeatedly refuse an otherwise harmless new request. Original records stay readable under their existing owner. Recovery uses explicit App-owned editing or the admitted Runtime Conversation context-selection management operation; reopening an anchor is never a reset. The single transcript remains readable and only the user-confirmed model-input selection changes. No automatic summary retry loop, context omission, cleanup or exemption is introduced. Local sensitive-material analysis is also refused on a real match even for legitimate use; users may explicitly supply a redacted copy through existing business controls. Integration results and Delegation approval policy retain their original owners and behavior; inspection cannot grant authority or reverse an already performed business effect.
     condition: Whenever existing data enters a new text.generate request, including RuntimeAgent calls that use that Scenario owner.
     failure: Clearly refuse the current inference and disclose the limited recovery or Local-analysis support without claiming that original-context inference or recovery succeeded.
     relations:
@@ -1886,5 +1886,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.content-refusal-presentation
+    kind: rule
+    title: Content refusal remains actionable and limited to the affected operation
+    modality: must
+    statement: Content refusal retains AI_CONTENT_FILTER_BLOCKED and existing call-error or failed carriers. Only fixed owner-produced rule, stage and structural-part values may cross the protected metadata projection. RuntimeAgent may derive a bounded corrective action from actual included compiler items, never from caller labels, model approval or a generic system part alone. A visible nonmodal notice on the supported standard Shell informs the user, preserves current drafts, navigation and unrelated work, and does not invalidate the App session or create a successful assistant message. Current editable input prefers editing; output refusal permits another ordinary request; only confirmed historical context suggests management. Unknown or provider-origin refusals use neutral text. A model-call input refusal does not prove the entire user operation had no prior dispatch. No matched values, automatic feedback, bypass, retry, route change, notification acknowledgment timer or persistent risk queue is added.
+    condition: Whenever a supported Home or App surface consumes a content refusal.
+    failure: Preserve the typed failure and safe general explanation if details are unavailable; reject sensitive diagnostics, fabricated recovery, draft replacement, repeated active notifications for the same live operation, or unproved claims of no transmission or no cost.
+    relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

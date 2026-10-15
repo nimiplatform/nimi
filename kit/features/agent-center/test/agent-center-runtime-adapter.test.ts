@@ -119,6 +119,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
     revision: presentationRevision,
   };
   return {
+    conversationContext: { update: async () => { throw new Error("No Conversation in this fixture"); } },
     sharedAIConfig: {
       async get() {
         calls.push(['shared.get']);
@@ -267,6 +268,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
       async snapshot(input) {
         calls.push(['manager.snapshot', input]);
         return {
+          conversationContext: null,
           lifecycleStatus: 'active',
           executionState: 'idle',
           statusText: 'Ready',

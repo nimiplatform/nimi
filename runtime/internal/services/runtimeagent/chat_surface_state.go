@@ -35,6 +35,7 @@ type persistedPublicChatSurfaceState struct {
 }
 
 type persistedPublicChatAnchor struct {
+	ConversationContext    publicChatConversationContextSelection      `json:"conversationContext,omitempty"`
 	TranscriptFrom         int                                         `json:"-"`
 	ConversationAnchorID   string                                      `json:"conversationAnchorId"`
 	AgentID                string                                      `json:"agentId"`
@@ -193,6 +194,9 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 		if session == nil {
 			continue
 		}
+		if err := validateConversationContextSelection(session.ConversationContext, len(session.CommittedTranscript)); err != nil {
+			return persistedPublicChatSurfaceState{}, err
+		}
 		if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
 			return persistedPublicChatSurfaceState{}, fmt.Errorf("capture conversation anchor %s continuity: %w", session.ConversationAnchorID, err)
 		}
@@ -229,6 +233,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 			PendingFollowUpID:      session.PendingFollowUpID,
 			CommittedTranscript:    clonePublicChatCommittedTranscript(session.CommittedTranscript[from:]),
 			ConversationSummary:    clonePublicChatConversationSummary(session.ConversationSummary),
+			ConversationContext:    session.ConversationContext,
 			Status:                 int32(session.Status),
 			LastTurnID:             session.LastTurnID,
 			LastMessageID:          session.LastMessageID,
@@ -562,6 +567,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if persistedSequence := sequences[item.ConversationAnchorID]; persistedSequence > localAppSequence {
 			localAppSequence = persistedSequence
 		}
+		if err := validateConversationContextSelection(item.ConversationContext, len(item.CommittedTranscript)); err != nil {
+			return err
+		}
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
 			ConversationAnchorID:     item.ConversationAnchorID,
 			AgentID:                  item.AgentID,
@@ -581,6 +589,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			CommittedTranscript:      clonePublicChatCommittedTranscript(item.CommittedTranscript),
 			persistedTranscriptCount: len(item.CommittedTranscript),
 			ConversationSummary:      clonePublicChatConversationSummary(item.ConversationSummary),
+			ConversationContext:      item.ConversationContext,
 			ActiveTurnSnapshot:       fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
 			LastTurnSnapshot:         fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
 			CompletedTurnSnapshots:   fromPersistedPublicChatTurnSnapshotMap(item.CompletedTurnSnapshots),

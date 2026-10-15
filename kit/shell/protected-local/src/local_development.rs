@@ -159,6 +159,7 @@ pub enum NimiHostErrorReasonCode {
     AgentAiConfigCapabilityMismatch,
     AgentAiConfigModelTargetMismatch,
     AgentAutonomyRevisionConflict,
+    AgentConversationContextRevisionConflict,
     AgentPresentationRevisionConflict,
     LocalAppPresenceRequired,
     LocalAppPresenceExpired,
@@ -205,6 +206,9 @@ impl NimiHostErrorReasonCode {
             Self::AgentAiConfigCapabilityMismatch => "agent-ai-config-capability-mismatch",
             Self::AgentAiConfigModelTargetMismatch => "agent-ai-config-model-target-mismatch",
             Self::AgentAutonomyRevisionConflict => "agent-autonomy-revision-conflict",
+            Self::AgentConversationContextRevisionConflict => {
+                "agent-conversation-context-revision-conflict"
+            }
             Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
             Self::LocalAppPresenceRequired => "local-app-presence-required",
             Self::LocalAppPresenceExpired => "local-app-presence-expired",

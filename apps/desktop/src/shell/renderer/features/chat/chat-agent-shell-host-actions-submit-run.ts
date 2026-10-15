@@ -172,6 +172,7 @@ export async function runActiveAgentSubmit(input: {
     state: submitSession,
     refreshedBundle: null,
     streamSnapshot: input.input.streamController.getStreamState(input.threadId),
+    preserveComposerText: input.currentComposerText(),
   }));
 
   if (submitSession.lifecycle.terminal === 'failed' && submitSession.lifecycle.error) {

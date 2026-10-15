@@ -671,6 +671,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LocalAppAgentUpdateAutonomyResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppAgentConversationContext",
+    "kind": "unary",
+    "requestType": "UpdateLocalAppAgentConversationContextRequest",
+    "responseType": "UpdateLocalAppAgentConversationContextResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
     "service": "RuntimeAgentService",
     "method": "UploadLocalAppConversationAttachment",

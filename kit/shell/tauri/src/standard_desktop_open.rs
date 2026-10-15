@@ -452,6 +452,25 @@ fn parse_desktop_open_intent(value: Value) -> Result<Value, DesktopOpenIntentHos
         "open-runtime-config" => parse_runtime_config_intent(record),
         "open-apps" => parse_apps_intent(record),
         "open-settings" => parse_settings_intent(record),
+        "open-agent-center" => {
+            assert_allowed_fields(
+                record,
+                &["kind", "conversationAnchorId"],
+                "Agent Center intent",
+            )?;
+            let anchor = required_string(
+                record.get("conversationAnchorId"),
+                "intent.conversationAnchorId",
+            )?;
+            if anchor.len() > 256
+                || !anchor
+                    .bytes()
+                    .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
+            {
+                return Err(invalid_parse("Invalid Conversation correlation"));
+            }
+            Ok(json!({ "kind": "open-agent-center", "conversationAnchorId": anchor }))
+        }
         "open-integrations" => {
             assert_allowed_fields(record, &["kind"], "integrations intent")?;
             Ok(json!({ "kind": "open-integrations" }))
@@ -648,7 +667,12 @@ fn parse_bridge_result(
             let applied_target = required_result_string(record.get("appliedTarget"))?;
             if !matches!(
                 applied_target.as_str(),
-                "open-explore" | "open-runtime-config" | "open-apps" | "open-settings" | "open-integrations"
+                "open-explore"
+                    | "open-runtime-config"
+                    | "open-apps"
+                    | "open-settings"
+                    | "open-integrations"
+                    | "open-agent-center"
             ) {
                 return Err("desktop-open-intent-invalid");
             }

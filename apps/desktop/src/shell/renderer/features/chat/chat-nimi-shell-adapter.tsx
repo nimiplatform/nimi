@@ -31,6 +31,7 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import { AI_NEW_CONVERSATION_TITLE } from './chat-nimi-thread-model';
 import {
   bundleQueryKey,
+  chatAiThreadBundleQueryOptions,
   createEmptyBundle,
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
@@ -144,11 +145,9 @@ export function useAiConversationModeHost(
     return t(copy.key, { defaultValue: copy.defaultValue });
   }, [t, thinkingSupport]);
 
-  const bundleQuery = useQuery({
-    queryKey: activeThreadId ? bundleQueryKey(activeThreadId) : ['chat-ai-thread-bundle', 'inactive'],
-    queryFn: () => chatAiStoreClient.getThreadBundle(activeThreadId as string),
-    enabled: Boolean(activeThreadId),
-  });
+  const bundleQuery = useQuery(chatAiThreadBundleQueryOptions(
+    activeThreadId, ephemeralThread?.id ?? null, (id) => chatAiStoreClient.getThreadBundle(id),
+  ));
 
   const bundle = bundleQuery.data || null;
   const messages = useMemo(

@@ -66,6 +66,7 @@ func TestLocalAppConfigureWireCarriesNoCallerAssertionOrOwnerIdentity(t *testing
 		"GetLocalAppAgentManagerSnapshot":           (&runtimev1.GetLocalAppAgentManagerSnapshotRequest{}).ProtoReflect().Descriptor(),
 		"GetLocalAppAgentAutonomySnapshot":          (&runtimev1.GetLocalAppAgentAutonomySnapshotRequest{}).ProtoReflect().Descriptor(),
 		"UpdateLocalAppAgentAutonomy":               (&runtimev1.UpdateLocalAppAgentAutonomyRequest{}).ProtoReflect().Descriptor(),
+		"UpdateLocalAppAgentConversationContext":    (&runtimev1.UpdateLocalAppAgentConversationContextRequest{}).ProtoReflect().Descriptor(),
 		"GetLocalAppAgentPresentationSnapshot":      (&runtimev1.GetLocalAppAgentPresentationSnapshotRequest{}).ProtoReflect().Descriptor(),
 		"CommitLocalAppAgentPresentation":           (&runtimev1.CommitLocalAppAgentPresentationRequest{}).ProtoReflect().Descriptor(),
 	}

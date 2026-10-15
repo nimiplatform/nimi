@@ -59,19 +59,20 @@ use crate::{
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
     LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAiRealtimeAppendInputRequest, LocalAppAiRealtimeOpenRequest,
-    LocalAppAiRealtimeOutputInterruptRequest, LocalAppAiRealtimeOwnerControlRequest,
-    LocalAppAiRealtimeSessionRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
-    LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
-    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
-    LocalAppAvatarHostTargetResolveRequest, LocalAppAvatarHostTargetResolveResult,
-    LocalAppConversationArtifactReadRequest, LocalAppConversationArtifactReadResult,
-    LocalAppConversationAttachmentUploadRequest, LocalAppConversationAttachmentUploadResult,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppAgentUpdateConversationContextRequest, LocalAppAiRealtimeAppendInputRequest,
+    LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
+    LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetReadResult,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult,
+    LocalAppAssetRevealRequest, LocalAppAssetRevealTarget, LocalAppAssetStatRequest,
+    LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
+    LocalAppAvatarHostTargetResolveResult, LocalAppConversationArtifactReadRequest,
+    LocalAppConversationArtifactReadResult, LocalAppConversationAttachmentUploadRequest,
+    LocalAppConversationAttachmentUploadResult, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
     LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
@@ -1749,6 +1750,17 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             agent_configure::update_autonomy(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_update_conversation_context(
+        &self,
+        request: LocalAppAgentUpdateConversationContextRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::update_conversation_context(self.checked_channel()?, request).await
         })
     }
 

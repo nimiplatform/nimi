@@ -229,6 +229,9 @@ func (r publicChatRuntime) runTurn(
 			return
 		}
 		failure := runtimeErrorDetailFromError(err)
+		if failure.ReasonCode == runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+			failure.ActionHint = conversationContentRefusalAction(contextCompilation)
+		}
 		if failure.ReasonCode == runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED && publicChatTurnCarriesUserAttachment(req) {
 			r.failVisionUnsupportedAttachmentTurn(ctx, session, turn, req, traceID, modelResolved, routeDecision)
 			return
@@ -259,6 +262,9 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	if failed != nil {
+		if failed.GetReasonCode() == runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+			failed.ActionHint = "continue_conversation"
+		}
 		if failed.GetReasonCode() == runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED && publicChatTurnCarriesUserAttachment(req) {
 			r.failVisionUnsupportedAttachmentTurn(ctx, session, turn, req, traceID, modelResolved, routeDecision)
 			return
@@ -300,6 +306,10 @@ func (r publicChatRuntime) runTurn(
 			projection.Message = "runtime private source recall request is invalid"
 		})
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "runtime private source recall request is invalid", "")
+		return
+	}
+	if recalled && session.ConversationContext.OmitSupplementalContext {
+		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, nil, usage, finish, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "supplemental recall is unavailable for this Conversation")
 		return
 	}
 	if recalled {
@@ -348,11 +358,17 @@ func (r publicChatRuntime) runTurn(
 		}
 		if roundTwoErr != nil {
 			failure := runtimeErrorDetailFromError(roundTwoErr)
+			if failure.ReasonCode == runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+				failure.ActionHint = conversationContentRefusalAction(roundTwoCompilation)
+			}
 			if roundTwo != nil && roundTwo.Failed != nil {
 				if reasonCode := roundTwo.Failed.GetReasonCode(); reasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 					failure.ReasonCode = reasonCode
 				}
 				failure.ActionHint = strings.TrimSpace(roundTwo.Failed.GetActionHint())
+				if failure.ReasonCode == runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+					failure.ActionHint = "continue_conversation"
+				}
 			}
 			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 				projection.Status = publicChatTurnStatusFailed

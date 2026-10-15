@@ -445,6 +445,7 @@ test('Runtime facade blocks origin-only methods and routes scoped artifact reads
   );
   for (const invoke of [
     () => runtime.agents.openLocalAppConversation({}),
+    () => runtime.generated.updateLocalAppAgentConversationContext({}),
     () => runtime.aiRealtime.openRealtimeSession({}),
     () => runtime.realmRealtime.listRealmChats({}),
     () => runtime.realmRealtime.openRealmRealtimeChannel({}),

@@ -648,6 +648,14 @@ RUNTIME_METHODS = [
     "response_type": "LocalAppAgentUpdateAutonomyResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppAgentConversationContext",
+    "kind": "unary",
+    "request_type": "UpdateLocalAppAgentConversationContextRequest",
+    "response_type": "UpdateLocalAppAgentConversationContextResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
     "service": "RuntimeAgentService",
     "method": "UploadLocalAppConversationAttachment",
