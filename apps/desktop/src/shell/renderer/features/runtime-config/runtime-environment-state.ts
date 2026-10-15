@@ -16,7 +16,10 @@ export function latestEnvironmentDependencyJob(
     .filter((job) => job.environmentKey === dependency.environmentKey
       && job.dependencyFamily === dependency.dependencyFamily
       && job.dependencyId === dependency.dependencyId
-      && job.consumerScope === dependency.consumerScope)
+      && (job.consumerScope === dependency.consumerScope
+        || dependency.dependencyFamily === 'accelerator.cuda.runtime'
+          && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(dependency.state)
+          && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state)))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
 }
 
@@ -36,6 +39,7 @@ export function canApplyRuntimeEnvironmentPlan(
   if (!hasRuntimeOwnedCapabilityConfirmation(plan) || plan.state === 'unsupported') return false;
   return plan.dependencies.some((dependency) => {
     if (!dependency.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state)) return false;
+    if (dependency.dependencyFamily === 'accelerator.cuda.runtime' && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(dependency.state)) return false;
     const job = latestEnvironmentDependencyJob(jobs, dependency);
     return !job || !isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state);
   });
@@ -60,7 +64,7 @@ export function projectRuntimeEnvironmentState(
   ).length;
   const state = plan.state === 'unsupported'
     ? 'unsupported'
-    : activeJobs.length > 0
+    : activeJobs.length > 0 || required.some(dependency => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(dependency.state))
       ? 'active'
       : attentionCount > 0
         ? 'attention'
@@ -101,7 +105,7 @@ export async function applyRuntimeEnvironmentPlan(
 }
 
 
-/** Only an active job belonging to this exact dependency and consumer may be cancelled here. */
+/** Only an active job bound by the current plan may be cancelled here. */
 export async function cancelRuntimeEnvironmentDependencyJob(
   client: Pick<NimiRuntimeLocalEnvironmentClient, 'cancelEnvironmentDependencyJob'>,
   plan: NimiRuntimeLocalEnvironmentPlan,

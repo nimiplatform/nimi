@@ -183,7 +183,29 @@ func (m *Manager) ResolveSharedAcceleratorDependency(dependencyID string, consum
 	return status
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r051
 func (m *Manager) EnsureSharedAcceleratorDependency(ctx context.Context, dependencyID string) (SharedAcceleratorDependencyStatus, error) {
+	// Recheck readiness under the physical install lock. Different consumers
+	// and a canceled Job's replacement must not race rename/backup/promotion.
+	m.mu.Lock()
+	installLock := &m.cuda12Install
+	if NormalizeSharedAcceleratorDependencyID(dependencyID) == NVIDIACUDA13UserSpaceRuntimeDependencyID {
+		installLock = &m.cuda13Install
+	}
+	if *installLock == nil {
+		*installLock = make(chan struct{}, 1)
+	}
+	gate := *installLock
+	m.mu.Unlock()
+	select {
+	case gate <- struct{}{}:
+		defer func() { <-gate }()
+	case <-ctx.Done():
+		return SharedAcceleratorDependencyStatus{}, ctx.Err()
+	}
+	if err := ctx.Err(); err != nil {
+		return SharedAcceleratorDependencyStatus{}, err
+	}
 	status := m.ResolveSharedAcceleratorDependency(dependencyID, "")
 	switch status.State {
 	case SharedAcceleratorDependencyReadySystem, SharedAcceleratorDependencyReadyManaged:

@@ -45,7 +45,11 @@ func TestVeVo2MacConfirmedPreparationStartsFreshWithoutRewritingFailedJob(t *tes
 			}
 			svc.mu.Unlock()
 			actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dep}})
-			if scenario != "fresh" {
+			if scenario == "retained-source-record" {
+				if err != nil || len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyRepair {
+					t.Fatalf("retained source must use its repair owner, not fresh setup: %+v %v", actions, err)
+				}
+			} else if scenario != "fresh" {
 				if err == nil {
 					t.Fatalf("%s incorrectly admitted fresh setup: %+v", scenario, actions)
 				}

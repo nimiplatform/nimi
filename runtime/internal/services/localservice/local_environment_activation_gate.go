@@ -167,7 +167,8 @@ func (s *Service) latestLocalEnvironmentDependencyJobForDependency(environmentKe
 		if id != "" && strings.TrimSpace(job.DependencyID) != id {
 			continue
 		}
-		if consumer != "" && strings.TrimSpace(job.ConsumerScope) != consumer {
+		if consumer != "" && strings.TrimSpace(job.ConsumerScope) != consumer &&
+			!(job.DependencyFamily == localEnvironmentFamilyCUDA && stringSliceContains(job.SharedConsumers, consumer)) {
 			continue
 		}
 		if latest.JobID == "" || localEnvironmentDependencyJobNewer(job, latest) {

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   type NimiRuntimeLocalEnvironmentClient,
   type NimiRuntimeLocalEnvironmentPlanInput,
 } from '@nimiplatform/sdk/runtime';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { cancelRuntimeEnvironmentDependencyJob, latestEnvironmentDependencyJob } from './runtime-environment-state.js';
+import { cancelRuntimeEnvironmentDependencyJob, latestEnvironmentDependencyJob, projectRuntimeEnvironmentState } from './runtime-environment-state.js';
 
 export async function observeRuntimeEnvironment(
   client: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveEnvironmentPlan' | 'listEnvironmentDependencyJobs'>,
@@ -70,7 +69,7 @@ export function useRuntimeEnvironmentObservation(
   }, [refresh]);
 
   const data = result.key === key ? result.data : undefined;
-  const active = data?.jobs.some(job => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state)) ?? false;
+  const active = data ? projectRuntimeEnvironmentState(data.plan, data.jobs).state === 'active' : false;
   useEffect(() => {
     if (!key || (!active && !polling)) return;
     const timer = window.setInterval(() => void refresh(), 1_000);

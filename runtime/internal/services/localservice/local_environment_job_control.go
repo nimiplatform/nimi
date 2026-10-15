@@ -185,6 +185,7 @@ func localEnvironmentPlanHasCompleteConfirmation(plan localEnvironmentPlan) bool
 	return len(confirmedFamilies) > 0
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r051
 func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentPlan) ([]localEnvironmentPlanApplyAction, error) {
 	actions := make([]localEnvironmentPlanApplyAction, 0, len(plan.Dependencies))
 	for _, dep := range plan.Dependencies {
@@ -209,13 +210,17 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 			if strings.TrimSpace(dep.ConsumerScope) == "" {
 				return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency repair consumer scope is ambiguous", "refresh_local_environment_plan")
 			}
-			if _, ok := s.localEnvironmentSelectedSourceRecordForRepair(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope); !ok {
-				if !hasJob ||
+			record, hasSource := s.localEnvironmentSelectedSourceRecordForRepair(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
+			if !hasSource || !(localEnvironmentPythonSelectedSourceFamily(record.DependencyFamily) || stringSliceContains(record.SelectedConsumers, strings.TrimSpace(dep.ConsumerScope))) {
+				if !hasSource && (!hasJob ||
 					strings.TrimSpace(job.State) != localEnvironmentStateRepairRequired ||
 					strings.TrimSpace(job.RecoveryDisposition) != localEnvironmentJobRecoveryRepairRequired ||
-					strings.TrimSpace(job.SelectedSourceRecordID) != "" {
+					strings.TrimSpace(job.SelectedSourceRecordID) != "") {
 					return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency has no selected source record to repair", "refresh_local_environment_plan")
 				}
+				// Another consumer's shared source is not ours to Repair. Use
+				// this confirmed plan's setup; the existing repair lock remains
+				// until the materializer verifies and promotes the shared source.
 				if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
 					return nil, err
 				}
@@ -224,6 +229,30 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 			}
 			actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyRepair, Dependency: dep})
 		case localEnvironmentStateFailed, localEnvironmentStateCancelled:
+			// A terminal job's retry policy does not remove the selected source's
+			// explicit repair path. Keep the old failure immutable and let the
+			// confirmed current plan reverify that same selected source.
+			record, hasSource := s.localEnvironmentSelectedSourceRecordForRepair(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
+			if hasSource &&
+				(record.RepairState == localEnvironmentRepairRequired || record.RepairState == localEnvironmentRepairFailed) &&
+				(localEnvironmentPythonSelectedSourceFamily(record.DependencyFamily) || stringSliceContains(record.SelectedConsumers, strings.TrimSpace(dep.ConsumerScope))) {
+				// ForRepair can fall back to another consumer's shared source.
+				// Match the mutation owner's eligibility before replacing Retry.
+				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyRepair, Dependency: dep})
+				continue
+			}
+			// A failed shared setup has not selected this consumer yet. A new
+			// confirmed plan may prepare it again without acquiring the other
+			// consumer's Repair authority or rewriting the old terminal Job.
+			if dep.DependencyFamily == localEnvironmentFamilyCUDA && hasSource && hasJob &&
+				job.State == localEnvironmentStateFailed && !localEnvironmentDependencyJobRetryAllowed(job) &&
+				!stringSliceContains(record.SelectedConsumers, strings.TrimSpace(dep.ConsumerScope)) {
+				if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
+					return nil, err
+				}
+				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
+				continue
+			}
 			// An explicit current Mac CPU plan may start a new acquisition after
 			// a failed initial setup. The old terminal job remains non-retryable;
 			// selected or repair-locked supply must still use its repair owner.
@@ -406,6 +435,7 @@ func (s *Service) retryLocalEnvironmentDependencyJobConfirmed(ctx context.Contex
 		DependencyID:     previous.DependencyID,
 		ConsumerScope:    consumerScope,
 		SourceKind:       previous.SourceKind,
+		SharedConsumers:  append([]string(nil), previous.SharedConsumers...),
 	}, s.localEnvironmentDependencyJobExecutor(previous.DependencyFamily))
 	if err != nil {
 		if job.JobID != "" {

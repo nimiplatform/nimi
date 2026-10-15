@@ -1,19 +1,76 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createRequire } from 'node:module';
 import type {
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
   NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 
-import { observeRuntimeEnvironment } from '../src/shell/renderer/features/runtime-config/runtime-environment-observation.js';
+import { observeRuntimeEnvironment, useRuntimeEnvironmentObservation } from '../src/shell/renderer/features/runtime-config/runtime-environment-observation.js';
 import {
   canApplyRuntimeEnvironmentPlan,
   cancelRuntimeEnvironmentDependencyJob,
   projectRuntimeEnvironmentState,
   runtimeEnvironmentConfirmation,
   applyRuntimeEnvironmentPlan,
+  latestEnvironmentDependencyJob,
 } from '../src/shell/renderer/features/runtime-config/runtime-environment-state.js';
+
+test('joined CUDA consumers observe and cancel one shared job, while unconfirmed consumers still require Apply', async () => {
+  const cuda = environmentDependency({ dependencyFamily: 'accelerator.cuda.runtime', consumerScope: 'llama.cpp.cuda', state: 'downloading' });
+  const shared = dependencyJob({ dependency: { ...cuda, consumerScope: 'stable-diffusion.cpp.cuda' }, state: 'downloading' });
+  assert.equal(latestEnvironmentDependencyJob([shared], cuda), shared);
+  assert.equal(canApplyRuntimeEnvironmentPlan(environmentPlan([cuda]), [shared]), false);
+  const calls: unknown[] = [];
+  await cancelRuntimeEnvironmentDependencyJob({ cancelEnvironmentDependencyJob: async (input: { jobId: string }) => { calls.push(input); return shared; } } as never,
+    environmentPlan([cuda]), [shared], shared.jobId);
+  assert.deepEqual(calls, [{ jobId: shared.jobId }]);
+  const unconfirmed = { ...cuda, state: 'repair_required' };
+  assert.equal(latestEnvironmentDependencyJob([shared], unconfirmed), undefined);
+  assert.equal(canApplyRuntimeEnvironmentPlan(environmentPlan([unconfirmed]), [shared]), true);
+  // Plan and Job reads are independent: keep polling when the plan is still
+  // active but the later Job read has already observed the terminal state.
+  assert.equal(projectRuntimeEnvironmentState(environmentPlan([cuda]), [{ ...shared, state: 'ready_managed' }]).state, 'active');
+  assert.equal(projectRuntimeEnvironmentState(environmentPlan([{ ...cuda, state: 'ready_managed' }]), [{ ...shared, state: 'ready_managed' }]).state, 'ready');
+});
+
+test('the actual observation hook polls through an active-plan and terminal-Job read race', async () => {
+  const React = await import('react');
+  const { act } = React;
+  const { JSDOM } = createRequire(import.meta.url)('jsdom');
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, React, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  let tick: (() => void) | undefined;
+  dom.window.setInterval = ((callback: () => void) => { tick = callback; return 1; }) as typeof dom.window.setInterval;
+  dom.window.clearInterval = () => { tick = undefined; };
+  const dependency = environmentDependency({ dependencyFamily: 'accelerator.cuda.runtime', consumerScope: 'llama.cpp.cuda', state: 'downloading' });
+  let plan = environmentPlan([dependency]);
+  let reads = 0;
+  const bindings = { sdk: { localEnvironmentRpc: () => ({
+    resolveLocalEnvironmentPlan: async () => { reads++; return { plan }; },
+    listLocalEnvironmentDependencyJobs: async () => ({ jobs: [dependencyJob({ dependency: { ...dependency, consumerScope: 'stable-diffusion.cpp.cuda' }, state: 'ready_managed' })] }),
+  }) } } as never;
+  function Probe() { useRuntimeEnvironmentObservation({ capabilityContract: 'text.embed' }); return null; }
+  try {
+    await act(async () => { root.render(React.createElement(DesktopRendererBindingProvider, { bindings }, React.createElement(Probe))); });
+    assert.ok(tick, 'the active Runtime plan must keep the actual hook polling');
+    plan = environmentPlan([{ ...dependency, state: 'ready_managed' }]);
+    await act(async () => { tick!(); await new Promise(resolve => setImmediate(resolve)); });
+    assert.equal(reads, 2);
+    assert.equal(tick, undefined, 'polling stops once the next plan confirms completion');
+  } finally {
+    await act(async () => root.unmount()); dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
 
 function environmentDependency(input: Partial<NimiRuntimeLocalEnvironmentPlanDependency> & {
   readonly dependencyFamily: string;

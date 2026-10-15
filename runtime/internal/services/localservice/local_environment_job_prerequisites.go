@@ -172,7 +172,8 @@ func localEnvironmentDependencyJobMatchesConsumer(job localEnvironmentDependency
 	if trimmedConsumer == "" {
 		return true
 	}
-	if strings.TrimSpace(job.ConsumerScope) == trimmedConsumer {
+	if strings.TrimSpace(job.ConsumerScope) == trimmedConsumer ||
+		(job.DependencyFamily == localEnvironmentFamilyCUDA && stringSliceContains(job.SharedConsumers, trimmedConsumer)) {
 		return true
 	}
 	if localEnvironmentConsumerScopeFromKey(job.EnvironmentKey) == trimmedConsumer {

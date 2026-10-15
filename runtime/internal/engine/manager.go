@@ -71,6 +71,8 @@ type Manager struct {
 	uvToolMu                   sync.Mutex
 	espeakNGMu                 sync.Mutex
 	mediaCodecMu               sync.Mutex
+	cuda12Install              chan struct{}
+	cuda13Install              chan struct{}
 	pythonRuntimeMu            sync.Mutex
 	pythonProfileMu            sync.Mutex
 	pythonProfileLocks         map[string]chan struct{}

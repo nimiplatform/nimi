@@ -22,21 +22,23 @@ const (
 var localEnvironmentDependencyJobHeartbeatInterval = 15 * time.Second
 
 type localEnvironmentDependencyJobState struct {
-	JobID                  string `json:"jobId"`
-	EnvironmentKey         string `json:"environmentKey"`
-	DependencyFamily       string `json:"dependencyFamily"`
-	DependencyID           string `json:"dependencyId"`
-	ConsumerScope          string `json:"consumerScope,omitempty"`
-	State                  string `json:"state"`
-	SourceKind             string `json:"sourceKind"`
-	CanonicalRoot          string `json:"canonicalRoot,omitempty"`
-	SelectedSourceRecordID string `json:"selectedSourceRecordId,omitempty"`
-	FailureDetail          string `json:"failureDetail,omitempty"`
-	Retryable              bool   `json:"retryable,omitempty"`
-	ReasonCode             string `json:"reasonCode,omitempty"`
-	RecoveryDisposition    string `json:"recoveryDisposition,omitempty"`
-	CreatedAt              string `json:"createdAt"`
-	UpdatedAt              string `json:"updatedAt"`
+	JobID            string `json:"jobId"`
+	EnvironmentKey   string `json:"environmentKey"`
+	DependencyFamily string `json:"dependencyFamily"`
+	DependencyID     string `json:"dependencyId"`
+	ConsumerScope    string `json:"consumerScope,omitempty"`
+	// Confirmed consumers sharing one CUDA materialization; promoted only after verification.
+	SharedConsumers        []string `json:"sharedConsumers,omitempty"`
+	State                  string   `json:"state"`
+	SourceKind             string   `json:"sourceKind"`
+	CanonicalRoot          string   `json:"canonicalRoot,omitempty"`
+	SelectedSourceRecordID string   `json:"selectedSourceRecordId,omitempty"`
+	FailureDetail          string   `json:"failureDetail,omitempty"`
+	Retryable              bool     `json:"retryable,omitempty"`
+	ReasonCode             string   `json:"reasonCode,omitempty"`
+	RecoveryDisposition    string   `json:"recoveryDisposition,omitempty"`
+	CreatedAt              string   `json:"createdAt"`
+	UpdatedAt              string   `json:"updatedAt"`
 	// K-RPC-025 download-progress projection. Meaningful only while the job is
 	// actively materializing (downloading / verifying); zeroed for every other
 	// state. SpeedBytesPerSec / EtaSeconds are 0 (absent) unless a rate can be
@@ -64,6 +66,7 @@ type localEnvironmentDependencyJobRequest struct {
 	DependencyFamily string
 	DependencyID     string
 	ConsumerScope    string
+	SharedConsumers  []string
 	SourceKind       string
 }
 
@@ -111,6 +114,7 @@ type localEnvironmentDependencyJobExecutor func(context.Context, localEnvironmen
 // transition by polling ListLocalEnvironmentDependencyJobs. The RPC handler
 // `ctx` is intentionally unused for execution: it is cancelled the moment Start
 // returns, which would abort multi-GB downloads.
+// @nimi-authority: rule.nimi.runtime.local-compute.r051
 func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req localEnvironmentDependencyJobRequest, executor localEnvironmentDependencyJobExecutor) (localEnvironmentDependencyJobState, error) {
 	normalized := normalizeLocalEnvironmentDependencyJobRequest(req)
 	if normalized.EnvironmentKey == "" || normalized.DependencyFamily == "" || normalized.DependencyID == "" {
@@ -129,8 +133,18 @@ func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req loca
 		if job.EnvironmentKey == normalized.EnvironmentKey &&
 			job.DependencyFamily == normalized.DependencyFamily &&
 			job.DependencyID == normalized.DependencyID &&
-			strings.TrimSpace(job.ConsumerScope) == strings.TrimSpace(normalized.ConsumerScope) &&
+			(job.ConsumerScope == normalized.ConsumerScope || normalized.DependencyFamily == localEnvironmentFamilyCUDA) &&
 			!localEnvironmentDependencyJobTerminal(job.State) {
+			if normalized.DependencyFamily == localEnvironmentFamilyCUDA {
+				previous := job
+				job.SharedConsumers = normalizeStringSlice(append(append([]string{job.ConsumerScope}, job.SharedConsumers...), append([]string{normalized.ConsumerScope}, normalized.SharedConsumers...)...))
+				s.localEnvironmentDependencyJobs[job.JobID] = job
+				if err := s.persistStateLocked(); err != nil {
+					s.localEnvironmentDependencyJobs[job.JobID] = previous
+					s.mu.Unlock()
+					return localEnvironmentDependencyJobState{}, fmt.Errorf("persist shared dependency consumer: %w", err)
+				}
+			}
 			s.mu.Unlock()
 			return job, nil
 		}
@@ -141,6 +155,7 @@ func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req loca
 		DependencyFamily: normalized.DependencyFamily,
 		DependencyID:     normalized.DependencyID,
 		ConsumerScope:    normalized.ConsumerScope,
+		SharedConsumers:  normalized.SharedConsumers,
 		State:            localEnvironmentStateQueued,
 		SourceKind:       normalized.SourceKind,
 		Retryable:        true,

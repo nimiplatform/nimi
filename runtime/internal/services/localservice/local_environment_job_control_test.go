@@ -1511,3 +1511,31 @@ func TestStartPythonUVDependencyJobRepairRequiredWithoutVersion(t *testing.T) {
 		t.Fatalf("job state = %q, want repair_required", job.GetState())
 	}
 }
+
+func TestPlanApplyRepairsSelectedSourceAfterNonRetryableJobFailure(t *testing.T) {
+	svc := newTestService(t)
+	key := "accelerator.cuda.runtime|nvidia-cuda13-user-space-runtime|windows/amd64"
+	record := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: "nvidia-cuda13-user-space-runtime", EnvironmentKey: key,
+		SourceKind: localEnvironmentSourceManaged, CanonicalRoot: `C:\nimi\dependencies\cuda`, RepairState: localEnvironmentRepairRequired,
+		SelectedConsumers: []string{"audio.cpp.cuda"},
+	})
+	failed := localEnvironmentDependencyJobState{JobID: "failed-cuda-repair", EnvironmentKey: key, DependencyFamily: localEnvironmentFamilyCUDA,
+		DependencyID: "nvidia-cuda13-user-space-runtime", ConsumerScope: "audio.cpp.cuda", SourceKind: localEnvironmentSourceManaged,
+		State: localEnvironmentStateFailed, RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable, Retryable: false}
+	svc.localEnvironmentDependencyJobs[failed.JobID] = failed
+	dep := svc.resolveLocalEnvironmentPlanDependencyJobProjection(localEnvironmentPlanDependency{
+		EnvironmentKey: key, DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: failed.DependencyID, ConsumerScope: failed.ConsumerScope,
+		SourceKind: localEnvironmentSourceManaged, State: localEnvironmentStateRepairRequired, SelectedSourceRecordID: record.RecordID, Required: true,
+	})
+	actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dep}})
+	if err != nil {
+		t.Fatalf("explicit current plan must retain the selected-source repair path: %v", err)
+	}
+	if len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyRepair {
+		t.Fatalf("actions=%+v, want selected-source repair, not retry of the old job", actions)
+	}
+	if stored := svc.localEnvironmentDependencyJobs[failed.JobID]; stored.Retryable || stored.State != localEnvironmentStateFailed {
+		t.Fatal("historical terminal job was rewritten")
+	}
+}

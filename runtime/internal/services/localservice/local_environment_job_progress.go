@@ -41,11 +41,16 @@ func normalizeLocalEnvironmentDependencyJobRequest(req localEnvironmentDependenc
 	if sourceKind == "" {
 		sourceKind = localEnvironmentSourceManaged
 	}
+	var sharedConsumers []string
+	if strings.TrimSpace(req.DependencyFamily) == localEnvironmentFamilyCUDA {
+		sharedConsumers = normalizeStringSlice(append([]string{req.ConsumerScope}, req.SharedConsumers...))
+	}
 	return localEnvironmentDependencyJobRequest{
 		EnvironmentKey:   strings.TrimSpace(req.EnvironmentKey),
 		DependencyFamily: strings.TrimSpace(req.DependencyFamily),
 		DependencyID:     strings.TrimSpace(req.DependencyID),
 		ConsumerScope:    strings.TrimSpace(req.ConsumerScope),
+		SharedConsumers:  sharedConsumers,
 		SourceKind:       sourceKind,
 	}
 }

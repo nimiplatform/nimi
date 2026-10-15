@@ -1,11 +1,31 @@
 package engine
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestSharedAcceleratorInstallWaitIsCancellableAndDependencyScoped(t *testing.T) {
+	setHostGPUProbeForTest(t, "unknown", false)
+	m := &Manager{cuda12Install: make(chan struct{}, 1)}
+	m.cuda12Install <- struct{}{}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	if _, err := m.EnsureSharedAcceleratorDependency(ctx, NVIDIACUDAUserSpaceRuntimeDependencyID); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("blocked installer did not honor cancellation: %v", err)
+	}
+	other, stop := context.WithTimeout(context.Background(), time.Second)
+	defer stop()
+	if _, err := m.EnsureSharedAcceleratorDependency(other, NVIDIACUDA13UserSpaceRuntimeDependencyID); err == nil || errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("independent dependency must reach its own unsupported-host check: %v", err)
+	}
+	<-m.cuda12Install
+}
 
 func TestVerifiedSystemNVIDIACUDARuntimeRootDoesNotAdmitArtifactOnlyProof(t *testing.T) {
 	setHostGPUProbeForTest(t, "nvidia", true)

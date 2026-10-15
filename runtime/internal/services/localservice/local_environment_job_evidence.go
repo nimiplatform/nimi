@@ -26,6 +26,9 @@ func (s *Service) promoteLocalEnvironmentDependencyJobReady(jobID string, readyS
 	}
 	previousJob := job
 	previousSources := cloneLocalEnvironmentSelectedSourceRecordsForMutation(s.localEnvironmentSelectedSources)
+	if job.DependencyFamily == localEnvironmentFamilyCUDA {
+		pendingRecord.SelectedConsumers = normalizeStringSlice(append(append([]string(nil), pendingRecord.SelectedConsumers...), job.SharedConsumers...))
+	}
 	record := s.mergeLocalEnvironmentSelectedSourceRecordLocked(pendingRecord)
 	job.State = strings.TrimSpace(readyState)
 	job.FailureDetail = ""
