@@ -82,6 +82,21 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	} else {
 		command.Env = append(os.Environ(), "PATH="+spec.cuda13Root+string(os.PathListSeparator)+spec.workingDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	}
+	if currentGOOS() == "windows" && spec.pythonProfileRoot == "" {
+		// Native model loading may unpack embedded GGUF data. The restricted
+		// service cannot write Windows SystemTemp; use this invocation's owned
+		// staging directory, including GetTempPath2's SYSTEM-only override.
+		tempDir, err := os.MkdirTemp(filepath.Dir(output), ".audio-cpp-temp-")
+		if err != nil {
+			return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("create audio.cpp invocation temp: %w", err))
+		}
+		defer func() { _ = os.RemoveAll(tempDir) }()
+		tempEnv := make(map[string]string)
+		for _, key := range managedCommandTempEnvironmentKeys() {
+			tempEnv[key] = tempDir
+		}
+		command.Env = managedCommandProcessEnvironment(command.Env, tempEnv)
+	}
 	stdout := &boundedAudioCppOutput{limit: audioCppMaxDiagnosticBytes}
 	stderr := &boundedAudioCppOutput{limit: audioCppMaxDiagnosticBytes}
 	command.Stdout = stdout

@@ -15,7 +15,6 @@ import (
 	"io"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -159,7 +158,7 @@ func (p *Processor) InspectDuration(ctx context.Context, inputPath string) (time
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, p.ffprobePath, "-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=format_name,duration:stream=codec_type", "-of", "json", inputPath)
+	command := newCodecCommand(ctx, p.ffprobePath, "-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=format_name,duration:stream=codec_type", "-of", "json", inputPath)
 	var output bytes.Buffer
 	command.Stdout = &output
 	if err := command.Run(); err != nil {
@@ -303,7 +302,7 @@ func (p *Processor) EncodeAndInspect(ctx context.Context, plan *capabilitydriver
 		"-c:v", "libx264", "-bf", "0", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "32000", "-ac", "2", "-movflags", "frag_keyframe+empty_moov",
 		"-f", "mp4", "pipe:1",
 	}
-	command := exec.CommandContext(ctx, p.ffmpegPath, args...)
+	command := newCodecCommand(ctx, p.ffmpegPath, args...)
 	readers := make([]io.Reader, 0, len(candidate.Frames))
 	for _, frame := range candidate.Frames {
 		readers = append(readers, bytes.NewReader(frame.RGBBytes))
@@ -352,7 +351,7 @@ func (p *Processor) extractLastFrame(ctx context.Context, videoPath string, file
 		"-vf", fmt.Sprintf("select=eq(n\\,%d)", plan.FrameCount()-1),
 		"-frames:v", "1", "-c:v", "png", "-f", "image2pipe", "pipe:1",
 	}
-	command := exec.CommandContext(ctx, p.ffmpegPath, args...)
+	command := newCodecCommand(ctx, p.ffmpegPath, args...)
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := files.Write(ctx, "last-frame", MIMETypePNG, func(writer io.Writer) error { command.Stdout = writer; return command.Run() }); err != nil {
@@ -467,7 +466,7 @@ func (p *Processor) inspect(ctx context.Context, path string, plan *capabilitydr
 		"-show_entries", "format=format_name,duration:stream=codec_type,width,height,r_frame_rate,nb_frames,nb_read_frames,duration,channels,sample_rate",
 		"-of", "json", path,
 	}
-	command := exec.CommandContext(ctx, p.ffprobePath, args...)
+	command := newCodecCommand(ctx, p.ffprobePath, args...)
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout
 	command.Stderr = &stderr
@@ -558,7 +557,7 @@ func codecFailureKind(ctx context.Context, err error, phase FailureKind) Failure
 func VerifyCodecRuns(ctx context.Context, ffmpegPath, ffprobePath string) error {
 	for _, executable := range []string{ffmpegPath, ffprobePath} {
 		runCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		command := exec.CommandContext(runCtx, executable, "-version")
+		command := newCodecCommand(runCtx, executable, "-version")
 		output, err := command.CombinedOutput()
 		cancel()
 		if err != nil {

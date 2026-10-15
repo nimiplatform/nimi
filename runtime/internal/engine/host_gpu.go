@@ -28,7 +28,10 @@ func probePhysicalHostGPU() (string, bool) {
 	if hasPath("nvidia-smi") {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		if err := exec.CommandContext(ctx, "nvidia-smi", "--query-gpu=name", "--format=csv,noheader").Run(); err == nil {
+		command := exec.CommandContext(ctx, "nvidia-smi", "--query-gpu=name", "--format=csv,noheader")
+		// This probe also runs inside the fixed Windows service in Session 0.
+		configureManagedCommand(command)
+		if err := command.Run(); err == nil {
 			return "nvidia", true
 		}
 	}
