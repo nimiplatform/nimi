@@ -713,15 +713,25 @@
   .zhiyu-agent-chat__layout,
   .zhiyu-agent-chat__layout.is-side-closed {
     grid-template-columns: 58px minmax(0, 1fr);
-    grid-template-areas:
-      "presence conversation"
-      "presence side";
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "presence conversation";
     gap: 10px;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
-  .zhiyu-agent-chat__layout.is-side-closed {
-    grid-template-areas: "presence conversation";
+  .zhiyu-agent-chat__layout:not(.is-side-closed) {
+    grid-template-areas: "presence side";
+  }
+
+  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-chat-canvas {
+    display: none;
+  }
+
+  .zhiyu-agent-center {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
   }
 
   .zhiyu-agent-rail {
@@ -764,7 +774,7 @@
   .zhiyu-agent-chat__layout,
   .zhiyu-agent-chat__layout.is-side-closed {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 52px auto;
+    grid-template-rows: 52px minmax(0, 1fr);
     grid-template-areas:
       "presence"
       "conversation";
@@ -772,22 +782,9 @@
   }
 
   .zhiyu-agent-chat__layout:not(.is-side-closed) {
-    grid-template-rows: 52px auto auto;
     grid-template-areas:
       "presence"
-      "conversation"
       "side";
-  }
-
-  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center {
-    position: relative;
-    inset: auto;
-    z-index: auto;
-    height: auto;
-    width: 100%;
-    max-width: 100%;
-    min-height: min(640px, calc(100cqh - 20px));
-    margin: 0;
   }
 
   .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center > section[data-chat-agent-center] {
@@ -867,11 +864,11 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "conversation";
   }
-  @container nimi-ui-module-zhiyu-surface (max-width: 640px) {
+  @container nimi-ui-module-zhiyu-surface (max-width: 980px) {
     .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"] {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(0, 1fr) auto;
-      grid-template-areas: "conversation" "side";
+      grid-template-rows: minmax(0, 1fr);
+      grid-template-areas: "side";
     }
     .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"].is-side-closed {
       grid-template-rows: minmax(0, 1fr);

@@ -52,7 +52,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
   return (
     <aside
-      className="zhiyu-agent-center mr-2 my-12 flex h-[calc(100cqh-96px)] min-h-0 w-[min(500px,calc(100cqw-96px))] max-w-full shrink-0 flex-col gap-2 [grid-area:side] max-[980px]:my-0 max-[980px]:mr-0 max-[980px]:h-auto max-[980px]:min-h-[min(640px,calc(100cqh-20px))] max-[980px]:w-full"
+      className="zhiyu-agent-center mr-2 my-12 flex h-[calc(100cqh-96px)] min-h-0 w-[min(500px,calc(100cqw-96px))] max-w-full shrink-0 flex-col gap-2 [grid-area:side]"
       data-zhiyu-region="agent-panel"
       data-zhiyu-agent-center-placement="kit"
       data-zhiyu-agent-panel-mode={props.mode}
