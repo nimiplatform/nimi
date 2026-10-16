@@ -56,6 +56,7 @@ export type NimiDesktopPortableAIProfileCatalogRecord = {
 export type NimiDesktopPortableAIProfileCatalogClient = {
   import(profile: NimiPortableAIProfileInput): Promise<NimiDesktopPortableAIProfileCatalogRecord>;
   list(): Promise<readonly NimiDesktopPortableAIProfileCatalogRecord[]>;
+  delete(profileId: string): Promise<void>;
 };
 
 export type NimiDesktopMachineProductRuntimeClient = {
@@ -448,6 +449,12 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         }
       }
       return Object.freeze(isolated);
+    },
+    async delete(profileId) {
+      await protectedAgents.deletePortableAIProfile({
+        context: await profileContext(),
+        profileId,
+      }, withNimiRuntimeIdempotencyMetadata({}, createNimiClientId('portable-ai-profile-delete')));
     },
   });
   return Object.freeze({

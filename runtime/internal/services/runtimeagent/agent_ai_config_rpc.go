@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
@@ -215,4 +216,33 @@ func (s *Service) ListPortableAIProfiles(
 		isolated = append(isolated, record)
 	}
 	return &runtimev1.ListPortableAIProfilesResponse{Profiles: isolated}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r003
+func (s *Service) DeletePortableAIProfile(
+	ctx context.Context,
+	req *runtimev1.DeletePortableAIProfileRequest,
+) (*runtimev1.DeletePortableAIProfileResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "delete portable AIProfile request is required")
+	}
+	profileID := strings.TrimSpace(req.GetProfileId())
+	if profileID == "" {
+		return nil, status.Error(codes.InvalidArgument, "profile id is required")
+	}
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_profile.write")
+	if err != nil {
+		return nil, err
+	}
+	if s.aiProfileStore == nil {
+		return nil, sharedLocalAgentAIConfigPersistenceError(status.Error(codes.Unavailable, "AIProfile store is unavailable"))
+	}
+	deleted, err := s.aiProfileStore.Delete(ctx, caller.accountNamespace, profileID)
+	if err != nil {
+		return nil, sharedLocalAgentAIConfigPersistenceError(err)
+	}
+	if !deleted {
+		return nil, status.Error(codes.NotFound, "portable AIProfile record not found")
+	}
+	return &runtimev1.DeletePortableAIProfileResponse{}, nil
 }

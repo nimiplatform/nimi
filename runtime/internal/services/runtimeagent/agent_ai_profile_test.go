@@ -123,6 +123,71 @@ func TestImportPortableAIProfileSavesOnlyCatalogDocument(t *testing.T) {
 	}
 }
 
+func TestDeletePortableAIProfileIsAccountScopedAndPreservesAIConfig(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	ctxA, contextA := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	ctxB, contextB := sharedAIConfigTestContext("account-b", "nimi.desktop")
+	for _, caller := range []struct {
+		ctx            context.Context
+		requestContext *runtimev1.AgentRequestContext
+	}{{ctxA, contextA}, {ctxB, contextB}} {
+		if _, err := svc.ImportPortableAIProfile(caller.ctx, &runtimev1.ImportPortableAIProfileRequest{
+			Context: caller.requestContext, ProfileJson: portableAIProfileJSON(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	written, err := svc.OverwriteSharedLocalAgentAIConfig(ctxA, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
+		Context: contextA, ExpectedRevision: "0", Capabilities: []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent("text.generate")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.DeletePortableAIProfile(ctxA, &runtimev1.DeletePortableAIProfileRequest{
+		Context: contextB, ProfileId: "portable-profile",
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("forged account context: %v", err)
+	}
+	request := &runtimev1.DeletePortableAIProfileRequest{Context: contextA, ProfileId: "portable-profile"}
+	if _, err := svc.DeletePortableAIProfile(ctxA, request); err != nil {
+		t.Fatal(err)
+	}
+	for _, caller := range []struct {
+		ctx            context.Context
+		requestContext *runtimev1.AgentRequestContext
+		count          int
+	}{{ctxA, contextA, 0}, {ctxB, contextB, 1}} {
+		listed, err := svc.ListPortableAIProfiles(caller.ctx, &runtimev1.ListPortableAIProfilesRequest{Context: caller.requestContext})
+		if err != nil || len(listed.GetProfiles()) != caller.count {
+			t.Fatalf("account %s catalog = %v, err = %v", caller.requestContext.GetSubjectUserId(), listed, err)
+		}
+	}
+	stored, _, found, err := svc.readSharedLocalAgentAIConfig(ctxA, "account-a")
+	if err != nil || !found || aiconfig.Hash(stored) != aiconfig.Hash(written.GetConfig()) {
+		t.Fatalf("deletion changed AIConfig: found=%v config=%v err=%v", found, stored, err)
+	}
+	if _, err := svc.DeletePortableAIProfile(ctxA, request); status.Code(err) != codes.NotFound {
+		t.Fatalf("repeated delete: %v", err)
+	}
+}
+
+func TestDeletePortableAIProfileRejectsInvalidRequests(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	for name, request := range map[string]*runtimev1.DeletePortableAIProfileRequest{
+		"nil":             nil,
+		"empty id":        {Context: requestContext},
+		"blank id":        {Context: requestContext, ProfileId: "  "},
+		"missing context": {ProfileId: "portable-profile"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := svc.DeletePortableAIProfile(ctx, request); status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("invalid request: %v", err)
+			}
+		})
+	}
+}
+
 func TestListPortableAIProfilesIsolatesInvalidStoredSibling(t *testing.T) {
 	svc := newSharedAIConfigTestService(t)
 	store := aiprofile.NewMemoryStore()

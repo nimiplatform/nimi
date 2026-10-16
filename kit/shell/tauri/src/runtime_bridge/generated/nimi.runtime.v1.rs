@@ -23122,6 +23122,18 @@ pub struct ListPortableAiProfilesResponse {
     #[prost(message, repeated, tag = "1")]
     pub profiles: ::prost::alloc::vec::Vec<PortableAiProfileRecord>,
 }
+/// Delete removes only the account-scoped portable Profile catalog record named
+/// by profile_id; it changes no AIConfig, Loadout, ModelAsset, selection, or
+/// Job state and fails typed when the record is absent.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeletePortableAiProfileRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub profile_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeletePortableAiProfileResponse {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenLocalAppAgentRealtimeRequest {
     #[prost(string, tag = "1")]
@@ -26518,6 +26530,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListPortableAIProfiles",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_portable_ai_profile(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeletePortableAiProfileRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeletePortableAiProfileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "DeletePortableAIProfile",
                     ),
                 );
             self.inner.unary(req, path, codec).await

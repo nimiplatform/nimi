@@ -136,6 +136,14 @@ RUNTIME_METHODS = [
     "response_type": "DeleteAllLocalAppAgentMemoryResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "DeletePortableAIProfile",
+    "kind": "unary",
+    "request_type": "DeletePortableAIProfileRequest",
+    "response_type": "DeletePortableAIProfileResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "service": "RuntimeAgentService",
     "method": "DisableAutonomy",

@@ -4274,6 +4274,14 @@ type DeleteModelCatalogProviderResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
+type DeletePortableAIProfileRequest struct {
+	Context   *AgentRequestContext `json:"context,omitempty"`
+	ProfileId string               `json:"profile_id,omitempty"`
+}
+
+type DeletePortableAIProfileResponse struct {
+}
+
 type DeleteVoiceAssetRequest struct {
 	VoiceAssetId string `json:"voice_asset_id,omitempty"`
 }
@@ -9898,6 +9906,14 @@ func (c RuntimeTypedClient) DeleteAllLocalAppAgentMemory(ctx context.Context, re
 		return DeleteAllLocalAppAgentMemoryResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[DeleteAllLocalAppAgentMemoryResponse](raw, "DeleteAllLocalAppAgentMemoryResponse")
+}
+
+func (c RuntimeTypedClient) DeletePortableAIProfile(ctx context.Context, request DeletePortableAIProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeletePortableAIProfileResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile", request, metadata, timeoutMS)
+	if err != nil {
+		return DeletePortableAIProfileResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DeletePortableAIProfileResponse](raw, "DeletePortableAIProfileResponse")
 }
 
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {

@@ -144,6 +144,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteAllLocalAppAgentMemoryResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+        service: "RuntimeAgentService",
+        method: "DeletePortableAIProfile",
+        kind: "unary",
+        request_type: "DeletePortableAIProfileRequest",
+        response_type: "DeletePortableAIProfileResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
         service: "RuntimeAgentService",
         method: "DisableAutonomy",

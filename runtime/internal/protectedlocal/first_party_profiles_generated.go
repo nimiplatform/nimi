@@ -220,6 +220,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
@@ -740,6 +742,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", Kind: FirstPartyMethodUnary},

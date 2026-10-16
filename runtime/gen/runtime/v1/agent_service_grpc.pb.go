@@ -81,6 +81,7 @@ const (
 	RuntimeAgentService_ApplySharedLocalAgentAIProfile_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile"
 	RuntimeAgentService_ImportPortableAIProfile_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile"
 	RuntimeAgentService_ListPortableAIProfiles_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles"
+	RuntimeAgentService_DeletePortableAIProfile_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile"
 	RuntimeAgentService_GetLocalAppAgentManagerSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
 	RuntimeAgentService_UpdateLocalAppAgentConversationContext_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext"
 	RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
@@ -167,6 +168,7 @@ type RuntimeAgentServiceClient interface {
 	ApplySharedLocalAgentAIProfile(ctx context.Context, in *ApplySharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplySharedLocalAgentAIProfileResponse, error)
 	ImportPortableAIProfile(ctx context.Context, in *ImportPortableAIProfileRequest, opts ...grpc.CallOption) (*ImportPortableAIProfileResponse, error)
 	ListPortableAIProfiles(ctx context.Context, in *ListPortableAIProfilesRequest, opts ...grpc.CallOption) (*ListPortableAIProfilesResponse, error)
+	DeletePortableAIProfile(ctx context.Context, in *DeletePortableAIProfileRequest, opts ...grpc.CallOption) (*DeletePortableAIProfileResponse, error)
 	// Protected-local App agent configuration carrier (agent.configure AppAccess
 	// domain). Shared AIConfig actions resolve the singular subsystem owner;
 	// autonomy and presentation stay per-Agent behind session-scoped handles.
@@ -850,6 +852,16 @@ func (c *runtimeAgentServiceClient) ListPortableAIProfiles(ctx context.Context, 
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) DeletePortableAIProfile(ctx context.Context, in *DeletePortableAIProfileRequest, opts ...grpc.CallOption) (*DeletePortableAIProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeletePortableAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_DeletePortableAIProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) GetLocalAppAgentManagerSnapshot(ctx context.Context, in *GetLocalAppAgentManagerSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppAgentManagerSnapshotResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetLocalAppAgentManagerSnapshotResponse)
@@ -1060,6 +1072,7 @@ type RuntimeAgentServiceServer interface {
 	ApplySharedLocalAgentAIProfile(context.Context, *ApplySharedLocalAgentAIProfileRequest) (*ApplySharedLocalAgentAIProfileResponse, error)
 	ImportPortableAIProfile(context.Context, *ImportPortableAIProfileRequest) (*ImportPortableAIProfileResponse, error)
 	ListPortableAIProfiles(context.Context, *ListPortableAIProfilesRequest) (*ListPortableAIProfilesResponse, error)
+	DeletePortableAIProfile(context.Context, *DeletePortableAIProfileRequest) (*DeletePortableAIProfileResponse, error)
 	// Protected-local App agent configuration carrier (agent.configure AppAccess
 	// domain). Shared AIConfig actions resolve the singular subsystem owner;
 	// autonomy and presentation stay per-Agent behind session-scoped handles.
@@ -1271,6 +1284,9 @@ func (UnimplementedRuntimeAgentServiceServer) ImportPortableAIProfile(context.Co
 }
 func (UnimplementedRuntimeAgentServiceServer) ListPortableAIProfiles(context.Context, *ListPortableAIProfilesRequest) (*ListPortableAIProfilesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPortableAIProfiles not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) DeletePortableAIProfile(context.Context, *DeletePortableAIProfileRequest) (*DeletePortableAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeletePortableAIProfile not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentManagerSnapshot(context.Context, *GetLocalAppAgentManagerSnapshotRequest) (*GetLocalAppAgentManagerSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentManagerSnapshot not implemented")
@@ -2422,6 +2438,24 @@ func _RuntimeAgentService_ListPortableAIProfiles_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_DeletePortableAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeletePortableAIProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).DeletePortableAIProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_DeletePortableAIProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).DeletePortableAIProfile(ctx, req.(*DeletePortableAIProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_GetLocalAppAgentManagerSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetLocalAppAgentManagerSnapshotRequest)
 	if err := dec(in); err != nil {
@@ -2912,6 +2946,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPortableAIProfiles",
 			Handler:    _RuntimeAgentService_ListPortableAIProfiles_Handler,
+		},
+		{
+			MethodName: "DeletePortableAIProfile",
+			Handler:    _RuntimeAgentService_DeletePortableAIProfile_Handler,
 		},
 		{
 			MethodName: "GetLocalAppAgentManagerSnapshot",

@@ -2228,6 +2228,15 @@ class DeleteModelCatalogProviderResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
+class DeletePortableAIProfileRequest:
+    context: AgentRequestContext | None = None
+    profile_id: str | None = None
+
+@dataclass(frozen=True)
+class DeletePortableAIProfileResponse:
+    pass
+
+@dataclass(frozen=True)
 class DeleteVoiceAssetRequest:
     voice_asset_id: str | None = None
 
@@ -7767,6 +7776,10 @@ class RuntimeTypedClient:
     async def delete_all_local_app_agent_memory(self, request: DeleteAllLocalAppAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteAllLocalAppAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteAllLocalAppAgentMemoryResponse, raw)
+
+    async def delete_portable_aiprofile(self, request: DeletePortableAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeletePortableAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DeletePortableAIProfileResponse, raw)
 
     async def disable_autonomy(self, request: DisableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DisableAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

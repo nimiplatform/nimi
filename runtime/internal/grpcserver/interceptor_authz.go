@@ -237,6 +237,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.ai_config.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile":
 		return "runtime.agent.ai_profile.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile":
+		return "runtime.agent.ai_profile.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles":
 		return "runtime.agent.ai_profile.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":

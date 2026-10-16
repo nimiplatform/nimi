@@ -110,6 +110,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
       - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
       - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes

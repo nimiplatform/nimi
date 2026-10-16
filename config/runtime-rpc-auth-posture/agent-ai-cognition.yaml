@@ -126,6 +126,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario

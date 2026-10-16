@@ -142,6 +142,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteAllLocalAppAgentMemoryResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "DeletePortableAIProfile",
+    "kind": "unary",
+    "requestType": "DeletePortableAIProfileRequest",
+    "responseType": "DeletePortableAIProfileResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "service": "RuntimeAgentService",
     "method": "DisableAutonomy",

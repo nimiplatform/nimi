@@ -7505,6 +7505,17 @@ pub struct DeleteModelCatalogProviderResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeletePortableAIProfileRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub profile_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeletePortableAIProfileResponse {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteVoiceAssetRequest {
     pub voice_asset_id: Option<String>,
 }

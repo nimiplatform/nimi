@@ -21,10 +21,11 @@ var ErrBackendRequired = errors.New("AIProfile persistence backend is required")
 
 // Store owns the account-scoped portable Profile catalog. Import replaces one
 // document by profile_id and does not project or invoke any other product
-// action.
+// action. Delete removes only the named record and reports whether it existed.
 type Store interface {
 	Import(context.Context, string, *runtimev1.PortableAIProfileRecord) (*runtimev1.PortableAIProfileRecord, error)
 	List(context.Context, string) ([]*runtimev1.PortableAIProfileRecord, error)
+	Delete(context.Context, string, string) (bool, error)
 }
 
 type MemoryStore struct {
@@ -75,6 +76,19 @@ func (s *MemoryStore) List(_ context.Context, accountNamespace string) ([]*runti
 	}
 	sortRecords(rows)
 	return rows, nil
+}
+
+func (s *MemoryStore) Delete(_ context.Context, accountNamespace string, profileID string) (bool, error) {
+	if accountNamespace == "" || profileID == "" {
+		return false, fmt.Errorf("account namespace and profile id are required")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.rows[accountNamespace][profileID] == nil {
+		return false, nil
+	}
+	delete(s.rows[accountNamespace], profileID)
+	return true, nil
 }
 
 type SQLiteStore struct {
@@ -153,6 +167,27 @@ func (s *SQLiteStore) List(ctx context.Context, accountNamespace string) (record
 		return nil, fmt.Errorf("iterate AIProfiles: %w", err)
 	}
 	return out, nil
+}
+
+func (s *SQLiteStore) Delete(ctx context.Context, accountNamespace string, profileID string) (bool, error) {
+	if accountNamespace == "" || profileID == "" {
+		return false, fmt.Errorf("account namespace and profile id are required")
+	}
+	var affected int64
+	if err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+			DELETE FROM runtime_ai_profile
+			WHERE account_namespace = ? AND profile_id = ?
+		`, accountNamespace, profileID)
+		if err != nil {
+			return err
+		}
+		affected, err = result.RowsAffected()
+		return err
+	}); err != nil {
+		return false, fmt.Errorf("delete AIProfile: %w", err)
+	}
+	return affected > 0, nil
 }
 
 func recordFromStorage(profileID, title string, raw []byte, importedAt, updatedAt string) (*runtimev1.PortableAIProfileRecord, error) {

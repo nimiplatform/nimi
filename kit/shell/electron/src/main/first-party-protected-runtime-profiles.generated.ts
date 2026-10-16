@@ -109,6 +109,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAppService/SendAppMessage": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages": { kind: "server_stream" },
       "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes": { kind: "unary" },

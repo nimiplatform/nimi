@@ -1061,6 +1061,14 @@ message ImportPortableAIProfileRequest {
 message ImportPortableAIProfileResponse { PortableAIProfileRecord profile = 1; }
 message ListPortableAIProfilesRequest { AgentRequestContext context = 1; }
 message ListPortableAIProfilesResponse { repeated PortableAIProfileRecord profiles = 1; }
+// Delete removes only the account-scoped portable Profile catalog record named
+// by profile_id; it changes no AIConfig, Loadout, ModelAsset, selection, or
+// Job state and fails typed when the record is absent.
+message DeletePortableAIProfileRequest {
+  AgentRequestContext context = 1;
+  string profile_id = 2;
+}
+message DeletePortableAIProfileResponse {}
 
 message OpenLocalAppAgentRealtimeRequest {
   string agent_handle = 1;
@@ -1228,6 +1236,7 @@ service RuntimeAgentService {
   rpc ApplySharedLocalAgentAIProfile(ApplySharedLocalAgentAIProfileRequest) returns (ApplySharedLocalAgentAIProfileResponse);
   rpc ImportPortableAIProfile(ImportPortableAIProfileRequest) returns (ImportPortableAIProfileResponse);
   rpc ListPortableAIProfiles(ListPortableAIProfilesRequest) returns (ListPortableAIProfilesResponse);
+  rpc DeletePortableAIProfile(DeletePortableAIProfileRequest) returns (DeletePortableAIProfileResponse);
   // Protected-local App agent configuration carrier (agent.configure AppAccess
   // domain). Shared AIConfig actions resolve the singular subsystem owner;
   // autonomy and presentation stay per-Agent behind session-scoped handles.

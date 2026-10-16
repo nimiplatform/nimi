@@ -668,6 +668,15 @@
           "response_stream": false
         },
         {
+          "name": "DeletePortableAIProfile",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+          "kind": "unary",
+          "request_type": "DeletePortableAIProfileRequest",
+          "response_type": "DeletePortableAIProfileResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetLocalAppAgentManagerSnapshot",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
           "kind": "unary",
@@ -2691,6 +2700,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
     "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
+    "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",
@@ -3084,6 +3094,14 @@
       "kind": "unary",
       "request_type": "DeleteAllLocalAppAgentMemoryRequest",
       "response_type": "DeleteAllLocalAppAgentMemoryResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+      "service": "RuntimeAgentService",
+      "method": "DeletePortableAIProfile",
+      "kind": "unary",
+      "request_type": "DeletePortableAIProfileRequest",
+      "response_type": "DeletePortableAIProfileResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
@@ -5326,6 +5344,14 @@
       "kind": "unary",
       "request_type": "DeleteAllLocalAppAgentMemoryRequest",
       "response_type": "DeleteAllLocalAppAgentMemoryResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
+      "service": "RuntimeAgentService",
+      "method": "DeletePortableAIProfile",
+      "kind": "unary",
+      "request_type": "DeletePortableAIProfileRequest",
+      "response_type": "DeletePortableAIProfileResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
@@ -7704,6 +7730,8 @@
       "DeleteLocalAppVoiceAssetResponse",
       "DeleteModelCatalogProviderRequest",
       "DeleteModelCatalogProviderResponse",
+      "DeletePortableAIProfileRequest",
+      "DeletePortableAIProfileResponse",
       "DeleteVoiceAssetRequest",
       "DeleteVoiceAssetResponse",
       "DesktopAuditEventProjection",
@@ -18578,6 +18606,31 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "DeletePortableAIProfileRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "profile_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "DeletePortableAIProfileResponse",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "DeleteVoiceAssetRequest",

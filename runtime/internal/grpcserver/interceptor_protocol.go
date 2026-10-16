@@ -213,6 +213,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
 		"/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
 		"/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile",
+		"/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
 		"/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
 		"/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
 		"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",

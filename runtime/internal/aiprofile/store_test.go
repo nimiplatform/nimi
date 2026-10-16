@@ -79,3 +79,59 @@ func TestSQLiteStoreImportsAndReplacesOneAccountProfile(t *testing.T) {
 		t.Fatalf("other account rows=%+v err=%v", other, err)
 	}
 }
+
+func TestSQLiteStoreDeleteRemovesOnlyNamedAccountRecord(t *testing.T) {
+	backend, err := runtimepersistence.Open(slog.Default(), filepath.Join(t.TempDir(), "local-state.json"))
+	if err != nil {
+		t.Fatalf("open backend: %v", err)
+	}
+	t.Cleanup(func() { _ = backend.Close() })
+	store, err := NewSQLiteStore(backend)
+	if err != nil {
+		t.Fatalf("NewSQLiteStore: %v", err)
+	}
+	ctx := context.Background()
+	for _, namespace := range []string{"account-a", "account-b"} {
+		if _, err := store.Import(ctx, namespace, &runtimev1.PortableAIProfileRecord{
+			ProfileId: "profile-a", Title: "Title", ProfileJson: []byte(`{"profileId":"profile-a"}`),
+		}); err != nil {
+			t.Fatalf("import %s: %v", namespace, err)
+		}
+	}
+	deleted, err := store.Delete(ctx, "account-a", "profile-a")
+	if err != nil || !deleted {
+		t.Fatalf("delete existing: deleted=%v err=%v", deleted, err)
+	}
+	again, err := store.Delete(ctx, "account-a", "profile-a")
+	if err != nil || again {
+		t.Fatalf("delete absent: deleted=%v err=%v", again, err)
+	}
+	rows, err := store.List(ctx, "account-b")
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("other account rows=%+v err=%v", rows, err)
+	}
+}
+
+func TestMemoryStoreDeleteRemovesOnlyNamedAccountRecord(t *testing.T) {
+	store := NewMemoryStore()
+	ctx := context.Background()
+	if _, err := store.Import(ctx, "account-a", &runtimev1.PortableAIProfileRecord{
+		ProfileId: "profile-a", Title: "Title", ProfileJson: []byte(`{"profileId":"profile-a"}`),
+	}); err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	deleted, err := store.Delete(ctx, "account-a", "profile-a")
+	if err != nil || !deleted {
+		t.Fatalf("delete existing: deleted=%v err=%v", deleted, err)
+	}
+	again, err := store.Delete(ctx, "account-a", "profile-a")
+	if err != nil || again {
+		t.Fatalf("delete absent: deleted=%v err=%v", again, err)
+	}
+	if _, err := store.Delete(ctx, "", "profile-a"); err == nil {
+		t.Fatal("delete without account namespace must fail")
+	}
+	if _, err := store.Delete(ctx, "account-a", ""); err == nil {
+		t.Fatal("delete without profile id must fail")
+	}
+}

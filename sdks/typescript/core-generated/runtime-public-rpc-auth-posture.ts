@@ -20,6 +20,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory": "protected_origin_required",
