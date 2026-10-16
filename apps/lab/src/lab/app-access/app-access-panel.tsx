@@ -154,7 +154,7 @@ export function AppAccessPanel() {
           state: 'ready',
           detail: t('AppAccess.factDetails.currentUserSummary', {
             name: user.displayName,
-            handle: user.handle,
+            handle: user.handle.replace(/^@+/, ''),
             avatar: t(user.avatarUrl ? 'AppAccess.factDetails.avatarSet' : 'AppAccess.factDetails.avatarNone'),
           }),
         },
