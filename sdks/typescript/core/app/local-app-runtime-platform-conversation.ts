@@ -541,7 +541,8 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
       return Object.freeze({ ...base, type: 'turn-started' });
     case 'text-delta':
       assertExactProjectionKeys(record, [...commonKeys, 'delta'], 'text delta event');
-      return Object.freeze({ ...base, type: 'text-delta', delta: boundedProjectionText(record.delta, 'delta', 16 * 1024) });
+      // @nimi-authority: rule.nimi.runtime.agent-participation.r093
+      return Object.freeze({ ...base, type: 'text-delta', delta: boundedProjectionText(record.delta, 'delta', 16 * 1024, true) });
     case 'reasoning-status':
       assertExactProjectionKeys(record, [...commonKeys, 'state'], 'reasoning status event');
       if (!['started', 'active', 'completed'].includes(String(record.state))) return localAppProjectionError('reasoning status event');
@@ -948,8 +949,8 @@ function boundedProjectionSelector(value: unknown, field: string): string {
   return text;
 }
 
-function boundedProjectionText(value: unknown, field: string, maxBytes: number): string {
-  if (typeof value !== 'string' || !value.trim() || value.includes('\u0000')
+function boundedProjectionText(value: unknown, field: string, maxBytes: number, allowWhitespaceOnly = false): string {
+  if (typeof value !== 'string' || !value || (!allowWhitespaceOnly && !value.trim()) || value.includes('\u0000')
     || new TextEncoder().encode(value).byteLength > maxBytes) {
     return localAppProjectionError(`conversation ${field}`);
   }

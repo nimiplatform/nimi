@@ -1196,6 +1196,39 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
   );
 });
 
+test('Local App Conversation preserves whitespace-only deltas with bounded nonempty content', async () => {
+  const base = standardShell([]);
+  const fragments = ['第一条', ' ', '\n', '\r\n', ' \t', ' leading', 'trailing ', ' '.repeat(16 * 1024)];
+  const stream = async (deltas: readonly string[]) => {
+    const shell: NimiLocalAppStandardShell = {
+      ...base,
+      conversation: {
+        ...base.conversation,
+        subscribe: async () => ({
+          events: (async function* () {
+            for (const [index, delta] of deltas.entries()) yield {
+              type: 'text-delta', conversationAnchorId: 'agent_anchor_01J',
+              sequence: String(index + 1), turnId: 'agent_turn_01J', delta,
+            };
+          })(),
+          cancel: async () => undefined,
+        }),
+      },
+    };
+    const subscription = await createNimiLocalAppClient({ standardShell: shell }).conversation.subscribe({
+      agentHandle: `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle,
+      conversationAnchorId: 'agent_anchor_01J',
+    });
+    const output: string[] = [];
+    for await (const event of subscription) if (event.type === 'text-delta') output.push(event.delta);
+    return output;
+  };
+  assert.deepEqual(await stream(fragments), fragments);
+  for (const invalid of ['', 'a\0b', 'x'.repeat(16 * 1024 + 1), '界'.repeat(Math.floor(16 * 1024 / 3) + 1)]) {
+    await assert.rejects(stream([invalid]), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
+  }
+});
+
 test('Local App text stream preserves whitespace-bearing deltas as content', async () => {
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {

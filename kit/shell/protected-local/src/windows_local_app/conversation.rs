@@ -52,6 +52,7 @@ const AGENT_HANDLE_SUFFIX_BYTES: usize = 43;
 const MAX_SELECTOR_BYTES: usize = 256;
 const MAX_REQUEST_ID_BYTES: usize = 256;
 const MAX_TEXT_BYTES: usize = 64 * 1024;
+const MAX_TEXT_DELTA_BYTES: usize = 16 * 1024;
 const MAX_UPLOAD_BYTES: usize = 4 * 1024 * 1024;
 const MAX_INLINE_BYTES: usize = crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES;
 const MAX_VOICE_INPUT_BYTES: usize = 6 * 1024 * 1024;
@@ -397,9 +398,17 @@ fn project_event(
                 turn_id: value.turn_id,
             }
         }
+        // @nimi-authority: rule.nimi.runtime.agent-participation.r093
         ProtoConversationEvent::TextDelta(value) => {
             require_runtime_selector(&value.turn_id)?;
-            require_bounded_runtime_text(&value.delta, MAX_TEXT_BYTES)?;
+            // A stream fragment may consist entirely of spaces or newlines.
+            // Preserve it verbatim; complete-message validation is different.
+            if value.delta.is_empty()
+                || value.delta.len() > MAX_TEXT_DELTA_BYTES
+                || value.delta.contains('\0')
+            {
+                return Err(untrusted());
+            }
             LocalAppConversationEventKind::TextDelta {
                 turn_id: value.turn_id,
                 delta: value.delta,
@@ -923,9 +932,45 @@ fn valid_reason_code(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::generated::{
-        local_app_conversation_event, LocalAppConversationTurnCompleted,
-        LocalAppConversationTurnStarted,
+        local_app_conversation_event, LocalAppConversationTextDelta,
+        LocalAppConversationTurnCompleted, LocalAppConversationTurnStarted,
     };
+
+    #[test]
+    fn text_delta_projection_preserves_whitespace_and_utf8_bounds() {
+        let project = |delta: &str| {
+            project_event(ProtoLocalAppConversationEvent {
+                conversation_anchor_id: "agent_anchor_01J".to_string(),
+                sequence: 1,
+                event: Some(ProtoConversationEvent::TextDelta(
+                    LocalAppConversationTextDelta {
+                        turn_id: "agent_turn_01J".to_string(),
+                        delta: delta.to_string(),
+                    },
+                )),
+            })
+        };
+        for fragment in ["第一条", " ", "\n", "\r\n", " \t", " leading", "trailing "] {
+            assert_eq!(
+                project(fragment).expect("valid stream fragment").event,
+                LocalAppConversationEventKind::TextDelta {
+                    turn_id: "agent_turn_01J".to_string(),
+                    delta: fragment.to_string(),
+                }
+            );
+        }
+        assert!(project(&" ".repeat(MAX_TEXT_DELTA_BYTES)).is_ok());
+        for fragment in [
+            String::new(),
+            "a\0b".to_string(),
+            "x".repeat(MAX_TEXT_DELTA_BYTES + 1),
+            "界".repeat(MAX_TEXT_DELTA_BYTES / 3 + 1),
+        ] {
+            assert!(project(&fragment).is_err());
+        }
+        // Whitespace-only full messages are still invalid.
+        assert!(require_bounded_runtime_text(" \n", MAX_TEXT_BYTES).is_err());
+    }
 
     #[test]
     fn typed_event_projection_has_no_generic_payload_or_message_type() {
