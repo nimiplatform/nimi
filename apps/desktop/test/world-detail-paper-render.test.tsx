@@ -18,23 +18,18 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 import { JSDOM } from 'jsdom';
-import { worldReadingEntries } from '../src/shell/renderer/features/world/world-detail-reading-model';
+import { worldReadingEntries, worldReadingProseBlocks } from '../src/shell/renderer/features/world/world-detail-reading-model';
 import { worldTimeDisplay } from '../src/shell/renderer/features/world/world-detail-paper-model';
 import { derivedScenes } from '../src/shell/renderer/features/world/world-detail-template-model';
 import {
   WorldLoreLibraryPage,
   buildWorldLoreEntries,
 } from '../src/shell/renderer/features/world/world-detail-lore-library';
-import {
-  WorldResourceReferencesPage,
-  buildWorldResourceReferenceEntries,
-} from '../src/shell/renderer/features/world/world-detail-resource-references';
 import { WorldRelationshipExplorer } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
 import {
   WorldDetailPage,
   worldDetailRootSectionScrollTop,
 } from '../src/shell/renderer/features/world/world-detail-template';
-import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
 import { readyPeopleCatalog } from './world-people-catalog-fixture';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
 
@@ -341,53 +336,6 @@ test('world lore library page renders semantic groups as browseable records', as
   }
 });
 
-test('resource references page reorganizes resource data around user-ready assets', async () => {
-  const entries = buildWorldResourceReferenceEntries(publicAssets);
-
-  assert.deepEqual(entries.map((entry) => entry.kind), ['material', 'material', 'intent']);
-  assert.deepEqual(entries.map((entry) => entry.status), ['registered', 'external', 'planned']);
-  assert.equal(entries[0]?.title, '书院图');
-  assert.equal(entries[0]?.subtitle, 'highlight / image');
-  assert.equal(entries[1]?.role, 'highlight');
-  assert.equal(entries[1]?.roleIndex, 1);
-  assert.equal(entries[1]?.externalUri, 'file:///tmp/nimi-forge/world/highlight-1.png');
-  assert.equal(entries[2]?.title, '');
-  assert.equal(entries[2]?.role, 'map');
-  assert.equal(entries[2]?.body, '世界地图与场景定位用图。');
-
-  await changeLocale('zh');
-  try {
-    const markup = renderToStaticMarkup(
-      React.createElement(WorldResourceReferencesPage, {
-        world,
-        publicAssets,
-        onBack: () => {},
-      }),
-    );
-
-    assert.match(markup, /data-testid="world-detail-resource-references-page"/);
-    assert.match(markup, /世界素材清单/);
-    assert.match(markup, /可打开素材/);
-    assert.match(markup, /已接入素材/);
-    assert.match(markup, /待补齐计划/);
-    assert.match(markup, /仅有内部记录/);
-    assert.match(markup, /仅有来源链接/);
-    assert.match(markup, /书院图/);
-    assert.match(markup, /亮点图 1/);
-    assert.match(markup, /地图\/定位图/);
-    assert.match(markup, /res1/);
-    assert.match(markup, /world-media-highlight-1/);
-    assert.match(markup, /intent-map/);
-    assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
-    assert.match(markup, /世界地图与场景定位用图。/);
-    assert.doesNotMatch(markup, /资源引用集/);
-    assert.doesNotMatch(markup, /规范资源/);
-    assert.doesNotMatch(markup, /WorldDetail\.paper\.resourceReferences/);
-  } finally {
-    await changeLocale('en');
-  }
-});
-
 test('world relationship explorer lists people without inventing relationships from topic text', async () => {
   await changeLocale('zh');
   try {
@@ -444,86 +392,6 @@ test('world detail computes scene section centering inside the scroll viewport',
   assert.equal(scrollTop, 1300);
   assert.equal(300 + 1200 - scrollTop + 250, 450);
 });
-
-test('world scene detail page renders structured scene DTO data after entry without modal chrome', () => {
-  const page = WorldSceneDetailPage as React.ComponentType<Record<string, unknown>>;
-  const markup = renderToStaticMarkup(
-    React.createElement(page, {
-      isOasisWorld: false,
-      oasisSceneActionLabel: 'View related sources',
-      onBack: () => {},
-      onSelectCharacter: () => {},
-      onViewCharacters: () => {},
-      onViewEvents: () => {},
-      relatedCharacters: [],
-      relatedEvents: [],
-      scene: publicAssets.scenes[0],
-      sceneImageRef: publicAssets.externalRefs[0],
-    }),
-  );
-
-  assert.match(markup, /data-testid="world-detail-scene-detail-page"/);
-  assert.doesNotMatch(markup, /class="fixed inset-0/);
-  assert.doesNotMatch(markup, /bg-black\/55/);
-  assert.match(markup, /Scene details/);
-  assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
-  assert.match(markup, /Active entities/);
-  assert.match(markup, /Related characters/);
-  assert.match(markup, /Related events/);
-  assert.match(markup, /姚燧/);
-  assert.match(markup, /倪瓒/);
-  assert.match(markup, /书院讲堂讲会/);
-  assert.match(markup, /讲学与雅集发生的地点。/);
-  assert.doesNotMatch(markup, /Scene ID/);
-  assert.doesNotMatch(markup, /Image Asset Ref/);
-  assert.doesNotMatch(markup, /world-media-highlight-1/);
-  assert.doesNotMatch(markup, /from locationRefs and summaries/);
-  assert.doesNotMatch(markup, /from scene resources/);
-  assert.doesNotMatch(markup, /View related sources/);
-});
-
-test('world scene detail page hides empty counters, provenance and resource chrome', () => {
-  const page = WorldSceneDetailPage as React.ComponentType<Record<string, unknown>>;
-  const sparseScene = {
-    ...publicAssets.scenes[1],
-    relatedCharacters: characters,
-    counts: {
-      activeEntityCount: 0,
-      relatedCharacterCount: characters.length,
-      relatedEventCount: 0,
-      relatedResourceCount: 0,
-    },
-  };
-  const markup = renderToStaticMarkup(
-    React.createElement(page, {
-      isOasisWorld: false,
-      oasisSceneActionLabel: 'View related sources',
-      onBack: () => {},
-      onSelectCharacter: () => {},
-      onViewCharacters: () => {},
-      onViewEvents: () => {},
-      scene: sparseScene,
-      sceneImageRef: publicAssets.externalRefs[0],
-    }),
-  );
-
-  assert.match(markup, /Related characters/);
-  assert.match(markup, /姚燧/);
-  assert.doesNotMatch(markup, /Active entities/);
-  assert.doesNotMatch(markup, /Related events/);
-  assert.doesNotMatch(markup, /Related resources/);
-  assert.doesNotMatch(markup, /from locationRefs and summaries/);
-  assert.doesNotMatch(markup, /from scene resources/);
-  assert.doesNotMatch(markup, /Scene ID/);
-  assert.doesNotMatch(markup, /Image Asset Ref/);
-  assert.doesNotMatch(markup, /s2/);
-  assert.doesNotMatch(markup, /world-media-highlight-1/);
-  assert.doesNotMatch(markup, /View related sources/);
-  assert.doesNotMatch(markup, /View related characters/);
-  assert.doesNotMatch(markup, /Before entering, note what is here/);
-});
-
-
 
 test('paper world detail hero omits banner tags even when metadata has display tags', () => {
   const noisyWorld: WorldDetailData = {
@@ -590,20 +458,30 @@ test('paper world detail formats ISO wall-clock world time labels before renderi
   assert.match(display ?? '', /2026/);
 });
 
-test('world discovery puts source profiles ahead of bounded setting previews', () => {
+test('world discovery puts source profiles ahead of the about and places sections', () => {
   const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(105, { hasMore: true })} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
   const document = new JSDOM(html).window.document;
   const people = document.querySelector('#world-detail-characters')!;
-  const settings = document.querySelector('[data-testid="world-detail-settings-preview"]')!;
-  assert.ok(people.compareDocumentPosition(settings) & 4, 'people precede the setting');
-  assert.equal(people.querySelectorAll('[data-testid="world-character-card"]').length, characters.length);
+  const about = document.querySelector('[data-testid="world-detail-about"]')!;
+  assert.ok(people.compareDocumentPosition(about) & 4, 'people precede the about section');
+  assert.ok(about.textContent?.includes('文人交游体系'), 'the about section shows world systems');
+  assert.ok(about.textContent?.includes('人物之间通过书信、拜访、诗文唱和形成关系网络。'), 'the about section shows full system descriptions');
+  assert.ok(about.textContent?.includes('交游关系必须来自公开资料。'), 'the about section shows every system rule');
+  const places = document.querySelector('[data-testid="world-detail-scenes"]')!;
+  assert.ok(people.compareDocumentPosition(places) & 4, 'people precede the places section');
+  assert.ok(places.textContent?.includes('书院讲堂'));
+  assert.equal(places.querySelectorAll('[data-testid="world-scene-row"]').length, 2);
+  assert.ok(places.querySelector('button[aria-label="View 姚燧"]'), 'place rows list related people inline');
+  assert.ok(places.querySelector('button[aria-label="View 倪瓒"]'), 'place rows list related people inline');
+  assert.equal(people.querySelectorAll('[data-testid="world-person-card"]').length, characters.length);
   assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, characters.length);
   assert.ok(people.textContent?.includes('105 people'));
-  assert.ok(people.querySelector('[data-testid="world-detail-people-load-more"]'));
+  assert.ok(!people.querySelector('[data-testid="world-detail-people-view-all"]'), 'every person is listed inline without a view-all page');
+  assert.ok(people.querySelector('[data-testid="world-detail-people-load-more"]'), 'the inline catalog keeps cursor paging');
   assert.doesNotMatch(document.body.textContent!, /Become my partner|Chat now|Recommended paths|WorldDetail\./);
 });
 
-test('long description and system paragraphs remain full prose in the reader and bounded on the homepage', () => {
+test('long description and system paragraphs remain full prose in the reader and on the homepage', () => {
   const description = '世界中的每个人都有自己的日常。'.repeat(50);
   const system = '这个世界的社会和生活运转规则。'.repeat(100);
   const longWorld = { ...world, overview: null, description, bannerUrl: 'https://example.test/world.png' };
@@ -611,10 +489,16 @@ test('long description and system paragraphs remain full prose in the reader and
   const html = renderToStaticMarkup(<WorldDetailPage world={longWorld} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={history} semantic={longSemantic} audits={[]} publicAssets={publicAssets} />);
   const document = new JSDOM(html).window.document;
   const summary = document.querySelector('[data-testid="world-detail-summary"]')!;
-  assert.equal(summary.textContent, description);
-  assert.ok(summary.classList.contains('line-clamp-2'));
+  assert.equal(summary.textContent, description, 'a single-paragraph summary renders in full');
+  assert.ok(!summary.getAttribute('class')?.includes('line-clamp'), 'the summary is never clamped mid-paragraph');
+  const multiWorld = { ...longWorld, description: `完整的第一段。\n\n${description}` };
+  const multiDocument = new JSDOM(renderToStaticMarkup(<WorldDetailPage world={multiWorld} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={history} semantic={longSemantic} audits={[]} publicAssets={publicAssets} />)).window.document;
+  assert.equal(multiDocument.querySelector('[data-testid="world-detail-summary"]')?.textContent, '完整的第一段。', 'a multi-paragraph summary shows the whole first paragraph only');
   assert.equal(document.querySelector('[data-testid="world-detail-banner"]')?.tagName, 'IMG');
   assert.ok(document.querySelector('[data-testid="world-detail-open-reader"]'));
+  const about = document.querySelector('[data-testid="world-detail-about"]')!;
+  assert.ok(about.textContent?.includes(system), 'the about section shows world systems in full on the homepage');
+  assert.equal(about.textContent!.split(system).length - 1, 1, 'a system paragraph repeated as name and description renders once');
   assert.ok(Array.from(document.querySelectorAll('h1,h2,h3')).every((heading) => !heading.textContent?.includes(system)));
   const entries = worldReadingEntries(longWorld, longSemantic, history);
   assert.ok(entries.find((entry) => entry.section === 'description')?.text.includes(description));
@@ -626,6 +510,8 @@ test('world following remains a single secondary action and disappears when unav
   const followed = render(() => {});
   const button = followed.querySelector('[data-testid="world-detail-follow-world"]');
   assert.equal(button?.getAttribute('aria-pressed'), 'true');
+  assert.equal(button?.getAttribute('aria-label'), 'Remove bookmark');
+  assert.equal(button?.textContent?.trim(), '', 'the follow action is icon-only');
   assert.equal(followed.querySelectorAll('[data-testid="world-detail-follow-world"]').length, 1);
   assert.equal(render().querySelector('[data-testid="world-detail-follow-world"]'), null);
 });
@@ -638,6 +524,53 @@ test('the full world reader does not lose levels or realms beyond old visual-car
   const topology = entries.find((entry) => entry.section === 'topology')!;
   assert.ok(system.text.includes('Level 13\nLevel description 13'));
   assert.ok(topology.text.includes('Realm 9\nRealm description 9\nAccess 9'));
+});
+
+test('the reading model promotes short labels without duplicating prose', () => {
+  const entries = worldReadingEntries(world, semantic, history);
+  const system = entries.find((entry) => entry.section === 'systems')!;
+  assert.equal(system.title, '文人交游体系', 'a short system name leads its entry');
+  assert.ok(!system.body.includes('文人交游体系'), 'the promoted title leaves the body');
+  assert.ok(system.text.includes('文人交游体系'), 'the flattened content keeps the name once');
+  const rule = entries.find((entry) => entry.id === 'rule-0')!;
+  assert.equal(rule.title, '书院讲学');
+  assert.deepEqual(rule.body, ['以书院为核心组织讲学与交游。']);
+  const dated = entries.find((entry) => entry.id === 'event-ev1')!;
+  assert.equal(dated.time, '1238', 'a dated event exposes its time node');
+  assert.equal(dated.title, '姚燧出生');
+  assert.deepEqual(dated.body, ['姚燧生于洛阳，自幼随许衡问学。', '日后成为元代文坛领袖的姚燧生于洛阳。']);
+  const description = entries.find((entry) => entry.section === 'description')!;
+  assert.equal(description.title, undefined, 'long-form description never promotes an entry title');
+  assert.deepEqual(description.body, description.text);
+});
+
+test('long paragraphs repeated as name and description stay body text', () => {
+  const paragraph = '这个世界的社会和生活运转规则。'.repeat(20);
+  const entries = worldReadingEntries({ ...world, overview: null }, { ...emptySemantic, powerSystems: [{ name: paragraph, description: paragraph, levels: [], rules: [] }] }, emptyHistory);
+  const system = entries.find((entry) => entry.section === 'systems')!;
+  assert.equal(system.title, undefined, 'a full paragraph is never a heading');
+  assert.deepEqual(system.body, [paragraph], 'the prose renders once as body');
+  const shortOnly = worldReadingEntries(world, { ...emptySemantic, taboos: [{ name: '禁止私斗' }] }, emptyHistory);
+  const taboo = shortOnly.find((entry) => entry.section === 'taboos')!;
+  assert.equal(taboo.title, undefined, 'a lone label with no following prose stays body text');
+  assert.deepEqual(taboo.body, ['禁止私斗']);
+});
+
+test('prose blocks surface supplied content headings without altering text', () => {
+  const prose = '坊墙之内的晨昏与门户\n朱雀大街两侧坊墙环绕，晨鼓开门、暮鼓闭坊。\n两市喧闹与各色营生\n东市西市商贾云集，驼铃与叫卖声彻夜不绝。';
+  assert.deepEqual(worldReadingProseBlocks(prose), [
+    { kind: 'heading', text: '坊墙之内的晨昏与门户' },
+    { kind: 'paragraph', text: '朱雀大街两侧坊墙环绕，晨鼓开门、暮鼓闭坊。' },
+    { kind: 'heading', text: '两市喧闹与各色营生' },
+    { kind: 'paragraph', text: '东市西市商贾云集，驼铃与叫卖声彻夜不绝。' },
+  ]);
+  assert.deepEqual(worldReadingProseBlocks('第一段。\n\n第二段。'), [
+    { kind: 'paragraph', text: '第一段。' },
+    { kind: 'paragraph', text: '第二段。' },
+  ], 'blank lines only separate paragraphs');
+  assert.deepEqual(worldReadingProseBlocks('短句\n短句\n更短').every((block) => block.kind === 'paragraph'), true, 'consecutive short lines never become headings');
+  assert.deepEqual(worldReadingProseBlocks('完整段落，收束于句读。\n残句').map((block) => block.kind), ['paragraph', 'paragraph'], 'a trailing short line stays a paragraph');
+  assert.deepEqual(worldReadingProseBlocks('完整段落，收束于句读。\n未完待续').map((block) => block.kind), ['paragraph', 'paragraph']);
 });
 
 test('failed supplemental content stays explicit while character discovery remains usable', () => {

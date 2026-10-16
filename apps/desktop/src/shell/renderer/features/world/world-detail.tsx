@@ -21,7 +21,7 @@ type WorldDetailProps = {
   world: WorldListItem;
   // The canonical world destination returns through Home navigation.
   onBack?: () => void;
-  initialSubpage?: 'people-archive' | 'relationship-explorer' | null;
+  initialSubpage?: 'relationship-explorer' | null;
 };
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
@@ -248,7 +248,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
 
   return (
     <ScrollArea
-      className="h-full bg-transparent"
+      className="world-detail-surface h-full"
       viewportClassName="bg-transparent"
       viewportRef={detailViewportRef}
     >

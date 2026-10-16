@@ -10,15 +10,12 @@
     "viewCharacter": "View character",
     "viewNamedCharacter": "View {{name}}",
     "reader": "About this world",
-    "readWorld": "Read the full world setting",
-    "readAll": "Read all",
+    "readWorld": "Continue reading",
     "readingEntryCount": "{{count}} items",
-    "settings": "World setting",
-    "scenes": "Places in this world",
-    "viewScene": "View place",
-    "resources": "References and resources",
-    "follow": "Follow world",
-    "followed": "Following",
+    "about": "How this world works",
+    "places": "Places to linger",
+    "follow": "Bookmark world",
+    "followed": "Remove bookmark",
     "enterWorld": "Explore world",
     "enterNamedWorld": "Explore {{name}}",
     "karma": "Karma",
@@ -36,12 +33,6 @@
       "languages": "Languages",
       "history": "World history"
     }
-  },
-  "sceneResourceKinds": {
-    "entity": "Related entity",
-    "timelineEvent": "Historical event",
-    "resource": "Related resource",
-    "unnamed": "Unnamed resource"
   },
   "title": "World",
   "loading": "Loading world details...",
@@ -156,8 +147,7 @@
       "title": "Scenes",
       "subtitle": "Locations and scene anchors that help users choose the right source.",
       "empty": "No scenes are published for this world yet.",
-      "defaultContext": "Scene context",
-      "viewRelatedSources": "View related sources"
+      "defaultContext": "Scene context"
     },
     "sourceDiscovery": {
       "primarySource": "Primary Source",
@@ -617,88 +607,10 @@
         }
       }
     },
-    "resourceReferences": {
-      "title": "World asset checklist",
-      "subtitle": "Organized by use: connected visual assets, accessible sources, and asset plans that still need completion.",
-      "readerHint": "Start with what is ready to use, check where it comes from, and review what is still missing.",
-      "records": "records",
-      "empty": "This world has not connected display assets or asset plans yet.",
-      "kind": {
-        "resource": "Canonical resources",
-        "external": "External references",
-        "intent": "Asset intents"
-      },
-      "summary": {
-        "usable": "Accessible assets",
-        "registered": "Realm records",
-        "planned": "Pending plans"
-      },
-      "status": {
-        "ready": "Ready to use",
-        "external": "Source link only",
-        "registered": "Internal record only",
-        "planned": "Pending"
-      },
-      "description": {
-        "ready": "This asset has a Realm record and a source link.",
-        "external": "This asset is referenced through an external source and does not yet have a matching Realm asset record.",
-        "registered": "This asset is registered by the world, but no accessible external source is currently available.",
-        "planned": "This is a planned request for future production, replacement, or completion — not a ready-to-use asset."
-      },
-      "field": {
-        "usage": "Used as",
-        "resourceId": "Asset ID",
-        "sourceLink": "Source link",
-        "sourceId": "Source ID",
-        "planType": "Plan type",
-        "rawName": "Raw name"
-      },
-      "role": {
-        "icon": "World icon",
-        "banner": "Top banner",
-        "hero": "Hero visual",
-        "highlight": "Highlight {{index}}",
-        "map": "Map / locator",
-        "other": "World asset"
-      },
-      "action": {
-        "openAsset": "Open asset"
-      },
-      "ownershipNote": "Asset IDs only show that content is referenced by this world; ownership, authorship, and binding truth still come from Realm asset and binding records.",
-      "group": {
-        "material": {
-          "title": "Connected assets",
-          "subtitle": "Use this section for the world icon, banner, hero visual, highlights, and other display slots."
-        },
-        "intent": {
-          "title": "Pending asset plans",
-          "subtitle": "Assets that still need to be created, replaced, or completed."
-        }
-      }
-    },
     "timeline": {
       "title": "River of time",
       "subtitle": "Walk through time and see how these people met and moved through their era.",
       "empty": "No major events have been published for this world."
-    },
-    "scenes": {
-      "title": "Explorable scenes",
-      "subtitle": "Step into a scene to experience this world immersively.",
-      "enter": "Enter scene",
-      "empty": "No scenes are published for this world yet.",
-      "detailCard": "Scene details",
-      "activeEntities": "Active entities",
-      "relatedCharacters": "Related characters",
-      "relatedEvents": "Related events",
-      "relatedResources": "Related resources",
-      "fromEvents": "from locationRefs and summaries",
-      "fromResources": "from scene resources",
-      "sceneId": "Scene ID",
-      "imageAssetRef": "Image Asset Ref",
-      "noImage": "No image",
-      "none": "None",
-      "enterHintTitle": "Explain what is here before entry",
-      "enterHintDesc": "Open the scene details to explore its people, events, and sources."
     },
     "settings": {
       "title": "World settings",

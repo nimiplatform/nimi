@@ -22,7 +22,6 @@ import {
 } from '../src/shell/renderer/features/world/world-detail-template';
 import {
   WorldLoreLibrarySkeleton,
-  WorldPeopleArchiveSkeleton,
   WorldRelationshipExplorerSkeleton,
 } from '../src/shell/renderer/features/world/world-detail-skeletons';
 import { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view';
@@ -72,10 +71,6 @@ test('world detail subpage skeletons render pulse placeholder structures', () =>
   const relationship = renderToStaticMarkup(<WorldRelationshipExplorerSkeleton />);
   assert.match(relationship, /data-testid="world-relationship-explorer-skeleton"/);
   assert.match(relationship, /animate-pulse/);
-
-  const people = renderToStaticMarkup(<WorldPeopleArchiveSkeleton />);
-  assert.match(people, /data-testid="world-detail-people-archive-skeleton"/);
-  assert.match(people, /animate-pulse/);
 
   const lore = renderToStaticMarkup(<WorldLoreLibrarySkeleton />);
   assert.match(lore, /data-testid="world-detail-lore-library-skeleton"/);

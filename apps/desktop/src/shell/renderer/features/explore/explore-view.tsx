@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, EmptyState, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
@@ -9,11 +9,10 @@ import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
 import { PostFeed } from '../home/post-feed';
 import {
   WorldCatalogContent,
-  WorldsLoadError,
-  WorldsLoadingSkeleton,
   type WorldCatalogPaging,
 } from '../world/world-list';
 import type { WorldListItem } from '../world/world-list-model';
+import type { WorldAtlasTopic, WorldPeopleRenderer } from '../world/world-atlas.js';
 import {
   PersonaSourceCard,
   type ExplorePersonaSourceCardData,
@@ -36,7 +35,13 @@ type ExploreViewProps = {
   personaSources: ExplorePersonaSourceCardData[];
   worldCatalogItems: WorldListItem[];
   worldCatalogPaging: WorldCatalogPaging;
-  worldTopics?: readonly { id: string; title: string; titleEn: string }[];
+  worldFavorites?: boolean;
+  onWorldFavoritesSelect?: () => void;
+  worldFavoritesUnavailable?: string;
+  worldFavoritesPartialError?: boolean;
+  worldTopics?: readonly WorldAtlasTopic[];
+  worldTopicShelves?: ReactNode;
+  renderWorldPeople?: WorldPeopleRenderer;
   worldTopicId?: string;
   onWorldTopicChange?: (value: string) => void;
   worldTopicsFailed?: boolean;
@@ -240,12 +245,18 @@ export function ExploreView(props: ExploreViewProps) {
               railFlap={sourceModeFlap}
               embedded
             />
-          ) : props.worldsLoading ? (
-            <WorldsLoadingSkeleton embedded />
-          ) : props.worldsError ? (
-            <WorldsLoadError embedded offline={props.worldsOffline} onRetry={props.onRetryWorlds} />
           ) : (
             <WorldCatalogContent
+              favorites={props.worldFavorites}
+              onFavoritesSelect={props.onWorldFavoritesSelect}
+              favoritesUnavailable={props.worldFavoritesUnavailable}
+              favoritesPartialError={props.worldFavoritesPartialError}
+              loading={props.worldsLoading}
+              error={props.worldsError}
+              offline={props.worldsOffline}
+              onRetry={props.onRetryWorlds}
+              topicShelves={props.worldTopicShelves}
+              renderPeople={props.renderWorldPeople}
               worlds={props.worldCatalogItems}
               paging={props.worldCatalogPaging}
               topics={props.worldTopics}

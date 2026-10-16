@@ -135,36 +135,12 @@ function SubpageSkeletonShell({ testId, children }: { testId: string; children: 
   );
 }
 
-export function WorldPeopleArchiveSkeleton() {
-  return (
-    <SubpageSkeletonShell testId="world-detail-people-archive-skeleton">
-      <SkeletonBlock height={128} radius={20} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(232px,1fr))', gap: 13 }}>
-        {Array.from({ length: 8 }).map((_, index) => (
-          <SkeletonBlock key={index} height={150} />
-        ))}
-      </div>
-    </SubpageSkeletonShell>
-  );
-}
-
 export function WorldLoreLibrarySkeleton() {
   return (
     <SubpageSkeletonShell testId="world-detail-lore-library-skeleton">
       <SkeletonBlock height={168} radius={20} />
       {Array.from({ length: 4 }).map((_, index) => (
         <SkeletonBlock key={index} height={96} radius={16} />
-      ))}
-    </SubpageSkeletonShell>
-  );
-}
-
-export function WorldResourceReferencesSkeleton() {
-  return (
-    <SubpageSkeletonShell testId="world-detail-resource-references-skeleton">
-      <SkeletonBlock height={168} radius={20} />
-      {Array.from({ length: 3 }).map((_, index) => (
-        <SkeletonBlock key={index} height={108} radius={16} />
       ))}
     </SubpageSkeletonShell>
   );

@@ -1,4 +1,4 @@
-import type { WorldAssetExternalRef, WorldCharacter, WorldDetailData, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
+import type { WorldCharacter, WorldDetailData, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
 
 export const DETAIL_MEDIA_PLACEHOLDER =
   'linear-gradient(135deg, rgba(95,201,234,0.84), rgba(143,115,255,0.78))';
@@ -6,13 +6,6 @@ export const DETAIL_MEDIA_PLACEHOLDER =
 export function detailHeroBackground(imageUrl: string | null): string {
   if (imageUrl) {
     return `linear-gradient(180deg, rgba(15,23,42,0.04), rgba(15,23,42,0.52)), url(${imageUrl}) center/cover no-repeat`;
-  }
-  return DETAIL_MEDIA_PLACEHOLDER;
-}
-
-export function detailSceneBackground(imageUrl: string | null): string {
-  if (imageUrl) {
-    return `linear-gradient(180deg, rgba(15,23,42,0.05), rgba(15,23,42,0.56)), url(${imageUrl}) center/cover no-repeat`;
   }
   return DETAIL_MEDIA_PLACEHOLDER;
 }
@@ -55,6 +48,14 @@ export function worldSummary(world: WorldDetailData): string {
   return world.overview || world.description || world.tagline || '';
 }
 
+// The homepage lead never cuts mid-paragraph: it shows the first paragraph in
+// full and leaves the rest to the reader opened by the continue button.
+export function worldSummaryLead(summary: string): string {
+  const text = summary.trim();
+  const breakIndex = text.search(/\n\s*\n/);
+  return breakIndex > 0 ? text.slice(0, breakIndex).trimEnd() : text;
+}
+
 export function worldStatus(world: WorldDetailData): string {
   if (world.status === 'SYSTEM') return 'System';
   if (world.status === 'PUBLIC') return 'Public';
@@ -94,25 +95,4 @@ export function derivedScenes(
     media: [],
   }));
   return scenes;
-}
-
-export function sceneImageRef(
-  scene: WorldSceneItem,
-  fallbackRefs: readonly WorldAssetExternalRef[],
-  index: number,
-): WorldAssetExternalRef | null {
-  const sceneMedia = scene.media.find((asset) => asset.url);
-  if (sceneMedia) {
-    return {
-      refId: sceneMedia.id,
-      kind: sceneMedia.kind,
-      purpose: 'scene',
-      label: null,
-      uri: sceneMedia.url,
-    };
-  }
-  if (fallbackRefs.length === 0) {
-    return null;
-  }
-  return fallbackRefs[index % fallbackRefs.length] ?? null;
 }

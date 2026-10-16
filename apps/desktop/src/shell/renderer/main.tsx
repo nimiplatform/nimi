@@ -11,6 +11,7 @@ import bootstrapEntryCopy from './locales/en/26-Bootstrap.json';
 import entryLogoImage from './assets/logo.png';
 import './foundation.css';
 import './styles.css';
+import './features/world/world-atlas.css';
 
 const entryModuleLoader = createRendererEntryModuleLoader({
     retryDelaysMs: import.meta.env.DEV ? DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS : [],

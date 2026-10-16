@@ -50,7 +50,7 @@ export type AppTab =
   | 'privacy-policy'
   | 'terms-of-service';
 export type StatusKind = 'info' | 'success' | 'warning' | 'error';
-export type WorldDetailInitialSubpage = 'relationship-explorer' | 'people-archive';
+export type WorldDetailInitialSubpage = 'relationship-explorer';
 export type WorldDetailNavigationOptions = {
   initialSubpage?: WorldDetailInitialSubpage | null;
 };

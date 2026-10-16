@@ -30,6 +30,7 @@ export type HomeDestination = {
   readonly exploreWorldId?: string;
   readonly worldSearch?: string;
   readonly worldTopicId?: string;
+  readonly worldCollection?: 'favorites';
   readonly appId?: string;
   readonly appEntryKey?: string;
   readonly appSection?: NimiDesktopOpenAppsSection;
@@ -48,7 +49,7 @@ export type HomeChatPosition = {
   readonly managerAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
-  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId'],
+  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   activity: ['postId'], settings: ['settingsSection'], support: [], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
@@ -78,7 +79,8 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   const closed = (key: string, allowed: readonly string[]) => { if (result[key] !== undefined && !allowed.includes(result[key] as string)) throw new Error(`Invalid Home ${key}.`); };
   closed('homeSection', ['overview', 'center', 'integrations']);
   closed('exploreSection', ['worlds', 'personas', 'activity']);
-  closed('worldSubpage', ['relationship-explorer', 'people-archive']);
+  closed('worldCollection', ['favorites']);
+  closed('worldSubpage', ['relationship-explorer']);
   closed('appSection', ['overview', 'ai-models']);
   closed('settingsSection', ['profile', 'appearance', 'privacy', 'security', 'notifications', 'developer', 'data', 'about-legal']);
   if (result.search !== undefined && typeof result.search !== 'string') throw new Error('Invalid Home search.');

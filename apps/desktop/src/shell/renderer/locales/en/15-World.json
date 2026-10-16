@@ -1,5 +1,28 @@
 {
   "title": "Worlds",
+  "favorites": {
+    "title": "My favorites",
+    "localOnly": "Saved on this device",
+    "empty": "No favorite worlds yet",
+    "emptyBody": "Bookmark a world on its detail page to find it here.",
+    "signIn": "Sign in to view your favorites",
+    "readError": "Couldn't read favorites saved on this device.",
+    "partialError": "Some favorite worlds couldn't be loaded."
+  },
+  "album": {
+    "spotlight": "A world to discover",
+    "carousel": "Carousel",
+    "showWorld": "Show {{name}}",
+    "previous": "Previous world",
+    "next": "Next world",
+    "previousTopic": "Browse {{topic}} backwards",
+    "nextTopic": "Browse {{topic}} forwards",
+    "viewAll": "View all",
+    "allWorlds": "All worlds",
+    "topicsEmpty": "No worlds in these topics yet. Explore all worlds below.",
+    "topicsError": "Some topics could not be loaded.",
+    "topicsOffline": "Only previously loaded topics are available offline."
+  },
   "subtitle": "Browse world settings and discover sources",
   "searchPlaceholder": "Search worlds, themes, personas...",
   "clearSearch": "Clear search",

@@ -10,15 +10,12 @@
     "viewCharacter": "查看人物",
     "viewNamedCharacter": "查看{{name}}",
     "reader": "了解这个世界",
-    "readWorld": "阅读完整世界设定",
-    "readAll": "阅读全文",
+    "readWorld": "继续阅读",
     "readingEntryCount": "{{count}} 条",
-    "settings": "世界设定",
-    "scenes": "世界里的地点",
-    "viewScene": "查看地点",
-    "resources": "参考与资源",
-    "follow": "关注世界",
-    "followed": "已关注",
+    "about": "这个世界如何运转",
+    "places": "值得驻足的地点",
+    "follow": "收藏世界",
+    "followed": "取消收藏",
     "enterWorld": "探索世界",
     "enterNamedWorld": "探索{{name}}",
     "karma": "因果报应",
@@ -36,12 +33,6 @@
       "languages": "语言",
       "history": "世界历史"
     }
-  },
-  "sceneResourceKinds": {
-    "entity": "相关实体",
-    "timelineEvent": "历史事件",
-    "resource": "相关资源",
-    "unnamed": "未命名资源"
   },
   "title": "世界",
   "loading": "正在加载世界详情...",
@@ -156,8 +147,7 @@
       "title": "场景",
       "subtitle": "通过具体地点与场景锚点，找到与你契合的 Source。",
       "empty": "这个世界还没有发布场景。",
-      "defaultContext": "场景上下文",
-      "viewRelatedSources": "查看相关 Source"
+      "defaultContext": "场景上下文"
     },
     "sourceDiscovery": {
       "primarySource": "主要 Source",
@@ -617,88 +607,10 @@
         }
       }
     },
-    "resourceReferences": {
-      "title": "世界素材清单",
-      "subtitle": "按使用场景汇总已接入的图片素材、外部来源链接与待补齐的资产计划。",
-      "readerHint": "先看哪些素材现在能用，再看它们来自哪里，最后看还有哪些缺口。",
-      "records": "条记录",
-      "empty": "这个世界还没有接入可展示素材或资产计划。",
-      "kind": {
-        "resource": "规范资源",
-        "external": "外部引用",
-        "intent": "资产意图"
-      },
-      "summary": {
-        "usable": "可打开素材",
-        "registered": "Realm 记录",
-        "planned": "待补齐计划"
-      },
-      "status": {
-        "ready": "可直接使用",
-        "external": "仅有来源链接",
-        "registered": "仅有内部记录",
-        "planned": "待补齐"
-      },
-      "description": {
-        "ready": "这项素材已在 Realm 登记，并提供了来源链接。",
-        "external": "该素材目前引用自外部来源，尚未在 Realm 内部生成素材记录。",
-        "registered": "这项素材已被世界登记引用，但当前没有可打开的外部来源地址。",
-        "planned": "这是未来要制作、替换或补齐的素材需求，不是已经可用的图片。"
-      },
-      "field": {
-        "usage": "用途",
-        "resourceId": "素材 ID",
-        "sourceLink": "来源链接",
-        "sourceId": "来源 ID",
-        "planType": "计划类型",
-        "rawName": "原始名称"
-      },
-      "role": {
-        "icon": "世界图标",
-        "banner": "顶部横幅",
-        "hero": "主视觉",
-        "highlight": "亮点图 {{index}}",
-        "map": "地图/定位图",
-        "other": "世界素材"
-      },
-      "action": {
-        "openAsset": "打开素材"
-      },
-      "ownershipNote": "素材 ID 只说明内容被这个世界引用；资产所有权、作者与绑定关系仍以 Realm 的正式资产与绑定记录为准。",
-      "group": {
-        "material": {
-          "title": "已接入素材",
-          "subtitle": "可在这里集中查看世界图标、顶部横幅、主视觉、亮点图等展示位所用的素材。"
-        },
-        "intent": {
-          "title": "待补齐计划",
-          "subtitle": "这些是未来要制作、替换或补完的素材需求。"
-        }
-      }
-    },
     "timeline": {
       "title": "时间长河",
       "subtitle": "顺着时间走一遍，看这些人物如何相遇、又如何走过他们的时代。",
       "empty": "这个世界还没有发布重大事件。"
-    },
-    "scenes": {
-      "title": "可探索场景",
-      "subtitle": "走进一个个具体的场景，沉浸式地体验这个世界。",
-      "enter": "进入场景",
-      "empty": "这个世界还没有发布场景。",
-      "detailCard": "详细场景卡",
-      "activeEntities": "活跃实体",
-      "relatedCharacters": "相关人物",
-      "relatedEvents": "相关事件",
-      "relatedResources": "相关资源",
-      "fromEvents": "来自 locationRefs 与摘要",
-      "fromResources": "来自场景资源",
-      "sceneId": "场景 ID",
-      "imageAssetRef": "图片素材引用",
-      "noImage": "暂无图片",
-      "none": "暂无",
-      "enterHintTitle": "先看看这里有什么",
-      "enterHintDesc": "打开场景面板后，可继续查看人物、事件和资料源。"
     },
     "settings": {
       "title": "世界设定",

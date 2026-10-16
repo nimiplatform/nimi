@@ -20,6 +20,9 @@ import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources } from './explore-persona-source-projection';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import type { WorldCatalogPaging } from '../world/world-list';
+import { WorldAtlasPeople, WorldAtlasTopics } from '../world/world-atlas-data.js';
+import type { WorldListItem } from '../world/world-list-model.js';
+import { useWorldFavorites } from '../world/use-world-favorites.js';
 import { characterSourceMaterializationFailureMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from './character-source-materialization';
 import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
@@ -73,13 +76,18 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const networkOffline = useAppStore((state) => state.offlineTier !== 'L0');
   const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
+  const worldAtlasSource = { data: realmWorldData, realmBaseUrl, enabled: bootstrapReady, offline: networkOffline };
+  const renderWorldPeople = (world: WorldListItem) => <WorldAtlasPeople world={world} source={worldAtlasSource} />;
 
   // The world rail owns its own search; worlds and personas never share one query string.
   const worldSearchText = destination.worldSearch ?? '';
   const setWorldSearchText = (value: string) => { void navigation.replace({ ...destination, worldSearch: value }); };
   const worldQuery = useDebouncedSearch(worldSearchText);
   const worldTopicId = destination.worldTopicId ?? '';
-  const setWorldTopicId = (value: string) => { void navigation.replace({ ...destination, worldTopicId: value || undefined }); };
+  const worldFavorites = destination.worldCollection === 'favorites';
+  const setWorldTopicId = (value: string) => { void navigation.replace({ ...destination, worldTopicId: value || undefined, worldCollection: undefined }); };
+  const selectWorldFavorites = () => { void navigation.replace({ ...destination, worldTopicId: undefined, worldCollection: 'favorites' }); };
+  const favorites = useWorldFavorites({ data: realmWorldData, realmBaseUrl, enabled: bootstrapReady && worldFavorites, offline: networkOffline, search: worldQuery });
   const worldTopics = useQuery({ queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl], queryFn: () => realmWorldData.loadWorldTopics(), enabled: bootstrapReady && !networkOffline, staleTime: 60_000 });
   const worldCatalog = useExploreCatalogQuery({
     queryKey: worldCatalogQueryKey(realmBaseUrl, worldQuery, { topicId: worldTopicId || undefined }),
@@ -241,7 +249,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Your partner is ready. Select it from the chat list.',
+          defaultValue: 'Partner added. You can start chatting now.',
         }),
       });
       logRendererEvent({
@@ -301,8 +309,14 @@ export function ExplorePanel(props: ExplorePanelProps) {
         selectedCategory={selectedCategory}
         categories={categories}
         personaSources={personaSources}
-        worldCatalogItems={worldCatalogItems}
-        worldCatalogPaging={worldCatalogPaging}
+        worldCatalogItems={worldFavorites ? favorites.worlds : worldCatalogItems}
+        worldCatalogPaging={worldFavorites ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : worldCatalogPaging}
+        worldFavorites={worldFavorites}
+        onWorldFavoritesSelect={selectWorldFavorites}
+        worldFavoritesUnavailable={worldFavorites ? favorites.unavailable : undefined}
+        worldFavoritesPartialError={worldFavorites && favorites.partialError}
+        renderWorldPeople={renderWorldPeople}
+        worldTopicShelves={<WorldAtlasTopics topics={worldTopics.data ?? []} source={worldAtlasSource} onSelect={setWorldTopicId} renderPeople={renderWorldPeople} />}
         worldTopics={worldTopics.data ?? []}
         worldTopicId={worldTopicId}
         onWorldTopicChange={setWorldTopicId}
@@ -319,10 +333,11 @@ export function ExplorePanel(props: ExplorePanelProps) {
         onLoadMorePersonas={() => {
           void personaSourcesQuery.fetchNextPage();
         }}
-        worldsLoading={worldCatalog.initialLoading}
-        worldsError={worldCatalog.initialUnavailable}
-        worldsOffline={worldCatalog.offline}
+        worldsLoading={worldFavorites ? favorites.loading : worldCatalog.initialLoading}
+        worldsError={worldFavorites ? favorites.error : worldCatalog.initialUnavailable}
+        worldsOffline={worldFavorites ? favorites.offline : worldCatalog.offline}
         onRetryWorlds={() => {
+          if (worldFavorites) { favorites.retry(); return; }
           void worldCatalogQuery.refetch();
         }}
         activeSection={props.activeSection}
