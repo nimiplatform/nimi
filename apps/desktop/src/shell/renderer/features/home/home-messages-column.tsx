@@ -89,12 +89,10 @@ function EmptyHint({ children }: { children: ReactNode }) {
  * One bounded timeline with its navigation and local filters above the list.
  * Source-owned state and the complete Message center remain independent.
  */
-export function HomeMessagesColumn({ messages, context, onViewAll, onViewActivity, onOpenSettings }: {
+export function HomeMessagesColumn({ messages, context, onViewAll }: {
   messages: HomeMessages;
   context: HomeMessageCardContext;
   onViewAll: () => void;
-  onViewActivity: () => void;
-  onOpenSettings: () => void;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<HomeTimelineQuickFilter>('all');
@@ -169,7 +167,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, onViewActivit
   };
   return (
     <aside className="flex min-w-0 flex-col gap-3" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
-      <div className="flex flex-wrap items-center gap-1.5 px-1" data-testid="home-messages-toolbar">
+      <div className="flex min-h-10 flex-wrap items-center gap-1.5 px-1" data-testid="home-messages-toolbar">
         <h2 className="text-xl font-semibold tracking-tight">{t('runtimeConfig.overview.messages.title')}</h2>
         <button
           type="button"
@@ -208,11 +206,6 @@ export function HomeMessagesColumn({ messages, context, onViewAll, onViewActivit
                 items={(['message', 'post', 'todo'] as const).map(quickFilterItem)}
                 ariaLabel={t('runtimeConfig.overview.messages.quickFilterTypeGroup')}
               />
-              <div className="mx-1 my-1 border-t border-[var(--nimi-border-subtle)]" role="separator" />
-              <ActionMenu items={[
-                { id: 'activity', label: t('runtimeConfig.overview.messages.viewActivity'), onSelect: () => { setFilterOpen(false); onViewActivity(); } },
-                { id: 'settings', label: t('runtimeConfig.overview.messages.settings'), onSelect: () => { setFilterOpen(false); onOpenSettings(); } },
-              ]} ariaLabel={t('runtimeConfig.overview.messages.title')} />
             </PopoverContent>
           </Popover>
         </div>

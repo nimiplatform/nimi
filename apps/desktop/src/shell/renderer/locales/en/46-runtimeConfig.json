@@ -710,7 +710,7 @@
     "greetingAfternoon": "Good afternoon",
     "greetingEvening": "Good evening",
     "greetingNight": "Still up",
-    "statusCapabilities": "AI features ready on this computer: {{count}}. Click to view",
+    "statusCapabilities": "AI capabilities · {{count}} ready",
     "statusDownloading": "{{count}} downloading",
     "setupFailed": "{{capability}} · setup needs attention",
     "updateTag": "Update",
@@ -747,13 +747,20 @@
       "explore": "Explore",
       "continueChat": "Continue chat",
       "chatWithAgent": "Chat with {{name}}",
-      "viewAllAgents": "View all",
-      "current": "Current agent"
+      "viewAllAgents": "View all"
     },
     "greetingWithName": "{{greeting}}, {{name}}",
-    "composerLabel": "Message {{name}}",
-    "composerPlaceholder": "Chat with {{name}}…",
-    "composerSend": "Open chat",
+    "recentChats": {
+      "title": "Recent chats",
+      "openAll": "Open all chats",
+      "mostRecent": "Most recent",
+      "replyLabel": "Reply to {{name}}",
+      "replyPlaceholder": "Reply to {{name}}…",
+      "replySend": "Open chat with draft",
+      "yesterdayAt": "Yesterday {{time}}",
+      "noMessageYet": "No conversation yet — say the first word",
+      "openConversation": "Open chat with {{name}}"
+    },
     "tryPrompts": "Try",
     "prompts": {
       "introduce": "Tell me about yourself",
@@ -783,7 +790,6 @@
       "pendingEntryMore": "{{count}}+ pending",
       "pendingEntryUnknown": "Pending",
       "viewAll": "View all messages",
-      "viewActivity": "View activity",
       "centerTitle": "Message center",
       "back": "Back to Home",
       "filterLabel": "Message scope",

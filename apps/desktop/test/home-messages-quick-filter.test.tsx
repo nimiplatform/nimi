@@ -137,8 +137,6 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
   };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const root = createRoot(dom.window.document.getElementById('root')!);
-  let activityVisits = 0;
-  let settingsVisits = 0;
   const openMenu = async () => {
     const trigger = dom.window.document.querySelector<HTMLElement>('[data-testid="home-messages-filter"]');
     assert.ok(trigger, 'expected the filter trigger');
@@ -158,8 +156,6 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
               messages={messages([growthOpen, turn, agentPost])}
               context={cardContext}
               onViewAll={noop}
-              onViewActivity={() => { activityVisits += 1; }}
-              onOpenSettings={() => { settingsVisits += 1; }}
             />
           </DesktopI18nResourceProvider>
         </QueryClientProvider>,
@@ -172,6 +168,8 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
     assert.ok(!menuItem('Unread')?.querySelector('svg'), 'inactive presets carry no check');
     assert.ok(menuItem('Pending') && menuItem('Activity only') && menuItem('Items only'), 'every preset is listed');
     assert.ok(document.querySelector('[role="separator"]'), 'activity presets sit behind a separator');
+    assert.equal(menuItem('View activity'), undefined, 'the filter menu has no activity navigation');
+    assert.equal(menuItem('Message settings'), undefined, 'settings remain in the message center');
     await act(async () => { (menuItem('Unread') as HTMLElement).click(); });
     assert.ok(cardShown(growthOpen.key) && cardShown(turn.key), 'unread app items stay');
     assert.ok(!cardShown(agentPost.key), 'posts leave an unread listing');
@@ -194,14 +192,6 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
     await act(async () => { (menuItem('Messages only') as HTMLElement).click(); });
     assert.ok(cardShown(turn.key));
     assert.ok(!cardShown(growthOpen.key) && !cardShown(agentPost.key));
-    await settle();
-    await openMenu();
-    await act(async () => { (menuItem('View activity') as HTMLElement).click(); });
-    assert.equal(activityVisits, 1);
-    await settle();
-    await openMenu();
-    await act(async () => { (menuItem('Message settings') as HTMLElement).click(); });
-    assert.equal(settingsVisits, 1);
     await settle();
   } finally {
     await act(async () => { root.unmount(); });

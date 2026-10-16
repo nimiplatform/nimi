@@ -710,7 +710,7 @@
     "greetingAfternoon": "下午好",
     "greetingEvening": "晚上好",
     "greetingNight": "夜深了",
-    "statusCapabilities": "这台电脑有 {{count}} 项 AI 能力可用，点击查看",
+    "statusCapabilities": "AI 能力 · {{count}} 项可用",
     "statusDownloading": "{{count}} 项下载进行中",
     "setupFailed": "{{capability}} · 设置需要处理",
     "updateTag": "有更新",
@@ -747,13 +747,20 @@
       "explore": "去探索",
       "continueChat": "继续对话",
       "chatWithAgent": "和 {{name}} 聊聊",
-      "viewAllAgents": "查看全部",
-      "current": "当前 Agent"
+      "viewAllAgents": "查看全部"
     },
     "greetingWithName": "{{greeting}}，{{name}}",
-    "composerLabel": "给 {{name}} 发消息",
-    "composerPlaceholder": "和 {{name}} 聊聊…",
-    "composerSend": "去聊天",
+    "recentChats": {
+      "title": "最近对话",
+      "openAll": "打开全部对话",
+      "mostRecent": "最近对话",
+      "replyLabel": "回复 {{name}}",
+      "replyPlaceholder": "回复{{name}}…",
+      "replySend": "带草稿打开对话",
+      "yesterdayAt": "昨天 {{time}}",
+      "noMessageYet": "还没有对话，来说第一句吧",
+      "openConversation": "打开与 {{name}} 的对话"
+    },
     "tryPrompts": "试试",
     "prompts": {
       "introduce": "介绍一下你自己",
@@ -783,7 +790,6 @@
       "pendingEntryMore": "待处理 {{count}}+ 项",
       "pendingEntryUnknown": "待处理",
       "viewAll": "查看全部消息",
-      "viewActivity": "查看动态",
       "centerTitle": "消息中心",
       "back": "返回首页",
       "filterLabel": "消息范围",

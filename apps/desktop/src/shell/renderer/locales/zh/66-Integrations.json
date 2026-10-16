@@ -95,9 +95,9 @@
   "homeConnectionCount_other": "{{count}} 个连接",
   "homeNotConnected": "未连接",
   "homeMoreServices": "更多服务",
-  "homeAuthorizedSummary": "{{count}} 个应用已获得集成授权",
-  "homeAuthorizedSummary_one": "{{count}} 个应用已获得集成授权",
-  "homeAuthorizedSummary_other": "{{count}} 个应用已获得集成授权",
+  "homeAuthorizedSummary": "已授权应用 · {{count}}",
+  "homeAuthorizedSummary_one": "已授权应用 · {{count}}",
+  "homeAuthorizedSummary_other": "已授权应用 · {{count}}",
   "homeManagePermissions": "管理授权",
   "states": {
     "accepted": "已受理 · 进行中",

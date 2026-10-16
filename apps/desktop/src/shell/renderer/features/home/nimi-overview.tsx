@@ -224,7 +224,7 @@ export function NimiOverview() {
   });
 
   const heading = (
-    <h1 className="text-[34px] font-bold leading-tight tracking-tight text-[var(--nimi-text-primary)] lg:text-[42px]">
+    <h1 className="min-w-0 text-[26px] font-bold leading-tight tracking-tight text-[var(--nimi-text-primary)] lg:text-[32px]">
       {displayName
         ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
         : t(greetingKey(now.getHours()))}
@@ -233,13 +233,13 @@ export function NimiOverview() {
   // Capability readiness stays visible here (r015) now that the capability grid
   // is gone; the segment doubles as the entry to AI capability management.
   const status = (
-    <p className="flex flex-wrap items-center gap-x-2 text-[15px] text-[var(--nimi-text-secondary)]" data-testid="home-status-line">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 px-2 text-xs text-[var(--nimi-text-secondary)]" data-testid="home-status-line">
       {inventory.isError ? (
         <span>{t('runtimeConfig.capabilities.readFailed')}</span>
       ) : inventory.isPending ? null : (
         <button
           type="button"
-          className="inline-flex items-center gap-0.5 rounded-md text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+          className="inline-flex min-h-9 items-center gap-0.5 rounded-md font-medium text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
           onClick={() => navigation.push({ id: 'runtime' })}
           data-testid="home-status-capabilities"
         >
@@ -268,21 +268,22 @@ export function NimiOverview() {
       {!inventory.isError && inventory.isPending && !activeTransfers.length && !health.isError ? (
         <span>{t('runtimeConfig.overview.runtimeChecking')}</span>
       ) : null}
-    </p>
+    </div>
   );
 
   const renderOverview = (messages: HomeMessages | null) => (
-    // Narrow windows stack the date, greeting, Messages, then the longer
-    // sections in one page scroll. From xl the date and greeting pin to the
-    // top of the left column while the Messages column starts level with the
-    // date, and the main sections and Messages each scroll on their own
-    // inside the viewport.
+    // The greeting/date header and conversation card stay above the main
+    // sections. From xl, Messages keeps its independent right-hand scroll;
+    // narrow windows retain the existing single-page stacking order.
     <div className="grid items-start gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[auto_auto_minmax(0,1fr)]">
-      <p className="min-w-0 px-2 text-[13px] text-[var(--nimi-text-secondary)] xl:col-start-1 xl:row-start-1" data-testid="home-date">
-        {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
-      </p>
+      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2 xl:col-start-1 xl:row-start-1">
+        {heading}
+        <p className="shrink-0 text-[13px] text-[var(--nimi-text-secondary)]" data-testid="home-date">
+          {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
+        </p>
+      </div>
       <div className="min-w-0 xl:col-start-1 xl:row-start-2">
-        <HomeAgentCard heading={heading} status={status} />
+        <HomeAgentCard />
       </div>
       {messages ? (
         <div className="min-w-0 xl:col-start-2 xl:row-span-3 xl:row-start-1 xl:min-h-0 xl:self-stretch">
@@ -291,8 +292,6 @@ export function NimiOverview() {
               messages={messages}
               context={cardContext(messages)}
               onViewAll={() => openCenter('all')}
-              onViewActivity={() => { void navigation.push({ id: 'activity' }); }}
-              onOpenSettings={openMessageSettings}
             />
           </ScrollArea>
         </div>
@@ -303,7 +302,7 @@ export function NimiOverview() {
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >
-        <HomeMachineStatus runtime={homeRuntimeState(health)} onOpenDiagnostics={openDiagnostics} />
+        <HomeMachineStatus runtime={homeRuntimeState(health)} capabilities={status} onOpenDiagnostics={openDiagnostics} />
         {firstRun ? (
           <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-first-run">
             <h2 className="text-base font-semibold">{t('runtimeConfig.overview.firstRunTitle')}</h2>

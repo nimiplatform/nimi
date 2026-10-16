@@ -2,6 +2,7 @@ import { Button } from '@nimiplatform/kit/ui';
 import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import { UsageWindow, type GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import { Coins } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatEstimatedCost, useUsageEstimate } from '../runtime-config/runtime-config-cost-estimator.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
@@ -20,6 +21,7 @@ export type HomeRuntimeState = 'checking' | 'ready' | 'attention' | 'unavailable
 
 export type HomeMachineStatusViewProps = {
   runtime: HomeRuntimeState;
+  capabilities?: ReactNode;
   resources: { status: SystemResourceStatus; snapshot: SystemResourceSnapshot | null };
   usage: {
     loading: boolean;
@@ -87,8 +89,8 @@ function ResourceValue({ label, percent, warn, note }: { label: string; percent:
   );
 }
 
-/** Presentational strip: runtime dot, three resource percentages, today's cost, diagnostics entry. No refresh or lifecycle actions here by design. */
-export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnostics }: HomeMachineStatusViewProps) {
+/** Runtime, capability summary, resources, usage and diagnostics in one device-status strip. */
+export function HomeMachineStatusView({ runtime, capabilities, resources, usage, onOpenDiagnostics }: HomeMachineStatusViewProps) {
   const { t } = useTranslation();
   const snapshot = resources.snapshot;
   const cpu = roundPercent(snapshot?.cpuPercent ?? 0);
@@ -107,7 +109,7 @@ export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnos
     : undefined;
   return (
     <section
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-full bg-[var(--nimi-surface-panel)] px-2 py-1.5 shadow-[var(--nimi-home-card-elevation)]"
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-[24px] bg-[var(--nimi-surface-panel)] px-2 py-1.5 shadow-[var(--nimi-home-card-elevation)]"
       aria-label={t('runtimeConfig.overview.machineStatus')}
       data-testid="home-machine-status"
     >
@@ -124,6 +126,7 @@ export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnos
         </span>
       </button>
       <span className="h-4 w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" />
+      {capabilities}
       <button
         type="button"
         className={`${ITEM_CLASS} gap-4`}
@@ -173,9 +176,11 @@ export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnos
 /** Live wrapper used by Home; polls slower than the diagnostics page. */
 export function HomeMachineStatus({
   runtime,
+  capabilities,
   onOpenDiagnostics,
 }: {
   runtime: HomeRuntimeState;
+  capabilities?: ReactNode;
   onOpenDiagnostics: (pane: RuntimeAdvancedDiagnosticsPane) => void;
 }) {
   const resources = useSystemResources(HOME_RESOURCE_POLL_MS);
@@ -183,6 +188,7 @@ export function HomeMachineStatus({
   return (
     <HomeMachineStatusView
       runtime={runtime}
+      capabilities={capabilities}
       resources={{ status: resources.status, snapshot: resources.snapshot }}
       usage={usage}
       onOpenDiagnostics={onOpenDiagnostics}

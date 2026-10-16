@@ -169,8 +169,6 @@ function renderColumn(messages: HomeMessages, cardContext = context()) {
       messages={messages}
       context={cardContext}
       onViewAll={noop}
-      onViewActivity={noop}
-      onOpenSettings={noop}
     />,
   ));
 }
@@ -431,8 +429,6 @@ test('a collapsed stack only expands, and a group hide covers exactly its shown 
             },
           })}
           onViewAll={noop}
-          onViewActivity={noop}
-          onOpenSettings={noop}
         />,
       ));
     });

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/kit/ui';
 import type { NimiIntegrationManagement } from '@nimiplatform/sdk/app';
@@ -146,7 +146,6 @@ export function HomeIntegrationsCard({
         >
           <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
             <span className="flex items-center gap-1.5 text-[13px] font-medium">
-              <Sparkles size={15} className="text-[var(--nimi-action-primary-bg)]" aria-hidden="true" />
               {t('Integrations.homeAuthorizedSummary', { count: authorizedApps.length })}
             </span>
             {shownApps.map((app) => (

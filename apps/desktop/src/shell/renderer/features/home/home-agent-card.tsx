@@ -1,248 +1,223 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { Compass, MessageCircle } from 'lucide-react';
-import { useCallback, useState, type FormEvent, type ReactNode } from 'react';
+import { Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronRight, Compass } from 'lucide-react';
+import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { fetchLocalAgentList, localAgentListQueryKey, type LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
+import { fetchHomeRecentChatPartners, type HomeRecentChatPartner } from './home-recent-conversations-model.js';
+import { useHomeRowCapacity } from './use-home-row-capacity.js';
 
 export type HomeAgentCardState = 'loading' | 'none' | 'unavailable' | 'ready';
 
-export type HomeOtherAgent = { id: string; displayName: string; avatarUrl: string | null };
+// Fixed tile geometry; the row measures itself and renders only as many
+// partner tiles as actually fit the card width (overflow goes to Chat).
+const HOME_PARTNER_TILE_WIDTH = 148;
+const HOME_PARTNER_TILE_GAP = 12;
 
 export type HomeAgentCardViewProps = {
   state: HomeAgentCardState;
-  agent: { displayName: string; avatarUrl: string | null } | null;
-  /** Other ready agents shown as avatars under the continue action; empty hides the row. */
-  otherAgents: readonly HomeOtherAgent[];
-  /** Other agents beyond the shown avatars, rendered as a +N chip. */
-  hiddenAgentCount: number;
-  /** Greeting rendered at the top-left of the hero. */
-  heading: ReactNode;
-  /** One-line device status rendered under the greeting. */
-  status: ReactNode;
-  onContinueChat: () => void;
-  /** Called with the trimmed composer text; the caller routes to the agent conversation. */
-  onSendMessage: (text: string) => void;
+  partners: readonly HomeRecentChatPartner[];
+  partnersPending: boolean;
+  selectedId: string | null;
+  /** Measured row capacity; the view slices the strip to this many tiles. */
+  visibleCount: number;
+  stripRef: (node: HTMLDivElement | null) => void;
+  formatTime: (updatedAtMs: number) => string;
+  onSelectPartner: (id: string) => void;
+  /** Opens a conversation with an optional draft; this does not send it. */
+  onOpenChat: (text: string) => void;
+  onOpenPartner: (id: string) => void;
+  onOpenAll: () => void;
   onExplore: () => void;
-  /** Opens the conversation with one of the other agents, by id. */
-  onOpenAgent: (id: string) => void;
-  /** Opens the agent conversation list so the user can pick one of the other agents. */
-  onViewAllAgents: () => void;
 };
 
-const PROMPT_KEYS = ['introduce', 'thinking', 'story'] as const;
-/** Avatar slots for the other agents; with more agents the last slot becomes a +N chip. */
-const OTHER_AGENT_SLOTS = 4;
-
-function AgentAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl: string | null }) {
-  const { t } = useTranslation();
-  const initial = displayName.trim().slice(0, 1) || '?';
-  const readyLabel = t('runtimeConfig.overview.agentCard.ready');
-  return (
-    <span className="relative shrink-0">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="size-16 rounded-[20px] object-cover" />
-      ) : (
-        <span className="flex size-16 items-center justify-center rounded-[20px] bg-[var(--nimi-surface-active)] text-2xl font-semibold text-[var(--nimi-action-primary-bg)]">
-          {initial}
-        </span>
-      )}
-      {/* The dot is the only ready signal, so it carries the label for hover and assistive tech. */}
-      <span
-        role="img"
-        aria-label={readyLabel}
-        title={readyLabel}
-        className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[var(--nimi-surface-card)] bg-[var(--nimi-status-success)]"
-        data-testid="home-agent-ready-dot"
-      />
+function PartnerAvatar({ displayName, avatarUrl, size }: { displayName: string; avatarUrl: string | null; size: 'lg' | 'md' }) {
+  const classes = size === 'md'
+    ? 'size-10 text-base'
+    : 'size-12 text-lg';
+  return avatarUrl ? (
+    <img src={avatarUrl} alt="" className={`${classes} shrink-0 rounded-full object-cover`} />
+  ) : (
+    <span className={`flex ${classes} shrink-0 items-center justify-center rounded-full bg-[var(--nimi-surface-active)] font-semibold text-[var(--nimi-action-primary-bg)]`}>
+      {displayName.trim().slice(0, 1) || '?'}
     </span>
   );
 }
 
-function AgentComposer({ agentName, onSendMessage }: { agentName: string; onSendMessage: (text: string) => void }) {
+function PartnerTile({ partner, selected, mostRecent, onSelect }: {
+  partner: HomeRecentChatPartner;
+  selected: boolean;
+  mostRecent: boolean;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      data-testid={`home-recent-chat:${partner.localAgentRef}`}
+      className={`relative flex w-[148px] shrink-0 items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition-colors ${
+        selected
+          ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-panel)]'
+          : 'border-transparent hover:bg-[var(--nimi-surface-panel)]'
+      }`}
+    >
+      {partner.hasUnread ? (
+        <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-[var(--nimi-action-primary-bg)]" data-testid={`home-recent-chat-unread:${partner.localAgentRef}`} aria-hidden="true" />
+      ) : null}
+      <PartnerAvatar displayName={partner.displayName} avatarUrl={partner.avatarUrl} size="lg" />
+      <span className="flex min-w-0 flex-col">
+        <span className="flex min-w-0 items-center gap-1.5">
+          {mostRecent ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-action-primary-bg)]" aria-hidden="true" /> : null}
+          <span className="truncate text-[15px] font-semibold">{partner.displayName}</span>
+        </span>
+        {mostRecent ? (
+          <span className="truncate text-xs text-[var(--nimi-action-primary-bg)]">{t('runtimeConfig.overview.recentChats.mostRecent')}</span>
+        ) : null}
+      </span>
+    </button>
+  );
+}
+
+function PartnerComposer({ partnerName, onOpenChat }: { partnerName: string; onOpenChat: (text: string) => void }) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    onSendMessage(trimmed);
-    setText('');
+    onOpenChat(text.trim());
   };
   return (
-    <div className="flex flex-col gap-2.5">
-      <form
-        onSubmit={submit}
-        className="flex h-[54px] items-center gap-2 rounded-[18px] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] pl-5 pr-2"
-        data-testid="home-agent-composer"
-      >
-        <label htmlFor="home-agent-composer-input" className="sr-only">
-          {t('runtimeConfig.overview.composerLabel', { name: agentName })}
-        </label>
-        <input
-          id="home-agent-composer-input"
-          type="text"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t('runtimeConfig.overview.composerPlaceholder', { name: agentName })}
-          className="min-w-0 flex-1 bg-transparent text-[15px] text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
-          autoComplete="off"
-        />
-        <Button type="submit" tone="primary" size="sm" disabled={!text.trim()} data-testid="home-agent-send">
-          {t('runtimeConfig.overview.composerSend')}
-        </Button>
-      </form>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-0.5 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.overview.tryPrompts')}</span>
-        {PROMPT_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setText(t(`runtimeConfig.overview.prompts.${key}`))}
-            className="h-[30px] rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 text-xs transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-            data-testid={`home-agent-prompt:${key}`}
-          >
-            {t(`runtimeConfig.overview.prompts.${key}`)}
-          </button>
-        ))}
-      </div>
-    </div>
+    <form onSubmit={submit} className="flex items-center gap-2.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] py-1.5 pl-4 pr-1.5 focus-within:ring-2 focus-within:ring-[var(--nimi-focus-ring-color)]" data-testid="home-agent-composer">
+      <label htmlFor="home-agent-composer-input" className="sr-only">{t('runtimeConfig.overview.recentChats.replyLabel', { name: partnerName })}</label>
+      <input
+        id="home-agent-composer-input"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        placeholder={t('runtimeConfig.overview.recentChats.replyPlaceholder', { name: partnerName })}
+        className="min-w-0 flex-1 bg-transparent text-[15px] leading-6 text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
+      />
+      <Button type="submit" tone="primary" aria-label={t('runtimeConfig.overview.recentChats.replySend')} title={t('runtimeConfig.overview.recentChats.replySend')} className="size-9 shrink-0 rounded-full !p-0" data-testid="home-agent-send">
+        <ChevronRight size={16} aria-hidden="true" />
+      </Button>
+    </form>
   );
 }
 
-/** Presentational hero: greeting + device status + agent composer on the left, agent panel on the right. Mood is deferred until Runtime projects it. */
-export function HomeAgentCardView({
-  state,
-  agent,
-  otherAgents,
-  hiddenAgentCount,
-  heading,
-  status,
-  onContinueChat,
-  onSendMessage,
-  onExplore,
-  onOpenAgent,
-  onViewAllAgents,
-}: HomeAgentCardViewProps) {
+/** Recent-chat composition; partner selection is local composition state, not Runtime agent state. */
+export function HomeAgentCardView({ state, partners, partnersPending, selectedId, visibleCount, stripRef, formatTime, onSelectPartner, onOpenChat, onOpenPartner, onOpenAll, onExplore }: HomeAgentCardViewProps) {
   const { t } = useTranslation();
-  const ready = state === 'ready' && Boolean(agent);
+  if (state === 'loading') {
+    return (
+      <section className="flex min-h-[156px] flex-col justify-center gap-2.5 rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-agent-card" data-state={state}>
+        <LoadingSkeleton lines={2} label={t('Common.loading')} />
+      </section>
+    );
+  }
+  if (state === 'unavailable') {
+    return (
+      <section className="flex min-h-[156px] flex-col justify-center gap-2.5 rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-agent-card" data-state={state}>
+        <p className="text-sm text-[var(--nimi-status-warning)]">{t('runtimeConfig.overview.agentCard.unavailable')}</p>
+      </section>
+    );
+  }
+  if (state === 'none') {
+    return (
+      <section className="flex min-h-[156px] flex-col justify-center gap-2.5 rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-agent-card" data-state={state}>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{t('runtimeConfig.overview.agentCard.none')}</p>
+          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.agentCard.noneBody')}</p>
+        </div>
+        <Button tone="primary" size="sm" className="self-start" onClick={onExplore} data-testid="home-agent-explore">
+          <Compass size={15} />{t('runtimeConfig.overview.agentCard.explore')}
+        </Button>
+      </section>
+    );
+  }
+  const mostRecentId = partners.find((partner) => partner.updatedAtMs !== null)?.localAgentRef ?? null;
+  const visiblePartners = partners.slice(0, Math.max(1, visibleCount));
+  const selected = partners.find((partner) => partner.localAgentRef === selectedId) ?? null;
   return (
-    <section
-      className="px-2 py-1"
-      data-testid="home-agent-card"
-      data-state={state}
-    >
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-7">
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-6 pt-1">
-          <div className="flex flex-col gap-2">
-            {heading}
-            {status}
-          </div>
-          {ready && agent ? <AgentComposer agentName={agent.displayName} onSendMessage={onSendMessage} /> : null}
-        </div>
-
-        <div
-          className="flex w-full shrink-0 flex-col justify-between gap-4 rounded-[22px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 lg:w-[268px]"
-          data-testid="home-agent-panel"
-        >
-          {state === 'loading' ? (
-            <LoadingSkeleton lines={2} label={t('Common.loading')} />
-          ) : state === 'unavailable' ? (
-            <p className="text-sm text-[var(--nimi-status-warning)]">{t('runtimeConfig.overview.agentCard.unavailable')}</p>
-          ) : state === 'none' || !agent ? (
-            <>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{t('runtimeConfig.overview.agentCard.none')}</p>
-                <p className="mt-0.5 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.agentCard.noneBody')}</p>
-              </div>
-              <Button tone="primary" size="sm" onClick={onExplore} data-testid="home-agent-explore">
-                <Compass size={15} />
-                {t('runtimeConfig.overview.agentCard.explore')}
-              </Button>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-3.5">
-                <AgentAvatar displayName={agent.displayName} avatarUrl={agent.avatarUrl} />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[11px] tracking-wide text-[var(--nimi-text-muted)]">
-                    {t('runtimeConfig.overview.agentCard.current')}
-                  </span>
-                  <span className="truncate text-lg font-semibold leading-tight" data-testid="home-agent-name">
-                    {agent.displayName}
-                  </span>
-                </div>
-              </div>
-              <Button tone="primary" size="sm" className="w-full" onClick={onContinueChat} data-testid="home-agent-chat">
-                <MessageCircle size={15} />
-                {t('runtimeConfig.overview.agentCard.continueChat')}
-              </Button>
-              {otherAgents.length > 0 ? (
-                <div
-                  className="flex items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3"
-                  data-testid="home-agent-more"
-                >
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    {otherAgents.map((other) => {
-                      const label = t('runtimeConfig.overview.agentCard.chatWithAgent', { name: other.displayName });
-                      return (
-                        <button
-                          key={other.id}
-                          type="button"
-                          onClick={() => onOpenAgent(other.id)}
-                          aria-label={label}
-                          title={label}
-                          className="flex shrink-0 rounded-[9px] transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                          data-testid={`home-agent-other:${other.id}`}
-                        >
-                          <Avatar
-                            src={other.avatarUrl}
-                            alt={other.displayName}
-                            shape="rounded"
-                            className="h-7 w-7 rounded-[9px]"
-                            fallbackClassName="bg-[var(--nimi-surface-active)] text-xs font-semibold text-[var(--nimi-action-primary-bg)]"
-                          />
-                        </button>
-                      );
-                    })}
-                    {hiddenAgentCount > 0 ? (
-                      <span className="flex h-7 min-w-7 items-center justify-center rounded-[9px] bg-[var(--nimi-surface-active)] px-1.5 text-[11px] font-medium text-[var(--nimi-text-secondary)]">
-                        {`+${hiddenAgentCount}`}
-                      </span>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onViewAllAgents}
-                    className="flex shrink-0 items-center gap-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-action-primary-bg)]"
-                    data-testid="home-agent-view-all"
-                  >
-                    {t('runtimeConfig.overview.agentCard.viewAllAgents')}
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
+    <section className="flex flex-col gap-3 rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3.5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-agent-card" data-state={state}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold" data-testid="home-recent-chats-title">{t('runtimeConfig.overview.recentChats.title')}</h2>
+        <button type="button" onClick={onOpenAll} className="flex shrink-0 items-center gap-0.5 text-sm text-[var(--nimi-action-primary-bg)] hover:underline" data-testid="home-recent-chats-open-all">
+          {t('runtimeConfig.overview.recentChats.openAll')}
+          <ChevronRight size={15} aria-hidden="true" />
+        </button>
       </div>
+      {partnersPending ? (
+        <LoadingSkeleton lines={2} label={t('Common.loading')} />
+      ) : (
+        <>
+          <div ref={stripRef} className="flex gap-3 overflow-hidden" data-testid="home-recent-chats-strip">
+            {visiblePartners.map((partner) => (
+              <PartnerTile
+                key={partner.localAgentRef}
+                partner={partner}
+                selected={partner.localAgentRef === selectedId}
+                mostRecent={partner.localAgentRef === mostRecentId}
+                onSelect={() => onSelectPartner(partner.localAgentRef)}
+              />
+            ))}
+          </div>
+          {selected ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenPartner(selected.localAgentRef)}
+                aria-label={t('runtimeConfig.overview.recentChats.openConversation', { name: selected.displayName })}
+                className="flex w-full min-w-0 items-center gap-3 rounded-[20px] bg-[var(--nimi-surface-panel)] px-4 py-3 text-left"
+                data-testid="home-recent-chat-preview"
+              >
+                <PartnerAvatar displayName={selected.displayName} avatarUrl={selected.avatarUrl} size="md" />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex min-w-0 items-baseline justify-between gap-3">
+                    <span className="truncate text-[15px] font-semibold" data-testid="home-agent-name">{selected.displayName}</span>
+                    {selected.updatedAtMs !== null ? (
+                      <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]" data-testid="home-recent-chat-time">{formatTime(selected.updatedAtMs)}</span>
+                    ) : null}
+                  </span>
+                  <span className="truncate text-sm text-[var(--nimi-text-secondary)]" data-testid="home-recent-chat-message">
+                    {selected.lastMessageText ?? selected.conversationTitle ?? (selected.updatedAtMs !== null
+                      ? t('runtimeConfig.overview.agentCard.continueChat')
+                      : t('runtimeConfig.overview.recentChats.noMessageYet'))}
+                  </span>
+                </span>
+              </button>
+              <PartnerComposer partnerName={selected.displayName} onOpenChat={onOpenChat} />
+            </>
+          ) : null}
+        </>
+      )}
     </section>
   );
 }
 
-/** Live wrapper used by Home. Agent truth comes from Runtime; the composer routes into the agent conversation with the text prefilled. */
-export function HomeAgentCard({ heading, status }: { heading: ReactNode; status: ReactNode }) {
+function sameDay(left: Date, right: Date): boolean {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+}
+
+/** Live wrapper used by Home. Conversation truth comes from Runtime; the composer routes into the agent conversation with the text prefilled. */
+export function HomeAgentCard() {
   const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
+  const i18n = useDesktopI18nResource();
+  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const enabled = authStatus === 'authenticated' && Boolean(ownerUserId);
+  const [selection, setSelection] = useState<{ ownerUserId: string; id: string } | null>(null);
 
   // Shared key with Explore and Source Detail so the list is fetched once per session.
   const agents = useQuery({
@@ -252,34 +227,58 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
     staleTime: 30_000,
   });
   const agentList = agents.data ?? [];
-  const agent: LocalAgentListItem | null = agentList[0] ?? null;
-  const others = agentList.slice(1);
-  const shownOthers = others.length > OTHER_AGENT_SLOTS ? others.slice(0, OTHER_AGENT_SLOTS - 1) : others;
-
-  // One reference per rendered agent supplies its Runtime display name and avatar.
-  const references = useQueries({
-    queries: (agent ? [agent, ...shownOthers] : []).map((item) => ({
-      queryKey: ['home-agent-reference', item.localAgentRef],
-      queryFn: async () => (await bindings.sdk.resolveDesktopAgentReference({
-        localAgentRef: item.localAgentRef,
-      })).reference ?? null,
-      staleTime: 60_000,
-    })),
+  const agentItemsByRef = useMemo(
+    () => new Map(agentList.map((item) => [item.localAgentRef, item])),
+    [agentList],
+  );
+  const recent = useQuery({
+    queryKey: ['home-recent-chat-partners', ownerUserId, agentList.map((item) => item.localAgentRef).join(',')],
+    queryFn: () => fetchHomeRecentChatPartners({ ownerUserId, sdk: bindings.sdk, agents: agentList }),
+    enabled: enabled && agentList.length > 0,
+    staleTime: 30_000,
   });
-  const withReference = (item: LocalAgentListItem, index: number): HomeOtherAgent => {
-    const reference = references[index]?.data;
-    return {
-      id: item.localAgentRef,
-      displayName: reference?.displayName?.trim() || item.displayName,
-      avatarUrl: reference?.avatarUrl?.trim() || null,
-    };
-  };
+  const partners: readonly HomeRecentChatPartner[] = recent.data ?? (recent.isError
+    ? agentList.map((item) => ({
+      localAgentRef: item.localAgentRef,
+      displayName: item.displayName,
+      avatarUrl: null,
+      lastMessageText: null,
+      conversationTitle: null,
+      updatedAtMs: null,
+      hasUnread: false,
+    }))
+    : []);
+  const partnersPending = enabled && agentList.length > 0 && recent.isPending;
+  const selected = partners.find((partner) => selection?.ownerUserId === ownerUserId && partner.localAgentRef === selection.id) ?? partners[0] ?? null;
+  const { ref: stripRef, capacity } = useHomeRowCapacity({
+    tileWidth: HOME_PARTNER_TILE_WIDTH,
+    tileGap: HOME_PARTNER_TILE_GAP,
+    limit: Math.max(1, partners.length),
+  });
 
-  const openConversation = useCallback(async (selected: LocalAgentListItem | null | undefined, initialComposerText?: string) => {
-    if (!selected) return;
+  const formatTime = useCallback((updatedAtMs: number): string => {
+    const date = new Date(updatedAtMs);
+    const now = new Date(i18n.now());
+    const time = i18n.formatDate(updatedAtMs, { hour: '2-digit', minute: '2-digit' });
+    if (sameDay(date, now)) {
+      return time;
+    }
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (sameDay(date, yesterday)) {
+      return t('runtimeConfig.overview.recentChats.yesterdayAt', { time });
+    }
+    if (date.getFullYear() === now.getFullYear()) {
+      return i18n.formatDate(updatedAtMs, { month: 'short', day: 'numeric' });
+    }
+    return i18n.formatDate(updatedAtMs, { year: 'numeric', month: 'short', day: 'numeric' });
+  }, [i18n, t]);
+
+  const openConversation = useCallback(async (selectedItem: LocalAgentListItem | null | undefined, initialComposerText?: string) => {
+    if (!selectedItem) return;
     const generation = navigation.getSnapshot().generation;
     const target = await resolveAgentTargetSnapshotForSourceRef({
-      sourceRef: selected.sourceRef,
+      sourceRef: selectedItem.sourceRef,
       ownerUserId,
       sdk: bindings.sdk,
     }).catch(() => null);
@@ -298,7 +297,7 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
     // Fall back to the agent chat list; it states unavailability explicitly.
     // The typed text is still prefilled by source key so it is not lost.
     if (initialComposerText) {
-      setPendingAgentComposerPrefill({ sourceKey: selected.sourceKey, text: initialComposerText });
+      setPendingAgentComposerPrefill({ sourceKey: selectedItem.sourceKey, text: initialComposerText });
     }
     void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
   }, [
@@ -312,30 +311,28 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
 
   ]);
 
-  const openAgentList = useCallback(() => {
-    void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
-  }, [navigation]);
-
   const state: HomeAgentCardState = !enabled || agents.isPending
     ? 'loading'
     : agents.isError
       ? 'unavailable'
-      : agent
+      : agentList.length > 0
         ? 'ready'
         : 'none';
   return (
     <HomeAgentCardView
+      key={ownerUserId}
       state={state}
-      agent={agent ? withReference(agent, 0) : null}
-      otherAgents={shownOthers.map((item, index) => withReference(item, index + 1))}
-      hiddenAgentCount={others.length - shownOthers.length}
-      heading={heading}
-      status={status}
-      onContinueChat={() => void openConversation(agent)}
-      onSendMessage={(text) => void openConversation(agent, text)}
+      partners={partners}
+      partnersPending={partnersPending}
+      selectedId={selected?.localAgentRef ?? null}
+      visibleCount={capacity}
+      stripRef={stripRef}
+      formatTime={formatTime}
+      onSelectPartner={(id) => setSelection({ ownerUserId, id })}
+      onOpenChat={(text) => void openConversation(selected ? agentItemsByRef.get(selected.localAgentRef) : null, text)}
+      onOpenPartner={(id) => void openConversation(agentItemsByRef.get(id))}
+      onOpenAll={() => navigation.push({ id: 'chat', chat: { mode: 'agent' } })}
       onExplore={() => navigation.push({ id: 'explore' })}
-      onOpenAgent={(id) => void openConversation(shownOthers.find((item) => item.localAgentRef === id))}
-      onViewAllAgents={openAgentList}
     />
   );
 }
