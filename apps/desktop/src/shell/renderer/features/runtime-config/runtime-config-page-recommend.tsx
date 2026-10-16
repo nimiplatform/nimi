@@ -274,6 +274,7 @@ export function RecommendPage(props: RecommendPageProps) {
             onChange={(event) => setQuery(event.currentTarget.value)}
             placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models' })}
             className="min-h-9 min-w-56 flex-1"
+            inputClassName="text-xs"
           />
           {rowControls ? (
             <>

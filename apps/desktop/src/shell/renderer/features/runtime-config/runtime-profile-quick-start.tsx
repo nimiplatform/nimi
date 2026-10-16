@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Check,
+  ChevronRight,
   CircleAlert,
   CircleDashed,
   Download,
@@ -33,18 +34,10 @@ import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 /** The capability the on-device conversation quick start is about. */
 export const CONVERSATION_CAPABILITY = 'text.generate';
 
-// Mirrors the kit AmbientBackground mesh recipe through the shared ambient
-// tokens. AmbientBackground itself is not importable here: the desktop
-// node:test pipeline compiles kit/ui source with classic JSX, which that
-// component does not survive (same constraint as the first-run chrome).
-const QUICK_START_MESH_STYLE: CSSProperties = {
-  background: [
-    'radial-gradient(ellipse at 0% 0%, var(--nimi-ambient-mesh-color-1) 0%, transparent 50%)',
-    'radial-gradient(ellipse at 100% 0%, var(--nimi-ambient-mesh-color-2) 0%, transparent 50%)',
-    'radial-gradient(ellipse at 100% 100%, var(--nimi-ambient-mesh-color-3) 0%, transparent 50%)',
-    'radial-gradient(ellipse at 0% 100%, var(--nimi-ambient-mesh-color-4) 0%, transparent 50%)',
-    'linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)',
-  ].join(', '),
+// Same hero surface as the cloud connection summary, so the overview's
+// readiness module and the cloud page read as one surface family.
+const QUICK_START_HERO_STYLE: CSSProperties = {
+  background: 'var(--nimi-surface-hero)',
 };
 
 const PRIMARY_ICON_TILE_STYLE: CSSProperties = {
@@ -136,6 +129,7 @@ export function RuntimeProfileQuickStart(props: {
   readonly conversation: RuntimeProfileQuickStartConversation;
   readonly capabilities: readonly RuntimeOverviewCapability[];
   readonly onOpenCapability: (capability: string) => void;
+  readonly readyAction?: ReactNode;
   readonly onUse: (profile: NimiPortableAIProfile) => void;
 }) {
   const { t } = useTranslation();
@@ -152,7 +146,7 @@ export function RuntimeProfileQuickStart(props: {
   if (ready.length > 0) {
     return (
       <QuickStartShell state="ready">
-        <div className="space-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <QuickStartTitle>
             <span className="flex items-center gap-2.5">
               <span
@@ -162,6 +156,7 @@ export function RuntimeProfileQuickStart(props: {
               {t('runtimeConfig.quickStart.readyTitle')}
             </span>
           </QuickStartTitle>
+          {props.readyAction}
         </div>
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
           {ready.map((entry) => {
@@ -173,7 +168,7 @@ export function RuntimeProfileQuickStart(props: {
               <button
                 key={entry.id}
                 type="button"
-                className="group flex flex-col items-start gap-3 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,transform,border-color] duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)] motion-safe:hover:-translate-y-0.5"
+                className="group flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,border-color] duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]"
                 data-ready-capability={entry.id}
                 aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
                 onClick={() => props.onOpenCapability(entry.id)}
@@ -182,33 +177,37 @@ export function RuntimeProfileQuickStart(props: {
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
                     <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
                   </span>
-                  <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{label}</span>
-                  <span className="flex shrink-0 -translate-x-1 items-center gap-1 text-xs font-medium text-[var(--nimi-action-primary-bg)] opacity-0 transition-[opacity,transform] duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
-                    {t('runtimeConfig.quickStart.view')}
-                    <ArrowRight size={14} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{label}</span>
+                    {entry.model ? (
+                      <span
+                        data-current-model
+                        className="mt-0.5 block truncate text-xs leading-4 text-[var(--nimi-text-secondary)]"
+                        title={entry.model}
+                      >
+                        {entry.model}
+                      </span>
+                    ) : null}
                   </span>
+                  <ChevronRight
+                    size={18}
+                    aria-hidden="true"
+                    className="shrink-0 text-[var(--nimi-text-muted)] transition-[color,transform] duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:translate-x-0.5 group-focus-visible:text-[var(--nimi-action-primary-bg)]"
+                  />
                 </span>
-                <span className="block w-full min-w-0 space-y-2">
-                  {entry.model ? (
-                    <span data-current-model className="inline-flex max-w-full items-center gap-1 rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-success-soft-text)]" title={t('runtimeConfig.quickStart.defaultModel', { model: entry.model })}>
-                      <Check size={12} className="shrink-0" aria-hidden="true" />
-                      <span className="truncate">{t('runtimeConfig.quickStart.defaultModel', { model: entry.model })}</span>
+                {candidateTask && candidateActive ? (
+                  <span data-candidate-configuration={candidateTask.status} className="mt-3 block w-full space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs text-[var(--nimi-text-secondary)]">
+                    <span className="block whitespace-normal break-words">
+                      {entry.taskModel
+                        ? t('runtimeConfig.quickStart.otherConfigurationModel', { model: entry.taskModel })
+                        : t('runtimeConfig.quickStart.otherConfiguration')}
                     </span>
-                  ) : null}
-                  {candidateTask && candidateActive ? (
-                    <span data-candidate-configuration={candidateTask.status} className="block space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs text-[var(--nimi-text-secondary)]">
-                      <span className="block whitespace-normal break-words">
-                        {entry.taskModel
-                          ? t('runtimeConfig.quickStart.otherConfigurationModel', { model: entry.taskModel })
-                          : t('runtimeConfig.quickStart.otherConfiguration')}
-                      </span>
-                      <span className="flex items-start gap-1.5">
-                        <LoaderCircle size={12} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin text-[var(--nimi-status-info)]" />
-                        <span>{t(`runtimeConfig.setupTask.status.${candidateTask.status}`)}</span>
-                      </span>
+                    <span className="flex items-start gap-1.5">
+                      <LoaderCircle size={12} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin text-[var(--nimi-status-info)]" />
+                      <span>{t(`runtimeConfig.setupTask.status.${candidateTask.status}`)}</span>
                     </span>
-                  ) : null}
-                </span>
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -288,7 +287,7 @@ function QuickStartShell(props: {
   return (
     <section
       className="rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] p-5 shadow-[var(--nimi-elevation-base)] lg:p-6"
-      style={QUICK_START_MESH_STYLE}
+      style={QUICK_START_HERO_STYLE}
       data-testid="ai-profile-quick-start"
       data-quick-start-state={props.state}
     >

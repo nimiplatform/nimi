@@ -11,6 +11,8 @@ import { homeRuntimeDestination } from '../src/shell/renderer/app-shell/provider
 import runtimeConfigEn from '../src/shell/renderer/locales/en/46-runtimeConfig.json';
 import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context.js';
+import { getRuntimeSetupTaskStore, type RuntimeSetupTask } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js';
+import { parseNimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 
 // Renders the real AI Capabilities home against a fake SDK that records every
 // Runtime call. The list must render, expand and refresh through reads only:
@@ -58,8 +60,8 @@ const recipe = {
   }],
 };
 
-function createFakeSdk(incompleteExamples = false) {
-  const calls: { loadoutWrites: string[]; rpc: string[]; environmentPlans: string[] } = { loadoutWrites: [], rpc: [], environmentPlans: [] };
+function createFakeSdk(incompleteExamples = false, multipleVersions = false, savedProfile = false) {
+  const calls: { loadoutWrites: string[]; rpc: string[]; environmentPlans: string[]; profileDeletes: string[] } = { loadoutWrites: [], rpc: [], environmentPlans: [], profileDeletes: [] };
   const failedChecks = new Set(['L-failing']);
   const dependencyStates = new Map([['L-custom', 'needs_confirmation']]);
   const imageLoadout = {
@@ -76,6 +78,11 @@ function createFakeSdk(incompleteExamples = false) {
     selections: [{ capabilityContract: 'text.generate', loadoutId: 'L-default', effectiveDefaults: {} }],
     selectionRevisions: {},
   };
+  const choiceRecipe = multipleVersions ? { ...recipe, slots: [{ ...recipe.slots[0]!, offers: [
+    { ...recipe.slots[0]!.offers[0]!, candidate: { ...recipe.slots[0]!.offers[0]!.candidate, title: 'Gemma 4 2B', variantLabel: 'Q4' } },
+    { ...recipe.slots[0]!.offers[0]!, installedModelAssetId: 'gemma-q8', candidate: { ...recipe.slots[0]!.offers[0]!.candidate, offerRef: 'o2', title: 'Gemma 4 2B', variantLabel: 'Q8' } },
+  ] }] } : recipe;
+  if (multipleVersions) aggregate.loadouts[0]!.modelAxes = [];
   if (incompleteExamples) {
     failedChecks.clear();
     for (const id of ['L-custom', 'L-failing']) {
@@ -91,7 +98,7 @@ function createFakeSdk(incompleteExamples = false) {
   }
   const loadouts = new Proxy({
     get: async () => aggregate,
-    listRecipes: async (capability?: string) => [recipe, imageRecipe].filter((item) => !capability || item.capabilityContract === capability),
+    listRecipes: async (capability?: string) => [choiceRecipe, imageRecipe].filter((item) => !capability || item.capabilityContract === capability),
   }, {
     get(target, key) {
       if (typeof key === 'string' && LOADOUT_WRITES.includes(key)) {
@@ -123,7 +130,20 @@ function createFakeSdk(incompleteExamples = false) {
     appId: () => 'nimi.chat',
     machineProduct: () => ({ local: { loadouts }, apps: { listApprovedAppCatalogTargets: async () => ({ reasonCode: 'ACTION_EXECUTED', targets: [] }) } }),
     localEnvironmentRpc: () => rpc,
-    accountProduct: () => ({ profiles: { list: async () => [] } }),
+    accountProduct: () => ({ profiles: { list: async () => {
+      if (!savedProfile) return [];
+      const cloud = { route: 'cloud', requiredFeatures: [],
+        implementation: { implementationId: 'cloud.test', driverId: 'driver.test', driverDialect: 'test/v1', supportedFeatures: [] },
+        providerModelTarget: { provider: 'test', providerModelId: 'test-model', remoteModelCatalogId: 'catalog:test-model' } };
+      const source = parseNimiPortableAIProfile({ profileId: 'saved-profile', title: 'Saved profile', capabilities: {
+        'text.generate': cloud,
+        'image.generate': cloud,
+      } });
+      return [{ source, artifactJson: JSON.stringify(source), record: { updatedAt: { seconds: 1 } } }];
+    }, delete: async (profileId: string) => {
+      calls.profileDeletes.push(profileId);
+      savedProfile = false;
+    } } }),
     accountRuntime: () => ({ auth: {} }),
     withRuntimeProtectedScopes: async (_scopes: unknown, run: () => unknown) => run(),
   };
@@ -137,12 +157,18 @@ async function withHome(run: (ui: {
   passCheck: (loadoutId: string) => void;
   setDependencyState: (loadoutId: string, state: string) => void;
   recheck: (loadoutId: string) => Promise<void>;
+  focusedTask: () => RuntimeSetupTask | undefined;
+  back: () => Promise<void>;
+  forward: () => Promise<void>;
   click: (selector: string) => Promise<void>;
   waitFor: (selector: string, predicate?: (element: HTMLElement) => boolean) => Promise<HTMLElement>;
 }) => Promise<void>, options: {
   incompleteExamples?: boolean;
   diagnosticsInitiallyOpen?: boolean;
   profileOwnerAppId?: string;
+  setupTask?: 'profile' | 'standalone';
+  multipleVersions?: boolean;
+  savedProfile?: boolean;
 } = {}) {
   const { incompleteExamples = false, diagnosticsInitiallyOpen = false, profileOwnerAppId } = options;
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
@@ -161,6 +187,11 @@ async function withHome(run: (ui: {
     CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle,
     requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
     React, IS_REACT_ACT_ENVIRONMENT: true,
+    ...(options.multipleVersions ? { __NIMI_TAURI_TEST__: { invoke: async (command: string) => {
+      assert.equal(command, 'runtime_account_session_status');
+      return { sequence: '1', state: 'authenticated', reasonCode: 1, accountReasonCode: 1,
+        accountProjection: { accountId: 'test-account', displayName: 'Test', realmEnvironmentId: 'test' } };
+    } } } : {}),
   };
   const domClasses = Object.getOwnPropertyNames(dom.window).filter((name) => /^(?:HTML|SVG)\w*Element$|Event$/u.test(name) && !(name in values));
   for (const name of domClasses) (values as Record<string, unknown>)[name] = (dom.window as unknown as Record<string, unknown>)[name];
@@ -177,25 +208,42 @@ async function withHome(run: (ui: {
   await testI18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: incompleteExamples ? { runtimeConfig: runtimeConfigEn } : {} } } });
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
-  store.navigation.reset(homeRuntimeDestination(diagnosticsInitiallyOpen ? 'advancedDiagnostics' : 'aiSettings'));
-  const { sdk, calls, failedChecks, dependencyStates } = createFakeSdk(incompleteExamples);
+  const taskStore = getRuntimeSetupTaskStore();
+  const setupTask = options.setupTask ? taskStore.createTask({
+    capabilityContract: 'text.generate',
+    source: { kind: 'runtime', accountId: options.multipleVersions ? 'test-account' : '' },
+  }) : undefined;
+  if (setupTask) taskStore.updateTask(setupTask.taskId, () => ({
+    status: 'review',
+    candidateLoadoutId: 'L-default',
+    candidateRevisionBaseline: '1',
+    draft: {
+      route: 'local', recipeId: 'r-text', reviewChoices: { 'main.gguf': 'o' },
+      ...(options.setupTask === 'profile' ? { profileUseId: 'profile-review', profileTitle: 'My profile' } : {}),
+    },
+  }));
+  store.navigation.reset(homeRuntimeDestination(diagnosticsInitiallyOpen ? 'advancedDiagnostics' : 'aiSettings', {
+    ...(setupTask ? { setupTaskId: setupTask.taskId } : {}),
+  }));
+  const { sdk, calls, failedChecks, dependencyStates } = createFakeSdk(incompleteExamples, options.multipleVersions, options.savedProfile);
   const bindings = { app: { commands: {} }, sdk } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   const noop = () => undefined;
   function WorkspaceHarness() {
-    const diagnostics = useHomeDestination().id === 'diagnostics';
+    const destination = useHomeDestination();
+    const diagnostics = destination.id === 'diagnostics';
     return <AiSettingsPage
       advancedDiagnostics={diagnostics ? {
         content: <div data-testid="diagnostics-test-content" />,
         onClose: () => { void store.navigation.push(homeRuntimeDestination('aiSettings')); },
       } : undefined}
       runtimeWritesDisabled={false}
-      focusedTaskId={null}
+      focusedTaskId={destination.runtime?.setupTaskId ?? null}
       actionFocus={undefined}
       savedConfigsContext={null}
       profileUseOwner={profileOwnerAppId ? { kind: 'app', ownerAppId: profileOwnerAppId, returnFocus: `apps:${profileOwnerAppId}` } : null}
       onOpenSetupTask={noop}
-      onCloseSetupTask={noop}
+      onCloseSetupTask={() => { void store.navigation.push(homeRuntimeDestination('aiSettings')); }}
       onOpenModelFiles={noop}
       onOpenSavedConfigs={noop}
       onOpenModelMarket={noop}
@@ -236,6 +284,9 @@ async function withHome(run: (ui: {
     await run({
       document: dom.window.document,
       calls,
+      focusedTask: () => setupTask ? taskStore.getTask(setupTask.taskId) : undefined,
+      back: async () => { await act(async () => { await store.navigation.back(); }); },
+      forward: async () => { await act(async () => { await store.navigation.forward(); }); },
       failCheck: (loadoutId) => { failedChecks.add(loadoutId); },
       passCheck: (loadoutId) => { failedChecks.delete(loadoutId); },
       setDependencyState: (loadoutId, state) => { dependencyStates.set(loadoutId, state); },
@@ -253,6 +304,10 @@ async function withHome(run: (ui: {
     });
   } finally {
     await act(async () => root.unmount());
+    if (setupTask) {
+      taskStore.stopTask(setupTask.taskId);
+      taskStore.dismissTask(setupTask.taskId);
+    }
     queryClient.clear();
     dom.window.close();
     for (const [key, descriptor] of previous) {
@@ -261,6 +316,92 @@ async function withHome(run: (ui: {
     }
   }
 }
+
+test('returning from a profile item keeps its task and choices in the enclosing review', async () => {
+  await withHome(async (ui) => {
+    const review = await ui.waitFor('[data-testid="ai-profile-use-review"]');
+    const inspect = Array.from(review.querySelectorAll('button')).find((button) => button.textContent === 'runtimeConfig.profileRun.inspect');
+    assert.ok(inspect);
+    await act(async () => inspect.click());
+    const back = await ui.waitFor('[data-testid="runtime-setup-task-close"]');
+    assert.equal(back.textContent, 'runtimeConfig.profileRun.back');
+    await ui.click('[data-testid="runtime-setup-task-close"]');
+    await ui.waitFor('[data-testid="ai-profile-use-review"]');
+    assert.equal(ui.focusedTask()?.status, 'review');
+    assert.deepEqual(ui.focusedTask()?.draft?.reviewChoices, { 'main.gguf': 'o' });
+    assert.equal(ui.document.querySelector('[data-testid="ai-setup-task-unavailable"]'), null);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { setupTask: 'profile' });
+});
+
+test('profile detail history restores the same capability subset after leaving and returning', async () => {
+  await withHome(async (ui) => {
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile-use:saved-profile"]');
+    await ui.click('[data-testid="runtime-ai-settings-profile-use:saved-profile"]');
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile-use-panel"]', (element) => element.querySelectorAll('input[type="checkbox"]').length === 2);
+    const check = '[data-testid="runtime-ai-settings-profile-use-panel"] input[type="checkbox"]';
+    await ui.click(check);
+    await ui.click('[data-testid="ai-capability:text.generate"]');
+    await ui.back();
+    await ui.waitFor(check);
+    assert.equal(ui.document.querySelector<HTMLInputElement>(check)?.checked, false);
+    await ui.forward();
+    await ui.waitFor('[data-testid="ai-capability-detail:text.generate"]');
+    await ui.back();
+    await ui.waitFor(check);
+    assert.equal(ui.document.querySelector<HTMLInputElement>(check)?.checked, false);
+    await ui.back();
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile-selection"]');
+    await ui.forward();
+    await ui.waitFor(check);
+    assert.equal(ui.document.querySelector<HTMLInputElement>(check)?.checked, false);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { savedProfile: true, profileOwnerAppId: 'test.app' });
+});
+
+test('profile overview and nested details share version choices across close and history restoration', async () => {
+  await withHome(async (ui) => {
+    const choice = '[data-testid="runtime-setup-task-choice:main.gguf"]';
+    const toggle = '[data-testid="runtime-setup-task-choice-toggle:main.gguf"]';
+    await ui.waitFor(choice);
+    await ui.click(toggle);
+    await ui.click('input[type="radio"]:not(:checked)');
+    assert.equal(ui.focusedTask()?.draft?.reviewChoices?.['main.gguf'], 'o2');
+    const inspect = Array.from(ui.document.querySelectorAll('button')).find((button) => button.textContent === 'runtimeConfig.profileRun.inspect');
+    assert.ok(inspect);
+    await act(async () => inspect.click());
+    await ui.waitFor(choice, (element) => element.textContent?.includes('Q8') === true);
+    await ui.click(toggle);
+    await ui.click('input[type="radio"]:not(:checked)');
+    assert.equal(ui.focusedTask()?.draft?.reviewChoices?.['main.gguf'], 'o');
+    await ui.click('[data-testid="runtime-setup-task-close"]');
+    await ui.waitFor('[data-testid="ai-profile-use-review"]');
+    await ui.waitFor(choice, (element) => element.textContent?.includes('Q4') === true);
+    const close = Array.from(ui.document.querySelectorAll('[data-testid="ai-profile-use-review"] button')).find((button) => button.textContent === 'Common.close') as HTMLButtonElement;
+    assert.ok(close);
+    await act(async () => close.click());
+    await ui.back();
+    await ui.waitFor(choice, (element) => element.textContent?.includes('Q4') === true);
+    assert.equal(ui.focusedTask()?.draft?.reviewChoices?.['main.gguf'], 'o');
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { setupTask: 'profile', multipleVersions: true });
+});
+
+test('standalone drafts still discard on close, and their historical page offers an explicit return', async () => {
+  await withHome(async (ui) => {
+    await ui.waitFor('[data-testid="runtime-setup-task-close"]');
+    await ui.click('[data-testid="runtime-setup-task-close"]');
+    await ui.waitFor('[data-testid="ai-capability-detail:text.generate"]');
+    assert.equal(ui.focusedTask(), undefined);
+    await ui.back();
+    const unavailable = await ui.waitFor('[data-testid="ai-setup-task-unavailable"]');
+    assert.ok(unavailable.textContent?.includes('runtimeConfig.setupTaskUnavailable'));
+    await ui.click('[data-testid="ai-setup-task-unavailable-return"]');
+    await ui.waitFor('[data-testid="ai-profile-quick-start"]');
+    assert.equal(ui.document.querySelector('[data-testid="ai-setup-task-unavailable"]'), null);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { setupTask: 'standalone' });
+});
 
 test('diagnostics shares the right pane, preserves the capability rail and returns directly to details or home', async () => {
   await withHome(async (ui) => {
@@ -296,6 +437,30 @@ test('an App profile entry opens the setup chooser with its owner instead of the
     assert.equal(ui.document.querySelector('[data-testid="local-model-list"]'), null);
     assert.deepEqual(ui.calls.loadoutWrites, []);
   }, { profileOwnerAppId: 'test.persona' });
+});
+
+test('profile library card menu offers export and delete, and delete removes the saved setup after confirmation', async () => {
+  await withHome(async (ui) => {
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile:saved-profile"]');
+    await ui.click('[data-testid="runtime-ai-settings-profile-menu:saved-profile"]');
+    const menuItems = [...ui.document.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    assert.ok(menuItems.some((item) => item.textContent === 'runtimeConfig.aiSettings.profileExportFile'));
+    const deleteItem = menuItems.find((item) => item.textContent === 'runtimeConfig.aiSettings.profileDelete');
+    assert.ok(deleteItem);
+    await act(async () => deleteItem.click());
+    await ui.waitFor('[role="dialog"][aria-modal="true"]');
+    await act(async () => {
+      const dialog = ui.document.querySelector<HTMLElement>('[role="dialog"][aria-modal="true"]');
+      const confirm = [...(dialog?.querySelectorAll('button') ?? [])]
+        .find((button) => button.textContent === 'runtimeConfig.aiSettings.profileDelete');
+      assert.ok(confirm);
+      confirm.click();
+    });
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile-selection-empty"]');
+    assert.deepEqual(ui.calls.profileDeletes, ['saved-profile']);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-ai-settings-profile:saved-profile"]'), null);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { savedProfile: true });
 });
 
 test('the home lists on-device models, expands with read-only candidate checks, refreshes and opens setup without any Loadout write', async () => {

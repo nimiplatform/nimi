@@ -105,7 +105,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const diagnosticsActive = !!props.advancedDiagnostics;
   useEffect(() => {
     resetRuntimePageViewport(contentViewportRef.current);
-  }, [diagnosticsActive, visibleCapability, props.focusedTaskId, modelConfiguration?.loadoutId]);
+  }, [diagnosticsActive, visibleCapability, props.focusedTaskId, modelConfiguration?.loadoutId, position?.profileViewId, position?.profileTaskDetailId]);
   const appsColumn = useCapabilityAppsColumn(visibleCapability);
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
   useEffect(() => {
@@ -358,11 +358,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   };
   const onReturnToSource = () => {
     const target = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
-    props.onCloseSetupTask();
     setError(null);
     if (target?.kind === 'tab' && target.tab === 'apps' && focusedTask?.source.ownerAppId) {
       void navigation.push({ id: 'apps', appId: focusedTask.source.ownerAppId });
     } else if (target?.kind === 'tab') void navigation.push({ id: target.tab });
+    else void navigation.push(homeRuntimeDestination('aiSettings'));
     void inventory.refetch();
   };
 
@@ -534,7 +534,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 </InlineAlert>
               ) : null}
               {props.focusedTaskId && !focusedTask ? (
-                <InlineAlert tone="warning">{t('runtimeConfig.positionUnavailable')}</InlineAlert>
+                <InlineAlert tone="warning" data-testid="ai-setup-task-unavailable">
+                  <p>{t('runtimeConfig.setupTaskUnavailable')}</p>
+                  <Button size="sm" tone="secondary" onClick={onHome} data-testid="ai-setup-task-unavailable-return">
+                    {t('runtimeConfig.capabilities.backWorkspace')}
+                  </Button>
+                </InlineAlert>
               ) : visibleCapability && !inventory.isPending && !inventory.isError && !inventory.capabilities.includes(visibleCapability) ? (
                 <InlineAlert tone="warning">
                   <p>{t('runtimeConfig.positionUnavailable')}</p>
@@ -547,6 +552,9 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     useId={focusedTask.draft.profileUseId}
                     store={store}
                     ports={ports}
+                    detailTaskId={position?.profileTaskDetailId}
+                    onOpenDetail={(taskId) => { void navigation.push(homeRuntimeDestination('aiSettings', { ...position, profileTaskDetailId: taskId })); }}
+                    onCloseDetail={() => { void navigation.push(homeRuntimeDestination('aiSettings', { ...position, profileTaskDetailId: undefined })); }}
                     onClose={props.onCloseSetupTask}
                     onReturn={onReturnToSource}
                   />

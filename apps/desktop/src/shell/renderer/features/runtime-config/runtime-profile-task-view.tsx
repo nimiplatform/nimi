@@ -29,6 +29,9 @@ export function RuntimeProfileTaskView(props: {
   readonly useId: string;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
+  readonly detailTaskId?: string;
+  readonly onOpenDetail: (taskId: string) => void;
+  readonly onCloseDetail: () => void;
   readonly onClose: () => void;
   readonly onReturn: () => void;
 }) {
@@ -41,7 +44,7 @@ export function RuntimeProfileTaskView(props: {
   const tasks = snapshot.tasks.filter((task) => task.draft?.profileUseId === props.useId);
   const taskKey = tasks.map((task) => task.taskId).join('|');
   const [plans, setPlans] = useState<Record<string, RuntimeSetupPreparationPlan>>({});
-  const [choices, setChoices] = useState<Record<string, Record<string, string>>>({});
+  const choices = Object.fromEntries(tasks.map((task) => [task.taskId, task.draft?.reviewChoices ?? task.draft?.preferredOffers ?? {}]));
   const [checking, setChecking] = useState(false);
   const running = useSyncExternalStore(
     subscribeRuntimeProfileRuns,
@@ -49,7 +52,7 @@ export function RuntimeProfileTaskView(props: {
     () => false,
   );
   const [error, setError] = useState('');
-  const [detail, setDetail] = useState<string | null>(null);
+  const detail = props.detailTaskId;
   const active = running || tasks.some((task) => task.status === 'preparing' || task.status === 'committing');
   const finished =
     tasks.length > 0 && tasks.every((task) => task.status === 'done' || task.status === 'stopped');
@@ -89,8 +92,8 @@ export function RuntimeProfileTaskView(props: {
     }
   };
   useEffect(() => {
-    if (!active) void review();
-  }, [props.useId, taskKey]);
+    if (!active && !detail) void review();
+  }, [props.useId, taskKey, detail]);
   const pending = tasks.filter(
     (task) => !['done', 'stopped', 'failed', 'needs-attention'].includes(task.status),
   );
@@ -126,27 +129,21 @@ export function RuntimeProfileTaskView(props: {
       mode,
     }).catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)));
   };
+  if (detail && !tasks.some((task) => task.taskId === detail)) return (
+    <InlineAlert tone="warning">
+      <p>{t('runtimeConfig.setupTaskUnavailable')}</p>
+      <Button onClick={props.onCloseDetail}>{t('runtimeConfig.profileRun.back')}</Button>
+    </InlineAlert>
+  );
   if (detail)
     return (
       <div className="space-y-4">
-        <Button
-          tone="ghost"
-          onClick={() => {
-            setDetail(null);
-            void review();
-          }}
-        >
-          {t('runtimeConfig.profileRun.back')}
-        </Button>
         <RuntimeConfigSetupTaskView
           key={detail}
           taskId={detail}
           store={props.store}
           ports={props.ports}
-          onClose={() => {
-            setDetail(null);
-            void review();
-          }}
+          onClose={props.onCloseDetail}
           onReturnToSource={props.onReturn}
         />
       </div>
@@ -221,9 +218,9 @@ export function RuntimeProfileTaskView(props: {
               choiceGroup={task.taskId}
               plan={plans[task.taskId]!}
               choices={choices[task.taskId] ?? {}}
-              onChoiceChange={(slot, ref) =>
-                setChoices((prev) => ({ ...prev, [task.taskId]: { ...prev[task.taskId], [slot]: ref } }))
-              }
+              onChoiceChange={(slot, ref) => props.store.updateTask(task.taskId, (current) => ({
+                draft: { ...current.draft, reviewChoices: { ...(current.draft?.reviewChoices ?? current.draft?.preferredOffers), [slot]: ref } },
+              }))}
               recipe={recipe}
               contextPreview={runtimeSetupContextApplication(
                 task.draft?.options,
@@ -231,7 +228,7 @@ export function RuntimeProfileTaskView(props: {
               ).preview}
             />
           ) : null}
-          <Button tone="ghost" size="sm" disabled={active} onClick={() => setDetail(task.taskId)}>
+          <Button tone="ghost" size="sm" disabled={active} onClick={() => props.onOpenDetail(task.taskId)}>
             {t('runtimeConfig.profileRun.inspect')}
           </Button>
         </section>

@@ -130,8 +130,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   }, [panelState.setVaultVersion]);
 
   const onChangePage = useCallback((page: RuntimePageIdV11) => { void homeNavigation.push(homeRuntimeDestination(page)); }, [homeNavigation]);
-  const onOpenSetupTask = useCallback((taskId: string) => { void homeNavigation.push(homeRuntimeDestination('aiSettings', { setupTaskId: taskId })); }, [homeNavigation]);
-  const onCloseSetupTask = useCallback(() => { void homeNavigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: position?.capabilityContract })); }, [homeNavigation, position]);
+  const onOpenSetupTask = useCallback((taskId: string) => { void homeNavigation.push(homeRuntimeDestination('aiSettings', {
+    setupTaskId: taskId, profileViewId: position?.profileViewId, profileOwner: position?.profileOwner,
+  })); }, [homeNavigation, position]);
+  const onCloseSetupTask = useCallback(() => { void homeNavigation.push(homeRuntimeDestination('aiSettings', {
+    capabilityContract: position?.capabilityContract, profileViewId: position?.profileViewId, profileOwner: position?.profileOwner,
+  })); }, [homeNavigation, position]);
   const onOpenSavedConfigs = useCallback((context?: RuntimeConfigLoadoutNavigationContext) => {
     const refs: HomeRuntimePosition = { section: 'saved', capabilityContract: context?.capabilityContract, recipeId: context?.recipeId, recipeRevision: context?.recipeRevision, slotId: context?.slotId };
     if (context?.draft) drafts.current.set(draftKey(refs), context.draft);

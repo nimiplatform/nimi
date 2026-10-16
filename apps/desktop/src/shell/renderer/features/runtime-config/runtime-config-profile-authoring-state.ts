@@ -593,28 +593,35 @@ function authoringBuilderFromDraft(
       ? parseJsonObject(capability.defaultsJson, `${capability.capabilityContract} defaults`)
       : undefined;
     if (capability.route === 'local') {
+      const recipe = capability.local.includeImplementation
+        ? recipeForCapabilityDraft(draft, capability.capabilityContract, recipes)
+        : undefined;
+      const portableConfig = recipe
+        ? parseJsonObject(capability.local.portableConfigJson, `${capability.capabilityContract} portable config`)
+        : undefined;
+      // Persist an authored Recipe choice using the existing portable intent.
+      // Empty axes mean no resources were chosen; never infer model identities.
+      // Preserve an unchanged imported intent without adding a Loadout.
+      const loadout = capability.local.loadout ?? (recipe && portableConfig && (
+        !capability.local.importedIntent
+        || !capability.local.importedIntent.recipeId
+        || hasExplicitRecipeSelection(capability.local)
+      ) ? { recipeId: recipe.recipeId, axes: [], options: portableConfig } : undefined);
       builder.setLocalCapability({
         capabilityContract: capability.capabilityContract,
         requiredFeatures,
         ...(defaults !== undefined ? { defaults } : {}),
-        ...(capability.local.includeImplementation
+        ...(recipe && portableConfig
           ? {
             localConfiguration: createNimiAIProfileLocalImplementation({
-              recipe: recipeForCapabilityDraft(
-                draft,
-                capability.capabilityContract,
-                recipes,
-              ),
-              portableConfig: parseJsonObject(
-                capability.local.portableConfigJson,
-                `${capability.capabilityContract} portable config`,
-              ),
+              recipe,
+              portableConfig,
             }),
             ...(capability.local.resourceOccurrences !== undefined
               ? { resourceOccurrences: capability.local.resourceOccurrences }
               : {}),
-            ...(capability.local.loadout !== undefined
-              ? { loadout: capability.local.loadout }
+            ...(loadout !== undefined
+              ? { loadout }
               : {}),
           }
           : {}),
@@ -760,7 +767,7 @@ function draftFromProfile(
     const recipe = capability.loadout?.recipeId
       ? candidates.find((candidate) => candidate.recipeId === capability.loadout?.recipeId)
       : candidates.length === 1 ? candidates[0] : undefined;
-    if (!recipe) {
+    if (!recipe && (capability.loadout || candidates.length === 0)) {
       throw new Error(
         `Imported ${capabilityContract} Local implementation has no unambiguous current Runtime Recipe`,
       );
@@ -773,12 +780,12 @@ function draftFromProfile(
       defaultsJson: prettyJson(capability.defaults),
       local: {
         includeImplementation: true,
-        recipeId: recipe.recipeId,
+        recipeId: recipe?.recipeId ?? '',
         portableConfigJson: prettyJson(
-          capability.driverPortableConfig ?? recipe.defaultOptions,
+          capability.driverPortableConfig ?? recipe?.defaultOptions ?? {},
         ),
         importedIntent: Object.freeze({
-          recipeId: capability.loadout?.recipeId ?? recipe.recipeId,
+          recipeId: capability.loadout?.recipeId ?? recipe?.recipeId ?? '',
           implementation: Object.freeze({
             implementationId: implementation.implementationId,
             driverId: implementation.driverId,
@@ -807,6 +814,17 @@ function draftFromProfile(
     capabilities,
     nextDraftOrdinal,
   };
+}
+
+export function runtimeConfigAIProfileRecipeCandidates(
+  capability: RuntimeConfigAIProfileCapabilityDraft,
+  recipes: readonly NimiLoadoutRecipe[],
+): readonly NimiLoadoutRecipe[] {
+  const unresolvedImport = capability.local.importedIntent?.recipeId === '';
+  return recipes.filter((recipe) => (
+    recipe.capabilityContract === capability.capabilityContract
+    && (!unresolvedImport || sameRecipeImplementation(recipe, capability.local.importedIntent!.implementation))
+  ));
 }
 
 function sameImplementation(

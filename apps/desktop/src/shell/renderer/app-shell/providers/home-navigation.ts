@@ -10,6 +10,8 @@ export type HomeRuntimePosition = {
   readonly section?: 'overview' | 'models' | 'advanced' | 'saved' | 'discover' | 'downloaded';
   readonly capabilityContract?: string;
   readonly setupTaskId?: string;
+  readonly profileViewId?: string;
+  readonly profileTaskDetailId?: string;
   readonly loadoutId?: string;
   readonly profileOwner?: RuntimeConfigProfileUseOwner;
   readonly recipeId?: string; readonly recipeRevision?: string; readonly slotId?: string;
@@ -94,14 +96,16 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     if (!position || typeof position !== 'object' || Array.isArray(position)) throw new Error('Invalid Runtime position.');
     const fields = position as Record<string, unknown>;
     const allowed = id === 'cloud' ? ['connectorId'] : id === 'diagnostics' ? ['pane']
-      : ['page', 'section', 'capabilityContract', 'setupTaskId', 'loadoutId', 'profileOwner', 'recipeId', 'recipeRevision', 'slotId', 'market', 'offerRef'];
+      : ['page', 'section', 'capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'profileOwner', 'recipeId', 'recipeRevision', 'slotId', 'market', 'offerRef'];
     if (Object.keys(fields).some(key => !allowed.includes(key))) throw new Error('Unexpected Runtime position fields.');
     const normalized: Record<string, unknown> = {};
     for (const key of allowed) if (fields[key] !== undefined) normalized[key] = fields[key];
-    for (const key of ['capabilityContract', 'setupTaskId', 'loadoutId', 'recipeId', 'recipeRevision', 'slotId', 'offerRef', 'connectorId']) if (normalized[key] !== undefined) normalized[key] = stringRef(normalized[key]);
+    for (const key of ['capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'recipeId', 'recipeRevision', 'slotId', 'offerRef', 'connectorId']) if (normalized[key] !== undefined) normalized[key] = stringRef(normalized[key]);
     if (id === 'runtime') {
       normalized.page ??= 'aiSettings';
       if (!['aiSettings', 'modelLibrary'].includes(normalized.page as string)) throw new Error('Invalid Runtime page.');
+      if ((normalized.profileViewId || normalized.profileTaskDetailId) && normalized.page !== 'aiSettings') throw new Error('Profile views require AI Capabilities.');
+      if (normalized.profileTaskDetailId && !normalized.setupTaskId) throw new Error('Profile item detail requires its setup task.');
       const sections = normalized.page === 'aiSettings' ? ['overview', 'models', 'advanced', 'saved'] : ['discover', 'downloaded'];
       normalized.section ??= sections[0];
       if (!sections.includes(normalized.section as string)) throw new Error('Invalid Runtime section.');

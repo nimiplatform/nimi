@@ -3,6 +3,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -17,7 +18,7 @@ import {
 } from '@nimiplatform/sdk/ai';
 import type { NimiLoadoutRecipe } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { Button, InlineAlert, ScrollShell, Surface, TextField } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, ScrollShell, SelectField, Surface, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -33,6 +34,7 @@ import {
   loadRuntimeConfigAIProfileAuthoringCurrentProjection,
   reduceRuntimeConfigAIProfileAuthoringState,
   runtimeConfigAIProfileCapabilityContracts,
+  runtimeConfigAIProfileRecipeCandidates,
   technicalErrorDetail,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
@@ -171,8 +173,36 @@ export function AIProfileAuthoringPage() {
 
 export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
   const { t } = useTranslation();
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [selection, setSelection] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [addSearch, setAddSearch] = useState('');
   const model = props.inspection.status === 'valid' ? props.inspection.model : null;
-  const updateDraft = props.onDraftChange;
+  const activeCapability = props.state.draft.capabilities.find((item) => item.draftId === selection)
+    ?? props.state.draft.capabilities[0];
+  const activeView = selection === 'metadata' || selection === 'preview' || selection === 'add'
+    ? selection : activeCapability?.draftId ?? 'add';
+  const selectEditor = (next: string) => {
+    setSelection(next);
+    editorRef.current?.scrollIntoView({ block: 'start' });
+    editorRef.current?.focus({ preventScroll: true });
+  };
+  const updateDraft = (next: RuntimeConfigAIProfileAuthoringDraft) => {
+    if (activeCapability && !next.capabilities.some((item) => item.draftId === activeCapability.draftId)) {
+      const index = props.state.draft.capabilities.indexOf(activeCapability);
+      setSelection(next.capabilities[Math.min(index, next.capabilities.length - 1)]?.draftId ?? 'add');
+    }
+    props.onDraftChange(next);
+  };
+  useEffect(() => {
+    if (props.state.operation === 'imported') {
+      setSelection(props.state.draft.capabilities.find((capability) => (
+        capability.route === 'local' && capability.local.includeImplementation && !capability.local.recipeId
+      ))?.draftId ?? null);
+      setSearch('');
+      setAddSearch('');
+    }
+  }, [props.state.operation, props.state.draft]);
   const requirementsByCapability = new Map(
     model?.requirements.map((requirement) => [requirement.capabilityContract, requirement] as const),
   );
@@ -187,6 +217,13 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
     (recipe) => !usedCapabilities.has(recipe.capabilityContract),
   );
   const exportReady = model?.exportArtifact !== null && model !== null;
+  const matchesSearch = (contract: string, query: string) => (
+    `${displayRuntimeConfigCapabilityLabel(contract, t)} ${contract}`.toLocaleLowerCase()
+      .includes(query.trim().toLocaleLowerCase())
+  );
+  const visibleCapabilities = props.state.draft.capabilities.filter((item) => matchesSearch(item.capabilityContract, search));
+  const availableContracts = [...new Set(props.recipes.map((recipe) => recipe.capabilityContract))]
+    .filter((contract) => matchesSearch(contract, addSearch));
 
   return (
     <RuntimePageShell>
@@ -241,61 +278,124 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
           </div>
         </div>
         <AuthoringOperationFeedback state={props.state} t={t} />
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3 text-xs text-[var(--nimi-text-secondary)]">
+          <span>{t('runtimeConfig.profiles.authoring.draftSummary', { count: props.state.draft.capabilities.length })}</span>
+          <Button type="button" size="sm" tone="ghost" onClick={() => selectEditor('preview')}>
+            {t(`runtimeConfig.profiles.authoring.${exportReady ? 'checkReady' : 'checkPending'}`)}
+          </Button>
+        </div>
       </Surface>
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]">
-        <div className="min-w-0 space-y-4" data-testid="ai-profile-authoring-form">
-          <ProfileMetadataForm draft={props.state.draft} onChange={updateDraft} t={t} />
-
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-            <div>
-              <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                {t('runtimeConfig.profiles.authoring.capabilitiesTitle')}
-              </h4>
-              <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                {t('runtimeConfig.profiles.authoring.capabilitiesBody')}
-              </p>
-            </div>
+      <div className="grid min-w-0 items-start gap-4 md:grid-cols-[12rem_minmax(0,1fr)]">
+        <Surface tone="card" className="min-w-0 space-y-3 p-3 md:sticky md:top-0" data-testid="ai-profile-authoring-navigation">
+          <nav aria-label={t('runtimeConfig.profiles.authoring.profileNavigation')} className="space-y-1">
+            {(['metadata', 'preview'] as const).map((view) => (
+              <button key={view} type="button" aria-current={activeView === view ? 'page' : undefined}
+                className={authoringNavigationClassName(activeView === view)} onClick={() => selectEditor(view)}
+                data-testid={`ai-profile-authoring-nav:${view}`}>
+                {t(`runtimeConfig.profiles.authoring.${view === 'metadata' ? 'metadataTitle' : 'previewTitle'}`)}
+              </button>
+            ))}
+          </nav>
+          <div className="space-y-3 border-t border-[var(--nimi-border-subtle)] pt-3">
+            <h4 className="px-2 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+              {t('runtimeConfig.profiles.authoring.profileCapabilities', { count: props.state.draft.capabilities.length })}
+            </h4>
+            <TextField type="search" aria-label={t('runtimeConfig.profiles.authoring.searchCapabilities')}
+              placeholder={t('runtimeConfig.profiles.authoring.searchCapabilities')} value={search}
+              data-testid="ai-profile-authoring-search" onChange={(event) => setSearch(event.currentTarget.value)} />
+            <nav aria-label={t('runtimeConfig.profiles.authoring.capabilitiesTitle')} className="max-h-56 space-y-1 overflow-y-auto md:max-h-[50vh]">
+              {visibleCapabilities.map((capability) => (
+                <button key={capability.draftId} type="button"
+                  aria-current={activeView === capability.draftId ? 'page' : undefined}
+                  className={authoringNavigationClassName(activeView === capability.draftId)}
+                  onClick={() => selectEditor(capability.draftId)}
+                  data-testid={`ai-profile-authoring-nav:${capability.capabilityContract}`}>
+                  <span className="block">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}</span>
+                  <span className="mt-1 block text-xs font-normal text-[var(--nimi-text-muted)]">
+                    {t(`runtimeConfig.profiles.authoring.${capability.route === 'local' ? 'routeLocal' : 'routeCloud'}`)}
+                  </span>
+                </button>
+              ))}
+              {visibleCapabilities.length === 0 ? <p className="px-2 py-3 text-xs text-[var(--nimi-text-muted)]">
+                {t(`runtimeConfig.profiles.authoring.${props.state.draft.capabilities.length ? 'noSearchResults' : 'noCapabilities'}`)}
+              </p> : null}
+            </nav>
             <Button
               type="button"
               size="sm"
+              className="w-full"
               disabled={!canAddCapability}
-              onClick={() => updateDraft(addRuntimeConfigAIProfileCapability(
-                props.state.draft,
-                props.recipes,
-              ))}
+              data-testid="ai-profile-authoring-add"
+              onClick={() => { setAddSearch(''); selectEditor('add'); }}
             >
               {t('runtimeConfig.profiles.authoring.addCapability')}
             </Button>
           </div>
+        </Surface>
 
-          {props.state.draft.capabilities.map((capability, index) => (
+        <div ref={editorRef} tabIndex={-1} className="min-w-0 space-y-4 outline-none" data-testid="ai-profile-authoring-form">
+          {activeView === 'add' ? (
+            <Surface tone="card" className="space-y-4 p-5" data-testid="ai-profile-authoring-picker">
+              <h4 className="text-sm font-semibold">{t('runtimeConfig.profiles.authoring.addCapability')}</h4>
+              <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.authoring.addCapabilityBody')}</p>
+              <TextField type="search" aria-label={t('runtimeConfig.profiles.authoring.searchAvailableCapabilities')}
+                placeholder={t('runtimeConfig.profiles.authoring.searchAvailableCapabilities')} value={addSearch}
+                data-testid="ai-profile-authoring-add-search" onChange={(event) => setAddSearch(event.currentTarget.value)} />
+              <div className="grid max-h-[60vh] gap-2 overflow-y-auto sm:grid-cols-2">
+                {availableContracts.map((contract) => (
+                  <button key={contract} type="button" disabled={usedCapabilities.has(contract)}
+                    data-testid={`ai-profile-authoring-add:${contract}`}
+                    className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-left hover:bg-[var(--nimi-surface-subtle)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-field-focus)] disabled:opacity-50"
+                    onClick={() => {
+                      const next = addRuntimeConfigAIProfileCapability(props.state.draft, props.recipes.filter((recipe) => recipe.capabilityContract === contract));
+                      const added = next.capabilities.at(-1);
+                      updateDraft(next);
+                      setSearch('');
+                      if (added) selectEditor(added.draftId);
+                    }}>
+                    <span className="block text-sm font-semibold">{displayRuntimeConfigCapabilityLabel(contract, t)}</span>
+                    <span className="mt-1 block break-all font-mono text-xs text-[var(--nimi-text-muted)]">{contract}</span>
+                    {usedCapabilities.has(contract) ? <span className="mt-2 block text-xs">{t('runtimeConfig.profiles.authoring.alreadyAdded')}</span> : null}
+                  </button>
+                ))}
+              </div>
+              {availableContracts.length === 0 ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.profiles.authoring.noSearchResults')}</p> : null}
+            </Surface>
+          ) : activeView === 'metadata' ? (
+            <ProfileMetadataForm draft={props.state.draft} onChange={updateDraft} t={t} />
+          ) : activeView === 'preview' ? (
+            <JourneyPreviewPanel
+              inspection={props.inspection}
+              projectionStatus={props.projectionStatus}
+              projectionTechnicalError={props.projectionTechnicalError}
+              onReloadProjection={props.onReloadProjection}
+              onEditMetadata={() => selectEditor('metadata')}
+              t={t}
+            />
+          ) : activeCapability ? (
             <CapabilityAuthoringCard
-              key={capability.draftId}
-              capability={capability}
-              index={index}
+              key={activeCapability.draftId}
+              capability={activeCapability}
+              index={props.state.draft.capabilities.indexOf(activeCapability)}
               draft={props.state.draft}
               recipes={props.recipes}
               capabilityContracts={capabilityContracts}
-              requirement={requirementsByCapability.get(capability.capabilityContract)}
+              requirement={requirementsByCapability.get(activeCapability.capabilityContract)}
               onChange={updateDraft}
               t={t}
             />
-          ))}
-        </div>
-
-        <div className="min-w-0 xl:sticky xl:top-0 xl:self-start">
-          <JourneyPreviewPanel
-            inspection={props.inspection}
-            projectionStatus={props.projectionStatus}
-            projectionTechnicalError={props.projectionTechnicalError}
-            onReloadProjection={props.onReloadProjection}
-            t={t}
-          />
+          ) : null}
         </div>
       </div>
     </RuntimePageShell>
   );
+}
+
+function authoringNavigationClassName(active: boolean): string {
+  return `w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-[var(--nimi-field-focus)] ${active
+    ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-primary)]'
+    : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-subtle)]'}`;
 }
 
 function ProfileMetadataForm(props: {
@@ -451,22 +551,22 @@ function CapabilityAuthoringCard(props: {
             value as RuntimeConfigAIProfileCapabilityContract,
             props.recipes,
           ))}
-        >
-          {props.capabilityContracts.map((candidate) => (
-            <option key={candidate} value={candidate} disabled={used.has(candidate)}>
-              {displayRuntimeConfigCapabilityLabel(candidate, props.t)}
-            </option>
-          ))}
-        </AuthoringSelect>
+          options={props.capabilityContracts.map((candidate) => ({
+            value: candidate,
+            label: displayRuntimeConfigCapabilityLabel(candidate, props.t),
+            disabled: used.has(candidate),
+          }))}
+        />
         <AuthoringSelect
           label={props.t('runtimeConfig.profiles.authoring.recommendationRoute')}
           value={capability.route}
           field="recommendation-route"
           onChange={(route) => patch({ route: route as 'local' | 'cloud' })}
-        >
-          <option value="local">{props.t('runtimeConfig.profiles.authoring.routeLocal')}</option>
-          <option value="cloud">{props.t('runtimeConfig.profiles.authoring.routeCloud')}</option>
-        </AuthoringSelect>
+          options={[
+            { value: 'local', label: props.t('runtimeConfig.profiles.authoring.routeLocal') },
+            { value: 'cloud', label: props.t('runtimeConfig.profiles.authoring.routeCloud') },
+          ]}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -520,9 +620,8 @@ function LocalImplementationFields(props: {
   readonly t: TFunction;
 }) {
   const { capability } = props;
-  const candidates = props.recipes.filter(
-    (recipe) => recipe.capabilityContract === capability.capabilityContract,
-  );
+  const candidates = runtimeConfigAIProfileRecipeCandidates(capability, props.recipes);
+  const unresolvedImport = capability.local.importedIntent?.recipeId === '';
   const selected = candidates.find((recipe) => recipe.recipeId === capability.local.recipeId);
   const updateLocal = (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => {
     props.updateCapability((current) => ({
@@ -551,19 +650,28 @@ function LocalImplementationFields(props: {
       </div>
       {capability.local.includeImplementation ? (
         <>
-          <AuthoringSelect label={props.t('runtimeConfig.loadouts.recipe')} value={capability.local.recipeId} field="local-recipe" onChange={(recipeId) => {
+          {unresolvedImport && !capability.local.recipeId ? (
+            <InlineAlert tone="info">{props.t('runtimeConfig.profiles.authoring.recipeSelectionRequired')}</InlineAlert>
+          ) : null}
+          <AuthoringSelect label={props.t('runtimeConfig.loadouts.recipe')} placeholder={props.t('runtimeConfig.profiles.authoring.selectRecipe')} value={capability.local.recipeId} field="local-recipe" onChange={(recipeId) => {
             const recipe = candidates.find((candidate) => candidate.recipeId === recipeId);
+            if (!recipe) return;
+            if (unresolvedImport) {
+              updateLocal({ recipeId, recipeRefreshBlocked: undefined });
+              return;
+            }
             updateLocal({
               recipeId,
               portableConfigJson: recipe ? JSON.stringify(recipe.defaultOptions, null, 2) : '',
               resourceOccurrences: undefined,
               loadout: undefined,
             });
-          }}>
-            {candidates.map((recipe) => (
-              <option key={recipe.recipeId} value={recipe.recipeId}>{recipe.title} ({recipe.revision})</option>
-            ))}
-          </AuthoringSelect>
+          }}
+            options={candidates.map((recipe) => ({
+              value: recipe.recipeId,
+              label: `${recipe.title} (${recipe.revision})`,
+            }))}
+          />
           {selected ? (
             <>
               <div className="grid gap-3 md:grid-cols-3" data-testid="ai-profile-authoring-local-identity">
@@ -668,14 +776,14 @@ function RequirementProjectionSurface(props: {
                 className="grid gap-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs sm:grid-cols-2"
                 data-recipe-slot={requirement.slotId}
               >
-                <div className="font-semibold text-[var(--nimi-text-primary)]">{requirement.displayLabel}</div>
-                <div className="font-mono text-[var(--nimi-text-muted)]">{requirement.slotId}</div>
-                <div className="text-[var(--nimi-text-secondary)]">
+                <div className="min-w-0 font-semibold text-[var(--nimi-text-primary)]">{requirement.displayLabel}</div>
+                <div className="min-w-0 break-all font-mono text-[var(--nimi-text-muted)]">{requirement.slotId}</div>
+                <div className="min-w-0 break-all text-[var(--nimi-text-secondary)]">
                   {requirement.recommendedContentIds.length > 0
                     ? requirement.recommendedContentIds.join(', ')
                     : props.t('runtimeConfig.profiles.authoring.none')}
                 </div>
-                <div className="break-all font-mono text-[var(--nimi-text-secondary)]">
+                <div className="min-w-0 break-all font-mono text-[var(--nimi-text-secondary)]">
                   {JSON.stringify(requirement.modelContract)}
                 </div>
               </div>
@@ -692,6 +800,7 @@ function JourneyPreviewPanel(props: {
   readonly projectionStatus: ProjectionStatus;
   readonly projectionTechnicalError: string;
   readonly onReloadProjection: () => void;
+  readonly onEditMetadata: () => void;
   readonly t: TFunction;
 }) {
   return (
@@ -728,6 +837,9 @@ function JourneyPreviewPanel(props: {
               <InlineAlert tone="info">
                 {props.t('runtimeConfig.profiles.authoring.exportNeedsMetadata')}
               </InlineAlert>
+              <Button type="button" size="sm" onClick={props.onEditMetadata}>
+                {props.t('runtimeConfig.profiles.authoring.editMetadata')}
+              </Button>
               <TechnicalDetails detail={props.inspection.model.exportTechnicalError} t={props.t} />
             </>
           )}
@@ -759,10 +871,29 @@ function JourneySections(props: {
   readonly model: NonNullable<Extract<RuntimeConfigAIProfileAuthoringInspection, { status: 'valid' }>['model']['journey']>;
   readonly t: TFunction;
 }) {
+  const [target, setTarget] = useState('app');
   const writes = props.model.importPreview.declaredWrites;
+  const preview = target === 'app' ? props.model.appApplyPreview : props.model.sharedApplyPreview;
   return (
     <div className="space-y-4">
-      <PreviewSection title={props.t('runtimeConfig.profiles.authoring.importPreviewTitle')} testId="ai-profile-authoring-import-preview">
+      <AuthoringSelect
+        label={props.t('runtimeConfig.profiles.authoring.previewTarget')}
+        value={target}
+        field="preview-target"
+        onChange={setTarget}
+        options={[
+          { value: 'app', label: props.t('runtimeConfig.profiles.authoring.appOwner') },
+          { value: 'shared', label: props.t('runtimeConfig.profiles.authoring.sharedOwner') },
+        ]}
+      />
+      <ApplyPreviewSection
+        key={target}
+        preview={preview}
+        ownerLabel={props.t(`runtimeConfig.profiles.authoring.${target === 'app' ? 'appOwner' : 'sharedOwner'}`)}
+        t={props.t}
+      />
+
+      <PreviewSection collapsible title={props.t('runtimeConfig.profiles.authoring.importPreviewTitle')} testId="ai-profile-authoring-import-preview">
         <p>{props.t('runtimeConfig.profiles.authoring.importPreviewBody')}</p>
         <dl className="mt-2 grid gap-1">
           <PreviewFact label={props.t('runtimeConfig.profiles.authoring.profileArtifact')} value={yesNo(writes.profileArtifact, props.t)} />
@@ -772,10 +903,7 @@ function JourneySections(props: {
         </dl>
       </PreviewSection>
 
-      <ApplyPreviewSection preview={props.model.appApplyPreview} ownerLabel={props.t('runtimeConfig.profiles.authoring.appOwner')} t={props.t} />
-      <ApplyPreviewSection preview={props.model.sharedApplyPreview} ownerLabel={props.t('runtimeConfig.profiles.authoring.sharedOwner')} t={props.t} />
-
-      <PreviewSection title={props.t('runtimeConfig.profiles.authoring.localConfigurationPreviewTitle')} testId="ai-profile-authoring-local-preview">
+      <PreviewSection collapsible title={props.t('runtimeConfig.profiles.authoring.localConfigurationPreviewTitle')} testId="ai-profile-authoring-local-preview">
         {props.model.localConfigurationPreviews.length === 0 ? (
           <p>{props.t('runtimeConfig.profiles.authoring.noLocalImplementation')}</p>
         ) : props.model.localConfigurationPreviews.map((preview) => (
@@ -793,7 +921,7 @@ function JourneySections(props: {
         ))}
       </PreviewSection>
 
-      <PreviewSection title={props.t('runtimeConfig.profiles.authoring.selectionPreviewTitle')} testId="ai-profile-authoring-selection-preview">
+      <PreviewSection collapsible title={props.t('runtimeConfig.profiles.authoring.selectionPreviewTitle')} testId="ai-profile-authoring-selection-preview">
         {props.model.selectionPreviews.map((preview) => (
           <SelectionPreview key={preview.capabilityContract} preview={preview} t={props.t} />
         ))}
@@ -928,8 +1056,19 @@ function AuthoringOperationFeedback(props: {
 function PreviewSection(props: {
   readonly title: string;
   readonly testId: string;
+  readonly collapsible?: boolean;
   readonly children: ReactNode;
 }) {
+  if (props.collapsible) {
+    return (
+      <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs leading-relaxed text-[var(--nimi-text-secondary)]" data-testid={props.testId}>
+        <summary className="cursor-pointer font-semibold text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-field-focus)]">
+          {props.title}
+        </summary>
+        <div className="mt-3">{props.children}</div>
+      </details>
+    );
+  }
   return (
     <section className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs leading-relaxed text-[var(--nimi-text-secondary)]" data-testid={props.testId}>
       <h5 className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.title}</h5>
@@ -1024,22 +1163,23 @@ function AuthoringTextArea(props: {
 
 function AuthoringSelect(props: {
   readonly label: string;
+  readonly placeholder?: string;
   readonly value: string;
   readonly field: string;
   readonly onChange: (value: string) => void;
-  readonly children: ReactNode;
+  readonly options: SelectFieldOption[];
 }) {
   return (
-    <label className="space-y-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]">
+    <label className="block space-y-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]">
       <span>{props.label}</span>
-      <select
+      <SelectField
         value={props.value}
-        data-authoring-field={props.field}
-        onChange={(event) => props.onChange(event.currentTarget.value)}
-        className={authoringSelectClassName}
-      >
-        {props.children}
-      </select>
+        placeholder={props.placeholder}
+        data-testid={`authoring-field-${props.field}`}
+        onValueChange={props.onChange}
+        options={props.options}
+        selectClassName="min-h-10 rounded-xl px-3 text-sm"
+      />
     </label>
   );
 }
@@ -1104,5 +1244,3 @@ function downloadPortableProfile(source: string, fileName: string): void {
     URL.revokeObjectURL(url);
   }
 }
-
-const authoringSelectClassName = 'min-h-10 w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';

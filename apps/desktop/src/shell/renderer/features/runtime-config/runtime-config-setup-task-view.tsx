@@ -676,7 +676,7 @@ export function RuntimeConfigSetupTaskView(props: {
   const [recipesError, setRecipesError] = useState('');
   const [recipesRetry, setRecipesRetry] = useState(0);
   const [plan, setPlan] = useState<RuntimeSetupPreparationPlan | null>(null);
-  const [choices, setChoices] = useState<Readonly<Record<string, string>>>(task?.draft?.reviewChoices ?? task?.draft?.preferredOffers ?? {});
+  const choices = task?.draft?.reviewChoices ?? task?.draft?.preferredOffers ?? {};
   const [working, setBusy] = useState(false);
   const busy = working || props.disabled === true;
   const planning = useRef(false);
@@ -747,9 +747,8 @@ export function RuntimeConfigSetupTaskView(props: {
   }, [props.ports, task?.taskId, task?.candidateLoadoutId, task?.capabilityContract, candidateRevisionBaseline]);
 
   const onChoiceChange = useCallback((slotId: string, offerRef: string) => {
-    setChoices((previous) => ({ ...previous, [slotId]: offerRef }));
     props.store.updateTask(props.taskId, current => ({
-      draft: { ...current.draft, reviewChoices: { ...current.draft?.reviewChoices, [slotId]: offerRef } },
+      draft: { ...current.draft, reviewChoices: { ...(current.draft?.reviewChoices ?? current.draft?.preferredOffers), [slotId]: offerRef } },
     }));
   }, [props.store, props.taskId]);
 
@@ -781,11 +780,14 @@ export function RuntimeConfigSetupTaskView(props: {
     });
     if (result.status === 'ok') {
       setPlan(result.value);
-      setChoices(previous => Object.fromEntries(result.value.awaitingChoice.flatMap(choice => {
-        const chosen = choice.options.find(option => option.offerRef === previous[choice.slotId])
-          ?? choice.options.find(option => option.recommended);
-        return chosen ? [[choice.slotId, chosen.offerRef]] : [];
-      })));
+      props.store.updateTask(props.taskId, current => ({ draft: { ...current.draft,
+        reviewChoices: Object.fromEntries(result.value.awaitingChoice.flatMap(choice => {
+          const previous = current.draft?.reviewChoices ?? current.draft?.preferredOffers ?? {};
+          const chosen = choice.options.find(option => option.offerRef === previous[choice.slotId])
+            ?? choice.options.find(option => option.recommended);
+          return chosen ? [[choice.slotId, chosen.offerRef]] : [];
+        })),
+      } }));
       return result.value;
     }
     if (result.status === 'blocked') setActionError(result.failure.message);
@@ -861,7 +863,7 @@ export function RuntimeConfigSetupTaskView(props: {
       refs: { installPlanIds: [], transferIds: [], dependencyJobIds: [] },
       draft: { route: 'local' },
     }));
-    setCandidateInfo(null); setChoices({}); setPlan(null); setActionError(''); setAdvancedOpen(false);
+    setCandidateInfo(null); setPlan(null); setActionError(''); setAdvancedOpen(false);
   };
 
   const onConfirm = useCallback((mode: 'prepare-and-use' | 'prepare-only') => {
@@ -904,10 +906,12 @@ export function RuntimeConfigSetupTaskView(props: {
       .finally(() => setBusy(false));
   }, [busy, props.store, props.taskId, props.ports, resolvePlan, task]);
 
-  // Leaving a setup that was never confirmed discards it rather than keeping
-  // it as unfinished work; choosing a model again starts a fresh one.
+  // Standalone setup drafts are discarded on exit. A profile item returns to
+  // its enclosing review, which still owns the task and its selected choices.
   const onBack = useCallback(() => {
-    if (task && runtimeSetupTaskUnconfirmed(task)) discardRuntimeSetupTask(props.store, task.taskId);
+    if (task && !task.draft?.profileUseId && runtimeSetupTaskUnconfirmed(task)) {
+      discardRuntimeSetupTask(props.store, task.taskId);
+    }
     props.onClose();
   }, [props.onClose, props.store, task]);
 
@@ -1433,7 +1437,9 @@ export function RuntimeConfigSetupTaskView(props: {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button tone="ghost" size="sm" onClick={onBack} data-testid="runtime-setup-task-close">
             <ArrowLeft size={15} />
-            {task ? t('runtimeConfig.setupTask.backToCapability', { defaultValue: 'Back to {{capability}}', capability: capabilityLabel }) : t('runtimeConfig.setupTask.close', { defaultValue: 'Close' })}
+            {task?.draft?.profileUseId
+              ? t('runtimeConfig.profileRun.back')
+              : task ? t('runtimeConfig.setupTask.backToCapability', { defaultValue: 'Back to {{capability}}', capability: capabilityLabel }) : t('runtimeConfig.setupTask.close', { defaultValue: 'Close' })}
           </Button>
           {stopEarly}
         </div>

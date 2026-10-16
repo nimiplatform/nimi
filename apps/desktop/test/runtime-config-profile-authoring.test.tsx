@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React from 'react';
+import React, { act, useState } from 'react';
+import { JSDOM } from 'jsdom';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type {
@@ -11,10 +12,7 @@ import {
   parseNimiPortableAIProfile,
   type NimiCapabilityAIConfig,
 } from '@nimiplatform/sdk/ai';
-import {
-  AIProfileAuthoringView,
-  type AIProfileAuthoringViewProps,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-page-profile-authoring.js';
+import type { AIProfileAuthoringViewProps } from '../src/shell/renderer/features/runtime-config/runtime-config-page-profile-authoring.js';
 import {
   changeRuntimeConfigAIProfileCapabilityContract,
   createRuntimeConfigAIProfileAuthoringState,
@@ -25,6 +23,7 @@ import {
   projectRuntimeConfigAIProfileAuthoringMachine,
   reconcileRuntimeConfigAIProfileRecipes,
   reduceRuntimeConfigAIProfileAuthoringState,
+  runtimeConfigAIProfileRecipeCandidates,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
   type RuntimeConfigAIProfileAuthoringState,
@@ -35,6 +34,13 @@ import {
 } from '../src/shell/renderer/i18n/index.js';
 
 (globalThis as { React?: typeof React }).React = React;
+
+// Radix selects DOM effects when its module is loaded. Set up the browser
+// environment before importing the view, not only before mounting it.
+const browserDom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+Object.defineProperty(globalThis, 'window', { configurable: true, writable: true, value: browserDom.window });
+Object.defineProperty(globalThis, 'document', { configurable: true, writable: true, value: browserDom.window.document });
+const { AIProfileAuthoringView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-page-profile-authoring.js');
 
 const noop = () => undefined;
 
@@ -154,6 +160,10 @@ const MULTI_AXIS_RECIPE: NimiLoadoutRecipe = Object.freeze({
 });
 
 const RECIPES = Object.freeze([TEXT_RECIPE, ALT_TEXT_RECIPE, MULTI_AXIS_RECIPE]);
+const SAME_IMPLEMENTATION_RECIPE: NimiLoadoutRecipe = {
+  ...TEXT_RECIPE, recipeId: 'recipe.desktop.text.same-implementation', title: 'Same implementation, different Recipe',
+  defaultOptions: { contextSize: 32768 },
+};
 
 function validTextDraft(): RuntimeConfigAIProfileAuthoringDraft {
   let state = createRuntimeConfigAIProfileAuthoringState();
@@ -272,6 +282,43 @@ test('Recipe-loaded authoring imports, edits, and exports one SDK-validated port
     state.draft.capabilities[0]?.local.portableConfigJson,
     JSON.stringify(TEXT_RECIPE.defaultOptions, null, 2),
   );
+});
+
+test('authored Recipe identity round-trips even when several Recipes share one implementation', () => {
+  const recipes = [SAME_IMPLEMENTATION_RECIPE, ...RECIPES];
+  const artifact = exportRuntimeConfigAIProfileAuthoring(validTextDraft(), recipes);
+  const imported = importRuntimeConfigAIProfileAuthoring(artifact.artifactJson, recipes);
+  assert.equal(imported.capabilities[0]!.local.recipeId, TEXT_RECIPE.recipeId);
+  assert.deepEqual(exportRuntimeConfigAIProfileAuthoring(imported, recipes).profile, artifact.profile);
+  const capability = artifact.profile.capabilities['text.generate'];
+  assert.ok(capability?.route === 'local');
+  assert.deepEqual(capability.loadout, { recipeId: TEXT_RECIPE.recipeId, axes: [], options: JSON.parse(validTextDraft().capabilities[0]!.local.portableConfigJson) });
+  assert.throws(() => importRuntimeConfigAIProfileAuthoring(artifact.artifactJson, [SAME_IMPLEMENTATION_RECIPE]), /no unambiguous current Runtime Recipe/u);
+});
+
+test('implementation-only ambiguous import keeps all intent and requires an explicit matching Recipe', () => {
+  const recipes = [SAME_IMPLEMENTATION_RECIPE, ...RECIPES];
+  const profile = JSON.parse(exportRuntimeConfigAIProfileAuthoring(validTextDraft(), RECIPES).artifactJson);
+  delete profile.capabilities['text.generate'].loadout;
+  profile.capabilities['text.generate'].resourceOccurrences = [{ occurrenceId: 'primary', role: 'weights' }];
+  const draft = importRuntimeConfigAIProfileAuthoring(JSON.stringify(profile), recipes);
+  const capability = draft.capabilities[0]!;
+  assert.equal(capability.local.recipeId, '');
+  assert.deepEqual(JSON.parse(capability.local.portableConfigJson), profile.capabilities['text.generate'].driverPortableConfig);
+  assert.deepEqual(runtimeConfigAIProfileRecipeCandidates(capability, recipes).map((recipe) => recipe.recipeId), [SAME_IMPLEMENTATION_RECIPE.recipeId, TEXT_RECIPE.recipeId]);
+  assert.throws(() => exportRuntimeConfigAIProfileAuthoring(draft, recipes), /requires a current Runtime Recipe selection/u);
+  const refreshed = reconcileRuntimeConfigAIProfileRecipes(draft, recipes);
+  assert.equal(refreshed.capabilities[0]!.local.recipeId, '');
+  assert.throws(() => exportRuntimeConfigAIProfileAuthoring(refreshed, recipes), /requires a current Runtime Recipe selection/u);
+  const selected = { ...draft, capabilities: [{ ...capability, local: { ...capability.local, recipeId: TEXT_RECIPE.recipeId } }] };
+  const exported = exportRuntimeConfigAIProfileAuthoring(selected, recipes).profile;
+  const expected = { ...profile, capabilities: { ...profile.capabilities, 'text.generate': {
+    ...profile.capabilities['text.generate'], loadout: { recipeId: TEXT_RECIPE.recipeId, axes: [], options: profile.capabilities['text.generate'].driverPortableConfig },
+  } } };
+  assert.deepEqual(exported, expected);
+  assert.deepEqual(exportRuntimeConfigAIProfileAuthoring(importRuntimeConfigAIProfileAuthoring(JSON.stringify(exported), recipes), recipes).profile, exported);
+  // A uniquely resolvable implementation-only import does not gain invented Loadout intent.
+  assert.deepEqual(exportRuntimeConfigAIProfileAuthoring(importRuntimeConfigAIProfileAuthoring(JSON.stringify(profile), RECIPES), RECIPES).profile, profile);
 });
 
 test('Author Profile import and export preserve the complete portable Local intent', () => {
@@ -429,12 +476,12 @@ test('same-ID Recipe drift fails closed until an explicit Recipe selection', () 
     supportedFeatures: ['input.image', 'output.json'],
   });
   assert.equal(capability.resourceOccurrences, undefined);
-  assert.equal(capability.loadout, undefined);
+  assert.deepEqual(capability.loadout, { recipeId: driftedRecipe.recipeId, axes: [], options: driftedRecipe.defaultOptions });
 });
 
 test('Desktop renders identity, defaults, features, and every axis from Runtime Recipe descriptors', () => {
   const html = renderAuthoring(stateWithDraft(validTextDraft()));
-  assert.match(html, /recipe\.desktop\.text/u);
+  assert.match(html, /Desktop text recipe \(r7\)/u);
   assert.match(html, /local\.desktop\.text/u);
   assert.match(html, /desktop\/text\/v7/u);
   assert.match(html, /main\.weights/u);
@@ -648,8 +695,112 @@ test('Chinese authoring copy remains present after descriptor-driven UI cut', as
   try {
     const html = renderAuthoring(stateWithDraft(validTextDraft()));
     assert.match(html, /运行时|本地|配置/u);
-    assert.match(html, /recipe\.desktop\.text/u);
+    assert.match(html, /Desktop text recipe \(r7\)/u);
   } finally {
     await changeLocale('en');
+  }
+});
+
+test('capability navigation edits one item, preserves drafts, and recovers selection after removal and import', async () => {
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement,
+    Element: dom.window.Element, Node: dom.window.Node,
+    MutationObserver: dom.window.MutationObserver, DocumentFragment: dom.window.DocumentFragment,
+    CustomEvent: dom.window.CustomEvent, getComputedStyle: dom.window.getComputedStyle,
+    Event: dom.window.Event, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  // jsdom has no layout; real scrolling and native file dialogs are checked in Desktop.
+  dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+  // Kit SelectField (Radix) calls pointer-capture APIs jsdom lacks.
+  dom.window.HTMLElement.prototype.hasPointerCapture = () => false;
+  dom.window.HTMLElement.prototype.setPointerCapture = () => {};
+  dom.window.HTMLElement.prototype.releasePointerCapture = () => {};
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  let current = stateWithDraft(validTextDraft());
+  let availableRecipes: readonly NimiLoadoutRecipe[] = RECIPES;
+  let replaceState!: (state: RuntimeConfigAIProfileAuthoringState) => void;
+  function Harness() {
+    const [state, setState] = useState(current);
+    current = state;
+    replaceState = setState;
+    return <AIProfileAuthoringView state={state}
+      inspection={inspectRuntimeConfigAIProfileAuthoring(state.draft, { ...currentProjection(), recipes: availableRecipes })}
+      projectionStatus="ready" projectionTechnicalError="" recipes={availableRecipes}
+      onDraftChange={(draft) => setState(reduceRuntimeConfigAIProfileAuthoringState(state, { type: 'draft-changed', draft }))}
+      onImportFile={noop} onExport={noop} onReloadProjection={noop} />;
+  }
+  const byTestId = (id: string) => {
+    const element = dom.window.document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+    assert.ok(element, id);
+    return element;
+  };
+  const click = async (id: string) => { await act(async () => byTestId(id).click()); };
+  const openSelect = async (id: string) => {
+    await act(async () => byTestId(id).dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
+  };
+  const formCount = () => dom.window.document.querySelectorAll('[data-testid^="ai-profile-authoring-capability:"]').length;
+  try {
+    await act(async () => root.render(<Harness />));
+    assert.equal(formCount(), 1);
+    await click('ai-profile-authoring-add');
+    assert.equal((byTestId('ai-profile-authoring-add:text.generate') as HTMLButtonElement).disabled, true);
+    await click('ai-profile-authoring-add:media.compose');
+    assert.equal(formCount(), 1);
+    byTestId('ai-profile-authoring-capability:media.compose');
+    // Kit SelectField is a Radix combobox: open the trigger, then click the option in the portal.
+    await openSelect('authoring-field-recommendation-route');
+    const cloudOption = Array.from(dom.window.document.querySelectorAll<HTMLElement>('[role="option"]'))
+      .find((option) => option.textContent === 'Cloud');
+    assert.ok(cloudOption);
+    await act(async () => { cloudOption.click(); });
+    await click('ai-profile-authoring-nav:text.generate');
+    assert.equal(dom.window.document.querySelector<HTMLTextAreaElement>('[data-authoring-field="defaults"]')!.value, '{"temperature":0.4}');
+    await click('ai-profile-authoring-nav:metadata');
+    assert.equal(formCount(), 0);
+    assert.equal(dom.window.document.querySelector<HTMLInputElement>('[data-authoring-field="title"]')!.value, 'Desktop authoring test');
+    await click('ai-profile-authoring-nav:media.compose');
+    assert.equal(byTestId('authoring-field-recommendation-route').textContent, 'Cloud');
+    const remove = Array.from(byTestId('ai-profile-authoring-capability:media.compose').querySelectorAll('button'))
+      .find((button) => button.textContent === 'Remove capability');
+    assert.ok(remove);
+    await act(async () => remove.click());
+    byTestId('ai-profile-authoring-capability:text.generate');
+    assert.equal(current.draft.capabilities.length, 1);
+    await click('ai-profile-authoring-nav:metadata');
+    const imported = changeRuntimeConfigAIProfileCapabilityContract(validTextDraft(), validTextDraft().capabilities[0]!.draftId, 'media.compose', RECIPES);
+    await act(async () => replaceState(reduceRuntimeConfigAIProfileAuthoringState(current, { type: 'import-succeeded', draft: imported })));
+    byTestId('ai-profile-authoring-capability:media.compose');
+    assert.equal(formCount(), 1);
+    assert.equal(dom.window.document.querySelector('[data-testid="ai-profile-authoring-metadata"]'), null);
+    availableRecipes = [SAME_IMPLEMENTATION_RECIPE, ...RECIPES];
+    const ambiguousProfile = JSON.parse(exportRuntimeConfigAIProfileAuthoring(validTextDraft(), RECIPES).artifactJson);
+    delete ambiguousProfile.capabilities['text.generate'].loadout;
+    ambiguousProfile.capabilities['text.generate'].resourceOccurrences = [{ occurrenceId: 'kept', role: 'weights' }];
+    const ambiguousDraft = importRuntimeConfigAIProfileAuthoring(JSON.stringify(ambiguousProfile), availableRecipes);
+    await act(async () => replaceState(stateWithDraft(ambiguousDraft)));
+    assert.equal(byTestId('authoring-field-local-recipe').textContent, 'Select a Recipe…');
+    assert.equal(inspectRuntimeConfigAIProfileAuthoring(current.draft, { ...currentProjection(), recipes: availableRecipes }).status, 'invalid');
+    await openSelect('authoring-field-local-recipe');
+    const recipeOptions = Array.from(dom.window.document.querySelectorAll<HTMLElement>('[role="option"]'));
+    assert.equal(recipeOptions.length, 2);
+    const choice = recipeOptions.find((option) => option.textContent?.includes(SAME_IMPLEMENTATION_RECIPE.title));
+    assert.ok(choice);
+    await act(async () => choice.click());
+    assert.equal(current.draft.capabilities[0]!.local.recipeId, SAME_IMPLEMENTATION_RECIPE.recipeId);
+    assert.equal(current.draft.capabilities[0]!.local.portableConfigJson, ambiguousDraft.capabilities[0]!.local.portableConfigJson);
+    assert.deepEqual(current.draft.capabilities[0]!.local.resourceOccurrences, ambiguousDraft.capabilities[0]!.local.resourceOccurrences);
+    assert.ok(exportRuntimeConfigAIProfileAuthoring(current.draft, availableRecipes).profile);
+  } finally {
+    await act(async () => root.unmount());
+    // Radix restores focus on the next task after unmounting its portal.
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
   }
 });

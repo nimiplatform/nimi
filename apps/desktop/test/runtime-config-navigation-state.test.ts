@@ -4,6 +4,7 @@ import { createHomeNavigation, validateHomeDestination } from '../src/shell/rend
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults.js';
 import { resetRuntimePageViewport } from '../src/shell/renderer/features/runtime-config/runtime-config-page-shell.js';
+import { getProfileViewState, trackProfileViewRequest } from '../src/shell/renderer/features/runtime-config/runtime-profile-view-state.js';
 
 test('Runtime workspace, capabilities, model section and references use one history', async () => {
   const navigation = createHomeNavigation();
@@ -66,4 +67,46 @@ test('page navigation resets the shared Runtime viewport to the start', () => {
   let requested: ScrollToOptions | null = null;
   resetRuntimePageViewport({ scrollTo(options: ScrollToOptions) { requested = options; } } as Pick<HTMLDivElement, 'scrollTo'>);
   assert.deepEqual(requested, { top: 0, left: 0 });
+});
+
+test('profile form choices survive capability detours and task detail history', async () => {
+  const navigation = createHomeNavigation();
+  const views = getProfileViewState(navigation);
+  const profileViewId = views.create({ kind: 'export' });
+  views.update(profileViewId, () => ({ subset: ['text.generate'], destination: 'app:chat' }));
+  await navigation.push({ id: 'runtime', runtime: { profileViewId } });
+  await navigation.push({ id: 'runtime', runtime: { capabilityContract: 'image.generate' } });
+  await navigation.back();
+  assert.equal(navigation.getSnapshot().current.destination.runtime?.profileViewId, profileViewId);
+  assert.deepEqual(views.get(profileViewId)?.subset, ['text.generate']);
+  assert.equal(views.get(profileViewId)?.destination, 'app:chat');
+  await navigation.push({ id: 'runtime', runtime: { profileViewId, setupTaskId: 'anchor' } });
+  await navigation.push({ id: 'runtime', runtime: { profileViewId, setupTaskId: 'anchor', profileTaskDetailId: 'second-item' } });
+  await navigation.back();
+  assert.equal(navigation.getSnapshot().current.destination.runtime?.profileTaskDetailId, undefined);
+  await navigation.forward();
+  assert.equal(navigation.getSnapshot().current.destination.runtime?.profileTaskDetailId, 'second-item');
+  assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { profileTaskDetailId: 'orphan' } }));
+  assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { page: 'modelLibrary', profileViewId } }));
+  navigation.dispose();
+});
+
+test('a late profile request preserves its result without navigating after its entry was left', async () => {
+  const navigation = createHomeNavigation();
+  const views = getProfileViewState(navigation);
+  const profileViewId = views.create({ kind: 'export' });
+  await navigation.push({ id: 'runtime', runtime: { profileViewId } });
+  const stayed = trackProfileViewRequest(navigation);
+  assert.equal(stayed.canNavigate(), true);
+  stayed.dispose();
+  const left = trackProfileViewRequest(navigation);
+  views.update(profileViewId, () => ({ busy: true }));
+  await navigation.back();
+  await navigation.forward();
+  // Even returning to the same entry cannot revive its abandoned auto-navigation.
+  assert.equal(left.canNavigate(), false);
+  views.update(profileViewId, () => ({ busy: false, outcomes: [{ capabilityContract: 'text.generate', taskId: 'prepared-task' }] }));
+  assert.equal(views.get(profileViewId)?.outcomes[0]?.taskId, 'prepared-task');
+  left.dispose();
+  navigation.dispose();
 });
