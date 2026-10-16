@@ -53,7 +53,7 @@ export function ComposerAvatarButton({
       title={hasCurrentPartner ? `形象：${currentPartnerName}` : '选择本地伙伴'}
       onClick={onOpenSettings}
     >
-      {currentPartnerAvatarUrl ? (
+      {!hasCurrentPartner ? <UserRound size={18} aria-hidden="true" /> : currentPartnerAvatarUrl ? (
         <img
           src={currentPartnerAvatarUrl}
           alt=""

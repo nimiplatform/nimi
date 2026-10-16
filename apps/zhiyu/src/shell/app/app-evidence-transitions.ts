@@ -55,6 +55,8 @@ export function appendSubmittedUserMessage(
     requestId,
     runtimeTurnId: null,
     runtimeStreamId: null,
+    reasoningText: null,
+    outputText: null,
   }, conversation, requestId, text, createdAt);
 }
 

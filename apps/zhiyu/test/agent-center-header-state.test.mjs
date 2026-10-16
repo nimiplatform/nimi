@@ -6,6 +6,19 @@ import { build, transform } from 'esbuild';
 
 const appRoot = path.resolve(import.meta.dirname, '..');
 
+test('stream status uses the active turn instead of the last historical reply', async () => {
+  const { currentTurnAssistantText } = await importTypescriptModule('src/shell/agent-chat/ZhiyuAgentChatLabels.ts');
+  const oldReply = { role: 'agent', kind: 'text', text: 'earlier answer', metadata: { runtimeTurnId: 'old-turn' } };
+  const chat = { requestId: 'request-new', runtimeTurnId: null, messages: [oldReply] };
+  assert.equal(currentTurnAssistantText(chat), null);
+  const callerReply = { role: 'agent', kind: 'streaming', text: 'new partial', metadata: { turnId: 'request-new' } };
+  assert.equal(currentTurnAssistantText({ ...chat, messages: [oldReply, callerReply] }), 'new partial');
+  assert.equal(currentTurnAssistantText({ ...chat, runtimeTurnId: 'runtime-new', messages: [oldReply, { ...callerReply, metadata: { runtimeTurnId: 'runtime-new' } }] }), 'new partial');
+  assert.equal(currentTurnAssistantText({ ...chat, runtimeTurnId: 'runtime-new', messages: [{ ...callerReply, metadata: { turnId: 'request-new', runtimeTurnId: 'old-turn' } }] }), null);
+  assert.equal(currentTurnAssistantText({ ...chat, messages: [{ ...callerReply, text: '' }] }), null);
+  assert.equal(currentTurnAssistantText({ ...chat, messages: [{ ...callerReply, kind: 'image', text: 'Generated image' }] }), null);
+});
+
 test('Agent Center header state chips hide unconfigured and missing projections', async () => {
   const labels = await importTypescriptModule('src/shell/agent-chat/ZhiyuAgentChatLabels.ts');
 

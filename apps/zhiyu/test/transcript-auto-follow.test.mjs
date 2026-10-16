@@ -24,6 +24,7 @@ test('notifies the canonical virtualizer after programmatic bottom alignment and
   let mutationCallback = null;
   let resizeDisconnected = false;
   let mutationDisconnected = false;
+  const scrollListeners = new Set();
   globalThis.ResizeObserver = class {
     constructor(callback) {
       resizeCallback = callback;
@@ -60,10 +61,11 @@ test('notifies the canonical virtualizer after programmatic bottom alignment and
       assert.equal(selector, '[data-canonical-transcript-width]');
       return content;
     },
-    addEventListener() {},
-    removeEventListener() {},
+    addEventListener(type, listener) { if (type === 'scroll') scrollListeners.add(listener); },
+    removeEventListener(type, listener) { if (type === 'scroll') scrollListeners.delete(listener); },
     dispatchEvent(event) {
       this.dispatchedEvents.push(event);
+      if (event.type === 'scroll') for (const listener of scrollListeners) listener(event);
       if (event.type === 'scroll') {
         this.renderedVirtualIndices = [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
       }
@@ -116,6 +118,25 @@ test('notifies the canonical virtualizer after programmatic bottom alignment and
     assert.equal(end.scrollIntoViewCalls.length, 3);
     assert.equal(scrollRoot.dispatchedEvents.length, 3);
 
+    // A user reading earlier messages must remain there when content grows.
+    scrollRoot.scrollTop = 100;
+    scrollRoot.dispatchEvent(new Event('scroll'));
+    scrollRoot.scrollHeight = 900;
+    resizeCallback([]);
+    mutationCallback([]);
+    await Promise.resolve();
+    assert.equal(scrollRoot.scrollTop, 100);
+    assert.equal(end.scrollIntoViewCalls.length, 3);
+
+    // Following resumes only after the user returns to the bottom.
+    scrollRoot.scrollTop = 800;
+    scrollRoot.dispatchEvent(new Event('scroll'));
+    scrollRoot.scrollHeight = 1000;
+    resizeCallback([]);
+    await Promise.resolve();
+    assert.equal(scrollRoot.scrollTop, 900);
+    const eventsBeforeCleanup = scrollRoot.dispatchedEvents.length;
+
     scrollRoot.renderedVirtualIndices = [0, 1, 2];
     resizeCallback([]);
     stop();
@@ -125,7 +146,8 @@ test('notifies the canonical virtualizer after programmatic bottom alignment and
       [0, 1, 2],
       'cleanup must suppress an already queued virtualizer notification',
     );
-    assert.equal(scrollRoot.dispatchedEvents.length, 3);
+    assert.equal(scrollRoot.dispatchedEvents.length, eventsBeforeCleanup);
+    assert.equal(scrollListeners.size, 0);
     assert.equal(resizeDisconnected, true);
     assert.equal(mutationDisconnected, true);
   } finally {

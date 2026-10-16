@@ -43,6 +43,7 @@ import {
   conversationMessagesForDisplay,
   currentPartnerAvatarUrl,
   currentPartnerDisplayName,
+  currentTurnAssistantText,
   formatZhiyuTranscriptDateLabel,
 } from './ZhiyuAgentChatLabels';
 import {
@@ -134,7 +135,7 @@ export function ZhiyuAgentChatSurface({
   const emptyDescription = hasCurrentPartner
     ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。'
     : hasLocalPartners
-      ? '如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'
+      ? '如果想添加更多伙伴，请到 Nimi Home 的「探索」中选择角色。'
       : '从世界中选择一位角色加入本地后，就可以和他开始对话。';
   const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners ? (
     <section
@@ -316,7 +317,7 @@ export function ZhiyuAgentChatSurface({
     >
       <ChatStreamStatus
         mode="streaming"
-        partialText={evidence.chat.latestAssistantText || '等待当前伙伴回复...'}
+        partialText={currentTurnAssistantText(evidence.chat) || '等待当前伙伴回复...'}
         reasoningText={evidence.chat.reasoningText}
         reasoningLabel="思考片段"
       />
@@ -497,18 +498,17 @@ export function ZhiyuAgentChatSurface({
       setDesktopOpenPending(false);
     }
   };
+  const hasChatMessages = evidence.chat.messageCount > 0;
   useLayoutEffect(() => {
-    if (evidence.chat.messageCount <= 0) {
+    if (!hasChatMessages) {
       return;
     }
     const root = getChatTranscriptRoot();
     const end = chatTranscriptEndRef.current;
     return root && end ? followZhiyuTranscriptToLatest(root, end) : undefined;
   }, [
-    evidence.chat.latestAssistantText,
-    evidence.chat.messageCount,
-    evidence.chat.requestId,
-    evidence.chat.state,
+    evidence.conversation.conversationAnchorId,
+    hasChatMessages,
     getChatTranscriptRoot,
   ]);
   return (
@@ -569,6 +569,7 @@ export function ZhiyuAgentChatSurface({
           >
             <div ref={chatTranscriptViewportRef} className="zhiyu-chat-canvas__transcript">
               <CanonicalTranscriptView
+                copy={{ bubbleVoiceMessageLabel: '语音消息', bubbleVoicePlayingLabel: '正在播放' }}
                 messages={conversationMessagesForDisplay(evidence.chat.messages, primaryPartnerName)}
                 activeConversationId={evidence.conversation.conversationAnchorId}
                 agentName={primaryPartnerName}

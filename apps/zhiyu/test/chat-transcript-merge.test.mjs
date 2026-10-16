@@ -23,6 +23,8 @@ test('appends the submitted user message from the protected local-app Agent hand
     ready: true,
     state: 'completed',
     messages: [],
+    reasoningText: 'previous turn reasoning',
+    outputText: 'previous answer',
   });
   const appended = appendSubmittedUserMessage(current, {
     ready: true,
@@ -46,6 +48,8 @@ test('appends the submitted user message from the protected local-app Agent hand
   assert.equal(appended.messages[0]?.metadata?.localAgentRef, undefined);
   assert.equal(appended.runtimeTurnId, null);
   assert.equal(appended.runtimeStreamId, null);
+  assert.equal(appended.reasoningText, null);
+  assert.equal(appended.outputText, null);
 });
 
 test('merges the streamed and committed primary assistant for one Runtime turn', async () => {

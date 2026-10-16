@@ -1,6 +1,22 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 
+export function currentTurnAssistantText(chat: Pick<ZhiyuEvidence['chat'], 'messages' | 'requestId' | 'runtimeTurnId'>): string | null {
+  // The transcript's latest assistant may belong to an earlier turn while the
+  // new request is waiting. Only project text correlated with this request.
+  for (let index = chat.messages.length - 1; index >= 0; index -= 1) {
+    const message = chat.messages[index];
+    if (message.role !== 'agent' && message.role !== 'assistant') continue;
+    if (message.kind && message.kind !== 'text' && message.kind !== 'streaming') continue;
+    const runtimeTurnId = message.metadata?.runtimeTurnId ?? message.metadata?.runtime_turn_id;
+    const matches = runtimeTurnId && chat.runtimeTurnId
+      ? runtimeTurnId === chat.runtimeTurnId
+      : Boolean(chat.requestId && message.metadata?.turnId === chat.requestId);
+    if (matches && message.text.trim()) return message.text;
+  }
+  return null;
+}
+
 export function chatReplyChipLabel(evidence: ZhiyuEvidence): string {
   if (evidence.chat.ready) {
     return '已就绪';
