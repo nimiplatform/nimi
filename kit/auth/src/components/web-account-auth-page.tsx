@@ -139,7 +139,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                 onMouseEnter={() => setIsLogoHovered(true)}
                 onMouseLeave={() => setIsLogoHovered(false)}
                 disabled={flow.pending}
-                className="group relative flex cursor-pointer flex-col items-center gap-4 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)] transition-all duration-500 ease-out"
+                className="group relative cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)] transition-all duration-500 ease-out"
               >
                 {renderLogo(
                   branding.logo,
@@ -151,14 +151,6 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                   }`,
                 )}
               </button>
-
-              {isLogoStage ? (
-                <AnimateIn className="text-center" delay={100}>
-                  <h1 className="text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]">
-                    {branding.networkLabel}
-                  </h1>
-                </AnimateIn>
-              ) : null}
 
               {flow.view === 'main' && flow.embeddedStage === 'email' ? (
                 <AnimateIn className="w-full">

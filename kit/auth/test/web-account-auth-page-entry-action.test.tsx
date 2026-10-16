@@ -83,6 +83,8 @@ describe('WebAccountAuthPage entry action semantics', () => {
     expect(onActionableReady).toHaveBeenCalledTimes(1);
     expect(logoControl()?.getAttribute('aria-label')).toBe('Sign in to Nimi');
     expect(logoControl()?.textContent).toBe('');
+    expect(logoControl()?.querySelector('img')).not.toBeNull();
+    expect(container.querySelector('h1')).toBeNull();
     expect(logoControl()?.dataset.nimiSemanticId).toBe('desktop-login-primary');
 
     act(() => logoControl()?.click());
