@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { integrationReferenceDocument, parseGoVersionReference, referenceHandbookNote } from '../src/nimiday/domain/integration-reference.js';
+import { integrationReferenceDocument, parseGoVersionReference, referenceFailure, referenceHandbookNote } from '../src/nimiday/domain/integration-reference.js';
 import { copyFor } from '../src/nimiday/i18n/index.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
 import { createDayStore } from '../src/nimiday/store/day-store.js';
@@ -11,6 +11,23 @@ const reference = { workId: 'work-one', deliverableId: 'document-one', revisionI
 const response = { title: '周末安排说明', content: '# 周末安排\n\n请先确认参与者，再决定地点。\n\n- 已确认：只联系指定对象\n- 待确认：时间', revisionId: 'revision-one', createdAt: '2026-09-25T18:00:00.000Z' };
 
 describe('Integration reference documents', () => {
+  it.each(['zh', 'en'] as const)('keeps actionable %s validation visible and technical failures separate', (language) => {
+    const copy = copyFor(language).references;
+    for (const [run, message] of [
+      [() => parseGoVersionReference('invalid', copy), copy.invalidReference],
+      [() => referenceHandbookNote({ title: 'x'.repeat(121), content: 'text' }, 'Go', copy), copy.titleBound],
+      [() => referenceHandbookNote({ title: 'title', content: 'x'.repeat(4000) }, 'Go', copy), copy.bodyBound],
+      [() => integrationReferenceDocument(go, { ...response, revisionId: 'wrong' }, reference, copy), copy.wrongVersion],
+    ] as const) {
+      let failure: unknown;
+      try { run(); } catch (error) { failure = error; }
+      expect(failure).toBeInstanceOf(Error);
+      expect(referenceFailure(failure, copy)).toEqual({ message });
+    }
+    expect(referenceFailure({ message: 'local-app-operation-unavailable', reasonCode: 'local-app-operation-unavailable' }, copy))
+      .toEqual({ message: copy.readFailed, details: 'local-app-operation-unavailable' });
+  });
+
   it('projects the requested Go version as a document and persists ordinary handbook content', async () => {
     const document = integrationReferenceDocument(go, JSON.parse(JSON.stringify(response)), reference);
     expect(document).toEqual({ title: response.title, content: response.content });

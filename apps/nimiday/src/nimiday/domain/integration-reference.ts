@@ -4,6 +4,15 @@ type ReferenceSource = { integrationId: string; operation: string; displayName: 
 export type ReferenceDocument = { title: string; content: string };
 export type GoVersionReference = { reference: { workId: string; deliverableId: string; revisionId: string }; title?: string; version?: number };
 
+class ReferenceValidationError extends Error {}
+
+export function referenceFailure(error: unknown, copy: Copy['references']): { message: string; details?: string } {
+  if (error instanceof ReferenceValidationError) return { message: error.message };
+  const detail = error && typeof error === 'object' ? error as { message?: unknown; reasonCode?: unknown } : {};
+  const parts = [detail.message, detail.reasonCode].filter((value): value is string => typeof value === 'string' && value.length > 0);
+  return { message: copy.readFailed, details: [...new Set(parts)].join(' · ') || String(error) };
+}
+
 function object(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
@@ -16,9 +25,9 @@ export function integrationReferenceDocument(source: ReferenceSource, value: unk
       || typeof document.content !== 'string' || !document.content.trim()
       || typeof document.revisionId !== 'string' || !document.revisionId
       || typeof document.createdAt !== 'string' || !document.createdAt) {
-      throw new Error(copy.missingDocument);
+      throw new ReferenceValidationError(copy.missingDocument);
     }
-    if (document.revisionId !== object(parameters)?.revisionId) throw new Error(copy.wrongVersion);
+    if (document.revisionId !== object(parameters)?.revisionId) throw new ReferenceValidationError(copy.wrongVersion);
     return { title: document.title, content: document.content };
   }
   const title = typeof document?.title === 'string' && document.title.trim() ? document.title : copy.defaultTitle(source.displayName);
@@ -35,10 +44,10 @@ export function integrationReferenceDocument(source: ReferenceSource, value: unk
 
 export function referenceHandbookNote(document: ReferenceDocument, source: string, copy: Copy['references'] = zh.references): { circleId: null; title: string; body: string } {
   const title = document.title.trim();
-  if (!title || title.length > 120) throw new Error(copy.titleBound);
-  if (!document.content.trim()) throw new Error(copy.bodyRequired);
+  if (!title || title.length > 120) throw new ReferenceValidationError(copy.titleBound);
+  if (!document.content.trim()) throw new ReferenceValidationError(copy.bodyRequired);
   const body = `${copy.sourceLine(source)}\n\n${document.content}`;
-  if (body.length > 4000) throw new Error(copy.bodyBound);
+  if (body.length > 4000) throw new ReferenceValidationError(copy.bodyBound);
   return { circleId: null, title, body };
 }
 
@@ -52,5 +61,5 @@ export function parseGoVersionReference(value: string, copy: Copy['references'] 
     if (row.title !== undefined && (typeof row.title !== 'string' || !row.title.trim() || new TextEncoder().encode(row.title).byteLength > 256)) throw new Error();
     if (row.version !== undefined && (typeof row.version !== 'number' || !Number.isSafeInteger(row.version) || row.version < 1)) throw new Error();
     return { reference: { workId: id('workId'), deliverableId: id('deliverableId'), revisionId: id('revisionId') }, ...(typeof row.title === 'string' ? { title: row.title } : {}), ...(typeof row.version === 'number' ? { version: row.version } : {}) };
-  } catch { throw new Error(copy.invalidReference); }
+  } catch { throw new ReferenceValidationError(copy.invalidReference); }
 }

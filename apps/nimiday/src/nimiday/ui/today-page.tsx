@@ -5,7 +5,7 @@ import { MORNING_CARE_SKILL } from '../domain/skills.js';
 import { buildToday } from '../domain/today.js';
 import { formatDate, greeting } from '../i18n/index.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
-import { Card, Chip, Hint, RunStateChip } from './common.js';
+import { Card, Hint, RunStateChip } from './common.js';
 import { ItemRow } from './item-row.js';
 import { QuickCapture } from './quick-capture.js';
 import { RunCard } from './run-card.js';
@@ -176,7 +176,9 @@ export function TodayPage() {
           </Card>
 
           {model.counts.overdue > 0 && model.attention.length === 0 ? (
-            <Chip tone="danger">{copy.today.overdue} · {model.counts.overdue}</Chip>
+            <Button tone="secondary" size="sm" onClick={() => navigate({ view: 'items' })}>
+              {copy.today.viewOverdue(model.counts.overdue)}
+            </Button>
           ) : null}
         </div>
       </div>

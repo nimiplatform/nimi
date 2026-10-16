@@ -27,7 +27,7 @@ function CareOverview() {
 
   return (
     <div className="nd-page" data-testid="nd-care">
-      <PageHead title={copy.care.title} sub={copy.care.subtitle} action={<Button tone="primary" size="sm" leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => ui.editCircle(null)}>{copy.care.add}</Button>} />
+      <PageHead title={copy.care.title} sub={copy.care.subtitle} action={circles.length ? <Button tone="primary" size="sm" leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => ui.editCircle(null)}>{copy.care.add}</Button> : undefined} />
       {circles.length === 0 ? (
         <Card>
           <p style={{ margin: 0, fontWeight: 600 }}>{copy.care.empty}</p>
@@ -60,9 +60,6 @@ function CareOverview() {
               </button>
             );
           })}
-          <button type="button" className="nd-add-card" onClick={() => ui.editCircle(null)}>
-            <span className="nd-inline-actions"><Plus size={16} aria-hidden="true" />{copy.care.add}</span>
-          </button>
         </div>
       )}
 

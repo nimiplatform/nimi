@@ -90,7 +90,6 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
   return <div className="nd-page nd-page--narrow" data-testid="nd-followups">
     <PageHead title={text.title} /><p className="nd-muted">{text.intro}</p>
     {error || snapshot?.error ? <InlineAlert tone="warning">{error || snapshot?.error}</InlineAlert> : null}
-    <IntegrationReferencePanel targets={snapshot?.targets || []} refresh={async () => { const value = await invoke('nimiday.followups.refresh') as FollowUpSnapshot; setSnapshot(value); }} />
     <Card title={text.create}><form onSubmit={start} aria-label={text.create} className="nd-followup-form">
       <label>{text.name}<input name="title" required maxLength={100} placeholder={text.nameHint} /></label>
       <label>{text.when}<input name="when" required maxLength={200} placeholder={text.whenHint} /></label>
@@ -111,6 +110,7 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
       <label><span><input name="publishHome" type="checkbox" defaultChecked={state.profile.homeMessages} style={{ width: 'auto' }} /> {text.publishHome}</span></label>
       <Button type="submit" tone="primary" loading={sending} disabled={!snapshot?.ready || targets.length === 0}>{text.start}</Button>
     </form></Card>
+    <IntegrationReferencePanel targets={snapshot?.targets || []} ready={snapshot?.ready === true && !snapshot.error} refresh={async () => { const value = await invoke('nimiday.followups.refresh') as FollowUpSnapshot; setSnapshot(value); }} />
     <ConfirmDialog
       open={confirming !== null}
       title={text.confirmTitle}

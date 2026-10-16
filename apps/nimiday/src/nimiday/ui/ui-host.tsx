@@ -108,6 +108,7 @@ function RunDetail({ runId, onClose }: { readonly runId: string; readonly onClos
             </>
           )}
         </DialogBody>
+        <DialogFooter><Button onClick={onClose}>{copy.common.close}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -75,7 +75,7 @@ export function Shell() {
           <span className="nd-brand-name">{copy.app.name}</span>
         </div>
         <button type="button" className="nd-agent-chip" onClick={() => navigate({ view: 'assistant' })} data-testid="nd-agent-chip">
-          <AgentAvatar name={agentName ?? '?'} url={desk.agent?.avatarUrl ?? snapshot.state.profile.appointment?.avatarUrl ?? null} size="sm" />
+          <AgentAvatar name={agentName ?? '?'} url={desk.agent ? desk.agent.avatarUrl : snapshot.state.profile.appointment?.avatarUrl ?? null} size="sm" />
           <span className="nd-agent-chip__text">
             <span className="nd-agent-chip__name">{agentName ?? copy.agent.appoint}</span>
             <span className="nd-agent-chip__status"><span className="nd-status-dot" data-tone={tone} aria-hidden="true" />{status}</span>
