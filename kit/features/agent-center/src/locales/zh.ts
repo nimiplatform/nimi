@@ -141,7 +141,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.appearance.resourcePack.retry": "重试已选资源包",
   "AgentCenter.appearance.resourcePack.select": "选择 .nimipack",
   "AgentCenter.appearance.resourcePack.selected": "已选择资源包",
-  "AgentCenter.appearance.resourcePack.target": "目标：Zhiyu Experience · Surface V1",
+  "AgentCenter.appearance.resourcePack.target": "用于织羽 · Surface V1",
   "AgentCenter.appearance.resourcePack.title": "伙伴专属资源包",
   "AgentCenter.appearance.voiceKindPreset": "预置",
   "AgentCenter.appearance.voiceKindAsset": "声音资产",

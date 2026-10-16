@@ -335,8 +335,8 @@ describe('AgentCenter UI session contract', () => {
 
     const card = node.querySelector('[data-agent-center-resource-pack-card="true"]') as HTMLElement;
     expect(card).toBeTruthy();
-    expect(card.textContent).toContain('LocalAgent Resource Pack');
-    expect(card.textContent).toContain('Target: Zhiyu Experience · Surface V1');
+    expect(card.textContent).toContain('Partner resource pack');
+    expect(card.textContent).toContain('For Zhiyu · Surface V1');
     expect(card.textContent).toContain('Using the Zhiyu default experience');
     expect(card.querySelector('[data-agent-center-resource-pack-action="select"]')).toBeNull();
     expect(card.querySelector('[data-agent-center-resource-pack-action="apply"]')).toBeNull();
