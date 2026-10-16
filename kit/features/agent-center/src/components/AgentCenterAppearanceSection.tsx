@@ -349,6 +349,8 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     catalogUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogUnavailable', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogUnavailable']),
     catalogEmpty: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogEmpty', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogEmpty']),
     catalogTruncated: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogTruncated', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogTruncated']),
+    currentVoiceMissing: translateAgentCenter(i18n, 'AgentCenter.appearance.currentVoiceMissing', agentCenterEnCatalog['AgentCenter.appearance.currentVoiceMissing']),
+    savedVoice: translateAgentCenter(i18n, 'AgentCenter.appearance.savedVoice', agentCenterEnCatalog['AgentCenter.appearance.savedVoice']),
     retryLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.retryLabel', agentCenterEnCatalog['AgentCenter.appearance.retryLabel']),
     revisionLabel: (revision: string) => translateAgentCenter(
       i18n,
@@ -374,6 +376,8 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   const hasDefaultVoice = Boolean(appearance.defaultVoiceReference?.trim());
   const voiceCatalog = appearance.voiceCatalog;
   const voiceOptions = voiceCatalog?.state === 'ready' ? voiceCatalog.options : [];
+  const selectedVoiceMissing = hasDefaultVoice
+    && !voiceOptions.some((voice) => voice.reference === appearance.defaultVoiceReference);
   const canSetDefaultVoice = actionAvailable
     && !resourcePackMutationBusy
     && Boolean(session.appearance.setDefaultVoice)
@@ -579,15 +583,22 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
                 aria-label={voiceCopy.catalogLabel}
                 disabled={!canSetDefaultVoice || operation.state === 'saving'}
                 onValueChange={(reference) => void setDefaultVoice(reference)}
-                options={voiceOptions.map((voice) => ({
+                options={[...(selectedVoiceMissing ? [{
+                  value: appearance.defaultVoiceReference!,
+                  label: `${voiceCopy.savedVoice}: ${appearance.defaultVoiceReference}`,
+                  disabled: true,
+                }] : []), ...voiceOptions.map((voice) => ({
                   value: voice.reference,
                   label: `${voice.name} · ${voice.kind === 'preset_voice_id' ? voiceCopy.voiceKindPreset : voiceCopy.voiceKindAsset}`,
-                }))}
+                }))]}
                 placeholder={voiceCopy.defaultVoiceUnset}
                 value={appearance.defaultVoiceReference || ''}
               />
             </div>
             <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.catalogDescription}</p>
+            {selectedVoiceMissing && voiceCatalog?.state === 'ready' && !voiceCatalog.truncated ? (
+              <InlineAlert tone="warning">{voiceCopy.currentVoiceMissing}</InlineAlert>
+            ) : null}
             {voiceCatalog?.state === 'ready' && voiceOptions.length === 0 ? (
               <InlineAlert tone="warning">{voiceCopy.catalogEmpty}</InlineAlert>
             ) : null}

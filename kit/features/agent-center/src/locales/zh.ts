@@ -117,6 +117,8 @@ export const agentCenterZhCatalog = {
   "AgentCenter.appearance.defaultVoiceTitle": "默认声音",
   "AgentCenter.appearance.defaultVoiceUnset": "未配置",
   "AgentCenter.appearance.voiceCatalogLabel": "Runtime 声音目录",
+  "AgentCenter.appearance.savedVoice": "已保存的声音",
+  "AgentCenter.appearance.currentVoiceMissing": "当前声音目录未列出已保存的音色。请核对共享语音设置，或选择目录中的声音。",
   "AgentCenter.appearance.voiceCatalogDescription": "共享语音配置决定使用的服务；这里选择当前伙伴的音色。",
   "AgentCenter.appearance.voiceCatalogUnavailable": "Runtime 声音目录暂不可用；聊天和伙伴形象不受影响。",
   "AgentCenter.appearance.voiceCatalogEmpty": "当前本机语音合成（TTS）配置下没有可用声音。",

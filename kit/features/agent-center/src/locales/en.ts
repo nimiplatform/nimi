@@ -115,6 +115,8 @@ export const agentCenterEnCatalog = {
   "AgentCenter.appearance.defaultVoiceTitle": "Default voice",
   "AgentCenter.appearance.defaultVoiceUnset": "Not configured",
   "AgentCenter.appearance.voiceCatalogLabel": "Runtime voice catalog",
+  "AgentCenter.appearance.savedVoice": "Saved voice",
+  "AgentCenter.appearance.currentVoiceMissing": "The saved voice is not listed in the current voice catalog. Check shared speech settings, or choose a listed voice.",
   "AgentCenter.appearance.voiceCatalogDescription": "The speech service is set in shared speech configuration. This setting chooses the voice for this Agent.",
   "AgentCenter.appearance.voiceCatalogUnavailable": "Runtime voice catalog is unavailable. Chat and Avatar remain available.",
   "AgentCenter.appearance.voiceCatalogEmpty": "No voices are available for the current text-to-speech configuration.",

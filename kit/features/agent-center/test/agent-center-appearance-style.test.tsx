@@ -4,6 +4,22 @@ import { AgentCenter } from '../src/components/AgentCenter.js';
 import { sessionFor } from './session-fixture.js';
 
 describe('AgentCenter committed appearance surface', () => {
+  it('keeps an unavailable saved voice visible without silently replacing it', async () => {
+    const session = await sessionFor({
+      appearance: {
+        status: 'ready', presentationRevision: 'p-voice',
+        defaultVoiceReference: 'preset_voice_id:Vivian',
+        voiceCatalog: { state: 'ready', truncated: false, options: [{
+          reference: 'preset_voice_id:default', name: 'Default', kind: 'preset_voice_id',
+        }] },
+      },
+    });
+    const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);
+    expect(markup).toContain('The saved voice is not listed in the current voice catalog.');
+    expect(markup).toContain('preset_voice_id:Vivian');
+    expect(session.getSnapshot().state.appearance.defaultVoiceReference).toBe('preset_voice_id:Vivian');
+  });
+
   it('renders the current committed effect from the session', async () => {
     const session = await sessionFor({
       appearance: {
