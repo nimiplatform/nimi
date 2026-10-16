@@ -411,7 +411,13 @@ export function ZhiyuAgentChatSurface({
           <div className="zhiyu-home__chat-failure-copy">
             <span>语音回复生成失败</span>
             <strong>文字回复已保留</strong>
-            <p>{String(message.metadata?.voiceError)}</p>
+            <details>
+              <summary>技术详情</summary>
+              <p>{String(message.metadata?.voiceError)}</p>
+              {typeof message.metadata?.voiceErrorMessage === 'string'
+                && message.metadata.voiceErrorMessage !== message.metadata.voiceError
+                && <p>{message.metadata.voiceErrorMessage}</p>}
+            </details>
           </div>
         </section>
       ))}

@@ -203,6 +203,29 @@ test('production conversation hydration resolves a final voice sidecar without a
   assert.match(hydrated.chat.messages[0].metadata.voiceUrl, /^data:audio\/wav;base64,/u);
 });
 
+test('failed voice hydration retains the owner reason and detail beside completed text', async () => {
+  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+  const hydrated = await hydrateZhiyuProductionConversation({
+    agentHandle: 'opaque-agent-handle', conversationAnchorId: 'anchor-voice-failed',
+    currentChat: idleChat(), currentSource: blockedSource(),
+  }, {
+    async snapshot() {
+      return {
+        conversationAnchorId: 'anchor-voice-failed', throughSequence: '3',
+        turns: [{ turnId: 'turn-voice-failed', status: 'completed', phase: null, terminalReason: 'stop', reasonCode: null, message: null }],
+        messages: [{ messageId: 'assistant-voice-failed', turnId: 'turn-voice-failed', role: 'assistant', parts: [{ kind: 'text', text: 'Text remains.' }] }],
+        actions: [], truncatedBefore: false,
+        voices: [{ voiceId: 'voice-failed', turnId: 'turn-voice-failed', messageId: 'assistant-voice-failed', state: 'failed', artifactId: null, reasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED', message: 'The selected voice is unsupported.' }],
+      };
+    },
+    async readArtifact() { assert.fail('a failed voice has no artifact to read'); },
+  });
+  assert.equal(hydrated.chat.state, 'completed');
+  assert.equal(hydrated.chat.messages[0].text, 'Text remains.');
+  assert.equal(hydrated.chat.messages[0].metadata.voiceError, 'AI_MEDIA_OPTION_UNSUPPORTED');
+  assert.equal(hydrated.chat.messages[0].metadata.voiceErrorMessage, 'The selected voice is unsupported.');
+});
+
 async function importHydrationModule() {
   const outputPath = path.join(await buildHydrationModule(), 'conversation-hydration.mjs');
   return import(pathToFileURL(outputPath).href);

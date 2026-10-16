@@ -655,7 +655,7 @@ async function attachFinalVoiceSidecar(
     return {
       ...projection,
       messages: projection.messages.map((message) => message.id === voice.messageId
-        ? { ...message, metadata: { ...message.metadata, voiceError: voice.reasonCode } }
+        ? { ...message, metadata: { ...message.metadata, voiceError: voice.reasonCode, voiceErrorMessage: voice.message } }
         : message),
     };
   }

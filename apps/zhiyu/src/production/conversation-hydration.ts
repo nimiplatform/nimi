@@ -61,7 +61,7 @@ export async function hydrateZhiyuProductionConversation(
       if (!message) continue;
       if (voice.state === 'failed') {
         messages = messages.map((candidate, candidateIndex) => candidateIndex === index
-          ? { ...candidate, metadata: { ...candidate.metadata, voiceError: voice.reasonCode } }
+          ? { ...candidate, metadata: { ...candidate.metadata, voiceError: voice.reasonCode, voiceErrorMessage: voice.message } }
           : candidate);
         continue;
       }

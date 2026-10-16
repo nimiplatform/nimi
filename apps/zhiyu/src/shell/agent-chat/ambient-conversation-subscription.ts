@@ -184,7 +184,7 @@ export function createZhiyuAmbientConversationEventReducer(
 			if (!existing) return null;
 			let message = existing;
 			if (event.type === 'voice-failed') {
-				message = { ...existing, metadata: { ...existing.metadata, voiceError: event.voice.reasonCode } };
+				message = { ...existing, metadata: { ...existing.metadata, voiceError: event.voice.reasonCode, voiceErrorMessage: event.voice.message } };
 			} else if (event.voice.artifactId && options.resolveArtifactUrl) {
 				try {
 					const voiceUrl = await options.resolveArtifactUrl(event.voice.artifactId);
