@@ -148,6 +148,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.behavior.adjustLimitLabel": "Adjust usage limit",
   "AgentCenter.behavior.applyLimitLabel": "Save usage limit",
   "AgentCenter.behavior.approxPrefix": "about",
+  "AgentCenter.behavior.valueUnknown": "Not available",
   "AgentCenter.behavior.budgetDescription": "Set a token limit for proactive behavior to avoid unexpected background usage.",
   "AgentCenter.behavior.budgetTitle": "Usage limits",
   "AgentCenter.behavior.dailyDescription": "Checks in daily",

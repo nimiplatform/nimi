@@ -60,14 +60,13 @@ function resolveCopy(copy: AgentCenterBehaviorCopy | undefined): Required<AgentC
   };
 }
 
-function budgetDisplayValue(value: string | number | null | undefined): number {
-  const numeric = Number(value ?? 0);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+function budgetDisplayValue(value: number | null | undefined): number | null {
+  return value !== null && value !== undefined && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-function budgetPercent(used: number, dailyLimit: number): number {
-  if (dailyLimit <= 0) {
-    return 0;
+function budgetPercent(used: number | null, dailyLimit: number | null): number | null {
+  if (used === null || dailyLimit === null || dailyLimit <= 0) {
+    return null;
   }
   return Math.max(0, Math.min(100, Math.round((used / dailyLimit) * 100)));
 }
@@ -105,6 +104,7 @@ function ModeSignalMark({
   );
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-006c
 export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementActions }: AgentCenterBehaviorSectionProps) {
   const state = snapshot.state;
   const compatibilityLabels = resolveCopy(undefined);
@@ -135,9 +135,11 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
   }, [autonomy.dailyTokenBudget, autonomy.enabled, autonomy.maxTokensPerHook, autonomy.mode]);
 
   const usedTokens = budgetDisplayValue(autonomy.usedTokensInWindow);
-  const dailyLimit = budgetDisplayValue(dailyTokenBudget);
-  const singleLimit = budgetDisplayValue(maxTokensPerHook);
-  const percent = budgetPercent(usedTokens, dailyLimit);
+  // Summaries describe the committed projection, never an unsaved form value.
+  const dailyLimit = budgetDisplayValue(autonomy.dailyTokenBudget);
+  const singleLimit = budgetDisplayValue(autonomy.maxTokensPerHook);
+  const percent = autonomy.enabled === true ? budgetPercent(usedTokens, dailyLimit) : null;
+  const unknownValue = translateAgentCenter(i18n, 'AgentCenter.behavior.valueUnknown', 'Not available');
   const modeOptions: readonly {
     readonly id: AgentCenterAutonomyMode;
     readonly title: string;
@@ -360,28 +362,28 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
               <div className="min-w-0">
                 <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.todayUsedLabel}</div>
                 <div className="mt-0.5 text-[length:var(--nimi-type-section-title-size)] font-semibold leading-none text-[var(--nimi-text-primary)] tabular-nums">
-                  {usedTokens}
-                  <span className="text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]"> / {dailyLimit} {labels.tokensUnit}</span>
+                  {usedTokens ?? unknownValue}
+                  {usedTokens !== null ? <span className="text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">{dailyLimit !== null && dailyLimit > 0 ? ` / ${dailyLimit}` : ''} {labels.tokensUnit}</span> : null}
                 </div>
               </div>
-              <div className="shrink-0 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)]">
+              {percent !== null ? <div className="shrink-0 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)]">
                 {labels.approxPrefix} {percent}%
-              </div>
+              </div> : null}
             </div>
-            <ProgressIndicator
+            {percent !== null ? <ProgressIndicator
               data-agent-center-budget-progress="true"
               max={100}
               value={percent}
-            />
+            /> : null}
           </div>
           <div className="grid border-t border-[var(--nimi-border-subtle)] sm:grid-cols-2">
             <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-3 sm:border-b-0 sm:border-r">
               <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.dailyLimitLabel}</div>
-              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{dailyLimit} {labels.tokensUnit}</div>
+              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{dailyLimit === null ? unknownValue : `${dailyLimit} ${labels.tokensUnit}`}</div>
             </div>
             <div className="px-4 py-3">
               <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.singleLimitLabel}</div>
-              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{singleLimit} {labels.tokensUnit}</div>
+              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{singleLimit === null ? unknownValue : `${singleLimit} ${labels.tokensUnit}`}</div>
             </div>
           </div>
           <button

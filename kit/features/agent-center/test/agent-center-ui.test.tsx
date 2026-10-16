@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { AgentCenter } from '../src/components/AgentCenter.js';
+import { AgentCenterBehaviorSection } from '../src/components/AgentCenterBehaviorSection.js';
 import { sessionFor } from './session-fixture.js';
 import { TestResourcePackTargetController } from './resource-pack-target-fixture.js';
 
@@ -691,6 +692,27 @@ describe('AgentCenter UI session contract', () => {
     const status = node.querySelector('[data-agent-center-resource-pack-card="true"] [role="status"]') as HTMLElement;
     expect(status.textContent).toContain('Using the Zhiyu default experience');
     expect(document.activeElement).toBe(status);
+  });
+
+  it.each([
+    { budget: null, enabled: true, progress: false },
+    { budget: 0, enabled: true, progress: false },
+    { budget: 100, enabled: false, progress: false },
+    { budget: 100, enabled: true, progress: true },
+  ])('does not invent a budget ratio for $budget tokens when enabled=$enabled', async ({ budget, enabled, progress }) => {
+    const session = await sessionFor({ autonomy: {
+      revision: 'a1', enabled, mode: enabled ? 'low' : 'off', budgetExhausted: false,
+      usedTokensInWindow: 25, dailyTokenBudget: 100, maxTokensPerHook: 10,
+      windowStartedAt: null, suspendedUntil: null,
+    } });
+    const snapshot = session.getSnapshot();
+    const node = render(<AgentCenterBehaviorSection session={session} snapshot={{
+      ...snapshot, state: { ...snapshot.state, autonomy: { ...snapshot.state.autonomy, dailyTokenBudget: budget } },
+    }} />);
+    expect(Boolean(node.querySelector('[data-agent-center-budget-progress="true"]'))).toBe(progress);
+    expect(node.textContent).not.toContain('/ 0 tokens');
+    if (budget === null) expect(node.textContent).toContain('Not available');
+    if (progress) expect(node.textContent).toContain('25%');
   });
 
   it('passes autonomy budget input unchanged to the SDK-owned validation boundary', async () => {

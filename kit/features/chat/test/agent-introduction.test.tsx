@@ -36,7 +36,8 @@ describe('shared Agent introduction', () => {
   expect(html).toContain('Start a conversation');
   expect(html).not.toContain('data-agent-empty-character-image');
   expect(agentIntroductionQuestions(intro,'zh-CN')).toHaveLength(2);
-  expect(agentIntroductionQuestions(intro,'en')[0]).toBe('Why are you known as 学者?');
+  expect(agentIntroductionQuestions(intro,'en')).toEqual(['Introduce yourself', 'Chat with me for a while', 'Tell me an interesting story']);
+  expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'topic',text:'很长的角色性格描述，包含多个分句和背景细节，不应直接拼成一条破冰提问。'}]},'zh')).toEqual(['介绍一下你自己','陪我随便聊聊','给我讲个有趣的故事']);
   expect(agentIntroductionSubtitle({...intro, era:'beijing', worldName:null, role:null},'zh-CN')).toBe('beijing');
   expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'work',text:'著述线索'},{kind:'topic',text:'association：数据库线索'},{kind:'topic',text:'scene-grounded-greeting'}]},'zh')).toEqual(['介绍一下你自己','陪我随便聊聊','给我讲个有趣的故事']);
   expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'topic',text:'poetry'}]},'en')).toEqual(['How would you explain poetry?']);
@@ -76,7 +77,7 @@ describe('shared Agent introduction', () => {
    expect(container.textContent).toBe('B');
   } finally { await act(async () => root.unmount()); }
  });
- it('attempts autoplay, supports stop with rewind, and releases audio on unmount', async () => {
+ it('waits for explicit play, supports stop with rewind, and releases audio on unmount', async () => {
   let paused = true;
   const play = vi.spyOn(HTMLMediaElement.prototype,'play').mockImplementation(function(this:HTMLMediaElement) { paused=false; this.dispatchEvent(new Event('play')); return Promise.resolve(); });
   const pause = vi.spyOn(HTMLMediaElement.prototype,'pause').mockImplementation(function(this:HTMLMediaElement) { paused=true; this.dispatchEvent(new Event('pause')); });
@@ -84,6 +85,8 @@ describe('shared Agent introduction', () => {
   const container = document.createElement('div'); const root = createRoot(container);
   try {
    await act(async () => root.render(<AgentIntroduction introduction={{...intro,voiceSampleUrl:'https://cdn.example.test/voice.mp3'}} displayName="钱大昕" locale="zh" questionsEnabled={false} />));
+   expect(play).not.toHaveBeenCalled();
+   await act(async () => container.querySelector<HTMLButtonElement>('[data-agent-empty-character-voice]')!.click());
    expect(play).toHaveBeenCalledOnce();
    const audio = container.querySelector('audio')!; audio.currentTime=3;
    await act(async () => container.querySelector<HTMLButtonElement>('[data-agent-empty-character-voice]')!.click());

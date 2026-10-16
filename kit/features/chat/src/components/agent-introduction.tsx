@@ -59,13 +59,12 @@ function IntroductionVoice({ src, duration, locale }: { src: string; duration: n
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    let disposed = false;
-    void audio.play().catch(() => { if (!disposed) setPlaying(false); });
-    return () => { disposed = true; audio.pause(); audio.currentTime = 0; };
+    setPlaying(false);
+    return () => { audio.pause(); audio.currentTime = 0; };
   }, [src]);
   const label = locale.startsWith('zh') ? playing ? '停止开场语音' : '播放开场语音' : playing ? 'Stop the opening voice' : 'Play the opening voice';
   return <>
-    <audio ref={audioRef} src={src} preload="auto" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
+    <audio ref={audioRef} src={src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
     <button type="button" aria-label={label} aria-pressed={playing} title={duration ? `${label} · ${Math.round(duration)}s` : label} data-agent-empty-character-voice="true" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]" onClick={() => {
       const audio = audioRef.current;
       if (!audio) return;

@@ -98,14 +98,19 @@ export function agentIntroductionSubtitle(value: NimiLocalAppAgentIntroduction |
   return [...new Set([[location, value.worldName].find(displayable), value.role].filter(displayable).map(text => agentIntroductionDisplayText(text, locale)))].join(' · ') || null;
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.agent-introduction
 export function agentIntroductionQuestions(value: NimiLocalAppAgentIntroduction | null, locale: string): readonly string[] {
   const zh = locale.startsWith('zh');
   const result: string[] = [];
   for (const topic of value?.questionTopics ?? []) {
     const text = agentIntroductionDisplayText(topic.text, locale).replace(/[。.!！?？]+$/u, '').trim();
-    if (!text || text.length > 80 || MACHINE_IDENTIFIER.test(text)
+    if (!text || [...text].length > (zh ? 28 : 64) || MACHINE_IDENTIFIER.test(text)
       || /^[A-Za-z][A-Za-z0-9]*[:：]/u.test(text) || /[()（）]/u.test(text)
       || (topic.kind === 'work' && text === '著述线索')) continue;
+    // Do not splice untranslated source prose into an English sentence. The
+    // authored introduction stays intact; localized generic starters remain
+    // available when none of its topics can form a short readable question.
+    if (!zh && /[^\p{Script=Latin}\p{Mark}\p{Number}\p{Punctuation}\p{Separator}]/u.test(text)) continue;
     const question = topic.kind === 'role'
       ? zh ? `你为什么被称为${text}？` : `Why are you known as ${text}?`
       : topic.kind === 'work'

@@ -150,6 +150,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.behavior.adjustLimitLabel": "调整用量上限",
   "AgentCenter.behavior.applyLimitLabel": "保存用量上限",
   "AgentCenter.behavior.approxPrefix": "约",
+  "AgentCenter.behavior.valueUnknown": "暂未获取",
   "AgentCenter.behavior.budgetDescription": "为主动行为设置 token 上限，避免意外的后台用量。",
   "AgentCenter.behavior.budgetTitle": "用量限制",
   "AgentCenter.behavior.dailyDescription": "每天主动问候",
