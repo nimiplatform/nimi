@@ -2,23 +2,69 @@ import { expect, it, vi } from 'vitest';
 import { registerNimiElectronAppBridge } from '../src/main/app-bridge.js';
 import { FakeIpcMain } from './electron-shell-test-utils.js';
 import type { NimiElectronAppBusinessServices } from '../src/main/app-business-services.js';
+import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
+import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 const lifecycle = vi.hoisted(() => ({
   invalidate: () => {}, ready: () => {},
   status: async (): Promise<Record<string, unknown>> => ({ state: 'ready' }),
+  host: undefined as NimiElectronLocalAppHost | undefined,
 }));
 vi.mock('../src/main/local-app-host.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/main/local-app-host.js')>();
   return { ...actual,
     createNimiElectronLocalAppHost: (invalidate: () => void, ready: () => void) => {
       lifecycle.invalidate = invalidate; lifecycle.ready = ready;
-      return {
+      lifecycle.host = {
         storageReadJson: async () => ({ value: { current: true }, sizeBytes: 16 }),
         sessionStatus: () => lifecycle.status(),
-      };
+      } as NimiElectronLocalAppHost;
+      return lifecycle.host;
     },
     startNimiElectronLocalAppHostMaintenance: () => ({ ready: Promise.resolve(), close: () => {} }),
   };
+});
+
+it('closes renderer conversation waits on invalidation and unregister without delivering old events', async () => {
+  const pending = new Map<string, (value: Record<string, unknown>) => void>();
+  const closed: string[] = [];
+  const sent = vi.fn();
+  let streamNumber = 0;
+  const bridge = registerNimiElectronAppBridge({
+    appId: 'fixture.renderer-stream', allowedRendererUrls: ['app://fixture/index.html'], ipcMain: new FakeIpcMain(),
+    assetMediaPlatform: { protocol: { handle: () => undefined, unhandle: () => undefined }, webRequest: { onBeforeRequest: () => undefined }, webContents: { fromId: () => undefined } },
+    onSessionInvalidated: () => expect(pending.size).toBe(0),
+  });
+  const host = lifecycle.host!;
+  Object.assign(host, {
+    conversationSubscribe: async () => ({ streamId: `conversation-${++streamNumber}` }),
+    conversationStreamNext: ({ streamId }: { streamId: string }) => new Promise(resolve => pending.set(streamId, resolve)),
+    conversationStreamClose: async ({ streamId }: { streamId: string }) => {
+      closed.push(streamId);
+      pending.get(streamId)?.({ completed: false, event: { old: true } });
+      pending.delete(streamId);
+      return { closed: true };
+    },
+  });
+  const subscribe = () => dispatchElectronLocalAppCommand({
+    host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'],
+    payload: { agentHandle: 'agent-1', conversationAnchorId: 'anchor-1' }, sendEvent: sent,
+  });
+  try {
+    await subscribe();
+    await vi.waitFor(() => expect(pending.has('conversation-1')).toBe(true));
+    lifecycle.invalidate();
+    expect(closed).toContain('conversation-1');
+    await vi.waitFor(() => expect(pending.size).toBe(0));
+    lifecycle.ready();
+    await subscribe();
+    await vi.waitFor(() => expect(pending.has('conversation-2')).toBe(true));
+    bridge.unregister();
+    expect(closed).toContain('conversation-2');
+    await Promise.resolve();
+    expect(sent).not.toHaveBeenCalled();
+  } finally { bridge.unregister(); }
 });
 
 it('prepares new Node work on the same Host while retired business services stay closed', async () => {

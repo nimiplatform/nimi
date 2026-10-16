@@ -2,6 +2,7 @@ import { NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/k
 import { registerNimiElectronRuntimeBridge } from './host.js';
 import { rendererOriginFromUrl } from './diagnostics.js';
 import { createAppBusinessServices, type NimiElectronAppBusinessServices } from './app-business-services.js';
+import { invalidateElectronLocalAppCommandResources } from './local-app-commands.js';
 import { requestElectronAgentCenterResourcePackPlacement } from './agent-center-resource-pack-placement.js';
 import {
   createNimiElectronLocalAppHost,
@@ -93,6 +94,13 @@ export function registerNimiElectronAppBridge(
   let closed = false;
   let businessInvalidated = false;
   let readyDelivered = false;
+  const closeRendererResources = () => {
+    // Retire command pumps synchronously and close native receivers before the
+    // rebind gate waits for their outstanding next() calls to settle.
+    void invalidateElectronLocalAppCommandResources(localAppHost).catch((error) => {
+      console.warn('[nimi-shell] local App renderer resource cleanup failed', error);
+    });
+  };
   const invalidate = () => {
     if (closed || businessInvalidated) return;
     businessInvalidated = true;
@@ -100,6 +108,7 @@ export function registerNimiElectronAppBridge(
     localAppAssetMediaHost?.invalidateAll();
     input.chromeHost?.invalidateAll();
     business?.close();
+    closeRendererResources();
     input.onSessionInvalidated?.();
   };
   const ready = () => {
@@ -153,6 +162,7 @@ export function registerNimiElectronAppBridge(
     closed = true;
     maintenance?.close();
     business?.close();
+    closeRendererResources();
     input.onSessionInvalidated?.();
     localAppAssetMediaHost.close();
     input.chromeHost?.dispose();
