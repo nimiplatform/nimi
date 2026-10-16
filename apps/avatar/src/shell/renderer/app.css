@@ -717,15 +717,6 @@ button {
   color: var(--nimi-text-secondary);
 }
 
-.avatar-settings-popover__select-row select {
-  min-height: 30px;
-  padding: 0 var(--nimi-space-2);
-  border: 1px solid var(--nimi-border-subtle);
-  border-radius: var(--nimi-radius-sm);
-  background: var(--nimi-field-bg);
-  color: var(--nimi-text-primary);
-}
-
 /* ── Appearance Overlay (K-NAV-SHELL-OUTPUT-011 transient overlay) ──────── */
 
 .avatar-appearance-overlay {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, SelectField } from '@nimiplatform/kit/ui';
 import type { NimiIntegrationTarget } from '@nimiplatform/sdk/app';
 import { getNimiLocalAppClient } from '../../shell/auth/local-app-client.js';
 import { useNimiDay } from '../app/context.js';
@@ -60,7 +60,7 @@ export function IntegrationReferencePanel({ targets, refresh }: { targets: reado
     {error && <InlineAlert tone="warning">{error}</InlineAlert>}
     {choice && !choice.target.available && <InlineAlert tone="warning">{text.unavailable}</InlineAlert>}
     <div className="nd-followup-form">
-      <label>{text.source}<select aria-label={text.source} value={selected} onChange={event => { const next = choices.find(value => value.key === event.target.value); setSelected(event.target.value); setInput(next?.target.integrationId === 'nimi.go.deliverables' && next.operation.name === 'deliverable.read' ? '' : '{}'); }} disabled={busy}><option value="">{text.choose}</option>{choices.map(value => <option key={value.key} value={value.key}>{value.target.displayName} · {value.operation.name}</option>)}</select></label>
+      <label>{text.source}<SelectField aria-label={text.source} placeholder={text.choose} value={selected} onValueChange={nextKey => { const next = choices.find(value => value.key === nextKey); setSelected(nextKey); setInput(next?.target.integrationId === 'nimi.go.deliverables' && next.operation.name === 'deliverable.read' ? '' : '{}'); }} disabled={busy} options={choices.map(value => ({ value: value.key, label: `${value.target.displayName} · ${value.operation.name}` }))} /></label>
       {goDocument ? <GoVersionReferenceField value={input} onChange={setInput} disabled={busy} /> : <details><summary>{text.parameters}</summary><textarea aria-label={text.parametersLabel} value={input} onChange={event => setInput(event.target.value)} rows={4} disabled={busy} /><small>{choice?.operation.inputSchemaJson}</small></details>}
       <div className="nd-inline-actions"><Button tone="primary" size="sm" disabled={!choice?.target.available || busy} onClick={() => { void read(); }}>{text.read}</Button>{busy && <Button size="sm" onClick={cancel}>{text.cancel}</Button>}<Button tone="ghost" size="sm" onClick={() => { void refresh().catch(error => setError(String(error))); }}>{text.refresh}</Button></div>
       {content && <><p className="nd-faint">{text.acquired(source)}</p><label>{text.titleField}<input aria-label={text.titleLabel} value={title} onChange={event => { setTitle(event.target.value); setSaved(false); }} /></label><label>{text.bodyField}<textarea aria-label={text.bodyLabel} value={content} onChange={event => { setContent(event.target.value); setSaved(false); }} rows={8} /></label><Button size="sm" disabled={saved || !title.trim() || !content.trim()} onClick={() => { void save().catch(error => setError(error instanceof Error ? error.message : String(error))); }}>{saved ? text.saved : text.save}</Button></>}

@@ -190,6 +190,11 @@ async function readyEmbodimentStage(): Promise<HTMLElement> {
   return screen.getByTestId('avatar-embodiment-stage');
 }
 
+async function chooseSelectFieldOption(testId: string, optionText: string): Promise<void> {
+  fireEvent.click(screen.getByTestId(testId));
+  fireEvent.click(await screen.findByRole('option', { name: optionText }));
+}
+
 function seedActiveTurnBundle(input: {
   turnId?: string;
   phase?: 'accepted' | 'started' | 'streaming' | 'committed';
@@ -994,9 +999,9 @@ describe('App context menu overlay', () => {
     const captions = await screen.findByTestId('avatar-settings-toggle-show-voice-captions') as HTMLInputElement;
     expect(captions.checked).toBe(true);
     fireEvent.click(captions);
-    fireEvent.change(screen.getByTestId('avatar-settings-caption-size'), { target: { value: 'large' } });
-    fireEvent.change(screen.getByTestId('avatar-settings-caption-contrast'), { target: { value: 'high' } });
-    fireEvent.change(screen.getByTestId('avatar-settings-caption-duration'), { target: { value: 'long' } });
+    await chooseSelectFieldOption('avatar-settings-caption-size', 'Large');
+    await chooseSelectFieldOption('avatar-settings-caption-contrast', 'High');
+    await chooseSelectFieldOption('avatar-settings-caption-duration', 'Long');
 
     expect(readAvatarShellSettings().showVoiceCaptions).toBe(false);
     expect(readAvatarShellSettings()).toMatchObject({
@@ -1004,6 +1009,23 @@ describe('App context menu overlay', () => {
       captionContrast: 'high',
       captionDuration: 'long',
     });
+  });
+
+  it('dismisses the open settings dropdown before the overlay on Escape', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+    render(<App />);
+    act(() => { seedReadyState(); });
+    const stage = await readyEmbodimentStage();
+    fireEvent.pointerDown(stage, { button: 2, buttons: 2, pointerId: 328, clientX: 140, clientY: 180 });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-settings'));
+    const trigger = await screen.findByTestId('avatar-settings-caption-size');
+    fireEvent.click(trigger);
+    const option = await screen.findByRole('option', { name: 'Large' });
+    fireEvent.keyDown(option, { key: 'Escape' });
+    await waitFor(() => expect(trigger.getAttribute('aria-expanded')).toBe('false'));
+    expect(screen.getByTestId('avatar-settings-overlay')).toBeTruthy();
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('avatar-settings-overlay')).toBeNull());
   });
 
   it('dismisses settings overlay by explicit close', async () => {

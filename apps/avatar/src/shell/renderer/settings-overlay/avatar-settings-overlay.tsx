@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
+import { SelectField } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 
@@ -79,10 +80,12 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
     const handlePointerDown = (event: PointerEvent): void => {
       const root = rootRef.current;
       if (!root || !(event.target instanceof Node) || root.contains(event.target)) return;
+      if (event.target instanceof Element && event.target.closest('[data-nimi-select-layer]')) return;
       onDismiss('outside_click');
     };
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
+      if (rootRef.current?.querySelector('[role="combobox"][aria-expanded="true"]')) return;
       event.preventDefault();
       onDismiss('escape');
     };
@@ -166,47 +169,50 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
       </p>
       <label className="avatar-settings-popover__select-row">
         <span>{t('Avatar.settings.caption_size.label')}</span>
-        <select
+        <SelectField
           value={settings.captionSize}
           data-testid="avatar-settings-caption-size"
-          onChange={(event) => onSettingsChange(
-            { ...settings, captionSize: event.currentTarget.value as AvatarShellSettings['captionSize'] },
+          options={[
+            { value: 'small', label: t('Avatar.settings.caption_size.small') },
+            { value: 'medium', label: t('Avatar.settings.caption_size.medium') },
+            { value: 'large', label: t('Avatar.settings.caption_size.large') },
+          ]}
+          onValueChange={(value) => onSettingsChange(
+            { ...settings, captionSize: value as AvatarShellSettings['captionSize'] },
             'caption_size',
           )}
-        >
-          <option value="small">{t('Avatar.settings.caption_size.small')}</option>
-          <option value="medium">{t('Avatar.settings.caption_size.medium')}</option>
-          <option value="large">{t('Avatar.settings.caption_size.large')}</option>
-        </select>
+        />
       </label>
       <label className="avatar-settings-popover__select-row">
         <span>{t('Avatar.settings.caption_contrast.label')}</span>
-        <select
+        <SelectField
           value={settings.captionContrast}
           data-testid="avatar-settings-caption-contrast"
-          onChange={(event) => onSettingsChange(
-            { ...settings, captionContrast: event.currentTarget.value as AvatarShellSettings['captionContrast'] },
+          options={[
+            { value: 'standard', label: t('Avatar.settings.caption_contrast.standard') },
+            { value: 'high', label: t('Avatar.settings.caption_contrast.high') },
+          ]}
+          onValueChange={(value) => onSettingsChange(
+            { ...settings, captionContrast: value as AvatarShellSettings['captionContrast'] },
             'caption_contrast',
           )}
-        >
-          <option value="standard">{t('Avatar.settings.caption_contrast.standard')}</option>
-          <option value="high">{t('Avatar.settings.caption_contrast.high')}</option>
-        </select>
+        />
       </label>
       <label className="avatar-settings-popover__select-row">
         <span>{t('Avatar.settings.caption_duration.label')}</span>
-        <select
+        <SelectField
           value={settings.captionDuration}
           data-testid="avatar-settings-caption-duration"
-          onChange={(event) => onSettingsChange(
-            { ...settings, captionDuration: event.currentTarget.value as AvatarShellSettings['captionDuration'] },
+          options={[
+            { value: 'short', label: t('Avatar.settings.caption_duration.short') },
+            { value: 'standard', label: t('Avatar.settings.caption_duration.standard') },
+            { value: 'long', label: t('Avatar.settings.caption_duration.long') },
+          ]}
+          onValueChange={(value) => onSettingsChange(
+            { ...settings, captionDuration: value as AvatarShellSettings['captionDuration'] },
             'caption_duration',
           )}
-        >
-          <option value="short">{t('Avatar.settings.caption_duration.short')}</option>
-          <option value="standard">{t('Avatar.settings.caption_duration.standard')}</option>
-          <option value="long">{t('Avatar.settings.caption_duration.long')}</option>
-        </select>
+        />
       </label>
     </div>
   );

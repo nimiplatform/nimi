@@ -11,7 +11,11 @@ async function panel(host, check) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
   const scrolled = [];
   dom.window.HTMLElement.prototype.scrollIntoView = function () { scrolled.push(this); };
-  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), IS_REACT_ACT_ENVIRONMENT: true };
+  // Kit SelectField (Radix) calls pointer-capture APIs jsdom lacks.
+  dom.window.HTMLElement.prototype.hasPointerCapture = () => false;
+  dom.window.HTMLElement.prototype.setPointerCapture = () => {};
+  dom.window.HTMLElement.prototype.releasePointerCapture = () => {};
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
@@ -50,14 +54,21 @@ function fixture(initial = [record('old-A'), record('old-B')]) {
 const button = (root, name) => [...root.querySelectorAll('button')].find(node => node.textContent === name);
 const rowFor = (document, id) => [...document.querySelectorAll('[data-testid=integration-history-row]')].find(row => row.textContent.includes(id));
 const click = async element => { assert.ok(element); await act(async () => element.click()); };
-const select = async (dom, element, value) => act(async () => { element.value = value; element.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+// Kit SelectField is a Radix combobox: open the trigger, then click the option in the portal.
+const select = async (document, testid, text) => {
+  const trigger = document.querySelector(`[data-testid=${testid}]`); assert.ok(trigger, testid);
+  await act(async () => trigger.click());
+  const option = [...document.querySelectorAll('[role=option]')].find(item => item.textContent === text || item.textContent.startsWith(`${text} · `));
+  assert.ok(option, text);
+  await act(async () => option.click());
+};
 
 for (const oldFirst of [false, true]) test(`late history observation cannot replace a new foreground receipt (${oldFirst ? 'old' : 'new'} response first)`, async () => {
   const f = fixture();
   await panel(f.host, async (document, dom) => {
     await click(button(rowFor(document, 'old-A'), 'Check original call'));
-    await select(dom, document.querySelector('select'), 'B');
-    await select(dom, document.querySelectorAll('select')[1], 'mcp.echo');
+    await select(document, 'integration-target', 'B');
+    await select(document, 'integration-operation', 'mcp.echo');
     await click(button(document, 'Invoke once'));
     const old = call('old-A', 'A', '{"source":"old"}'); const fresh = call('current-B', 'B', '{"source":"current"}');
     if (oldFirst) {

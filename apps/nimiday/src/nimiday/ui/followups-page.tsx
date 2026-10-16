@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Button, ConfirmDialog, InlineAlert } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, SelectField } from '@nimiplatform/kit/ui';
 import { invoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useDayStore, useNimiDay } from '../app/context.js';
 import { parseGoVersionReference } from '../domain/integration-reference.js';
@@ -95,8 +95,8 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
       <label>{text.name}<input name="title" required maxLength={100} placeholder={text.nameHint} /></label>
       <label>{text.when}<input name="when" required maxLength={200} placeholder={text.whenHint} /></label>
       <label>{text.goal}<textarea name="goal" required maxLength={1500} rows={3} placeholder={text.goalHint} /></label>
-      <label>{text.agent}<select name="agentBinding" required defaultValue={state.profile.appointment?.binding || ''}><option value="">{text.chooseAgent}</option>{snapshot?.agents.map(agent => <option value={agent.agentBinding} key={agent.agentBinding}>{agent.displayName}</option>)}</select></label>
-      <label>{text.account}<select name="targetRef" required><option value="">{text.chooseAccount}</option>{targets.map(target => <option value={target.targetRef} key={target.targetRef}>{target.displayName} · {target.accountLabel}</option>)}</select></label>
+      <label>{text.agent}<SelectField name="agentBinding" required aria-label={text.agent} placeholder={text.chooseAgent} defaultValue={state.profile.appointment?.binding || ''} options={(snapshot?.agents || []).map(agent => ({ value: agent.agentBinding, label: agent.displayName }))} /></label>
+      <label>{text.account}<SelectField name="targetRef" required aria-label={text.account} placeholder={text.chooseAccount} options={targets.map(target => ({ value: target.targetRef, label: `${target.displayName} · ${target.accountLabel}` }))} /></label>
       {targets.length === 0 && <p className="nd-faint">{text.noAccount}</p>}
       <label>{text.recipients}<textarea name="recipients" required rows={3} placeholder={text.recipientsHint} value={recipientText} onChange={event => setRecipientText(event.target.value)} aria-invalid={parsed.problems.length > 0} aria-describedby="nd-recipient-check" /></label>
       <div id="nd-recipient-check" aria-live="polite">
@@ -105,7 +105,8 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
       </div>
       <details><summary>{text.recipientHelp}</summary><ol>{text.recipientSteps.map(step => <li key={step}>{step}</li>)}</ol></details>
       <label>{text.notice}<textarea name="notice" required rows={4} maxLength={3000} placeholder={text.noticeHint} /></label>
-      <label>{text.source}<select value={sourceRef} onChange={event => setSourceRef(event.target.value)}><option value="">{text.noSource}</option>{sources.map(target => <option value={target.targetRef} key={target.targetRef}>{target.displayName}</option>)}</select></label>
+      <label>{text.source}<SelectField aria-label={text.source} placeholder={text.noSource} value={sourceRef} onValueChange={setSourceRef} options={sources.map(target => ({ value: target.targetRef, label: target.displayName }))} /></label>
+      {sourceRef && <Button type="button" size="sm" tone="ghost" onClick={() => { setSourceRef(''); setSourceReference(''); }}>{text.noSource}</Button>}
       {sourceRef && <GoVersionReferenceField value={sourceReference} onChange={setSourceReference} required disabled={sending} />}
       <label><span><input name="publishHome" type="checkbox" defaultChecked={state.profile.homeMessages} style={{ width: 'auto' }} /> {text.publishHome}</span></label>
       <Button type="submit" tone="primary" loading={sending} disabled={!snapshot?.ready || targets.length === 0}>{text.start}</Button>

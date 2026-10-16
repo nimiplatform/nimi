@@ -13,7 +13,10 @@ const root=path.resolve(import.meta.dirname,'..');
 const{JSDOM}=createRequire(path.resolve(root,'package.json'))('jsdom');
 const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost/'});
 dom.window.HTMLElement.prototype.scrollIntoView=function(){};
-for(const key of ['window','document','HTMLElement','Element','Node','Event'])globalThis[key]=dom.window[key];
+dom.window.HTMLElement.prototype.hasPointerCapture=function(){return false};
+dom.window.HTMLElement.prototype.setPointerCapture=function(){};
+dom.window.HTMLElement.prototype.releasePointerCapture=function(){};
+for(const key of ['window','document','HTMLElement','HTMLFormElement','HTMLInputElement','HTMLSelectElement','Element','Node','Event','CustomEvent','DocumentFragment','MutationObserver','getComputedStyle'])globalThis[key]=dom.window[key];
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:dom.window.navigator});
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const{createElement,act,useState}=await import('react');const{createRoot}=await import('react-dom/client');
@@ -38,6 +41,8 @@ const pane=()=>document.querySelector('[data-testid="native-reply-panel"]');
 const button=text=>[...document.querySelectorAll('button')].find(item=>item.textContent===text);
 const click=async text=>{const b=button(text);assert.ok(b,text);assert.equal(b.disabled,false,`${text} should be available`);await act(async()=>b.click())};
 const select=async index=>{const options=[...document.querySelectorAll('button')].filter(item=>item.textContent===i18n.t('Integrations.useReplyContext'));assert.ok(options[index],'source selection control');assert.equal(options[index].disabled,false);await act(async()=>options[index].click())};
+// Kit SelectField is a Radix combobox: open the trigger, then click the option in the portal.
+const pick=async(testid,text)=>{const trigger=document.querySelector(`[data-testid=${testid}]`);assert.ok(trigger,testid);await act(async()=>trigger.click());const option=[...document.querySelectorAll('[role=option]')].find(item=>item.textContent===text||item.textContent.startsWith(`${text} · `));assert.ok(option,text);await act(async()=>option.click())};
 
 test('actual Lab message UI selects source, shows review, and sends only on a separate click',async()=>{
  const{host,calls,Probe}=fixture();const renderer=createRoot(document.getElementById('root'));
@@ -91,12 +96,11 @@ test('mounted workbench shows Integration completion and cancellation in its exi
  try{
   await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(LabNavigationOwner,null,createElement(LabNavigationScope,null,createElement(LabRendererProvider,{bindings:host},createElement(LabWorkbench,{title:'Nimi Lab'})))))));
   await click('Integrations');
-  const choice=[...document.querySelectorAll('select')].find(e=>[...e.options].some(o=>o.value==='target'));
-  await act(async()=>{choice.value='target';choice.dispatchEvent(new Event('change',{bubbles:true}))});
+  await pick('integration-target','QQ');
   // One explicit read fixture supplies the source; it never invokes a message write.
   const advanced=[...document.querySelectorAll('details')].find(e=>e.querySelector('summary')?.textContent===i18n.t('Integrations.advancedOperations'));
   assert.ok(advanced);await act(async()=>advanced.open=true);
-  const operation=advanced.querySelector('select');await act(async()=>{operation.value='qq-official.updates.read';operation.dispatchEvent(new Event('change',{bubbles:true}))});
+  await pick('integration-operation','qq-official.updates.read');
   await click(i18n.t('Integrations.invoke'));await select(0);await click('Generate draft');
   await click('Stop and discard draft');await click('Generate draft');await click('Stop and discard draft');
   await act(async()=>held.resolve({ok:false,capabilityId:'chat.stream',capabilityLabel:'Chat Stream',reason:'runtime-canceled',message:'Canceled while processing original A PRIVATE_FAILURE_PREVIEW_SENTINEL'}));
@@ -167,9 +171,10 @@ test('actual Lab first receive needs no peer ID, preserves optional filters, and
  const renderer=createRoot(document.getElementById('root'));
  try{
   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async record=>{await host.app.commands.appendRunHistory(record)}}))));
-  const choice=[...document.querySelectorAll('select')].find(e=>[...e.options].some(o=>o.value==='first-read'));
-  assert.ok(choice);assert.equal(choice.querySelector('[value="first-read"]').textContent,'WeChat iLink · bot@im.bot');assert.equal(choice.querySelector('[value="remark"]').textContent,'My remark · bot@im.bot');
-  await act(async()=>{choice.value='first-read';choice.dispatchEvent(new Event('change',{bubbles:true}))});
+  const trigger=document.querySelector('[data-testid=integration-target]');assert.ok(trigger);await act(async()=>trigger.click());
+  const options=[...document.querySelectorAll('[role=option]')];
+  const firstRead=options.find(item=>item.textContent==='WeChat iLink · bot@im.bot');assert.ok(firstRead);assert.ok(options.some(item=>item.textContent==='My remark · bot@im.bot'));
+  await act(async()=>firstRead.click());
   const optional=[...document.querySelectorAll('details')].find(e=>e.querySelector('summary')?.textContent===i18n.t('Integrations.conversationFilters'));
   assert.ok(optional);assert.equal(optional.open,false);assert.equal(optional.querySelector('textarea').value,'');
   assert.equal(reads.length,0,'opening the page must not receive');
@@ -193,7 +198,7 @@ test('ordinary late acceptance and cancellation keep actual facts without publis
   const renderer=createRoot(document.getElementById('root'));
   try{
    await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
-   const choice=document.querySelector('select');await act(async()=>{choice.value=source.targetRef;choice.dispatchEvent(new Event('change',{bubbles:true}))});
+   await pick('integration-target','QQ');
    await click(i18n.t('Integrations.startReceive'));await click(i18n.t('Integrations.stopReceive'));
    await act(async()=>held.resolve({...fact('accepted'),operation:'weixin.updates.read'}));
    assert.deepEqual(saved.map(record=>record.status),['accepted',terminal]);assert.equal(saved.at(-1).callId,'ic_actual');
@@ -234,7 +239,7 @@ test('history removal waits for pending reception and query writes, then the rem
  const renderer=createRoot(document.getElementById('root'));
  try{
   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
-  const choice=document.querySelector('select');await act(async()=>{choice.value=source.targetRef;choice.dispatchEvent(new Event('change',{bubbles:true}))});
+  await pick('integration-target','QQ');
   await click(i18n.t('Integrations.startReceive'));assert.equal(button(i18n.t('Integrations.remove')).disabled,true);assert.equal(button(i18n.t('Integrations.observe')).disabled,true);
   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},null)));
   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
@@ -264,7 +269,7 @@ test('bounded reception allows source selection, drafts and explicit media/save 
  const renderer=createRoot(document.getElementById('root'));
  try{
   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async record=>calls.aiRecords.push(record)}))));
-  const choice=document.querySelector('select');await act(async()=>{choice.value=source.targetRef;choice.dispatchEvent(new Event('change',{bubbles:true}))});
+  await pick('integration-target','QQ');
   await click(i18n.t('Integrations.startReceive'));assert.equal(readCount,2);assert.equal(button(i18n.t('Integrations.startReceive')).disabled,true);
   await select(0);assert.equal(button('Generate draft').disabled,false);await click('Generate draft');assert.equal(calls.ai.length,1);assert.equal(writes,0);
   assert.equal(pane().querySelector('textarea').disabled,false);await click('Stop and discard draft');
@@ -368,7 +373,10 @@ test('the actual Integration refresh clears only its old recovery feedback and k
   assert.equal(text().includes(i18n.t('Integrations.errors.LAB_INTEGRATION_REPLY_SCOPE_ENDED')),false);
   mode='failed';await click(i18n.t('Integrations.refresh'));assert.match(text(),/Refresh unavailable/u);
   mode='current';await click(i18n.t('Integrations.refresh'));
-  assert.match(text(),/Current account bot/u);assert.match(text(),/Saved failure kept/u);
+  const currentTrigger=document.querySelector('[data-testid=integration-target]');assert.ok(currentTrigger);await act(async()=>currentTrigger.click());
+  assert.ok([...document.querySelectorAll('[role=option]')].some(item=>item.textContent==='Current account bot'),'refresh updates the connection options');
+  await act(async()=>{document.dispatchEvent(new dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}))});
+  assert.match(text(),/Saved failure kept/u);
   assert.equal(text().includes(i18n.t('Integrations.sessionEnded')),false);assert.equal(text().includes('Refresh unavailable'),false);
 
   mode='failed';await click(i18n.t('Integrations.refresh'));assert.match(text(),/Refresh unavailable/u);

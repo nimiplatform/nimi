@@ -2668,20 +2668,8 @@
 }
 
 .apps-sort {
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(16, 13, 18, 0.4);
-  color: var(--fld-text);
-  font-size: 0.8rem;
-  outline: none;
-  cursor: pointer;
-}
-
-.apps-sort option {
-  background: #221c24;
-  color: var(--fld-text);
+  flex: none;
+  width: auto;
 }
 
 .apps-tabs {

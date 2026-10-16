@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@nimiplatform/kit/ui';
+import { Dialog, DialogContent, DialogDescription, DialogTitle, SelectField } from '@nimiplatform/kit/ui';
 import { useSim } from '../engine/SimContext';
 import { MODULES, MODULE_ORDER } from '../scenario/meta';
 import type { ModuleId } from '../scenario/types';
@@ -27,6 +27,11 @@ const TABS: { id: AppsTab; label: string }[] = [
   { id: 'all', label: '全部' },
   { id: 'running', label: '运行中' },
   { id: 'collab', label: '可协作' },
+];
+
+const SORT_OPTIONS: { value: AppsSort; label: string }[] = [
+  { value: 'recent', label: '按最近使用' },
+  { value: 'name', label: '按名称' },
 ];
 
 /** Placeholder apps beyond the three live modules — display only, matching
@@ -146,16 +151,14 @@ export function AppsPage({ onClose }: { onClose: () => void }) {
                 aria-label="搜索应用"
               />
             </label>
-            <select
-              className="apps-sort"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as AppsSort)}
-              title="排序方式"
+            <SelectField
               aria-label="排序方式"
-            >
-              <option value="recent">按最近使用</option>
-              <option value="name">按名称</option>
-            </select>
+              value={sort}
+              onValueChange={(value) => setSort(value as AppsSort)}
+              selectClassName="apps-sort"
+              contentLayer="dialog"
+              options={SORT_OPTIONS}
+            />
           </div>
 
           <div className="apps-tabs" role="tablist" aria-label="应用筛选">

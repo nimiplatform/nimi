@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { InlineAlert } from '@nimiplatform/kit/ui';
+import { InlineAlert, SelectField } from '@nimiplatform/kit/ui';
 import type { StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
 import type { StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
 import { useLabRendererHost } from '../../renderer/context.js';
@@ -50,11 +50,10 @@ export function WorldTourInputPanel({ parameters, onChange, disabled }: StudioPa
     finally { setBusy(false); }
   };
   return <div className="world-tour-input">
-    <label>{t('WorldTour.inputMode')} <select aria-label={t('WorldTour.inputMode')} value={mode} disabled={disabled || busy}
-      onChange={event => { setError(''); onChange({ ...parameters, inputMode: event.target.value }); }}>
-      <option value="text">{t('WorldTour.textInput')}</option><option value="ordinary">{t('WorldTour.imageInput')}</option>
-      <option value="equirectangular-360">{t('WorldTour.panoInput')}</option>
-    </select></label>
+    <label>{t('WorldTour.inputMode')} <SelectField aria-label={t('WorldTour.inputMode')} value={mode} disabled={disabled || busy}
+      options={[{ value: 'text', label: t('WorldTour.textInput') }, { value: 'ordinary', label: t('WorldTour.imageInput') },
+        { value: 'equirectangular-360', label: t('WorldTour.panoInput') }]}
+      onValueChange={value => { setError(''); onChange({ ...parameters, inputMode: value }); }} /></label>
     {mode !== 'text' ? <>
       <p>{t(mode === 'equirectangular-360' ? 'WorldTour.panoLimits' : 'WorldTour.imageLimits')}</p>
       <input type="file" aria-label={t('WorldTour.chooseImage')} accept="image/png,image/jpeg,image/webp" disabled={disabled || busy} onChange={event => void select(event.target.files?.[0])} />

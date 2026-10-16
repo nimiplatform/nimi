@@ -48,8 +48,20 @@ function installCanvasShim(): void {
   });
 }
 
+function installPointerApiShim(): void {
+  if (typeof window === 'undefined') return;
+
+  window.HTMLElement.prototype.hasPointerCapture = () => false;
+  window.HTMLElement.prototype.setPointerCapture = () => {};
+  window.HTMLElement.prototype.releasePointerCapture = () => {};
+  if (!window.Element.prototype.scrollIntoView) {
+    window.Element.prototype.scrollIntoView = () => {};
+  }
+}
+
 installMemoryLocalStorage();
 installCanvasShim();
+installPointerApiShim();
 
 afterEach(() => {
   cleanup();
