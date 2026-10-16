@@ -26,7 +26,7 @@
   "subtitle": "Browse world settings and discover sources",
   "searchPlaceholder": "Search worlds, themes, personas...",
   "clearSearch": "Clear search",
-  "searchByNameOrDescription": "Search worlds by name or description...",
+  "searchByNameOrDescription": "Search worlds...",
   "loading": "Loading worlds...",
   "loadError": "Failed to load worlds",
   "mainWorld": "Main World",

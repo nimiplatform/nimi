@@ -37,12 +37,13 @@ export function ExploreSourceModeFlap({
             title={item.label}
             aria-label={item.label}
             onClick={() => onChange(item.id)}
-            className={`grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
+            className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
               ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-sm'
               : 'text-[color:var(--nimi-text-muted)] hover:text-[color:var(--nimi-text-primary)]'
             }`}
           >
             {item.icon}
+            <span>{item.label}</span>
           </button>
         );
       })}

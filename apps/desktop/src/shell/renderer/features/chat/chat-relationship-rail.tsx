@@ -57,6 +57,23 @@ function RelationshipAvatar({
   const cancelHideRef = useRef<(() => void) | null>(null);
   const profileOpenPendingRef = useRef(false);
   const [hoverCardPos, setHoverCardPos] = useState<RelationshipHoverCardPosition | null>(null);
+  const hoverCardRef = useRef<HTMLDivElement>(null);
+  const hoverCardVisible = hoverCardPos !== null;
+  useEffect(() => {
+    if (!hoverCardVisible) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      cancelHideRef.current?.();
+      cancelHideRef.current = null;
+      if (hoverCardRef.current?.contains(document.activeElement)) {
+        ref.current?.focus({ preventScroll: true });
+      }
+      setHoverCardPos(null);
+    };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, [hoverCardVisible]);
   // The character subtitle resolves lazily only while the hover card is visible.
   const hoverCardSubtitle = useRelationshipHoverCardSubtitle({
     target,
@@ -235,6 +252,7 @@ function RelationshipAvatar({
 
       {canShowHoverCard && hoverCardPos ? (
         <RelationshipHoverCard
+          elementRef={hoverCardRef}
           target={target}
           selected={selected}
           pos={hoverCardPos}

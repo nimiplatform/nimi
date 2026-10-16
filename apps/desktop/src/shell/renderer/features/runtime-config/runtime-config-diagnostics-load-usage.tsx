@@ -175,15 +175,14 @@ export function SystemResourcesSection() {
       </SectionTitle>
       <div className="mt-2">
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'flex flex-col p-4')}>
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
-            {typeof resourceSnapshot?.temperatureCelsius === 'number' ? (
+          {typeof resourceSnapshot?.temperatureCelsius === 'number' ? (
+            <div className="mb-4 flex justify-end">
               <span className="flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                 <ThermometerIcon />
                 {t('runtimeConfig.overview.temperatureValue', { value: resourceSnapshot.temperatureCelsius.toFixed(0), defaultValue: '{{value}} C' })}
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
           {sysResources.status === 'idle' || sysResources.status === 'loading' ? (
             <ResourceLoadingSkeleton />
           ) : resourceSnapshot ? (

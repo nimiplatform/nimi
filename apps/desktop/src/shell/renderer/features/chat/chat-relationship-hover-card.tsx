@@ -1,4 +1,4 @@
-import { type KeyboardEvent } from 'react';
+import { type KeyboardEvent, type Ref } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -82,6 +82,7 @@ function LocalAgentGlyphIcon({ className = '' }: { className?: string }) {
 }
 
 export function RelationshipHoverCard({
+  elementRef,
   target,
   selected,
   pos,
@@ -91,6 +92,7 @@ export function RelationshipHoverCard({
   onOpenProfile,
   subtitle,
 }: {
+  elementRef?: Ref<HTMLDivElement>;
   target: ConversationTargetSummary;
   selected: boolean;
   pos: RelationshipHoverCardPosition;
@@ -136,6 +138,7 @@ export function RelationshipHoverCard({
 
   return (
     <div
+      ref={elementRef}
       data-chat-contact-hover-card="true"
       role="button"
       tabIndex={0}

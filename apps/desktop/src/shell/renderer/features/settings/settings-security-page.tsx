@@ -33,7 +33,7 @@ export function SecurityPage() {
           <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <ShieldIcon className="h-5 w-5 text-[var(--nimi-text-muted)]" />
-              <div>
+              <div className="flex min-w-0 flex-col gap-1">
                 <NimiText role="label">{t('SecuritySettings.manageAccount')}</NimiText>
                 <NimiText role="caption">{t('SecuritySettings.manageAccountDescription')}</NimiText>
               </div>

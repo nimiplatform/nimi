@@ -8,6 +8,7 @@ import type {
 } from '@nimiplatform/sdk/app';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { integrationOperationPresentation } from './integration-operation-presentation.js';
+import { IntegrationConsumerDetails } from './integration-consumer-details.js';
 
 export function IntegrationPermissionsView({
   snapshot,
@@ -114,6 +115,7 @@ export function IntegrationPermissionsView({
                               {t('Integrations.unavailablePermissionSource')}
                             </p>
                           ) : null}
+                          <IntegrationConsumerDetails consumerRef={permission.consumerRef} targetRef={permission.targetRef} />
                         </div>
                       </div>
                     </td>
