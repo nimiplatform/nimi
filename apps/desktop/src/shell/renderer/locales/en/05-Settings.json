@@ -1,4 +1,7 @@
 {
+  "aboutProductName": "Nimi Home",
+  "aboutVersion": "Version {{version}}",
+  "aboutVersionUnknown": "Version information is unavailable",
   "sectionAccount": "Account",
   "sectionPrivacySecurity": "Privacy & Security",
   "sectionPreferences": "Preferences",

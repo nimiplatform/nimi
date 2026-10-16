@@ -11,7 +11,7 @@ test('detail identity retains its owning column when history changes', async () 
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   await store.navigation.push({ id: 'world-detail', worldId: 'world-a' });
   await store.navigation.push({ id: 'downloads' });
-  assert.equal(homeNavigationColumn(store.navigation.getSnapshot().current.destination), 'apps');
+  assert.equal(homeNavigationColumn(store.navigation.getSnapshot().current.destination), 'downloads');
   await store.navigation.back();
   assert.equal(homeNavigationColumn(store.navigation.getSnapshot().current.destination), 'explore');
   assert.equal(homeNavigationColumn(validateHomeDestination({ id: 'privacy-policy' })), 'settings');

@@ -85,8 +85,8 @@ export function ProfileDetailViewContent(input: {
       };
   const locationLabel = profile.city && profile.countryCode
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
-    : profile.city || profile.countryCode?.toUpperCase() || t('Profile.unknownRegion', { defaultValue: 'Unknown region' });
-  const joinedLabel = formatProfileDate(profile.createdAt, i18n.formatDate) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
+    : profile.city || profile.countryCode?.toUpperCase() || null;
+  const joinedLabel = formatProfileDate(profile.createdAt, i18n.formatDate) || null;
   const isRestrictedProfile = (input.isRestrictedProfile === true || profile.accessState === 'restricted') && !input.isOwnProfile;
   const headline = isRestrictedProfile
     ? t('Profile.privateProfileDescription', { defaultValue: 'This profile is private. Only basic contact information is available.' })
@@ -295,8 +295,8 @@ export function ProfileDetailViewContent(input: {
                                   ) : null}
                                   <div className="mt-4">
                                     <div className="grid max-w-[460px] grid-cols-2 gap-x-10 gap-y-2 text-sm text-[var(--nimi-text-secondary)]">
-                                      <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
-                                      <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
+                                      {joinedLabel ? <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} /> : null}
+                                      {locationLabel ? <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} /> : null}
                                     </div>
                                     {profile.tags.length > 0 ? (
                                       <div className="mt-4 flex flex-wrap gap-2">

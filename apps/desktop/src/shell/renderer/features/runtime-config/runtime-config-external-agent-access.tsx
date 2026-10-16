@@ -239,7 +239,7 @@ export function ExternalAgentAccessPanel() {
     : gatewayStatus.errored
       ? t('runtimeConfig.eaa.gatewayUnavailableHeadline', { defaultValue: 'Gateway unavailable' })
       : isActionRegistryDeferred
-        ? t('runtimeConfig.eaa.gatewayDeferredHeadline', { defaultValue: 'External Agent access is deferred' })
+        ? t('runtimeConfig.eaa.gatewayDeferredHeadline', { defaultValue: 'External Agent access is unavailable' })
         : gatewayStatus.enabled
           ? t('runtimeConfig.eaa.gatewayAcceptingHeadline', { defaultValue: 'Gateway is accepting connections' })
           : t('runtimeConfig.eaa.gatewayOfflineHeadline', { defaultValue: 'Gateway is offline' });
@@ -247,7 +247,7 @@ export function ExternalAgentAccessPanel() {
   const gatewaySubline = gatewayStatus.errored
     ? t('runtimeConfig.eaa.gatewayErrorSubline', { defaultValue: 'Unable to reach the local runtime gateway.' })
     : isActionRegistryDeferred
-      ? t('runtimeConfig.eaa.gatewayActionRegistryEmptySubline', { defaultValue: 'Runtime projection is present, but token issuance stays disabled until the Runtime action registry and gateway server land.' })
+      ? t('runtimeConfig.eaa.gatewayActionRegistryEmptySubline', { defaultValue: 'Runtime has no available external-agent actions. Access tokens cannot be created right now.' })
       : gatewayStatus.enabled
         ? t('runtimeConfig.eaa.gatewayAcceptingSubline', { defaultValue: 'External agents can request tokens at the bind address below.' })
         : t('runtimeConfig.eaa.gatewayOfflineSubline', { defaultValue: 'Runtime is not accepting external agent connections.' });

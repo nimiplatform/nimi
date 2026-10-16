@@ -151,7 +151,10 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
         </SupportCard>
       ) : null}
       <SupportAppHostCacheCard />
-      <SupportDataRootCleanupCard dirs={dirs} dirsError={dirsError} />
+      <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+        <summary className="cursor-pointer text-sm font-medium">{t('Support.repairAdvancedCleanup')}</summary>
+        <div className="mt-3"><SupportDataRootCleanupCard dirs={dirs} dirsError={dirsError} /></div>
+      </details>
     </SupportSectionShell>
   );
 }
@@ -371,7 +374,9 @@ function SupportDataRootCleanupCard(props: {
         </p>
       ) : null}
       <div className="flex flex-col gap-3">
+        <label htmlFor="support-cleanup-directory" className="text-sm text-[var(--nimi-text-secondary)]">{t('Support.repairDirectoryIdentifier')}</label>
         <input
+          id="support-cleanup-directory"
           value={directoryInput}
           onChange={(event) => {
             setDirectoryInput(event.target.value);

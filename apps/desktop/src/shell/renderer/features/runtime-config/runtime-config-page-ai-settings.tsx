@@ -55,7 +55,7 @@ export type AiSettingsPageProps = {
 // Each rail row names the capability above one status mark and model, never
 // a badge. Prepared is a success dot with its default model
 // name beside it (selection, never a running claim); preparing is an info dot
-// with a spinning mark; needs attention is a warning dot without visible text;
+// with a spinning mark; needs attention is a warning dot with visible status;
 // not set up shows a hollow ring and text only when recommended files are
 // on the device; otherwise its row keeps just the name and accessible state.
 // Unknown is a dashed ring with its text. Every mark carries its
@@ -444,7 +444,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   ? ` · ${t(`runtimeConfig.capabilities.attentionReason.${entry.state.reason}`)}`
                   : '';
                 const markLabel = `${state === 'ready' ? railStateLabel(entry) : stateText}${reason}${stateSuffix}`;
-                const visibleText = state === 'ready' || state === 'unknown' || (state === 'unset' && entry.downloaded);
                 const hasStatusDetails = state !== 'unset' || entry.downloaded;
                 return (
                   <button
@@ -468,11 +467,9 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                       {hasStatusDetails ? (
                         <span className={`flex min-h-4 min-w-0 items-center gap-1.5 text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}>
                           <RailStatusMark state={state} label={markLabel} preparingReplacement={preparingReplacement} />
-                          {visibleText ? (
-                            <span className="min-w-0 truncate" title={state === 'ready' ? `${stateText} · ${markLabel}` : markLabel}>
-                              {stateText}
-                            </span>
-                          ) : null}
+                          <span className="min-w-0 truncate" title={state === 'ready' ? `${stateText} · ${markLabel}` : markLabel}>
+                            {stateText}
+                          </span>
                         </span>
                       ) : (
                         <span className="sr-only">{markLabel}</span>

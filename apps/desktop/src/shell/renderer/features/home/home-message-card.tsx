@@ -308,7 +308,8 @@ function HoverActionButton({ label, disabled, onClick, children }: {
   );
 }
 
-/** Compact Home preview row: title and time on one line, source and summary on the next; actions surface on hover or focus. */
+/** Compact Home preview shares the source-first order of grouped messages. */
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r035
 function HomeMessageCardCompact({ message, context }: {
   message: HomeMessage;
   context: HomeMessageCardContext;
@@ -362,25 +363,20 @@ function HomeMessageCardCompact({ message, context }: {
     >
       <MessageSourceIcon message={message} context={context} />
       <div className="min-w-0 flex-1">
-        <div className={`flex items-baseline gap-2 ${titlePad}`}>
+        <p className={`flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)] ${titlePad}`}>
+          {unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-status-info)]" aria-hidden="true" /> : null}
+          <span className="min-w-0 truncate" title={messageSourceLabel(message, t)}>
+            {association ? `${messageSourceLabel(message, t)} · ${association}` : messageSourceLabel(message, t)}
+          </span>
+        </p>
+        <div className="mt-0.5 flex items-baseline gap-2">
           <h3 className={`min-w-0 flex-1 truncate text-sm ${unread ? 'font-semibold' : 'font-medium'}`} title={title}>
             {unread ? <span className="sr-only">{`${t('runtimeConfig.overview.appActivity.unread')} `}</span> : null}
             {title}
           </h3>
           <MessageTime message={message} now={context.now} />
         </div>
-        <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
-          {unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-status-info)]" aria-hidden="true" /> : null}
-          <span className="max-w-[45%] shrink-0 truncate">
-            {association ? `${messageSourceLabel(message, t)} · ${association}` : messageSourceLabel(message, t)}
-          </span>
-          {summary ? (
-            <>
-              <span aria-hidden="true" className="shrink-0">·</span>
-              <span className="min-w-0 flex-1 truncate text-[var(--nimi-text-secondary)]">{summary}</span>
-            </>
-          ) : null}
-        </p>
+        {summary ? <p className="mt-1 line-clamp-2 break-words text-xs text-[var(--nimi-text-secondary)]">{summary}</p> : null}
         {progress && progress.max > 0 ? (
           <ProgressIndicator value={progress.value} max={progress.max} className="mt-1.5" aria-label={title} />
         ) : null}
@@ -405,7 +401,7 @@ function HomeMessageCardCompact({ message, context }: {
       </div>
       <MediaThumb message={message} />
       {actions.length ? (
-        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100">
+        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1">
           {actions}
         </div>
       ) : null}

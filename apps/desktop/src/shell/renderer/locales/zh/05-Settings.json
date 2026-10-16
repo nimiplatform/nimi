@@ -1,4 +1,7 @@
 {
+  "aboutProductName": "Nimi Home",
+  "aboutVersion": "版本 {{version}}",
+  "aboutVersionUnknown": "暂时无法读取版本信息",
   "sectionAccount": "账户",
   "sectionPrivacySecurity": "隐私与安全",
   "sectionPreferences": "偏好设置",

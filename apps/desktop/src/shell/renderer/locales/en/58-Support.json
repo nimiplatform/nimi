@@ -1,4 +1,9 @@
 {
+  "logsCopyPath": "Copy logs path",
+  "logsPathCopied": "Logs path copied",
+  "logsPathCopyFailed": "Could not copy the path. Select and copy the path above.",
+  "repairAdvancedCleanup": "Advanced: inspect and clean a directory",
+  "repairDirectoryIdentifier": "Directory identifier",
   "localSessionTitle": "Current account services",
   "localSessionDescription": "If account services stop responding, reconnect them here. The current Home window will return to its home page; interrupted operations won't be retried automatically.",
   "surfaceTitle": "Support",

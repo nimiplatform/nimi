@@ -83,6 +83,7 @@ export function RuntimeCapabilityAppsCard(props: {
       <h2 className="px-2 pb-2 pt-1 text-sm font-semibold text-[var(--nimi-text-primary)]">
         {t('runtimeConfig.capabilities.apps.title')}
       </h2>
+      <p className="px-2 pb-2 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.capabilities.apps.description')}</p>
       {state === 'unavailable' ? (
         <p className="px-2 pb-1 text-xs leading-relaxed text-[var(--nimi-text-muted)]">
           {t('runtimeConfig.capabilities.apps.unavailable')}

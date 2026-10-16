@@ -247,10 +247,16 @@ export function NimiOverview() {
           <ChevronRight size={15} aria-hidden="true" />
         </button>
       )}
-      {activeTransfers.length ? (
+      {downloads?.activeCount ? (
         <>
           <span className="text-[var(--nimi-text-muted)]">·</span>
-          <span>{t('runtimeConfig.overview.statusDownloading', { count: activeTransfers.length })}</span>
+          <button
+            type="button"
+            className="min-h-9 rounded-md text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            onClick={() => navigation.push({ id: 'downloads' })}
+          >
+            {t('runtimeConfig.overview.statusDownloading', { count: downloads.activeCount })}
+          </button>
         </>
       ) : null}
       {health.isError ? (

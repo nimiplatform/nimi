@@ -170,12 +170,11 @@ export function RuntimeConfigConnectorCreateForm(props: {
   const query = providerQuery.trim().toLocaleLowerCase();
   const matchingProviders = managedProviders.filter(entry => providerLabel(entry.provider).toLocaleLowerCase().includes(query));
   const connected = new Set(props.connectedProviders ?? []);
-  // "Already connected" first: these are the services the person has used
-  // before. Everything else stays alphabetical; the catalog carries no
-  // category, so none is invented.
+  // Adding a service starts with providers that are not connected yet.
+  // Existing providers remain available for adding another connection.
   const providerGroups = [
-    { key: 'connected', items: matchingProviders.filter(entry => connected.has(entry.provider)) },
     { key: connected.size ? 'others' : 'all', items: matchingProviders.filter(entry => !connected.has(entry.provider)) },
+    { key: 'connected', items: matchingProviders.filter(entry => connected.has(entry.provider)) },
   ].filter(group => group.items.length > 0);
   const chooseProvider = (providerId: string) => onChangeField(() => { setProvider(providerId); setEndpoint(''); setAuthOptionValue(''); setTokenDraft(''); });
 

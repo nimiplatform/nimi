@@ -711,7 +711,7 @@
     "greetingEvening": "晚上好",
     "greetingNight": "夜深了",
     "statusCapabilities": "AI 能力 · {{count}} 项可用",
-    "statusDownloading": "{{count}} 项下载进行中",
+    "statusDownloading": "未完成的下载：{{count}}",
     "setupFailed": "{{capability}} · 设置需要处理",
     "updateTag": "有更新",
     "firstRunTitle": "三步开始使用",
@@ -1245,6 +1245,13 @@
     "total": "总计",
     "inputTokens": "输入 Tokens",
     "outputTokens": "输出 Tokens",
+    "healthLive": "实时",
+    "healthConnecting": "正在重连",
+    "healthNoData": "暂无数据",
+    "reportedCpu": "上报的 CPU 用量",
+    "reportedRam": "上报的内存用量",
+    "reportedVram": "上报的显存用量",
+    "healthCountersHint": "以下是 Runtime 上报的计数，不是这台电脑的容量；零值也可能表示该项尚未采样。整机用量请查看上方「系统资源」。",
     "runtimeHealth": "运行时健康状态",
     "aiProviders": "AI 提供商",
     "connecting": "连接中...",
@@ -1885,12 +1892,12 @@
     "tokenRevokedLabel": "撤销时间",
     "tokenCount": "{{count}} 个 Token",
     "gatewayAcceptingHeadline": "网关正在接受连接",
-    "gatewayDeferredHeadline": "外部 Agent 接入已延期",
+    "gatewayDeferredHeadline": "外部 Agent 接入暂不可用",
     "gatewayOfflineHeadline": "网关已离线",
     "gatewayUnavailableHeadline": "网关不可用",
     "gatewayLoadingHeadline": "正在检查网关状态",
     "gatewayAcceptingSubline": "外部 Agent 可使用有效访问令牌连接下方地址。",
-    "gatewayActionRegistryEmptySubline": "状态映射已就绪，但需等待 Runtime action registry 与 gateway server 落地后才能签发 Token。",
+    "gatewayActionRegistryEmptySubline": "Runtime 暂未提供可用的外部代理操作，当前无法创建访问凭证。",
     "gatewayOfflineSubline": "Runtime 当前不接受外部 Agent 连接。",
     "gatewayErrorSubline": "无法连接到本地 Runtime 网关。",
     "activeScopesLabel": "活跃范围",
@@ -2472,7 +2479,8 @@
     "preparingCount": "{{count}} 项准备中",
     "attentionCount": "{{count}} 项需处理",
     "apps": {
-      "title": "在应用中体验",
+      "title": "使用此能力的应用",
+      "description": "打开应用详情，查看设置与可用状态。",
       "unavailable": "暂时无法读取应用信息。",
       "incomplete": "部分应用信息暂时无法读取。"
     },
@@ -2556,8 +2564,9 @@
       "ready": "已准备"
     },
     "verifying": "校验中",
-    "summaryActive": "{{count}} 项进行中",
+    "summaryActive": "{{count}} 项未完成的下载",
     "summaryAttention": "{{count}} 项需处理",
+    "preparationTasks": "其他准备任务（{{count}}）",
     "summaryIdle": "当前没有正在进行的下载",
     "attempts": "{{count}} 次尝试",
     "showAttempts": "之前的尝试（{{count}}）",
@@ -2573,6 +2582,7 @@
     "checkSyncStarted": "已启动检查与同步，请稍后刷新任务状态。",
     "setupGroup": "AI 配置",
     "setupCreatedAt": "创建于 {{at}}",
+    "setupUpdatedAt": "更新于 {{at}}",
     "configuredModel": "配置模型：{{name}}",
     "modelLabel": "模型",
     "modelsLoading": "正在读取配置模型…",
@@ -2600,7 +2610,7 @@
       "stopped": "下载在完成前已停止。",
       "forbidden": "来源拒绝了对此文件的访问。",
       "missing": "来源处已找不到该文件，或文件已失效。",
-      "unknown": "下载未完成。可以重试，或展开详情查看原因。"
+      "unknown": "下载未完成。请展开技术详情查看具体原因。"
     }
   },
   "localModels": {
@@ -2799,7 +2809,7 @@
     "chooseSetup": "选择一套配置",
     "deviceConnected": "本机服务已连接",
     "downloadLane": {
-      "active": "进行中",
+      "active": "未完成",
       "attention": "需处理",
       "history": "历史"
     },

@@ -21,6 +21,7 @@
   },
   "home": {
     "attentionTitle": "Needs Attention",
+    "attentionSources": "{{count}} sources need attention",
     "updatesTitle": "Updates Available",
     "recentTitle": "Recent Activity"
   },

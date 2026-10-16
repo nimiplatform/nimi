@@ -21,6 +21,7 @@
   },
   "home": {
     "attentionTitle": "需处理",
+    "attentionSources": "{{count}} 个来源需要处理",
     "updatesTitle": "有更新",
     "recentTitle": "最近活跃"
   },

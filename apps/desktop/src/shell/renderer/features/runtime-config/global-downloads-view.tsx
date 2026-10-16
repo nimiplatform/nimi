@@ -48,7 +48,7 @@ function appJobStage(phase: string): DownloadStage {
  * like the other rail controls) with the button centered inside: a ring wider
  * than its container would overflow only to the right, off the icon's center.
  */
-export function GlobalDownloadsNavigation({ onOpen }: { readonly onOpen: () => void }) {
+export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readonly onOpen: () => void; readonly selected?: boolean }) {
   const { t } = useTranslation();
   const downloads = useGlobalDownloads();
   const apps = useAppsDownloads();
@@ -98,9 +98,10 @@ export function GlobalDownloadsNavigation({ onOpen }: { readonly onOpen: () => v
           size="sm"
           data-testid="global-downloads-entry"
           aria-label={t('runtimeConfig.downloads.title')}
+          aria-current={selected ? 'page' : undefined}
           icon={<Download size={19} />}
           onClick={onOpen}
-          className={active ? 'text-[var(--nimi-action-primary-bg)]' : ''}
+          className={selected ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : active ? 'text-[var(--nimi-action-primary-bg)]' : ''}
         />
         {downloads?.activeCount && downloads.activeCount > 1 ? (
           <span className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-1 text-[10px] leading-4 text-[var(--nimi-action-primary-text)]">
@@ -179,7 +180,8 @@ export function GlobalDownloadsView() {
     }
   };
   const transfers = downloads?.transfers.filter((item) => transferLane(item.state) === lane) ?? [];
-  const environments = downloads?.environments.filter((item) => environmentLane(item) === lane) ?? [];
+  const environments = downloads?.environments.filter((item) => environmentLane(item) === lane)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)) ?? [];
   const appJobs = apps?.jobs.filter((item) => appJobLane(item.phase) === lane) ?? [];
   const grouped = new Map<string, typeof snapshot.tasks>();
   for (const task of snapshot.tasks) {
@@ -352,6 +354,79 @@ export function GlobalDownloadsView() {
       </DownloadTaskRow>
     );
   };
+  const setupGroups = [...grouped.entries()].map(([id, tasks]) => {
+    const taskTransfers = transfers.filter(
+      (item) =>
+        !usedTransfers.has(item.installSessionId) &&
+        tasks.some(
+          (task) =>
+            task.refs.transferIds.includes(item.installSessionId) ||
+            (!!item.planId && task.refs.installPlanIds.includes(item.planId)),
+        ),
+    );
+    taskTransfers.forEach((item) => usedTransfers.add(item.installSessionId));
+    const taskEnvironments = environments.filter(
+      (item) =>
+        !usedEnvironments.has(item.jobId) &&
+        tasks.some((task) => task.refs.dependencyJobIds.includes(item.jobId)),
+    );
+    taskEnvironments.forEach((item) => usedEnvironments.add(item.jobId));
+    const updatedAt = [...tasks, ...taskTransfers, ...taskEnvironments].map((item) => item.updatedAt).sort().at(-1) ?? '';
+    return { id, tasks, taskTransfers, taskEnvironments, updatedAt };
+  }).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const renderSetupGroup = ({ id, tasks, taskTransfers, taskEnvironments, updatedAt }: (typeof setupGroups)[number]) => (
+    <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
+            {t('runtimeConfig.downloads.setupGroup')}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h2 className="font-semibold text-[var(--nimi-text-primary)]">
+              {tasks[0]?.draft?.profileTitle ??
+                displayRuntimeConfigCapabilityLabel(tasks[0]!.capabilityContract, t)}
+            </h2>
+            {[...new Set(tasks.map((task) => task.status))].map((status) => (
+              <StatusBadge key={status} tone={setupTaskStatusTone(status)}>
+                {t(`runtimeConfig.setupTask.status.${status}`)}
+              </StatusBadge>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+            {t(lane === 'history' ? 'runtimeConfig.downloads.setupUpdatedAt' : 'runtimeConfig.downloads.setupCreatedAt', { at: new Date(lane === 'history' ? updatedAt : tasks[0]!.createdAt).toLocaleString() })}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          tone="secondary"
+          className="shrink-0"
+          onClick={() => {
+            commands.runtimeConfigNavigation.openSetupTask(tasks[0]!.taskId);
+
+          }}
+        >
+          {t('runtimeConfig.downloads.openSetup')}
+        </Button>
+      </div>
+      {tasks.map((task) => <DownloadSetupModels
+        key={task.taskId}
+        task={task}
+        showCapability={tasks.length > 1}
+        loadouts={inventory.data?.aggregate.loadouts ?? []}
+        assets={modelLibrary.data?.assets ?? []}
+        catalog={modelLibrary.data?.catalog ?? []}
+        loading={inventory.isPending || modelLibrary.isPending}
+        unavailable={inventory.isError || modelLibrary.isError}
+      />)}
+      {taskTransfers.length + taskEnvironments.length > 0 ? (
+        <div className="mt-2 border-t border-[var(--nimi-border-subtle)]">
+          {taskTransfers.map((item) => transferRow(item, 1, true))}
+          {taskEnvironments.map((item) => environmentRow(item, true))}
+        </div>
+      ) : null}
+    </section>
+  );
+  const setupsWithoutDownloads = setupGroups.filter((group) => !group.taskTransfers.length && !group.taskEnvironments.length);
   const loading = downloads?.loading || apps?.status === 'loading';
   const empty = !loading &&
     !downloads?.errors.length &&
@@ -469,7 +544,7 @@ export function GlobalDownloadsView() {
               </div>
             </div>
           ) : (
-            <ScrollArea className="min-h-0 flex-1" contentClassName="space-y-4 px-6 py-4">
+            <ScrollArea key={lane} className="min-h-0 flex-1" contentClassName="space-y-4 px-6 py-4">
               {error ? <InlineAlert tone="danger">{error}</InlineAlert> : null}
               {downloads?.errors.length || apps?.error ? (
                 <InlineAlert tone="warning">
@@ -480,76 +555,7 @@ export function GlobalDownloadsView() {
                   </details>
                 </InlineAlert>
               ) : null}
-              {[...grouped.entries()].map(([id, tasks]) => {
-                const taskTransfers = transfers.filter(
-                  (item) =>
-                    !usedTransfers.has(item.installSessionId) &&
-                    tasks.some(
-                      (task) =>
-                        task.refs.transferIds.includes(item.installSessionId) ||
-                        (!!item.planId && task.refs.installPlanIds.includes(item.planId)),
-                    ),
-                );
-                taskTransfers.forEach((item) => usedTransfers.add(item.installSessionId));
-                const taskEnvironments = environments.filter(
-                  (item) =>
-                    !usedEnvironments.has(item.jobId) &&
-                    tasks.some((task) => task.refs.dependencyJobIds.includes(item.jobId)),
-                );
-                taskEnvironments.forEach((item) => usedEnvironments.add(item.jobId));
-                return (
-                  <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 py-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                          {t('runtimeConfig.downloads.setupGroup')}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                          <h2 className="font-semibold text-[var(--nimi-text-primary)]">
-                            {tasks[0]?.draft?.profileTitle ??
-                              displayRuntimeConfigCapabilityLabel(tasks[0]!.capabilityContract, t)}
-                          </h2>
-                          {[...new Set(tasks.map((task) => task.status))].map((status) => (
-                            <StatusBadge key={status} tone={setupTaskStatusTone(status)}>
-                              {t(`runtimeConfig.setupTask.status.${status}`)}
-                            </StatusBadge>
-                          ))}
-                        </div>
-                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                          {t('runtimeConfig.downloads.setupCreatedAt', { at: new Date(tasks[0]!.createdAt).toLocaleString() })}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        tone="secondary"
-                        className="shrink-0"
-                        onClick={() => {
-                          commands.runtimeConfigNavigation.openSetupTask(tasks[0]!.taskId);
-
-                        }}
-                      >
-                        {t('runtimeConfig.downloads.openSetup')}
-                      </Button>
-                    </div>
-                    {tasks.map((task) => <DownloadSetupModels
-                      key={task.taskId}
-                      task={task}
-                      showCapability={tasks.length > 1}
-                      loadouts={inventory.data?.aggregate.loadouts ?? []}
-                      assets={modelLibrary.data?.assets ?? []}
-                      catalog={modelLibrary.data?.catalog ?? []}
-                      loading={inventory.isPending || modelLibrary.isPending}
-                      unavailable={inventory.isError || modelLibrary.isError}
-                    />)}
-                    {taskTransfers.length + taskEnvironments.length > 0 ? (
-                      <div className="mt-2 border-t border-[var(--nimi-border-subtle)]">
-                        {taskTransfers.map((item) => transferRow(item, 1, true))}
-                        {taskEnvironments.map((item) => environmentRow(item, true))}
-                      </div>
-                    ) : null}
-                  </section>
-                );
-              })}
+              {setupGroups.filter((group) => group.taskTransfers.length || group.taskEnvironments.length).map(renderSetupGroup)}
               {lane === 'active'
                 ? transfers.filter((item) => !usedTransfers.has(item.installSessionId)).map((item) => transferRow(item))
                 : groupTransferAttempts(transfers.filter((item) => !usedTransfers.has(item.installSessionId))).map(transferGroup)}
@@ -561,7 +567,9 @@ export function GlobalDownloadsView() {
                       .sort((left, right) => Number(right.updatedAt?.seconds ?? 0) - Number(left.updatedAt?.seconds ?? 0))
                       .reverse()
                       .map((job) => [job.appId, job] as const),
-                  ).values()].map((job) => ({ job, attempts: appJobs.filter((item) => item.appId === job.appId).length }))
+                  ).values()]
+                    .sort((left, right) => Number(right.updatedAt?.seconds ?? 0) - Number(left.updatedAt?.seconds ?? 0))
+                    .map((job) => ({ job, attempts: appJobs.filter((item) => item.appId === job.appId).length }))
               ).map(({ job, attempts }) => {
                 const entry = appEntries.get(job.appId);
                 const stage = appJobStage(appDownloadPhase(job));
@@ -629,6 +637,14 @@ export function GlobalDownloadsView() {
                   </DownloadTaskRow>
                 );
               })}
+              {setupsWithoutDownloads.length ? (
+                <details className="border-t border-[var(--nimi-border-subtle)] pt-4">
+                  <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-secondary)]">
+                    {t('runtimeConfig.downloads.preparationTasks', { count: setupsWithoutDownloads.length })}
+                  </summary>
+                  <div className="mt-3 space-y-4">{setupsWithoutDownloads.map(renderSetupGroup)}</div>
+                </details>
+              ) : null}
               {loading ? <LoadingSkeleton lines={4} label={t('Common.loading')} /> : null}
             </ScrollArea>
           )}

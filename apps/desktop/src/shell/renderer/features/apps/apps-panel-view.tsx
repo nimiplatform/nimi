@@ -882,19 +882,42 @@ function AppsHomeBody({
           <h2 className="flex min-w-0 items-baseline gap-2 px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
             <span className="truncate">{t('Apps.home.attentionTitle')}</span>
             <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
-              {t('Apps.library.allAppsCount', { count: attentionEntries.length })}
+              {t('Apps.library.allAppsCount', { count: groupAppsEntries(attentionEntries).length })}
             </span>
           </h2>
           <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
-            {attentionEntries.map((entry) => (
+            {groupAppsEntries(attentionEntries).map((group) => group.entries.length === 1 ? (
               <AppListRow
-                key={entry.identity.entryKey}
-                entry={entry}
+                key={group.appId}
+                entry={group.primary}
                 showSourceBadge
-                activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
-                actionsDisabled={appsActionsLocked(pendingActions, entry.identity.appId)}
-                onAction={actionDispatcherFor(entry.identity.entryKey)}
+                activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
+                actionsDisabled={appsActionsLocked(pendingActions, group.appId)}
+                onAction={actionDispatcherFor(group.primary.identity.entryKey)}
               />
+            ) : (
+              <details key={group.appId} data-testid={`apps-attention-group:${group.appId}`} className="min-w-0 self-start rounded-xl border border-[var(--nimi-border-subtle)]">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
+                  {group.displayName}
+                  <span className="ml-2 font-normal text-[var(--nimi-text-secondary)]">{t('Apps.home.attentionSources', { count: group.entries.length })}</span>
+                </summary>
+                <div className="divide-y divide-[var(--nimi-border-subtle)] border-t border-[var(--nimi-border-subtle)]">
+                  {group.entries.map((entry) => (
+                    <div key={entry.identity.entryKey}>
+                      {entry.localDevelopment ? <p className="break-all px-4 pt-3 text-xs text-[var(--nimi-text-secondary)]">
+                        {entry.localDevelopment.canonicalProjectRoot} · {entry.localDevelopment.selector}
+                      </p> : null}
+                      <AppListRow
+                        entry={entry}
+                        showSourceBadge
+                        activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
+                        actionsDisabled={appsActionsLocked(pendingActions, entry.identity.appId)}
+                        onAction={actionDispatcherFor(entry.identity.entryKey)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </details>
             ))}
           </div>
         </section>

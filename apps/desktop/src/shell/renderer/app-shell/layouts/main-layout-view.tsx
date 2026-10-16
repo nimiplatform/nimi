@@ -328,7 +328,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             </nav>
             <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
               <ProductUpdateNotice />
-              <GlobalDownloadsNavigation onOpen={() => props.onNav('downloads')} />
+              <GlobalDownloadsNavigation selected={props.activeTab === 'downloads'} onOpen={() => props.onNav('downloads')} />
               <Tooltip
                 content={t('Navigation.notifications')}
                 placement="right"

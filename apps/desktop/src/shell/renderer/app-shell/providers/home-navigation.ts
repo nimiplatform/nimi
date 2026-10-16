@@ -151,7 +151,6 @@ export function homeNavigationColumn(destination: HomeDestination): AppTab {
   switch (destination.id) {
     case 'source-detail':
     case 'world-detail': return 'explore';
-    case 'downloads': return 'apps';
     case 'diagnostics': return 'runtime';
     case 'privacy-policy':
     case 'terms-of-service': return 'settings';

@@ -79,7 +79,7 @@ export function groupTransferAttempts(
   return [...byModel.values()].map((attempts) => {
     const sorted = [...attempts].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
     return { latest: sorted[0]!, attempts: sorted };
-  });
+  }).sort((left, right) => right.latest.updatedAt.localeCompare(left.latest.updatedAt));
 }
 
 export type DownloadStage = 'queued' | 'downloading' | 'verifying' | 'installing' | 'paused' | 'done' | 'interrupted' | 'cancelled';

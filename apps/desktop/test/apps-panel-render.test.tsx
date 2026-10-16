@@ -421,6 +421,27 @@ test('Apps home renders the header, recent rows, and the merged rail with resolv
   assert.equal(markup.includes('Apps.sourceBadge.'), false, 'no raw i18n keys');
 });
 
+test('attention groups multiple registrations without losing exact source rows', async () => {
+  const { JSDOM } = await import('jsdom');
+  await initI18n();
+  await changeLocale('en');
+  const first = entry({ selector: 'project-first', canonicalProjectRoot: '/projects/first' }, 'failed');
+  const second = entry({ selector: 'project-second', canonicalProjectRoot: '/projects/second' }, 'failed');
+  const markup = renderView(baseProps({ projection: {
+    status: 'loaded', entries: [first, second], catalogStatus: 'not-implemented', runtimeError: null,
+  } }));
+  const dom = new JSDOM(markup);
+  const group = dom.window.document.querySelector('[data-testid="apps-attention-group:nimi.lab"]');
+  assert.ok(group);
+  assert.equal(group.hasAttribute('open'), false);
+  assert.ok(group.querySelector('summary')?.textContent?.includes('2 sources need attention'));
+  for (const item of [first, second]) {
+    assert.ok(group.querySelector(`[data-testid="apps-entry-${item.identity.entryKey}"]`));
+    assert.ok(group.textContent?.includes(item.localDevelopment!.canonicalProjectRoot));
+    assert.ok(group.textContent?.includes(item.localDevelopment!.selector));
+  }
+});
+
 test('sources of one App merge into a single rail row with source glyphs', async () => {
   await initI18n();
   await changeLocale('zh');

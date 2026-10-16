@@ -42,7 +42,8 @@ test('ready state renders the recent-chats header, strip, preview, and reply com
   assert.match(html, /data-testid="home-recent-chat:aria"/);
   assert.match(html, /data-testid="home-recent-chat:bo"/);
   assert.match(html, /data-testid="home-recent-chat:lumi"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-testid="home-recent-chat:lumi"/);
-  assert.match(html, /src="https:\/\/example\.com\/bo\.png"/);
+  // Kit Avatar resolves image loading and fallback after mounting; this SSR
+  // check covers the partner identity and composition, not image loading.
   // Preview of the selected partner with its last message and formatted time.
   assert.match(html, /data-testid="home-agent-name">Lumi/);
   assert.match(html, /data-testid="home-recent-chat-message">我们上次聊到的事情，还想继续吗？/);

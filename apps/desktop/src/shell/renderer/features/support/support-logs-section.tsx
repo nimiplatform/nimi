@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import type { DesktopRendererStorageDirs as DesktopStorageDirs } from '../../renderer/settings-port.js';
 import type { DesktopLogsExportResult as LogsExportResult } from '../../renderer/support-logs-port.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
+import { Button, useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,
   SupportFailClosed,
@@ -122,7 +122,9 @@ function SupportLogsExportCard() {
 
 export function SupportLogsSection() {
   const { t } = useTranslation();
-  const logs = useDesktopRendererCommands().supportLogs;
+  const commands = useDesktopRendererCommands();
+  const logs = commands.supportLogs;
+  const [copyState, setCopyState] = useState<'copied' | 'failed' | null>(null);
   const projection = useSupportProjection(() => loadLogsProjection(logs), {
     failClosedMessage: t('Support.logsProjectionUnavailable'),
   });
@@ -172,6 +174,24 @@ export function SupportLogsSection() {
             value={projection.data.logsDir || t('Support.valueUnknown')}
           />
         </div>
+        <Button
+          size="sm"
+          tone="secondary"
+          className="mt-3"
+          disabled={!projection.data.logsDir}
+          onClick={async () => {
+            setCopyState(null);
+            try {
+              await commands.writeClipboardText(projection.data!.logsDir);
+              setCopyState('copied');
+            } catch {
+              setCopyState('failed');
+            }
+          }}
+        >{t('Support.logsCopyPath')}</Button>
+        {copyState ? <p role="status" className="mt-2 text-xs text-[var(--nimi-text-secondary)]">
+          {t(copyState === 'copied' ? 'Support.logsPathCopied' : 'Support.logsPathCopyFailed')}
+        </p> : null}
       </SupportCard>
 
       <SupportCard

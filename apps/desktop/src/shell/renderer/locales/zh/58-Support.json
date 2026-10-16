@@ -1,4 +1,9 @@
 {
+  "logsCopyPath": "复制日志路径",
+  "logsPathCopied": "日志路径已复制",
+  "logsPathCopyFailed": "暂时无法复制，请选中上方路径手动复制。",
+  "repairAdvancedCleanup": "高级：按目录检查与清理",
+  "repairDirectoryIdentifier": "目录标识",
   "localSessionTitle": "当前账号的服务",
   "localSessionDescription": "账号服务无法响应时，可在这里重新连接。当前 Home 界面将返回首页；已中断的操作不会自动重试。",
   "surfaceTitle": "支持",

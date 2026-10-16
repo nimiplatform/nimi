@@ -711,7 +711,7 @@
     "greetingEvening": "Good evening",
     "greetingNight": "Still up",
     "statusCapabilities": "AI capabilities · {{count}} ready",
-    "statusDownloading": "{{count}} downloading",
+    "statusDownloading": "Unfinished downloads: {{count}}",
     "setupFailed": "{{capability}} · setup needs attention",
     "updateTag": "Update",
     "firstRunTitle": "Three steps to get going",
@@ -1245,6 +1245,13 @@
     "total": "Total",
     "inputTokens": "Input Tokens",
     "outputTokens": "Output Tokens",
+    "healthLive": "Live",
+    "healthConnecting": "Reconnecting",
+    "healthNoData": "No data",
+    "reportedCpu": "Reported CPU usage",
+    "reportedRam": "Reported memory",
+    "reportedVram": "Reported VRAM",
+    "healthCountersHint": "Runtime-reported counters, not this computer’s capacity. A zero may mean that a counter is not sampled. See System Resources for device usage.",
     "runtimeHealth": "Runtime Health",
     "aiProviders": "AI Providers",
     "connecting": "Connecting...",
@@ -1885,12 +1892,12 @@
     "tokenRevokedLabel": "revoked",
     "tokenCount": "{{count}} token",
     "gatewayAcceptingHeadline": "Gateway is accepting connections",
-    "gatewayDeferredHeadline": "External Agent access is deferred",
+    "gatewayDeferredHeadline": "External Agent access is unavailable",
     "gatewayOfflineHeadline": "Gateway is offline",
     "gatewayUnavailableHeadline": "Gateway unavailable",
     "gatewayLoadingHeadline": "Checking gateway status",
     "gatewayAcceptingSubline": "External agents can connect at the address below using a valid access token.",
-    "gatewayActionRegistryEmptySubline": "Runtime projection is present, but token issuance stays disabled until the Runtime action registry and gateway server land.",
+    "gatewayActionRegistryEmptySubline": "Runtime has no available external-agent actions. Access tokens cannot be created right now.",
     "gatewayOfflineSubline": "Runtime is not accepting external agent connections.",
     "gatewayErrorSubline": "Unable to reach the local runtime gateway.",
     "activeScopesLabel": "Active Scopes",
@@ -2472,7 +2479,8 @@
     "preparingCount": "{{count}} preparing",
     "attentionCount": "{{count}} need attention",
     "apps": {
-      "title": "Try it in an app",
+      "title": "Apps using this capability",
+      "description": "Open app details to check setup and availability.",
       "unavailable": "App information is temporarily unavailable.",
       "incomplete": "Some app information is temporarily unavailable."
     },
@@ -2556,8 +2564,9 @@
       "ready": "Prepared"
     },
     "verifying": "Verifying",
-    "summaryActive": "{{count}} in progress",
+    "summaryActive": "Unfinished downloads: {{count}}",
     "summaryAttention": "{{count}} need attention",
+    "preparationTasks": "Other preparation tasks ({{count}})",
     "summaryIdle": "Nothing is downloading right now",
     "attempts": "{{count}} attempts",
     "showAttempts": "Earlier attempts ({{count}})",
@@ -2573,6 +2582,7 @@
     "checkSyncStarted": "Check & Sync has started. Refresh downloads shortly to see the updated task state.",
     "setupGroup": "Setup",
     "setupCreatedAt": "Created {{at}}",
+    "setupUpdatedAt": "Updated {{at}}",
     "configuredModel": "Configured model: {{name}}",
     "modelLabel": "Model",
     "modelsLoading": "Loading configured models…",
@@ -2600,7 +2610,7 @@
       "stopped": "The download was stopped before it finished.",
       "forbidden": "The source refused access to this file.",
       "missing": "The file is no longer available at its source.",
-      "unknown": "The download did not finish. Retry it, or open the details to see why."
+      "unknown": "The download did not finish. Check the technical details for the reported reason."
     }
   },
   "localModels": {
@@ -2799,7 +2809,7 @@
     "chooseSetup": "Choose a setup",
     "deviceConnected": "Device service connected",
     "downloadLane": {
-      "active": "In progress",
+      "active": "Unfinished",
       "attention": "Needs attention",
       "history": "History"
     },

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button, Card, PageShell, Section } from './settings-layout-components.js';
 import { ShieldIcon } from './settings-assets.js';
+import { useProductUpdate } from '../home/product-update-context.js';
 
 function FileTextIcon({ className = '' }: { className?: string }) {
   return (
@@ -38,6 +39,7 @@ function LegalDocumentCard({
   title: string;
 }) {
   const { t } = useTranslation();
+
   return (
     <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-4">
@@ -64,12 +66,24 @@ function LegalDocumentCard({
 export function AboutLegalPage() {
   const navigation = useHomeNavigation();
   const { t } = useTranslation();
+  const update = useProductUpdate();
+  const version = (import.meta as { env?: Record<string, string> }).env?.VITE_NIMI_DESKTOP_VERSION?.trim();
 
   return (
     <PageShell
       title={t('Settings.aboutLegalTitle')}
       description={t('Settings.aboutLegalDescription')}
     >
+      <Section title={t('Settings.aboutProductName')}>
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-[var(--nimi-text-primary)]">
+            {version ? t('Settings.aboutVersion', { version }) : t('Settings.aboutVersionUnknown')}
+          </p>
+          <Button variant="secondary" disabled={!update.checkAvailable} onClick={() => { void update.check(); }}>
+            {t('ProductUpdate.check')}
+          </Button>
+        </Card>
+      </Section>
       <Section title={t('Settings.sectionAboutLegal')}>
         <div className="grid gap-3">
           <LegalDocumentCard

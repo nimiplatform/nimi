@@ -1,5 +1,5 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Compass } from 'lucide-react';
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
@@ -41,12 +41,15 @@ function PartnerAvatar({ displayName, avatarUrl, size }: { displayName: string; 
   const classes = size === 'md'
     ? 'size-10 text-base'
     : 'size-12 text-lg';
-  return avatarUrl ? (
-    <img src={avatarUrl} alt="" className={`${classes} shrink-0 rounded-full object-cover`} />
-  ) : (
-    <span className={`flex ${classes} shrink-0 items-center justify-center rounded-full bg-[var(--nimi-surface-active)] font-semibold text-[var(--nimi-action-primary-bg)]`}>
-      {displayName.trim().slice(0, 1) || '?'}
-    </span>
+  return (
+    <Avatar
+      src={avatarUrl}
+      alt={displayName}
+      size={size}
+      tone="accent"
+      className={`${classes} shrink-0`}
+      fallback={<span aria-hidden="true">{[...displayName.trim()][0] || '?'}</span>}
+    />
   );
 }
 

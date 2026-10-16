@@ -68,7 +68,8 @@ test('identical source labels and related content never merge independent acquis
     { ...common, installSessionId: 'first', sourceLabel: 'same/name', sessionKind: 'download', updatedAt: '2026-09-20T00:00:00Z' },
     { ...common, installSessionId: 'second', sourceLabel: 'same/name', sessionKind: 'download', relatedInstallSessionId: 'first', updatedAt: '2026-09-20T00:01:00Z' },
   ] satisfies Parameters<typeof groupTransferAttempts>[0];
-  assert.deepEqual(groupTransferAttempts(rows).map((group) => group.latest.installSessionId), ['first', 'second']);
+  // Independent acquisitions stay distinct, with the most recently updated first.
+  assert.deepEqual(groupTransferAttempts(rows).map((group) => group.latest.installSessionId), ['second', 'first']);
 });
 
 test('content conflicts direct the user to the existing operation instead of retrying a new download', () => {
