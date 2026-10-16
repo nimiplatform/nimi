@@ -150,11 +150,6 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                       : 'h-16 w-16'
                   }`,
                 )}
-                {isLogoStage ? (
-                  <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)]">
-                    {entryLabel}
-                  </span>
-                ) : null}
               </button>
 
               {isLogoStage ? (

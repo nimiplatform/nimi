@@ -37,6 +37,24 @@ it('updates command ordering and grouping on rerender and visibly projects check
   expect(items()[1].textContent).toContain('✓');
 });
 
+it('runs standard View toggles as direct panel actions without checkmarks', async () => {
+  let visible = true;
+  await mount(<NimiAppChrome metadata={{ name: 'Test', version: '1' }} locale="zh"
+    sidebar={{ visible, onVisibleChange(value) { visible = value; } }} />);
+  expect(button('隐藏侧栏').getAttribute('aria-pressed')).toBe('true');
+  await click(button('视图'));
+  const item = document.querySelector('[role="menu"] [data-nimi-command-id="nimi.sidebar.toggle"]')!;
+  expect(item.getAttribute('role')).toBe('menuitem');
+  expect(item.getAttribute('aria-checked')).toBeNull();
+  expect(item.textContent).not.toContain('✓');
+  expect(item.textContent).toContain('显示/隐藏侧边栏');
+  expect(item.textContent).toContain('Ctrl+B');
+  expect(item.querySelector('.flex-1')!.className).toContain('text-left');
+  expect(item.querySelector('span:last-child')!.className).toContain('text-right');
+  await click(item);
+  expect(visible).toBe(false);
+});
+
 it('Alt navigation works as a full press sequence from body and menu focus; Alt alone activates the menu', async () => {
   const navigation = createNimiNavigation({ initial: { id: 'a' }, validate: value => value as { id: string } });
   await navigation.push({ id: 'b' });

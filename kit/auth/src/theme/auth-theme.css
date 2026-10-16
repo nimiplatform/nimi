@@ -12,6 +12,7 @@
   --nimi-text-primary: var(--nimi-text-primary, #111827);
   --nimi-text-secondary: var(--nimi-text-secondary, #4b5563);
   --nimi-text-muted: var(--nimi-text-muted, #6b7280);
+  --nimi-icon-muted: #94a3b8;
   --nimi-field-bg: var(--nimi-field-bg, #ffffff);
   --nimi-field-border: var(--nimi-field-border, rgba(226,232,240,0.9));
   --nimi-field-focus: #1476D4;

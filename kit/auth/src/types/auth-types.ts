@@ -202,9 +202,9 @@ export const inputBase =
 
 // Shared capsule input bar (email entry and password entry must not drift)
 export const capsuleBar =
-  'flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]';
+  'flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)] focus-within:border-[var(--nimi-field-focus)] focus-within:shadow-none';
 export const capsuleBarIconButton =
-  'ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50';
+  'ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-icon-muted,var(--nimi-text-muted))] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50';
 export const capsuleBarInput =
   'flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] outline-none';
 export const capsuleBarSubmitButton =

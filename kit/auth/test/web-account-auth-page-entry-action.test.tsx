@@ -82,7 +82,7 @@ describe('WebAccountAuthPage entry action semantics', () => {
     const logoControl = () => container.querySelector<HTMLButtonElement>('[data-testid="logo-control"]');
     expect(onActionableReady).toHaveBeenCalledTimes(1);
     expect(logoControl()?.getAttribute('aria-label')).toBe('Sign in to Nimi');
-    expect(logoControl()?.textContent).toBe('Sign in to Nimi');
+    expect(logoControl()?.textContent).toBe('');
     expect(logoControl()?.dataset.nimiSemanticId).toBe('desktop-login-primary');
 
     act(() => logoControl()?.click());

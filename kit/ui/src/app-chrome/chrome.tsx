@@ -204,12 +204,22 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
   };
   dispatchRef.current = dispatch;
   const shortcuts = capabilities?.shortcuts ?? (needsHost ? [] : contentShortcuts);
-  const menuCommands: NimiMenubarCommand[] = commandSet.commands.map(command => ({
-    id: command.id, label: command.label, menu: command.menu, order: command.order, group: menuGroup(command.id) ?? command.group,
-    shortcut: shortcuts.find(s => s.commandId === command.id)?.keys ?? command.shortcut,
-    state: commandSet.state(command.id),
+  // Standard View toggles act as direct panel actions with no checkmark; the
+  // fold button and the host menu still read the truthful checked state.
+  const directPanelActions = new Set(['nimi.sidebar.toggle', 'nimi.view.fullscreen']);
+  const menuCommands: NimiMenubarCommand[] = commandSet.commands.map(command => {
+    const state = commandSet.state(command.id);
+    const { checked, ...action } = state;
+    return {
+      id: command.id, label: command.label, menu: command.menu, order: command.order, group: menuGroup(command.id) ?? command.group,
+      shortcut: shortcuts.find(s => s.commandId === command.id)?.keys ?? command.shortcut,
+      state: directPanelActions.has(command.id) ? action : state,
+    };
+  });
+  const projection = JSON.stringify(commandSet.commands.map(command => {
+    const state = commandSet.state(command.id);
+    return { id: command.id, enabled: state.enabled && !state.busy, visible: state.visible, checked: state.checked ?? false };
   }));
-  const projection = JSON.stringify(menuCommands.map(command => ({ id: command.id, enabled: command.state.enabled && !command.state.busy, visible: command.state.visible, checked: command.state.checked ?? false })));
   const suppress = editing.isEditing();
   useEffect(() => {
     const binding = active.current;
@@ -250,7 +260,7 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
     if (!command.state.visible) return null;
     const label = id === 'nimi.sidebar.toggle' ? props.sidebar?.visible ? locale === 'zh' ? '隐藏侧栏' : 'Hide sidebar' : locale === 'zh' ? '显示侧栏' : 'Show sidebar' : command.label;
     return <Tooltip content={command.state.reason ?? `${label}${command.shortcut ? ` (${command.shortcut})` : ''}`} placement="bottom">
-      <IconButton ref={id === 'nimi.sidebar.toggle' ? foldButton : undefined} size="sm" icon={icon} aria-label={label} aria-pressed={id === 'nimi.sidebar.toggle' ? command.state.checked : undefined}
+      <IconButton ref={id === 'nimi.sidebar.toggle' ? foldButton : undefined} size="sm" icon={icon} aria-label={label} aria-pressed={id === 'nimi.sidebar.toggle' ? props.sidebar?.visible : undefined}
         className="text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
         disabled={!command.state.enabled || command.state.busy} onClick={() => dispatch(id)} style={{ cursor: 'default' }} />
     </Tooltip>;
