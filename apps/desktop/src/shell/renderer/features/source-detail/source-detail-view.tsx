@@ -12,7 +12,6 @@ type SourceDetailViewProps = {
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
-  onCreateAnotherPartner?: () => void;
   partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
   onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
@@ -42,5 +41,6 @@ export function SourceDetailView(props: SourceDetailViewProps) {
     );
   }
 
-  return <CharacterSourceDetailPage {...props} source={props.source} />;
+  const sourceKey = JSON.stringify([props.source.sourceKind, props.source.worldId, props.source.sourceId, props.source.sourceHash]);
+  return <CharacterSourceDetailPage key={sourceKey} {...props} source={props.source} />;
 }

@@ -10,7 +10,6 @@ import {
   renderToStaticMarkup,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
-import { composeWorldCharacterMilestones } from '../src/shell/renderer/features/source-detail/source-detail-world-character-milestones.js';
 import type { SourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model.js';
 
 test.before(async () => {
@@ -42,7 +41,7 @@ function cardsBy(markup: string, testId: string): string[] {
   return markup
     .split(`data-testid="${testId}"`)
     .slice(1)
-    .map((chunk) => chunk.slice(0, chunk.indexOf(testId.startsWith('world-character-relationship-clue-') ? '</li>' : '</article>')));
+    .map((chunk) => chunk.slice(0, chunk.indexOf(testId.includes('-clue-') ? '</li>' : '</article>')));
 }
 
 const worldRef = {
@@ -62,6 +61,10 @@ const miraRaw = {
   bio: 'Station cartographer of The Last Star.',
   worldId: worldRef.worldId,
   worldName: 'The Last Star',
+  relationshipTargets: {
+    'entity-oriel': { kind: 'person', name: 'Oriel Vantasse' },
+    'entity-noor': { kind: 'person', name: 'Noor 努尔' },
+  },
   sourceRef: worldRef,
   viewerRelation: { state: 'connectable', connectionId: null, runtimeSourceRef: null },
   entity: {
@@ -141,43 +144,21 @@ test('non-historical English and mixed-script source detail renders as authored 
 
   // English and mixed-script targets appear in the relationship text.
   const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-list"', '</ul>');
-  assert.match(mapMarkup, />Oriel Vantasse · crewmate<\/span>/);
-  assert.match(mapMarkup, />Noor 努尔<\/span>/);
-  assert.match(mapMarkup, />宇宙之子<\/span>/);
+  assert.match(mapMarkup, /\(Oriel Vantasse · Crewmate\)/);
+  assert.match(mapMarkup, /Noor 努尔/);
+  assert.doesNotMatch(mapMarkup, /宇宙之子/);
+  assert.doesNotMatch(markup, /data-testid="world-character-background-list"/);
 
-  // The explicit (non-historical) type is shown as authored; untyped rows are
-  // shown neutrally rather than dropped or classified as kinship.
+  // Explicit types retain their translated meaning. Untyped rows with a
+  // resolved person endpoint remain neutral; unresolved background stays hidden.
   const [crewmateCard] = cardsBy(markup, 'world-character-relationship-clue-crewmate');
-  assert.match(crewmateCard ?? '', / · crewmate<\/span>/);
+  assert.match(crewmateCard ?? '', / · Crewmate\)/);
   const untypedCards = cardsBy(markup, 'world-character-relationship-clue-untyped');
-  assert.equal(untypedCards.length, 2);
-  assert.match(untypedCards.join('\n'), /宇宙之子 is the crew nickname for Mira\./);
+  assert.equal(untypedCards.length, 1);
   assert.match(untypedCards.join('\n'), /Noor 努尔 keeps the 任意门 archive\./);
   for (const card of untypedCards) {
     assert.doesNotMatch(card, /Kinship|Office|Association|Status|rounded-full px-2 py-0\.5/);
   }
-});
-
-test('milestone titles such as 任务完成 and 任意门 keep their explicit kind and a relationship life event stays a relationship', () => {
-  const source = toSourceDetailData(miraRaw, 'source_materialization_available');
-  const milestones = composeWorldCharacterMilestones(
-    source.characterProfile.milestones,
-    source.worldCharacterAugmentation?.careerMilestones ?? [],
-  );
-
-  assert.deepEqual(milestones.map((milestone) => [milestone.title, milestone.kind]), [
-    ['任务完成', 'biography'],
-    ['Joined Oriel Vantasse', 'relationship'],
-    ['任意门', 'biography'],
-  ]);
-
-  const markup = render(source);
-  const timeline = sliceBetween(markup, 'data-testid="world-character-milestones-timeline"', 'data-testid="world-character-relationship-clues-section"');
-  assert.match(timeline, /任务完成[\s\S]*Biography/);
-  assert.match(timeline, /Joined Oriel Vantasse[\s\S]*Relationship clues/);
-  assert.doesNotMatch(timeline, />Office<|>Entry<|>Kinship</);
-  assert.doesNotMatch(timeline, />(?:官|仕|文|生|卒|事)<\/span>/u);
-  assert.match(timeline, /Cycle 12/);
 });
 
 test('a contemporary troupe is not given an era or dynasty from 当代 or 代', async () => {
@@ -219,6 +200,7 @@ test('explicitly typed historical relationships still display with their localiz
     const source = toSourceDetailData({
       ...ouYangDeRaw,
       characterProfile: { ...ouYangDeRaw.characterProfile, relationshipNotes: [] },
+      relationshipTargets: { 'cbdb-person-wen-shi': { kind: 'person', name: '温氏' } },
       relationships: [
         ...ouYangDeRaw.relationships,
         {
@@ -238,22 +220,16 @@ test('explicitly typed historical relationships still display with their localiz
 
     const [kinshipCard] = cardsBy(markup, 'world-character-relationship-clue-kinship');
     assert.match(kinshipCard ?? '', /温氏/);
-    assert.match(kinshipCard ?? '', /温氏 · 亲属<\/span>/);
-    const [statusCard] = cardsBy(markup, 'world-character-relationship-clue-status');
+    assert.match(kinshipCard ?? '', /（温氏 · 亲属）/);
+    const [statusCard] = cardsBy(markup, 'world-character-life-clue-status');
     assert.match(statusCard ?? '', /理学家 - 阳明学派/);
-    assert.match(statusCard ?? '', /理学家 - 阳明学派 · 身份<\/span>/);
-
-    // The typed office relationship becomes an office career milestone.
-    const office = source.worldCharacterAugmentation?.careerMilestones.find((milestone) => milestone.title === '礼部尚书');
-    assert.equal(office?.kind, 'office');
-    assert.equal(office?.timeLabel, '1554');
-    assert.match(markup, /礼部尚书/);
+    assert.match(statusCard ?? '', /（理学家 - 阳明学派 · 身份）/);
   } finally {
     await changeLocale('en');
   }
 });
 
-test('an untyped relationship row with only a summary is kept and shown neutrally', () => {
+test('an untyped relationship summary is preserved in the projection without inventing a person endpoint', () => {
   const source = toSourceDetailData({
     ...miraRaw,
     relationships: [
@@ -273,14 +249,18 @@ test('an untyped relationship row with only a summary is kept and shown neutrall
     ['rel-summary-only', null, 'Shares a cabin with the octopus postman.'],
   ]);
   const markup = render(source);
-  const [card] = cardsBy(markup, 'world-character-relationship-clue-untyped');
-  assert.match(card ?? '', /Shares a cabin with the octopus postman\./);
+  assert.doesNotMatch(markup, /Shares a cabin with the octopus postman\./);
+  assert.doesNotMatch(markup, /world-character-background-clue-untyped|world-character-relationship-clue-untyped/);
   assert.doesNotMatch(markup, /centers on/);
 });
 
 test('relationship titles that equal a known entity id are treated as identifiers, not display names', () => {
   const source = toSourceDetailData({
     ...miraRaw,
+    relationshipTargets: {
+      ...miraRaw.relationshipTargets,
+      'entity-x': { kind: 'person', name: 'the-last-star-7' },
+    },
     relationships: [
       {
         id: 'rel-id-label',
@@ -307,5 +287,5 @@ test('relationship titles that equal a known entity id are treated as identifier
 
   assert.doesNotMatch(mapMarkup, />entity-oriel<\/span>/);
   // A hyphenated value that is not a known id is authored text and is shown.
-  assert.match(mapMarkup, />the-last-star-7 · crewmate<\/span>/);
+  assert.match(mapMarkup, /\(the-last-star-7 · Crewmate\)/);
 });

@@ -1,26 +1,18 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
-import { ArrowLeft, CirclePlus, MessageCircle, Pause, Play, ScrollText } from 'lucide-react';
+import { Button, ScrollArea } from '@nimiplatform/kit/ui';
+import { ArrowLeft, ChevronRight, CirclePlus, MessageCircle, Pause, Play, RefreshCw, ScrollText } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
-import type { SourceDetailData, SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
+import type { SourceDetailData } from './source-detail-model.js';
 import {
-  buildSourceDetailBiographicalTimeline,
-  type SourceDetailBiographicalTimelineSection,
-} from './source-detail-world-character-biographical-timeline.js';
-import {
+  uniqueStrings,
   worldCharacterHeroDescription,
   worldCharacterPrimaryActionLabel,
 } from './source-detail-world-character-labels.js';
-import { WorldCharacterRelationshipCluesSection } from './source-detail-world-character-relationship-clues.js';
-import {
-  milestoneKindLabel,
-  milestoneTheme,
-} from './source-detail-world-character-theme.js';
-import { composeWorldCharacterMilestones } from './source-detail-world-character-milestones.js';
+import { buildRelationshipClueItems, WorldCharacterRelationshipCluesSection, WorldCharacterBackgroundSections } from './source-detail-world-character-relationship-clues.js';
 
 type CharacterSourceDetailPageProps = {
   source: SourceDetailData;
@@ -30,7 +22,6 @@ type CharacterSourceDetailPageProps = {
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
-  onCreateAnotherPartner?: () => void;
   partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
   onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
@@ -53,12 +44,12 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
         })
       : null;
   return (
-    <div data-testid="world-character-works-section" className="mt-5">
+    <section data-testid="world-character-works-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+          <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
             {t('SourceDetail.works.title', { defaultValue: 'Works collections' })}
-          </h3>
+          </h2>
           {countText ? (
             <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">{countText}</p>
           ) : null}
@@ -115,206 +106,23 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
           </ul>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function WorldCharacterMilestoneCard({
-  milestone,
-  compact = false,
-}: {
-  readonly milestone: SourceDetailWorldCharacterMilestone;
-  readonly compact?: boolean;
-}) {
-  const { t } = useTranslation();
-  const theme = milestoneTheme(milestone);
-  const badgeStyle: CSSProperties = {
-    background: theme.softBg,
-    color: theme.ink,
-  };
-  return (
-    <div className={compact ? 'min-w-0 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2' : 'min-w-0 rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4'}>
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h3 className={compact ? 'text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]' : 'text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]'}>
-          {milestone.title}
-        </h3>
-        <span style={badgeStyle} className="rounded-full px-2 py-0.5 text-[11px] font-semibold">
-          {milestoneKindLabel(milestone, t)}
-        </span>
-      </div>
-      {milestone.summary && milestone.summary !== milestone.title ? (
-        <p className={compact ? 'mt-0.5 text-sm leading-6 text-[var(--nimi-text-muted)]' : 'mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]'}>
-          {milestone.summary}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function WorldCharacterClueList({
-  section,
-}: {
-  readonly section: Extract<SourceDetailBiographicalTimelineSection, { kind: 'clueList' }>;
-}) {
-  const { t } = useTranslation();
-  const isAllClueList = section.variant === 'all';
-  const title = isAllClueList
-    ? t('SourceDetail.worldCharacter.biographyCluesAll', { defaultValue: 'Biography clues' })
-    : t('SourceDetail.worldCharacter.biographyCluesUndated', { defaultValue: 'Undated clues' });
-  return (
-    <div
-      data-testid={isAllClueList ? 'world-character-biography-clue-list' : 'world-character-biography-undated-clues'}
-      className={`${isAllClueList ? '' : 'ml-[7.75rem] max-[620px]:ml-0'} grid gap-2 rounded-[14px] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3`}
-    >
-      <p className="text-xs font-semibold text-[var(--nimi-status-warning-soft-text)]">{title}</p>
-      <div className="grid gap-2">
-        {section.clues.map((clue) => (
-          <WorldCharacterMilestoneCard key={clue.id} milestone={clue} compact />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData }) {
-  const { t } = useTranslation();
-  const milestones = source.sourceKind === 'worldCharacter'
-    ? composeWorldCharacterMilestones(
-        source.characterProfile.milestones,
-        source.worldCharacterAugmentation?.careerMilestones ?? [],
-      )
-    : source.characterProfile.milestones;
-  const sections = buildSourceDetailBiographicalTimeline(milestones);
-  if (sections.length === 0) {
-    return null;
-  }
-
-  return (
-    <section data-testid="world-character-milestones-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
-      <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
-        {t('SourceDetail.worldCharacter.milestonesTitle', { defaultValue: 'Life milestones' })}
-      </h2>
-      <div data-testid="world-character-milestones-timeline" className="relative mt-5 grid gap-3">
-        {sections.some((section) => section.kind === 'primary') ? (
-          <div aria-hidden="true" className="absolute bottom-4 left-[5.75rem] top-4 w-px bg-[var(--nimi-border-subtle)] max-[620px]:left-[4.65rem]" />
-        ) : null}
-        {sections.map((section) => {
-          if (section.kind === 'clueList') {
-            return <WorldCharacterClueList key={section.variant} section={section} />;
-          }
-          const theme = milestoneTheme(section.milestone);
-          const dotStyle: CSSProperties = {
-            background: section.milestone.derived ? theme.accent : 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
-            color: section.milestone.derived ? 'var(--nimi-text-inverse)' : 'var(--nimi-action-primary-bg)',
-          };
-          return (
-            <article
-              key={section.milestone.id}
-              data-testid={section.milestone.derived ? 'world-character-career-derived-node' : 'world-character-biography-primary-node'}
-              className="relative grid grid-cols-[88px_24px_minmax(0,1fr)] gap-3 py-3 max-[620px]:grid-cols-[70px_22px_minmax(0,1fr)]"
-            >
-              <div className="pt-3 text-right">
-                {section.milestone.timeLabel ? (
-                  <span className="block text-sm font-semibold tabular-nums text-[var(--nimi-action-primary-bg)]">
-                    {section.milestone.timeLabel}
-                  </span>
-                ) : null}
-              </div>
-              <div className="relative z-10 flex justify-center pt-2">
-                <span
-                  data-testid="world-character-biography-marker"
-                  aria-hidden="true"
-                  style={dotStyle}
-                  className="grid h-7 w-7 place-items-center rounded-full shadow-[0_0_0_4px_var(--nimi-surface-card)]"
-                >
-                  <span className="h-2 w-2 rounded-full bg-current" />
-                </span>
-              </div>
-              <div className="min-w-0">
-                <WorldCharacterMilestoneCard milestone={section.milestone} />
-              </div>
-            </article>
-          );
-        })}
-      </div>
     </section>
   );
 }
 
-function WorldCharacterOpeningLine({
-  source,
-  className,
-  onImage = false,
-}: {
-  source: SourceDetailData;
-  className?: string;
-  // onImage renders the line over the portrait scrim, so the text switches to
-  // an inverse color that stays readable on the dark mask.
-  onImage?: boolean;
-}) {
-  const { t } = useTranslation();
-  const interaction = source.characterProfile.interaction;
-  const openingLine = interaction?.greeting ?? null;
-  if (!openingLine) {
-    return null;
-  }
-  const hoverItems = [
-    {
-      label: t('SourceDetail.worldCharacter.tone', { defaultValue: 'Tone' }),
-      value: interaction?.tone ?? null,
-    },
-    {
-      label: t('SourceDetail.worldCharacter.cadence', { defaultValue: 'Rhythm' }),
-      value: interaction?.cadence ?? null,
-    },
-  ].filter((item): item is { label: string; value: string } => Boolean(item.value));
-  const hoverText = hoverItems.map((item) => `${item.label}: ${item.value}`).join(' · ');
+// The voice preview renders as a waveform pill next to the hero name: a
+// gradient play/pause button on a soft tinted surface, decorative bars that
+// pulse while playing, and the sample duration. The backing audio element
+// stays hidden and mirrors its playback state into the pill.
+const VOICE_WAVE_BAR_HEIGHTS = [5, 8, 12, 7, 10, 14, 9, 13, 6, 10, 12, 8, 11, 6, 9, 12, 7, 10];
+const VOICE_WAVE_BAR_MAX_HEIGHT = 14;
 
-  return (
-    <div
-      data-testid="world-character-opening-line"
-      className={`flex items-start gap-2 ${className ?? ''}`}
-    >
-      {hoverItems.length > 0 ? (
-        <TooltipProvider delayDuration={120}>
-          <Tooltip
-            placement="top"
-            contentClassName="max-w-[260px] whitespace-normal px-3 py-2 text-left"
-            content={(
-              <div className="grid gap-2">
-                {hoverItems.map((item) => (
-                  <div key={item.label}>
-                    <p className="text-[11px] font-semibold uppercase tracking-normal text-[var(--nimi-text-muted)]">{item.label}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-[var(--nimi-text-primary)]">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          >
-            <button
-              type="button"
-              data-testid="world-character-speech-profile-trigger"
-              aria-label={hoverText}
-              className="mt-[5px] inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[var(--nimi-surface-card)] text-[8px] font-semibold leading-none text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)] transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] hover:text-[var(--nimi-action-primary-bg)]"
-            >
-              i
-            </button>
-          </Tooltip>
-        </TooltipProvider>
-      ) : null}
-      <p className={`min-w-0 text-sm leading-6 ${onImage ? 'text-white/90' : 'text-[var(--nimi-text-secondary)]'}`}>{openingLine}</p>
-    </div>
-  );
-}
-
-// The voice sample renders as a single round play/pause button; the backing
-// audio element stays hidden and mirrors its playback state into the button.
-function WorldCharacterVoicePlayButton({
+function WorldCharacterVoicePill({
   src,
-  className,
+  durationText,
 }: {
   src: string;
-  className?: string;
+  durationText: string | null;
 }) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -324,10 +132,36 @@ function WorldCharacterVoicePlayButton({
     : t('SourceDetail.worldCharacter.voicePlay', { defaultValue: 'Play voice' });
 
   return (
-    <>
+    <span data-testid="world-character-hero-voice" className="inline-flex min-w-0 items-center">
+      <style>{`
+        @keyframes nimi-voice-wave-pulse { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+        .nimi-voice-pill {
+          background: color-mix(in srgb, var(--nimi-action-primary-bg) 6%, var(--nimi-surface-card));
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent);
+          transition: background 200ms ease, box-shadow 200ms ease, transform 120ms ease;
+        }
+        .nimi-voice-pill:hover {
+          background: color-mix(in srgb, var(--nimi-action-primary-bg) 10%, var(--nimi-surface-card));
+          box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--nimi-action-primary-bg) 26%, transparent),
+            0 4px 12px -6px color-mix(in srgb, var(--nimi-action-primary-bg) 35%, transparent);
+        }
+        .nimi-voice-pill:active { transform: scale(0.96); }
+        .nimi-voice-pill[data-playing='true'] {
+          background: color-mix(in srgb, var(--nimi-action-primary-bg) 9%, var(--nimi-surface-card));
+          box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--nimi-action-primary-bg) 30%, transparent),
+            0 6px 16px -6px color-mix(in srgb, var(--nimi-action-primary-bg) 42%, transparent);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nimi-voice-wave-bar { animation: none !important; }
+          .nimi-voice-pill { transition: none; }
+        }
+      `}</style>
       <button
         type="button"
         data-testid="world-character-voice-play-button"
+        data-playing={playing ? 'true' : undefined}
         aria-label={label}
         aria-pressed={playing}
         onClick={() => {
@@ -341,13 +175,50 @@ function WorldCharacterVoicePlayButton({
             void audio.play();
           }
         }}
-        className={`z-10 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className ?? ''}`}
+        className="nimi-voice-pill group inline-flex h-8 min-w-0 items-center gap-2 rounded-full pl-1 pr-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
       >
-        {playing ? (
-          <Pause aria-hidden className="h-4 w-4" strokeWidth={2.2} />
-        ) : (
-          <Play aria-hidden className="h-4 w-4" strokeWidth={2.2} />
-        )}
+        <span
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--nimi-action-primary-text)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
+          style={{
+            background: 'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 80%, white) 0%, var(--nimi-action-primary-bg) 52%, color-mix(in srgb, var(--nimi-action-primary-bg) 86%, black) 100%)',
+            boxShadow: '0 2px 6px -1px color-mix(in srgb, var(--nimi-action-primary-bg) 48%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.28)',
+          }}
+        >
+          {playing ? (
+            <Pause aria-hidden className="h-2.5 w-2.5" fill="currentColor" strokeWidth={0} />
+          ) : (
+            <Play aria-hidden className="ml-px h-2.5 w-2.5" fill="currentColor" strokeWidth={0} />
+          )}
+        </span>
+        <span aria-hidden="true" className="flex h-4 shrink-0 items-center gap-[2.5px]">
+          {VOICE_WAVE_BAR_HEIGHTS.map((height, index) => {
+            const idleAlpha = 26 + Math.round((height / VOICE_WAVE_BAR_MAX_HEIGHT) * 30);
+            return (
+              <span
+                key={index}
+                className="nimi-voice-wave-bar w-[2px] rounded-full"
+                style={{
+                  height: `${height}px`,
+                  transformOrigin: 'center',
+                  background: playing
+                    ? 'linear-gradient(to bottom, color-mix(in srgb, var(--nimi-action-primary-bg) 68%, white) 0%, var(--nimi-action-primary-bg) 100%)'
+                    : `color-mix(in srgb, var(--nimi-action-primary-bg) ${idleAlpha}%, transparent)`,
+                  animation: playing
+                    ? `nimi-voice-wave-pulse 1.1s ease-in-out ${index * -0.08}s infinite`
+                    : undefined,
+                }}
+              />
+            );
+          })}
+        </span>
+        {durationText ? (
+          <span className="shrink-0 text-[11px] font-medium leading-none tracking-[0.03em] tabular-nums text-[var(--nimi-text-secondary)]">
+            {durationText}
+          </span>
+        ) : null}
+        <span className="sr-only">
+          {t('SourceDetail.worldCharacter.voicePreview', { defaultValue: 'Voice preview' })}
+        </span>
       </button>
       <audio
         ref={audioRef}
@@ -359,112 +230,22 @@ function WorldCharacterVoicePlayButton({
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
       />
-    </>
+    </span>
   );
 }
 
-// The overview section owns the character summary, the works collection, and
-// the look-and-voice presence as one integrated part. Works sit under the
-// summary in the text column so the space beside the portrait stays filled.
-// With a portrait, the opening line sits on a dark gradient scrim inside the
-// portrait's lower edge and the voice sample is a round play button floating on
-// the portrait's top-right corner; without a portrait, the voice presence falls
-// back to an inline row inside the text column.
-function WorldCharacterOverviewSection({
-  source,
-  onOpenWorld,
-}: {
-  source: SourceDetailData;
-  onOpenWorld: () => void;
-}) {
-  const { t } = useTranslation();
-  const referenceImageUrl = source.referenceImageUrl;
-  const voiceSample = source.voiceSample;
-  const hasOpeningLine = Boolean(source.characterProfile.interaction?.greeting);
-  const hasSummary = Boolean(source.entity?.summary);
-  const showInlineVoice = !referenceImageUrl && (voiceSample || hasOpeningLine);
+type WorldCharacterDialogueSample = {
+  id: string;
+  user: string | null;
+  character: string;
+};
 
-  return (
-    <section data-testid="world-character-overview-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
-        </div>
-        {source.worldId ? (
-          <button
-            type="button"
-            onClick={onOpenWorld}
-            className="rounded-[10px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-bg)]"
-          >
-            {t('SourceDetail.openWorld', { defaultValue: 'Open World' })}
-          </button>
-        ) : null}
-      </div>
-      <div className={referenceImageUrl ? 'mt-4 grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_280px]' : 'mt-4'}>
-        <div className="min-w-0">
-          {source.entity?.summary ? (
-            <p className="text-sm leading-7 text-[var(--nimi-text-secondary)]">{source.entity.summary}</p>
-          ) : null}
-          {showInlineVoice ? (
-            <div data-testid="world-character-media-section" className={hasSummary ? 'mt-4' : ''}>
-              <div className="flex items-start gap-3">
-                {voiceSample ? (
-                  <WorldCharacterVoicePlayButton
-                    src={voiceSample.url}
-                    className="mt-0.5 border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)]"
-                  />
-                ) : null}
-                {hasOpeningLine ? (
-                  <WorldCharacterOpeningLine source={source} className="min-w-0 flex-1" />
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          <dl className="mt-4 grid gap-2 text-sm" data-testid="character-identity-descriptions">
-            {(['ageDescription', 'speciesDescription', 'bodyDescription', 'lifeStageDescription'] as const).map((field) => source.characterProfile[field] ? (
-              <div key={field}><dt className="font-medium text-[var(--nimi-text-primary)]">{t(`SourceDetail.${field}`)}</dt><dd className="mt-1 leading-6 text-[var(--nimi-text-secondary)]">{source.characterProfile[field]}</dd></div>
-            ) : null)}
-          </dl>
-          {source.characterProfile.disposition ? (
-            <section className="mt-4" data-testid="character-disposition"><h3 className="text-sm font-semibold">{t('SourceDetail.disposition')}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[var(--nimi-text-secondary)]">{source.characterProfile.disposition}</p></section>
-          ) : null}
-          <WorldCharacterWorksBlock source={source} />
-        </div>
-        {referenceImageUrl ? (
-          <div data-testid="world-character-media-section" className="min-w-0">
-            <div
-              data-testid="world-character-media-frame"
-              className="mx-auto w-full max-w-[280px]"
-            >
-              <div
-                data-testid="world-character-reference-image"
-                className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-[var(--nimi-surface-panel)]"
-              >
-                <img
-                  src={referenceImageUrl}
-                  alt=""
-                  className="h-full w-full object-contain"
-                />
-                {hasOpeningLine ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-3.5 pb-3 pt-9">
-                    <WorldCharacterOpeningLine source={source} onImage />
-                  </div>
-                ) : null}
-                {voiceSample ? (
-                  <WorldCharacterVoicePlayButton
-                    src={voiceSample.url}
-                    className="absolute right-3 top-3 border border-white/35 bg-black/55 text-white shadow-[var(--nimi-elevation-raised)] hover:bg-black/70"
-                  />
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
+// The hero banner anchors the card: the back control sits on its top-left and
+// the host world pill on its top-right. Below the banner an enlarged avatar
+// overlaps the banner edge, followed by name, an explicit subtitle line
+// (role, optionally age), and the voice preview. The body splits into two
+// columns: authored prose and relationships on the left, a sample exchange
+// on the right.
 export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
@@ -476,28 +257,52 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
   const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';
   const primaryActionJoining = props.primaryActionJoining === true && !canStartChat;
-  const canCreateAnother = Boolean(props.onCreateAnotherPartner)
-    && (source.sourceState === 'local_agent_available' || source.sourceState === 'local_agent_ambiguous');
-  const heroDescription = worldCharacterHeroDescription(source, t);
-  const statItems = props.stats
-    ? [
-        {
-          key: 'friends',
-          count: props.stats.friendsCount,
-          label: t('SourceDetail.friends', { defaultValue: 'Friends' }),
-        },
-        {
-          key: 'posts',
-          count: props.stats.postsCount,
-          label: t('SourceDetail.posts', { defaultValue: 'Posts' }),
-        },
-        {
-          key: 'likes',
-          count: props.stats.likesCount,
-          label: t('SourceDetail.likes', { defaultValue: 'Likes' }),
-        },
-      ]
+  const heroRole = worldCharacterHeroDescription(source, t);
+  const heroSubtitle = uniqueStrings([heroRole, source.characterProfile.ageDescription]).join(' · ');
+  const interaction = source.characterProfile.interaction;
+  const voiceSample = source.voiceSample;
+  const voiceDurationSec = voiceSample?.durationSec != null && Number.isFinite(voiceSample.durationSec)
+    ? Math.max(0, Math.round(voiceSample.durationSec))
     : null;
+  const voiceDurationText = voiceDurationSec != null
+    ? `· ${t('SourceDetail.worldCharacter.voicePreviewDuration', {
+        seconds: voiceDurationSec,
+        defaultValue: '{{seconds}}s',
+      })}`
+    : null;
+  const dialogueSamples: WorldCharacterDialogueSample[] = [
+    ...(source.characterProfile.dialogueExemplars ?? []),
+    ...(interaction?.greeting
+      ? [{ id: 'greeting', user: null, character: interaction.greeting }]
+      : []),
+  ];
+  const [dialogueIndex, setDialogueIndex] = useState(0);
+  const dialogueSample = dialogueSamples.length > 0
+    ? dialogueSamples[dialogueIndex % dialogueSamples.length]
+    : undefined;
+  // The authored interaction scene is shared by its exemplars and greeting.
+  // Rotating the exchange keeps that same scene; changing source replaces both.
+  const meetingScene = interaction?.scenario?.trim() || null;
+  // Keep authored prose as two reading paragraphs. Voice directions belong to
+  // the sample exchange and audio, not synthesized biography in the renderer.
+  const aboutParagraphs = [
+    {
+      key: 'intro',
+      value: source.entity?.summary?.trim() || source.bio?.trim(),
+      testId: 'character-introduction',
+    },
+    {
+      key: 'disposition',
+      value: source.characterProfile.disposition?.trim(),
+      testId: 'character-disposition',
+    },
+  ].filter((item): item is typeof item & { value: string } => Boolean(item.value && item.value.trim()));
+  const hasDialogue = Boolean(dialogueSample);
+  const hasAbout = aboutParagraphs.length > 0;
+  const hasLeftColumn = hasAbout || buildRelationshipClueItems(source, t)
+    .some(item => item.group === 'people' || item.group === 'life' || item.group === 'objects');
+  const hasRightColumn = Boolean(meetingScene) || hasDialogue;
+  const showOverviewColumns = hasLeftColumn || hasRightColumn;
 
   return (
     <div
@@ -510,7 +315,11 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
         contentClassName="mx-auto max-w-[1180px] px-5 py-6"
       >
         <div className="grid gap-5">
-          <section data-nimi-density="expressive" className="overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]">
+          <section
+            data-testid="world-character-overview-section"
+            data-nimi-density="expressive"
+            className="overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]"
+          >
             <div
               data-testid="world-character-hero-banner"
               className="relative h-[280px] max-[720px]:h-[190px]"
@@ -532,129 +341,228 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                   <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
                 </button>
               ) : null}
+              {source.worldId && source.worldName ? (
+                <button
+                  type="button"
+                  data-testid="world-character-world-pill"
+                  onClick={props.onOpenWorld}
+                  className="absolute right-6 top-6 z-10 inline-flex max-w-[min(360px,60%)] items-center gap-1.5 rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] px-3.5 py-2 shadow-[var(--nimi-elevation-raised)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-white/86"
+                >
+                  <span className="shrink-0 text-xs text-[var(--nimi-text-secondary)]">
+                    {t('SourceDetail.worldCharacter.worldPill', { defaultValue: 'World' })}
+                  </span>
+                  <span className="min-w-0 truncate text-xs font-semibold text-[var(--nimi-text-primary)]">{source.worldName}</span>
+                  <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)]" />
+                </button>
+              ) : null}
             </div>
 
             <div className="px-9 pb-7 max-[720px]:px-5">
-              <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-7">
-                <div className="min-w-0 max-w-[560px]">
-                  <div
-                    data-testid="world-character-hero-avatar"
-                    className="relative -mt-[54px] h-[108px] w-[108px] overflow-hidden rounded-full bg-[var(--nimi-surface-card)]"
-                    style={{ boxShadow: '0 0 0 4px var(--nimi-surface-card), var(--nimi-elevation-raised)' }}
-                  >
-                    <EntityAvatar
-                      imageUrl={source.avatarUrl}
-                      name={source.displayName}
-                      kind="human"
-                      shape="circle"
-                      sizeClassName="h-full w-full"
-                      radiusClassName="rounded-full"
-                      fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-panel))] text-[var(--nimi-text-primary)]"
-                      textClassName="text-3xl font-semibold"
-                    />
-                  </div>
-                  <div data-testid="world-character-hero-title-row" className="mt-4 flex flex-wrap items-center gap-4">
-                    <h1 className="text-[44px] font-bold leading-[1.04] tracking-normal text-[var(--nimi-text-primary)] max-[900px]:text-[38px] max-[620px]:text-[34px]">
-                      {source.displayName}
-                    </h1>
-                  </div>
-                  {heroDescription ? (
-                    <p data-testid="world-character-hero-description" className="mt-3 text-[16px] font-medium leading-6 text-[var(--nimi-text-secondary)]">
-                      {heroDescription}
-                    </p>
-                  ) : null}
+              <div className="flex items-start gap-8 max-[720px]:flex-col max-[720px]:gap-6">
+                <div
+                  data-testid="world-character-hero-avatar"
+                  className="relative -mt-[80px] h-[160px] w-[160px] shrink-0 overflow-hidden rounded-[24px] bg-[var(--nimi-surface-card)] max-[720px]:-mt-[60px] max-[720px]:h-[120px] max-[720px]:w-[120px]"
+                  style={{ boxShadow: '0 0 0 4px var(--nimi-surface-card), var(--nimi-elevation-raised)' }}
+                >
+                  <EntityAvatar
+                    imageUrl={source.avatarUrl}
+                    name={source.displayName}
+                    kind="human"
+                    shape="rounded"
+                    sizeClassName="h-full w-full"
+                    radiusClassName="rounded-[24px]"
+                    fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-panel))] text-[var(--nimi-text-primary)]"
+                    textClassName="text-4xl font-semibold"
+                  />
                 </div>
 
-                <div className="ml-auto mt-6 flex min-w-[360px] max-w-[430px] flex-col items-end gap-10 self-start max-[720px]:ml-0 max-[720px]:mt-0 max-[720px]:w-full max-[720px]:min-w-0 max-[720px]:max-w-none max-[720px]:items-start max-[720px]:gap-5">
-                  {statItems ? (
-                    <div
-                      data-testid="world-character-hero-stats"
-                      className="grid w-full grid-cols-3 gap-6 max-[720px]:gap-3"
-                    >
-                      {statItems.map(({ key, count, label }) => (
-                        <div key={key} className="min-w-0 text-center">
-                          <p className="text-[22px] font-bold leading-7 tabular-nums text-[var(--nimi-text-primary)]">{count}</p>
-                          <p className="mt-1 text-sm font-medium leading-5 text-[var(--nimi-text-muted)]">{label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="flex flex-col items-end gap-3 max-[720px]:items-start">
-                    <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
-                      {canStartChat ? (
-                        <Button
-                          type="button"
-                          tone="primary"
-                          size="lg"
-                          onClick={() => props.onStartChat?.()}
-                          disabled={!props.onStartChat || props.primaryActionJoining}
-                        >
-                          <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                          {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          tone="secondary"
-                          size="lg"
-                          onClick={props.onPrimaryAction}
-                          disabled={primaryAction.disabled || primaryActionJoining}
-                          data-source-state={source.sourceState}
-                          data-primary-action={primaryAction.action}
-                        >
-                          <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                          {primaryActionJoining
-                            ? t('SourceDetail.worldCharacter.primaryActionJoining', { defaultValue: 'Adding…' })
-                            : worldCharacterPrimaryActionLabel(primaryAction, t)}
-                        </Button>
-                      )}
-                      {canCreateAnother ? (
-                        <Button
-                          type="button"
-                          tone="secondary"
-                          size="lg"
-                          onClick={props.onCreateAnotherPartner}
-                          disabled={props.primaryActionJoining}
-                          aria-describedby="source-another-partner-hint"
-                        >
-                          <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                          {props.primaryActionJoining
-                            ? t('SourceDetail.creatingAnotherPartner', { defaultValue: 'Creating…' })
-                            : t('SourceDetail.createAnotherPartner', { defaultValue: 'Create another partner' })}
-                        </Button>
+                <div className="min-w-0 flex-1 max-[720px]:w-full">
+                  <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-6 pt-6 max-[720px]:pt-0">
+                    <div className="min-w-0">
+                      <div data-testid="world-character-hero-title-row" className="flex flex-wrap items-center gap-4">
+                        <h1 className="text-[44px] font-bold leading-[1.04] tracking-normal text-[var(--nimi-text-primary)] max-[900px]:text-[38px] max-[620px]:text-[34px]">
+                          {source.displayName}
+                        </h1>
+                        {voiceSample ? (
+                          <WorldCharacterVoicePill src={voiceSample.url} durationText={voiceDurationText} />
+                        ) : null}
+                      </div>
+                      {heroSubtitle ? (
+                        <p data-testid="world-character-hero-description" className="mt-3 text-[16px] font-medium leading-6 text-[var(--nimi-text-secondary)]">
+                          {heroSubtitle}
+                        </p>
                       ) : null}
                     </div>
-                    {canCreateAnother ? (
-                      <p id="source-another-partner-hint" className="max-w-[430px] text-sm leading-5 text-[var(--nimi-text-secondary)]">
-                        {t('SourceDetail.anotherPartnerHint', { defaultValue: 'Create an independent partner from the current setting. Existing partners and conversations are kept.' })}
-                      </p>
-                    ) : null}
-                    {(props.partners?.length ?? 0) > 1 && props.onSelectPartner ? (
-                      <div className="grid w-full gap-2">
-                        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
-                          {t('SourceDetail.choosePartner', { defaultValue: 'Choose a partner' })}
-                        </p>
-                        {props.partners!.map(partner => (
-                          <Button key={partner.localAgentRef} type="button" tone="secondary"
-                            onClick={() => props.onSelectPartner?.(partner.localAgentRef)}
-                            disabled={props.primaryActionJoining} className="h-auto justify-start whitespace-normal py-2 text-left">
-                            {partner.displayName} · {partner.capturedAt
-                              ? t('SourceDetail.partnerCreatedAt', { defaultValue: 'Created {{date}}', date: new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(partner.capturedAt)) })
-                              : t('SourceDetail.partnerCreationUnknown', { defaultValue: 'Creation time unavailable' })}
+
+                    <div className="ml-auto flex min-w-0 flex-col items-end gap-3 max-[720px]:ml-0 max-[720px]:w-full max-[720px]:items-start">
+                      <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
+                        {source.worldId && !source.worldName ? (
+                          <button
+                            type="button"
+                            onClick={props.onOpenWorld}
+                            className="rounded-[10px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-bg)]"
+                          >
+                            {t('SourceDetail.openWorld', { defaultValue: 'Open World' })}
+                          </button>
+                        ) : null}
+                        {canStartChat ? (
+                          <Button
+                            type="button"
+                            tone="primary"
+                            size="lg"
+                            onClick={() => props.onStartChat?.()}
+                            disabled={!props.onStartChat || props.primaryActionJoining}
+                          >
+                            <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                            {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
                           </Button>
-                        ))}
+                        ) : (
+                          <Button
+                            type="button"
+                            tone="primary"
+                            size="lg"
+                            onClick={props.onPrimaryAction}
+                            disabled={primaryAction.disabled || primaryActionJoining}
+                            data-source-state={source.sourceState}
+                            data-primary-action={primaryAction.action}
+                          >
+                            <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                            {primaryActionJoining
+                              ? t('SourceDetail.worldCharacter.primaryActionJoining', { defaultValue: 'Adding…' })
+                              : worldCharacterPrimaryActionLabel(primaryAction, t)}
+                          </Button>
+                        )}
                       </div>
-                    ) : null}
+                      {(props.partners?.length ?? 0) > 1 && props.onSelectPartner ? (
+                        <div className="grid w-full gap-2">
+                          <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+                            {t('SourceDetail.choosePartner', { defaultValue: 'Choose a partner' })}
+                          </p>
+                          {props.partners!.map(partner => (
+                            <Button key={partner.localAgentRef} type="button" tone="secondary"
+                              onClick={() => props.onSelectPartner?.(partner.localAgentRef)}
+                              disabled={props.primaryActionJoining} className="h-auto justify-start whitespace-normal py-2 text-left">
+                              {partner.displayName} · {partner.capturedAt
+                                ? t('SourceDetail.partnerCreatedAt', { defaultValue: 'Created {{date}}', date: new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(partner.capturedAt)) })
+                                : t('SourceDetail.partnerCreationUnknown', { defaultValue: 'Creation time unavailable' })}
+                            </Button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {showOverviewColumns ? (
+                <div data-testid="world-character-overview-columns" className="mt-7 grid gap-8 border-t border-[var(--nimi-border-subtle)] pt-7">
+                  {hasLeftColumn || hasRightColumn ? (
+                    <div data-testid="world-character-reading-columns" className={`grid items-start gap-10 ${hasLeftColumn && hasRightColumn ? 'min-[900px]:grid-cols-[minmax(0,2fr)_1px_minmax(0,3fr)] min-[900px]:gap-x-5' : ''}`}>
+                      {hasLeftColumn ? (
+                        <div data-testid="world-character-profile-column" className="grid min-w-0 content-start gap-5">
+                          {hasAbout ? (
+                            <section data-testid="world-character-about-section" className="min-w-0">
+                              <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+                                {t('SourceDetail.worldCharacter.aboutTitle', {
+                                  name: source.displayName,
+                                  defaultValue: 'About {{name}}',
+                                })}
+                              </h2>
+                              <div className="mt-5 grid gap-5">
+                                {aboutParagraphs.map((paragraph) => (
+                                  <p key={paragraph.key} data-testid={paragraph.testId} className="whitespace-pre-wrap text-sm leading-7 text-[var(--nimi-text-secondary)]">
+                                    {paragraph.value}
+                                  </p>
+                                ))}
+                              </div>
+                            </section>
+                          ) : null}
+                          <WorldCharacterRelationshipCluesSection source={source} />
+                          <WorldCharacterBackgroundSections source={source} />
+                        </div>
+                      ) : null}
+
+                      {hasLeftColumn && hasRightColumn ? (
+                        <div
+                          aria-hidden="true"
+                          data-testid="world-character-reading-columns-divider"
+                          className="hidden w-px self-stretch bg-[var(--nimi-border-subtle)] min-[900px]:block"
+                        />
+                      ) : null}
+
+                      {hasRightColumn ? (
+                        <div data-testid="world-character-conversation-column" className="grid min-w-0 content-start gap-8">
+                          {meetingScene || hasDialogue ? (
+                            <section data-testid="world-character-first-meeting-section" className="min-w-0">
+                              <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+                                {t('SourceDetail.worldCharacter.firstMeetingTitle', { defaultValue: 'First meeting' })}
+                              </h2>
+                              <div className="mt-5 grid min-w-0 gap-5">
+                              {meetingScene ? (
+                                <p data-testid="world-character-meeting-scene" className="whitespace-pre-wrap text-sm leading-7 text-[var(--nimi-text-secondary)]">{meetingScene}</p>
+                              ) : null}
+                              {hasDialogue && dialogueSample ? (
+                                <div data-testid="world-character-dialogue-section" className="min-w-0">
+                                  <div className="grid gap-4">
+                                    {dialogueSample.user ? (
+                                      <div data-testid="world-character-dialogue-user" className="flex min-w-0 flex-col items-end gap-1.5">
+                                        <span className="text-xs text-[var(--nimi-text-muted)]">
+                                          {t('SourceDetail.worldCharacter.dialogueYou', { defaultValue: 'You' })}
+                                        </span>
+                                        <p className="max-w-[85%] whitespace-pre-wrap rounded-[16px] rounded-tr-[6px] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm leading-6 text-[var(--nimi-text-primary)]">
+                                          {dialogueSample.user}
+                                        </p>
+                                      </div>
+                                    ) : null}
+                                    <div data-testid="world-character-dialogue-character" className="flex min-w-0 items-start gap-3">
+                                      <EntityAvatar
+                                        imageUrl={source.avatarUrl}
+                                        name={source.displayName}
+                                        kind="human"
+                                        shape="circle"
+                                        sizeClassName="h-9 w-9 shrink-0"
+                                        radiusClassName="rounded-full"
+                                        fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-panel))] text-[var(--nimi-text-primary)]"
+                                        textClassName="text-sm font-semibold"
+                                      />
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">{source.displayName}</p>
+                                        <p data-testid="world-character-opening-line" className="mt-1.5 whitespace-pre-wrap rounded-[16px] rounded-tl-[6px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-sm leading-6 text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]">
+                                          {dialogueSample.character}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {dialogueSamples.length > 1 ? (
+                                    <div className="mt-3 flex justify-end">
+                                      <button
+                                        type="button"
+                                        data-testid="world-character-dialogue-refresh"
+                                        onClick={() => setDialogueIndex((index) => index + 1)}
+                                        className="inline-flex min-h-8 items-center gap-1.5 rounded px-1 text-xs font-medium text-[var(--nimi-text-muted)] transition hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                                      >
+                                        {t('SourceDetail.worldCharacter.dialogueRefresh', { defaultValue: 'Read another' })}
+                                        <RefreshCw aria-hidden className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                              </div>
+                            </section>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                </div>
+              ) : null}
             </div>
           </section>
 
           <main className="grid min-w-0 gap-5">
-            <WorldCharacterOverviewSection source={source} onOpenWorld={props.onOpenWorld} />
-            <WorldCharacterMilestonesSection source={source} />
-            <WorldCharacterRelationshipCluesSection source={source} />
+            <WorldCharacterWorksBlock source={source} />
           </main>
         </div>
       </ScrollArea>

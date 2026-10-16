@@ -31,6 +31,15 @@ export type CharacterProfileInteractionProjection = {
   greeting: string | null;
 };
 
+// A dialogue exemplar keeps the authored user/character pair so detail
+// surfaces can present it as a sample exchange; `user` stays null when the
+// authoring did not provide a visitor line.
+export type CharacterProfileDialogueExemplarProjection = {
+  id: string;
+  user: string | null;
+  character: string;
+};
+
 export type CharacterProfileProjection = {
   disposition?: string | null;
   ageDescription?: string | null;
@@ -48,6 +57,7 @@ export type CharacterProfileProjection = {
   relationshipNotes: CharacterProfileRelationshipProjection[];
   conversationAnchors: string[];
   interaction: CharacterProfileInteractionProjection | null;
+  dialogueExemplars?: CharacterProfileDialogueExemplarProjection[];
 };
 
 export type CharacterSourceViewerRelationProjection = {
@@ -222,6 +232,16 @@ export function projectCharacterSourceProfile(
         ...knowledgeConstraints,
       ]),
       interaction: projectInteraction(profile),
+      dialogueExemplars: (profile.interactionProfile.dialogueExemplars ?? [])
+        .flatMap((exemplar) => {
+          const character = nonEmpty(exemplar.character);
+          if (!character) return [];
+          return [{
+            id: nonEmpty(exemplar.exemplarId) ?? character,
+            user: nonEmpty(exemplar.user),
+            character,
+          }];
+        }),
     },
   };
 }

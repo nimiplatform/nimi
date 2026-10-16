@@ -122,6 +122,9 @@ test('worldCharacter and personaCharacter use the same shared profile projection
     runtimeSourceRef: null,
   });
   assert.equal('isFriend' in personaProjection, false);
+  assert.deepEqual(personaProjection.characterProfile.dialogueExemplars, [
+    { id: 'example-1', user: 'Tell me about history.', character: 'Let us begin with the sources.' },
+  ]);
   assert.deepEqual(personaProjection.characterProfile.conversationAnchors, [
     'Tell me about history.',
     'Let us begin with the sources.',
@@ -215,13 +218,13 @@ test('source detail loads one public Character projection without the full-world
         updatedAt: '2026-07-28T00:00:00.000Z',
         profile: characterProfile('宋濂', '明初文学家、史学家。'),
       }),
-      worldCoreControllerGetWorldEntity: async () => ({
-        id: sourceRef.worldEntityRef.entityId,
+      worldCoreControllerGetWorldEntity: async ({ path }: { path: { entityId: string } }) => ({
+        id: path.entityId,
         worldId: sourceRef.worldId,
         kind: 'person',
         contentHash: 'c'.repeat(64),
         core: {
-          identity: { name: '宋濂', summary: '明初文学家、史学家。' },
+          identity: { name: path.entityId === 'entity-mentor' ? '导师' : '宋濂', summary: '明初文学家、史学家。' },
           classification: { tags: ['明代'] },
           facts: [],
         },
@@ -255,6 +258,7 @@ test('source detail loads one public Character projection without the full-world
 
   assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource', 'worldPublicControllerGetWorld']);
   assert.equal(result.displayName, '宋濂');
+  assert.deepEqual(result.relationshipTargets, { 'entity-mentor': { kind: 'person', name: '导师' } });
   assert.equal(result.avatarUrl, 'https://cdn.example.test/song-lian-avatar.png');
   assert.equal(result.worldBannerUrl, publicWorld.media.bannerUrl);
   assert.deepEqual(result.viewerRelation, {
@@ -295,6 +299,61 @@ test('source detail loads one public Character projection without the full-world
   const coveredDetail = await fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never);
   assert.equal(coveredDetail?.source.profileCoverUrl, 'https://cdn.example.test/personal-cover.png');
   assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource']);
+
+  const getEntity = realm.worldCore.worldCoreControllerGetWorldEntity;
+  realm.worldCore.worldCoreControllerGetWorldEntity = async (request) => {
+    if (request.path.entityId === 'entity-mentor') throw new Error('endpoint unavailable');
+    return getEntity(request);
+  };
+  const unresolved = await fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never);
+  assert.deepEqual(unresolved?.source.relationshipTargets, {});
+  assert.equal(unresolved?.source.characterProfile.relationshipNotes[0]?.summary, 'A trusted mentor.');
+  realm.worldCore.worldCoreControllerGetWorldEntity = async (request) => ({
+    ...await getEntity(request),
+    worldId: request.path.entityId === 'entity-mentor' ? 'wrong-world' : sourceRef.worldId,
+  });
+  await assert.rejects(fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never), /endpoint identity or world mismatch/);
+});
+
+test('persona relationships recognize authored entity kinds through paginated public character bindings', async () => {
+  const personaRef = {
+    kind: 'personaCharacter', id: 'persona-1', worldId: 'world-ming',
+    ownerAccountId: 'account-1', sourceHash: 'd'.repeat(64),
+  } as const;
+  const mentorRef = {
+    ...sourceRef, id: 'mentor-character',
+    worldEntityRef: { ...sourceRef.worldEntityRef, entityId: 'entity-mentor' },
+  };
+  const cursors: (string | undefined)[] = [];
+  const realm = {
+    worldCore: {
+      worldCoreControllerGetPersonaCharacter: async () => ({
+        ...personaRef, profile: characterProfile('Persona', 'A public persona.'),
+      }),
+      worldCoreControllerGetWorldEntity: async () => ({
+        id: 'entity-mentor', worldId: 'world-ming', kind: 'river-spirit', contentHash: 'c'.repeat(64),
+        core: { identity: { name: '导师', summary: 'A spirit mentor.' }, classification: { tags: [] }, facts: [] },
+      }),
+    },
+    worldPublic: {
+      worldPublicControllerGetCharacterSource: async () => ({
+        ...publicSourceCard(personaRef, 'Persona'), media: { profileCoverUrl: 'https://example.test/cover.png', assets: {} },
+      }),
+      worldPublicControllerListWorldCharacterCatalog: async ({ query }: { query: { cursor?: string } }) => {
+        cursors.push(query.cursor);
+        return query.cursor
+          ? { items: [publicSourceCard(mentorRef, '导师')], hasMore: false, nextCursor: null }
+          : { items: [], hasMore: true, nextCursor: 'page-two' };
+      },
+    },
+  };
+  const detail = await fetchSourceDisplayDetail(personaRef, { realm: () => realm } as never);
+  assert.deepEqual(cursors, [undefined, 'page-two']);
+  assert.deepEqual(detail?.source.relationshipTargets, {
+    'entity-mentor': { kind: 'river-spirit', name: '导师', isCharacter: true },
+  });
+  assert.equal(detail?.source.relationshipClues.length, 0);
+  assert.equal(detail?.source.characterProfile.relationshipNotes[0]?.targetRef, 'entity-mentor');
 });
 
 test('persona source detail fails closed on a stale Runtime source hash', async () => {

@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { UsersRound } from 'lucide-react';
 import type { SourceDetailData } from './source-detail-model.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
 import { relationKindLabel } from './source-detail-world-character-theme.js';
@@ -7,10 +6,47 @@ import { relationKindLabel } from './source-detail-world-character-theme.js';
 type RelationshipClueItem = {
   id: string;
   type: string | null;
+  targetId: string | null;
   title: string;
+  titlePriority: number;
   summary: string | null;
   details: string[];
+  group: RelationshipGroup;
 };
+
+type RelationshipGroup = 'people' | 'life' | 'works' | 'objects' | 'background';
+
+// Entity kinds are author-defined (for example port-town or restaurant).
+// Explicit place/occupation relations can still place those facts correctly;
+// none of these labels are used to infer that an endpoint is a person.
+const LIFE_RELATIONS = new Set([
+  'status', 'entry', 'postedToOffice', 'postedAddress', 'biogAddress',
+  'inhabits', 'inhabitant-of', 'dwells-in', 'dwells-near', 'dwells-on', 'dwells-upon',
+  'residence', 'resident-of', 'resides-at', 'resides-in', 'home-resident', 'local-resident',
+  'seasonal-resident', 'native-ground', 'native-habitat', 'based-in', 'anchors-at',
+  'workplace', 'works-at', 'works-in', 'works-for', 'employed-at', 'former-workplace',
+  'holds-office-at', 'serves-at', 'serves-in', 'organization-post', 'affiliated-with',
+  'member-of', 'trades-at', 'trades-in', 'trading-ground', 'stall-site', 'operates-at',
+  'operates-in', 'studies-at', 'teaches-at', 'enrolled-at', 'enrolled-in', 'apprentice-at',
+  'duty-station', 'stationed-at', 'frequents', 'visits', 'travels-along', 'travel-route',
+  'operates', 'operates-stall', 'shop-owner', 'business-owner', 'proprietor', 'stall-holder',
+  'livelihood', 'livelihood-anchor', 'cultivates', 'harvests', 'mines',
+  'commutes-via', 'regular-passenger', 'transports-along', 'navigates',
+]);
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r033
+function relationshipGroup(source: SourceDetailData, targetId: string | null, type: string | null): RelationshipGroup {
+  const selfId = source.sourceRef.kind === 'worldCharacter' ? source.sourceRef.worldEntityRef.entityId : null;
+  const target = targetId && targetId !== selfId ? source.relationshipTargets[targetId] : null;
+  const kind = target?.kind;
+  if (kind === 'person' || kind === 'human' || target?.isCharacter === true) return 'people';
+  if (['creator-of', 'co-creator-of', 'paints', 'authoredText', 'text', 'director', 'stars-in', 'lead-actress'].includes(type ?? '')) return 'works';
+  if (['place', 'location', 'organization', 'office', 'status'].includes(kind ?? '')
+    || LIFE_RELATIONS.has(type ?? '')) return 'life';
+  if (['work', 'text'].includes(kind ?? '')) return 'works';
+  if (['item', 'object', 'artifact', 'plant'].includes(kind ?? '')) return 'objects';
+  return 'background';
+}
 
 function explicitRelationshipType(value: string | null | undefined): string | null {
   const type = value?.trim();
@@ -22,7 +58,7 @@ function explicitRelationshipType(value: string | null | undefined): string | nu
 // localized explicit type, then the summary. Names are never extracted from
 // prose, and a value that equals a known source or entity id is treated as an
 // identifier, not display text.
-function buildRelationshipClueItems(
+export function buildRelationshipClueItems(
   source: SourceDetailData,
   t: ReturnType<typeof useTranslation>['t'],
 ): RelationshipClueItem[] {
@@ -34,14 +70,32 @@ function buildRelationshipClueItems(
     }
     return text;
   };
-  const seen = new Set<string>();
+  const byRelationship = new Map<string, RelationshipClueItem>();
   const items: RelationshipClueItem[] = [];
   const add = (item: RelationshipClueItem) => {
-    const key = [item.type ?? '', item.title, item.summary ?? ''].join('\u0000');
-    if (seen.has(key)) {
+    // A type alone (or a shared display name) cannot identify a relationship.
+    // Without both type and target, only merge identical displayed entries.
+    const key = item.type && item.targetId
+      ? JSON.stringify([item.type, item.targetId])
+      : JSON.stringify([item.type, item.targetId, item.title, item.summary]);
+    const existing = byRelationship.get(key);
+    if (existing) {
+      const titles = [existing, item]
+        .filter((entry) => entry.titlePriority >= 2)
+        .map((entry) => entry.title);
+      if (item.titlePriority > existing.titlePriority) {
+        existing.title = item.title;
+        existing.titlePriority = item.titlePriority;
+      }
+      const summaries = uniqueStrings([existing.summary, item.summary])
+        .filter((summary) => summary !== existing.title);
+      existing.summary = summaries.shift() ?? null;
+      existing.details = uniqueStrings([
+        ...existing.details, ...summaries, ...item.details, ...titles,
+      ]).filter((detail) => detail !== existing.title && detail !== existing.summary);
       return;
     }
-    seen.add(key);
+    byRelationship.set(key, item);
     items.push(item);
   };
 
@@ -51,7 +105,9 @@ function buildRelationshipClueItems(
       ? relationKindLabel(clue.type, t)
       : displayText(clue.label, ids);
     const summary = displayText(clue.summary, ids);
-    const title = displayText(clue.targetLabel, ids)
+    const targetLabel = displayText(clue.targetLabel, ids);
+    const resolvedLabel = clue.targetEntityId ? source.relationshipTargets[clue.targetEntityId]?.name : null;
+    const title = displayText(resolvedLabel, ids) ?? targetLabel
       ?? label
       ?? (clue.type ? relationKindLabel(clue.type, t) : null)
       ?? summary;
@@ -61,9 +117,12 @@ function buildRelationshipClueItems(
     add({
       id: clue.id,
       type: clue.type,
+      targetId: clue.targetEntityId?.trim() || null,
       title,
+      titlePriority: resolvedLabel || targetLabel ? 3 : label && clue.label !== clue.type ? 2 : clue.type ? 1 : 0,
       summary: summary && summary !== title ? summary : null,
       details: uniqueStrings([label, ...clue.details]).filter((detail) => detail !== title && detail !== summary),
+      group: relationshipGroup(source, clue.targetEntityId, clue.type),
     });
   }
 
@@ -71,10 +130,11 @@ function buildRelationshipClueItems(
     const type = explicitRelationshipType(note.type);
     const ids = [note.id, note.targetRef];
     const summary = displayText(note.summary, ids);
-    const targetLabel = note.targetRef && Object.hasOwn(source.relationshipTargetLabels, note.targetRef)
-      ? source.relationshipTargetLabels[note.targetRef]
+    const targetLabel = note.targetRef
+      ? source.relationshipTargets[note.targetRef]?.name ?? source.relationshipTargetLabels[note.targetRef] ?? null
       : null;
-    const title = displayText(targetLabel, ids)
+    const targetTitle = displayText(targetLabel, ids);
+    const title = targetTitle
       ?? (type ? relationKindLabel(type, t) : null)
       ?? summary;
     if (!title) {
@@ -83,9 +143,12 @@ function buildRelationshipClueItems(
     add({
       id: note.id,
       type,
+      targetId: note.targetRef?.trim() || null,
       title,
+      titlePriority: targetTitle ? 3 : type ? 1 : 0,
       summary: summary && summary !== title ? summary : null,
       details: [],
+      group: relationshipGroup(source, note.targetRef, type),
     });
   }
 
@@ -94,37 +157,66 @@ function buildRelationshipClueItems(
 
 export function WorldCharacterRelationshipCluesSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
+  const items = buildRelationshipClueItems(source, t).filter(item => item.group === 'people');
+  return <RelationshipTextSection items={items} group="people" />;
+}
+
+export function WorldCharacterBackgroundSections({ source }: { source: SourceDetailData }) {
+  const { t } = useTranslation();
   const items = buildRelationshipClueItems(source, t);
+  return <>{(['life', 'objects'] as const).map(group => (
+    <RelationshipTextSection key={group} group={group} items={items.filter(item => item.group === group)} />
+  ))}</>;
+}
+
+function RelationshipTextSection({ items, group }: { items: RelationshipClueItem[]; group: 'people' | 'life' | 'objects' }) {
+  const { t } = useTranslation();
   if (items.length === 0) return null;
+  const titles = {
+    people: t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Character relationships' }),
+    life: t('SourceDetail.worldCharacter.lifeContextTitle', { defaultValue: 'Life and work' }),
+    objects: t('SourceDetail.worldCharacter.objectsTitle', { defaultValue: 'Related objects' }),
+  };
+  const testId = group === 'people' ? 'world-character-relationship' : `world-character-${group}`;
 
   return (
     <section
-      data-testid="world-character-relationship-clues-section"
-      className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]"
+      data-testid={`${testId}-clues-section`}
+      className="min-w-0 border-t border-[var(--nimi-border-subtle)] pt-5"
     >
-      <div className="flex items-center gap-2">
-        <UsersRound aria-hidden className="h-5 w-5 text-[var(--nimi-action-primary-bg)]" />
-        <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
-          {t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Relationship clues' })}
-        </h2>
-      </div>
-      <ul data-testid="world-character-relationship-list" className="mt-3 space-y-2">
+      <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+        {titles[group]}
+      </h2>
+      <ul data-testid={`${testId}-list`} role="list" className="mt-5 space-y-5">
         {items.map((item) => {
           const kind = item.type ? relationKindLabel(item.type, t) : null;
+          const prose = item.summary ?? item.title;
+          // Preserve explicit target/type metadata even when the prose does not
+          // state it. Only exact whole-text duplicates are omitted; no relation
+          // or person is inferred from a mention inside an authored sentence.
+          const context = uniqueStrings([
+            item.summary ? item.title : null,
+            kind,
+          ]).filter((text) => text !== prose);
           return (
             <li
               key={item.id}
-              data-testid={'world-character-relationship-clue-' + (item.type ?? 'untyped')}
-              className="text-sm leading-6 text-[var(--nimi-text-secondary)] [overflow-wrap:anywhere]"
+              data-testid={testId + '-clue-' + (item.type ?? 'untyped')}
+              className="whitespace-pre-wrap text-sm leading-7 text-[var(--nimi-text-secondary)] [overflow-wrap:anywhere]"
             >
               <p>
-                <span className="font-medium text-[var(--nimi-text-primary)]">
-                  {item.title}{kind && kind !== item.title ? ' · ' + kind : ''}
-                </span>
-                {item.summary ? <>：{item.summary}</> : null}
+                {prose}
+                {context.length > 0 ? (
+                  <span className="text-xs text-[var(--nimi-text-muted)]">
+                    {' '}{t('SourceDetail.worldCharacter.relationshipContext', {
+                      context: context.join(' · '),
+                      defaultValue: '({{context}})',
+                    })}
+                  </span>
+                ) : null}
               </p>
               {item.details.length > 0 ? (
-                <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">{item.details.join(' · ')}</p>
+                <p className="mt-1 text-sm leading-7 text-[var(--nimi-text-secondary)]">{item.details.join(' · ')}</p>
               ) : null}
             </li>
           );

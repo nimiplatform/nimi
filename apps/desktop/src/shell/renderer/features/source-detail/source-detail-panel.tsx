@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
 import { characterSourceMaterializationFailureMessage, characterSourceMaterializationMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState, type CharacterSourceDiscoveredLocalAgent } from '../explore/character-source-materialization';
-import { createAnotherCharacterSourcePartner, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { fetchLocalAgentList, localAgentListQueryKey, toLocalAgentSourceDiscoveryProjections } from '../agents/local-agent-list-model';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
@@ -159,7 +159,7 @@ export function SourceDetailPanel({
     await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
   };
 
-  const handlePrimaryAction = async (another = false) => {
+  const handlePrimaryAction = async () => {
     if (!currentSourceKey) {
       return;
     }
@@ -175,21 +175,11 @@ export function SourceDetailPanel({
     materializationInFlight.current = true;
     setSourceMaterialization({ sourceKey: currentSourceKey, ownerUserId });
     try {
-      if (another) {
-        if (!source) throw new Error(characterSourceMaterializationMessage(i18n.t));
-        await createAnotherCharacterSourcePartner(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
-        await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
-        await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
-        await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
-      } else {
-        await ensureCharacterSourceReady(isCurrent);
-      }
+      await ensureCharacterSourceReady(isCurrent);
       if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
-        message: another
-          ? i18n.t('SourceDetail.anotherPartnerCreated', { defaultValue: 'Another partner is ready. Choose it on this page.' })
-          : i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Local agent created on this device.' }),
+        message: i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Partner added. You can start chatting now.' }),
       });
     } catch (error) {
       if (!isCurrent()) return;
@@ -293,7 +283,6 @@ export function SourceDetailPanel({
         onPrimaryAction={() => {
           void handlePrimaryAction();
         }}
-        onCreateAnotherPartner={() => { void handlePrimaryAction(true); }}
         partners={(localAgentListQuery.data ?? []).filter(agent => agent.sourceKey === currentSourceKey)}
         onSelectPartner={(localAgentRef) => { void handleStartChat(undefined, localAgentRef); }}
         onStartChat={(initialComposerText) => {

@@ -109,13 +109,6 @@ export function readMilestoneTimeLabel(
   return null;
 }
 
-// Numeric sort key read from an explicit time label; labels without a year
-// (era names, story periods) sort after dated ones and keep their authored text.
-export function readTimeLabelSortYear(value: string | null | undefined): number {
-  const parsed = Number(String(value || '').match(/(?<!\d)\d{3,4}(?!\d)/u)?.[0]);
-  return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
-}
-
 export function readPublicMediaAsset(value: unknown): JsonObject | null {
   const record = parseOptionalJsonObject(value);
   const id = readScalarString(record?.id);

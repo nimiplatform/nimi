@@ -144,38 +144,47 @@ export function readRelationshipTargetLabels(relationships: JsonObject[]): Recor
   return Object.fromEntries(labels);
 }
 
-// Relationship rows other than career and work rows (which render as
-// milestones and works). A row without an explicit type is kept and presented
+// Relationship rows other than career and work rows (work rows render as
+// works). A row without an explicit type is kept and presented
 // neutrally; only a row with no displayable text at all is omitted.
-export function readRelationshipClues(relationships: JsonObject[]): SourceDetailRelationshipClue[] {
-  const seen = new Set<string>();
+export function readRelationshipClues(relationships: JsonObject[], selfEntityId?: string): SourceDetailRelationshipClue[] {
+  const seen = new Map<string, SourceDetailRelationshipClue>();
   const clues: SourceDetailRelationshipClue[] = [];
   relationships.forEach((row, index) => {
     const type = readRelationshipType(row);
     if (isCareerRelationshipType(type) || isWorkRelationshipType(type)) {
       return;
     }
-    const label = readRelationshipLabel(row);
-    const targetLabel = readRelationshipTargetLabel(row);
+    const incoming = Boolean(selfEntityId && readRelationshipTargetEntityId(row) === selfEntityId);
+    const authoredTargetLabel = readRelationshipTargetLabel(row);
+    const authoredLabel = readRelationshipLabel(row);
+    // The other endpoint of an incoming edge is its source. Do not display
+    // this character's target label as that other person's name.
+    const label = incoming && authoredLabel === authoredTargetLabel ? null : authoredLabel;
+    const targetLabel = incoming ? null : authoredTargetLabel;
     const summary = readRelationshipSummary(row);
     if (!label && !targetLabel && !summary) {
       return;
     }
-    const targetEntityId = readRelationshipTargetEntityId(row);
+    const targetEntityId = incoming ? readOptionalString(row, 'sourceEntityId') : readRelationshipTargetEntityId(row);
+    const details = readRelationshipClueDetails(row, label);
     const key = [type, label, targetLabel, targetEntityId, summary].map((value) => value ?? '').join('\u0000');
-    if (seen.has(key)) {
+    const existing = seen.get(key);
+    if (existing) {
+      existing.details = [...new Set([...existing.details, ...details])];
       return;
     }
-    seen.add(key);
-    clues.push({
+    const clue: SourceDetailRelationshipClue = {
       id: readRelationshipId(row, `relationship-${index + 1}`),
       type,
       label,
       targetLabel,
       targetEntityId,
       summary,
-      details: readRelationshipClueDetails(row, label),
-    });
+      details,
+    };
+    seen.set(key, clue);
+    clues.push(clue);
   });
-  return clues.slice(0, 12);
+  return clues;
 }

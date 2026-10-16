@@ -211,7 +211,7 @@ test('source detail consumes public world character media and voice resources', 
   });
 });
 
-test('world character detail renders reference image and voice sample controls', () => {
+test('world character detail renders the hero voice preview and sample dialogue from public media', () => {
   const detail = toSourceDetailData(sourceDetailRaw(), 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
@@ -225,47 +225,32 @@ test('world character detail renders reference image and voice sample controls',
     }),
   );
 
-  assert.match(markup, /data-testid="world-character-reference-image"/);
-  assert.match(markup, /data-testid="world-character-opening-line"/);
-  assert.match(markup, /data-testid="world-character-speech-profile-trigger"/);
-  assert.match(markup, /data-testid="world-character-voice-sample-audio"/);
-  assert.doesNotMatch(markup, />Look and voice</);
-  assert.doesNotMatch(markup, />Presence<\/p>/);
-  assert.doesNotMatch(markup, /Character media/);
-  assert.match(markup, /data-testid="world-character-media-section"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-sample-audio"/);
-  assert.match(markup, /data-testid="world-character-media-frame"[\s\S]*data-testid="world-character-reference-image"/);
-  assert.match(markup, /data-testid="world-character-reference-image"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-play-button"[\s\S]*data-testid="world-character-voice-sample-audio"/);
-  assert.match(markup, /data-testid="world-character-reference-image"[^>]*class="[^"]*relative/);
-  assert.match(markup, /bg-gradient-to-t from-black\/80/);
+  // The hero carries a compact voice preview row: round play button, label,
+  // and the authored duration; the audio element stays hidden.
+  assert.match(markup, /data-testid="world-character-hero-voice"/);
   assert.match(markup, /data-testid="world-character-voice-play-button"[^>]*aria-label="Play voice"/);
-  assert.match(markup, /data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-speech-profile-trigger"[\s\S]*>i<\/button>[\s\S]*The archives are quiet; ask, and I will open them\./);
-  assert.match(markup, /The archives are quiet; ask, and I will open them\./);
-  assert.match(markup, /A measured Song dynasty scholar voice\./);
-  assert.match(markup, /Deliberate cadence with quiet pauses\./);
-  const openingLineTag = markup.match(/<div data-testid="world-character-opening-line"[^>]*>/)?.[0] ?? '';
-  const speechProfileTriggerTag = markup.match(/<button[^>]*data-testid="world-character-speech-profile-trigger"[^>]*>/)?.[0] ?? '';
-  assert.doesNotMatch(openingLineTag, /border|rounded|bg-\[/);
-  assert.match(speechProfileTriggerTag, /aria-label="Tone: A measured Song dynasty scholar voice\. · Cadence: Deliberate cadence with quiet pauses\."/);
-  assert.match(speechProfileTriggerTag, /h-\[14px\]/);
-  assert.match(speechProfileTriggerTag, /w-\[14px\]/);
-  assert.match(speechProfileTriggerTag, /text-\[8px\]/);
-  assert.doesNotMatch(speechProfileTriggerTag, /\bh-5\b|\bw-5\b|text-\[9px\]|text-\[12px\]/);
-  assert.match(speechProfileTriggerTag, /rounded-full/);
-  assert.match(speechProfileTriggerTag, /border/);
-  assert.match(speechProfileTriggerTag, /bg-\[var\(--nimi-surface-card\)\]/);
-  assert.doesNotMatch(speechProfileTriggerTag, /\bitalic\b/);
-  assert.doesNotMatch(speechProfileTriggerTag, /\stitle=/);
-  assert.doesNotMatch(markup, />Greeting<\/p>/);
+  assert.match(markup, /data-testid="world-character-voice-sample-audio"[^>]*src="https:\/\/cdn\.example\.test\/character\/voice-sample\.wav"/);
+  assert.match(markup, /Voice preview/);
+  assert.match(markup, /· 8s/);
+  // The authored greeting renders once, as the character bubble of the sample
+  // dialogue. Voice direction metadata stays in the typed profile, outside
+  // the reading layout.
+  assert.match(markup, /data-testid="world-character-dialogue-section"/);
+  assert.match(markup, /data-testid="world-character-opening-line"[\s\S]*The archives are quiet; ask, and I will open them\./);
   assert.equal(markup.match(/The archives are quiet; ask, and I will open them\./gu)?.length, 1);
+  assert.equal(detail.characterProfile.interaction?.tone, 'A measured Song dynasty scholar voice.');
+  assert.equal(detail.characterProfile.interaction?.cadence, 'Deliberate cadence with quiet pauses.');
+  assert.doesNotMatch(markup, /A measured Song dynasty scholar voice\.|Deliberate cadence with quiet pauses\./);
+  // The reference portrait card is gone from the presence layout, and neither
+  // internal media labels nor local file paths leak into the page.
+  assert.doesNotMatch(markup, /data-testid="world-character-reference-image"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-media-section"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-speech-profile-trigger"/);
+  assert.doesNotMatch(markup, /reference\.png/);
+  assert.doesNotMatch(markup, />i<\/button>/);
   assert.doesNotMatch(markup, /lucide-info/);
   assert.doesNotMatch(markup, /data-testid="world-character-voice-sample"/);
   assert.doesNotMatch(markup, /Voice sample|audio\/wav/);
-  assert.match(markup, /https:\/\/cdn\.example\.test\/character\/reference\.png/);
-  assert.match(markup, /https:\/\/cdn\.example\.test\/character\/voice-sample\.wav/);
-  assert.match(markup, /data-testid="world-character-reference-image"[^>]*aspect-\[2\/3\]/);
-  assert.match(markup, /src="https:\/\/cdn\.example\.test\/character\/reference\.png" alt="" class="[^"]*object-contain/);
-  assert.doesNotMatch(markup, /src="https:\/\/cdn\.example\.test\/character\/reference\.png" alt="" class="[^"]*object-cover/);
-  assert.doesNotMatch(markup, /bg-\[#f3eee3\]/);
   assert.doesNotMatch(markup, /\/tmp\/nimi-forge/);
 });
 

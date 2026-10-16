@@ -12,7 +12,6 @@ import {
 } from './source-detail-model-readers.js';
 import {
   dedupeWorks,
-  readCareerMilestonesFromRelationships,
   readCharacterProfile,
   readRelationshipClues,
   readRelationshipRows,
@@ -20,7 +19,6 @@ import {
   readWorldCharacterWorksFromRelationships,
 } from './source-detail-world-character-model.js';
 import type {
-  CharacterProfileMilestoneProjection,
   CharacterProfileProjection,
   CharacterSourceViewerRelationProjection,
 } from '../realm-source/character-source-profile-projection.js';
@@ -51,9 +49,9 @@ export type SourceDetailData = {
   sourceRef: CharacterSourceRefV3;
   entity: SourceDetailEntity | null;
   characterProfile: CharacterProfileProjection;
-  worldCharacterAugmentation: SourceDetailWorldCharacterAugmentation | null;
   relationshipClues: SourceDetailRelationshipClue[];
   relationshipTargetLabels: Record<string, string>;
+  relationshipTargets: Record<string, { kind: string; name: string; isCharacter?: boolean }>;
   works: SourceDetailWorkCollection[];
   worksAvailability: 'available' | 'unavailable';
   sourceState: CharacterSourceState;
@@ -84,12 +82,6 @@ export type SourceDetailEntity = {
   contentHash: string;
   tags: string[];
   facts: JsonObject[];
-};
-
-export type SourceDetailWorldCharacterMilestone = CharacterProfileMilestoneProjection;
-
-export type SourceDetailWorldCharacterAugmentation = {
-  careerMilestones: SourceDetailWorldCharacterMilestone[];
 };
 
 // A WorldCharacter relationship row shown as authored. `type` is the row's
@@ -145,6 +137,18 @@ function readSourceDetailEntity(value: unknown): SourceDetailEntity | null {
   };
 }
 
+function readRelationshipTargets(value: unknown): SourceDetailData['relationshipTargets'] {
+  const targets: SourceDetailData['relationshipTargets'] = {};
+  for (const [id, valueEntry] of Object.entries(parseOptionalJsonObject(value) ?? {})) {
+    const entry = parseOptionalJsonObject(valueEntry);
+    if (!entry) continue;
+    const kind = readOptionalString(entry, 'kind');
+    const name = readOptionalString(entry, 'name');
+    if (kind && name) targets[id] = { kind, name, ...(entry.isCharacter === true ? { isCharacter: true } : {}) };
+  }
+  return targets;
+}
+
 function readSourceViewerRelation(value: unknown): CharacterSourceViewerRelationProjection | null {
   const relation = parseOptionalJsonObject(value);
   if (!relation) {
@@ -195,9 +199,6 @@ export function toSourceDetailData(
     throw new Error('Source detail projection requires displayName from WorldPublicSourceCard');
   }
   const relationships = readRelationshipRows(raw.relationships);
-  const careerMilestones = sourceKind === 'worldCharacter'
-    ? readCareerMilestonesFromRelationships(relationships)
-    : [];
   const characterProfile = readCharacterProfile(raw.characterProfile);
   if (!characterProfile) {
     throw new Error('Source detail projection requires shared characterProfile');
@@ -252,11 +253,10 @@ export function toSourceDetailData(
     sourceRef,
     entity: readSourceDetailEntity(raw.entity),
     characterProfile,
-    worldCharacterAugmentation: sourceKind === 'worldCharacter'
-      ? { careerMilestones }
-      : null,
-    relationshipClues: sourceKind === 'worldCharacter' ? readRelationshipClues(relationships) : [],
+    relationshipClues: sourceRef.kind === 'worldCharacter'
+      ? readRelationshipClues(relationships, sourceRef.worldEntityRef.entityId) : [],
     relationshipTargetLabels: sourceKind === 'worldCharacter' ? readRelationshipTargetLabels(relationships) : {},
+    relationshipTargets: readRelationshipTargets(raw.relationshipTargets),
     works,
     worksAvailability: works.length > 0 ? 'available' : 'unavailable',
     sourceState,

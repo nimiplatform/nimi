@@ -11,7 +11,6 @@ import {
   renderToStaticMarkup,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
-import { composeWorldCharacterMilestones } from '../src/shell/renderer/features/source-detail/source-detail-world-character-milestones.js';
 
 test.before(async () => {
   await initI18n();
@@ -121,7 +120,7 @@ test('world character source detail uses Realm relationship neighborhood for wor
   assert.equal(detail.characterProfile.milestones.some((milestone) => milestone.kind === 'work'), false);
 });
 
-test('world character career milestones keep repeated office rows while work rows stay in works', () => {
+test('world character works keep office rows out while repeated text rows merge', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
     characterProfile: {
@@ -212,22 +211,11 @@ test('world character career milestones keep repeated office rows while work row
       },
     ],
   }, 'source_materialization_available');
-  const sharedMilestones = detail.characterProfile.milestones;
-  const milestones = composeWorldCharacterMilestones(
-    sharedMilestones,
-    detail.worldCharacterAugmentation?.careerMilestones ?? [],
-  );
-  const officeMilestones = milestones.filter((milestone) => milestone.kind === 'office' && milestone.title === '翰林学士');
-  const workMilestones = milestones.filter((milestone) => milestone.kind === 'work' && milestone.title === '牧庵集');
 
-  assert.deepEqual(sharedMilestones, []);
-  assert.equal(officeMilestones.length, 1);
-  assert.equal(workMilestones.length, 0);
-  assert.match(officeMilestones[0]?.summary ?? '', /承担朝廷文字事务/);
-  assert.match(officeMilestones[0]?.summary ?? '', /参与国史院修撰/);
+  // Office rows stay out of works; repeated text rows merge into one work.
+  assert.deepEqual(detail.characterProfile.milestones, []);
   assert.deepEqual(detail.works.map((work) => work.title), ['牧庵集']);
   assert.equal(detail.works[0]?.textId, 'muan');
-  assert.deepEqual(milestones.map((milestone) => milestone.title), ['翰林学士']);
 });
 
 test('world character works prefer graph detail when public biography and relationship evidence overlap', () => {

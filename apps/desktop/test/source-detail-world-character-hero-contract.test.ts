@@ -96,9 +96,12 @@ test('world character hero shows no era badge guessed from the archetype, no bot
     assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕/);
     assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
     assert.doesNotMatch(markup, /元代/);
-    assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
+    // The hero keeps the name only in the h1 title row; the sample dialogue's
+    // speaker label below the hero is allowed to repeat it.
+    const heroMarkup = markup.slice(0, markup.indexOf('data-testid="world-character-overview-columns"'));
+    assert.doesNotMatch(heroMarkup, /<p class="[^"]*">同恕<\/p>/);
     assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
-    assert.match(markup, /加入我的角色/);
+    assert.match(markup, /添加为伙伴/);
     assert.doesNotMatch(markup, /立即对话/);
     assert.doesNotMatch(markup, /加入后可在本地持续对话/);
     assert.doesNotMatch(markup, /当前身份/);
@@ -139,7 +142,7 @@ test('world character hero shows chat instead of join after the character is alr
     );
 
     assert.match(markup, /立即对话/);
-    assert.doesNotMatch(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /添加为伙伴/);
     assert.doesNotMatch(markup, /打开伙伴/);
     assert.doesNotMatch(markup, /data-primary-action="open_partner"/);
   } finally {
@@ -172,9 +175,9 @@ test('world character hero shows a disabled joining state while the join is in f
       }),
     );
 
-    assert.match(markup, /正在加入…/);
+    assert.match(markup, /正在添加…/);
     assert.match(markup, /disabled[^>]*data-primary-action="become_partner"/);
-    assert.doesNotMatch(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /添加为伙伴/);
     assert.doesNotMatch(markup, /立即对话/);
   } finally {
     await changeLocale('en');
@@ -312,11 +315,156 @@ test('world character source detail renders admitted CBDB dossier prose as autho
   assert.match(visibleMarkup, /元代文學與關係網核心人物，後歷任翰林學士承旨，舊友往來甚廣。/);
   assert.match(visibleMarkup, /文學領袖與朝廷重臣/);
   assert.match(visibleMarkup, /元代文人關係網/);
-  assert.match(visibleMarkup, /後入翰林學士院/);
-  assert.match(visibleMarkup, /舊臣推舉入翰林學士院，聲名甚廣。/);
-  assert.match(visibleMarkup, /語速平緩，聽感莊重/);
+  assert.equal(source.characterProfile.milestones[0]?.summary, '舊臣推舉入翰林學士院，聲名甚廣。');
+  assert.equal(source.characterProfile.interaction?.cadence, '語速平緩，聽感莊重');
   assert.doesNotMatch(visibleMarkup, /苏轼|文学领袖|后入翰林学士院|语速平缓/);
   assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
+});
+
+test('world character hero shows the world pill, an age-qualified subtitle, and the voice preview row', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      worldName: '东南秋声',
+      media: {
+        voiceSampleUrl: 'https://cdn.example.test/voice.wav',
+        assets: {
+          voiceSample: {
+            id: 'voice-1',
+            kind: 'voiceSample',
+            url: 'https://cdn.example.test/voice.wav',
+            provider: 'S3_OBJECT',
+            mimeType: 'audio/wav',
+            width: null,
+            height: null,
+            durationSec: 23.4,
+            sha256: 'sha-voice',
+          },
+        },
+      },
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        role: '瓦舍说话艺人',
+        ageDescription: '二十多岁',
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-character-world-pill"/);
+    assert.match(markup, /所在世界/);
+    assert.match(markup, /东南秋声/);
+    const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
+    assert.equal(description, '瓦舍说话艺人 · 二十多岁');
+    assert.match(markup, /data-testid="world-character-hero-voice"/);
+    assert.match(markup, /声音试听/);
+    assert.match(markup, /· 23 秒/);
+    assert.match(markup, /data-testid="world-character-voice-sample-audio"[^>]*src="https:\/\/cdn\.example\.test\/voice\.wav"/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character overview renders authored biography and dialogue without chat topic shortcuts', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        disposition: '机敏狡黠，口齿锋利而幽默风趣。',
+        knowledgeTopics: ['临安瓦舍勾栏百戏规矩', '听客心理与逗趣包袱', '市井传奇与历代说话本子', '都城行铺生计与茶坊掌故', '额外话题'],
+        dialogueExemplars: [
+          {
+            id: 'exemplar-1',
+            user: '我荷包里只有几文零钱，听不了整本的大戏。',
+            character: '瞧您说的，瓦舍里图的就是个市井热闹！',
+          },
+        ],
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+        onStartChat: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-character-about-section"/);
+    assert.match(markup, /关于欧阳德/);
+    assert.doesNotMatch(markup, /人物介绍|>性格<|>语气<|>节奏</);
+    assert.match(markup, /欧阳德，字崇一，号南野，谥文庄，江西泰和人。/);
+    assert.match(markup, /data-testid="character-disposition"/);
+    assert.match(markup, /机敏狡黠，口齿锋利而幽默风趣。/);
+    assert.doesNotMatch(markup, /相遇场景|听听TA怎么说|换一段/);
+    assert.match(markup, /士人交游圈：以师友、同僚、门生关系为纽带。/);
+    const aboutStart = markup.indexOf('data-testid="world-character-about-section"');
+    const aboutEnd = markup.indexOf('</section>', aboutStart);
+    const aboutMarkup = markup.slice(aboutStart, aboutEnd);
+    assert.doesNotMatch(aboutMarkup, /相遇场景|士人交游圈/);
+    assert.equal(aboutMarkup.match(/<h2\b/gu)?.length, 1);
+    assert.equal(aboutMarkup.match(/<p\b/gu)?.length, 2);
+    assert.match(aboutMarkup, /<p data-testid="character-introduction"[^>]*>欧阳德，字崇一，号南野，谥文庄，江西泰和人。<\/p>/u);
+    assert.match(aboutMarkup, /<p data-testid="character-disposition"[^>]*>机敏狡黠，口齿锋利而幽默风趣。<\/p>/u);
+    const sceneStart = markup.indexOf('data-testid="world-character-meeting-scene"');
+    assert.ok(sceneStart > aboutEnd);
+    assert.ok(sceneStart < markup.indexOf('data-testid="world-character-dialogue-section"'));
+    assert.match(markup, /data-testid="world-character-dialogue-section"/);
+    assert.match(markup, /data-testid="world-character-dialogue-user"/);
+    assert.match(markup, /我荷包里只有几文零钱，听不了整本的大戏。/);
+    assert.match(markup, /data-testid="world-character-dialogue-character"/);
+    assert.match(markup, /瞧您说的，瓦舍里图的就是个市井热闹！/);
+    // The greeting stays available as the second sample, so the refresh control shows.
+    assert.match(markup, /data-testid="world-character-dialogue-refresh"/);
+    assert.match(markup, /再看一段/);
+    assert.ok(markup.indexOf('data-testid="world-character-dialogue-refresh"') > markup.indexOf('data-testid="world-character-opening-line"'));
+    assert.doesNotMatch(markup, /可以聊什么|world-character-topics-section|world-character-topic-chip/);
+    assert.doesNotMatch(markup, /都城行铺生计与茶坊掌故/);
+    assert.doesNotMatch(markup, /额外话题/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character dialogue hides the refresh control when only the greeting exists', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-character-dialogue-section"/);
+    assert.match(markup, /吾乃欧阳德，字崇一，号南野。/);
+    assert.doesNotMatch(markup, /data-testid="world-character-dialogue-user"/);
+    assert.doesNotMatch(markup, /data-testid="world-character-dialogue-refresh"/);
+  } finally {
+    await changeLocale('en');
+  }
 });
 
 test('world character source detail removes facts panel and replaces breadcrumbs with back button', () => {

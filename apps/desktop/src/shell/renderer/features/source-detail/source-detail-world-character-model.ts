@@ -1,4 +1,5 @@
 import type {
+  CharacterProfileDialogueExemplarProjection,
   CharacterProfileInteractionProjection,
   CharacterProfileMilestoneProjection,
   CharacterProfileProjection,
@@ -14,7 +15,6 @@ export {
   dedupeWorks,
   readWorldCharacterWorksFromRelationships,
 } from './source-detail-world-character-works.js';
-export { readCareerMilestonesFromRelationships } from './source-detail-world-character-milestones.js';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -69,6 +69,14 @@ function isCharacterProfileInteraction(value: unknown): value is CharacterProfil
     && isNullableString(interaction.greeting));
 }
 
+function isCharacterProfileDialogueExemplar(value: unknown): value is CharacterProfileDialogueExemplarProjection {
+  const exemplar = asRecord(value);
+  return Boolean(exemplar
+    && typeof exemplar.id === 'string'
+    && isNullableString(exemplar.user)
+    && typeof exemplar.character === 'string');
+}
+
 function isCharacterProfileProjection(value: unknown): value is CharacterProfileProjection {
   const profile = asRecord(value);
   return Boolean(profile
@@ -83,7 +91,10 @@ function isCharacterProfileProjection(value: unknown): value is CharacterProfile
     && Array.isArray(profile.relationshipNotes)
     && profile.relationshipNotes.every(isCharacterProfileRelationship)
     && isStringArray(profile.conversationAnchors)
-    && isCharacterProfileInteraction(profile.interaction));
+    && isCharacterProfileInteraction(profile.interaction)
+    && (profile.dialogueExemplars === undefined
+      || (Array.isArray(profile.dialogueExemplars)
+        && profile.dialogueExemplars.every(isCharacterProfileDialogueExemplar))));
 }
 
 export function readCharacterProfile(
