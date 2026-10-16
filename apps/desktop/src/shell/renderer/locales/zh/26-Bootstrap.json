@@ -1,5 +1,4 @@
 {
-  "initializingRuntime": "正在初始化运行时...",
   "webDegraded": "Web 初始化超时，已进入降级模式。",
   "startFailedPrefix": "启动失败",
   "startFailedTitle": "Nimi 未能启动",
@@ -13,7 +12,6 @@
   "localSessionRetry": "重新连接账号服务",
   "startFailedDescription": "Nimi 启动时遇到了问题。请重试；如果反复出现，可以在“支持”中找到修复与恢复选项。",
   "retryStart": "重试",
-  "stillStarting": "仍在启动…",
   "stillStartingDescription": "Nimi 启动本地服务的时间比平时长。可以继续等待，也可以重试。",
   "technicalDetails": "技术详情",
   "maintenanceTitle": "Nimi 无法打开当前文件夹中的数据",

@@ -29,7 +29,6 @@ function WindowDragRegion() {
 export function RuntimeLoadingScreen(props: { slowAfterMs?: number; slowActions?: ReactNode } = {}) {
   const { t } = useTranslation();
   const slow = useSlowStart(props.slowAfterMs);
-  const statusText = slow ? t('Bootstrap.stillStarting') : t('Bootstrap.initializingRuntime');
 
   return (
     <div className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
@@ -51,13 +50,12 @@ export function RuntimeLoadingScreen(props: { slowAfterMs?: number; slowActions?
             Nimi
           </h1>
 
-          <div role="status" className="mt-12 flex flex-col items-center gap-3">
+          <div role="status" aria-label={t('Common.loading')} className="mt-12 flex flex-col items-center gap-3">
             <div aria-hidden="true" className="nimi-boot-dots">
               <span className="nimi-boot-dot" />
               <span className="nimi-boot-dot" />
               <span className="nimi-boot-dot" />
             </div>
-            <p className="text-xs text-[var(--nimi-text-muted)]">{statusText}</p>
           </div>
           {slow ? (
             <div data-testid="runtime-loading-slow" className="mt-6 flex max-w-[28rem] flex-col items-center gap-4">

@@ -1,5 +1,4 @@
 {
-  "initializingRuntime": "Initializing runtime...",
   "webDegraded": "Web bootstrap timed out; switched to degraded mode.",
   "startFailedPrefix": "Startup failed",
   "startFailedTitle": "Nimi couldn't start",
@@ -13,7 +12,6 @@
   "localSessionRetry": "Reconnect account services",
   "startFailedDescription": "Nimi couldn't finish starting up. Try again, or check Support for repair and recovery options if the problem continues.",
   "retryStart": "Try again",
-  "stillStarting": "Still starting…",
   "stillStartingDescription": "Nimi is taking longer than usual to start its local services. You can keep waiting or try again.",
   "technicalDetails": "Technical details",
   "maintenanceTitle": "Nimi can't open the data in its folder",

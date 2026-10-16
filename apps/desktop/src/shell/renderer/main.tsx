@@ -8,7 +8,6 @@ import {
   createRendererEntryModuleLoader,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from './locales/en/26-Bootstrap.json';
-import entryLogoImage from './assets/logo.png';
 import './foundation.css';
 import './styles.css';
 import './features/world/world-atlas.css';
@@ -33,7 +32,6 @@ async function preflightRendererAppDependencies(): Promise<void> {
 }
 
 const entryBootCopy = bootstrapEntryCopy as {
-    initializingRuntime: string;
     startFailedTitle: string;
     startFailedDescription: string;
     retryStart: string;
@@ -116,38 +114,6 @@ function EntryBootSurface(props: { title: string; description: string; detail: s
     );
 }
 
-function EntryRuntimeBootSurface(props: { title: string }) {
-    const prefersReducedMotion = usePrefersReducedMotion();
-
-    return (
-      <div className="flex min-h-screen items-center justify-center overflow-hidden bg-[var(--nimi-surface-canvas,#f8fafc)] px-6 py-8 text-[var(--nimi-text-primary,#111827)]">
-        <motion.section
-          initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.32, ease: [0.05, 0.7, 0.1, 1] }}
-          className="relative z-10 flex w-full max-w-[420px] flex-col items-center text-center"
-        >
-          <img
-            src={entryLogoImage}
-            alt="Nimi"
-            data-testid="runtime-loading-logo"
-            className="h-20 w-20 object-contain"
-          />
-          <h1 className="mt-10 text-[30px] font-medium leading-snug">
-            Nimi
-          </h1>
-          <div role="status" className="mt-12 flex flex-col items-center gap-3">
-            <div aria-hidden="true" className="nimi-boot-dots">
-              <span className="nimi-boot-dot" />
-              <span className="nimi-boot-dot" />
-              <span className="nimi-boot-dot" />
-            </div>
-            <p className="text-xs text-[var(--nimi-text-muted,#64748b)]">{props.title}</p>
-          </div>
-        </motion.section>
-      </div>
-    );
-}
 if (!import.meta.env.DEV) {
     document.addEventListener('contextmenu', (e) => e.preventDefault());
 }
@@ -161,7 +127,7 @@ createRoot(rootElement).render(
   <EntryErrorBoundary>
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
       <Suspense
-        fallback={<EntryRuntimeBootSurface title={entryBootCopy.initializingRuntime} />}
+        fallback={<div className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas,#f8fafc)]" />}
       >
         <App />
       </Suspense>
