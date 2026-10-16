@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-server.mjs",
     "predev": "node scripts/generate-landing-data.mjs",
     "prebuild": "node scripts/generate-landing-data.mjs",
     "build:prepared": "pnpm run typecheck && vite build",
@@ -13,7 +13,8 @@
     "generate-landing-data": "node scripts/generate-landing-data.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "pnpm run typecheck",
-    "test": "node ../../scripts/with-workspace-surfaces.mjs -- tsx --tsconfig tsconfig.test.json --test test/**/*.test.ts"
+    "test:dev": "node --test scripts/dev-server.test.mjs",
+    "test": "pnpm run test:dev && node ../../scripts/with-workspace-surfaces.mjs -- tsx --tsconfig tsconfig.test.json --test test/**/*.test.ts"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

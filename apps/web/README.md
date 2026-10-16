@@ -24,6 +24,15 @@ Development uses the same-origin Vite proxy when `NIMI_REALM_URL` is configured:
 pnpm --filter @nimiplatform/web dev
 ```
 
+From the repository root, `pnpm dev:web` uses the same startup check. If this
+workspace's Web development server is already listening on the configured port
+(normally `3000`) in the same mode, the command prints its address and exits
+successfully. Reuse does not take ownership of the original server: stop or
+restart it in the terminal that launched it. Source edits continue to hot reload.
+An unrelated service or another checkout on the port produces an explicit error;
+the command never kills it or silently switches ports. Existing servers launched
+before this check was added need one restart through the updated command.
+
 Verification:
 
 ```bash
