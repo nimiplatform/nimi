@@ -168,9 +168,15 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name string
-		raw  string
+		name       string
+		raw        string
+		cutAtLimit bool
 	}{
+		{
+			name:       "output limit",
+			raw:        `<message id="message-limit">partial reply`,
+			cutAtLimit: true,
+		},
 		{
 			name: "malformed",
 			raw:  `<message id="message-malformed"><activity>thinking</activity>Hello</message><action id="action-malformed" kind="image"><prompt-payload kind="image"><prompt-text>must not execute</prompt-text></prompt-payload>`,
@@ -228,7 +234,13 @@ func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T)
 						TraceId:   traceID,
 						Payload: &runtimev1.StreamScenarioEvent_Completed{
 							Completed: &runtimev1.ScenarioStreamCompleted{
-								FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+								FinishReason: func() runtimev1.FinishReason {
+									if tt.cutAtLimit {
+										return runtimev1.FinishReason_FINISH_REASON_LENGTH
+									}
+									return runtimev1.FinishReason_FINISH_REASON_STOP
+								}(),
+								Usage: &runtimev1.UsageStats{OutputTokens: 1024},
 							},
 						},
 					})
@@ -278,6 +290,14 @@ func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T)
 			}
 			snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-invalid-apml-"+tt.name)
 			lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+			if tt.cutAtLimit {
+				if lastTurn["finish_reason"] != "length" || !strings.Contains(fmt.Sprint(failedDetail["message"]), "output token limit") {
+					t.Fatalf("output-limit cause was lost: event=%v snapshot=%v", failedDetail, lastTurn)
+				}
+				if lastTurn["usage"] == nil {
+					t.Fatal("failed output lost reported usage")
+				}
+			}
 			for _, forbidden := range []string{"message_id", "text", "structured", "assistant_memory", "chat_sidecar", "follow_up"} {
 				if _, present := lastTurn[forbidden]; present {
 					t.Fatalf("invalid APML must not persist %s in last_turn, got=%v", forbidden, lastTurn)

@@ -409,6 +409,11 @@ func (r publicChatRuntime) runTurn(
 		)
 	}
 	if parseErr != nil {
+		// @nimi-authority: rule.nimi.runtime.ai-provider.internal-output-budget
+		message := strings.TrimSpace(parseErr.Error())
+		if finish.GetFinishReason() == runtimev1.FinishReason_FINISH_REASON_LENGTH {
+			message = "APML output was cut off at the output token limit: " + message
+		}
 		if r.svc.logger != nil {
 			r.svc.logger.Warn("public chat structured parse failed",
 				"agent_id", session.AgentID,
@@ -425,16 +430,16 @@ func (r publicChatRuntime) runTurn(
 			projection.ModelResolved = modelResolved
 			projection.RouteDecision = routeDecision
 			projection.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
-			projection.Message = strings.TrimSpace(parseErr.Error())
-			if recalled && finish != nil {
+			projection.Message = message
+			if finish != nil {
 				projection.FinishReason = publicChatFinishReasonLabel(finish.GetFinishReason())
 				projection.StreamSimulated = finish.GetStreamSimulated()
 			}
-			if recalled && usage != nil {
+			if usage != nil {
 				projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
 			}
 		})
-		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, parseErr.Error(), "")
+		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, message, "")
 		return
 	}
 	if !recalled && reasoningObserved {

@@ -1052,6 +1052,32 @@ func TestLocalAppConversationVoiceRenderReturnsTypedUnavailableWithoutVoicePolic
 	}
 }
 
+func TestLocalAppConversationVoiceFailurePreservesCanonicalReason(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	for _, reason := range []runtimev1.ReasonCode{
+		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+		runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED,
+		runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+	} {
+		turnID := "voice-failure-" + reason.String()
+		if err := svc.commitPublicChatTranscriptTurn(context.Background(), anchorID, turnID, publicChatTurnOriginUser, "question", nil, "answer", nil); err != nil {
+			t.Fatal(err)
+		}
+		svc.chatSurfaceMu.Lock()
+		svc.chatTurns[turnID] = &publicChatTurnState{ConversationAnchorID: anchorID, TurnID: turnID, SubjectUserID: "user-1"}
+		svc.chatSurfaceMu.Unlock()
+		session, _ := svc.publicChatAnchorSnapshot(anchorID)
+		if err := svc.commitLocalAppConversationVoiceFailed(session, *svc.chatTurns[turnID], reason.String()); err != nil {
+			t.Fatal(err)
+		}
+		voice := svc.localAppConversationVoiceForTurn(anchorID, turnID)
+		if voice == nil || voice.ReasonCode != reason || voice.Message != reason.String() {
+			t.Fatalf("voice failure lost canonical reason %s: %+v", reason, voice)
+		}
+	}
+}
+
 func TestLocalAppConversationFinalVoiceSidecarsAreDurableReadableAndTerminal(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x49, "user-1")

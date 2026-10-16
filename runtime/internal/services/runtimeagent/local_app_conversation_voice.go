@@ -64,13 +64,16 @@ func (s *Service) commitLocalAppConversationVoiceReady(
 	return s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.r093
 func (s *Service) commitLocalAppConversationVoiceFailed(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
 	terminalReason string,
 ) error {
 	reasonCode := runtimev1.ReasonCode_AI_OUTPUT_INVALID
-	if strings.Contains(strings.ToUpper(terminalReason), "UNAVAILABLE") ||
+	if value, ok := runtimev1.ReasonCode_value[strings.TrimSpace(terminalReason)]; ok && value != int32(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED) {
+		reasonCode = runtimev1.ReasonCode(value)
+	} else if strings.Contains(strings.ToUpper(terminalReason), "UNAVAILABLE") ||
 		strings.Contains(strings.ToUpper(terminalReason), "UNCONFIGURED") ||
 		strings.Contains(strings.ToUpper(terminalReason), "ROUTE") {
 		reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED
