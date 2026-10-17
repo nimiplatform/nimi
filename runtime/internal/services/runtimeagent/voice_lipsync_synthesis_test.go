@@ -70,8 +70,11 @@ func TestAIBackedConversationVoiceSynthesizerProjectsArtifactWithoutMouthState(t
 		},
 	}
 	synth := newAIBackedVoiceLipsyncSynthesizer(ai, "speech/qwen3tts", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
+	decision := accountservice.LocalAppCallerDecision{AppID: "chat-app", AccountID: "voice-owner", RegisteredAppSubject: "registered-chat", LocalAgentID: "agent-provider-voice", Operation: accountservice.LocalAppOperationSendConversationTurn, SessionInvalidated: make(chan struct{})}
+	parent := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
 	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
-		Context:               context.Background(),
+		Context:               parent,
+		OwnerUserID:           "voice-owner",
 		TurnID:                "turn-provider-voice",
 		MessageID:             "message-provider-voice",
 		Text:                  "Provider speech owns the audio artifact.",
@@ -84,6 +87,18 @@ func TestAIBackedConversationVoiceSynthesizerProjectsArtifactWithoutMouthState(t
 	}
 	if ai.submitReq == nil || ai.submitReq.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		t.Fatalf("speech request = %+v", ai.submitReq)
+	}
+	if ai.submitReq.GetHead().GetTimeoutMs() != 0 {
+		t.Fatal("asynchronous voice submission must not carry the observer timeout")
+	}
+	if deadline, ok := ai.submitCtx.Deadline(); !ok || time.Until(deadline) <= 0 || time.Until(deadline) > defaultLocalVoiceSynthesisJobWait {
+		t.Fatal("voice observation must retain its bounded context")
+	}
+	if executionApp, ok := accountservice.AgentVoiceJobExecutionApp(ai.submitCtx); !ok || executionApp != runtimeAgentVoiceSynthesisAppID {
+		t.Fatal("Agent speech submission lost its private voice-only origin")
+	}
+	if captured, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ai.submitCtx); !ok || captured != decision {
+		t.Fatal("Agent voice submission lost or widened the resolved Conversation authority")
 	}
 	if got := ai.submitReq.GetSpec().GetSpeechSynthesize().GetVoiceRef().GetPresetVoiceId(); got != "zh_narrator" {
 		t.Fatalf("preset voice id = %q", got)

@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -218,6 +219,7 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
+	ctx = accountservice.ContextWithAgentVoiceJobOrigin(ctx, input.Context, speechAppID, ownerUserID, input.AgentID)
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
 		intent := executionintent.Clone(input.SpeechExecutionIntent)
 		cloudTarget := input.SpeechTargetRef.GetCloud()
@@ -238,10 +240,12 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		LocalAIConfigIntent: input.SpeechLocalIntent,
 	}, runtimeAgentAIConfigCapabilityAudioSynthesize)
 	submitResp, err := s.ai.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		// @nimi-authority: rule.nimi.runtime.service-operations.r066
+		// The context bounds this observer. An asynchronous Job has no caller
+		// timeout field; forwarding our wait budget would reject admission.
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         speechAppID,
 			SubjectUserId: ownerUserID,
-			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
