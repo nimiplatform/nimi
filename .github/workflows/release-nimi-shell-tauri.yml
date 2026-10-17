@@ -54,7 +54,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
         with:
           toolchain: stable
       - name: Install Linux Tauri dependencies
@@ -155,7 +155,7 @@ jobs:
           package_version="$(printf '%s' "${metadata}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s).packages.find(x=>x.name==='nimi-shell-tauri');process.stdout.write(p?.version || '')})")"
           test "${package_version}" = "${RELEASE_VERSION}"
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
         with:
           toolchain: stable
       - name: Package exact Tauri shell crate
