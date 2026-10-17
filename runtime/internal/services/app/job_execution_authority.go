@@ -47,8 +47,14 @@ func (s *JobWorkAuthorizer) AdmitJobWork(ctx context.Context, d accountservice.L
 	if s == nil || s.account == nil || s.registrations == nil || d.AccountID == "" || d.RegisteredAppSubject == "" || d.AppID == "" {
 		return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
+	domain := "runtime.consume"
 	switch d.Operation {
 	case accountservice.LocalAppOperationScenarioJobSubmit, accountservice.LocalAppOperationScenarioJobGet, accountservice.LocalAppOperationScenarioJobCancel:
+	case accountservice.LocalAppOperationSendConversationTurn, accountservice.LocalAppOperationConversationVoiceRender:
+		if _, derived := accountservice.AgentVoiceJobExecutionApp(ctx); !derived {
+			return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		}
+		domain = "agent.local"
 	default:
 		return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
@@ -60,7 +66,7 @@ func (s *JobWorkAuthorizer) AdmitJobWork(ctx context.Context, d accountservice.L
 	if lease.RealmID != d.RealmEnvironmentID {
 		return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	}
-	registrationInvalidated, releaseRegistration, err := s.registrations.BindJobRegistrationAuthority(ctx, d.RegisteredAppSubject, d.SourceGeneration, d.DeclarationGeneration)
+	registrationInvalidated, releaseRegistration, err := s.registrations.BindJobRegistrationAuthority(ctx, d.RegisteredAppSubject, d.SourceGeneration, d.DeclarationGeneration, domain)
 	if err != nil {
 		return accountservice.JobWorkAuthority{}, err
 	}
@@ -74,7 +80,7 @@ func (s *JobWorkAuthorizer) AdmitJobWork(ctx context.Context, d accountservice.L
 		default:
 		}
 		return owner.WithJobAccountAuthority(work, lease, func() error {
-			return s.registrations.WithJobRegistrationAuthority(work, d.RegisteredAppSubject, d.SourceGeneration, d.DeclarationGeneration, fn)
+			return s.registrations.WithJobRegistrationAuthority(work, d.RegisteredAppSubject, d.SourceGeneration, d.DeclarationGeneration, domain, fn)
 		})
 	}
 	if err := guard(ctx, func() error { return nil }); err != nil {

@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -95,6 +96,24 @@ func TestAsyncLegacyTimeoutFailsBeforeResourceResolution(t *testing.T) {
 			if r != nil || !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 				t.Fatalf("%s timeout=%d returned %#v / %v", kind, value, r, err)
 			}
+		}
+	}
+}
+
+func TestAgentVoiceJobOriginCannotSubmitAnotherCapabilityOrExecutionOwner(t *testing.T) {
+	d := accountservice.LocalAppCallerDecision{AccountID: "account-1", AppID: "chat-app", RegisteredAppSubject: "registered-1", LocalAgentID: "agent-1", Operation: accountservice.LocalAppOperationSendConversationTurn, SessionInvalidated: make(chan struct{})}
+	ingress := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), d)
+	ctx := accountservice.ContextWithAgentVoiceJobOrigin(context.Background(), ingress, "voice-owner", "account-1", "agent-1")
+	for _, testCase := range []struct {
+		kind runtimev1.ScenarioType
+		app  string
+	}{
+		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, "voice-owner"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, "other-app"},
+	} {
+		_, err := (&Service{}).SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{AppId: testCase.app}, ScenarioType: testCase.kind, Spec: &runtimev1.ScenarioSpec{}})
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN {
+			t.Fatalf("voice scope widened: %v", err)
 		}
 	}
 }

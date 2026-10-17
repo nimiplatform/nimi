@@ -7,6 +7,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
 
@@ -35,6 +36,10 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	}
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+	if appID, voiceChild := accountservice.AgentVoiceJobExecutionApp(ctx); voiceChild &&
+		(req.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE || req.GetHead().GetAppId() != appID) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	ctx, releaseUnadoptedWork, workErr := s.admitJobSubmissionWork(ctx)
 	if workErr != nil {

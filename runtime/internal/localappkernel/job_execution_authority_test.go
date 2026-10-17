@@ -18,7 +18,7 @@ func TestJobRegistrationAuthorityTracksCommittedOwnerWithdrawal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	signal, release, err := kernel.Registrations().BindJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration)
+	signal, release, err := kernel.Registrations().BindJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestJobRegistrationAuthorityTracksCommittedOwnerWithdrawal(t *testing.T) {
 		t.Fatal("committed withdrawal did not invalidate work")
 	}
 	called := false
-	if err := kernel.Registrations().WithJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, func() error { called = true; return nil }); err == nil || called {
+	if err := kernel.Registrations().WithJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume", func() error { called = true; return nil }); err == nil || called {
 		t.Fatal("withdrawn owner published")
 	}
 }
@@ -69,7 +69,7 @@ func TestJobRegistrationCommitFenceOrdersActualMutation(t *testing.T) {
 	entered, release := make(chan struct{}), make(chan struct{})
 	committed, revoked := make(chan error, 1), make(chan error, 1)
 	go func() {
-		committed <- kernel.Registrations().WithJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, func() error { close(entered); <-release; return nil })
+		committed <- kernel.Registrations().WithJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume", func() error { close(entered); <-release; return nil })
 	}()
 	<-entered
 	go func() { revoked <- kernel.Registrations().Tombstone(ctx, r.RegistrationHandle) }()
@@ -85,5 +85,44 @@ func TestJobRegistrationCommitFenceOrdersActualMutation(t *testing.T) {
 	}
 	if err := <-revoked; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestAgentVoiceRegistrationAuthorityRequiresOnlyItsAdmittedDomain(t *testing.T) {
+	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "voice-job-install", 0x33)
+	defer func() { _ = kernel.Close() }()
+	ctx := context.Background()
+	input := developmentInput()
+	input.RawDeclaration = []string{"agent.local"}
+	r, err := kernel.Registrations().RegisterDevelopment(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signal, release, err := kernel.Registrations().BindJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "agent.local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	for _, forbidden := range []string{"runtime.consume", "", "unadmitted.domain"} {
+		if _, undo, err := kernel.Registrations().BindJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, forbidden); err == nil {
+			undo()
+			t.Fatalf("voice registration admitted %q", forbidden)
+		}
+	}
+	if _, err := kernel.Registrations().RegisterDevelopment(ctx, input); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-signal:
+		t.Fatal("unrelated mutation invalidated the admitted Agent domain")
+	default:
+	}
+	if err := kernel.Registrations().Tombstone(ctx, r.RegistrationHandle); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-signal:
+	default:
+		t.Fatal("withdrawn Agent registration kept its voice permit")
 	}
 }

@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -46,4 +47,49 @@ type JobWorkAuthority struct {
 	Invalidated <-chan struct{}
 	WithCurrent func(context.Context, func() error) error
 	Release     func()
+}
+
+type agentVoiceJobOriginKey struct{}
+type agentVoiceJobOrigin struct {
+	decision       LocalAppCallerDecision
+	executionAppID string
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r181
+// ContextWithAgentVoiceJobOrigin retains the resolved Conversation caller for
+// a Runtime-owned speech Job. It does not grant ScenarioJobSubmit or mint a
+// work permit: the Job authorizer still checks live account and registration.
+// The execution App may own a selected VoiceAsset; it is not the Job authority.
+func ContextWithAgentVoiceJobOrigin(ctx, ingress context.Context, executionAppID, accountID, agentID string) context.Context {
+	if ctx == nil || ingress == nil {
+		return ctx
+	}
+	d, ok := AuthorizedLocalAppDecisionFromContext(ingress)
+	if !ok || strings.TrimSpace(executionAppID) == "" || d.AccountID != accountID || agentID == "" || d.LocalAgentID != agentID || d.RegisteredAppSubject == "" || d.SessionInvalidated == nil {
+		return ctx
+	}
+	if d.Operation != LocalAppOperationSendConversationTurn && d.Operation != LocalAppOperationConversationVoiceRender {
+		return ctx
+	}
+	select {
+	case <-d.SessionInvalidated:
+		return ctx
+	default:
+	}
+	ctx = ContextWithAuthorizedLocalAppDecision(ctx, d)
+	return context.WithValue(ctx, agentVoiceJobOriginKey{}, agentVoiceJobOrigin{decision: d, executionAppID: executionAppID})
+}
+
+// AgentVoiceJobExecutionApp returns only a process-private, unchanged origin.
+// No public request, metadata field or persisted Job can construct this scope.
+func AgentVoiceJobExecutionApp(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	origin, ok := ctx.Value(agentVoiceJobOriginKey{}).(agentVoiceJobOrigin)
+	d, admitted := AuthorizedLocalAppDecisionFromContext(ctx)
+	if !ok || !admitted || d != origin.decision {
+		return "", false
+	}
+	return origin.executionAppID, true
 }

@@ -8,16 +8,17 @@ import (
 
 type jobRegistrationAuthority struct {
 	subject                                 string
+	domain                                  string
 	sourceGeneration, declarationGeneration uint64
 	invalidated                             chan struct{}
 }
 
 // BindJobRegistrationAuthority observes canonical registration changes only;
 // connection/session teardown does not mutate this binding.
-func (store *RegistrationStore) BindJobRegistrationAuthority(ctx context.Context, subject string, sourceGeneration, declarationGeneration uint64) (<-chan struct{}, func(), error) {
+func (store *RegistrationStore) BindJobRegistrationAuthority(ctx context.Context, subject string, sourceGeneration, declarationGeneration uint64, domain string) (<-chan struct{}, func(), error) {
 	var lease *jobRegistrationAuthority
-	err := store.WithJobRegistrationAuthority(ctx, subject, sourceGeneration, declarationGeneration, func() error {
-		lease = &jobRegistrationAuthority{subject: subject, sourceGeneration: sourceGeneration, declarationGeneration: declarationGeneration, invalidated: make(chan struct{})}
+	err := store.WithJobRegistrationAuthority(ctx, subject, sourceGeneration, declarationGeneration, domain, func() error {
+		lease = &jobRegistrationAuthority{subject: subject, domain: domain, sourceGeneration: sourceGeneration, declarationGeneration: declarationGeneration, invalidated: make(chan struct{})}
 		if store.kernel.jobAuthorities == nil {
 			store.kernel.jobAuthorities = make(map[*jobRegistrationAuthority]struct{})
 		}
@@ -44,7 +45,7 @@ func (store *RegistrationStore) BindJobRegistrationAuthority(ctx context.Context
 func (kernel *Kernel) invalidateJobAuthoritiesLocked() {
 	for lease := range kernel.jobAuthorities {
 		r, err := loadCanonicalBySubject(context.Background(), kernel.db, lease.subject)
-		if err != nil || r.State != RegistrationStateActive || r.SourceGeneration != lease.sourceGeneration || r.DeclarationGeneration != lease.declarationGeneration || !slices.Contains(r.ActivatedDomains, "runtime.consume") {
+		if err != nil || r.State != RegistrationStateActive || r.SourceGeneration != lease.sourceGeneration || r.DeclarationGeneration != lease.declarationGeneration || !slices.Contains(r.ActivatedDomains, lease.domain) {
 			delete(kernel.jobAuthorities, lease)
 			close(lease.invalidated)
 		}
@@ -55,8 +56,8 @@ func (kernel *Kernel) invalidateJobAuthoritiesLocked() {
 // WithJobRegistrationAuthority uses the canonical registration mutation lock,
 // independently of a technical connection/session. Source or declaration
 // withdrawal fences publication; ordinary Host disconnect does not.
-func (store *RegistrationStore) WithJobRegistrationAuthority(ctx context.Context, subject string, sourceGeneration, declarationGeneration uint64, fn func() error) error {
-	if store == nil || store.kernel == nil || fn == nil || subject == "" || sourceGeneration == 0 || declarationGeneration == 0 {
+func (store *RegistrationStore) WithJobRegistrationAuthority(ctx context.Context, subject string, sourceGeneration, declarationGeneration uint64, domain string, fn func() error) error {
+	if store == nil || store.kernel == nil || fn == nil || subject == "" || sourceGeneration == 0 || declarationGeneration == 0 || (domain != "runtime.consume" && domain != "agent.local") {
 		return fmt.Errorf("Job registration authority is unavailable")
 	}
 	store.kernel.mu.Lock()
@@ -68,7 +69,7 @@ func (store *RegistrationStore) WithJobRegistrationAuthority(ctx context.Context
 	if err != nil {
 		return err
 	}
-	if r.State != RegistrationStateActive || r.SourceGeneration != sourceGeneration || r.DeclarationGeneration != declarationGeneration || !slices.Contains(r.ActivatedDomains, "runtime.consume") {
+	if r.State != RegistrationStateActive || r.SourceGeneration != sourceGeneration || r.DeclarationGeneration != declarationGeneration || !slices.Contains(r.ActivatedDomains, domain) {
 		return ErrRegistrationTombstoned
 	}
 	return fn()
