@@ -117,8 +117,12 @@ function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
     return 80;
   }, [flatItems]);
 
+  // Late media is inserted beside its original turn. Measurements must follow
+  // message identity, not the index it occupied before that insertion.
+  const getItemKey = useCallback((index: number) => flatItems[index]!.key, [flatItems]);
   const virtualizer = useVirtualizer({
     count: flatItems.length,
+    getItemKey,
     getScrollElement: () => props.scrollRef.current,
     estimateSize,
     overscan: 5,
