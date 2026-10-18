@@ -85,6 +85,11 @@ func (s *Service) publicChatInterruptStatus(turnID string) (bool, string, string
 func (s *Service) nextPublicChatStreamSequence(turnID string) uint64 {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
+	return s.nextPublicChatStreamSequenceLocked(turnID)
+}
+
+// Caller holds chatSurfaceMu while capturing an owner event.
+func (s *Service) nextPublicChatStreamSequenceLocked(turnID string) uint64 {
 	turn := s.chatTurns[strings.TrimSpace(turnID)]
 	if turn == nil {
 		return 0

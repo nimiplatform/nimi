@@ -405,3 +405,53 @@ func TestStopCancelsEvenWhenAcknowledgementCannotPublish(t *testing.T) {
 		t.Fatalf("stop must cancel and report save failure: canceled=%v err=%v", canceled, err)
 	}
 }
+
+func TestProtectedStopAcknowledgesCapturedTurnAfterSynchronousRelease(t *testing.T) {
+	for _, replace := range []bool{false, true} {
+		name := "released"
+		if replace {
+			name = "released and replaced"
+		}
+		t.Run(name, func(t *testing.T) {
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+			turnID := reserveConversationPublicationTestTurn(t, svc, anchorID)
+			capture := newPublicChatEmitCapture()
+			svc.SetPublicChatAppEmitter(capture.emit)
+			var nextID string
+			canceled := false
+			svc.chatSurfaceMu.Lock()
+			streamID := svc.chatTurns[turnID].StreamID
+			svc.chatTurns[turnID].Cancel = func() {
+				canceled = true
+				// Deterministically win the race: real owner release before ACK dispatch.
+				svc.publicChatRuntime().releaseTurn(anchorID, turnID)
+				if replace {
+					nextID = reserveConversationPublicationTestTurn(t, svc, anchorID)
+				}
+			}
+			svc.chatSurfaceMu.Unlock()
+			decision := localAppConversationDecision(accountservice.LocalAppOperationInterruptConversation, 0x51, "user-1")
+			response, err := svc.InterruptLocalAppConversationTurn(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision), &runtimev1.InterruptLocalAppConversationTurnRequest{AgentHandle: mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha")), ConversationAnchorId: anchorID, ExpectedTurnId: &turnID})
+			if err != nil || response.GetTurnId() != turnID || !canceled {
+				t.Fatalf("stop=%v err=%v canceled=%v", response, err, canceled)
+			}
+			ack := publicChatPayloadMap(t, capture.waitForMessageType(t, publicChatTurnInterruptAckType))
+			if ack["stream_id"] != streamID || ack["turn_id"] != turnID {
+				t.Fatalf("ACK lost original owner identity: %+v", ack)
+			}
+			timeline := ack["timeline"].(map[string]any)
+			if timeline["stream_id"] != streamID || timeline["turn_id"] != turnID {
+				t.Fatal("timeline used a fabricated or replacement identity")
+			}
+			svc.chatSurfaceMu.Lock()
+			if svc.chatTurns[turnID] != nil {
+				t.Error("ACK recreated the released turn")
+			}
+			if replace && (svc.chatTurns[nextID] == nil || svc.chatTurns[nextID].Interrupted || svc.chatAnchors[anchorID].ActiveTurnID != nextID) {
+				t.Error("late ACK altered the next turn")
+			}
+			svc.chatSurfaceMu.Unlock()
+		})
+	}
+}

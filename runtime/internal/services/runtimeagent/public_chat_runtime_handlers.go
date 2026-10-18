@@ -173,6 +173,8 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 		return "", err
 	}
 	var cancel context.CancelFunc
+	var ack map[string]any
+	var ackErr error
 	r.svc.chatSurfaceMu.Lock()
 	// @nimi-authority: rule.nimi.runtime.agent-participation.r175
 	// Compare and interrupt under the same owner lock. A snapshot at the App
@@ -185,10 +187,26 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_TURN_NOT_ACTIVE)
 		}
 	}
-	if current := r.svc.chatTurns[turn.TurnID]; current != nil {
-		current.Interrupted = true
-		current.InterruptReason = reason
-		cancel = current.Cancel
+	current := r.svc.chatTurns[turn.TurnID]
+	if current == nil {
+		r.svc.chatSurfaceMu.Unlock()
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_TURN_NOT_ACTIVE)
+	}
+	current.Interrupted = true
+	current.InterruptReason = reason
+	cancel = current.Cancel
+	// Capture the real accepted turn, sequence and timeline before cancellation
+	// can finish execution and release its live entry. This does no I/O.
+	sequence := r.svc.nextPublicChatStreamSequenceLocked(turn.TurnID)
+	turn = *current
+	timeline, timelineErr := publicChatBuildTimelineEnvelope(turn, publicChatTurnInterruptAckType, sequence, time.Now())
+	ackErr = timelineErr
+	ack = map[string]any{
+		"conversation_anchor_id": session.ConversationAnchorID,
+		"turn_id":                turn.TurnID,
+		"stream_id":              turn.StreamID,
+		"timeline":               timeline,
+		"detail":                 map[string]any{"interrupted_turn_id": turn.TurnID},
 	}
 	r.svc.chatSurfaceMu.Unlock()
 	// Once the owner accepts Stop, cancellation must not depend on saving or
@@ -197,9 +215,10 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 		cancel()
 	}
 	r.svc.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnInterruptAckType, map[string]any{
-		"interrupted_turn_id": turn.TurnID,
-	}); err != nil {
+	if ackErr != nil {
+		return "", ackErr
+	}
+	if err := r.emitEvent(firstNonEmpty(turn.SubjectUserID, session.SubjectUserID), publicChatTurnInterruptAckType, ack); err != nil {
 		return "", err
 	}
 	return turn.TurnID, nil
