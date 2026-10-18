@@ -89,7 +89,7 @@ export function AgentSubmissionRecovery(props: {
   };
   return (
     <div role="status" className="m-2 rounded border border-neutral-200 p-3 text-sm">
-      <p>{t('Chat.agentSubmissionPending')}</p>
+      <p>{t(props.submission.retryOfTurnId ? 'Chat.agentSubmissionRetryPending' : 'Chat.agentSubmissionPending')}</p>
       <p>{t('Chat.agentSubmissionRecoverNotice')}</p>
       {props.submission.text ? (
         <p className="my-2 max-h-32 overflow-auto whitespace-pre-wrap break-words">{props.submission.text}</p>
@@ -105,15 +105,20 @@ export function AgentSubmissionRecovery(props: {
       <div className="mt-2 flex flex-wrap gap-2">
         {state === 'error' && localAgentConfigurationFailure(reasonCode) && props.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={props.onOpenAgentCenter}>{t('Chat.agentOpenConfiguration')}</Button> : null}
         <Button
-          tone="ghost"
+          tone="primary"
           size="sm"
           disabled={state === 'checking'}
           onClick={() => {
             void check(true);
           }}
         >
-          {t('Chat.agentSubmissionRecover')}
+          {t(state === 'checking' ? 'Chat.agentSubmissionWorking'
+            : props.submission.retryOfTurnId ? 'Chat.agentSubmissionRetryRecover' : 'Chat.agentSubmissionRecover')}
         </Button>
+      </div>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-neutral-600">{t('Chat.agentSubmissionOtherOptions')}</summary>
+        <div className="mt-2 flex flex-wrap gap-2">
           <Button
             tone="ghost"
             size="sm"
@@ -124,21 +129,22 @@ export function AgentSubmissionRecovery(props: {
           >
             {t('Chat.agentSubmissionCheck')}
           </Button>
-        <Button
-          tone="ghost"
-          size="sm"
-          disabled={state === 'checking'}
-          onClick={() => {
-            props.onRestore(props.submission.text);
-            void props.acknowledge(props.submission.requestId).catch(() => {
-              if (active.current) setState('error');
-            });
-          }}
-        >
-          {t('Chat.agentSubmissionKeepAsDraft')}
-        </Button>
-      </div>
-      <p className="mt-1 text-xs text-neutral-500">{t('Chat.agentSubmissionDraftNotice')}</p>
+          <Button
+            tone="ghost"
+            size="sm"
+            disabled={state === 'checking'}
+            onClick={() => {
+              props.onRestore(props.submission.text);
+              void props.acknowledge(props.submission.requestId).catch(() => {
+                if (active.current) setState('error');
+              });
+            }}
+          >
+            {t(props.submission.text ? 'Chat.agentSubmissionKeepAsDraft' : 'Chat.agentSubmissionDismiss')}
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-neutral-500">{t('Chat.agentSubmissionDraftNotice')}</p>
+      </details>
     </div>
   );
 }
