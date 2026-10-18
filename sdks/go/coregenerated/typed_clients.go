@@ -4917,6 +4917,7 @@ type HookIntent struct {
 	NotBefore            string             `json:"not_before,omitempty"`
 	ExpiresAt            string             `json:"expires_at,omitempty"`
 	Reason               string             `json:"reason,omitempty"`
+	PublicPurpose        string             `json:"public_purpose,omitempty"`
 }
 
 type HookTriggerDetail struct {
@@ -5970,6 +5971,7 @@ type LocalAppAgentPendingHook struct {
 	SystemCadence bool               `json:"system_cadence,omitempty"`
 	Status        HookAdmissionState `json:"status,omitempty"`
 	CanModify     bool               `json:"can_modify,omitempty"`
+	PublicPurpose string             `json:"public_purpose,omitempty"`
 }
 
 type LocalAppAgentPresentationIntent struct {

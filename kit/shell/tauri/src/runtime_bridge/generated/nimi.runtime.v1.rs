@@ -21682,6 +21682,10 @@ pub struct HookIntent {
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(string, tag = "12")]
     pub reason: ::prost::alloc::string::String,
+    /// Optional manager-visible purpose, authored separately from private reason.
+    /// Display-only; missing or overlong text never changes task admission.
+    #[prost(string, tag = "13")]
+    pub public_purpose: ::prost::alloc::string::String,
 }
 /// HookExecutionOutcome projects a single admission-state transition of a
 /// `HookIntent`. `reason_code` is populated only on rejected/failed states;
@@ -22782,6 +22786,9 @@ pub struct LocalAppAgentPendingHook {
     pub status: i32,
     #[prost(bool, tag = "6")]
     pub can_modify: bool,
+    /// Optional plain-text description; never execution authority.
+    #[prost(string, tag = "7")]
+    pub public_purpose: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListLocalAppAgentPendingHooksResponse {

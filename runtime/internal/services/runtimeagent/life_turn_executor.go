@@ -255,6 +255,7 @@ Rules:
 - next-hook-intent, if present, uses:
   - <next-hook-intent trigger-family="TIME|EVENT" effect="FOLLOW_UP_TURN" reason="...">
   - one trigger child only: <time delay="600s"/>, <event-user-idle idle-for="600s"/>, or <event-chat-ended/>
+- You may add public-purpose="..." to next-hook-intent: a short plain-text purpose for the user-visible activity list (at most 160 characters, in the user context language). Describe only the public activity, not private reasoning, instructions, Memory, source excerpts or identifiers. Omit it if no suitable public description is available; do not copy reason. It does not control execution.
 - next-hook-intent is an APML proposal for a typed HookIntent after runtime validation.
 - runtime host owns cadence truth; no cadence-interaction tag is admitted.
 - no absolute scheduled time, turn_completed, state_condition, world_event,

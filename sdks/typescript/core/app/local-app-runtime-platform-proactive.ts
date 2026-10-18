@@ -51,6 +51,8 @@ export type NimiLocalAppAgentPendingHook = {
   readonly systemCadence: boolean;
   readonly status: 'pending' | 'running' | 'canceled';
   readonly canModify: boolean;
+  /** Optional display text, never an execution instruction or verified result. */
+  readonly publicPurpose?: string;
 };
 export type NimiLocalAppAgentPendingHooks = {
   readonly hooks: readonly NimiLocalAppAgentPendingHook[];
@@ -146,7 +148,8 @@ export function projectPendingHook(value: unknown): NimiLocalAppAgentPendingHook
   const row = asRecord(value);
   assertExactProjectionKeys(
     row,
-    ['taskId', 'revision', 'scheduledFor', 'systemCadence', 'status', 'canModify'],
+    ['taskId', 'revision', 'scheduledFor', 'systemCadence', 'status', 'canModify',
+      ...(row && Object.hasOwn(row, 'publicPurpose') ? ['publicPurpose'] : [])],
     'activity plan',
   );
   if (
@@ -163,6 +166,8 @@ export function projectPendingHook(value: unknown): NimiLocalAppAgentPendingHook
     systemCadence: row.systemCadence,
     status: row.status as NimiLocalAppAgentPendingHook['status'],
     canModify: row.canModify,
+    ...(typeof row.publicPurpose === 'string' && row.publicPurpose.trim() && [...row.publicPurpose.trim()].length <= 160
+      ? { publicPurpose: row.publicPurpose.trim() } : {}),
   });
 }
 export function projectPendingHooks(value: unknown): NimiLocalAppAgentPendingHooks {

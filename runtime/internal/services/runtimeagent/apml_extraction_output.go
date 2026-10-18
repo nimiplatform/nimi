@@ -27,6 +27,7 @@ type apmlHookIntent struct {
 	TriggerFamily string `xml:"trigger-family,attr"`
 	Effect        string `xml:"effect,attr"`
 	Reason        string `xml:"reason,attr"`
+	PublicPurpose string `xml:"public-purpose,attr"`
 	Time          *struct {
 		Delay   string `xml:"delay,attr"`
 		DelayMs string `xml:"delay-ms,attr"`
@@ -201,7 +202,7 @@ func allowedAPMLShape(rootName string) (map[string]struct{}, map[string]map[stri
 		"event-chat-ended":   {},
 	}
 	commonAttrs := map[string]map[string]struct{}{
-		"next-hook-intent": {"id": {}, "trigger-family": {}, "effect": {}, "reason": {}},
+		"next-hook-intent": {"id": {}, "trigger-family": {}, "effect": {}, "reason": {}, "public-purpose": {}},
 		"time":             {"delay": {}, "delay-ms": {}},
 		"event-user-idle":  {"idle-for": {}, "idle-for-ms": {}},
 	}
@@ -315,6 +316,7 @@ func apmlHookIntentValue(input *apmlHookIntent) (*runtimev1.HookIntent, error) {
 		Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
 		AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
 		Reason:         strings.TrimSpace(input.Reason),
+		PublicPurpose:  normalizeHookPublicPurpose(input.PublicPurpose),
 	}
 	if intent.IntentId == "" {
 		intent.IntentId = "hook_" + ulid.Make().String()

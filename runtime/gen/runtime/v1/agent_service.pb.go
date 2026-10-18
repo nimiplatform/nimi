@@ -2886,8 +2886,11 @@ type HookIntent struct {
 	NotBefore            *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
 	ExpiresAt            *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	Reason               string                 `protobuf:"bytes,12,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Optional manager-visible purpose, authored separately from private reason.
+	// Display-only; missing or overlong text never changes task admission.
+	PublicPurpose string `protobuf:"bytes,13,opt,name=public_purpose,json=publicPurpose,proto3" json:"public_purpose,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HookIntent) Reset() {
@@ -3000,6 +3003,13 @@ func (x *HookIntent) GetExpiresAt() *timestamppb.Timestamp {
 func (x *HookIntent) GetReason() string {
 	if x != nil {
 		return x.Reason
+	}
+	return ""
+}
+
+func (x *HookIntent) GetPublicPurpose() string {
+	if x != nil {
+		return x.PublicPurpose
 	}
 	return ""
 }
@@ -9324,6 +9334,8 @@ type LocalAppAgentPendingHook struct {
 	SystemCadence bool                   `protobuf:"varint,4,opt,name=system_cadence,json=systemCadence,proto3" json:"system_cadence,omitempty"`
 	Status        HookAdmissionState     `protobuf:"varint,5,opt,name=status,proto3,enum=nimi.runtime.v1.HookAdmissionState" json:"status,omitempty"`
 	CanModify     bool                   `protobuf:"varint,6,opt,name=can_modify,json=canModify,proto3" json:"can_modify,omitempty"`
+	// Optional plain-text description; never execution authority.
+	PublicPurpose string `protobuf:"bytes,7,opt,name=public_purpose,json=publicPurpose,proto3" json:"public_purpose,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9398,6 +9410,13 @@ func (x *LocalAppAgentPendingHook) GetCanModify() bool {
 		return x.CanModify
 	}
 	return false
+}
+
+func (x *LocalAppAgentPendingHook) GetPublicPurpose() string {
+	if x != nil {
+		return x.PublicPurpose
+	}
+	return ""
 }
 
 type ListLocalAppAgentPendingHooksResponse struct {
@@ -14139,7 +14158,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	" \x01(\v2&.nimi.runtime.v1.HookTriggerTimeDetailH\x00R\x04time\x12Y\n" +
 	"\x0fevent_user_idle\x18\v \x01(\v2/.nimi.runtime.v1.HookTriggerEventUserIdleDetailH\x00R\reventUserIdle\x12\\\n" +
 	"\x10event_chat_ended\x18\f \x01(\v20.nimi.runtime.v1.HookTriggerEventChatEndedDetailH\x00R\x0eeventChatEndedB\b\n" +
-	"\x06detail\"\x85\x05\n" +
+	"\x06detail\"\xac\x05\n" +
 	"\n" +
 	"HookIntent\x12\x1b\n" +
 	"\tintent_id\x18\x01 \x01(\tR\bintentId\x12\x19\n" +
@@ -14156,7 +14175,8 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tnotBefore\x129\n" +
 	"\n" +
 	"expires_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x16\n" +
-	"\x06reason\x18\f \x01(\tR\x06reason\"\xf8\x01\n" +
+	"\x06reason\x18\f \x01(\tR\x06reason\x12%\n" +
+	"\x0epublic_purpose\x18\r \x01(\tR\rpublicPurpose\"\xf8\x01\n" +
 	"\x14HookExecutionOutcome\x123\n" +
 	"\x06intent\x18\x01 \x01(\v2\x1b.nimi.runtime.v1.HookIntentR\x06intent\x12;\n" +
 	"\vobserved_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
@@ -14700,7 +14720,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"*UpdateLocalAppConversationFollowUpResponse\x12@\n" +
 	"\x05state\x18\x01 \x01(\v2*.nimi.runtime.v1.LocalAppConversationStateR\x05state\"I\n" +
 	"$ListLocalAppAgentPendingHooksRequest\x12!\n" +
-	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\"\x93\x02\n" +
+	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\"\xba\x02\n" +
 	"\x18LocalAppAgentPendingHook\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1a\n" +
 	"\brevision\x18\x02 \x01(\x04R\brevision\x12?\n" +
@@ -14708,7 +14728,8 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x0esystem_cadence\x18\x04 \x01(\bR\rsystemCadence\x12;\n" +
 	"\x06status\x18\x05 \x01(\x0e2#.nimi.runtime.v1.HookAdmissionStateR\x06status\x12\x1d\n" +
 	"\n" +
-	"can_modify\x18\x06 \x01(\bR\tcanModify\"\x86\x01\n" +
+	"can_modify\x18\x06 \x01(\bR\tcanModify\x12%\n" +
+	"\x0epublic_purpose\x18\a \x01(\tR\rpublicPurpose\"\x86\x01\n" +
 	"%ListLocalAppAgentPendingHooksResponse\x12?\n" +
 	"\x05hooks\x18\x01 \x03(\v2).nimi.runtime.v1.LocalAppAgentPendingHookR\x05hooks\x12\x1c\n" +
 	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"\x97\x02\n" +

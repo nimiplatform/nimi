@@ -146,6 +146,7 @@ function PendingHookRow({
         {task.systemCadence ? text('cadence') : text('activity')} ·{' '}
         {task.status === 'running' ? text('running') : text('pending')}
       </p>
+      {task.publicPurpose ? <p className="whitespace-pre-wrap break-words">{task.publicPurpose}</p> : null}
       {task.scheduledFor ? (
         <time>{new Date(Number(task.scheduledFor.seconds) * 1000).toLocaleString()}</time>
       ) : null}

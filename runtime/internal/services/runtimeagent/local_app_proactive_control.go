@@ -179,7 +179,7 @@ func (s *Service) UpdateLocalAppConversationFollowUp(ctx context.Context, req *r
 }
 
 func projectLocalAppPendingHook(hook *runtimev1.PendingHook) *runtimev1.LocalAppAgentPendingHook {
-	return &runtimev1.LocalAppAgentPendingHook{TaskId: hookIntentID(hook), Revision: hook.GetRevision(), ScheduledFor: cloneTimestamp(hook.GetScheduledFor()), SystemCadence: hook.GetRuntimeCadence(), Status: hookAdmissionState(hook), CanModify: hook.GetRevision() > 0 && hookAdmissionState(hook) == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING && !hook.GetRuntimeCadence() && hook.GetIntent().GetTriggerFamily() == runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME}
+	return &runtimev1.LocalAppAgentPendingHook{TaskId: hookIntentID(hook), PublicPurpose: normalizeHookPublicPurpose(hook.GetIntent().GetPublicPurpose()), Revision: hook.GetRevision(), ScheduledFor: cloneTimestamp(hook.GetScheduledFor()), SystemCadence: hook.GetRuntimeCadence(), Status: hookAdmissionState(hook), CanModify: hook.GetRevision() > 0 && hookAdmissionState(hook) == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING && !hook.GetRuntimeCadence() && hook.GetIntent().GetTriggerFamily() == runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME}
 }
 
 func (s *Service) ListLocalAppAgentPendingHooks(ctx context.Context, req *runtimev1.ListLocalAppAgentPendingHooksRequest) (*runtimev1.ListLocalAppAgentPendingHooksResponse, error) {

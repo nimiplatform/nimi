@@ -129,7 +129,7 @@ fn pending_hook(input: wire::LocalAppAgentPendingHook) -> Result<Value, LocalApp
         return Err(untrusted());
     }
     Ok(
-        json!({"taskId":input.task_id,"revision":input.revision.to_string(),"scheduledFor":input.scheduled_for.map(timestamp).transpose()?,"systemCadence":input.system_cadence,"status":status,"canModify":input.can_modify}),
+        json!({"taskId":input.task_id,"revision":input.revision.to_string(),"scheduledFor":input.scheduled_for.map(timestamp).transpose()?,"systemCadence":input.system_cadence,"status":status,"canModify":input.can_modify,"publicPurpose":input.public_purpose}),
     )
 }
 pub(super) async fn list_hooks(
@@ -179,4 +179,26 @@ pub(super) async fn update_hook(
         .map_err(local_app_error_from_status)?
         .into_inner();
     pending_hook(response.hook.ok_or_else(untrusted)?)
+}
+
+
+#[cfg(test)]
+mod purpose_tests {
+    use super::*;
+
+    #[test]
+    fn public_purpose_uses_the_typed_field_without_changing_controls() {
+        let task = wire::LocalAppAgentPendingHook {
+            task_id: "hook-1".into(), revision: 1, status: 2,
+            can_modify: true, public_purpose: "Revisit the observation".into(),
+            ..Default::default()
+        };
+        let projected = pending_hook(task.clone()).unwrap();
+        assert_eq!(projected["publicPurpose"], "Revisit the observation");
+        assert_eq!(projected["canModify"], true);
+        assert!(projected.get("reason").is_none());
+        assert!(pending_hook(wire::LocalAppAgentPendingHook {
+            system_cadence: true, ..task
+        }).is_err());
+    }
 }

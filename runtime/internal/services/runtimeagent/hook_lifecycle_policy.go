@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -54,6 +55,7 @@ func normalizePendingHook(input *runtimev1.PendingHook, now time.Time) (*runtime
 		Intent:       cloneHookIntent(intent),
 		ScheduledFor: timestamppb.New(scheduledFor),
 	}
+	hook.Intent.PublicPurpose = normalizeHookPublicPurpose(hook.Intent.GetPublicPurpose())
 	hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
 	if input.GetAdmittedAt() == nil {
 		hook.AdmittedAt = timestamppb.New(now)
@@ -61,6 +63,17 @@ func normalizePendingHook(input *runtimev1.PendingHook, now time.Time) (*runtime
 		hook.AdmittedAt = cloneTimestamp(input.GetAdmittedAt())
 	}
 	return hook, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.proactive-controls
+// This optional display text is not an instruction, a permission or a verified
+// summary. Never use private Reason as a fallback.
+func normalizeHookPublicPurpose(value string) string {
+	value = strings.TrimSpace(value)
+	if !utf8.ValidString(value) || utf8.RuneCountInString(value) > 160 {
+		return ""
+	}
+	return value
 }
 
 // resolveHookScheduledFor computes admitted scheduler truth from a HookIntent.

@@ -196,6 +196,9 @@ message HookIntent {
   google.protobuf.Timestamp not_before = 10;
   google.protobuf.Timestamp expires_at = 11;
   string reason = 12;
+  // Optional manager-visible purpose, authored separately from private reason.
+  // Display-only; missing or overlong text never changes task admission.
+  string public_purpose = 13;
 }
 // HookExecutionOutcome projects a single admission-state transition of a
 // `HookIntent`. `reason_code` is populated only on rejected/failed states;
@@ -877,6 +880,8 @@ message LocalAppAgentPendingHook {
   bool system_cadence = 4;
   HookAdmissionState status = 5;
   bool can_modify = 6;
+  // Optional plain-text description; never execution authority.
+  string public_purpose = 7;
 }
 message ListLocalAppAgentPendingHooksResponse {
   repeated LocalAppAgentPendingHook hooks = 1;

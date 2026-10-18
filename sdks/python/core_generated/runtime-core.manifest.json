@@ -21366,6 +21366,13 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "public_purpose",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -26247,6 +26254,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "public_purpose",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"

@@ -12,7 +12,7 @@ import {
   type NimiLocalAppConversationRuntime,
 } from './local-app-runtime-platform-direct-conversation.js';
 import { createNimiLocalAppAgentConfigureRuntimeShell } from './local-app-runtime-platform-configure.js';
-import { createPendingHooksClient } from './local-app-runtime-platform-proactive.js';
+import { createPendingHooksClient, projectPendingHook } from './local-app-runtime-platform-proactive.js';
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 
 test('formal Conversation projects binary-decoded pending tasks without weakening plain-object validation', async () => {
@@ -49,10 +49,25 @@ test('formal Conversation projects binary-decoded pending tasks without weakenin
 
 test('formal Agent activity timestamps are projected from binary messages', async () => {
   const wire = ListLocalAppAgentPendingHooksResponse.fromBinary(ListLocalAppAgentPendingHooksResponse.toBinary(ListLocalAppAgentPendingHooksResponse.create({
-    hooks: [{ taskId: 'hook-1', revision: '1', scheduledFor: { seconds: '1792205941', nanos: 123 }, status: 2, systemCadence: false, canModify: true }],
+    hooks: [{ taskId: 'hook-1', revision: '1', scheduledFor: { seconds: '1792205941', nanos: 123 }, status: 2, systemCadence: false, canModify: true, publicPurpose: 'Revisit the observation' }],
   })));
   const runtime = { listLocalAppAgentPendingHooks: async () => wire } as Parameters<typeof createNimiLocalAppAgentConfigureRuntimeShell>[0];
   const client = createPendingHooksClient(createNimiLocalAppAgentConfigureRuntimeShell(runtime).pendingHooks);
   const projected = await client.list({ agentHandle: `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle });
+  assert.equal(projected.hooks[0]?.publicPurpose, 'Revisit the observation');
   assert.deepEqual(projected.hooks[0]?.scheduledFor, { seconds: '1792205941', nanos: 123 });
+});
+
+
+test('optional purpose cannot break activity controls or admit private fields', () => {
+ const activity = {taskId:'hook-1',revision:'1',scheduledFor:null,status:'pending',systemCadence:false,canModify:true};
+ assert.equal(projectPendingHook(activity).publicPurpose, undefined);
+ for (const publicPurpose of [null, false, {}, '', ' ', '观'.repeat(161)]) {
+  const projected = projectPendingHook({...activity, publicPurpose});
+  assert.equal(projected.publicPurpose, undefined);
+  assert.equal(projected.canModify, true);
+ }
+ assert.equal(projectPendingHook({...activity, publicPurpose:'观'.repeat(160)}).publicPurpose, '观'.repeat(160));
+ assert.throws(() => projectPendingHook({...activity, publicPurpose:'public',reason:'private'}));
+ assert.throws(() => projectPendingHook({...activity,publicPurpose:'allowed',systemCadence:true}));
 });

@@ -326,6 +326,27 @@ describe('AgentCenter UI session contract', () => {
     expect(update).toHaveBeenCalledWith({taskId:'editable',expectedRevision:'4',action:'cancel'});
   });
 
+  it('shows distinct public purposes as text without changing which task is canceled', async () => {
+    const session = await sessionFor();
+    const task = {revision:'4', scheduledFor:null, systemCadence:false, status:'pending' as const, canModify:true};
+    vi.spyOn(session, 'listPendingHooks').mockResolvedValue({hooks:[
+      {...task,taskId:'one',publicPurpose:'Revisit the landscape observation'},
+      {...task,taskId:'two',publicPurpose:'<b>Reflect on the sketch</b>'},
+      {...task,taskId:'three'},
+    ],truncated:false});
+    const update = vi.spyOn(session,'updatePendingHook').mockResolvedValue({...task,taskId:'two',status:'canceled',canModify:false});
+    const node = render(<AgentCenter activeSection="behavior" session={session} />);
+    await flush();
+    const group = node.querySelector('section[aria-label="Available to adjust"]')!;
+    const purpose = Array.from(group.querySelectorAll('p')).find(item => item.textContent === '<b>Reflect on the sketch</b>')!;
+    expect(purpose).toBeTruthy();
+    expect(purpose.querySelector('b')).toBeNull();
+    expect(group.textContent).toContain('Revisit the landscape observation');
+    expect(Array.from(group.querySelectorAll('button')).filter(button=>button.textContent==='Cancel activity')).toHaveLength(3);
+    await act(async()=>{Array.from(purpose.parentElement!.querySelectorAll('button')).find(button=>button.textContent==='Cancel activity')?.click();await Promise.resolve();});
+    expect(update).toHaveBeenCalledWith({taskId:'two',expectedRevision:'4',action:'cancel'});
+  });
+
   it('routes the background picker through the existing canonical appearance action', async () => {
     let backgroundSelections = 0;
     const session = await sessionFor({}, {

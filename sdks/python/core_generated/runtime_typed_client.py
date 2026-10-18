@@ -2876,6 +2876,7 @@ class HookIntent:
     not_before: str | None = None
     expires_at: str | None = None
     reason: str | None = None
+    public_purpose: str | None = None
 
 @dataclass(frozen=True)
 class HookTriggerDetail:
@@ -3944,6 +3945,7 @@ class LocalAppAgentPendingHook:
     system_cadence: bool | None = None
     status: HookAdmissionState | None = None
     can_modify: bool | None = None
+    public_purpose: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:

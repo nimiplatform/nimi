@@ -8817,6 +8817,7 @@ pub struct HookIntent {
     pub not_before: Option<String>,
     pub expires_at: Option<String>,
     pub reason: Option<String>,
+    pub public_purpose: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10256,6 +10257,7 @@ pub struct LocalAppAgentPendingHook {
     pub system_cadence: Option<bool>,
     pub status: Option<HookAdmissionState>,
     pub can_modify: Option<bool>,
+    pub public_purpose: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -58,6 +58,7 @@ Agent Center accepts only the SDK-decoded, identity-free Manager snapshot. The h
 - The optional `conversationAnchorId` selects the Manager context summary to read and grants no context assembly or mutation authority.
 - **Overview** shows a human-readable, read-only status.
 - **Advanced** shows only the canonical Manager snapshot's lifecycle/execution/status/emotion, source coverage and lorebook counts, and context lane/budget/truncation/count/status summaries.
+- Activity rows may show a separately authored optional `publicPurpose` as plain text. It describes the intended activity, not a verified result or an instruction; missing text keeps the usual time/status controls. Private reason, prompts and Memory are not fallbacks.
 - **Behavior** presents Runtime autonomy configuration and its bounded pending LifeTrack activities. These update status/posture; Conversation follow-up replies use their own control.
 
 Raw Agent/account/source identity, source references, hashes, prompt or reasoning material, internal generations, source or world content, transcript/private memory, provider/model/storage detail, and tool arguments/results are not Agent Center props or state.

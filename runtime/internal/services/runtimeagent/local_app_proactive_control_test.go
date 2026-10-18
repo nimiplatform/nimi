@@ -94,6 +94,7 @@ func TestPendingHookControlDoesNotTrustModelReasonAndCannotEditCadence(t *testin
 	now := time.Now().UTC()
 	intent := timeHookIntentForDelay(agentID, time.Hour, autonomyCadenceHookReason)
 	intent.IntentId = "model-reason-task"
+	intent.PublicPurpose = "runtime.autonomy.cadence_tick"
 	if err := svc.admitPendingHook(agentID, &runtimev1.PendingHook{Intent: intent, ScheduledFor: timestamppb.New(now.Add(time.Hour)), AdmittedAt: timestamppb.New(now)}); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +111,7 @@ func TestPendingHookControlDoesNotTrustModelReasonAndCannotEditCadence(t *testin
 			task = item
 		}
 	}
-	if task == nil || task.SystemCadence || !task.CanModify {
+	if task == nil || task.SystemCadence || !task.CanModify || task.PublicPurpose != intent.PublicPurpose {
 		t.Fatalf("model reason acquired system authority: %+v", task)
 	}
 	if err := svc.mutateAgent(agentID, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {

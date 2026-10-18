@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+Agent Center activity rows display the optional public purpose provided by Runtime.
+This additive optional SDK field does not change task controls or require historical
+task backfill; matching Runtime/native/SDK projections carry it in the existing list.
+No new export or permission is introduced.
+
 Agent autonomy now enforces a positive `maxTokensPerHook` as the per-activity
 output-token limit; zero retains the Runtime default. The existing wire field
 name is unchanged. Daily accounting uses execution-reported input plus output

@@ -522,6 +522,13 @@ export interface HookIntent {
      * @generated from protobuf field: string reason = 12
      */
     reason: string;
+    /**
+     * Optional manager-visible purpose, authored separately from private reason.
+     * Display-only; missing or overlong text never changes task admission.
+     *
+     * @generated from protobuf field: string public_purpose = 13
+     */
+    publicPurpose: string;
 }
 /**
  * HookExecutionOutcome projects a single admission-state transition of a
@@ -2552,6 +2559,12 @@ export interface LocalAppAgentPendingHook {
      * @generated from protobuf field: bool can_modify = 6
      */
     canModify: boolean;
+    /**
+     * Optional plain-text description; never execution authority.
+     *
+     * @generated from protobuf field: string public_purpose = 7
+     */
+    publicPurpose: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse
@@ -5802,7 +5815,8 @@ class HookIntent$Type extends MessageType<HookIntent> {
             { no: 9, name: "admission_state", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
             { no: 10, name: "not_before", kind: "message", T: () => Timestamp },
             { no: 11, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 12, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "public_purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<HookIntent>): HookIntent {
@@ -5816,6 +5830,7 @@ class HookIntent$Type extends MessageType<HookIntent> {
         message.effect = 0;
         message.admissionState = 0;
         message.reason = "";
+        message.publicPurpose = "";
         if (value !== undefined)
             reflectionMergePartial<HookIntent>(this, message, value);
         return message;
@@ -5860,6 +5875,9 @@ class HookIntent$Type extends MessageType<HookIntent> {
                     break;
                 case /* string reason */ 12:
                     message.reason = reader.string();
+                    break;
+                case /* string public_purpose */ 13:
+                    message.publicPurpose = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5909,6 +5927,9 @@ class HookIntent$Type extends MessageType<HookIntent> {
         /* string reason = 12; */
         if (message.reason !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.reason);
+        /* string public_purpose = 13; */
+        if (message.publicPurpose !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.publicPurpose);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12224,7 +12245,8 @@ class LocalAppAgentPendingHook$Type extends MessageType<LocalAppAgentPendingHook
             { no: 3, name: "scheduled_for", kind: "message", T: () => Timestamp },
             { no: 4, name: "system_cadence", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 5, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
-            { no: 6, name: "can_modify", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "can_modify", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "public_purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentPendingHook>): LocalAppAgentPendingHook {
@@ -12234,6 +12256,7 @@ class LocalAppAgentPendingHook$Type extends MessageType<LocalAppAgentPendingHook
         message.systemCadence = false;
         message.status = 0;
         message.canModify = false;
+        message.publicPurpose = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppAgentPendingHook>(this, message, value);
         return message;
@@ -12260,6 +12283,9 @@ class LocalAppAgentPendingHook$Type extends MessageType<LocalAppAgentPendingHook
                     break;
                 case /* bool can_modify */ 6:
                     message.canModify = reader.bool();
+                    break;
+                case /* string public_purpose */ 7:
+                    message.publicPurpose = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12291,6 +12317,9 @@ class LocalAppAgentPendingHook$Type extends MessageType<LocalAppAgentPendingHook
         /* bool can_modify = 6; */
         if (message.canModify !== false)
             writer.tag(6, WireType.Varint).bool(message.canModify);
+        /* string public_purpose = 7; */
+        if (message.publicPurpose !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.publicPurpose);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
