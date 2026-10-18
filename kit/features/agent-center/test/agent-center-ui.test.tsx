@@ -301,6 +301,31 @@ describe('AgentCenter UI session contract', () => {
     expect(refresh).toHaveBeenCalledTimes(2);
   });
 
+  it('separates editable, running and system activities without changing owner controls', async () => {
+    const session = await sessionFor();
+    const scheduledFor = {seconds:'1900000000', nanos:0};
+    const editable = {taskId:'editable', revision:'4', scheduledFor, systemCadence:false, status:'pending' as const, canModify:true};
+    vi.spyOn(session, 'listPendingHooks').mockResolvedValue({hooks:[
+      {...editable,taskId:'cadence',systemCadence:true,canModify:false},
+      {...editable,taskId:'running',status:'running',canModify:false},
+      {...editable,taskId:'managed',canModify:false},
+      editable,
+    ],truncated:false});
+    const update = vi.spyOn(session,'updatePendingHook').mockResolvedValue({...editable,status:'canceled',canModify:false});
+    const node = render(<AgentCenter activeSection="behavior" session={session} />);
+    await flush();
+    const available=node.querySelector('section[aria-label="Available to adjust"]')!;
+    const running=node.querySelector('section[aria-label="Already started"]')!;
+    const other=node.querySelector('details[aria-label="Other automatic updates"]')!;
+    expect(available).toBeTruthy();expect(running).toBeTruthy();expect(other).toBeTruthy();
+    expect(running.querySelector('input')).toBeNull();expect(other.querySelector('input')).toBeNull();
+    const system=Array.from(node.querySelectorAll('details')).find(item=>item.querySelector('summary')?.textContent?.startsWith('System-managed updates'))!;
+    expect(system).toBeTruthy();expect(system.open).toBe(false);expect(system.querySelector('button')).toBeNull();
+    expect(update).not.toHaveBeenCalled();
+    await act(async()=>{Array.from(available.querySelectorAll('button')).find(button=>button.textContent==='Cancel activity')?.click();await Promise.resolve();});
+    expect(update).toHaveBeenCalledWith({taskId:'editable',expectedRevision:'4',action:'cancel'});
+  });
+
   it('routes the background picker through the existing canonical appearance action', async () => {
     let backgroundSelections = 0;
     const session = await sessionFor({}, {
