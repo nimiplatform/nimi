@@ -27,7 +27,7 @@ export async function resolveDesktopOpenAgentCenterTarget(
       if (snapshot.conversationContext?.conversationAnchorId === conversationAnchorId) {
         // Build the target from this successful owner read. Sidebar cache may
         // still contain an earlier failed query and cannot complete this handoff.
-        return { agentHandle: reference.agentHandle, conversationAnchorId, displayName: reference.displayName,
+        return { agentHandle: reference.agentHandle, agentBinding: reference.agentBinding, conversationAnchorId, displayName: reference.displayName,
           avatarUrl: reference.avatarUrl, handle: '', worldId: null, worldName: null,
           bio: null, ownershipType: null, greeting: null, builtinDocsContext: null };
       }

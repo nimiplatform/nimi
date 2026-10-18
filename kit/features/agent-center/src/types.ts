@@ -1,3 +1,4 @@
+import type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   NimiSharedLocalAgentAIConfigOptionsQuery,
   NimiSharedLocalAgentAIConfigOptionsResult,
@@ -808,6 +809,8 @@ export type AgentCenterReferenceVoiceProjection = Readonly<{
 }>;
 
 export interface AgentCenterSession {
+  listPendingHooks(): Promise<NimiLocalAppAgentPendingHooks>;
+  updatePendingHook(input: NimiLocalAppScheduledTaskEdit): Promise<NimiLocalAppAgentPendingHook>;
   readonly [AGENT_CENTER_SESSION]: true;
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;

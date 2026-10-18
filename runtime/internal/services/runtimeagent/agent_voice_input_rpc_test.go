@@ -276,8 +276,8 @@ func TestTranscribeAgentVoiceInputUsesSharedLocalAgentExecutionSnapshot(t *testi
 			len(executor.submit.GetSpec().GetSpeechTranscribe().GetAudioSource().GetAudioBytes()),
 		)
 	}
-	if got := executor.submit.GetHead().GetTimeoutMs(); got != int32((15*time.Minute)/time.Millisecond) {
-		t.Fatalf("Local transcription Job timeout=%d, want 15 minutes", got)
+	if got := executor.submit.GetHead().GetTimeoutMs(); got != 0 {
+		t.Fatalf("Local transcription Job timeout=%d, want zero reserved slot", got)
 	}
 	intent, ok := executionintent.FromContext(executor.context)
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != runtimeAgentAIConfigCapabilityAudioTranscribe {

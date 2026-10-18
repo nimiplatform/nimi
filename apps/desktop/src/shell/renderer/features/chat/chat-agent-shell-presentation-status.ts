@@ -6,8 +6,8 @@ export function resolveAgentRefusedInput(messages: readonly AgentLocalMessageRec
   const failure = messages?.at(-1);
   if (failure?.error?.code !== 'AI_CONTENT_FILTER_BLOCKED') return null;
   const turnId = failure.metadataJson?.canonicalTurnId;
-  // Canonical children are appended after messages, not ordered as new turns.
-  // An older image failure must never recover a later successful user input.
+  // Media children stay with their original turn. Only the latest refusal
+  // offers composer recovery, and it must never borrow another turn's input.
   const original = messages?.slice().reverse().find(message => message.role === 'user'
     && (turnId === undefined || message.metadataJson?.canonicalTurnId === turnId));
   return original?.contentText || null;

@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	defaultLocalImageActionWait   = 20 * time.Minute
-	defaultCloudImageActionWait   = 5 * time.Minute
 	defaultImageActionPoll        = 100 * time.Millisecond
 	imageActionExtensionNamespace = "nimi.scenario.image.request"
 )
@@ -57,7 +55,6 @@ func (rejectingPublicChatActionExecutor) ExecuteImageAction(context.Context, Pub
 
 type aiBackedPublicChatActionExecutor struct {
 	ai           publicChatActionScenarioExecutor
-	waitTimeout  time.Duration
 	pollInterval time.Duration
 }
 
@@ -109,18 +106,13 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	if binding.SelectedParams != nil {
 		params = binding.SelectedParams.AsMap()
 	}
-	waitTimeout := e.waitTimeout
-	if waitTimeout <= 0 {
-		waitTimeout = defaultImageActionWait(binding.RoutePolicy)
-	}
-	if timeoutMs := publicChatPositiveIntParam(params, "timeoutMs", "timeout_ms"); timeoutMs > 0 {
-		waitTimeout = time.Duration(timeoutMs) * time.Millisecond
-	}
-	actionCtx, cancel := context.WithTimeout(runtimeAgentImageActionContext(ctx, ownerAppID, ownerUserID), waitTimeout)
+	// The Job owns its execution lifetime. This scope ends only with the
+	// originating turn's explicit cancellation or owner lifecycle.
+	actionCtx, cancel := context.WithCancel(runtimeAgentImageActionContext(ctx, ownerAppID, ownerUserID))
 	defer cancel()
 	actionCtx = withPublicChatExecutionIntent(actionCtx, binding, "image.generate")
 	idempotencyKey := "runtime-agent-image-action:" + strings.TrimSpace(req.Turn.TurnID) + ":" + actionID
-	submitResp, err := e.ai.SubmitScenarioJob(actionCtx, buildPublicChatImageActionSubmitRequest(binding, params, prompt, idempotencyKey, waitTimeout, ownerAppID, ownerUserID))
+	submitResp, err := e.ai.SubmitScenarioJob(actionCtx, buildPublicChatImageActionSubmitRequest(binding, params, prompt, idempotencyKey, ownerAppID, ownerUserID))
 	if err != nil {
 		return PublicChatActionExecutionResult{}, err
 	}
@@ -131,7 +123,7 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	job, err := e.waitImageActionJob(actionCtx, jobID)
 	if err != nil {
 		if actionCtx.Err() != nil {
-			e.cancelImageActionJob(ownerAppID, ownerUserID, jobID)
+			e.cancelImageActionJob(actionCtx, ownerAppID, ownerUserID, jobID)
 		}
 		return PublicChatActionExecutionResult{}, err
 	}
@@ -158,7 +150,7 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	}, nil
 }
 
-func (e *aiBackedPublicChatActionExecutor) cancelImageActionJob(ownerAppID string, ownerUserID string, jobID string) {
+func (e *aiBackedPublicChatActionExecutor) cancelImageActionJob(parent context.Context, ownerAppID string, ownerUserID string, jobID string) {
 	if e == nil || e.ai == nil || strings.TrimSpace(jobID) == "" {
 		return
 	}
@@ -166,7 +158,7 @@ func (e *aiBackedPublicChatActionExecutor) cancelImageActionJob(ownerAppID strin
 	// action must cancel the owned job explicitly when its turn context ends.
 	// A detached owner context is required because the action context is
 	// already canceled and cannot carry the cleanup RPC.
-	ctx, cancel := context.WithTimeout(runtimeAgentImageActionContext(context.Background(), ownerAppID, ownerUserID), 5*time.Second)
+	ctx, cancel := context.WithTimeout(runtimeAgentImageActionContext(context.WithoutCancel(parent), ownerAppID, ownerUserID), 5*time.Second)
 	defer cancel()
 	_, _ = e.ai.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
 		JobId:  strings.TrimSpace(jobID),
@@ -174,14 +166,8 @@ func (e *aiBackedPublicChatActionExecutor) cancelImageActionJob(ownerAppID strin
 	})
 }
 
-func defaultImageActionWait(route runtimev1.RoutePolicy) time.Duration {
-	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return defaultLocalImageActionWait
-	}
-	return defaultCloudImageActionWait
-}
-
-func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding, params map[string]any, prompt string, idempotencyKey string, waitTimeout time.Duration, ownerAppID string, ownerUserID string) *runtimev1.SubmitScenarioJobRequest {
+// @nimi-authority: rule.nimi.runtime.service-operations.r066
+func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding, params map[string]any, prompt string, idempotencyKey string, ownerAppID string, ownerUserID string) *runtimev1.SubmitScenarioJobRequest {
 	spec := &runtimev1.ImageGenerateScenarioSpec{
 		Prompt:         strings.TrimSpace(prompt),
 		N:              proto.Int32(1),
@@ -195,7 +181,6 @@ func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding,
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(ownerAppID),
 			SubjectUserId: strings.TrimSpace(ownerUserID),
-			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,

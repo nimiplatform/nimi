@@ -30,7 +30,14 @@ func (r publicChatRuntime) loadPublicChatCognitionMemoryInputs(ctx context.Conte
 	if r.svc == nil {
 		return nil, nil
 	}
-	return r.svc.loadLocalAgentCognitionMemoryInputs(ctx, session.LocalAgentRef, publicChatPreTurnMemoryQuery(req.Messages))
+	inputs, err := r.svc.loadLocalAgentCognitionMemoryInputs(ctx, session.LocalAgentRef, publicChatPreTurnMemoryQuery(req.Messages))
+	if err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("optional Conversation Memory projection unavailable", "local_agent_ref", session.LocalAgentRef, "error", err)
+		}
+		return nil, nil
+	}
+	return inputs, nil
 }
 
 func (s *Service) loadLocalAgentCognitionMemoryInputs(ctx context.Context, localAgentRef, query string) ([]agentTurnMemoryInput, error) {

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -50,11 +51,25 @@ func (s *JobWorkAuthorizer) AdmitJobWork(ctx context.Context, d accountservice.L
 	domain := "runtime.consume"
 	switch d.Operation {
 	case accountservice.LocalAppOperationScenarioJobSubmit, accountservice.LocalAppOperationScenarioJobGet, accountservice.LocalAppOperationScenarioJobCancel:
-	case accountservice.LocalAppOperationSendConversationTurn, accountservice.LocalAppOperationConversationVoiceRender:
-		if _, derived := accountservice.AgentVoiceJobExecutionApp(ctx); !derived {
+	case accountservice.LocalAppOperationSendConversationTurn, accountservice.LocalAppOperationConversationVoiceRender, accountservice.LocalAppOperationConversationVoiceTranscribe:
+		domain = "agent.local"
+		// Admitted media work is part of the original authorized LocalAgent operation,
+		// not a new App AI Consume request. Keep its original admission and
+		// capture the same account/registration fences; never rewrite its op.
+		intent, captured := executionintent.FromContext(ctx)
+		capability := intent.CapabilityContract
+		allowed := (d.Operation == accountservice.LocalAppOperationSendConversationTurn && (capability == "image.generate" || capability == "audio.synthesize")) ||
+			(d.Operation == accountservice.LocalAppOperationConversationVoiceRender && capability == "audio.synthesize") ||
+			(d.Operation == accountservice.LocalAppOperationConversationVoiceTranscribe && capability == "audio.transcribe")
+		if !captured || !allowed || d.OperationCapability != "agent.local" ||
+			d.LocalAgentID == "" || admitted.LocalAgentID != d.LocalAgentID {
 			return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
-		domain = "agent.local"
+		if capability == "audio.synthesize" {
+			if _, derived := accountservice.AgentVoiceJobExecutionApp(ctx); !derived {
+				return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+			}
+		}
 	default:
 		return accountservice.JobWorkAuthority{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
@@ -80,7 +95,7 @@ func (s *JobWorkAuthorizer) AdmitJobWork(ctx context.Context, d accountservice.L
 		default:
 		}
 		return owner.WithJobAccountAuthority(work, lease, func() error {
-			return s.registrations.WithJobRegistrationAuthority(work, d.RegisteredAppSubject, d.SourceGeneration, d.DeclarationGeneration, domain, fn)
+			return s.registrations.WithRegistrationAuthority(work, d.RegisteredAppSubject, d.SourceGeneration, d.DeclarationGeneration, domain, fn)
 		})
 	}
 	if err := guard(ctx, func() error { return nil }); err != nil {

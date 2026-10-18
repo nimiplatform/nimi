@@ -1,5 +1,6 @@
 import type {
   NimiLocalAppConversationAction,
+  NimiLocalAppConversationState,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationLiveAction,
@@ -24,6 +25,7 @@ type CanonicalTurnTransient = {
 };
 
 export type CanonicalConversationProjection = {
+  readonly state: NimiLocalAppConversationState;
   readonly conversationAnchorId: string;
   readonly throughSequence: string;
   readonly truncatedBefore: boolean;
@@ -79,6 +81,7 @@ export function seedCanonicalConversationProjection(
   return Object.freeze({
     conversationAnchorId: snapshot.conversationAnchorId,
     throughSequence: snapshot.throughSequence,
+    state: snapshot.state,
     truncatedBefore: snapshot.truncatedBefore,
     turns: Object.freeze([...snapshot.turns]),
     messages: Object.freeze([...snapshot.messages]),
@@ -92,11 +95,13 @@ export function seedCanonicalConversationProjection(
 
 function nextTurn(
   projection: CanonicalConversationProjection,
-  event: NimiLocalAppConversationEvent,
+  event: Exclude<NimiLocalAppConversationEvent, {type:'state-changed'}>,
 ): NimiLocalAppConversationTurn {
   const current = projection.turns.find((turn) => turn.turnId === event.turnId);
   const base: NimiLocalAppConversationTurn = current || {
     turnId: event.turnId,
+    origin: event.type === 'turn-accepted' ? event.origin : 'user',
+    requestId: null, retryOfTurnId: null, inputTurnId: null, canRegenerate: false,
     status: 'active',
     phase: null,
     terminalReason: null,
@@ -104,14 +109,15 @@ function nextTurn(
     message: null,
   };
   switch (event.type) {
-    case 'turn-accepted': return { ...base, status: 'active', phase: 'accepted' };
+    case 'turn-accepted': return { ...base, origin: event.origin, requestId: event.requestId, status: 'active', phase: 'accepted' };
     case 'turn-started': return { ...base, status: 'active', phase: 'started' };
     case 'turn-completed': return {
       ...base,
       status: 'completed',
       terminalReason: event.terminalReason || null,
-      reasonCode: null,
-      message: null,
+      reasonCode: event.reasonCode,
+      message: event.message,
+      canRegenerate: false,
     };
     case 'turn-failed': return {
       ...base,
@@ -145,6 +151,7 @@ export function reduceCanonicalConversationEvent(
   }
   if (eventSequence <= currentSequence) return { status: 'stale', projection };
   if (eventSequence !== currentSequence + 1n) return { status: 'gap', projection };
+  if(event.type === 'state-changed') return {status:'applied',projection:Object.freeze({...projection,throughSequence:event.sequence,state:event.state})};
 
   let turns = projection.turns;
   let messages = projection.messages;
@@ -154,9 +161,18 @@ export function reduceCanonicalConversationEvent(
   let liveTools = projection.liveTools;
   let transientByTurn = projection.transientByTurn;
 
+  if (event.type === 'turn-accepted') turns = turns.map(turn => ({ ...turn, canRegenerate: false }));
   turns = replaceByIdentity(turns, nextTurn(projection, event), (turn) => turn.turnId);
   switch (event.type) {
     case 'text-delta': {
+      const existing = messages.find(message => message.turnId === event.turnId && message.role === 'assistant' && message.parts.length === 1 && message.parts[0]?.kind === 'text');
+      if (existing) {
+        if (existing.partial) {
+          const text = existing.parts[0];
+          if (text?.kind === 'text') messages = replaceByIdentity(messages, { ...existing, parts: [{ kind: 'text', text: text.text + event.delta }] }, message => message.messageId);
+        }
+        break;
+      }
       const current = transientByTurn[event.turnId] || { text: '', reasoningState: null };
       transientByTurn = Object.freeze({
         ...transientByTurn,
@@ -178,9 +194,14 @@ export function reduceCanonicalConversationEvent(
     case 'live-tool':
       liveTools = replaceByIdentity(liveTools, event.tool, (tool) => tool.toolId);
       break;
-    case 'message-committed':
+    case 'message-committed': {
       messages = replaceByIdentity(messages, event.message, (message) => message.messageId);
+      if (event.message.role === 'assistant' && event.message.parts.some(part => part.kind === 'text')) {
+        const { [event.turnId]: _text, ...remaining } = transientByTurn;
+        transientByTurn = Object.freeze(remaining);
+      }
       break;
+    }
     case 'action-planned':
     case 'action-started':
     case 'action-completed':
@@ -205,13 +226,13 @@ export function reduceCanonicalConversationEvent(
     case 'voice-failed':
       voices = replaceByIdentity(voices, event.voice, (voice) => voice.voiceId);
       break;
-    case 'turn-completed':
-    case 'turn-failed':
-    case 'turn-interrupted': {
+    case 'turn-completed': {
       const { [event.turnId]: _terminal, ...remaining } = transientByTurn;
       transientByTurn = Object.freeze(remaining);
       break;
     }
+    case 'turn-failed':
+    case 'turn-interrupted':
     case 'turn-accepted':
     case 'turn-started':
       break;
@@ -254,6 +275,39 @@ async function resolveArtifact(
   }
 }
 
+/** Transient preview bytes are scoped to one authenticated hydration lifetime. */
+export function createCanonicalConversationMediaReader(input: {
+  conversation: NimiLocalAppConversationClient;
+  thread: AgentLocalThreadSummary;
+  conversationAnchorId: string;
+  onChange: () => void;
+}) {
+  const resolved = new Map<string, { mediaUrl: string | null; mimeType: string | null }>();
+  const pending = new Set<string>();
+  const queued: string[] = [];
+  let active = 0;
+  let closed = false;
+  const pump = () => {
+    while (!closed && active < 4 && queued.length) {
+      const artifactId = queued.shift()!;
+      active++;
+      void resolveArtifact(input.conversation, input.thread, input.conversationAnchorId, artifactId).then(value => {
+        if (!closed) { pending.delete(artifactId); resolved.set(artifactId, value); input.onChange(); }
+      }).finally(() => { active--; pump(); });
+    }
+  };
+  return {
+    get(artifactId: string): { mediaUrl: string | null; mimeType: string | null } {
+      if (closed) return { mediaUrl: null, mimeType: null };
+      const value = resolved.get(artifactId);
+      if (value) return value;
+      if (!pending.has(artifactId)) {pending.add(artifactId);queued.push(artifactId);pump();}
+      return { mediaUrl: null, mimeType: null };
+    },
+    close() {closed=true;queued.length=0;resolved.clear();pending.clear();},
+  };
+}
+
 function baseMessage(input: {
   id: string;
   threadId: string;
@@ -285,21 +339,31 @@ function baseMessage(input: {
   };
 }
 
+function insertConversationChild(messages: AgentLocalMessageRecord[], child: AgentLocalMessageRecord): void {
+  const turnId = child.metadataJson?.canonicalTurnId;
+  let index = messages.length;
+  for (let cursor = messages.length - 1; cursor >= 0; cursor -= 1) {
+    if (messages[cursor]?.metadataJson?.canonicalTurnId === turnId) { index = cursor + 1; break; }
+  }
+  messages.splice(index, 0, child);
+}
+
 // @nimi-authority: rule.nimi.desktop.agent-projection.r029
-export async function materializeCanonicalConversationBundle(input: {
-  conversation: NimiLocalAppConversationClient;
+export function materializeCanonicalConversationBundle(input: {
+  media?: Pick<ReturnType<typeof createCanonicalConversationMediaReader>, 'get'>;
   thread: AgentLocalThreadSummary;
   projection: CanonicalConversationProjection;
   nowMs: number;
-}): Promise<AgentLocalThreadBundle> {
+}): AgentLocalThreadBundle {
   const messages: AgentLocalMessageRecord[] = [];
   for (const message of input.projection.messages) {
+    const turn = input.projection.turns.find(turn => turn.turnId === message.turnId);
     const text = message.parts.find((part) => part.kind === 'text');
     const artifact = message.parts.find((part) => part.kind === 'artifact-ref');
     const resolved = artifact
-      ? await resolveArtifact(input.conversation, input.thread, input.projection.conversationAnchorId, artifact.artifactId)
+      ? input.media?.get(artifact.artifactId) ?? { mediaUrl: null, mimeType: null }
       : { mediaUrl: null, mimeType: null };
-    messages.push({
+    const projected: AgentLocalMessageRecord = {
       ...baseMessage({
         id: message.messageId,
         threadId: input.thread.id,
@@ -307,10 +371,18 @@ export async function materializeCanonicalConversationBundle(input: {
         role: message.role === 'app' ? 'system' : message.role,
         kind: artifact ? 'image' : 'text',
         contentText: text?.text || '',
-        status: 'complete',
+        status: message.partial ? turn?.status === 'active' ? 'pending' : 'error' : 'complete',
         nowMs: input.nowMs,
         metadata: {
-          canonicalOrigin: message.role,
+          canonicalPartial: message.partial,
+          canonicalTurnStatus: turn?.status ?? null,
+          canonicalTerminalReason: turn?.terminalReason ?? null,
+          canonicalCanRegenerate: turn?.canRegenerate || false,
+          canonicalInputTurnId: turn?.inputTurnId || null,
+          canonicalOrigin: turn?.origin || 'user',
+          canonicalMediaRunning: turn?.status === 'active' && !message.partial && input.projection.state.textTurnId !== message.turnId,
+          canonicalControlRejected: !message.partial && turn?.status === 'completed' && turn.reasonCode === 'AI_OUTPUT_INVALID'
+            && !input.projection.actions.some(action => action.turnId === message.turnId),
           canonicalConversationAnchorId: input.projection.conversationAnchorId,
           canonicalTurnId: message.turnId,
           canonicalThroughSequence: input.projection.throughSequence,
@@ -320,7 +392,12 @@ export async function materializeCanonicalConversationBundle(input: {
       mediaUrl: resolved.mediaUrl,
       mediaMimeType: artifact?.mimeType || resolved.mimeType,
       artifactId: artifact?.artifactId || null,
-    });
+      error: message.partial && turn?.status !== 'active' && turn?.terminalReason !== 'user_cancel'
+        ? { code: turn?.reasonCode || 'AI_STREAM_BROKEN', message: turn?.message || 'The reply is incomplete.' }
+        : null,
+    };
+    if (artifact && message.role === 'assistant') insertConversationChild(messages, projected);
+    else messages.push(projected);
   }
 
   const messageIds = new Set(messages.map((message) => message.id));
@@ -330,9 +407,9 @@ export async function materializeCanonicalConversationBundle(input: {
     const original = input.projection.messages.find(message => message.turnId === action.turnId && message.role === 'user');
     const textOnlyInput = original?.parts.length === 1 && original.parts[0]?.kind === 'text' ? original.parts[0].text : '';
     const resolved = action.artifactId
-      ? await resolveArtifact(input.conversation, input.thread, input.projection.conversationAnchorId, action.artifactId)
+      ? input.media?.get(action.artifactId) ?? { mediaUrl: null, mimeType: null }
       : { mediaUrl: null, mimeType: null };
-    messages.push({
+    insertConversationChild(messages, {
       ...baseMessage({
         id: messageId,
         threadId: input.thread.id,
@@ -365,60 +442,53 @@ export async function materializeCanonicalConversationBundle(input: {
   }
 
   for (const voice of input.projection.voices) {
-    const voiceProjectionMessageId = `canonical-voice:${voice.voiceId}`;
-    if (messageIds.has(voiceProjectionMessageId)) continue;
-    const resolved = voice.artifactId
-      ? await resolveArtifact(input.conversation, input.thread, input.projection.conversationAnchorId, voice.artifactId)
-      : { mediaUrl: null, mimeType: null };
-    messages.push({
-      ...baseMessage({
-        id: voiceProjectionMessageId,
-        threadId: input.thread.id,
-        turnId: voice.turnId,
-        role: 'assistant',
-        kind: 'voice',
-        contentText: '',
-        status: voice.state === 'ready' ? 'complete' : 'error',
-        nowMs: input.nowMs,
-        metadata: {
-          canonicalTurnId: voice.turnId,
-          canonicalVoiceId: voice.voiceId,
-          canonicalVoiceState: voice.state,
-          canonicalThroughSequence: input.projection.throughSequence,
-        },
-      }),
-      artifactId: voice.artifactId,
-      parentMessageId: voice.messageId,
-      mediaUrl: resolved.mediaUrl,
-      mediaMimeType: resolved.mimeType,
-      error: voice.state === 'failed'
-        ? { code: voice.reasonCode || 'RUNTIME_CALL_FAILED', message: voice.message || 'Voice generation failed.' }
-        : null,
-    });
-    messageIds.add(voiceProjectionMessageId);
+    const parent = messages.find(message => message.id === voice.messageId && message.kind === 'text' && message.role === 'assistant');
+    if (!parent) continue; // The canonical sidecar remains in the bounded snapshot even when its text is outside it.
+    parent.metadataJson = {
+      ...parent.metadataJson,
+      canonicalVoiceId: voice.voiceId,
+      canonicalVoiceState: voice.state,
+      canonicalVoiceArtifactId: voice.artifactId,
+      canonicalVoiceReasonCode: voice.reasonCode,
+    };
   }
 
+  const turnOrder = new Map(input.projection.turns.map((turn, index) => [turn.turnId, index]));
   for (const turn of input.projection.turns) {
     const transient = input.projection.transientByTurn[turn.turnId];
-    if (turn.status !== 'active' || !transient || messages.some((message) => message.metadataJson?.canonicalTurnId === turn.turnId)) continue;
-    messages.push({
+    if (messages.some(message => message.role === 'assistant' && message.kind === 'text' && message.metadataJson?.canonicalTurnId === turn.turnId)) continue;
+    if (!transient && !turn.inputTurnId && input.projection.state.textTurnId !== turn.turnId) continue;
+    if (turn.status === 'completed') continue;
+    const placeholder = {
       ...baseMessage({
         id: `canonical-turn:${turn.turnId}`,
         threadId: input.thread.id,
         turnId: turn.turnId,
         role: 'assistant',
         kind: 'text',
-        contentText: transient.text,
-        status: 'pending',
+        contentText: transient?.text || '',
+        status: turn.status === 'active' ? 'pending' : 'error',
         nowMs: input.nowMs,
         metadata: {
           canonicalTurnId: turn.turnId,
           canonicalTurnPhase: turn.phase,
-          canonicalReasoningState: transient.reasoningState,
+          canonicalTerminalReason: turn.terminalReason,
+          canonicalCanRegenerate: turn.canRegenerate,
+          canonicalInputTurnId: turn.inputTurnId,
+          canonicalPartial: true,
+          canonicalReasoningState: transient?.reasoningState || null,
           canonicalThroughSequence: input.projection.throughSequence,
         },
       }),
+      error: turn.status !== 'active' && turn.terminalReason !== 'user_cancel' ? { code: turn.reasonCode || 'AI_STREAM_BROKEN', message: turn.message || 'The reply is incomplete.' } : null,
+    };
+    // Empty failed attempts have no canonical text message. Keep their status
+    // at the Runtime's turn position, before any later successful retry.
+    const nextMessage = messages.findIndex(message => {
+      const order = turnOrder.get(String(message.metadataJson?.canonicalTurnId));
+      return order !== undefined && order > turnOrder.get(turn.turnId)!;
     });
+    messages.splice(nextMessage < 0 ? messages.length : nextMessage, 0, placeholder);
   }
 
   return {
@@ -432,6 +502,7 @@ export async function materializeCanonicalConversationBundle(input: {
     },
     messages,
     canonicalConversation: {
+      state: input.projection.state,
       conversationAnchorId: input.projection.conversationAnchorId,
       throughSequence: input.projection.throughSequence,
       truncatedBefore: input.projection.truncatedBefore,

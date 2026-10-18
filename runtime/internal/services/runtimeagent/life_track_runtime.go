@@ -8,6 +8,7 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -101,25 +102,40 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 	if executor == nil {
 		return nil, fmt.Errorf("hook executor is required")
 	}
-	entry, err := c.svc.agentByID(strings.TrimSpace(agentID))
-	if err != nil {
-		return nil, err
-	}
-	hook := entry.Hooks[strings.TrimSpace(intentID)]
-	if hook == nil {
-		return nil, status.Error(codes.NotFound, "hook not found")
-	}
-	if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
-		return nil, nil
-	}
-	if hook.GetScheduledFor() != nil && hook.GetScheduledFor().AsTime().After(now) {
-		return nil, nil
-	}
-	if blocked := gateHookExecution(entry, hook, now); blocked != nil {
-		return c.applyHookDecision(agentID, intentID, blocked, now)
-	}
-	if _, err := c.svc.markHookRunningAt(agentID, intentID, now); err != nil {
-		return nil, err
+	claimed := false
+	outcome, err := c.svc.transitionHookAt(agentID, intentID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, at time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING || (hook.GetScheduledFor() != nil && hook.GetScheduledFor().AsTime().After(at)) {
+			return nil, nil, nil
+		}
+		beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
+		advanceAutonomyWindow(entry, at)
+		budgetEvents := optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), at))
+		if blocked := gateHookExecution(entry, hook, at); blocked != nil {
+			if blocked.admissionState == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED {
+				due, err := resolveHookScheduledFor(blocked.nextIntent, at)
+				if err != nil {
+					return nil, nil, err
+				}
+				hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED
+				next := cloneHookIntent(blocked.nextIntent)
+				next.IntentId = "hook_" + ulid.Make().String()
+				next.AgentId = entry.Agent.GetLocalAgentRef()
+				next.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
+				entry.Hooks[next.IntentId] = &runtimev1.PendingHook{Intent: next, ScheduledFor: timestamppb.New(due), AdmittedAt: timestamppb.New(at), RuntimeCadence: hook.GetRuntimeCadence()}
+				proposed := cloneHookIntent(next)
+				proposed.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
+				extra := []*runtimev1.AgentEvent{hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{Intent: proposed, ObservedAt: timestamppb.New(at)}, at), hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(next), ObservedAt: timestamppb.New(at)}, at)}
+				return &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(hook.Intent), ObservedAt: timestamppb.New(at)}, append(budgetEvents, extra...), nil
+			}
+			hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED
+			return &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(hook.Intent), ObservedAt: timestamppb.New(at), ReasonCode: blocked.reasonCode, Message: blocked.message}, budgetEvents, nil
+		}
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING
+		claimed = true
+		return &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(hook.Intent), ObservedAt: timestamppb.New(at)}, budgetEvents, nil
+	})
+	if err != nil || !claimed {
+		return outcome, err
 	}
 	executionEntry, err := c.svc.agentByID(strings.TrimSpace(agentID))
 	if err != nil {
@@ -131,15 +147,17 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 	}
 	recall, err := c.assembleRecall(ctx, executionEntry, runningHook, lifeTurnRecallLimit)
 	if err != nil {
-		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
+		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), time.Now().UTC())
 	}
 	// K-AGCORE-147: the Life Track executor consumes the committed execution
 	// config text.generate binding; a missing binding is an observable
 	// terminal hook failure, never a silent constant fallback.
 	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding(executionEntry.Agent.GetLocalAgentRef())
 	if err != nil {
-		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
+		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), time.Now().UTC())
 	}
+	// The committed binding resolver has checked this owner against the current Runtime account.
+	ctx = executionintent.WithRuntimeAccountSubject(ctx, executionEntry.Agent.GetOwnerUserId())
 	result, err := executor(ctx, &lifeTurnRequest{
 		Agent:            cloneLocalAgentRecord(executionEntry.Agent),
 		State:            cloneAgentState(executionEntry.State),
@@ -150,14 +168,14 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 	})
 	if err != nil {
 		if executionErr, ok := err.(*lifeTurnExecutionError); ok {
-			return c.applyHookDecision(agentID, intentID, executionErr.decision(), now)
+			return c.applyHookDecision(agentID, intentID, executionErr.decision(), time.Now().UTC())
 		}
-		return c.applyHookDecision(agentID, intentID, failedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err.Error(), false, 0), now)
+		return c.applyHookDecision(agentID, intentID, failedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err.Error(), false, 0), time.Now().UTC())
 	}
 	if result == nil {
 		result = &lifeTurnResult{}
 	}
-	return c.applyResult(ctx, agentID, intentID, result, now)
+	return c.applyResult(ctx, agentID, intentID, result, time.Now().UTC())
 }
 
 func (c lifeTrackController) applyHookDecision(agentID string, intentID string, decision *hookExecutionDecision, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
@@ -218,135 +236,154 @@ func (c lifeTrackController) assembleRecall(ctx context.Context, entry *agentEnt
 }
 
 func (c lifeTrackController) applyResult(ctx context.Context, agentID string, intentID string, result *lifeTurnResult, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	entry, err := c.svc.agentByID(strings.TrimSpace(agentID))
-	if err != nil {
-		return nil, err
-	}
-	intentID = strings.TrimSpace(intentID)
-	hook := entry.Hooks[intentID]
-	if hook == nil {
-		return nil, status.Error(codes.NotFound, "hook not found")
-	}
-	if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
-		return nil, status.Error(codes.FailedPrecondition, "hook is not running")
-	}
-
 	if result == nil {
 		result = &lifeTurnResult{}
 	}
-	// Life-track posture/status origin linkage is OPTIONAL per K-AGCORE-037
-	// state_envelope: `originating_turn_id` is NOT a chat turn here, but hook
-	// lifecycle does carry its own `originating_turn_id`/`originating_stream_id`
-	// when the hook itself originated from a chat turn. We forward only what is
-	// real on the triggering HookIntent; runtime MUST NOT fabricate linkage.
-	triggerIntent := hook.GetIntent()
-	lifePostureOrigin := stateEventOrigin{
-		ConversationAnchorID: strings.TrimSpace(triggerIntent.GetConversationAnchorId()),
-		OriginatingTurnID:    strings.TrimSpace(triggerIntent.GetOriginatingTurnId()),
-		OriginatingStreamID:  strings.TrimSpace(triggerIntent.GetOriginatingStreamId()),
-	}
-	var postureStateEvents []*runtimev1.AgentEvent
-	previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
-	hadPreviousStatus := previousStatusText != ""
 	if result.PosturePatch != nil {
-		posture, err := normalizeBehavioralPosturePatch(entry.Agent.GetLocalAgentRef(), *result.PosturePatch)
-		if err != nil {
+		if _, err := normalizeBehavioralPosturePatch(agentID, *result.PosturePatch); err != nil {
 			return c.svc.failHookAt(agentID, intentID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error(), false, result.TokensUsed, now)
 		}
-		posture.UpdatedAt = now.UTC().Format(time.RFC3339Nano)
-		stateEvents, err := c.svc.applyBehavioralPostureUpdate(ctx, entry, posture, lifePostureOrigin, now)
-		if err != nil {
-			return nil, err
-		}
-		entry.State.StatusText = posture.StatusText
-		entry.State.UpdatedAt = timestamppb.New(now)
-		postureStateEvents = stateEvents
-	} else if result.StatusText != nil {
-		entry.State.StatusText = *result.StatusText
-		entry.State.UpdatedAt = timestamppb.New(now)
-		if newStatus := strings.TrimSpace(*result.StatusText); newStatus != previousStatusText {
-			postureStateEvents = []*runtimev1.AgentEvent{
-				c.svc.stateStatusTextChangedEvent(entry.Agent.GetLocalAgentRef(), newStatus, previousStatusText, hadPreviousStatus, lifePostureOrigin, now),
-			}
-		}
 	}
-	// Long-term Memory is derived only from the committed activity terminal
-	// outbox. Runtime never promotes Life Track model candidates directly.
-
-	beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
-	var outcome *runtimev1.HookExecutionOutcome
-	var followupEvents []*runtimev1.AgentEvent
-	events := make([]*runtimev1.AgentEvent, 0, 4)
-	applyTokenUsage(entry, result.TokensUsed, now)
 	if result.NextHookIntent != nil {
 		if err := validateHookIntent(result.NextHookIntent); err != nil {
 			return c.svc.failHookAt(agentID, intentID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error(), false, result.TokensUsed, now)
 		}
-		scheduledFor, err := resolveHookScheduledFor(result.NextHookIntent, now)
-		if err != nil {
-			return c.svc.failHookAt(agentID, intentID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error(), false, result.TokensUsed, now)
-		}
-		// Transition current hook to RESCHEDULED.
-		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED
-		// Admit follow-up HookIntent as new PendingHook.
-		followupIntent := cloneHookIntent(result.NextHookIntent)
-		if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
-			followupIntent.AgentId = entry.Agent.GetLocalAgentRef()
-		}
-		if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
-			followupIntent.IntentId = "hook_" + ulid.Make().String()
-		}
-		followupIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
-		followup := &runtimev1.PendingHook{
-			Intent:       followupIntent,
-			ScheduledFor: timestamppb.New(scheduledFor),
-			AdmittedAt:   timestamppb.New(now),
-		}
-		entry.Hooks[followupIntent.GetIntentId()] = followup
-		outcome = &runtimev1.HookExecutionOutcome{
-			Intent:     cloneHookIntent(hook.GetIntent()),
-			ObservedAt: timestamppb.New(now),
-		}
-		proposedFollowup := cloneHookIntent(followupIntent)
-		proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
-		followupEvents = []*runtimev1.AgentEvent{
-			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
-				Intent:     proposedFollowup,
-				ObservedAt: timestamppb.New(now),
-			}, now),
-			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
-				Intent:     cloneHookIntent(followupIntent),
-				ObservedAt: timestamppb.New(now),
-			}, now),
-		}
-	} else {
-		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED
-		outcome = &runtimev1.HookExecutionOutcome{
-			Intent:     cloneHookIntent(hook.GetIntent()),
-			ObservedAt: timestamppb.New(now),
-			Message:    strings.TrimSpace(result.Summary),
-		}
 	}
+	var committedOutcome *runtimev1.HookExecutionOutcome
+	triggerMemory := false
+	err := c.svc.mutateAgent(strings.TrimSpace(agentID), func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		intentID = strings.TrimSpace(intentID)
+		hook := entry.Hooks[intentID]
+		if hook == nil {
+			return nil, nil, status.Error(codes.NotFound, "hook not found")
+		}
+		if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
+			if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED {
+				return nil, nil, status.Error(codes.FailedPrecondition, "hook is not running")
+			}
+			before := snapshotAutonomy(entry.Agent.GetAutonomy())
+			applyTokenUsage(entry, result.TokensUsed, now)
+			committedOutcome = &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(hook.Intent), ObservedAt: timestamppb.New(now)}
+			return optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), before, entry.Agent.GetAutonomy(), now)), nil, nil
+		}
 
-	executionStateEvent := c.svc.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
-	events = append(events, postureStateEvents...)
-	events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), outcome, now))
-	events = append(events, followupEvents...)
-	if executionStateEvent != nil {
-		events = append(events, executionStateEvent)
-	}
-	if event := budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now); event != nil {
-		events = append(events, event)
-	}
-	txHook, triggerMemory, err := c.svc.cognitionMemoryActivityTerminalTxHook(entry, outcome, now)
+		if result == nil {
+			result = &lifeTurnResult{}
+		}
+		// Life-track posture/status origin linkage is OPTIONAL per K-AGCORE-037
+		// state_envelope: `originating_turn_id` is NOT a chat turn here, but hook
+		// lifecycle does carry its own `originating_turn_id`/`originating_stream_id`
+		// when the hook itself originated from a chat turn. We forward only what is
+		// real on the triggering HookIntent; runtime MUST NOT fabricate linkage.
+		triggerIntent := hook.GetIntent()
+		lifePostureOrigin := stateEventOrigin{
+			ConversationAnchorID: strings.TrimSpace(triggerIntent.GetConversationAnchorId()),
+			OriginatingTurnID:    strings.TrimSpace(triggerIntent.GetOriginatingTurnId()),
+			OriginatingStreamID:  strings.TrimSpace(triggerIntent.GetOriginatingStreamId()),
+		}
+		var postureStateEvents []*runtimev1.AgentEvent
+		previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
+		hadPreviousStatus := previousStatusText != ""
+		if result.PosturePatch != nil {
+			posture, err := normalizeBehavioralPosturePatch(entry.Agent.GetLocalAgentRef(), *result.PosturePatch)
+			if err != nil {
+				return nil, nil, err
+			}
+			posture.UpdatedAt = now.UTC().Format(time.RFC3339Nano)
+			stateEvents, err := c.svc.applyBehavioralPostureUpdate(ctx, entry, posture, lifePostureOrigin, now)
+			if err != nil {
+				return nil, nil, err
+			}
+			entry.State.StatusText = posture.StatusText
+			entry.State.UpdatedAt = timestamppb.New(now)
+			postureStateEvents = stateEvents
+		} else if result.StatusText != nil {
+			entry.State.StatusText = *result.StatusText
+			entry.State.UpdatedAt = timestamppb.New(now)
+			if newStatus := strings.TrimSpace(*result.StatusText); newStatus != previousStatusText {
+				postureStateEvents = []*runtimev1.AgentEvent{
+					c.svc.stateStatusTextChangedEvent(entry.Agent.GetLocalAgentRef(), newStatus, previousStatusText, hadPreviousStatus, lifePostureOrigin, now),
+				}
+			}
+		}
+		// Long-term Memory is derived only from the committed activity terminal
+		// outbox. Runtime never promotes Life Track model candidates directly.
+
+		beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
+		var outcome *runtimev1.HookExecutionOutcome
+		var followupEvents []*runtimev1.AgentEvent
+		events := make([]*runtimev1.AgentEvent, 0, 4)
+		applyTokenUsage(entry, result.TokensUsed, now)
+		if result.NextHookIntent != nil && entry.Agent.GetAutonomy().GetEnabled() && autonomyMode(entry.Agent.GetAutonomy().GetConfig()) != runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF && !entry.Agent.GetAutonomy().GetBudgetExhausted() {
+			if err := validateHookIntent(result.NextHookIntent); err != nil {
+				return nil, nil, err
+			}
+			scheduledFor, err := resolveHookScheduledFor(result.NextHookIntent, now)
+			if err != nil {
+				return nil, nil, err
+			}
+			// Transition current hook to RESCHEDULED.
+			hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED
+			// Admit follow-up HookIntent as new PendingHook.
+			followupIntent := cloneHookIntent(result.NextHookIntent)
+			if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
+				followupIntent.AgentId = entry.Agent.GetLocalAgentRef()
+			}
+			if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
+				followupIntent.IntentId = "hook_" + ulid.Make().String()
+			}
+			followupIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
+			followup := &runtimev1.PendingHook{
+				Intent:       followupIntent,
+				ScheduledFor: timestamppb.New(scheduledFor),
+				AdmittedAt:   timestamppb.New(now),
+			}
+			entry.Hooks[followupIntent.GetIntentId()] = followup
+			outcome = &runtimev1.HookExecutionOutcome{
+				Intent:     cloneHookIntent(hook.GetIntent()),
+				ObservedAt: timestamppb.New(now),
+			}
+			proposedFollowup := cloneHookIntent(followupIntent)
+			proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
+			followupEvents = []*runtimev1.AgentEvent{
+				hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
+					Intent:     proposedFollowup,
+					ObservedAt: timestamppb.New(now),
+				}, now),
+				hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
+					Intent:     cloneHookIntent(followupIntent),
+					ObservedAt: timestamppb.New(now),
+				}, now),
+			}
+		} else {
+			hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED
+			outcome = &runtimev1.HookExecutionOutcome{
+				Intent:     cloneHookIntent(hook.GetIntent()),
+				ObservedAt: timestamppb.New(now),
+				Message:    strings.TrimSpace(result.Summary),
+			}
+		}
+
+		executionStateEvent := c.svc.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
+		events = append(events, postureStateEvents...)
+		events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), outcome, now))
+		events = append(events, followupEvents...)
+		if executionStateEvent != nil {
+			events = append(events, executionStateEvent)
+		}
+		if event := budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now); event != nil {
+			events = append(events, event)
+		}
+		txHook, trigger, err := c.svc.cognitionMemoryActivityTerminalTxHook(entry, outcome, now)
+		triggerMemory = trigger
+		committedOutcome = cloneHookOutcome(outcome)
+		return events, txHook, err
+	})
 	if err != nil {
 		return nil, err
 	}
-	if err := c.svc.agentStateRuntime().updateAgentWithTxHook(entry, txHook, events...); err != nil {
-		return nil, err
-	}
 	if triggerMemory {
-		c.svc.triggerCognitionMemory(entry.Agent.GetLocalAgentRef())
+		c.svc.triggerCognitionMemory(strings.TrimSpace(agentID))
 	}
-	return outcome, nil
+	return committedOutcome, nil
 }

@@ -150,7 +150,7 @@ describe('Agent Center canonical Manager source/context projection', () => {
           session,
         }));
       });
-      expect(container.textContent).toContain('775 current, 776 required tokens');
+      expect(container.textContent).toContain('Capacity 775; admission estimate 776 tokens');
       const action = Array.from(container.querySelectorAll('button'))
         .find((button) => button.textContent?.includes('Open Machine Loadouts'));
       expect(action).toBeTruthy();

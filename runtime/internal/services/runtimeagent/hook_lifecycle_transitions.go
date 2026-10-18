@@ -15,43 +15,41 @@ import (
 // truth. Per K-AGCORE-042 this emits `runtime.agent.hook.intent_proposed`
 // then `runtime.agent.hook.pending` so admission is externally observable.
 func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) error {
-	entry, err := s.agentByID(strings.TrimSpace(agentID))
-	if err != nil {
-		return err
-	}
-	now := time.Now().UTC()
-	normalized, err := normalizePendingHook(hook, now)
-	if err != nil {
-		return err
-	}
-	intentID := normalized.GetIntent().GetIntentId()
-	if _, exists := entry.Hooks[intentID]; exists {
-		return status.Error(codes.AlreadyExists, "hook already exists")
-	}
-	// Stamp agent_id onto intent if caller omitted it (runtime truth binds
-	// HookIntent to the agent it was admitted under).
-	if strings.TrimSpace(normalized.Intent.GetAgentId()) == "" {
-		normalized.Intent.AgentId = entry.Agent.GetLocalAgentRef()
-	}
-	entry.Hooks[intentID] = normalized
-	stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(normalized), now)
-	// Emit proposed-then-pending to project the admission transition.
-	proposedIntent := cloneHookIntent(normalized.GetIntent())
-	proposedIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
-	events := []*runtimev1.AgentEvent{
-		hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
-			Intent:     proposedIntent,
-			ObservedAt: timestamppb.New(now),
-		}, now),
-		hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
-			Intent:     cloneHookIntent(normalized.GetIntent()),
-			ObservedAt: timestamppb.New(now),
-		}, now),
-	}
-	if stateEvent != nil {
-		events = append(events, stateEvent)
-	}
-	return s.updateAgent(entry, events...)
+	return s.mutateAgent(strings.TrimSpace(agentID), func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		now := time.Now().UTC()
+		normalized, err := normalizePendingHook(hook, now)
+		if err != nil {
+			return nil, nil, err
+		}
+		intentID := normalized.GetIntent().GetIntentId()
+		if _, exists := entry.Hooks[intentID]; exists {
+			return nil, nil, status.Error(codes.AlreadyExists, "hook already exists")
+		}
+		// Stamp agent_id onto intent if caller omitted it (runtime truth binds
+		// HookIntent to the agent it was admitted under).
+		if strings.TrimSpace(normalized.Intent.GetAgentId()) == "" {
+			normalized.Intent.AgentId = entry.Agent.GetLocalAgentRef()
+		}
+		entry.Hooks[intentID] = normalized
+		stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(normalized), now)
+		// Emit proposed-then-pending to project the admission transition.
+		proposedIntent := cloneHookIntent(normalized.GetIntent())
+		proposedIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
+		events := []*runtimev1.AgentEvent{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
+				Intent:     proposedIntent,
+				ObservedAt: timestamppb.New(now),
+			}, now),
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
+				Intent:     cloneHookIntent(normalized.GetIntent()),
+				ObservedAt: timestamppb.New(now),
+			}, now),
+		}
+		if stateEvent != nil {
+			events = append(events, stateEvent)
+		}
+		return events, nil, nil
+	})
 }
 
 func (s *Service) markHookRunning(agentID string, intentID string) (*runtimev1.HookExecutionOutcome, error) {
@@ -91,40 +89,34 @@ func (s *Service) transitionHook(agentID string, intentID string, mutate func(en
 }
 
 func (s *Service) transitionHookAt(agentID string, intentID string, now time.Time, mutate func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error)) (*runtimev1.HookExecutionOutcome, error) {
-	entry, err := s.agentByID(strings.TrimSpace(agentID))
+	var outcome *runtimev1.HookExecutionOutcome
+	var triggerMemory bool
+	err := s.mutateAgent(strings.TrimSpace(agentID), func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		hook := entry.Hooks[strings.TrimSpace(intentID)]
+		if hook == nil {
+			return nil, nil, status.Error(codes.NotFound, "hook not found")
+		}
+		var events []*runtimev1.AgentEvent
+		var err error
+		outcome, events, err = mutate(entry, hook, now)
+		if err != nil {
+			return nil, nil, err
+		}
+		if outcome != nil {
+			events = append([]*runtimev1.AgentEvent{hookEventAt(entry.Agent.GetLocalAgentRef(), outcome, now)}, events...)
+		}
+		if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now); stateEvent != nil {
+			events = append(events, stateEvent)
+		}
+		txHook, trigger, err := s.cognitionMemoryActivityTerminalTxHook(entry, outcome, now)
+		triggerMemory = trigger
+		return events, txHook, err
+	})
 	if err != nil {
-		return nil, err
-	}
-	intentID = strings.TrimSpace(intentID)
-	hook := entry.Hooks[intentID]
-	if hook == nil {
-		return nil, status.Error(codes.NotFound, "hook not found")
-	}
-	outcome, extraEvents, err := mutate(entry, hook, now)
-	if err != nil {
-		return nil, err
-	}
-	stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
-	events := make([]*runtimev1.AgentEvent, 0, len(extraEvents)+1)
-	if outcome != nil {
-		events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), outcome, now))
-	}
-	events = append(events, extraEvents...)
-	if stateEvent != nil {
-		events = append(events, stateEvent)
-	}
-	txHook, triggerMemory, err := s.cognitionMemoryActivityTerminalTxHook(entry, outcome, now)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.agentStateRuntime().updateAgentWithTxHook(entry, txHook, events...); err != nil {
 		return nil, err
 	}
 	if triggerMemory {
-		s.triggerCognitionMemory(entry.Agent.GetLocalAgentRef())
-	}
-	if outcome == nil {
-		return nil, nil
+		s.triggerCognitionMemory(strings.TrimSpace(agentID))
 	}
 	return cloneHookOutcome(outcome), nil
 }
@@ -157,6 +149,12 @@ func (s *Service) failHook(agentID string, intentID string, reasonCode runtimev1
 func (s *Service) failHookAt(agentID string, intentID string, reasonCode runtimev1.ReasonCode, message string, retryable bool, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
 	_ = retryable // retry policy remains internal; no public field on outcome.
 	return s.transitionHookAt(agentID, intentID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		if hookAdmissionState(hook) == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED {
+			before := snapshotAutonomy(entry.Agent.GetAutonomy())
+			applyTokenUsage(entry, tokensUsed, now)
+			// Charge observed work without emitting another cancellation or reopening it.
+			return nil, optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), before, entry.Agent.GetAutonomy(), now)), nil
+		}
 		if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not running")
 		}
@@ -224,9 +222,10 @@ func (s *Service) rescheduleHookAt(agentID string, intentID string, nextIntent *
 		}
 		followupIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
 		followup := &runtimev1.PendingHook{
-			Intent:       followupIntent,
-			ScheduledFor: timestamppb.New(scheduledFor),
-			AdmittedAt:   timestamppb.New(transitionTime),
+			Intent:         followupIntent,
+			ScheduledFor:   timestamppb.New(scheduledFor),
+			AdmittedAt:     timestamppb.New(transitionTime),
+			RuntimeCadence: hook.GetRuntimeCadence(),
 		}
 		entry.Hooks[followupIntent.GetIntentId()] = followup
 		applyTokenUsage(entry, tokensUsed, transitionTime)

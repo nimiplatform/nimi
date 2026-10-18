@@ -59,107 +59,107 @@ func (s *Service) commitProactiveInterruptibilityDecision(ctx context.Context, d
 	if ownerDomain != proactiveOwnerRuntime && ownerDomain != proactiveOwnerHost {
 		return nil, nil, status.Error(codes.InvalidArgument, "proactive interruptibility owner_domain must be runtime or host")
 	}
-	entry, err := s.agentByID(strings.TrimSpace(decision.AgentID))
-	if err != nil {
-		return nil, nil, err
-	}
-	observedAt := decision.ObservedAt.UTC()
-	if observedAt.IsZero() {
-		observedAt = time.Now().UTC()
-	}
-	projectionID := strings.TrimSpace(decision.ProjectionID)
-	if projectionID == "" {
-		projectionID = "proactive_" + ulid.Make().String()
-	}
-	auditRef := strings.TrimSpace(decision.AuditRef)
-	missingAuditRef := auditRef == ""
-	if missingAuditRef {
-		auditRef = proactiveAuditRefPrefix + projectionID
-	}
+	var savedProjection *runtimev1.AgentProactiveInterruptibilityProjection
+	var savedEvents []*runtimev1.AgentEvent
+	err := s.mutateAgent(strings.TrimSpace(decision.AgentID), func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		observedAt := decision.ObservedAt.UTC()
+		if observedAt.IsZero() {
+			observedAt = time.Now().UTC()
+		}
+		projectionID := strings.TrimSpace(decision.ProjectionID)
+		if projectionID == "" {
+			projectionID = "proactive_" + ulid.Make().String()
+		}
+		auditRef := strings.TrimSpace(decision.AuditRef)
+		missingAuditRef := auditRef == ""
+		if missingAuditRef {
+			auditRef = proactiveAuditRefPrefix + projectionID
+		}
 
-	mode := runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF
-	if entry.Agent.GetAutonomy().GetEnabled() {
-		mode = autonomyMode(entry.Agent.GetAutonomy().GetConfig())
-	}
-	deliveryChannel := normalizeProactiveDeliveryChannel(decision.DeliveryChannel)
-	permissionState := normalizeProactivePermissionState(decision.PermissionState)
-	quietHours := normalizeProactiveQuietHoursState(decision.QuietHoursState)
-	frequencyCap := normalizeProactiveFrequencyCapState(decision.FrequencyCapState)
-	triggerSource := decision.TriggerSource
-	if triggerSource == runtimev1.AgentProactiveTriggerSource_AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED {
-		triggerSource = runtimev1.AgentProactiveTriggerSource_AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE
-	}
+		mode := runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF
+		if entry.Agent.GetAutonomy().GetEnabled() {
+			mode = autonomyMode(entry.Agent.GetAutonomy().GetConfig())
+		}
+		deliveryChannel := normalizeProactiveDeliveryChannel(decision.DeliveryChannel)
+		permissionState := normalizeProactivePermissionState(decision.PermissionState)
+		quietHours := normalizeProactiveQuietHoursState(decision.QuietHoursState)
+		frequencyCap := normalizeProactiveFrequencyCapState(decision.FrequencyCapState)
+		triggerSource := decision.TriggerSource
+		if triggerSource == runtimev1.AgentProactiveTriggerSource_AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED {
+			triggerSource = runtimev1.AgentProactiveTriggerSource_AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE
+		}
 
-	unsupportedFields := proactiveUnsupportedFields(decision)
-	suppression := proactiveSuppressionReason(
-		mode,
-		entry.Agent.GetAutonomy(),
-		permissionState,
-		quietHours,
-		frequencyCap,
-		deliveryChannel,
-		missingAuditRef,
-		unsupportedFields,
-	)
-	base := runtimev1.AgentProactiveEventDetail{
-		ProjectionId:         projectionID,
-		ProjectionKind:       proactiveInterruptibilityProjectionKind,
-		OwnerDomain:          ownerDomain,
-		TriggerSource:        triggerSource,
-		EffectClass:          runtimev1.AgentProactiveEffectClass_AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE,
-		DeliveryChannel:      deliveryChannel,
-		Mode:                 mode,
-		OptInState:           permissionState,
-		QuietHours:           quietHours,
-		FrequencyCap:         frequencyCap,
-		ReasonCode:           strings.TrimSpace(decision.ReasonCode),
-		AuditRef:             auditRef,
-		SourceHookId:         strings.TrimSpace(decision.SourceHookID),
-		SourceCadenceId:      strings.TrimSpace(decision.SourceCadenceID),
-		ConversationAnchorId: strings.TrimSpace(decision.ConversationAnchorID),
-		OriginatingTurnId:    strings.TrimSpace(decision.OriginatingTurnID),
-		OriginatingStreamId:  strings.TrimSpace(decision.OriginatingStreamID),
-		ObservedAt:           timestamppb.New(observedAt),
-	}
-	if base.ReasonCode == "" {
-		base.ReasonCode = "proactive_interruptibility_evaluated"
-	}
+		unsupportedFields := proactiveUnsupportedFields(decision)
+		suppression := proactiveSuppressionReason(
+			mode,
+			entry.Agent.GetAutonomy(),
+			permissionState,
+			quietHours,
+			frequencyCap,
+			deliveryChannel,
+			missingAuditRef,
+			unsupportedFields,
+		)
+		base := runtimev1.AgentProactiveEventDetail{
+			ProjectionId:         projectionID,
+			ProjectionKind:       proactiveInterruptibilityProjectionKind,
+			OwnerDomain:          ownerDomain,
+			TriggerSource:        triggerSource,
+			EffectClass:          runtimev1.AgentProactiveEffectClass_AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE,
+			DeliveryChannel:      deliveryChannel,
+			Mode:                 mode,
+			OptInState:           permissionState,
+			QuietHours:           quietHours,
+			FrequencyCap:         frequencyCap,
+			ReasonCode:           strings.TrimSpace(decision.ReasonCode),
+			AuditRef:             auditRef,
+			SourceHookId:         strings.TrimSpace(decision.SourceHookID),
+			SourceCadenceId:      strings.TrimSpace(decision.SourceCadenceID),
+			ConversationAnchorId: strings.TrimSpace(decision.ConversationAnchorID),
+			OriginatingTurnId:    strings.TrimSpace(decision.OriginatingTurnID),
+			OriginatingStreamId:  strings.TrimSpace(decision.OriginatingStreamID),
+			ObservedAt:           timestamppb.New(observedAt),
+		}
+		if base.ReasonCode == "" {
+			base.ReasonCode = "proactive_interruptibility_evaluated"
+		}
 
-	suggested := cloneProactiveEventDetail(&base)
-	suggested.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED
+		suggested := cloneProactiveEventDetail(&base)
+		suggested.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED
 
-	projection := &runtimev1.AgentProactiveInterruptibilityProjection{
-		ProjectionId:      projectionID,
-		ProjectionKind:    proactiveInterruptibilityProjectionKind,
-		Mode:              mode,
-		OptInState:        permissionState,
-		DeliveryChannel:   deliveryChannel,
-		QuietHours:        quietHours,
-		FrequencyCap:      frequencyCap,
-		AuditRefs:         []string{auditRef},
-		SuggestedEvent:    suggested,
-		UnsupportedFields: unsupportedFields,
-	}
+		projection := &runtimev1.AgentProactiveInterruptibilityProjection{
+			ProjectionId:      projectionID,
+			ProjectionKind:    proactiveInterruptibilityProjectionKind,
+			Mode:              mode,
+			OptInState:        permissionState,
+			DeliveryChannel:   deliveryChannel,
+			QuietHours:        quietHours,
+			FrequencyCap:      frequencyCap,
+			AuditRefs:         []string{auditRef},
+			SuggestedEvent:    suggested,
+			UnsupportedFields: unsupportedFields,
+		}
 
-	final := cloneProactiveEventDetail(&base)
-	if suppression != runtimev1.AgentProactiveSuppressionReason_AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED {
-		final.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED
-		final.SuppressionReason = suppression
-		projection.LastSuppressedEvent = final
-	} else {
-		final.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED
-		projection.LastDeliveredEvent = final
-	}
-	events := []*runtimev1.AgentEvent{
-		s.proactiveEvent(entry.Agent.GetLocalAgentRef(), suggested, observedAt),
-		s.proactiveEvent(entry.Agent.GetLocalAgentRef(), final, observedAt),
-	}
-	entry.State.ProactiveInterruptibility = cloneProactiveProjection(projection)
-	entry.State.UpdatedAt = timestamppb.New(observedAt)
-	if err := s.updateAgent(entry, events...); err != nil {
-		return nil, nil, err
-	}
-	return cloneProactiveProjection(projection), cloneAgentEvents(events), nil
+		final := cloneProactiveEventDetail(&base)
+		if suppression != runtimev1.AgentProactiveSuppressionReason_AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED {
+			final.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED
+			final.SuppressionReason = suppression
+			projection.LastSuppressedEvent = final
+		} else {
+			final.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED
+			projection.LastDeliveredEvent = final
+		}
+		events := []*runtimev1.AgentEvent{
+			s.proactiveEvent(entry.Agent.GetLocalAgentRef(), suggested, observedAt),
+			s.proactiveEvent(entry.Agent.GetLocalAgentRef(), final, observedAt),
+		}
+		entry.State.ProactiveInterruptibility = cloneProactiveProjection(projection)
+		entry.State.UpdatedAt = timestamppb.New(observedAt)
+		savedProjection = cloneProactiveProjection(projection)
+		savedEvents = cloneAgentEvents(events)
+		return events, nil, nil
+	})
+	return savedProjection, savedEvents, err
 }
 
 func (s *Service) proactiveEvent(agentID string, detail *runtimev1.AgentProactiveEventDetail, observedAt time.Time) *runtimev1.AgentEvent {

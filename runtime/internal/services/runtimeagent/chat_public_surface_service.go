@@ -95,7 +95,7 @@ func (s *Service) nextPublicChatStreamSequence(turnID string) uint64 {
 	}
 	if turn.Projection != nil {
 		turn.Projection.StreamSequence = turn.StreamSequence
-		if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil && session.ActiveTurnSnapshot != nil {
+		if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil && session.ActiveTurnID == turn.TurnID && session.ActiveTurnSnapshot != nil {
 			session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 		}
 	}

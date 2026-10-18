@@ -1,3 +1,4 @@
+import type { UpdateLocalAppConversationFollowUpPolicyRequest, UpdateLocalAppConversationFollowUpRequest, UpdateLocalAppConversationFollowUpPolicyResponse, UpdateLocalAppConversationFollowUpResponse, LocalAppConversationState } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import type {
   GetLocalAppConversationSnapshotRequest,
   GetLocalAppConversationSnapshotResponse,
@@ -41,6 +42,8 @@ import {
 } from './local-app-runtime-platform-conversation.js';
 
 export type NimiLocalAppConversationRuntime = {
+  readonly updateLocalAppConversationFollowUpPolicy: (request: UpdateLocalAppConversationFollowUpPolicyRequest) => Promise<UpdateLocalAppConversationFollowUpPolicyResponse>;
+  readonly updateLocalAppConversationFollowUp: (request: UpdateLocalAppConversationFollowUpRequest) => Promise<UpdateLocalAppConversationFollowUpResponse>;
   readonly openLocalAppConversation: (request: OpenLocalAppConversationRequest) => Promise<OpenLocalAppConversationResponse>;
   readonly sendLocalAppConversationTurn: (request: SendLocalAppConversationTurnRequest) => Promise<SendLocalAppConversationTurnResponse>;
   readonly uploadLocalAppConversationAttachment: (request: UploadLocalAppConversationAttachmentRequest) => Promise<UploadLocalAppConversationAttachmentResponse>;
@@ -56,14 +59,16 @@ export function createNimiLocalAppConversationRuntimeClient(
   runtime: NimiLocalAppConversationRuntime,
 ): NimiLocalAppConversationClient {
   const shell: NimiLocalAppConversationShell = {
+    setFollowUpPolicy: async input => projectRuntimeConversationState((await runtime.updateLocalAppConversationFollowUpPolicy(input)).state!),
+    updateFollowUp: async input => projectRuntimeConversationState((await runtime.updateLocalAppConversationFollowUp({...input,action:input.action==='cancel'?1:2})).state!),
     open: async ({ agentHandle }) => {
       const response = await runtime.openLocalAppConversation({ agentHandle });
       return { conversationAnchorId: response.conversationAnchorId, activeTurnId: response.activeTurnId ?? null };
     },
-    send: async ({ agentHandle, conversationAnchorId, requestId, parts }) => {
+    send: async ({ agentHandle, conversationAnchorId, requestId, parts, retryOfTurnId }) => {
       const response = await runtime.sendLocalAppConversationTurn({
-        agentHandle, conversationAnchorId, requestId,
-        parts: parts.map((part) => part.kind === 'text'
+        agentHandle, conversationAnchorId, requestId, retryOfTurnId,
+        parts: (parts || []).map((part) => part.kind === 'text'
           ? { part: { oneofKind: 'text', text: { text: part.text } } }
           : { part: { oneofKind: 'artifactRef', artifactRef: { artifactId: part.artifactId } } }),
       });
@@ -121,7 +126,8 @@ export function createNimiLocalAppConversationRuntimeClient(
 function projectRuntimeEvent(value: LocalAppConversationEvent): Record<string, unknown> {
   const base = { conversationAnchorId: value.conversationAnchorId, sequence: String(value.sequence) };
   switch (value.event.oneofKind) {
-    case 'turnAccepted': return { ...base, type: 'turn-accepted', turnId: value.event.turnAccepted.turnId };
+    case 'stateChanged': return { ...base, type: 'state-changed', state: projectRuntimeConversationState(value.event.stateChanged) };
+    case 'turnAccepted': return { ...base, type: 'turn-accepted', turnId: value.event.turnAccepted.turnId, requestId: value.event.turnAccepted.requestId ?? null, origin: value.event.turnAccepted.origin };
     case 'turnStarted': return { ...base, type: 'turn-started', turnId: value.event.turnStarted.turnId };
     case 'textDelta': return { ...base, type: 'text-delta', turnId: value.event.textDelta.turnId, delta: value.event.textDelta.delta };
     case 'reasoningStatus': return { ...base, type: 'reasoning-status', turnId: value.event.reasoningStatus.turnId, state: reasoningState(value.event.reasoningStatus.state) };
@@ -142,7 +148,7 @@ function projectRuntimeEvent(value: LocalAppConversationEvent): Record<string, u
     };
     case 'voiceReady': return voiceEvent(base, 'voice-ready', value.event.voiceReady.voice);
     case 'voiceFailed': return voiceEvent(base, 'voice-failed', value.event.voiceFailed.voice);
-    case 'turnCompleted': return { ...base, type: 'turn-completed', turnId: value.event.turnCompleted.turnId, terminalReason: value.event.turnCompleted.terminalReason };
+    case 'turnCompleted': return { ...base, type: 'turn-completed', turnId: value.event.turnCompleted.turnId, reasonCode: reasonName(value.event.turnCompleted.reasonCode), message: value.event.turnCompleted.message ?? null, terminalReason: value.event.turnCompleted.terminalReason };
     case 'turnFailed': return { ...base, type: 'turn-failed', turnId: value.event.turnFailed.turnId, reasonCode: value.event.turnFailed.reasonCode, message: value.event.turnFailed.message ?? null };
     case 'turnInterrupted': return { ...base, type: 'turn-interrupted', turnId: value.event.turnInterrupted.turnId, reason: value.event.turnInterrupted.reason };
     default: throw new Error('Runtime emitted an unsupported LocalApp Conversation event');
@@ -153,6 +159,7 @@ function projectRuntimeSnapshot(value: LocalAppConversationSnapshot): Record<str
   return {
     conversationAnchorId: value.conversationAnchorId,
     throughSequence: String(value.throughSequence),
+    state: projectRuntimeConversationState(value.state!),
     turns: value.turns.map(projectTurn),
     messages: value.messages.map(projectMessage),
     actions: value.actions.map(projectAction),
@@ -163,6 +170,7 @@ function projectRuntimeSnapshot(value: LocalAppConversationSnapshot): Record<str
 
 function projectMessage(value: LocalAppConversationMessage): Record<string, unknown> {
   return {
+    partial: value.partial,
     messageId: value.messageId, turnId: value.turnId,
     role: value.role === LocalAppConversationMessageRole.USER ? 'user' : value.role === LocalAppConversationMessageRole.ASSISTANT ? 'assistant' : value.role === LocalAppConversationMessageRole.APP ? 'app' : '',
     parts: value.parts.map((part) => part.part.oneofKind === 'text'
@@ -176,6 +184,10 @@ function projectMessage(value: LocalAppConversationMessage): Record<string, unkn
 function projectTurn(value: LocalAppConversationTurn): Record<string, unknown> {
   return {
     turnId: value.turnId,
+    requestId: value.requestId ?? null,
+    retryOfTurnId: value.retryOfTurnId ?? null,
+    inputTurnId: value.inputTurnId ?? null,
+    canRegenerate: value.canRegenerate, origin: value.origin,
     status: enumName(value.status, { [LocalAppConversationTurnStatus.ACTIVE]:'active',[LocalAppConversationTurnStatus.COMPLETED]:'completed',[LocalAppConversationTurnStatus.FAILED]:'failed',[LocalAppConversationTurnStatus.INTERRUPTED]:'interrupted' }),
     phase: value.phase === LocalAppConversationTurnPhase.ACCEPTED ? 'accepted' : value.phase === LocalAppConversationTurnPhase.STARTED ? 'started' : null,
     terminalReason: value.terminalReason ?? null, reasonCode: reasonName(value.reasonCode), message: value.message ?? null,
@@ -207,3 +219,20 @@ function reasonName(value:ReasonCode){return value===ReasonCode.REASON_CODE_UNSP
 function reasoningState(value:LocalAppConversationReasoningState){return enumName(value,{[LocalAppConversationReasoningState.STARTED]:'started',[LocalAppConversationReasoningState.ACTIVE]:'active',[LocalAppConversationReasoningState.COMPLETED]:'completed'});}
 function mediaKind(value:LocalAppConversationMediaKind){return value===LocalAppConversationMediaKind.IMAGE?'image':'';}
 function enumName<T extends number,V extends string>(value:T,names:Record<number,V>):V|''{return names[value]??'';}
+
+function projectRuntimeConversationState(value:LocalAppConversationState):Record<string,unknown>{
+ if(!value)throw new Error('Runtime Conversation state is missing');
+ const pending = value.pendingFollowUp;
+ return {
+  followUpEnabled: value.followUpEnabled,
+  followUpPolicyRevision: value.followUpPolicyRevision,
+  maxFollowUpTurns: value.maxFollowUpTurns,
+  textTurnId: value.textTurnId ?? null,
+  pendingFollowUp: pending ? {
+   taskId: pending.taskId,
+   revision: pending.revision,
+   sourceTurnId: pending.sourceTurnId,
+   scheduledFor: pending.scheduledFor ? {seconds: pending.scheduledFor.seconds, nanos: pending.scheduledFor.nanos} : null,
+  } : null,
+ };
+}

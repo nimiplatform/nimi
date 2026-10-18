@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -76,10 +75,7 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		t.Fatalf("ConsumePublicChatAppMessage(turn): %v", err)
 	}
 
-	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
-	acceptedPayload := publicChatPayloadMap(t, accepted)
-	turnID := strings.TrimSpace(acceptedPayload["turn_id"].(string))
-	streamID := strings.TrimSpace(acceptedPayload["stream_id"].(string))
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
@@ -87,53 +83,12 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	postTurn := capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	hookIntent := publicChatPostTurnHookIntent(t, postTurn)
-	if got := hookIntent["intent_id"]; got != "action-event-hook" {
-		t.Fatalf("expected event hook intent id action-event-hook, got=%v", hookIntent)
+	if _, exists := publicChatTurnDetail(t, postTurn)["hook_intent"]; exists {
+		t.Fatal("unsupported model control was presented as an admitted intent")
 	}
-	if got := hookIntent["trigger_family"]; got != "event" {
-		t.Fatalf("expected event trigger family, got=%v", hookIntent)
-	}
-	triggerDetail, ok := hookIntent["trigger_detail"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected event trigger detail object, got=%v", hookIntent)
-	}
-	eventDetail, ok := triggerDetail["event_user_idle"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected event_user_idle trigger detail, got=%v", triggerDetail)
-	}
-	if got := eventDetail["idle_ms"]; got != float64(120000) {
-		t.Fatalf("expected event_user_idle idle_ms=120000, got=%v", eventDetail)
-	}
-	if got := hookIntent["admission_state"]; got != "rejected" {
-		t.Fatalf("expected rejected event hook indication, got=%v", hookIntent)
-	}
-
 	hookEvents := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
-	if len(hookEvents) != 2 {
-		t.Fatalf("expected proposed+rejected event hook projections, got %#v", hookEvents)
-	}
-	for index, want := range []runtimev1.HookAdmissionState{
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
-	} {
-		detail := hookEvents[index].GetHook()
-		if got := detail.GetFamily(); got != want {
-			t.Fatalf("unexpected hook event family at index %d: got %s want %s", index, got, want)
-		}
-		intent := detail.GetIntent()
-		if got := strings.TrimSpace(intent.GetConversationAnchorId()); got != anchorID {
-			t.Fatalf("expected projected anchor %s, got %#v", anchorID, intent)
-		}
-		if got := strings.TrimSpace(intent.GetOriginatingTurnId()); got != turnID {
-			t.Fatalf("expected projected turn %s, got %#v", turnID, intent)
-		}
-		if got := strings.TrimSpace(intent.GetOriginatingStreamId()); got != streamID {
-			t.Fatalf("expected projected stream %s, got %#v", streamID, intent)
-		}
-		if intent.GetTriggerFamily() != runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_EVENT || intent.GetTriggerDetail().GetEventUserIdle() == nil {
-			t.Fatalf("expected event/user-idle HookIntent projection, got %#v", intent)
-		}
+	if len(hookEvents) != 0 {
+		t.Fatalf("unsupported control created hook lifecycle: %#v", hookEvents)
 	}
 
 	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
@@ -154,17 +109,10 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		t.Fatalf("rejected event hook must not create pending_follow_up, got=%v", snapshotDetail)
 	}
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
-	followUp, ok := lastTurn["follow_up"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected last_turn.follow_up rejection truth, got=%v", lastTurn)
+	if lastTurn["status"] != publicChatTurnStatusCompleted || lastTurn["text"] != "I can follow up when you pause." {
+		t.Fatalf("unsupported control erased completed body: %#v", lastTurn)
 	}
-	if got := followUp["status"]; got != "rejected" {
-		t.Fatalf("expected rejected follow_up status, got=%v", followUp)
-	}
-	if got := followUp["source_action_id"]; got != "action-event-hook" {
-		t.Fatalf("expected action-event-hook follow_up source_action_id, got=%v", followUp)
-	}
-	if got := followUp["reason_code"]; got != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
-		t.Fatalf("expected AI_ROUTE_UNSUPPORTED reason, got=%v", followUp)
+	if lastTurn["reason_code"] != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+		t.Fatalf("control rejection must be reported: %#v", lastTurn)
 	}
 }

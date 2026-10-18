@@ -384,6 +384,14 @@ RUNTIME_METHODS = [
     "response_type": "ListDelegatedProviderProfilesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentPendingHooks",
+    "kind": "unary",
+    "request_type": "ListLocalAppAgentPendingHooksRequest",
+    "response_type": "ListLocalAppAgentPendingHooksResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
     "service": "RuntimeAgentService",
     "method": "ListLocalAppAgentReferences",
@@ -662,6 +670,30 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpdateLocalAppAgentConversationContextRequest",
     "response_type": "UpdateLocalAppAgentConversationContextResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppAgentPendingHook",
+    "kind": "unary",
+    "request_type": "UpdateLocalAppAgentPendingHookRequest",
+    "response_type": "UpdateLocalAppAgentPendingHookResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppConversationFollowUp",
+    "kind": "unary",
+    "request_type": "UpdateLocalAppConversationFollowUpRequest",
+    "response_type": "UpdateLocalAppConversationFollowUpResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppConversationFollowUpPolicy",
+    "kind": "unary",
+    "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
+    "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",

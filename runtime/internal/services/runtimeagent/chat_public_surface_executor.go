@@ -35,21 +35,23 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 
 // @nimi-authority: definition.nimi.runtime.agent-participation.output-wire-plane
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
-- Output APML only. Begin exactly <message id="message-0">; no Markdown, JSON, fences, <think>, or other prose outside the message.
+- Output APML only. Begin exactly <message>; no Markdown, JSON, fences, <think>, or other prose.
 %s
-- Text: <message id="message-0">reply text</message>. Never self-close <message>.
-- Optional inside <message>, at most one each (omit if unsure): <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
-- Cue example: <message id="message-0"><emotion>neutral</emotion><activity>listening</activity>reply text</message>. Put cues before </message>, never after it.
-- Voice: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
+- Runtime generates all message/action/hook ids; omit ids.
+- Text: <message>reply text</message>. Never self-close <message>.
+- Optional inside <message>, at most one each: <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
+- Cue example: <message><emotion>neutral</emotion><activity>listening</activity>reply text</message>. Close cues before text; end with </message>, never </activity> or </emotion>.
 %s
-- Follow-up: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
-- No top-level emotion/activity. Message first; then action/time-hook/event-hook siblings; close all tags. FINAL: reply ONLY as <message id="message-0">reply text</message> unless a sibling is required.`
+%s
+- No top-level emotion/activity. Message first; then admitted image action/time-hook siblings; close all tags. FINAL: reply ONLY as <message>reply text</message> unless a sibling is required.`
 
-const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message id="message-0"><query>one bounded source question</query></message>. Runtime-private recall: at most once; query only, no reply text/actions.`
+const publicChatFollowUpOutputPrompt = `- Follow-up: <time-hook><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.`
+
+const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message><query>one bounded source question</query></message>. Runtime-private recall: at most once; query only, no reply text/actions.`
 
 const publicChatRoundTwoFinalOnlyPrompt = `- Round 2 final-only: a Runtime-private recall result is already present. A second recall is forbidden; output the final user reply now.`
 
-const publicChatImageActionAvailablePrompt = `- Image; all reply text stays in message, with no text between/after tags: <message id="message-0">Creating it.</message><action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
+const publicChatImageActionAvailablePrompt = `- Image; all reply text stays in message, with no text between/after tags: <message>Creating it.</message><action kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
 - If the user asks to create, draw, generate, send, or show an image/photo/picture/avatar/selfie/visual, include exactly one sibling <action kind="image"> after the message.
 - For an agent photo/avatar/selfie request, use a representative or stylized prompt.`
 
@@ -81,6 +83,14 @@ func publicChatAPMLOutputContractPromptForRound(actions publicChatAvailableActio
 	default:
 		imagePrompt = publicChatImageActionNotConfiguredPrompt
 	}
+	followUpPrompt := "- Follow-up conversation is disabled for this anchor. Do not propose time hooks or claim to have scheduled a reply."
+	if actions.FollowUpEnabled {
+		followUpPrompt = publicChatFollowUpOutputPrompt
+	}
+	if actions.TextOnly {
+		imagePrompt = "- This is a text-only regeneration of the saved question. Do not propose image, voice, or follow-up actions, and do not claim to have executed them."
+		followUpPrompt = ""
+	}
 	recallPrompt := publicChatRoundOneRecallPrompt
 	if !allowRecall {
 		recallPrompt = publicChatRoundTwoFinalOnlyPrompt
@@ -91,6 +101,7 @@ func publicChatAPMLOutputContractPromptForRound(actions publicChatAvailableActio
 		strings.Join(publicChatSortedSetKeys(admittedCurrentEmotions), "|"),
 		strings.Join(publicChatSortedStringMapKeys(admittedActivityCategories), "|"),
 		imagePrompt,
+		followUpPrompt,
 	)
 }
 

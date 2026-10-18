@@ -145,6 +145,12 @@ export enum LocalAppEmbodimentVoicePhase {
   CANCELED = 5,
 }
 
+export enum LocalAppScheduledTaskAction {
+  UNSPECIFIED = 0,
+  CANCEL = 1,
+  RESCHEDULE = 2,
+}
+
 export enum LocalAppSessionState {
   UNSPECIFIED = 0,
   READY = 1,

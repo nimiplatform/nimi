@@ -8,6 +8,7 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type agentStateRuntime struct {
@@ -153,4 +154,94 @@ func (r agentStateRuntime) saveStateLockedOrPanicContext(label string) error {
 		return fmt.Errorf("%s: %w", label, err)
 	}
 	return nil
+}
+
+// mutateAgent applies an owner transition to the latest state under the same
+// lock as persistence and event sequence commit. External model work belongs
+// before this call; it must not write back an old Agent clone.
+func (s *Service) mutateAgent(localAgentRef string, mutate func(*agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error)) error {
+	return s.mutateAgentWithPersistence(localAgentRef, mutate, s.stateRepo.persistAgentDelta)
+}
+
+func (s *Service) mutateAgentWithPersistence(localAgentRef string, mutate func(*agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error), persist func(*agentEntry, []*runtimev1.AgentEvent, uint64, runtimeAgentStateTxHook) error) error {
+	s.mu.Lock()
+	previous := s.agents[localAgentRef]
+	if previous == nil || previous.Agent == nil {
+		s.mu.Unlock()
+		return status.Error(codes.NotFound, "agent not found")
+	}
+	if s.accountTerminationFencedLocked(previous.Agent.GetOwnerUserId()) {
+		s.mu.Unlock()
+		return status.Error(codes.FailedPrecondition, "Realm Account is terminal")
+	}
+	s.chatSurfaceMu.Lock()
+	fenced := s.agentTerminationFencedLocked(localAgentRef)
+	s.chatSurfaceMu.Unlock()
+	if fenced {
+		s.mu.Unlock()
+		return status.Error(codes.FailedPrecondition, "Agent is terminating")
+	}
+	next := cloneAgentEntry(previous)
+	events, txHook, err := mutate(next)
+	if err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	if len(events) == 0 && txHook == nil && proto.Equal(previous.Agent, next.Agent) && proto.Equal(previous.State, next.State) && len(previous.Hooks) == len(next.Hooks) {
+		unchanged := true
+		for id, hook := range next.Hooks {
+			if !proto.Equal(previous.Hooks[id], hook) {
+				unchanged = false
+				break
+			}
+		}
+		if unchanged {
+			s.mu.Unlock()
+			return nil
+		}
+	}
+	for id, hook := range next.Hooks {
+		if hook == nil {
+			continue
+		}
+		old := previous.Hooks[id]
+		if proto.Equal(old, hook) {
+			continue
+		}
+		if old != nil && old.Revision == ^uint64(0) {
+			s.mu.Unlock()
+			return status.Error(codes.FailedPrecondition, "hook revision exhausted")
+		}
+		hook.Revision = 1
+		if old != nil {
+			hook.Revision = old.Revision + 1
+		}
+	}
+	s.chatSurfaceMu.Lock()
+	if s.agentTerminationFencedLocked(localAgentRef) {
+		s.chatSurfaceMu.Unlock()
+		s.mu.Unlock()
+		return status.Error(codes.FailedPrecondition, "Agent is terminating")
+	}
+	previousEvents := append([]*runtimev1.AgentEvent(nil), s.events...)
+	previousSequence := s.sequence
+	s.agents[localAgentRef] = next
+	committed := s.eventStreamRuntime().appendEventsLocked(events...)
+	if err := persist(next, committed, s.sequence, txHook); err != nil {
+		s.agents[localAgentRef] = previous
+		s.events = previousEvents
+		s.sequence = previousSequence
+		s.chatSurfaceMu.Unlock()
+		s.mu.Unlock()
+		return err
+	}
+	targets := s.eventStreamRuntime().matchingSubscribersLocked(committed)
+	s.chatSurfaceMu.Unlock()
+	s.mu.Unlock()
+	s.eventStreamRuntime().broadcast(committed, targets)
+	return nil
+}
+
+func (s *Service) appendAgentEvents(localAgentRef string, events ...*runtimev1.AgentEvent) error {
+	return s.mutateAgent(localAgentRef, func(*agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) { return events, nil, nil })
 }

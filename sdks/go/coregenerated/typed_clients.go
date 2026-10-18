@@ -1194,6 +1194,14 @@ const (
 	LOCALAPPEMBODIMENTVOICEPHASECANCELED    LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"
 )
 
+type LocalAppScheduledTaskAction string
+
+const (
+	LOCALAPPSCHEDULEDTASKACTIONUNSPECIFIED LocalAppScheduledTaskAction = "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED"
+	LOCALAPPSCHEDULEDTASKACTIONCANCEL      LocalAppScheduledTaskAction = "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL"
+	LOCALAPPSCHEDULEDTASKACTIONRESCHEDULE  LocalAppScheduledTaskAction = "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE"
+)
+
 type LocalAppSessionState string
 
 const (
@@ -5411,6 +5419,15 @@ type ListLoadoutRecipesResponse struct {
 	Recipes []LoadoutRecipeDescriptor `json:"recipes,omitempty"`
 }
 
+type ListLocalAppAgentPendingHooksRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type ListLocalAppAgentPendingHooksResponse struct {
+	Hooks     []LocalAppAgentPendingHook `json:"hooks,omitempty"`
+	Truncated bool                       `json:"truncated,omitempty"`
+}
+
 type ListLocalAppAgentReferencesRequest struct {
 }
 
@@ -5946,6 +5963,15 @@ type LocalAppAgentManagerSourceProjection struct {
 	LorebookEstimatedTokens uint64                                  `json:"lorebook_estimated_tokens,omitempty"`
 }
 
+type LocalAppAgentPendingHook struct {
+	TaskId        string             `json:"task_id,omitempty"`
+	Revision      uint64             `json:"revision,omitempty"`
+	ScheduledFor  string             `json:"scheduled_for,omitempty"`
+	SystemCadence bool               `json:"system_cadence,omitempty"`
+	Status        HookAdmissionState `json:"status,omitempty"`
+	CanModify     bool               `json:"can_modify,omitempty"`
+}
+
 type LocalAppAgentPresentationIntent struct {
 	Patch                      *AgentPresentationProfilePatch `json:"patch,omitempty"`
 	SelectImportedResourcePack bool                           `json:"select_imported_resource_pack,omitempty"`
@@ -6181,6 +6207,14 @@ type LocalAppConversationEvent struct {
 	ReasoningStatus      *LocalAppConversationReasoningStatus  `json:"reasoning_status,omitempty"`
 	LiveAction           *LocalAppConversationLiveAction       `json:"live_action,omitempty"`
 	LiveTool             *LocalAppConversationLiveTool         `json:"live_tool,omitempty"`
+	StateChanged         *LocalAppConversationState            `json:"state_changed,omitempty"`
+}
+
+type LocalAppConversationFollowUp struct {
+	TaskId       string `json:"task_id,omitempty"`
+	Revision     uint64 `json:"revision,omitempty"`
+	ScheduledFor string `json:"scheduled_for,omitempty"`
+	SourceTurnId string `json:"source_turn_id,omitempty"`
 }
 
 type LocalAppConversationInputArtifactRef struct {
@@ -6217,6 +6251,7 @@ type LocalAppConversationMessage struct {
 	Role      LocalAppConversationMessageRole   `json:"role,omitempty"`
 	MessageId string                            `json:"message_id,omitempty"`
 	Parts     []LocalAppConversationMessagePart `json:"parts,omitempty"`
+	Partial   bool                              `json:"partial,omitempty"`
 }
 
 type LocalAppConversationMessageCommitted struct {
@@ -6241,6 +6276,15 @@ type LocalAppConversationSnapshot struct {
 	Turns                []LocalAppConversationTurn    `json:"turns,omitempty"`
 	Actions              []LocalAppConversationAction  `json:"actions,omitempty"`
 	Voices               []LocalAppConversationVoice   `json:"voices,omitempty"`
+	State                *LocalAppConversationState    `json:"state,omitempty"`
+}
+
+type LocalAppConversationState struct {
+	FollowUpEnabled        bool                          `json:"follow_up_enabled,omitempty"`
+	FollowUpPolicyRevision uint64                        `json:"follow_up_policy_revision,omitempty"`
+	MaxFollowUpTurns       uint32                        `json:"max_follow_up_turns,omitempty"`
+	PendingFollowUp        *LocalAppConversationFollowUp `json:"pending_follow_up,omitempty"`
+	TextTurnId             *string                       `json:"text_turn_id,omitempty"`
 }
 
 type LocalAppConversationTextDelta struct {
@@ -6259,15 +6303,24 @@ type LocalAppConversationTurn struct {
 	TerminalReason *string                        `json:"terminal_reason,omitempty"`
 	ReasonCode     ReasonCode                     `json:"reason_code,omitempty"`
 	Message        *string                        `json:"message,omitempty"`
+	RequestId      *string                        `json:"request_id,omitempty"`
+	RetryOfTurnId  *string                        `json:"retry_of_turn_id,omitempty"`
+	InputTurnId    *string                        `json:"input_turn_id,omitempty"`
+	CanRegenerate  bool                           `json:"can_regenerate,omitempty"`
+	Origin         string                         `json:"origin,omitempty"`
 }
 
 type LocalAppConversationTurnAccepted struct {
-	TurnId string `json:"turn_id,omitempty"`
+	TurnId    string  `json:"turn_id,omitempty"`
+	RequestId *string `json:"request_id,omitempty"`
+	Origin    string  `json:"origin,omitempty"`
 }
 
 type LocalAppConversationTurnCompleted struct {
-	TurnId         string `json:"turn_id,omitempty"`
-	TerminalReason string `json:"terminal_reason,omitempty"`
+	TurnId         string     `json:"turn_id,omitempty"`
+	TerminalReason string     `json:"terminal_reason,omitempty"`
+	ReasonCode     ReasonCode `json:"reason_code,omitempty"`
+	Message        *string    `json:"message,omitempty"`
 }
 
 type LocalAppConversationTurnFailed struct {
@@ -7414,9 +7467,11 @@ type PeekSchedulingResponse struct {
 }
 
 type PendingHook struct {
-	Intent       *HookIntent `json:"intent,omitempty"`
-	ScheduledFor string      `json:"scheduled_for,omitempty"`
-	AdmittedAt   string      `json:"admitted_at,omitempty"`
+	Intent         *HookIntent `json:"intent,omitempty"`
+	ScheduledFor   string      `json:"scheduled_for,omitempty"`
+	AdmittedAt     string      `json:"admitted_at,omitempty"`
+	RuntimeCadence bool        `json:"runtime_cadence,omitempty"`
+	Revision       uint64      `json:"revision,omitempty"`
 }
 
 type PersonaCharacterSourceRefV3 struct {
@@ -8418,6 +8473,7 @@ type SendLocalAppConversationTurnRequest struct {
 	ConversationAnchorId string                          `json:"conversation_anchor_id,omitempty"`
 	RequestId            string                          `json:"request_id,omitempty"`
 	Parts                []LocalAppConversationInputPart `json:"parts,omitempty"`
+	RetryOfTurnId        *string                         `json:"retry_of_turn_id,omitempty"`
 }
 
 type SendLocalAppConversationTurnResponse struct {
@@ -9297,6 +9353,42 @@ type UpdateLocalAppAgentConversationContextResponse struct {
 	Projection *LocalAppAgentConversationContextProjection `json:"projection,omitempty"`
 }
 
+type UpdateLocalAppAgentPendingHookRequest struct {
+	AgentHandle      string                      `json:"agent_handle,omitempty"`
+	TaskId           string                      `json:"task_id,omitempty"`
+	ExpectedRevision uint64                      `json:"expected_revision,omitempty"`
+	Action           LocalAppScheduledTaskAction `json:"action,omitempty"`
+	ScheduledFor     string                      `json:"scheduled_for,omitempty"`
+}
+
+type UpdateLocalAppAgentPendingHookResponse struct {
+	Hook *LocalAppAgentPendingHook `json:"hook,omitempty"`
+}
+
+type UpdateLocalAppConversationFollowUpPolicyRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	ExpectedRevision     uint64 `json:"expected_revision,omitempty"`
+	Enabled              bool   `json:"enabled,omitempty"`
+}
+
+type UpdateLocalAppConversationFollowUpPolicyResponse struct {
+	State *LocalAppConversationState `json:"state,omitempty"`
+}
+
+type UpdateLocalAppConversationFollowUpRequest struct {
+	AgentHandle          string                      `json:"agent_handle,omitempty"`
+	ConversationAnchorId string                      `json:"conversation_anchor_id,omitempty"`
+	TaskId               string                      `json:"task_id,omitempty"`
+	ExpectedRevision     uint64                      `json:"expected_revision,omitempty"`
+	Action               LocalAppScheduledTaskAction `json:"action,omitempty"`
+	ScheduledFor         string                      `json:"scheduled_for,omitempty"`
+}
+
+type UpdateLocalAppConversationFollowUpResponse struct {
+	State *LocalAppConversationState `json:"state,omitempty"`
+}
+
 type UploadArtifactChunk struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Bytes    []byte `json:"bytes,omitempty"`
@@ -10156,6 +10248,14 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppAgentPendingHooks(ctx context.Context, request ListLocalAppAgentPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentPendingHooksResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppAgentPendingHooksResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppAgentPendingHooksResponse](raw, "ListLocalAppAgentPendingHooksResponse")
+}
+
 func (c RuntimeTypedClient) ListLocalAppAgentReferences(ctx context.Context, request ListLocalAppAgentReferencesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentReferencesResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", request, metadata, timeoutMS)
 	if err != nil {
@@ -10434,6 +10534,30 @@ func (c RuntimeTypedClient) UpdateLocalAppAgentConversationContext(ctx context.C
 		return UpdateLocalAppAgentConversationContextResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpdateLocalAppAgentConversationContextResponse](raw, "UpdateLocalAppAgentConversationContextResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppAgentPendingHook(ctx context.Context, request UpdateLocalAppAgentPendingHookRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppAgentPendingHookResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateLocalAppAgentPendingHookResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateLocalAppAgentPendingHookResponse](raw, "UpdateLocalAppAgentPendingHookResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppConversationFollowUp(ctx context.Context, request UpdateLocalAppConversationFollowUpRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppConversationFollowUpResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateLocalAppConversationFollowUpResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateLocalAppConversationFollowUpResponse](raw, "UpdateLocalAppConversationFollowUpResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppConversationFollowUpPolicy(ctx context.Context, request UpdateLocalAppConversationFollowUpPolicyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppConversationFollowUpPolicyResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateLocalAppConversationFollowUpPolicyResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateLocalAppConversationFollowUpPolicyResponse](raw, "UpdateLocalAppConversationFollowUpPolicyResponse")
 }
 
 func (c RuntimeTypedClient) UploadLocalAppConversationAttachment(ctx context.Context, request UploadLocalAppConversationAttachmentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UploadLocalAppConversationAttachmentResponse, error) {

@@ -1,3 +1,4 @@
+import { projectConversationState, validateProactiveInput, type NimiLocalAppConversationState, type NimiLocalAppConversationPolicyInput, type NimiLocalAppConversationFollowUpInput } from './local-app-runtime-platform-proactive.js';
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 import {
   asRecord,
@@ -22,13 +23,15 @@ export type NimiLocalAppConversationOpenResult = {
   readonly activeTurnId: string | null;
 };
 
+type ConversationSendContent =
+  | { readonly parts: readonly NimiLocalAppConversationInputPart[]; readonly retryOfTurnId?: never }
+  | { readonly retryOfTurnId: string; readonly parts?: never };
+
 export type NimiLocalAppConversationSendInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly requestId: string;
-  readonly parts: readonly NimiLocalAppConversationInputPart[];
-
-};
+} & ConversationSendContent;
 
 export type NimiLocalAppConversationInputPart =
   | { readonly kind: 'text'; readonly text: string }
@@ -120,8 +123,11 @@ type NimiLocalAppConversationEventBase = {
 };
 
 export type NimiLocalAppConversationEvent =
+  | { readonly type: 'state-changed'; readonly conversationAnchorId: string; readonly sequence: string; readonly state: NimiLocalAppConversationState }
   | (NimiLocalAppConversationEventBase & {
       readonly type: 'turn-accepted';
+      readonly requestId: string | null;
+      readonly origin: 'user' | 'app' | 'follow_up';
     })
   | (NimiLocalAppConversationEventBase & {
       readonly type: 'turn-started';
@@ -163,6 +169,8 @@ export type NimiLocalAppConversationEvent =
     })
   | (NimiLocalAppConversationEventBase & {
       readonly type: 'turn-completed';
+      readonly reasonCode: string | null;
+      readonly message: string | null;
       readonly terminalReason: '' | 'stop' | 'length' | 'tool_call' | 'content_filter' | 'error' | 'unspecified';
     })
   | (NimiLocalAppConversationEventBase & {
@@ -176,6 +184,7 @@ export type NimiLocalAppConversationEvent =
     });
 
 export type NimiLocalAppConversationMessage = {
+  readonly partial: boolean;
   readonly messageId: string;
   readonly turnId: string;
   readonly role: 'user' | 'assistant' | 'app';
@@ -193,6 +202,11 @@ export type NimiLocalAppConversationMessagePart =
     };
 
 export type NimiLocalAppConversationTurn = {
+  readonly origin: 'user' | 'app' | 'follow_up';
+  readonly requestId: string | null;
+  readonly retryOfTurnId: string | null;
+  readonly inputTurnId: string | null;
+  readonly canRegenerate: boolean;
   readonly turnId: string;
   readonly status: 'active' | 'completed' | 'failed' | 'interrupted';
   readonly phase: 'accepted' | 'started' | null;
@@ -235,6 +249,7 @@ export type NimiLocalAppConversationVoice = {
 };
 
 export type NimiLocalAppConversationSnapshot = {
+  readonly state: NimiLocalAppConversationState;
   readonly conversationAnchorId: string;
   readonly throughSequence: string;
   readonly turns: readonly NimiLocalAppConversationTurn[];
@@ -254,6 +269,8 @@ export type NimiLocalAppConversationShellSubscription = {
 };
 
 export type NimiLocalAppConversationShell = {
+  readonly setFollowUpPolicy: (input: NimiLocalAppConversationPolicyInput) => Promise<unknown>;
+  readonly updateFollowUp: (input: NimiLocalAppConversationFollowUpInput) => Promise<unknown>;
   readonly open: (input: {
     readonly agentHandle: string;
   }) => Promise<unknown>;
@@ -261,9 +278,7 @@ export type NimiLocalAppConversationShell = {
     readonly agentHandle: string;
     readonly conversationAnchorId: string;
     readonly requestId: string;
-    readonly parts: readonly NimiLocalAppConversationInputPart[];
-
-  }) => Promise<unknown>;
+  } & ConversationSendContent) => Promise<unknown>;
   readonly uploadAttachment: (input: {
     readonly agentHandle: string;
     readonly conversationAnchorId: string;
@@ -306,6 +321,8 @@ export type NimiLocalAppConversationShell = {
 
 
 export type NimiLocalAppConversationClient = {
+  readonly setFollowUpPolicy: (input: NimiLocalAppConversationPolicyInput) => Promise<NimiLocalAppConversationState>;
+  readonly updateFollowUp: (input: NimiLocalAppConversationFollowUpInput) => Promise<NimiLocalAppConversationState>;
   readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
   readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
   readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
@@ -321,6 +338,8 @@ export function createNimiLocalAppConversationClient(
   shell: NimiLocalAppConversationShell,
 ): NimiLocalAppConversationClient {
   return Object.freeze({
+    setFollowUpPolicy: async input => projectConversationState(await shell.setFollowUpPolicy(validateProactiveInput(input, true))),
+    updateFollowUp: async input => projectConversationState(await shell.updateFollowUp(validateProactiveInput(input))),
     open: async (input) => {
       assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
       assertNoAuthorityMaterial(input);
@@ -329,18 +348,17 @@ export function createNimiLocalAppConversationClient(
       }));
     },
     send: async (input) => {
-      assertExactKeys(
-        input,
-        ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'],
-        'local-app conversation send input',
-      );
+      const regenerate = input?.retryOfTurnId !== undefined;
+      assertExactKeys(input, ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'], 'local-app conversation send input');
       assertNoAuthorityMaterial(input);
-      const value = await shell.send({
+      const scope = {
         agentHandle: validateAgentHandle(input.agentHandle),
         conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
         requestId: boundedSelector(input.requestId, 'requestId'),
-        parts: conversationInputParts(input.parts),
-      });
+      };
+      const value = await shell.send(regenerate
+        ? { ...scope, retryOfTurnId: boundedSelector(input.retryOfTurnId, 'retryOfTurnId') }
+        : { ...scope, parts: conversationInputParts(input.parts) });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['turnId'], 'conversation send');
       return Object.freeze({ turnId: boundedProjectionSelector(record.turnId, 'turnId') });
@@ -526,6 +544,10 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
     || !/^[1-9][0-9]*$/u.test(record.sequence)) {
     return localAppProjectionError('conversation event');
   }
+  if (record.type === 'state-changed') {
+    assertExactProjectionKeys(record, ['type','conversationAnchorId','sequence','state'], 'conversation state event');
+    return Object.freeze({ type: 'state-changed', conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId,'conversationAnchorId'), sequence: record.sequence, state: projectConversationState(record.state) });
+  }
   const base = Object.freeze({
     conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId, 'conversationAnchorId'),
     sequence: record.sequence,
@@ -534,8 +556,8 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
   const commonKeys = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
   switch (record.type) {
     case 'turn-accepted':
-      assertExactProjectionKeys(record, commonKeys, 'turn accepted event');
-      return Object.freeze({ ...base, type: 'turn-accepted' });
+      assertExactProjectionKeys(record, [...commonKeys,'requestId','origin'], 'turn accepted event');
+      return Object.freeze({ ...base, type: 'turn-accepted', requestId: record.requestId === null ? null : boundedProjectionText(record.requestId,'requestId',256), origin: projectConversationOrigin(record.origin) });
     case 'turn-started':
       assertExactProjectionKeys(record, commonKeys, 'turn started event');
       return Object.freeze({ ...base, type: 'turn-started' });
@@ -603,7 +625,7 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
       return Object.freeze({ ...base, type: record.type, voice }) as NimiLocalAppConversationEvent;
     }
     case 'turn-completed': {
-      assertExactProjectionKeys(record, [...commonKeys, 'terminalReason'], 'turn completed event');
+      assertExactProjectionKeys(record, [...commonKeys, 'terminalReason', 'reasonCode', 'message'], 'turn completed event');
       const terminalReason = record.terminalReason;
       if (typeof terminalReason !== 'string'
         || !['', 'stop', 'length', 'tool_call', 'content_filter', 'error', 'unspecified'].includes(terminalReason)) {
@@ -612,6 +634,8 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
       return Object.freeze({
         ...base,
         type: 'turn-completed',
+        reasonCode: nullableReasonCode(record.reasonCode),
+        message: record.message === null ? null : boundedProjectionText(record.message, 'message', 1024),
         terminalReason: terminalReason as Extract<NimiLocalAppConversationEvent, { type: 'turn-completed' }>['terminalReason'],
       });
     }
@@ -648,11 +672,11 @@ function projectSnapshot(value: unknown): NimiLocalAppConversationSnapshot {
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore'],
+    ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore', 'state'],
     'conversation snapshot',
   );
   if (typeof record.throughSequence !== 'string' || !/^(0|[1-9][0-9]*)$/u.test(record.throughSequence)
-    || !Array.isArray(record.turns) || record.turns.length > 201
+    || !Array.isArray(record.turns) || record.turns.length > 202
     || !Array.isArray(record.messages) || record.messages.length > 203
     || !Array.isArray(record.actions) || record.actions.length > 201
     || !Array.isArray(record.voices) || record.voices.length > 201
@@ -677,6 +701,7 @@ function projectSnapshot(value: unknown): NimiLocalAppConversationSnapshot {
   return Object.freeze({
     conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId, 'conversationAnchorId'),
     throughSequence: record.throughSequence,
+    state: projectConversationState(record.state),
     turns: Object.freeze(turns),
     messages: Object.freeze(messages),
     actions: Object.freeze(actions),
@@ -690,8 +715,8 @@ function projectMessage(
   observeText: (text: string) => void = () => {},
 ): NimiLocalAppConversationMessage {
   const message = asRecord(value);
-  assertExactProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts'], 'conversation message');
-  if ((message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
+  assertExactProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts', 'partial'], 'conversation message');
+  if (typeof message.partial !== 'boolean' || (message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
     || !Array.isArray(message.parts) || message.parts.length < 1 || message.parts.length > 2) {
     return localAppProjectionError('conversation message');
   }
@@ -702,7 +727,7 @@ function projectMessage(
     if (!part) return localAppProjectionError('conversation message part');
     if (part.kind === 'text') {
       assertExactProjectionKeys(part, ['kind', 'text'], 'conversation text part');
-      const text = boundedProjectionText(part.text, 'conversation message text', 64 * 1024);
+      const text = boundedProjectionText(part.text, 'conversation message text', 64 * 1024, message.partial === true);
       textCount++;
       observeText(text);
       return Object.freeze({ kind: 'text' as const, text });
@@ -731,7 +756,8 @@ function projectMessage(
     }
     return localAppProjectionError('conversation message part');
   });
-  if (textCount > 1 || artifactCount > 1
+  if ((message.partial && (message.role !== 'assistant' || textCount !== 1 || artifactCount !== 0))
+    || textCount > 1 || artifactCount > 1
     || (message.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
     return localAppProjectionError('conversation message cardinality');
   }
@@ -740,13 +766,15 @@ function projectMessage(
     turnId: boundedProjectionSelector(message.turnId, 'turnId'),
     role: message.role,
     parts: Object.freeze(parts),
+    partial: message.partial,
   });
 }
 
 function projectTurn(value: unknown): NimiLocalAppConversationTurn {
   const turn = asRecord(value);
-  assertExactProjectionKeys(turn, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message'], 'conversation turn');
-  if (!['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
+  assertExactProjectionKeys(turn, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message', 'requestId', 'retryOfTurnId', 'inputTurnId', 'canRegenerate', 'origin'], 'conversation turn');
+  if (typeof turn.canRegenerate !== 'boolean' || (turn.canRegenerate && (turn.status === 'active' || turn.inputTurnId === null))
+    || !['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
     || (turn.phase !== null && turn.phase !== 'accepted' && turn.phase !== 'started')
     || (turn.terminalReason !== null && typeof turn.terminalReason !== 'string')
     || (turn.message !== null && typeof turn.message !== 'string')) {
@@ -754,6 +782,11 @@ function projectTurn(value: unknown): NimiLocalAppConversationTurn {
   }
   return Object.freeze({
     turnId: boundedProjectionSelector(turn.turnId, 'turnId'),
+    requestId: turn.requestId === null ? null : boundedProjectionText(turn.requestId, 'requestId', 256),
+    retryOfTurnId: nullableProjectionSelector(turn.retryOfTurnId, 'retryOfTurnId'),
+    inputTurnId: nullableProjectionSelector(turn.inputTurnId, 'inputTurnId'),
+    canRegenerate: turn.canRegenerate,
+    origin: projectConversationOrigin(turn.origin),
     status: turn.status as NimiLocalAppConversationTurn['status'],
     phase: turn.phase as NimiLocalAppConversationTurn['phase'],
     terminalReason: turn.terminalReason === null ? null : boundedProjectionText(turn.terminalReason, 'terminalReason', 128),
@@ -959,4 +992,9 @@ function boundedProjectionText(value: unknown, field: string, maxBytes: number, 
 
 function nullableProjectionSelector(value: unknown, field: string): string | null {
   return value === null ? null : boundedProjectionSelector(value, field);
+}
+
+function projectConversationOrigin(value:unknown): 'user'|'app'|'follow_up' {
+ if(value!=='user'&&value!=='app'&&value!=='follow_up')return localAppProjectionError('conversation origin');
+ return value;
 }

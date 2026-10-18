@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-test('Home host failures preserve newer drafts and roll back image-only optimistic messages', async () => {
+test('Home admission failures preserve newer drafts and leave canonical messages unchanged', async () => {
 const require = createRequire(new URL('../package.json', import.meta.url));
 const React = require('react');
 const { act, useState } = React;
@@ -40,7 +40,7 @@ const png = new File([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])], 'imag
 const attachment = () => ({ kind: 'image', name: png.name, file: png, previewUrl: URL.createObjectURL(png) });
 
 try {
-for (const direct of [false, true]) for (const scenario of ['open_then_success', 'upload_then_failure', 'terminal_failure_with_new_attachment', 'image_only_upload_failure', 'image_only_projection_failure', 'image_retry_success', 'image_retry_failure', 'image_retry_attachment_failure']) {
+for (const direct of [false, true]) for (const scenario of ['open_then_success', 'upload_then_failure', 'terminal_failure_with_new_attachment', 'image_only_upload_failure', 'image_retry_success', 'image_retry_failure', 'image_retry_attachment_failure']) {
   const imageRetry = scenario.startsWith('image_retry_');
   const attachmentDraft = scenario === 'image_retry_attachment_failure';
   if (imageRetry && !direct) continue;
@@ -60,13 +60,8 @@ for (const direct of [false, true]) for (const scenario of ['open_then_success',
   const conversation = {
     open: async () => { if (scenario === 'open_then_success') await open.promise; return { conversationAnchorId: 'anchor-1' }; },
     uploadAttachment: async () => { reachedUpload = true; return projectionFailure ? { artifactId: 'uploaded-image' } : await upload.promise; },
-    readArtifact: async () => { reachedRead = true; return await projection.promise; },
-  };
-  const runAgentTurn = async function* (input) {
-    sentText = input.userMessage.text;
-    reachedTurn = true;
-    await terminal.promise;
-    yield { type: 'turn-completed', turnId: 't1', outputText: 'Scripted terminal event', reasoningText: '' };
+    readArtifact: async () => { reachedRead = true; throw new Error('send must not wait for artifact previews'); },
+    send: async (input) => {sentText=input.parts?.find(part=>part.kind==='text')?.text;reachedTurn=true;await terminal.promise;return {turnId:'accepted-turn'};},
   };
   function Harness({ initialAttachments }) {
     const [submittingThreadId, setSubmittingThreadId] = useState(null);
@@ -75,7 +70,7 @@ for (const direct of [false, true]) for (const scenario of ['open_then_success',
     const effects = useAgentConversationEffects({ currentComposerTextRef: draft, queryClient, setFooterHostStateByThreadId, setSelection() {} });
     const { handleSubmit } = useAgentConversationHostActions({ now: Date.now, sdk: { conversation: () => conversation }, subjectUserId: 'account-1',
       streamController: controller, activeTarget: target, activeThreadId: thread.id, ...effects,
-      bundle, currentComposerTextRef: draft, pendingAttachments: attachments, queryClient, reportHostError() {}, runAgentTurn,
+      bundle, currentComposerTextRef: draft, pendingAttachments: attachments, queryClient, reportHostError() {}, submissionPersistence:{prepare:async()=>{},acknowledge:async()=>{}},
       selectedAgentHandle: target.agentHandle, selectedThreadRecord: scenario === 'open_then_success' ? null : thread,
       setSelectionForAgentHandle() {}, setSubmittingThreadId, clearSelectedTarget() {}, submittingThreadId,
       t, textModelContextTokens: null, textMaxOutputTokensRequested: null,
@@ -112,23 +107,22 @@ for (const direct of [false, true]) for (const scenario of ['open_then_success',
   }
   const originalPreview = first.node.querySelector('img')?.src;
   await act(async () => first.node.querySelector('[data-chat-composer-send]').click());
-  assert.equal(draft.current, '');
+  assert.equal(draft.current, imageOnly || (!direct && scenario === 'terminal_failure_with_new_attachment') ? '' : 'Submitted earlier');
   if (imageOnly) {
     assert.equal(reachedUpload, true);
-    assert.equal(reachedRead, projectionFailure);
+    assert.equal(reachedRead, false);
     const optimistic = queryClient.getQueryData(bundleQueryKey(thread.id));
-    assert.equal(optimistic.messages.length, 2, 'the real submit added an optimistic image');
-    assert.equal(optimistic.messages[1].kind, 'image');
+    assert.deepEqual(optimistic.messages, originalMessages, 'admission does not invent canonical image messages');
     await act(async () => {
       (projectionFailure ? projection : upload).reject(new Error('scripted image preparation failure'));
       await nextTick();
     });
     assert.deepEqual(queryClient.getQueryData(bundleQueryKey(thread.id)).messages, originalMessages, scenario);
-    assert.deepEqual(projections.get(thread.id).messages, originalMessages, 'visible projection must also roll back');
+    assert.equal(projections.get(thread.id), null, 'send leaves the canonical subscription projection alone');
     assert.equal(reachedTurn, false, 'attachment failure must not dispatch a model turn');
     assert.equal(draft.current, '');
     assert.equal(first.node.querySelectorAll('img').length, 1, 'failed attachment remains editable');
-    assert.notEqual(first.node.querySelector('img').src, originalPreview, 'restored image gets a fresh preview URL');
+    assert.equal(first.node.querySelector('img').src, originalPreview, 'the unaccepted attachment preview stays usable');
     await act(async () => first.root.unmount());
     controller.clearAllStreams(); queryClient.clear();
     continue;

@@ -145,6 +145,10 @@ export {
   commitNimiLocalAppAgentPresentation,
   updateNimiLocalAppAgentAutonomy,
   updateNimiLocalAppAgentConversationContext,
+  listNimiLocalAppAgentPendingHooks,
+  updateNimiLocalAppAgentPendingHook,
+  updateNimiLocalAppConversationFollowUpPolicy,
+  updateNimiLocalAppConversationFollowUp,
   writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {

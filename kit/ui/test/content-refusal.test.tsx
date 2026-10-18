@@ -81,7 +81,7 @@ it('reports an image child refusal without failing its completed parent or colli
   expect(notice.reasonCode).toBe('AI_CONTENT_FILTER_BLOCKED');
   expect(node.textContent).toContain('You can keep using the app');
   expect((node.querySelector('textarea') as HTMLTextAreaElement).value).toBe('Keep this draft');
-  const completed = { type: 'turn-completed', conversationAnchorId: 'anchor-1', sequence: '2', turnId: 'turn-1', terminalReason: 'stop' };
+  const completed = { type: 'turn-completed', conversationAnchorId: 'anchor-1', sequence: '2', turnId: 'turn-1', terminalReason: 'stop', reasonCode:null, message:null };
   await act(async () => host.emit(firstId, completed));
   expect((await firstEvents.next()).value).toEqual(completed);
   await act(async () => dismissNimiContentRefusalNotice(notice.correlation));

@@ -13,10 +13,14 @@ import (
 // The caller holds the Agent mutex until this transaction commits, and retains
 // responsibility for rollback and post-commit broadcasts.
 func (r *runtimeAgentStateRepository) persistAgentDelta(entry *agentEntry, events []*runtimev1.AgentEvent, sequence uint64, hook runtimeAgentStateTxHook) error {
+	return r.persistAgentDeltaContext(context.Background(), entry, events, sequence, hook)
+}
+
+func (r *runtimeAgentStateRepository) persistAgentDeltaContext(ctx context.Context, entry *agentEntry, events []*runtimev1.AgentEvent, sequence uint64, hook runtimeAgentStateTxHook) error {
 	if r == nil || r.backend == nil {
 		return fmt.Errorf("Runtime Agent persistence unavailable")
 	}
-	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+	return r.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		if entry != nil {
 			ref, err := localAgentRefForEntry(entry)
 			if err != nil {

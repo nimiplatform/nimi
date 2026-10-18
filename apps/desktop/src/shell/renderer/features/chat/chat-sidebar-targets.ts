@@ -119,6 +119,7 @@ export function toAgentTargetSnapshotFromSummary(
   if (!agentHandle || !conversationAnchorId || !displayName) return null;
   return {
     agentHandle,
+    agentBinding: normalizeText(metadata.agentBinding) || undefined,
     conversationAnchorId,
     displayName,
     handle: normalizeText(target.handle),
@@ -171,6 +172,7 @@ export function toAgentReferenceTargetSummary(
     isOnline: null,
     metadata: {
       agentHandle: reference.agentHandle,
+      agentBinding: reference.agentBinding,
       displayName: reference.displayName,
       avatarUrl: reference.avatarUrl,
     },

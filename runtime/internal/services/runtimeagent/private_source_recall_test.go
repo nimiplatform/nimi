@@ -35,8 +35,6 @@ func TestPrivateSourceRecallAPMLIsStrictAndBounded(t *testing.T) {
 		t.Fatalf("ordinary final message classified as recall: present=%v err=%v", present, err)
 	}
 	invalidShapes := []string{
-		`<message id=" message-0 "><query>Find it.</query></message>`,
-		`<message id="message-0" extra="x"><query>Find it.</query></message>`,
 		`<message id="message-0"><query format="text">Find it.</query></message>`,
 		`<message id="message-0"><query>Find <nested>it</nested>.</query></message>`,
 		`<message id="message-0"><query>Find it.</query><query>Again.</query></message>`,
@@ -46,10 +44,20 @@ func TestPrivateSourceRecallAPMLIsStrictAndBounded(t *testing.T) {
 		`<message id="message-0"><query>Find it.</query></message><message id="message-1">sibling</message>`,
 	}
 	for _, raw := range invalidShapes {
-		if _, present, err := parsePublicChatPrivateSourceRecall(raw); !present || err == nil {
-			t.Fatalf("non-exact private recall shape was accepted: present=%v err=%v raw=%s", present, err, raw)
+		if _, present, err := parsePublicChatPrivateSourceRecall(raw); present && err == nil {
+			t.Fatalf("invalid private recall accepted: %s", raw)
+		}
+		if _, err := parsePublicChatStructuredEnvelope(raw); err == nil {
+			t.Fatalf("invalid private recall exposed as public body: %s", raw)
 		}
 	}
+	for _, attrs := range []string{"", ` id="another-id"`, ` id=" message-0 "`, ` extra="unused"`} {
+		request, present, err := parsePublicChatPrivateSourceRecall("<message" + attrs + "><query>Find it.</query></message>")
+		if err != nil || !present || request.Query != "Find it." {
+			t.Fatalf("model identity required for recall: %#v %v %v", request, present, err)
+		}
+	}
+
 }
 
 func TestPrivateSourceRecallRoundTwoContextIsMandatoryAndPrivate(t *testing.T) {
@@ -250,6 +258,7 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 				publicChatTurnState{},
 				compiled,
 				0,
+				nil,
 			)
 			if roundErr == nil || result == nil || result.Usage == nil || result.Usage.GetInputTokens() != 17 || result.Usage.GetOutputTokens() != 13 || result.Usage.GetComputeMs() != 11 || result.Usage.GetCachedInputTokens() != 7 || result.Usage.GetReasoningOutputTokens() != 5 {
 				t.Fatalf("Round 2 failure lost observed result/usage: result=%+v err=%v", result, roundErr)

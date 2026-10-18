@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"strings"
 	"sync"
 	"testing"
@@ -179,7 +180,7 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 	if strings.Contains(available, `Do not output <action kind="image">`) {
 		t.Fatalf("image-capable prompt must not prohibit image actions, got %q", available)
 	}
-	if !strings.Contains(available, `<message id="message-0">Creating it.</message><action id="action-0" kind="image">`) {
+	if !strings.Contains(available, `<message>Creating it.</message><action kind="image">`) {
 		t.Fatalf("image-capable prompt must include one complete message-plus-action example, got %q", available)
 	}
 	if !strings.Contains(available, `all reply text stays in message, with no text between/after tags`) {
@@ -353,6 +354,9 @@ func newRuntimeAgentServiceForPublicChatStatePath(t *testing.T, localStatePath s
 func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localStatePath string) (*Service, func()) {
 	t.Helper()
 	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
+	// Owner tests use an already admitted synthetic caller. Production injects
+	// the App service's Account/registration/session commit implementation.
+	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, _ localappop.Ingress) (context.Context, error) { return ctx, nil }))
 	svc.SetRuntimeAccountProjectionProvider(bundledAvatarTestProjectionProvider{accountID: "user-1"})
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-alpha"),
@@ -506,8 +510,8 @@ func publicChatPostTurnHookIntent(t *testing.T, req *runtimev1.SendAppMessageReq
 func requirePublicChatPostTurnHookIntent(t *testing.T, req *runtimev1.SendAppMessageRequest, expectedIntentID string, expectedAdmissionState string, expectedDelayMs int) {
 	t.Helper()
 	hookIntent := publicChatPostTurnHookIntent(t, req)
-	if got := hookIntent["intent_id"]; got != expectedIntentID {
-		t.Fatalf("expected hook_intent.intent_id=%s, got=%v", expectedIntentID, hookIntent)
+	if got, ok := hookIntent["intent_id"].(string); !ok || got == "" || got == expectedIntentID {
+		t.Fatalf("Runtime must replace model intent id %s, got=%v", expectedIntentID, hookIntent)
 	}
 	if got := hookIntent["trigger_family"]; got != "time" {
 		t.Fatalf("expected hook_intent.trigger_family=time, got=%v", hookIntent)

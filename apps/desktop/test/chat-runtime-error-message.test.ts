@@ -1,3 +1,4 @@
+import { localAgentReplyFailureMessage } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -99,4 +100,24 @@ test('A ChatGPT plan model the account does not offer asks for another model', (
   );
   assert.equal(projected.code, 'AI_MODEL_NOT_FOUND');
   assert.match(projected.message, /doesn't offer the selected model/u);
+});
+
+
+test('LocalAgent configuration errors name the integration and point to Agent Center', () => {
+ for (const reasonCode of ['AI_TEXT_BEHAVIOR_UNSUPPORTED','AI_CONFIG_INVALID','AI_LOCAL_CONFIGURATION_NOT_CONFIGURED','AI_REMOTE_MODEL_CATALOG_STALE']) {
+  const result=toChatUserFacingRuntimeError({reasonCode,message:'private prompt'},'failed',i18n.t,{localAgent:true});
+  assert.match(result.message,/Agent Center/);
+  assert.doesNotMatch(result.message,/model does not support|AI Capabilities|private prompt/);
+ }
+});
+
+
+test('a real LENGTH terminal explains the output limit without parsing private error text', () => {
+ assert.match(localAgentReplyFailureMessage('AI_OUTPUT_INVALID','length',i18n.t), /output limit/);
+ assert.equal(localAgentReplyFailureMessage('UNKNOWN_REASON','',i18n.t), 'The reply did not complete.');
+});
+
+test('explicit user Stop is distinct from provider and timeout failures', () => {
+  assert.equal(localAgentReplyFailureMessage('AI_STREAM_BROKEN','user_cancel',i18n.t), 'Generation stopped.');
+  assert.notEqual(localAgentReplyFailureMessage('AI_PROVIDER_TIMEOUT','timeout',i18n.t), 'Generation stopped.');
 });

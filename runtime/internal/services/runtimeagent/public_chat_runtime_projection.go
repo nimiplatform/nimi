@@ -28,49 +28,45 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 	if anchorID == "" || turnID == "" || streamID == "" {
 		return
 	}
-	entry, err := r.svc.agentByID(strings.TrimSpace(session.AgentID))
-	if err != nil {
-		return
-	}
-	now := time.Now().UTC()
-	origin := stateEventOrigin{
-		ConversationAnchorID: anchorID,
-		OriginatingTurnID:    turnID,
-		OriginatingStreamID:  streamID,
-	}
-	events := make([]*runtimev1.AgentEvent, 0, 2)
-	if mood != "" {
-		emotionEvent, eerr := r.svc.applyCurrentEmotionTransition(entry, mood, "chat_status_cue", origin, now)
-		if eerr != nil {
-			if r.svc.logger != nil {
-				r.svc.logger.Warn("skip runtime.agent.state.emotion_changed; emotion invalid", "agent_id", session.AgentID, "error", eerr)
+	err := r.svc.mutateAgent(strings.TrimSpace(session.AgentID), func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		now := time.Now().UTC()
+		origin := stateEventOrigin{
+			ConversationAnchorID: anchorID,
+			OriginatingTurnID:    turnID,
+			OriginatingStreamID:  streamID,
+		}
+		events := make([]*runtimev1.AgentEvent, 0, 2)
+		if mood != "" {
+			emotionEvent, eerr := r.svc.applyCurrentEmotionTransition(entry, mood, "chat_status_cue", origin, now)
+			if eerr != nil {
+				if r.svc.logger != nil {
+					r.svc.logger.Warn("skip runtime.agent.state.emotion_changed; emotion invalid", "agent_id", session.AgentID, "error", eerr)
+				}
+			}
+			if emotionEvent != nil {
+				events = append(events, emotionEvent)
 			}
 		}
-		if emotionEvent != nil {
-			events = append(events, emotionEvent)
-		}
-	}
-	if activityName != "" {
-		category, intensity, ierr := normalizePublicChatActivityProjection(activityName, structured.StatusCue.Intensity)
-		if ierr != nil {
-			if r.svc.logger != nil {
-				r.svc.logger.Warn("skip presentation.activity_requested; activity ontology invalid", "agent_id", session.AgentID, "error", ierr)
+		if activityName != "" {
+			category, intensity, ierr := normalizePublicChatActivityProjection(activityName, structured.StatusCue.Intensity)
+			if ierr != nil {
+				if r.svc.logger != nil {
+					r.svc.logger.Warn("skip presentation.activity_requested; activity ontology invalid", "agent_id", session.AgentID, "error", ierr)
+				}
+				return events, nil, nil
 			}
-			return
-		}
-		activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetLocalAgentRef(), anchorID, turnID, streamID, activityName, category, intensity, "apml_output", now)
-		if aerr != nil {
-			if r.svc.logger != nil {
-				r.svc.logger.Warn("skip presentation.activity_requested; envelope invalid", "agent_id", session.AgentID, "error", aerr)
+			activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetLocalAgentRef(), anchorID, turnID, streamID, activityName, category, intensity, "apml_output", now)
+			if aerr != nil {
+				if r.svc.logger != nil {
+					r.svc.logger.Warn("skip presentation.activity_requested; envelope invalid", "agent_id", session.AgentID, "error", aerr)
+				}
+			} else {
+				events = append(events, activityEvent)
 			}
-		} else {
-			events = append(events, activityEvent)
 		}
-	}
-	if len(events) == 0 {
-		return
-	}
-	if err := r.svc.updateAgent(entry, events...); err != nil && r.svc.logger != nil {
+		return events, nil, nil
+	})
+	if err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit runtime.agent.state+presentation from status cue failed", "agent_id", session.AgentID, "turn_id", turnID, "error", err)
 	}
 }
@@ -78,6 +74,7 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 // projectCommittedConversationVoice synthesizes the provider-neutral Conversation
 // voice sidecar and semantic artifact/timing timeline. Avatar autoplay and
 // renderer lipsync are not Runtime inputs or outputs.
+// @nimi-authority: rule.nimi.runtime.agent-participation.r181
 func (r publicChatRuntime) projectCommittedConversationVoice(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
 	if r.svc == nil || r.svc.isClosed() || structured == nil {
 		return
@@ -117,17 +114,6 @@ func (r publicChatRuntime) projectCommittedConversationVoice(ctx context.Context
 		SpeechAppID:            policy.SpeechAppID,
 		OwnerUserID:            policy.OwnerUserID,
 		AgentID:                session.AgentID,
-	}
-	if streamed, err := r.projectCommittedNativeVoiceStream(session, turn, synthesisInput); streamed {
-		if err != nil && r.svc.logger != nil {
-			r.svc.logger.Warn("native voice stream synthesis failed",
-				"agent_id", session.AgentID,
-				"turn_id", turnID,
-				"message_id", messageID,
-				"error", err,
-			)
-		}
-		return
 	}
 	out, err := r.svc.voiceLipsync.synthesize(synthesisInput)
 	if err != nil {
@@ -170,7 +156,7 @@ func (r publicChatRuntime) projectCommittedConversationVoice(ctx context.Context
 		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "VOICE_ARTIFACT_RETENTION_FAILED")
 		return
 	}
-	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID); err != nil {
+	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID, nil); err != nil {
 		if r.svc.logger != nil {
 			r.svc.logger.Warn("commit protected final voice sidecar failed", "turn_id", turnID, "error", err)
 		}
@@ -238,7 +224,7 @@ func (r publicChatRuntime) emitVoiceProjectionFailedTerminal(
 	if reason == "" {
 		reason = "VOICE_SYNTHESIS_FAILED"
 	}
-	if err := r.svc.commitLocalAppConversationVoiceFailed(session, turn, reason); err != nil {
+	if err := r.svc.commitLocalAppConversationVoiceFailed(session, turn, reason, nil); err != nil {
 		if status.Code(err) == codes.Canceled {
 			return
 		}
@@ -260,112 +246,6 @@ func (r publicChatRuntime) emitVoiceProjectionFailedTerminal(
 			"error", err,
 		)
 	}
-}
-
-func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatAnchorState, turn publicChatTurnState, input voiceLipsyncSynthesisInput) (bool, error) {
-	if r.svc == nil || r.svc.voiceLipsync == nil {
-		return false, nil
-	}
-	streamer, ok := r.svc.voiceLipsync.(voiceLipsyncNativeStreamSynthesizer)
-	if !ok {
-		return false, nil
-	}
-	messageID := strings.TrimSpace(input.MessageID)
-	parentCtx := input.Context
-	if parentCtx == nil {
-		parentCtx = context.Background()
-	}
-	streamCtx, cancel := context.WithCancel(parentCtx)
-	defer cancel()
-	streamInput := input
-	streamInput.Context = streamCtx
-	var emittedChunks uint64
-	out, streamed, err := streamer.synthesizeNativeStream(streamInput, func(chunk voiceLipsyncNativeStreamChunk) error {
-		emittedChunks = chunk.Sequence
-		return nil
-	})
-	if !streamed {
-		return false, nil
-	}
-	if err != nil {
-		if terminalErr := r.emitNativeVoiceStreamFailedTerminal(session, turn, input, voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED")); terminalErr != nil {
-			return true, terminalErr
-		}
-		return true, err
-	}
-	if emittedChunks == 0 {
-		return true, nil
-	}
-	if err := r.svc.putGeneratedVoiceArtifactBytes(
-		out.AudioArtifactID,
-		out.AudioBytes,
-		out.AudioMimeType,
-		input,
-		session,
-		"generated_agent_voice",
-	); err != nil {
-		return true, err
-	}
-	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
-		return true, err
-	}
-	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID); err != nil {
-		return true, err
-	}
-	if err := r.emitVoiceArtifactTimelineEvent(session, turn, publicChatVoiceArtifactProjection{
-		AudioArtifactID:  out.AudioArtifactID,
-		AudioMimeType:    out.AudioMimeType,
-		MessageID:        messageID,
-		ArtifactSequence: emittedChunks,
-		ArtifactComplete: true,
-		DurationMs:       out.DurationMs,
-		Reason:           "final_artifact_available",
-	}); err != nil {
-		return true, err
-	}
-	if err := r.emitVoiceTimingReadyTimelineEvent(session, turn, publicChatVoiceTimingReadyProjection{
-		AudioArtifactID: out.AudioArtifactID,
-		AudioMimeType:   out.AudioMimeType,
-		MessageID:       messageID,
-		DurationMs:      out.DurationMs,
-		Reason:          "final_artifact_available",
-	}); err != nil {
-		return true, err
-	}
-	if err := r.emitVoiceTimingTerminalTimelineEvent(session, turn, publicChatVoiceTimingTerminalProjection{
-		AudioArtifactID: out.AudioArtifactID,
-		AudioMimeType:   out.AudioMimeType,
-		MessageID:       messageID,
-		Phase:           "completed",
-		TerminalReason:  "final_artifact_completed",
-	}); err != nil {
-		return true, err
-	}
-	return true, nil
-}
-
-func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	input voiceLipsyncSynthesisInput,
-	terminalReason string,
-) error {
-	terminalReason = strings.TrimSpace(terminalReason)
-	if terminalReason == "" {
-		terminalReason = "VOICE_SYNTHESIS_FAILED"
-	}
-	if err := r.svc.commitLocalAppConversationVoiceFailed(session, turn, terminalReason); err != nil {
-		return err
-	}
-	messageID := strings.TrimSpace(input.MessageID)
-	if err := r.emitVoiceTimingTerminalTimelineEvent(session, turn, publicChatVoiceTimingTerminalProjection{
-		MessageID:      messageID,
-		Phase:          "failed",
-		TerminalReason: terminalReason,
-	}); err != nil {
-		return err
-	}
-	return nil
 }
 
 type agentVoiceOutputPolicy struct {

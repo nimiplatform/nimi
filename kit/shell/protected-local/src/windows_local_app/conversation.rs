@@ -88,7 +88,12 @@ pub(super) async fn send_turn(
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
     require_bounded_text(&request.request_id, MAX_REQUEST_ID_BYTES, false)?;
-    if request.parts.is_empty() || request.parts.len() > 2 {
+    if let Some(ref retry_of) = request.retry_of_turn_id {
+        require_selector(retry_of)?;
+        if !request.parts.is_empty() {
+            return Err(invalid_payload());
+        }
+    } else if request.parts.is_empty() || request.parts.len() > 2 {
         return Err(invalid_payload());
     }
     let mut text_seen = false;
@@ -128,6 +133,7 @@ pub(super) async fn send_turn(
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
             request_id: request.request_id,
+            retry_of_turn_id: request.retry_of_turn_id,
             parts,
         })
         .await
@@ -273,7 +279,9 @@ pub(super) async fn interrupt_turn(
 ) -> Result<LocalAppConversationInterruptResult, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
-    if let Some(expected) = &request.expected_turn_id { require_selector(expected)?; }
+    if let Some(expected) = &request.expected_turn_id {
+        require_selector(expected)?;
+    }
     let response = crate::grpc_limits::runtime_agent_client(channel)
         .interrupt_local_app_conversation_turn(InterruptLocalAppConversationTurnRequest {
             agent_handle: request.agent_handle,
@@ -306,7 +314,7 @@ pub(super) async fn conversation_snapshot(
     let snapshot = response.snapshot.ok_or_else(untrusted)?;
     require_runtime_selector(&snapshot.conversation_anchor_id)?;
     if snapshot.messages.len() > MAX_SNAPSHOT_MESSAGES
-        || snapshot.turns.len() > 201
+        || snapshot.turns.len() > 202
         || snapshot.actions.len() > 201
         || snapshot.voices.len() > 201
     {
@@ -334,6 +342,7 @@ pub(super) async fn conversation_snapshot(
         .map(project_voice)
         .collect::<Result<Vec<_>, _>>()?;
     Ok(LocalAppConversationSnapshot {
+        state: super::proactive_control::state(snapshot.state.ok_or_else(untrusted)?)?,
         conversation_anchor_id: snapshot.conversation_anchor_id,
         through_sequence: snapshot.through_sequence,
         turns,
@@ -386,9 +395,16 @@ fn project_event(
         return Err(untrusted());
     }
     let projected = match event.event.ok_or_else(untrusted)? {
+        ProtoConversationEvent::StateChanged(value) => {
+            LocalAppConversationEventKind::StateChanged {
+                state: super::proactive_control::state(value)?,
+            }
+        }
         ProtoConversationEvent::TurnAccepted(value) => {
             require_runtime_selector(&value.turn_id)?;
             LocalAppConversationEventKind::TurnAccepted {
+                request_id: value.request_id,
+                origin: project_origin(value.origin)?,
                 turn_id: value.turn_id,
             }
         }
@@ -475,6 +491,7 @@ fn project_event(
                         LocalAppConversationMessageRole::Assistant => "assistant",
                     },
                     "parts": message.parts,
+                    "partial": message.partial,
                 }),
             }
         }
@@ -526,12 +543,19 @@ fn project_event(
         }
         ProtoConversationEvent::TurnCompleted(value) => {
             require_runtime_selector(&value.turn_id)?;
-            if !valid_terminal_reason(&value.terminal_reason) {
+            if !valid_terminal_reason(&value.terminal_reason)
+                || value
+                    .message
+                    .as_deref()
+                    .is_some_and(|text| require_bounded_runtime_text(text, 1024).is_err())
+            {
                 return Err(untrusted());
             }
             LocalAppConversationEventKind::TurnCompleted {
                 turn_id: value.turn_id,
                 terminal_reason: value.terminal_reason,
+                reason_code: project_reason_code(value.reason_code)?,
+                message: value.message,
             }
         }
         ProtoConversationEvent::TurnFailed(value) => {
@@ -590,7 +614,16 @@ fn project_message(
     for part in message.parts {
         match part.part.ok_or_else(untrusted)? {
             ProtoMessagePart::Text(text) => {
-                require_bounded_runtime_text(&text.text, MAX_TEXT_BYTES)?;
+                if message.partial {
+                    if text.text.is_empty()
+                        || text.text.len() > MAX_TEXT_BYTES
+                        || text.text.contains('\0')
+                    {
+                        return Err(untrusted());
+                    }
+                } else {
+                    require_bounded_runtime_text(&text.text, MAX_TEXT_BYTES)?;
+                }
                 *text_bytes = text_bytes
                     .checked_add(text.text.len())
                     .filter(|value| *value <= MAX_SNAPSHOT_TEXT_BYTES)
@@ -604,7 +637,11 @@ fn project_message(
             }
         }
     }
-    if text_count > 1
+    if (message.partial
+        && (role != LocalAppConversationMessageRole::Assistant
+            || text_count != 1
+            || artifact_count != 0))
+        || text_count > 1
         || artifact_count > 1
         || (role == LocalAppConversationMessageRole::Assistant
             && text_count == 1
@@ -613,6 +650,7 @@ fn project_message(
         return Err(untrusted());
     }
     Ok(LocalAppConversationMessage {
+        partial: message.partial,
         message_id: message.message_id,
         turn_id: message.turn_id,
         role,
@@ -674,10 +712,26 @@ fn project_turn(turn: ProtoConversationTurn) -> Result<JsonValue, LocalAppOperat
     {
         return Err(untrusted());
     }
+    for reference in [&turn.retry_of_turn_id, &turn.input_turn_id] {
+        if let Some(value) = reference {
+            require_runtime_selector(value)?;
+        }
+    }
+    if let Some(ref value) = turn.request_id {
+        require_bounded_runtime_text(value, MAX_REQUEST_ID_BYTES)?;
+    }
+    if turn.can_regenerate && (status == "active" || turn.input_turn_id.is_none()) {
+        return Err(untrusted());
+    }
     Ok(json!({
         "turnId": turn.turn_id,
         "status": status,
         "phase": phase,
+        "requestId": turn.request_id,
+        "retryOfTurnId": turn.retry_of_turn_id,
+        "inputTurnId": turn.input_turn_id,
+        "canRegenerate": turn.can_regenerate,
+        "origin": project_origin(turn.origin)?,
         "terminalReason": turn.terminal_reason,
         "reasonCode": project_reason_code(turn.reason_code)?,
         "message": turn.message,
@@ -1001,6 +1055,7 @@ mod tests {
                 LocalAppConversationTurnCompleted {
                     turn_id: "agent_turn_01J".to_string(),
                     terminal_reason: "provider_private".to_string(),
+                    ..Default::default()
                 },
             )),
         })
@@ -1012,4 +1067,11 @@ mod tests {
         })
         .is_err());
     }
+}
+
+fn project_origin(value: String) -> Result<String, LocalAppOperationError> {
+    if !matches!(value.as_str(), "user" | "app" | "follow_up") {
+        return Err(untrusted());
+    }
+    Ok(value)
 }

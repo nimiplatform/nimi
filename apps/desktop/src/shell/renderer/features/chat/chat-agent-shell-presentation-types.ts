@@ -65,6 +65,7 @@ export type UseAgentConversationPresentationInput = {
   agentCenterOpen?: boolean;
   setupState: ConversationSetupState;
   streamState: StreamState | null;
+  onStopGenerating?: () => void;
   submittingThreadId: string | null;
   t: ReturnType<typeof useTranslation>['t'];
   targetSummariesInput: {

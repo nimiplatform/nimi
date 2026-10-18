@@ -269,7 +269,7 @@ func TestPublicChatLegacyMultiAnchorFailsClosedAndDifferentAgentIsolation(t *tes
 		len(got.CommittedTranscript) != 1 {
 		t.Fatalf("failed duplicate load mutated the legacy anchor: %+v", got)
 	}
-	if got := svc.chatAnchors[anchorB1]; got == nil || got.LastMessageID != "message-pack4-2" {
+	if got := svc.chatAnchors[anchorB1]; got == nil || got.LastMessageID != publicChatLastTurnSnapshot(t, anchorB1Snap)["message_id"] {
 		t.Fatalf("failed duplicate load mutated the different-agent anchor: %+v", got)
 	}
 }
@@ -542,7 +542,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -647,7 +647,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 			t.Fatalf("unexpected hook projection family at index %d: got %s want %s", index, got, want)
 		}
 		intent := detail.GetIntent()
-		if got := strings.TrimSpace(intent.GetIntentId()); got != "action-pack4-hook" {
+		if got := strings.TrimSpace(intent.GetIntentId()); got == "action-pack4-hook" || got == "" || got != hookEvents[0].GetHook().GetIntent().GetIntentId() {
 			t.Fatalf("expected projected intent id action-pack4-hook, got %#v", intent)
 		}
 		if got := strings.TrimSpace(intent.GetConversationAnchorId()); got != anchorID {

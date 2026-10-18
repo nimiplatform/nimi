@@ -1,3 +1,7 @@
+use crate::{
+    LocalAppAgentPendingHookUpdateRequest, LocalAppConversationFollowUpUpdateRequest,
+    LocalAppConversationPolicyRequest,
+};
 mod agent_configure;
 mod agent_work;
 mod app_activity;
@@ -7,7 +11,7 @@ mod conversation;
 mod embodiment;
 mod integration;
 mod music_input;
-mod speech_input;
+mod proactive_control;
 mod realm_persona_character;
 mod realm_realtime;
 mod realm_world_core;
@@ -17,6 +21,7 @@ mod scenario;
 #[cfg(all(test, target_os = "macos"))]
 mod session_rebind_tests;
 mod shared_agent_ai_config;
+mod speech_input;
 mod storage;
 mod text_behavior;
 mod text_candidate;
@@ -443,7 +448,8 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     fn delete_scenario_voice_asset(
         &self,
         voice_asset_id: String,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             scenario::delete_voice_asset(self.checked_channel()?, voice_asset_id).await
@@ -854,7 +860,8 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     fn agent_introduction_get(
         &self,
         request: LocalAppAgentHandleRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             reference::introduction(self.checked_channel()?, request).await
@@ -1120,32 +1127,40 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
     fn integration_start_connection_setup(
-        &self, request: serde_json::Value,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        &self,
+        request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             integration::start_connection_setup(self.checked_channel()?, request).await
         })
     }
     fn integration_get_connection_setup(
-        &self, request: serde_json::Value,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        &self,
+        request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             integration::get_connection_setup(self.checked_channel()?, request).await
         })
     }
     fn integration_submit_connection_setup(
-        &self, request: serde_json::Value,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        &self,
+        request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             integration::submit_connection_setup(self.checked_channel()?, request).await
         })
     }
     fn integration_cancel_connection_setup(
-        &self, request: serde_json::Value,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        &self,
+        request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             integration::cancel_connection_setup(self.checked_channel()?, request).await
@@ -1753,6 +1768,46 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn conversation_follow_up_policy(
+        &self,
+        request: LocalAppConversationPolicyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            proactive_control::policy(self.checked_channel()?, request).await
+        })
+    }
+    fn conversation_follow_up_update(
+        &self,
+        request: LocalAppConversationFollowUpUpdateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            proactive_control::follow_up(self.checked_channel()?, request).await
+        })
+    }
+    fn agent_pending_hooks(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            proactive_control::list_hooks(self.checked_channel()?, request).await
+        })
+    }
+    fn agent_pending_hook_update(
+        &self,
+        request: LocalAppAgentPendingHookUpdateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            proactive_control::update_hook(self.checked_channel()?, request).await
+        })
+    }
     fn agent_update_conversation_context(
         &self,
         request: LocalAppAgentUpdateConversationContextRequest,

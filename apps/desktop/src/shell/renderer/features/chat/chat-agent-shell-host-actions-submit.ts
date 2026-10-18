@@ -1,394 +1,89 @@
-import type {
-  AgentLocalMessageRecord,
-  AgentLocalThreadRecord,
-  AgentLocalThreadSummary,
-} from '../../bridge/runtime-bridge/types';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { createNimiClientId } from '@nimiplatform/sdk';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import {
-  createInitialAgentSubmitDriverState,
-  resolveInterruptedAgentSubmitDriverCheckpoint,
-} from './chat-agent-shell-submit-driver';
-import {
-  createEmptyAgentThreadBundle,
-  replaceAgentBundleMessage,
-} from './chat-agent-shell-bundle';
-import type { AgentVisibleProjectionStore } from './chat-agent-visible-projection-store';
-import {
-  toChatAgentRuntimeError,
-} from './chat-agent-runtime';
-import {
-  bundleQueryKey,
-  normalizeText,
-} from './chat-agent-shell-core';
-import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
-import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   ensureThreadAnchorBindingForTarget,
-  isTypedSubmitCancellationError,
-  resolveUploadedAttachmentProjection,
   uploadPendingAttachment,
 } from './chat-agent-shell-host-actions-helpers';
-import { runActiveAgentSubmit } from './chat-agent-shell-host-actions-submit-run';
-import { isAgentTurnAdmitted, isAgentTurnAdmissionUnconfirmed } from './chat-agent-runtime-agent';
-import {
-  rollbackOptimisticUserProjection,
-  toFallbackThreadRecord,
-} from './chat-agent-shell-host-actions-submit-helpers';
-import type { RuntimeLogMessage } from '@nimiplatform/kit/telemetry';
+import { toChatAgentRuntimeError } from './chat-agent-runtime';
 import type {
-  ActiveSubmitRegistryRef,
   AgentConversationSubmitPayload,
   LockTokenRef,
   UseAgentConversationHostActionsInput,
-  ActiveAgentSubmit,
 } from './chat-agent-shell-host-actions-types';
 
-export function bindActiveAgentSubmitPromise(
-  activeSubmit: ActiveAgentSubmit,
-  promise: ActiveAgentSubmit['promise'],
-): void {
-  // The registry must reference the exact Promise consumed by the submit
-  // flow. A derived rejection branch has no owner when no override arrives.
-  activeSubmit.promise = promise;
-}
-
-function safeLogAgentSubmit(details: {
-  message: RuntimeLogMessage;
-  level?: 'info' | 'warn' | 'error';
-  details?: Record<string, unknown>;
-}): void {
-  logRendererEvent({
-    level: details.level || 'info',
-    area: 'agent-chat-submit',
-    message: details.message,
-    details: details.details || {},
-  });
-}
-
+// @nimi-authority: rule.nimi.desktop.agent-projection.r029
+// The permanent canonical subscription owns every reply and media update.
+// Send confirms admission only; it never fabricates a completed model turn.
 export async function submitAgentConversationTurn(input: {
   hostInput: UseAgentConversationHostActionsInput;
   payload: AgentConversationSubmitPayload;
-  activeSubmitsByThreadRef: ActiveSubmitRegistryRef;
   submittingLockTokenRef: LockTokenRef;
-  visibleProjections: AgentVisibleProjectionStore;
 }): Promise<void> {
-  let optimisticThreadId: string | null = null;
-  let optimisticUserMessageIds: string[] = [];
-  let optimisticBaseThread: AgentLocalThreadRecord | null = null;
-  let userProjectionApplied = false;
-  let submittedTextForRecovery = '';
-  let submittingLockToken: number | null = null;
-
-  const releaseSubmittingIfCurrent = () => {
-    if (submittingLockToken !== null && input.submittingLockTokenRef.current === submittingLockToken) {
-      input.hostInput.setSubmittingThreadId(null);
-    }
-  };
-
+  const host = input.hostInput;
+  const target = host.activeTarget;
+  if (!target) throw new Error(host.t('Chat.agentSubmitMissingThread'));
+  const text = input.payload.text.trim();
+  if (!input.payload.retryOfTurnId && !text && input.payload.attachments.length === 0) return;
+  const token = ++input.submittingLockTokenRef.current;
+  host.setSubmittingThreadId(host.activeThreadId || target.agentHandle || 'pending');
+  const conversation = host.sdk.conversation();
+  let preparedRequestId: string | undefined;
   try {
-    const activeTarget = input.hostInput.activeTarget;
-    if (!activeTarget) {
-      throw new Error(input.hostInput.t('Chat.agentSubmitMissingThread', {
-        defaultValue: 'Select an agent friend before sending a message.',
-      }));
-    }
-    const submittedText = input.payload.text.trim();
-    submittedTextForRecovery = submittedText;
-    if (!submittedText && input.payload.attachments.length === 0) {
-      return;
-    }
-    safeLogAgentSubmit({
-      message: 'action:submit:start',
-      details: {
-        selectedAgentHandle: activeTarget.agentHandle,
-        activeThreadId: input.hostInput.activeThreadId,
-        submittedTextLength: submittedText.length,
-        attachmentCount: input.payload.attachments.length,
-      },
+    const context = await ensureThreadAnchorBindingForTarget({
+      input: host,
+      target,
+      thread: host.activeThreadId && host.selectedThreadRecord ? host.selectedThreadRecord : null,
     });
-
-    let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.hostInput.selectedThreadRecord;
-    let effectiveThreadId = input.hostInput.activeThreadId;
-    const threadContext = await ensureThreadAnchorBindingForTarget({
-      input: input.hostInput,
-      target: activeTarget,
-      thread: effectiveThreadId && effectiveThreadRecord ? effectiveThreadRecord : null,
-    });
-    effectiveThreadRecord = threadContext.thread;
-    effectiveThreadId = threadContext.thread.id;
-    const conversationAnchorId = threadContext.anchorBinding.conversationAnchorId;
-    const runtimeThreadId = threadContext.anchorBinding.threadId;
-    safeLogAgentSubmit({
-      message: 'action:submit:thread-anchor-ready',
-      details: {
-        selectedAgentHandle: activeTarget.agentHandle,
-        threadId: effectiveThreadId,
-        runtimeThreadId,
-        conversationAnchorId,
-      },
-    });
-    const fallbackThreadRecord = toFallbackThreadRecord(
-      effectiveThreadRecord,
-      input.hostInput.now(),
-    );
-
-    const existingSubmit = input.activeSubmitsByThreadRef.current.get(effectiveThreadId) || null;
-    if (existingSubmit && existingSubmit.threadId === effectiveThreadId && existingSubmit.interruptible) {
-      existingSubmit.overrideRequested = true;
-      existingSubmit.abort();
-      try {
-        await existingSubmit.promise;
-      } catch (error) {
-        if (!isTypedSubmitCancellationError(error)) {
-          throw error;
-        }
-      }
-    }
-
-    const userTurnId = createNimiClientId('agent-turn-user');
-    const assistantTurnId = createNimiClientId('agent-turn');
-    const assistantMessageId = `${assistantTurnId}:message:0`;
-    const createdAtMs = input.hostInput.now();
-    const optimisticPreviewAttachments = input.payload.attachments
-      .filter((attachment) => attachment.kind === 'image' && normalizeText(attachment.previewUrl))
-      .map((attachment) => ({
-        kind: 'image' as const,
-        mediaUrl: attachment.previewUrl,
-        mediaMimeType: normalizeText(attachment.file.type) || null,
-        artifactId: null,
-      }));
-    const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
-      ? buildAgentUserProjection({
-        threadId: effectiveThreadId,
-        agentId: activeTarget.agentHandle || '',
-        conversationAnchorId,
-        turnId: userTurnId,
-        submittedText,
-        uploadedAttachments: optimisticPreviewAttachments,
-        createdAtMs,
-      })
-      : null;
-    if (optimisticUserProjection) {
-      const optimisticThreadRecord: AgentLocalThreadRecord = {
-        ...fallbackThreadRecord,
-        updatedAtMs: createdAtMs,
-        lastMessageAtMs: optimisticUserProjection.lastMessageAtMs,
-        targetSnapshot: activeTarget,
-      };
-      if (input.payload.canUpdateDraft?.() !== false) input.hostInput.currentComposerTextRef.current = '';
-      input.hostInput.setBundleCache(effectiveThreadId, (current) => {
-        const base = current || createEmptyAgentThreadBundle(optimisticThreadRecord);
-        return {
-          ...base,
-          thread: optimisticThreadRecord,
-          messages: optimisticUserProjection.messages.reduce<AgentLocalMessageRecord[]>(
-            (messages, message) => replaceAgentBundleMessage(messages, message),
-            base.messages,
-          ),
-        };
-      });
-      optimisticThreadId = effectiveThreadId;
-      optimisticUserMessageIds = optimisticUserProjection.messages.map((message) => message.id);
-      optimisticBaseThread = fallbackThreadRecord;
-    }
-
-    submittingLockToken = input.submittingLockTokenRef.current + 1;
-    input.submittingLockTokenRef.current = submittingLockToken;
-    input.hostInput.setSubmittingThreadId(effectiveThreadId);
-    input.hostInput.setFooterHostState(effectiveThreadId, null);
-
-    const uploadedAttachments = input.payload.attachments.length > 0
-	  ? await Promise.all(input.payload.attachments.map((attachment) => uploadPendingAttachment(input.hostInput, attachment, activeTarget, conversationAnchorId)))
-      : [];
-    const uploadedAttachmentProjections = await Promise.all(
-	  uploadedAttachments.map((attachment) => resolveUploadedAttachmentProjection(input.hostInput, attachment, activeTarget, conversationAnchorId)),
-    );
-    const userProjection = buildAgentUserProjection({
-      threadId: effectiveThreadId,
-      agentId: activeTarget.agentHandle || '',
-      conversationAnchorId,
-      turnId: userTurnId,
-      submittedText,
-      uploadedAttachments: uploadedAttachmentProjections,
-      createdAtMs,
-    });
-    const assistantPlaceholder: AgentLocalMessageRecord = {
-      id: assistantMessageId,
-      threadId: effectiveThreadId,
-      role: 'assistant',
-      status: 'pending',
-      kind: 'text',
-      contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: userProjection.lastMessageId,
-      mediaUrl: null,
-      mediaMimeType: null,
-      artifactId: null,
-      metadataJson: null,
-      createdAtMs: userProjection.lastMessageAtMs + 1,
-      updatedAtMs: userProjection.lastMessageAtMs + 1,
-    };
-
-    const userThreadRecord: AgentLocalThreadRecord = {
-      ...fallbackThreadRecord,
-      updatedAtMs: createdAtMs,
-      lastMessageAtMs: userProjection.lastMessageAtMs,
-      targetSnapshot: activeTarget,
-    };
-    const baseUserBundle = input.hostInput.bundle || createEmptyAgentThreadBundle(userThreadRecord);
-    const userBundle = {
-      ...baseUserBundle,
-      thread: userThreadRecord,
-      messages: userProjection.messages.reduce<AgentLocalMessageRecord[]>(
-        (messages, message) => replaceAgentBundleMessage(messages, message),
-        baseUserBundle.messages,
+    const conversationAnchorId = context.anchorBinding.conversationAnchorId;
+    host.setSubmittingThreadId(context.thread.id);
+    const attachments = await Promise.all(
+      input.payload.attachments.map((attachment) =>
+        uploadPendingAttachment(host, attachment, target, conversationAnchorId),
       ),
-    };
-    userProjectionApplied = true;
-    input.hostInput.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
-    input.visibleProjections.set(effectiveThreadId, userBundle);
-    input.hostInput.syncSelectionToThread(userBundle.thread);
-    let submitSession = createInitialAgentSubmitDriverState({
-      fallbackThread: fallbackThreadRecord,
-      assistantMessageId,
-      assistantPlaceholder,
-      submittedText,
-      workingBundle: userBundle,
-    });
-
-    const abortController = input.hostInput.streamController.startStream(
-      effectiveThreadId,
-      resolveAgentTurnTotalTimeoutMs(),
     );
-    const activeSubmit: ActiveAgentSubmit = {
-      threadId: effectiveThreadId,
-      turnId: assistantTurnId,
-      interruptible: false,
-      overrideRequested: false,
-      abort: () => abortController.abort(),
-      promise: Promise.resolve(),
-    };
-    input.activeSubmitsByThreadRef.current.set(effectiveThreadId, activeSubmit);
-    const submitRunPromise = runActiveAgentSubmit({
-      activeSubmit,
-      input: input.hostInput,
-      threadId: effectiveThreadId,
-      runtimeThreadId,
+    const requestId = createNimiClientId('runtime-agent-turn-request');
+    if (!host.submissionPersistence)
+      throw new Error(host.t('Chat.agentDraftUnavailableForSubmission'));
+    await host.submissionPersistence.prepare({
+      requestId,
       conversationAnchorId,
-      turnId: assistantTurnId,
-      userMessage: {
-        id: userProjection.firstMessageId,
-        text: submittedText,
-        attachments: uploadedAttachments,
-      },
-      signal: abortController.signal,
-      textModelContextTokens: input.hostInput.textModelContextTokens,
-      textMaxOutputTokensRequested: input.hostInput.textMaxOutputTokensRequested,
-      target: activeTarget,
-      submitSession,
-      currentComposerText: () => input.hostInput.currentComposerTextRef.current,
-      releaseSubmittingIfCurrent,
+      text,
+      artifactIds: attachments.map((item) => item.artifactId),
+      ...(input.payload.retryOfTurnId ? { retryOfTurnId: input.payload.retryOfTurnId } : {}),
     });
-    safeLogAgentSubmit({
-      message: 'action:submit:runtime-turn-started',
-      details: {
-        selectedAgentHandle: activeTarget.agentHandle,
-        threadId: effectiveThreadId,
-        conversationAnchorId,
-        assistantTurnId,
-        userTurnId,
-      },
-    });
-    bindActiveAgentSubmitPromise(activeSubmit, submitRunPromise);
-
-    try {
-      submitSession = await submitRunPromise;
-      safeLogAgentSubmit({
-        message: 'action:submit:runtime-turn-completed',
-        details: {
-          selectedAgentHandle: activeTarget.agentHandle,
-          threadId: effectiveThreadId,
-          conversationAnchorId,
-          assistantTurnId,
-        },
-      });
-    } catch (error) {
-      const streamSnapshot = input.hostInput.streamController.getStreamState(effectiveThreadId);
-      const stoppedByUser = streamSnapshot.cancelSource === 'user';
-      const admissionUnconfirmed = isAgentTurnAdmissionUnconfirmed(abortController.signal);
-      const runtimeError = stoppedByUser && admissionUnconfirmed
-        ? { code: 'AGENT_TURN_ADMISSION_UNCONFIRMED', message: input.hostInput.t('Chat.agentAdmissionUnconfirmed', { defaultValue: 'Your message may have been accepted, and stopping could not be confirmed. Your text is saved below. Check the conversation before sending it again.' }) }
-        : stoppedByUser
-        ? {
-          code: 'OPERATION_ABORTED',
-          message: input.hostInput.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
-        }
-        : toChatAgentRuntimeError(error, input.hostInput.t);
-      safeLogAgentSubmit({
-        level: 'warn',
-        message: 'action:submit:runtime-turn-failed',
-        details: {
-          selectedAgentHandle: activeTarget.agentHandle,
-          threadId: effectiveThreadId,
-          conversationAnchorId,
-          assistantTurnId,
-          error: runtimeError.message,
-          reasonCode: runtimeError.code,
-        },
-      });
-      if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
-        return;
-      }
-      // Text Runtime already accepted is not offered back after a stop, so
-      // Enter cannot send it twice; text stopped before admission stays.
-      const restoreSubmittedText = !(stoppedByUser && isAgentTurnAdmitted(abortController.signal));
-      const currentDraft = input.hostInput.currentComposerTextRef.current;
-      const preserveComposerText = input.payload.canUpdateDraft?.() === false
-        || currentDraft || runtimeError.code === 'AI_CONTENT_FILTER_BLOCKED' ? currentDraft : undefined;
-      if (restoreSubmittedText && preserveComposerText === undefined) input.hostInput.currentComposerTextRef.current = submittedText;
-      submitSession = input.hostInput.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
-        state: submitSession,
-        refreshedBundle: null,
-        runtimeError,
-        updatedAtMs: input.hostInput.now(),
-        streamSnapshot,
-        restoreSubmittedText,
-        preserveComposerText,
-      }));
-      // A stop the user asked for is the turn's end, not a failure to report.
-      if (stoppedByUser && !admissionUnconfirmed) return;
-      throw new Error(runtimeError.message, { cause: error });
-    } finally {
-      if (input.activeSubmitsByThreadRef.current.get(effectiveThreadId) === activeSubmit) {
-        input.activeSubmitsByThreadRef.current.delete(effectiveThreadId);
-      }
-      releaseSubmittingIfCurrent();
-    }
+    preparedRequestId = requestId;
+    if (input.payload.canUpdateDraft?.() !== false) host.currentComposerTextRef.current = '';
+    const scope = {
+      agentHandle: target.agentHandle as Parameters<typeof conversation.send>[0]['agentHandle'],
+      conversationAnchorId,
+      requestId,
+    };
+    await conversation.send(
+      input.payload.retryOfTurnId
+        ? { ...scope, retryOfTurnId: input.payload.retryOfTurnId }
+        : {
+            ...scope,
+            parts: [
+              ...(text ? [{ kind: 'text' as const, text }] : []),
+              ...attachments.map((attachment) => ({
+                kind: 'artifact-ref' as const,
+                artifactId: attachment.artifactId,
+              })),
+            ],
+          },
+    );
+    void host.submissionPersistence.acknowledge(requestId);
+    host.setFooterHostState(context.thread.id, null);
   } catch (error) {
-    safeLogAgentSubmit({
-      level: 'error',
-      message: 'action:submit:failed-before-terminal',
-      details: {
-        error: error instanceof Error ? error.message : String(error || ''),
-        optimisticThreadId,
-        userProjectionApplied,
-      },
-    });
-    if (!userProjectionApplied) {
-      await rollbackOptimisticUserProjection({
-        hostInput: input.hostInput,
-        optimisticThreadId,
-        optimisticBaseThread,
-        optimisticUserMessageIds,
-        submittedTextForRecovery,
-        restoreComposerText: input.payload.canUpdateDraft?.() !== false,
-      });
+    // Runtime's AGENT_BUSY is an explicit pre-admission rejection. Transport
+    // failures retain their copy because receipt loss cannot prove rejection.
+    if (preparedRequestId && extractNimiErrorFields(error).reasonCode === 'AGENT_BUSY') {
+      await host.submissionPersistence?.acknowledge(preparedRequestId);
     }
-    releaseSubmittingIfCurrent();
-    input.hostInput.reportHostError(error);
-    throw error;
+    const described = toChatAgentRuntimeError(error, host.t);
+    host.reportHostError(error);
+    throw new Error(described.message, { cause: error });
+  } finally {
+    if (input.submittingLockTokenRef.current === token) host.setSubmittingThreadId(null);
   }
 }

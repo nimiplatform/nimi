@@ -8,14 +8,8 @@ import type {
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
-import type { AgentHostInteractionPatch } from './chat-agent-shell-host-interaction';
-import type {
-  AgentSubmitDriverEffectQueue,
-  AgentSubmitDriverState,
-} from './chat-agent-shell-submit-driver';
 import { bundleQueryKey } from './chat-agent-shell-core';
 import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
-import { useStreamController } from '../turns/stream-controller-context.js';
 
 type UseAgentConversationEffectsInput = {
   currentComposerTextRef: { current: string };
@@ -30,7 +24,6 @@ type UseAgentConversationEffectsInput = {
 };
 
 export function useAgentConversationEffects(input: UseAgentConversationEffectsInput) {
-  const streamController = useStreamController();
   const visibleProjections = useAgentVisibleProjectionStore();
   const setBundleCache = useCallback((
     threadId: string,
@@ -68,34 +61,6 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
     });
   }, [input]);
 
-  const applyHostInteractionPatch = useCallback((threadId: string, patch: AgentHostInteractionPatch) => {
-    input.queryClient.setQueryData(bundleQueryKey(threadId), patch.bundle);
-    visibleProjections.set(threadId, patch.bundle);
-    input.currentComposerTextRef.current = patch.composerText;
-    input.setSelection(patch.selection);
-    setFooterHostState(threadId, {
-      footerState: patch.footerState,
-      lifecycle: patch.lifecycle,
-    });
-  }, [input, setFooterHostState]);
-
-  const applyDriverEffects = useCallback((threadId: string, effects: AgentSubmitDriverEffectQueue): AgentSubmitDriverState => {
-    for (const streamEffect of effects.streamEffects) {
-      streamController.feedStreamEvent(threadId, streamEffect);
-    }
-    if (effects.projectionEffect !== undefined) {
-      visibleProjections.set(threadId, effects.projectionEffect);
-    }
-    for (const bundleEffect of effects.bundleEffects) {
-      input.queryClient.setQueryData(bundleQueryKey(threadId), bundleEffect);
-      visibleProjections.set(threadId, bundleEffect);
-    }
-    if (effects.hostPatchEffect) {
-      applyHostInteractionPatch(threadId, effects.hostPatchEffect);
-    }
-    return effects.finalSession;
-  }, [applyHostInteractionPatch, input.queryClient, streamController]);
-
   const syncSelectionToThread = useCallback((thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => {
     if (!thread) {
       input.setSelection({
@@ -113,8 +78,6 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   }, [input]);
 
   return {
-    applyDriverEffects,
-    applyHostInteractionPatch,
     setBundleCache,
     setFooterHostState,
     syncSelectionToThread,

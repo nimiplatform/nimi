@@ -4,6 +4,27 @@
 
 ## Unreleased
 
+Agent autonomy now enforces a positive `maxTokensPerHook` as the per-activity
+output-token limit; zero retains the Runtime default. The existing wire field
+name is unchanged. Daily accounting uses execution-reported input plus output
+usage, not a model-provided estimate. An unsupported explicit limit rejects only
+that activity without a weaker-limit fallback. Agent Center labels this meaning.
+
+LocalAgent Conversation adds durable request correlation, incomplete-answer
+projection, explicit text regeneration, and separate text/media activity state.
+Matching source-built Runtime, SDK, native carrier, and Kit are required for this
+0.x minor hard cut. Custom carriers that expose LocalAgent controls must implement
+`conversation.setFollowUpPolicy`, `conversation.updateFollowUp`,
+`agentConfigure.pendingHooks.list`, and `agentConfigure.pendingHooks.update`.
+Conversation consumers must handle `state-changed` and the new snapshot fields;
+regeneration sends the prior turn reference without re-sending attachment parts.
+AI Consume-only Apps keep their existing contracts. Agent Center pending tasks
+remain separate from Conversation follow-up. No release or data migration is implied.
+
+`CanonicalTranscriptView` also accepts optional `contentBottomInsetPx` so a host
+with a variable-height floating composer can keep the last reply and its actions
+reachable. Hosts that omit it retain their current spacing.
+
 AI content refusal now has one nonmodal notice in standard App chrome, with
 bounded safe diagnostics. Ordinary Conversation controls retain a Home handoff
 for a known Conversation, separate from the notice. Agent

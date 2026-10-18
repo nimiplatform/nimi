@@ -131,31 +131,81 @@ func (s *Service) SendLocalAppConversationTurn(
 	if err := s.validateLocalAppConversationResource(resolved, anchorID); err != nil {
 		return nil, err
 	}
-	text, artifactID, err := parseLocalAppConversationInputParts(req.GetParts())
-	if err != nil {
-		return nil, err
+	retryOf := strings.TrimSpace(req.GetRetryOfTurnId())
+	if retryOf != "" && (!validLocalAppConversationSelector(retryOf) || len(req.GetParts()) != 0) {
+		return nil, localAppConversationInvalid("regeneration requires only retryOfTurnId and a fresh requestId")
+	}
+	text, artifactID := "", ""
+	if retryOf == "" {
+		text, artifactID, err = parseLocalAppConversationInputParts(req.GetParts())
+		if err != nil {
+			return nil, err
+		}
 	}
 	message := publicChatMessagePayload{Role: "user", Content: text}
 	if artifactID != "" {
+		message.Attachments = []publicChatAttachmentPayload{{ArtifactID: artifactID}}
+	}
+	admission := publicChatTurnRequestPayload{RequestID: requestID, RegisteredAppSubject: resolved.decision.RegisteredAppSubject, RetryOfTurnID: retryOf, Messages: []publicChatMessagePayload{message}}
+	s.chatSurfaceMu.Lock()
+	anchor := s.chatAnchors[anchorID]
+	if anchor == nil || s.agentTerminationFencedLocked(resolved.identity.LocalAgentRef) {
+		s.chatSurfaceMu.Unlock()
+		return nil, localAppConversationOwnerUnavailable()
+	}
+	if reused, found, reuseErr := reusedPublicChatAdmission(anchor, admission); found || reuseErr != nil {
+		s.chatSurfaceMu.Unlock()
+		if reuseErr != nil {
+			return nil, reuseErr
+		}
+		return &runtimev1.SendLocalAppConversationTurnResponse{TurnId: reused.TurnID}, nil
+	}
+	var original *publicChatRecoveryInput
+	if retryOf != "" {
+		if !publicChatCanRegenerate(anchor, retryOf) {
+			s.chatSurfaceMu.Unlock()
+			return nil, localAppConversationInvalid("This turn cannot be regenerated. Continue with a new message.")
+		}
+		original = publicChatRecoveryInputForTurn(anchor, anchor.Recoveries[retryOf])
+	}
+	s.chatSurfaceMu.Unlock()
+	attachments := make([]publicChatResolvedAttachment, 0, 1)
+	if original != nil {
+		message = publicChatMessagePayload{Role: "user", Content: original.Text}
+		if original.Attachment != nil {
+			value, readErr := s.readConversationArtifact(resolved.identity.LocalAgentRef, anchorID, original.Attachment.ArtifactID)
+			if readErr != nil {
+				return nil, readErr
+			}
+			if value.MimeType != original.Attachment.MimeType {
+				return nil, localAppConversationOwnerUnavailable()
+			}
+			attachments = append(attachments, publicChatResolvedAttachment{ArtifactID: value.ArtifactID, MimeType: value.MimeType, DisplayName: original.Attachment.DisplayName})
+			message.Attachments = []publicChatAttachmentPayload{{ArtifactID: value.ArtifactID, DisplayName: original.Attachment.DisplayName}}
+		}
+	} else if artifactID != "" {
 		attachment, resolveErr := s.resolveLocalAppConversationAttachmentCandidate(resolved, anchorID, artifactID)
 		if resolveErr != nil {
 			return nil, resolveErr
 		}
-		message.Attachments = []publicChatAttachmentPayload{{
-			ArtifactID:  attachment.ArtifactID,
-			DisplayName: attachment.DisplayName,
-		}}
+		attachments = append(attachments, attachment)
+		message.Attachments = []publicChatAttachmentPayload{{ArtifactID: attachment.ArtifactID, DisplayName: attachment.DisplayName}}
 	}
+
 	turnID, err := s.publicChatRuntime().handleTurnRequestWithID(ownerCtx, &runtimev1.AppMessageEvent{
 		FromAppId:     resolved.decision.AppID,
 		SubjectUserId: resolved.decision.AccountID,
 		MessageId:     requestID,
 	}, publicChatTurnRequestPayload{
+		localAppAdmission:    &resolved.decision,
 		LocalAgentRef:        resolved.identity.LocalAgentRef,
 		OwnerUserID:          resolved.identity.OwnerUserID,
 		RuntimeSourceRef:     resolved.identity.RuntimeSourceRef,
 		ConversationAnchorID: anchorID,
 		RequestID:            requestID,
+		RegisteredAppSubject: resolved.decision.RegisteredAppSubject,
+		RetryOfTurnID:        retryOf,
+		resolvedAttachments:  attachments,
 		Messages:             []publicChatMessagePayload{message},
 	})
 	if err != nil {
@@ -399,34 +449,61 @@ func (s *Service) RenderLocalAppConversationVoice(
 	if err != nil {
 		return nil, err
 	}
-	if existing != nil {
+	if err := s.revalidateLocalAppVoiceRender(ctx, req, resolved); err != nil {
+		return nil, err
+	}
+	if existing != nil && existing.State == "ready" {
 		return s.localAppConversationVoiceRenderResponse(resolved.identity.LocalAgentRef, anchorID, existing)
 	}
+	requestKey := sha256HexBytes([]byte(resolved.decision.AccountID + "\x00" + resolved.decision.AppID + "\x00" + resolved.decision.RegisteredAppSubject + "\x00" + requestID))
+	flight, owner, err := s.admitLocalAppVoiceRender(anchorID, turnID, requestKey)
+	if err != nil {
+		return nil, err
+	}
+	if !owner {
+		if flight != nil {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-flight.done:
+			}
+			if flight.err != nil {
+				return nil, flight.err
+			}
+		}
+		if err := s.revalidateLocalAppVoiceRender(ctx, req, resolved); err != nil {
+			return nil, err
+		}
+		return s.currentLocalAppVoiceRenderResponse(resolved, anchorID, turnID)
+	}
+	var attemptErr error
+	defer func() { s.finishLocalAppVoiceRender(anchorID, turnID, flight, attemptErr) }()
+	existing = s.localAppConversationVoiceForTurn(anchorID, turnID)
 	session, turn, output, terminalReason, renderErr := s.publicChatRuntime().synthesizeCompletedTurnVoice(
 		ownerCtx,
 		resolved.decision.AppID,
 		resolved.decision.AccountID,
-		requestID,
+		requestKey,
 		publicChatTurnVoiceRenderPayload{
 			ConversationAnchorID: anchorID,
 			TurnID:               turnID,
 			MessageID:            messageID,
 		})
 	if renderErr == nil {
+		renderErr = s.revalidateLocalAppVoiceRender(ctx, req, resolved)
+	}
+	if renderErr == nil {
 		if terminalReason == "" {
-			renderErr = s.commitLocalAppConversationVoiceReady(session, turn, messageID, output.AudioArtifactID)
+			renderErr = s.commitLocalAppConversationVoiceReady(session, turn, messageID, output.AudioArtifactID, &localAppVoiceRenderCommit{ctx: ctx, initial: resolved, previous: existing})
 		} else {
-			renderErr = s.commitLocalAppConversationVoiceFailed(session, turn, terminalReason)
+			renderErr = s.commitLocalAppConversationVoiceFailed(session, turn, terminalReason, &localAppVoiceRenderCommit{ctx: ctx, initial: resolved, previous: existing})
 		}
 	}
-	voice := s.localAppConversationVoiceForTurn(anchorID, turnID)
-	if voice != nil {
-		return s.localAppConversationVoiceRenderResponse(resolved.identity.LocalAgentRef, anchorID, voice)
-	}
+	attemptErr = renderErr
 	if renderErr != nil {
 		return nil, renderErr
 	}
-	return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	return s.currentLocalAppVoiceRenderResponse(resolved, anchorID, turnID)
 }
 
 func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
@@ -444,11 +521,11 @@ func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
 	}
 	for _, transcriptTurn := range anchor.CommittedTranscript {
 		turnID := strings.TrimSpace(transcriptTurn.TurnID)
-		if (transcriptTurn.Origin != publicChatTurnOriginUser && transcriptTurn.Origin != publicChatTurnOriginApp) || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
+		if (transcriptTurn.Origin != publicChatTurnOriginUser && transcriptTurn.Origin != publicChatTurnOriginApp && transcriptTurn.Origin != publicChatTurnOriginFollowUp) || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
 			localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
 			continue
 		}
-		if publicChatCompletedTurnProjectionByTurnLocked(anchor, turnID) == nil {
+		if publicChatVoiceEligibleTurnProjectionLocked(anchor, turnID) == nil {
 			return "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if existing := anchor.VoiceSidecars[turnID]; existing != nil {
@@ -535,8 +612,7 @@ func (s *Service) resolveLocalAppConversationAttachmentCandidate(
 	}
 	metadata := record.ConversationAttachment
 	owner := record.Owner
-	registeredMatches := owner != nil && (owner.RegisteredAppSubject == "" ||
-		owner.RegisteredAppSubject == resolved.decision.RegisteredAppSubject)
+	registeredMatches := owner != nil && owner.RegisteredAppSubject != "" && owner.RegisteredAppSubject == resolved.decision.RegisteredAppSubject
 	if metadata == nil || owner == nil ||
 		owner.SubjectUserID != resolved.decision.AccountID || owner.AppID != resolved.decision.AppID || !registeredMatches ||
 		metadata.AgentID != resolved.identity.LocalAgentRef || metadata.ConversationAnchorID != strings.TrimSpace(anchorID) ||
@@ -548,6 +624,7 @@ func (s *Service) resolveLocalAppConversationAttachmentCandidate(
 	}
 	return publicChatResolvedAttachment{
 		ArtifactID:  strings.TrimSpace(artifactID),
+		ExpiresAt:   metadata.ExpiresAt,
 		MimeType:    strings.ToLower(strings.TrimSpace(record.MimeType)),
 		DisplayName: metadata.DisplayName,
 	}, nil
@@ -572,6 +649,11 @@ func (s *Service) localAppConversationTranscriptArtifactMembership(
 			if strings.TrimSpace(artifact.ArtifactID) == artifactID {
 				return strings.ToLower(strings.TrimSpace(artifact.MimeType)), true
 			}
+		}
+	}
+	for _, item := range anchor.Recoveries {
+		if item != nil && item.Input != nil && item.Input.Attachment != nil && item.Input.Attachment.ArtifactID == artifactID {
+			return item.Input.Attachment.MimeType, true
 		}
 	}
 	return "", false
@@ -800,9 +882,27 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	anchor := s.chatAnchors[anchorID]
 	transcript := clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
 	throughSequence := anchor.LocalAppSequence
+	controlState := s.localAppConversationStateLocked(anchor)
 	activeSnapshot := clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
 	terminalSnapshots := clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
+	if terminalSnapshots == nil {
+		terminalSnapshots = make(map[string]*publicChatTurnProjectionState)
+	}
+	liveSnapshots := make(map[string]*publicChatTurnProjectionState)
+	if activeSnapshot != nil {
+		liveSnapshots[activeSnapshot.TurnID] = activeSnapshot
+	}
+	for id, turn := range s.chatTurns {
+		if turn != nil && turn.ConversationAnchorID == anchorID {
+			liveSnapshots[id] = clonePublicChatTurnProjectionState(turn.Projection)
+		}
+	}
 	voiceSidecars := clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
+	owned := *anchor
+	owned.CommittedTranscript = transcript
+	owned.Recoveries = clonePublicChatRecoveries(anchor.Recoveries)
+	owned.ActiveTurnSnapshot = activeSnapshot
+	owned.CompletedTurnSnapshots = terminalSnapshots
 	s.chatSurfaceMu.Unlock()
 	if err := validatePublicChatCommittedTranscript(transcript); err != nil {
 		return nil, localAppConversationOwnerUnavailable()
@@ -819,17 +919,23 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	var activeGroup *messageGroup
 	seenTurnIDs := make(map[string]struct{}, len(transcript))
 	for _, turn := range transcript {
-		if (turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginApp) || !validLocalAppConversationSelector(turn.TurnID) {
+		if !validLocalAppConversationSelector(turn.TurnID) {
 			continue
 		}
 		seenTurnIDs[turn.TurnID] = struct{}{}
 		group := messageGroup{}
-		userMessage := localAppConversationUserMessage(turn)
-		if userMessage == nil {
-			return nil, localAppConversationOwnerUnavailable()
+		if turn.Origin == publicChatTurnOriginUser || turn.Origin == publicChatTurnOriginApp {
+			userMessage := localAppConversationUserMessage(turn)
+			if userMessage == nil {
+				return nil, localAppConversationOwnerUnavailable()
+			}
+			group.messages = append(group.messages, userMessage)
+			group.bytes += len(turn.InputText)
 		}
-		group.messages = append(group.messages, userMessage)
-		group.bytes += len(turn.InputText)
+		if item := owned.Recoveries[turn.TurnID]; item != nil && turn.AssistantText == "" && item.PublicText != "" {
+			group.messages = append(group.messages, localAppConversationPartialMessage(item))
+			group.bytes += len(item.PublicText)
+		}
 		if strings.TrimSpace(turn.AssistantText) != "" && !validLocalAppConversationText(turn.AssistantText, localAppConversationMaxTextBytes, true) {
 			return nil, localAppConversationOwnerUnavailable()
 		}
@@ -842,11 +948,15 @@ func (s *Service) buildLocalAppConversationSnapshot(
 			group.bytes += len(turn.AssistantText)
 		}
 		projection := terminalSnapshots[turn.TurnID]
-		active := activeSnapshot != nil && strings.TrimSpace(activeSnapshot.TurnID) == turn.TurnID
+		if projection == nil {
+			projection = &publicChatTurnProjectionState{TurnID: turn.TurnID, Status: publicChatTurnStatusCompleted, Origin: turn.Origin}
+		}
+		active := liveSnapshots[turn.TurnID] != nil
 		if active {
-			projection = activeSnapshot
+			projection = liveSnapshots[turn.TurnID]
 		}
 		group.turn = localAppConversationTurnFromProjection(turn.TurnID, projection, active)
+		group.turn.Origin = turn.Origin
 		group.orderAt = localAppConversationTurnProjectionOrderTime(projection)
 		for index := range turn.OutputArtifacts {
 			artifact := turn.OutputArtifacts[index]
@@ -859,16 +969,26 @@ func (s *Service) buildLocalAppConversationSnapshot(
 				group.actions = append(group.actions, action)
 			}
 		}
-		if active {
+		if turn.TurnID == owned.ActiveTurnID || publicChatCanRegenerate(&owned, turn.TurnID) {
 			copy := group
 			activeGroup = &copy
 			continue
 		}
 		groups = append(groups, group)
 	}
+	for turnID, item := range owned.Recoveries {
+		if _, exists := seenTurnIDs[turnID]; exists {
+			continue
+		}
+		if activeSnapshot != nil && activeSnapshot.TurnID == turnID {
+			terminalSnapshots[turnID] = activeSnapshot
+		} else if terminalSnapshots[turnID] == nil {
+			terminalSnapshots[turnID] = &publicChatTurnProjectionState{TurnID: turnID, Status: publicChatTurnStatusInterrupted, TimelineStartedAt: item.AcceptedAt, ReasonCode: runtimev1.ReasonCode_AI_STREAM_BROKEN, Message: "The accepted reply is incomplete."}
+		}
+	}
 	terminalOnlyIDs := make([]string, 0)
 	for turnID, projection := range terminalSnapshots {
-		if _, exists := seenTurnIDs[turnID]; exists || !publicChatTurnProjectionIsTerminal(projection) {
+		if _, exists := seenTurnIDs[turnID]; exists || (!publicChatTurnProjectionIsTerminal(projection) && owned.Recoveries[turnID] == nil) {
 			continue
 		}
 		terminalOnlyIDs = append(terminalOnlyIDs, turnID)
@@ -891,14 +1011,35 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	})
 	for _, turnID := range terminalOnlyIDs {
 		projection := terminalSnapshots[turnID]
+		active := activeSnapshot != nil && activeSnapshot.TurnID == turnID
 		group := messageGroup{
-			turn:    localAppConversationTurnFromProjection(turnID, projection, false),
+			turn:    localAppConversationTurnFromProjection(turnID, projection, active),
 			orderAt: localAppConversationTurnProjectionOrderTime(projection),
+		}
+		if item := owned.Recoveries[turnID]; item != nil {
+			group.orderAt = item.AcceptedAt
+			if input := publicChatRecoveryInputForTurn(&owned, item); input != nil && input.Role == "user" {
+				message := localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment})
+				if message == nil {
+					return nil, localAppConversationOwnerUnavailable()
+				}
+				group.messages = append(group.messages, message)
+				group.bytes += len(input.Text)
+			}
+			if item.PublicText != "" {
+				group.messages = append(group.messages, localAppConversationPartialMessage(item))
+				group.bytes += len(item.PublicText)
+			}
 		}
 		if action := localAppConversationNonCompletedAction(turnID, projection); action != nil {
 			group.actions = append(group.actions, action)
 		}
-		groups = append(groups, group)
+		if active || publicChatCanRegenerate(&owned, turnID) {
+			copy := group
+			activeGroup = &copy
+		} else {
+			groups = append(groups, group)
+		}
 	}
 	sort.SliceStable(groups, func(left, right int) bool {
 		leftTime := groups[left].orderAt
@@ -915,6 +1056,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	for start > 0 {
 		candidate := groups[start-1]
 		if messageCount+len(candidate.messages) > localAppConversationSnapshotMaxMessages ||
+			len(groups)-start >= localAppConversationSnapshotMaxMessages ||
 			textBytes+candidate.bytes > localAppConversationSnapshotMaxTextBytes {
 			break
 		}
@@ -955,11 +1097,51 @@ func (s *Service) buildLocalAppConversationSnapshot(
 			turns = append(turns, localAppConversationTurnFromProjection(activeSnapshot.TurnID, activeSnapshot, true))
 		}
 	}
+	uniqueMessages := make([]*runtimev1.LocalAppConversationMessage, 0, len(messages))
+	seenMessages := make(map[string]bool)
+	seenTurns := make(map[string]bool)
+	for _, turn := range turns {
+		seenTurns[turn.TurnId] = true
+	}
+	for _, message := range messages {
+		if seenMessages[message.MessageId] {
+			continue
+		}
+		seenMessages[message.MessageId] = true
+		uniqueMessages = append(uniqueMessages, message)
+		if !seenTurns[message.TurnId] {
+			projection := terminalSnapshots[message.TurnId]
+			if projection == nil {
+				projection = &publicChatTurnProjectionState{TurnID: message.TurnId, Status: publicChatTurnStatusInterrupted}
+			}
+			turns = append(turns, localAppConversationTurnFromProjection(message.TurnId, projection, false))
+			seenTurns[message.TurnId] = true
+		}
+	}
+	messages = uniqueMessages
+	for _, turn := range turns {
+		if item := owned.Recoveries[turn.TurnId]; item != nil {
+			if item.RegisteredAppSubject != "" && item.RegisteredAppSubject == resolved.decision.RegisteredAppSubject && item.RequestID != "" {
+				value := item.RequestID
+				turn.RequestId = &value
+			}
+			if item.RetryOfTurnID != "" {
+				value := item.RetryOfTurnID
+				turn.RetryOfTurnId = &value
+			}
+			if input := publicChatRecoveryInputForTurn(&owned, item); input != nil && input.Role == "user" {
+				value := item.InputTurnID
+				turn.InputTurnId = &value
+			}
+			turn.CanRegenerate = publicChatCanRegenerate(&owned, turn.TurnId)
+		}
+	}
 	snapshot := &runtimev1.LocalAppConversationSnapshot{
 		ConversationAnchorId: anchorID,
 		Messages:             messages,
 		TruncatedBefore:      start > 0,
 		ThroughSequence:      throughSequence,
+		State:                controlState,
 		Turns:                turns,
 		Actions:              actions,
 	}
@@ -1051,10 +1233,11 @@ func localAppConversationUserMessage(
 	if turn.Origin == publicChatTurnOriginApp {
 		role = runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP
 	}
+	inputTurnID := firstNonEmpty(turn.InputTurnID, turn.TurnID)
 	return &runtimev1.LocalAppConversationMessage{
-		TurnId:    strings.TrimSpace(turn.TurnID),
+		TurnId:    strings.TrimSpace(inputTurnID),
 		Role:      role,
-		MessageId: localAppConversationMessageID(turn.TurnID, "user", ""),
+		MessageId: localAppConversationMessageID(inputTurnID, "user", ""),
 		Parts:     parts,
 	}
 }
@@ -1091,6 +1274,10 @@ func localAppConversationTurnFromProjection(
 		TurnId: strings.TrimSpace(turnID),
 		Status: runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED,
 	}
+	result.Origin = "user"
+	if projection != nil && projection.Origin != "" {
+		result.Origin = projection.Origin
+	}
 	if active || projection == nil {
 		result.Status = runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE
 		result.Phase = runtimev1.LocalAppConversationTurnPhase_LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED
@@ -1100,6 +1287,9 @@ func localAppConversationTurnFromProjection(
 		return result
 	}
 	result.ReasonCode = projection.ReasonCode
+	if value := strings.TrimSpace(projection.FinishReason); value != "" {
+		result.TerminalReason = &value
+	}
 	if value := strings.TrimSpace(projection.Message); value != "" {
 		result.Message = &value
 	}
@@ -1108,8 +1298,17 @@ func localAppConversationTurnFromProjection(
 		result.Status = runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED
 	case publicChatTurnStatusInterrupted:
 		result.Status = runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED
+		// The owner persists the same admitted cancellation reason sent by the
+		// live interrupted event in Message. Preserve it in the snapshot too;
+		// restart diagnostics and unknown interruptions are not user Stop.
+		if value := strings.TrimSpace(projection.Message); value != "" {
+			if reason, err := normalizePublicChatCancellationReason(value); err == nil {
+				result.TerminalReason = &reason
+			}
+		}
 	default:
 		result.Status = runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED
+		result.Message = publicChatCompletionNotice(projection.ReasonCode)
 		if value := strings.TrimSpace(projection.FinishReason); value != "" {
 			result.TerminalReason = &value
 		}
@@ -1209,7 +1408,9 @@ func (s *Service) localAppCommittedTextMessages(anchorID string, turnID string) 
 			continue
 		}
 		messages := make([]*runtimev1.LocalAppConversationMessage, 0, 2)
-		if turn.Origin == publicChatTurnOriginUser || turn.Origin == publicChatTurnOriginApp {
+		// Input was published at durable admission. Only a standalone user-only
+		// commit has no assistant completion to project here.
+		if turn.AssistantText == "" && (turn.Origin == publicChatTurnOriginUser || turn.Origin == publicChatTurnOriginApp) {
 			userMessage := localAppConversationUserMessage(turn)
 			if userMessage == nil {
 				return nil, localAppConversationOwnerUnavailable()
@@ -1496,13 +1697,16 @@ func (s *Service) publishLocalAppConversationEvent(
 	}
 	s.localAppConversationPublishMu.Lock()
 	defer s.localAppConversationPublishMu.Unlock()
-	sequence := s.nextLocalAppConversationSequence(anchorID)
+	sequence := s.peekLocalAppConversationSequence(anchorID)
 	if sequence == 0 {
 		return localAppConversationOwnerUnavailable()
 	}
 	events, supported, err := s.projectLocalAppConversationEvents(messageType, payload, sequence)
-	if !supported {
-		return s.persistCurrentPublicChatSurfaceStateForProjection()
+	if err == nil && !supported {
+		return nil
+	}
+	if err == nil {
+		err = s.commitLocalAppConversationPublication(anchorID, sequence, events)
 	}
 	if err != nil {
 		s.localAppConversationMu.Lock()
@@ -1518,17 +1722,20 @@ func (s *Service) publishLocalAppConversationEvent(
 		}
 		return err
 	}
-	// Persist the final high-water, including any additional sequence values
-	// allocated by a multi-event projection, before publishing the first item.
-	// A failed capture or SQLite transaction leaves the entire range unobserved.
-	if err := s.persistCurrentPublicChatSurfaceStateForProjection(); err != nil {
-		return err
+	if !supported {
+		return nil
 	}
+
+	s.broadcastLocalAppConversationEvents(subjectUserID, anchorID, events)
+	return nil
+}
+
+func (s *Service) broadcastLocalAppConversationEvents(subjectUserID, anchorID string, events []*runtimev1.LocalAppConversationEvent) {
 	s.localAppConversationMu.Lock()
 	subscribers := make([]*localAppConversationSubscriber, 0, len(s.localAppConversationSubscribers))
 	for _, subscriber := range s.localAppConversationSubscribers {
 		if subscriber != nil && subscriber.accountID == strings.TrimSpace(subjectUserID) &&
-			(subscriber.conversationAnchorID == anchorID || (err != nil && anchorID == "")) {
+			(subscriber.conversationAnchorID == anchorID) {
 			subscribers = append(subscribers, subscriber)
 		}
 	}
@@ -1536,11 +1743,22 @@ func (s *Service) publishLocalAppConversationEvent(
 	for _, subscriber := range subscribers {
 		for _, event := range events {
 			if event != nil {
-				sendLocalAppConversationEmission(subscriber, localAppConversationEmission{event: event})
+				projected := event
+				if accepted := event.GetTurnAccepted(); accepted != nil {
+					projected = proto.Clone(event).(*runtimev1.LocalAppConversationEvent)
+					s.chatSurfaceMu.Lock()
+					if anchor := s.chatAnchors[anchorID]; anchor != nil {
+						if record := anchor.Recoveries[accepted.TurnId]; record != nil && record.RegisteredAppSubject != "" && record.RegisteredAppSubject == subscriber.registeredAppSubject {
+							id := record.RequestID
+							projected.GetTurnAccepted().RequestId = &id
+						}
+					}
+					s.chatSurfaceMu.Unlock()
+				}
+				sendLocalAppConversationEmission(subscriber, localAppConversationEmission{event: projected})
 			}
 		}
 	}
-	return nil
 }
 
 func sendLocalAppConversationEmission(subscriber *localAppConversationSubscriber, emission localAppConversationEmission) {
@@ -1639,15 +1857,14 @@ func terminalizeLocalAppConversationSubscriber(subscriber *localAppConversationS
 	}
 }
 
-func (s *Service) nextLocalAppConversationSequence(anchorID string) uint64 {
+func (s *Service) peekLocalAppConversationSequence(anchorID string) uint64 {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if anchor == nil {
 		return 0
 	}
-	anchor.LocalAppSequence++
-	return anchor.LocalAppSequence
+	return anchor.LocalAppSequence + 1
 }
 
 func (s *Service) projectLocalAppConversationEvents(
@@ -1679,6 +1896,27 @@ func (s *Service) projectLocalAppConversationEvents(
 		!validLocalAppConversationSelector(anchorID) || !validLocalAppConversationSelector(turnID) {
 		return nil, true, localAppConversationOwnerUnavailable()
 	}
+	if strings.TrimSpace(messageType) == publicChatTurnAcceptedType {
+		accepted := &runtimev1.LocalAppConversationEvent{ConversationAnchorId: anchorID, Sequence: sequence, Event: &runtimev1.LocalAppConversationEvent_TurnAccepted{TurnAccepted: &runtimev1.LocalAppConversationTurnAccepted{TurnId: turnID}}}
+		s.chatSurfaceMu.Lock()
+		anchor := s.chatAnchors[anchorID]
+		if anchor == nil {
+			s.chatSurfaceMu.Unlock()
+			return nil, true, localAppConversationOwnerUnavailable()
+		}
+		accepted.GetTurnAccepted().Origin = "user"
+		if turn := s.chatTurns[turnID]; turn != nil {
+			accepted.GetTurnAccepted().Origin = turn.Origin
+		}
+		state := s.localAppConversationStateLocked(anchor)
+		s.chatSurfaceMu.Unlock()
+		events := []*runtimev1.LocalAppConversationEvent{accepted}
+		if message := s.localAppAdmittedInputMessage(anchorID, turnID); message != nil {
+			events = append(events, &runtimev1.LocalAppConversationEvent{ConversationAnchorId: anchorID, Sequence: sequence + 1, Event: &runtimev1.LocalAppConversationEvent_MessageCommitted{MessageCommitted: &runtimev1.LocalAppConversationMessageCommitted{Message: message}}})
+		}
+		events = append(events, &runtimev1.LocalAppConversationEvent{ConversationAnchorId: anchorID, Sequence: sequence + uint64(len(events)), Event: &runtimev1.LocalAppConversationEvent_StateChanged{StateChanged: state}})
+		return events, true, nil
+	}
 	if strings.TrimSpace(messageType) == publicChatTurnMessageCommittedType {
 		messages, err := s.localAppCommittedTextMessages(anchorID, turnID)
 		if err != nil {
@@ -1688,7 +1926,7 @@ func (s *Service) projectLocalAppConversationEvents(
 		for index, message := range messages {
 			eventSequence := sequence
 			if index > 0 {
-				eventSequence = s.nextLocalAppConversationSequence(anchorID)
+				eventSequence = sequence + uint64(index)
 			}
 			events = append(events, &runtimev1.LocalAppConversationEvent{
 				ConversationAnchorId: anchorID,
@@ -1717,7 +1955,7 @@ func (s *Service) projectLocalAppConversationEvents(
 				Message: message,
 			}},
 		}
-		artifactSequence := s.nextLocalAppConversationSequence(anchorID)
+		artifactSequence := sequence + 1
 		actionID, ok := localAppConversationMapString(detail, "action_id", false)
 		if !ok || !validLocalAppConversationSelector(actionID) || artifactSequence == 0 {
 			return nil, true, localAppConversationOwnerUnavailable()
@@ -1820,9 +2058,16 @@ func (s *Service) projectLocalAppConversationEvents(
 		if !ok || !validLocalAppConversationTerminalReason(reason) {
 			return nil, true, localAppConversationOwnerUnavailable()
 		}
-		event.Event = &runtimev1.LocalAppConversationEvent_TurnCompleted{TurnCompleted: &runtimev1.LocalAppConversationTurnCompleted{
-			TurnId: turnID, TerminalReason: reason,
-		}}
+		completed := &runtimev1.LocalAppConversationTurnCompleted{TurnId: turnID, TerminalReason: reason}
+		s.chatSurfaceMu.Lock()
+		if anchor := s.chatAnchors[anchorID]; anchor != nil {
+			if projection := anchor.CompletedTurnSnapshots[turnID]; projection != nil {
+				completed.ReasonCode = projection.ReasonCode
+				completed.Message = publicChatCompletionNotice(projection.ReasonCode)
+			}
+		}
+		s.chatSurfaceMu.Unlock()
+		event.Event = &runtimev1.LocalAppConversationEvent_TurnCompleted{TurnCompleted: completed}
 	case publicChatTurnFailedType:
 		reasonCode, ok := localAppConversationMapString(detail, "reason_code", false)
 		if !ok || !validLocalAppConversationReasonCode(reasonCode) {
@@ -1848,6 +2093,15 @@ func (s *Service) projectLocalAppConversationEvents(
 	}
 	if messageType == publicChatTurnCompletedType || messageType == publicChatTurnFailedType || messageType == publicChatTurnInterruptedType {
 		s.clearLocalAppConversationLiveChildren(anchorID, turnID)
+		s.chatSurfaceMu.Lock()
+		anchor := s.chatAnchors[anchorID]
+		if anchor == nil {
+			s.chatSurfaceMu.Unlock()
+			return nil, true, localAppConversationOwnerUnavailable()
+		}
+		state := s.localAppConversationStateLocked(anchor)
+		s.chatSurfaceMu.Unlock()
+		return []*runtimev1.LocalAppConversationEvent{event, {ConversationAnchorId: anchorID, Sequence: sequence + 1, Event: &runtimev1.LocalAppConversationEvent_StateChanged{StateChanged: state}}}, true, nil
 	}
 	return []*runtimev1.LocalAppConversationEvent{event}, true, nil
 }

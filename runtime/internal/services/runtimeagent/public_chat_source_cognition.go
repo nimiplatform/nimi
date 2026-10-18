@@ -34,7 +34,7 @@ func (r publicChatRuntime) retrievePublicChatSourceCognition(
 }
 
 func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context, ownerUserID, localAgentRef string, source localAgentTurnSourceViewV1, current agentTurnCurrentUserInput, transcript []agentTurnTranscriptPairInput, conversationSummary *agentTurnConversationSummaryInput, relationships []agentTurnRelationshipInput, actions publicChatAvailableActions) agentTurnCognitionInput {
-	if r.svc == nil || r.svc.sourceCognitionBridge == nil {
+	if ctx.Err() != nil || r.svc == nil || r.svc.sourceCognitionBridge == nil {
 		return agentTurnCognitionInput{AdapterStatus: "unavailable", SelectionStatus: "unavailable"}
 	}
 	if err := validateLocalAgentTurnSourceViewV1(source); err != nil {
@@ -66,6 +66,9 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 		cognitionservice.AgentSourceQuery{Text: query, PartitionIdentity: source.Partition.PartitionHash, UnitCount: source.Partition.UnitCount, OmissionCount: source.Partition.OmissionCount, ExactSourceRefs: selections, Limit: publicChatSourceCognitionCandidateLimit},
 	)
 	if err != nil {
+		if ctx.Err() != nil {
+			return agentTurnCognitionInput{AdapterStatus: "unavailable", SelectionStatus: "unavailable"}
+		}
 		r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, true)
 		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure"}
 	}

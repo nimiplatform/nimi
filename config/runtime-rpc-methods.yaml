@@ -741,6 +741,18 @@ services:
       - name: UpdateLocalAppAgentAutonomy
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+      - name: UpdateLocalAppConversationFollowUpPolicy
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy
+      - name: UpdateLocalAppConversationFollowUp
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp
+      - name: ListLocalAppAgentPendingHooks
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks
+      - name: UpdateLocalAppAgentPendingHook
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook
       - name: UpdateLocalAppAgentConversationContext
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext

@@ -301,8 +301,7 @@ func TestPublicChatStrictTranscriptPersistenceFailureRollsBackBeforeCommitEvent(
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	if _, err := svc.backend.DB().Exec(`
 		CREATE TRIGGER runtime_test_reject_public_chat_transcript_commit
-		BEFORE UPDATE OF value ON runtime_local_agent_meta
-		WHEN OLD.key = 'public_chat_surface_state'
+		BEFORE INSERT ON runtime_conversation_turn
 		BEGIN
 			SELECT RAISE(FAIL, 'injected public chat transcript persistence failure');
 		END

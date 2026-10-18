@@ -94,6 +94,7 @@ func (s *Service) schedulePublicChatFollowUp(
 	ctx, cancel := context.WithCancel(context.Background())
 	state := &publicChatFollowUpState{
 		FollowUpID:           followUpID,
+		Revision:             1,
 		ConversationAnchorID: session.ConversationAnchorID,
 		AgentID:              session.AgentID,
 		CallerAppID:          session.CallerAppID,
@@ -111,50 +112,39 @@ func (s *Service) schedulePublicChatFollowUp(
 		HookIntent:           pendingIntent,
 	}
 
-	if _, err := s.cancelPublicChatFollowUpForAnchor(session.ConversationAnchorID, "superseded", true); err != nil {
-		cancel()
-		return publicChatFollowUpOutcome{
-			Status:           "rejected",
-			ChainID:          chainID,
-			FollowUpDepth:    nextDepth,
-			MaxFollowUpTurns: maxTurns,
-			SourceTurnID:     turn.TurnID,
-			SourceActionID:   action.ActionID,
-			ReasonCode:       reasonCodeFromError(err),
-			Message:          strings.TrimSpace(err.Error()),
-		}
-	}
-
 	s.chatSurfaceMu.Lock()
-	if current := s.chatAnchors[session.ConversationAnchorID]; current != nil {
-		current.PendingFollowUpID = followUpID
+	current := s.chatAnchors[session.ConversationAnchorID]
+	live := s.chatTurns[turn.TurnID]
+	if current == nil || !current.FollowUpEnabled || current.ActiveTurnID != turn.TurnID || live == nil || live.Interrupted || s.agentTerminationFencedLocked(session.LocalAgentRef) {
+		s.chatSurfaceMu.Unlock()
+		cancel()
+		return publicChatFollowUpOutcome{Status: "rejected", SourceTurnID: turn.TurnID, SourceActionID: action.ActionID, ReasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, Message: "Follow-up conversation is disabled or the originating turn is no longer active."}
 	}
+	oldID := current.PendingFollowUpID
+	old := s.chatFollowUps[oldID]
+	version := s.chatSurfaceVersion
+	delete(s.chatFollowUps, oldID)
+	current.PendingFollowUpID = followUpID
 	s.chatFollowUps[followUpID] = state
+	if err := s.persistPublicChatSurfaceStateLocked(session.ConversationAnchorID); err != nil {
+		current.PendingFollowUpID = oldID
+		delete(s.chatFollowUps, followUpID)
+		if old != nil {
+			s.chatFollowUps[oldID] = old
+		}
+		s.chatSurfaceVersion = version
+		s.chatSurfaceMu.Unlock()
+		cancel()
+		return publicChatFollowUpOutcome{Status: "rejected", SourceTurnID: turn.TurnID, SourceActionID: action.ActionID, ReasonCode: reasonCodeFromError(err), Message: "The follow-up could not be saved."}
+	}
 	s.chatSurfaceMu.Unlock()
-
-	s.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
+	if old != nil && old.Cancel != nil {
+		old.Cancel()
+	}
 	if err := s.emitPublicChatFollowUpHookEvents(session, turn, action,
 		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
-		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING},
-	); err != nil {
-		cancel()
-		s.chatSurfaceMu.Lock()
-		if current := s.chatAnchors[session.ConversationAnchorID]; current != nil && current.PendingFollowUpID == followUpID {
-			current.PendingFollowUpID = ""
-		}
-		delete(s.chatFollowUps, followUpID)
-		s.chatSurfaceMu.Unlock()
-		s.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
-		return publicChatFollowUpOutcome{
-			Status:           "rejected",
-			ChainID:          chainID,
-			FollowUpDepth:    nextDepth,
-			MaxFollowUpTurns: maxTurns,
-			SourceTurnID:     turn.TurnID,
-			SourceActionID:   action.ActionID,
-			ReasonCode:       reasonCodeFromError(err),
-			Message:          strings.TrimSpace(err.Error()),
-		}
+		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING}); err != nil && s.logger != nil {
+		s.logger.Warn("publish saved follow-up event failed", "follow_up_id", followUpID, "error", err)
 	}
 	s.armPublicChatFollowUp(state)
 	return publicChatFollowUpOutcome{

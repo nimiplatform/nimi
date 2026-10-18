@@ -119,25 +119,11 @@ func TestPublicChatVoiceTimelineEventsRequireRuntimeOwnedPayload(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	started := time.Now().UTC().Add(-time.Second)
-	session := publicChatAnchorState{
-		ConversationAnchorID: "anchor-voice-1",
-		AgentID:              "agent-alpha",
-		CallerAppID:          "desktop.app",
-		SubjectUserID:        "user-1",
-	}
-	turn := publicChatTurnState{
-		ConversationAnchorID: session.ConversationAnchorID,
-		TurnID:               "turn-voice-1",
-		StreamID:             "stream-voice-1",
-		AgentID:              session.AgentID,
-		CallerAppID:          session.CallerAppID,
-		SubjectUserID:        session.SubjectUserID,
-		TimelineStartedAt:    started,
-	}
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	turnID := reserveConversationPublicationTestTurn(t, svc, anchorID)
 	svc.chatSurfaceMu.Lock()
-	svc.chatAnchors[session.ConversationAnchorID] = &session
-	svc.chatTurns[turn.TurnID] = &turn
+	session := *svc.chatAnchors[anchorID]
+	turn := *svc.chatTurns[turnID]
 	svc.chatSurfaceMu.Unlock()
 
 	if err := svc.publicChatRuntime().emitVoiceTimingReadyTimelineEvent(session, turn, publicChatVoiceTimingReadyProjection{

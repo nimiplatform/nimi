@@ -603,13 +603,14 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(standardShell.integration, ['listCatalog', 'listConnections', 'invoke', 'getCall', 'listCalls', 'cancelCall', 'registerProvider', 'unregisterProvider', 'pollProvider', 'completeProvider', 'getManagement', 'putConnection', 'removeConnection', 'setPermission', 'startConnectionSetup', 'getConnectionSetup', 'submitConnectionSetup', 'cancelConnectionSetup'], 'integration');
   assertExactMethodNamespace(standardShell.agentWork, ['listReferences', 'start', 'get', 'status', 'listToolCalls', 'submitToolResult', 'cancel', 'subscribe'], 'agentWork');
   assertExactMethodNamespace(standardShell.agents, ['listReferences', 'getIntroduction'], 'agents');
-  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot', 'setFollowUpPolicy', 'updateFollowUp'], 'conversation');
   assertExactMethodNamespace(standardShell.embodiment, ['snapshot', 'subscribe'], 'embodiment');
   assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);
   if (!agentConfigure
-    || Object.keys(agentConfigure).length !== 6
+    || Object.keys(agentConfigure).length !== 7
     || !Object.hasOwn(agentConfigure, 'conversationContext')
+    || !Object.hasOwn(agentConfigure, 'pendingHooks')
     || !Object.hasOwn(agentConfigure, 'sharedAIConfig')
     || !Object.hasOwn(agentConfigure, 'autonomy')
     || !Object.hasOwn(agentConfigure, 'presentation')
@@ -627,6 +628,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(agentConfigure.memory, ['inspect', 'correct', 'forget', 'setEnabled', 'deleteAll'], 'agentConfigure.memory');
   assertExactMethodNamespace(agentConfigure.manager, ['snapshot'], 'agentConfigure.manager');
   assertExactMethodNamespace(agentConfigure.conversationContext, ['update'], 'agentConfigure.conversationContext');
+  assertExactMethodNamespace(agentConfigure.pendingHooks, ['list','update'], 'agentConfigure.pendingHooks');
   assertNimiLocalAppActivityShell(standardShell.activity);
 
   return Object.freeze({

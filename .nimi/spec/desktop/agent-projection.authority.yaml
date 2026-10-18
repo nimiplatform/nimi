@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.desktop.agent-projection.agent-chat
     kind: definition
     title: Desktop LocalAgent Conversation projection
-    meaning: Desktop owns Nimi Home placement, user intent controls, bounded immutable snapshot, lorebook, Cognition, summary, recall-count, context-capacity, and optional Memory status rendering, explicit unavailable states, and ephemeral UI state for LocalAgent Conversation, while Runtime owns LocalAgent identity, source projection, execution, Conversation, summary, context planning, state, voice, continuity, and lifecycle and executes AI Jobs required by Cognition pipelines; Cognition owns Memory and Knowledge semantic admission and canonical state plus its private source corpus and generation lifecycle, and Knowledge V1 has no active Desktop projection.
+    meaning: Desktop owns Nimi Home placement, user intent controls, bounded immutable snapshot, lorebook, Cognition, summary, recall-count, context-capacity, and optional Memory status rendering, explicit unavailable states, App-private composer drafts and submission copies, and ephemeral view state for LocalAgent Conversation, while Runtime owns LocalAgent identity, source projection, execution, Conversation, summary, context planning, state, voice, continuity, and lifecycle and executes AI Jobs required by Cognition pipelines; Cognition owns Memory and Knowledge semantic admission and canonical state plus its private source corpus and generation lifecycle, and Knowledge V1 has no active Desktop projection.
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
@@ -211,7 +211,7 @@ units:
     kind: rule
     title: LocalAgent and Conversation selection are explicit
     modality: must
-    statement: Desktop selects an explicit authorized LocalAgent reference-list entry through its session-scoped agentHandle and uses only the Runtime-issued, revalidated Conversation anchor for that Agent's single canonical Conversation rather than accepting raw localAgentId, deriving a platform default LocalAgent, or merging all Conversations for one Character Source.
+    statement: Desktop selects an explicit authorized LocalAgent reference-list entry through its session-scoped agentHandle and uses only the Runtime-issued, revalidated Conversation anchor for that Agent's single canonical Conversation rather than accepting raw localAgentId, deriving a platform default LocalAgent, or merging all Conversations for one Character Source. A saved App-scoped agentBinding may narrow the current reference list to one candidate after technical-session rotation; Desktop then revalidates the existing anchor with that fresh handle. The hint grants no authority, absence or ambiguity does not trigger a name match or all-Agent snapshot search, and no new Agent or Conversation is inferred.
     condition: Whenever Desktop opens or switches a LocalAgent Conversation.
     failure: Require explicit selection and keep the surface unavailable when it cannot be resolved.
     relations:
@@ -231,7 +231,7 @@ units:
     kind: rule
     title: Selected Conversation recovers from Runtime
     modality: must
-    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed bounded snapshots and later ordered canonical live projections with stable turn, message, action, voice, artifact, sequence-high-watermark, and terminal status and never loses or duplicates an included content or sidecar relation; reload or Runtime restart does not promise durable replay of transient text, reasoning-status, action, or tool deltas and converges unfinished work through Agent-owned snapshot and terminal semantics.
+    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed bounded snapshots and later ordered canonical live projections with stable turn, message, action, voice, artifact, sequence-high-watermark, and terminal status and never loses or duplicates an included content or sidecar relation; reload or Runtime restart recovers admitted input and durable public partial text with explicit completeness through Agent-owned snapshot and terminal semantics, without raw event replay or treating a partial answer as completed history; request correlation is matched only within the current originating App, and media reads cannot block available text projection. The Home LocalAgent send path confirms only durable admission; one canonical Conversation subscription remains alive during submission and projects text occupancy, messages and independent media tails. A new text request does not cancel a preceding media tail. Stop-generating addresses the current text turn, while an explicit media stop addresses that original live turn and local playback remains separate.
     condition: Whenever Desktop reloads or reattaches to a LocalAgent Conversation.
     failure: Reject Desktop-local transcript reconstruction.
     relations:
@@ -406,3 +406,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-introduction
+  - id: rule.nimi.desktop.agent-projection.composer-draft
+    kind: rule
+    title: Home partner drafts use protected App storage
+    modality: must
+    statement: Home persists its own current partner text draft through protected App JSON storage scoped by the current account and App, addresses durable drafts by Runtime-issued stable agentBinding, and resolves fresh agent handles for current operations. Reads cannot replace newer edits, writes are serialized and retired scope callbacks cannot write or acknowledge another account or target, and only confirmed storage success may be shown as saved. Draft or storage failure leaves current text available for copying and does not disable an independently available Conversation. New input retains its protected submission copy before Send; regeneration of Runtime-owned durable input keeps a stable in-memory request ID and original retry reference, attempts the Home copy without making storage success a precondition, and never automatically resends. Explicit recovery uses the same request ID to find or continue the original submission, explains that a previously unaccepted request can incur model cost, and does not require a successful bounded snapshot first; read-only lookup remains optional.
+    condition: Whenever Home restores, edits, saves, or retires a LocalAgent composer draft.
+    failure: Reject cross-scope draft adoption, stale-handle persistence identity, false save acknowledgement, a second local transcript or database, and automatic model calls as a storage retry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat

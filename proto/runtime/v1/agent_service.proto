@@ -215,6 +215,8 @@ message PendingHook {
   HookIntent intent = 1;
   google.protobuf.Timestamp scheduled_for = 2;
   google.protobuf.Timestamp admitted_at = 3;
+  bool runtime_cadence = 4;
+  uint64 revision = 5;
 }
 message AgentLifecycleEventDetail {
   AgentLifecycleStatus previous_status = 1;
@@ -665,6 +667,7 @@ message SendLocalAppConversationTurnRequest {
   reserved 4, 6;
   reserved "text", "work";
   repeated LocalAppConversationInputPart parts = 5;
+  optional string retry_of_turn_id = 7;
 }
 message SendLocalAppConversationTurnResponse {
   string turn_id = 1;
@@ -750,6 +753,9 @@ message LocalAppConversationMessage {
   reserved "text";
   string message_id = 4;
   repeated LocalAppConversationMessagePart parts = 5;
+  // Only a saved assistant text prefix may be partial. User input admission
+  // and complete replies are separate durable facts.
+  bool partial = 6;
 }
 message LocalAppConversationTextPart { string text = 1; }
 enum LocalAppConversationMediaKind {
@@ -787,6 +793,12 @@ message LocalAppConversationTurn {
   optional string terminal_reason = 4;
   ReasonCode reason_code = 5;
   optional string message = 6;
+  // Correlation is populated only for the originating Registered App Subject.
+  optional string request_id = 7;
+  optional string retry_of_turn_id = 8;
+  optional string input_turn_id = 9;
+  bool can_regenerate = 10;
+  string origin = 11;
 }
 enum LocalAppConversationActionStatus {
   LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED = 0;
@@ -819,6 +831,65 @@ message LocalAppConversationVoice {
   ReasonCode reason_code = 6;
   optional string message = 7;
 }
+message LocalAppConversationFollowUp {
+  string task_id = 1;
+  uint64 revision = 2;
+  google.protobuf.Timestamp scheduled_for = 3;
+  string source_turn_id = 4;
+}
+message LocalAppConversationState {
+  bool follow_up_enabled = 1;
+  uint64 follow_up_policy_revision = 2;
+  uint32 max_follow_up_turns = 3;
+  LocalAppConversationFollowUp pending_follow_up = 4;
+  optional string text_turn_id = 5;
+}
+enum LocalAppScheduledTaskAction {
+  LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED = 0;
+  LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL = 1;
+  LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE = 2;
+}
+message UpdateLocalAppConversationFollowUpPolicyRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  uint64 expected_revision = 3;
+  bool enabled = 4;
+}
+message UpdateLocalAppConversationFollowUpRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string task_id = 3;
+  uint64 expected_revision = 4;
+  LocalAppScheduledTaskAction action = 5;
+  google.protobuf.Timestamp scheduled_for = 6;
+}
+message UpdateLocalAppConversationFollowUpPolicyResponse {
+  LocalAppConversationState state = 1;
+}
+message UpdateLocalAppConversationFollowUpResponse {
+  LocalAppConversationState state = 1;
+}
+message ListLocalAppAgentPendingHooksRequest { string agent_handle = 1; }
+message LocalAppAgentPendingHook {
+  string task_id = 1;
+  uint64 revision = 2;
+  google.protobuf.Timestamp scheduled_for = 3;
+  bool system_cadence = 4;
+  HookAdmissionState status = 5;
+  bool can_modify = 6;
+}
+message ListLocalAppAgentPendingHooksResponse {
+  repeated LocalAppAgentPendingHook hooks = 1;
+  bool truncated = 2;
+}
+message UpdateLocalAppAgentPendingHookRequest {
+  string agent_handle = 1;
+  string task_id = 2;
+  uint64 expected_revision = 3;
+  LocalAppScheduledTaskAction action = 4;
+  google.protobuf.Timestamp scheduled_for = 5;
+}
+message UpdateLocalAppAgentPendingHookResponse { LocalAppAgentPendingHook hook = 1; }
 message LocalAppConversationSnapshot {
   string conversation_anchor_id = 1;
   reserved 2;
@@ -829,6 +900,7 @@ message LocalAppConversationSnapshot {
   repeated LocalAppConversationTurn turns = 6;
   repeated LocalAppConversationAction actions = 7;
   repeated LocalAppConversationVoice voices = 8;
+  LocalAppConversationState state = 9;
 }
 message GetLocalAppConversationSnapshotResponse {
   LocalAppConversationSnapshot snapshot = 1;
@@ -837,7 +909,8 @@ message GetLocalAppConversationSnapshotResponse {
 message LocalAppConversationTurnAccepted {
   string turn_id = 1;
   reserved 2;
-  reserved "request_id";
+  optional string request_id = 3;
+  string origin = 4;
 }
 message LocalAppConversationTurnStarted {
   string turn_id = 1;
@@ -864,6 +937,8 @@ message LocalAppConversationMessageCommitted {
 message LocalAppConversationTurnCompleted {
   string turn_id = 1;
   string terminal_reason = 2;
+  ReasonCode reason_code = 3;
+  optional string message = 4;
 }
 message LocalAppConversationTurnFailed {
   string turn_id = 1;
@@ -930,6 +1005,7 @@ message LocalAppConversationEvent {
     LocalAppConversationReasoningStatus reasoning_status = 25;
     LocalAppConversationLiveAction live_action = 26;
     LocalAppConversationLiveTool live_tool = 27;
+    LocalAppConversationState state_changed = 28;
   }
 }
 
@@ -1199,6 +1275,10 @@ service RuntimeAgentService {
   rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
   rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
   rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);
+  rpc UpdateLocalAppConversationFollowUpPolicy(UpdateLocalAppConversationFollowUpPolicyRequest) returns (UpdateLocalAppConversationFollowUpPolicyResponse);
+  rpc UpdateLocalAppConversationFollowUp(UpdateLocalAppConversationFollowUpRequest) returns (UpdateLocalAppConversationFollowUpResponse);
+  rpc ListLocalAppAgentPendingHooks(ListLocalAppAgentPendingHooksRequest) returns (ListLocalAppAgentPendingHooksResponse);
+  rpc UpdateLocalAppAgentPendingHook(UpdateLocalAppAgentPendingHookRequest) returns (UpdateLocalAppAgentPendingHookResponse);
   rpc OpenLocalAppAgentRealtime(OpenLocalAppAgentRealtimeRequest) returns (OpenLocalAppAgentRealtimeResponse);
   rpc AppendLocalAppAgentRealtimeInput(AppendLocalAppAgentRealtimeInputRequest) returns (AppendLocalAppAgentRealtimeInputResponse);
   rpc SubscribeLocalAppAgentRealtimeEvents(SubscribeLocalAppAgentRealtimeEventsRequest) returns (stream LocalAppAgentRealtimeEvent);

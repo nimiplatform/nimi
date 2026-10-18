@@ -145,5 +145,5 @@ func (s *Service) emitPublicChatFollowUpHookEvents(
 			Message:    strings.TrimSpace(transition.message),
 		}, now))
 	}
-	return s.updateAgent(entry, events...)
+	return s.appendAgentEvents(entry.Agent.GetLocalAgentRef(), events...)
 }

@@ -1,6 +1,10 @@
 use super::*;
 use base64::Engine;
 use nimi_shell_protected_local::{
+    LocalAppAgentPendingHookUpdateRequest, LocalAppConversationFollowUpUpdateRequest,
+    LocalAppConversationPolicyRequest, LocalAppScheduledTime,
+};
+use nimi_shell_protected_local::{
     LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
     LocalAppVideoSessionScopeRequest,
 };
@@ -626,10 +630,15 @@ pub async fn local_app_artifact_upload(
 }
 
 #[napi(js_name = "localAppVoiceAssetsDelete")]
-pub async fn local_app_voice_assets_delete(input: NativeVoiceAssetDeleteInput) -> NativeJsonOutcome {
+pub async fn local_app_voice_assets_delete(
+    input: NativeVoiceAssetDeleteInput,
+) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
-        session.delete_scenario_voice_asset(input.voice_asset_id).await
-    }).await
+        session
+            .delete_scenario_voice_asset(input.voice_asset_id)
+            .await
+    })
+    .await
 }
 
 #[napi(js_name = "localAppVoiceAssetsList")]
@@ -1358,8 +1367,13 @@ pub async fn local_app_realm_persona_character_delete(
 #[napi(js_name = "localAppAgentIntroductionGet")]
 pub async fn local_app_agent_introduction_get(input: NativeAgentHandleInput) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
-        session.agent_introduction_get(LocalAppAgentHandleRequest { agent_handle: input.agent_handle }).await
-    }).await
+        session
+            .agent_introduction_get(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
 }
 
 #[napi(js_name = "localAppAgentReferenceList")]
@@ -1714,10 +1728,16 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
     let Some(record) = input.as_object() else {
         return NativeJsonOutcome::error(native_invalid_payload());
     };
+    let regenerate = record.contains_key("retryOfTurnId");
     if record.len() != 4
-        || !["agentHandle", "conversationAnchorId", "requestId", "parts"]
-            .iter()
-            .all(|key| record.contains_key(*key))
+        || ![
+            "agentHandle",
+            "conversationAnchorId",
+            "requestId",
+            if regenerate { "retryOfTurnId" } else { "parts" },
+        ]
+        .iter()
+        .all(|key| record.contains_key(*key))
     {
         return NativeJsonOutcome::error(native_invalid_payload());
     }
@@ -1728,15 +1748,28 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
     ) else {
         return NativeJsonOutcome::error(native_invalid_payload());
     };
+    let retry_of_turn_id = if regenerate {
+        match record["retryOfTurnId"].as_str() {
+            Some(value) => Some(value.to_string()),
+            None => return NativeJsonOutcome::error(native_invalid_payload()),
+        }
+    } else {
+        None
+    };
     let input = NativeConversationSendInput {
+        retry_of_turn_id,
         agent_handle: agent_handle.to_string(),
         conversation_anchor_id: conversation_anchor_id.to_string(),
         request_id: request_id.to_string(),
-        parts: record["parts"].clone(),
+        parts: record.get("parts").cloned().unwrap_or_else(|| json!([])),
     };
-    let parts = match native_conversation_input_parts(input.parts) {
-        Ok(parts) => parts,
-        Err(error) => return NativeJsonOutcome::error(error),
+    let parts = if regenerate {
+        Vec::new()
+    } else {
+        match native_conversation_input_parts(input.parts) {
+            Ok(parts) => parts,
+            Err(error) => return NativeJsonOutcome::error(error),
+        }
     };
     invoke_agent(|session| async move {
         session
@@ -1744,6 +1777,7 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
                 agent_handle: input.agent_handle,
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
+                retry_of_turn_id: input.retry_of_turn_id,
                 parts,
             })
             .await
@@ -1988,6 +2022,7 @@ pub async fn local_app_conversation_snapshot(
                 json!({
                     "conversationAnchorId": snapshot.conversation_anchor_id,
                     "throughSequence": snapshot.through_sequence.to_string(),
+                    "state": snapshot.state,
                     "turns": snapshot.turns,
                     "messages": snapshot.messages.into_iter().map(|message| json!({
                         "messageId": message.message_id,
@@ -1998,6 +2033,7 @@ pub async fn local_app_conversation_snapshot(
                             LocalAppConversationMessageRole::Assistant => "assistant",
                         },
                         "parts": message.parts,
+                        "partial": message.partial,
                     })).collect::<Vec<_>>(),
                     "actions": snapshot.actions,
                     "voices": snapshot.voices,
@@ -2760,8 +2796,15 @@ fn native_embodiment_cursor(value: &str) -> Result<u64, LocalAppOperationError> 
 
 fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
     let mut projection = match event.event {
-        LocalAppConversationEventKind::TurnAccepted { turn_id } => json!({
-            "type": "turn-accepted", "turnId": turn_id,
+        LocalAppConversationEventKind::StateChanged { state } => {
+            json!({"type":"state-changed","state":state})
+        }
+        LocalAppConversationEventKind::TurnAccepted {
+            turn_id,
+            request_id,
+            origin,
+        } => json!({
+            "type": "turn-accepted", "turnId": turn_id, "requestId": request_id, "origin": origin,
         }),
         LocalAppConversationEventKind::TurnStarted { turn_id } => json!({
             "type": "turn-started", "turnId": turn_id,
@@ -2813,8 +2856,11 @@ fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
         LocalAppConversationEventKind::TurnCompleted {
             turn_id,
             terminal_reason,
+            reason_code,
+            message,
         } => json!({
             "type": "turn-completed", "turnId": turn_id, "terminalReason": terminal_reason,
+            "reasonCode": reason_code, "message": message,
         }),
         LocalAppConversationEventKind::TurnFailed {
             turn_id,
@@ -3664,20 +3710,126 @@ pub async fn local_app_integration_set_permission(input: JsonValue) -> NativeJso
 
 #[napi(js_name = "localAppIntegrationStartConnectionSetup")]
 pub async fn local_app_integration_start_connection_setup(input: JsonValue) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.integration_start_connection_setup(input).await }).await
+    invoke_agent(|session| async move { session.integration_start_connection_setup(input).await })
+        .await
 }
 
 #[napi(js_name = "localAppIntegrationGetConnectionSetup")]
 pub async fn local_app_integration_get_connection_setup(input: JsonValue) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.integration_get_connection_setup(input).await }).await
+    invoke_agent(|session| async move { session.integration_get_connection_setup(input).await })
+        .await
 }
 
 #[napi(js_name = "localAppIntegrationSubmitConnectionSetup")]
 pub async fn local_app_integration_submit_connection_setup(input: JsonValue) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.integration_submit_connection_setup(input).await }).await
+    invoke_agent(|session| async move { session.integration_submit_connection_setup(input).await })
+        .await
 }
 
 #[napi(js_name = "localAppIntegrationCancelConnectionSetup")]
 pub async fn local_app_integration_cancel_connection_setup(input: JsonValue) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.integration_cancel_connection_setup(input).await }).await
+    invoke_agent(|session| async move { session.integration_cancel_connection_setup(input).await })
+        .await
+}
+
+fn scheduled_time(
+    value: Option<JsonValue>,
+) -> Result<Option<LocalAppScheduledTime>, LocalAppOperationError> {
+    let Some(value) = value else { return Ok(None) };
+    let row = value.as_object().ok_or_else(native_invalid_payload)?;
+    if row.len() != 2 || !row.contains_key("seconds") || !row.contains_key("nanos") {
+        return Err(native_invalid_payload());
+    }
+    let seconds = row["seconds"]
+        .as_str()
+        .ok_or_else(native_invalid_payload)?
+        .parse::<i64>()
+        .map_err(|_| native_invalid_payload())?;
+    let nanos = row["nanos"]
+        .as_i64()
+        .filter(|v| (0..1_000_000_000).contains(v))
+        .ok_or_else(native_invalid_payload)? as i32;
+    Ok(Some(LocalAppScheduledTime { seconds, nanos }))
+}
+#[napi(js_name = "localAppConversationFollowUpPolicy")]
+pub async fn local_app_conversation_follow_up_policy(
+    input: NativeConversationPolicyInput,
+) -> NativeJsonOutcome {
+    let expected_revision = match decimal_revision(&input.expected_revision, true) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    invoke_agent(|session| async move {
+        session
+            .conversation_follow_up_policy(LocalAppConversationPolicyRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                expected_revision,
+                enabled: input.enabled,
+            })
+            .await
+    })
+    .await
+}
+#[napi(js_name = "localAppConversationFollowUpUpdate")]
+pub async fn local_app_conversation_follow_up_update(
+    input: NativeConversationFollowUpInput,
+) -> NativeJsonOutcome {
+    let expected_revision = match decimal_revision(&input.expected_revision, false) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    let scheduled_for = match scheduled_time(input.scheduled_for) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    invoke_agent(|session| async move {
+        session
+            .conversation_follow_up_update(LocalAppConversationFollowUpUpdateRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                task_id: input.task_id,
+                expected_revision,
+                action: input.action,
+                scheduled_for,
+            })
+            .await
+    })
+    .await
+}
+#[napi(js_name = "localAppAgentPendingHooks")]
+pub async fn local_app_agent_pending_hooks(input: NativeAgentHandleInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_pending_hooks(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+#[napi(js_name = "localAppAgentPendingHookUpdate")]
+pub async fn local_app_agent_pending_hook_update(
+    input: NativeAgentPendingHookInput,
+) -> NativeJsonOutcome {
+    let expected_revision = match decimal_revision(&input.expected_revision, false) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    let scheduled_for = match scheduled_time(input.scheduled_for) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_pending_hook_update(LocalAppAgentPendingHookUpdateRequest {
+                agent_handle: input.agent_handle,
+                task_id: input.task_id,
+                expected_revision,
+                action: input.action,
+                scheduled_for,
+            })
+            .await
+    })
+    .await
 }

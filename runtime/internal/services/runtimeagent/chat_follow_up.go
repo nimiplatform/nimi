@@ -13,6 +13,7 @@ import (
 // Per K-AGCORE-034 it is bound to a ConversationAnchor; continuity is via
 // `ConversationAnchorID`, never a freestanding session identity.
 type publicChatFollowUpState struct {
+	Revision             uint64
 	FollowUpID           string
 	ConversationAnchorID string
 	AgentID              string

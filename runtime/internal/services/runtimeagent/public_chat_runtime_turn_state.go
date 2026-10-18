@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,6 +28,16 @@ func (r publicChatRuntime) reserveTurn(
 	}
 	localAgentRef := identity.LocalAgentRef
 	anchorID := strings.TrimSpace(req.ConversationAnchorID)
+	r.svc.chatSurfaceMu.Lock()
+	if anchor := r.svc.chatAnchors[anchorID]; anchor != nil && anchor.LocalAgentRef == localAgentRef && !r.svc.agentTerminationFencedLocked(localAgentRef) {
+		if reused, found, err := reusedPublicChatAdmission(anchor, req); found || err != nil {
+			snapshot := *anchor
+			r.svc.chatSurfaceMu.Unlock()
+			return snapshot, reused, parent, err
+		}
+	}
+	r.svc.chatSurfaceMu.Unlock()
+
 	if callerAppID == "" {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat request requires caller app")
 	}
@@ -73,6 +84,7 @@ func (r publicChatRuntime) reserveTurn(
 	}
 	availableActions := publicChatAvailableActions{
 		ImageGenerate: imageAvailability,
+		TextOnly:      req.RetryOfTurnID != "",
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	for {
@@ -80,6 +92,13 @@ func (r publicChatRuntime) reserveTurn(
 		if r.svc.agentTerminationFencedLocked(localAgentRef) {
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+		}
+		if anchor := r.svc.chatAnchors[anchorID]; anchor != nil && anchor.LocalAgentRef == localAgentRef {
+			if reused, found, err := reusedPublicChatAdmission(anchor, req); found || err != nil {
+				snapshot := *anchor
+				r.svc.chatSurfaceMu.Unlock()
+				return snapshot, reused, parent, err
+			}
 		}
 		if r.svc.localAgentExecutionBusyLocked(localAgentRef) {
 			r.svc.chatSurfaceMu.Unlock()
@@ -126,6 +145,27 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
 		}
+		if claim := req.followUpClaim; claim != nil {
+			pending := r.svc.chatFollowUps[session.PendingFollowUpID]
+			if !session.FollowUpEnabled || pending == nil || pending.FollowUpID != claim.FollowUpID || pending.Revision != claim.Revision || pending.ScheduledFor.After(time.Now().UTC()) || pending.FollowUpDepth > pending.MaxFollowUpTurns {
+				r.svc.chatSurfaceMu.Unlock()
+				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "follow-up is no longer pending or enabled")
+			}
+		}
+		if req.RetryOfTurnID != "" && !publicChatCanRegenerate(session, req.RetryOfTurnID) {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, localAppConversationInvalid("This turn cannot be regenerated. Continue with a new message.")
+		}
+		if req.RetryOfTurnID == "" {
+			for _, attachment := range req.resolvedAttachments {
+				if (!attachment.ExpiresAt.IsZero() && !time.Now().UTC().Before(attachment.ExpiresAt)) || publicChatAttachmentIsMember(session, attachment.ArtifactID) {
+					r.svc.chatSurfaceMu.Unlock()
+					return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+				}
+			}
+		}
+		before := *session
+		versionBefore := r.svc.chatSurfaceVersion
 		// K-AGCORE-147: the anchor no longer owns binding truth. Every turn
 		// admission overwrites the session projection fields with the
 		// admission-resolved bindings and the committed config revision.
@@ -148,30 +188,20 @@ func (r publicChatRuntime) reserveTurn(
 		// Request-carried messages are current-turn input only. Runtime-owned
 		// committed transcript is appended atomically at the message commit
 		// point; caller history never reconciles, replaces, or extends it here.
-		// Public chat turn execution is asynchronous relative to the ingress
-		// app-message handler. The runtime-owned turn context must therefore not
-		// inherit the handler/request lifetime, but it must retain the already
-		// verified account and App authority values used by downstream Job custody.
-		// Otherwise the handler returning can cancel the turn or detached execution
-		// can silently become anonymous.
-		parent = context.WithoutCancel(parent)
 		turnID := "agent_turn_" + ulid.Make().String()
 		streamID := "agent_stream_" + ulid.Make().String()
 		timelineStartedAt := time.Now()
-		// Runtime AI owns text-stream first-packet, idle, and absolute timeout
-		// semantics. The public-chat turn retains explicit interruption through
-		// this cancel function but must not race the provider timeout with a
-		// duplicate outer deadline that can misproject it as turn interruption.
-		turnCtx, cancel := context.WithCancel(parent)
+		availableActions.FollowUpEnabled = session.FollowUpEnabled && req.RetryOfTurnID == ""
 		turn := &publicChatTurnState{
 			ConversationAnchorID: session.ConversationAnchorID,
 			TurnID:               turnID,
+			RequestID:            req.RequestID,
+			RetryOfTurnID:        req.RetryOfTurnID,
 			StreamID:             streamID,
 			AgentID:              session.AgentID,
 			CallerAppID:          callerAppID,
 			SubjectUserID:        session.SubjectUserID,
 			ThreadID:             session.ThreadID,
-			Cancel:               cancel,
 			TimelineStartedAt:    timelineStartedAt,
 			Origin:               publicChatTurnOriginUser,
 			ConfigRevision:       configRevision,
@@ -179,21 +209,64 @@ func (r publicChatRuntime) reserveTurn(
 			Reasoning:            effectiveReasoning,
 			BindingRelease:       bindingRelease,
 		}
-		releaseUnclaimedBinding = nil
 
+		if claim := req.followUpClaim; claim != nil {
+			turn.Origin = publicChatTurnOriginFollowUp
+			turn.ChainID = claim.ChainID
+			turn.FollowUpDepth = claim.FollowUpDepth
+			turn.MaxFollowUpTurns = claim.MaxFollowUpTurns
+			turn.SourceTurnID = claim.SourceTurnID
+			turn.SourceActionID = claim.SourceActionID
+		}
 		turn.Projection = newPublicChatTurnProjection(turn)
 		session.ActiveTurnID = turnID
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 		session.UpdatedAt = time.Now().UTC()
 		r.svc.chatTurns[turnID] = turn
 		r.svc.chatActiveByAgent[localAgentRef] = turnID
+		session.Recoveries = clonePublicChatRecoveries(session.Recoveries)
+		if recovery := newPublicChatTurnRecovery(*turn, req, session); recovery != nil {
+			session.Recoveries[turnID] = recovery
+		}
+		session.LatestAcceptedTurnID = turnID
+		canceled := r.svc.chatFollowUps[session.PendingFollowUpID]
+		if canceled != nil {
+			delete(r.svc.chatFollowUps, canceled.FollowUpID)
+		}
+		session.PendingFollowUpID = ""
+		// Keep the original caller context until new input is durably admitted.
+		// A deduplicated read or Runtime-owned follow-up is not a new App commit.
+		var commitErr error
+		if req.localAppAdmission != nil {
+			commitErr = r.svc.persistLocalAppConversationCommitLocked(parent, localappop.IngressConversationTurnSend, *req.localAppAdmission, session.ConversationAnchorID)
+		} else {
+			commitErr = r.svc.persistPublicChatSurfaceStateLocked(session.ConversationAnchorID)
+		}
+		if commitErr != nil {
+			*session = before
+			r.svc.chatSurfaceVersion = versionBefore
+			delete(r.svc.chatTurns, turnID)
+			delete(r.svc.chatActiveByAgent, localAgentRef)
+			if canceled != nil {
+				r.svc.chatFollowUps[canceled.FollowUpID] = canceled
+			}
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, commitErr
+		}
+		// Only accepted work outlives the RPC. Preserve authority values for Job
+		// custody and the existing explicit Stop/provider timeout ownership.
+		turnCtx, cancel := context.WithCancel(context.WithoutCancel(parent))
+		turn.Cancel = cancel
+		if req.followUpClaim == nil {
+			turn.CanceledFollowUp = canceled
+		}
+		releaseUnclaimedBinding = nil
 		snapshot := *session
 		snapshot.Reasoning = clonePublicChatReasoningConfig(effectiveReasoning)
 		snapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 		turnSnapshot := *turn
 		turnSnapshot.Reasoning = clonePublicChatReasoningConfig(turn.Reasoning)
 		r.svc.chatSurfaceMu.Unlock()
-		r.svc.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
 		return snapshot, turnSnapshot, turnCtx, nil
 	}
 }
@@ -213,25 +286,27 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 		turn.BindingRelease = nil
 	}
 	delete(r.svc.chatTurns, trimmedTurnID)
-	if session := r.svc.chatAnchors[trimmedAnchorID]; session != nil && session.ActiveTurnID == trimmedTurnID {
+	if session := r.svc.chatAnchors[trimmedAnchorID]; session != nil {
 		if publishTerminal && turn != nil && turn.TerminalProjection != nil {
 			terminal := clonePublicChatTurnProjectionState(turn.TerminalProjection)
 			terminal.StreamSequence = turn.StreamSequence
 			terminal.UpdatedAt = time.Now().UTC()
-			session.LastTurnSnapshot = terminal
-			session.LastTurnID = trimmedTurnID
-			if messageID := strings.TrimSpace(terminal.MessageID); messageID != "" {
-				session.LastMessageID = messageID
+			if session.CompletedTurnSnapshots == nil {
+				session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
 			}
-			if publicChatTurnProjectionIsTerminal(terminal) {
-				if session.CompletedTurnSnapshots == nil {
-					session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+			session.CompletedTurnSnapshots[trimmedTurnID] = terminal
+			if session.ActiveTurnID == trimmedTurnID || session.LatestAcceptedTurnID == trimmedTurnID || session.LastTurnID == trimmedTurnID {
+				session.LastTurnSnapshot = clonePublicChatTurnProjectionState(terminal)
+				session.LastTurnID = trimmedTurnID
+				if terminal.MessageID != "" {
+					session.LastMessageID = terminal.MessageID
 				}
-				session.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(terminal)
 			}
 		}
-		session.ActiveTurnID = ""
-		session.ActiveTurnSnapshot = nil
+		if session.ActiveTurnID == trimmedTurnID {
+			session.ActiveTurnID = ""
+			session.ActiveTurnSnapshot = nil
+		}
 		session.UpdatedAt = time.Now().UTC()
 	}
 	if turn != nil && strings.TrimSpace(r.svc.chatActiveByAgent[turn.AgentID]) == trimmedTurnID {
@@ -242,6 +317,7 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 	if bindingRelease != nil {
 		bindingRelease()
 	}
+	r.svc.wakeDuePublicChatFollowUp(trimmedAnchorID)
 }
 
 func (r publicChatRuntime) finishTurnReservation(session publicChatAnchorState, turnID string) {
@@ -252,16 +328,11 @@ func (r publicChatRuntime) finishTurnReservation(session publicChatAnchorState, 
 	if trimmedTurnID == "" {
 		return
 	}
-	r.svc.chatSurfaceMu.Lock()
-	anchor := r.svc.chatAnchors[strings.TrimSpace(session.ConversationAnchorID)]
-	reservationOwned := anchor != nil && strings.TrimSpace(anchor.ActiveTurnID) == trimmedTurnID
-	if !reservationOwned {
-		reservationOwned = strings.TrimSpace(r.svc.chatActiveByAgent[strings.TrimSpace(session.AgentID)]) == trimmedTurnID
-	}
-	r.svc.chatSurfaceMu.Unlock()
-	if reservationOwned {
-		r.releaseTurnReservation(session.ConversationAnchorID, trimmedTurnID, true)
-	}
+	r.releaseTurnReservation(session.ConversationAnchorID, trimmedTurnID, true)
+	r.setIdleIfTextUnclaimed(session, trimmedTurnID)
+}
+
+func (r publicChatRuntime) setIdleIfTextUnclaimed(session publicChatAnchorState, trimmedTurnID string) {
 	// Serialize the old turn's final execution-state transition against a new
 	// reserveTurn. A terminal callback may synchronously start the next turn;
 	// in that case the newer reservation owns CHAT_ACTIVE and must not be
@@ -311,7 +382,7 @@ func (r publicChatRuntime) lookupTurnForInterrupt(
 	if strings.TrimSpace(session.SubjectUserID) != trimmedSubjectUserID {
 		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.PermissionDenied, "public chat anchor subject_user_id mismatch")
 	}
-	turnID := firstNonEmpty(strings.TrimSpace(req.TurnID), session.ActiveTurnID)
+	turnID := firstNonEmpty(strings.TrimSpace(req.ExpectedTurnID), strings.TrimSpace(req.TurnID), session.ActiveTurnID)
 	turn := r.svc.chatTurns[turnID]
 	if turn == nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.NotFound, "public chat turn not found")
@@ -326,4 +397,48 @@ func (r publicChatRuntime) lookupTurnForInterrupt(
 		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.PermissionDenied, "public chat turn subject_user_id mismatch")
 	}
 	return *session, *turn, nil
+}
+
+// Releasing the text slot keeps the original turn, binding and cancellation
+// scope alive until its independent media really terminates.
+func (s *Service) releasePublicChatTextSlot(anchorID, turnID string) error {
+	s.localAppConversationPublishMu.Lock()
+	defer s.localAppConversationPublishMu.Unlock()
+	s.chatSurfaceMu.Lock()
+	anchor := s.chatAnchors[anchorID]
+	turn := s.chatTurns[turnID]
+	if anchor == nil || turn == nil || anchor.ActiveTurnID != turnID || !publicChatHasCompleteAnswer(anchor, turnID) || s.agentTerminationFencedLocked(turn.AgentID) {
+		s.chatSurfaceMu.Unlock()
+		return localAppConversationOwnerUnavailable()
+	}
+	before := *anchor
+	version := s.chatSurfaceVersion
+	active := s.chatActiveByAgent[turn.AgentID]
+	anchor.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
+	if anchor.CompletedTurnSnapshots == nil {
+		anchor.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+	}
+	anchor.CompletedTurnSnapshots[turnID] = clonePublicChatTurnProjectionState(turn.Projection)
+	anchor.ActiveTurnID = ""
+	anchor.ActiveTurnSnapshot = nil
+	if active == turnID {
+		delete(s.chatActiveByAgent, turn.AgentID)
+	}
+	anchor.LocalAppSequence++
+	err := s.persistPublicChatSurfaceStateLocked(anchorID)
+	if err != nil {
+		*anchor = before
+		s.chatSurfaceVersion = version
+		if active != "" {
+			s.chatActiveByAgent[turn.AgentID] = active
+		}
+		s.chatSurfaceMu.Unlock()
+		return err
+	}
+	state := s.localAppConversationStateLocked(anchor)
+	event := &runtimev1.LocalAppConversationEvent{ConversationAnchorId: anchorID, Sequence: anchor.LocalAppSequence, Event: &runtimev1.LocalAppConversationEvent_StateChanged{StateChanged: state}}
+	accountID := anchor.SubjectUserID
+	s.chatSurfaceMu.Unlock()
+	s.broadcastLocalAppConversationEvents(accountID, anchorID, []*runtimev1.LocalAppConversationEvent{event})
+	return nil
 }

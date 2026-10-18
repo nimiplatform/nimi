@@ -26,14 +26,22 @@ func TestRuntimeAgentVoiceSynthesisContextSeparatesOuterIngressFromOwnerExecutio
 	)
 	parent, parentCancel := context.WithCancel(protectedprincipal.With(context.Background(), principal))
 	parent = accountservice.ContextWithAuthorizedLocalAppDecision(parent, accountservice.LocalAppCallerDecision{
-		AppID: "outer-app", RegisteredAppSubject: "outer-subject",
+		AppID: "outer-app", RegisteredAppSubject: "outer-subject", AccountID: "owner-1",
+		Operation: accountservice.LocalAppOperationConversationVoiceRender, OperationCapability: "agent.local",
+		LocalAgentID: "agent-1", SessionInvalidated: invalidated,
 	})
 	ctx := runtimeAgentVoiceSynthesisContext(parent, "voice-owner-app", "owner-1")
 	if _, ok := protectedprincipal.AttachedToContext(ctx); ok {
 		t.Fatal("Agent-private voice execution inherited the outer protected principal")
 	}
-	if _, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
-		t.Fatal("Agent-private voice execution inherited the outer local App decision")
+	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); !ok ||
+		decision.AppID != "outer-app" || decision.RegisteredAppSubject != "outer-subject" ||
+		decision.Operation != accountservice.LocalAppOperationConversationVoiceRender || decision.OperationCapability != "agent.local" ||
+		decision.AccountID != "owner-1" || decision.LocalAgentID != "agent-1" || decision.SessionInvalidated != invalidated {
+		t.Fatal("voice execution lost or rewrote the original work authorization")
+	}
+	if account, ok := executionintent.RuntimeAccountSubjectFromContext(ctx); !ok || account != "owner-1" {
+		t.Fatal("voice execution lost the validated account owner")
 	}
 	incoming, _ := metadata.FromIncomingContext(ctx)
 	if got := firstString(incoming.Get("x-nimi-app-id")); got != "voice-owner-app" {
@@ -71,7 +79,9 @@ func TestAIBackedConversationVoiceSynthesizerProjectsArtifactWithoutMouthState(t
 	}
 	synth := newAIBackedVoiceLipsyncSynthesizer(ai, "speech/qwen3tts", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
 	decision := accountservice.LocalAppCallerDecision{AppID: "chat-app", AccountID: "voice-owner", RegisteredAppSubject: "registered-chat", LocalAgentID: "agent-provider-voice", Operation: accountservice.LocalAppOperationSendConversationTurn, SessionInvalidated: make(chan struct{})}
-	parent := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
+	bounded, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	parent := accountservice.ContextWithAuthorizedLocalAppDecision(bounded, decision)
 	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
 		Context:               parent,
 		OwnerUserID:           "voice-owner",
@@ -91,7 +101,8 @@ func TestAIBackedConversationVoiceSynthesizerProjectsArtifactWithoutMouthState(t
 	if ai.submitReq.GetHead().GetTimeoutMs() != 0 {
 		t.Fatal("asynchronous voice submission must not carry the observer timeout")
 	}
-	if deadline, ok := ai.submitCtx.Deadline(); !ok || time.Until(deadline) <= 0 || time.Until(deadline) > defaultLocalVoiceSynthesisJobWait {
+	expectedDeadline, _ := parent.Deadline()
+	if deadline, ok := ai.submitCtx.Deadline(); !ok || !deadline.Equal(expectedDeadline) {
 		t.Fatal("voice observation must retain its bounded context")
 	}
 	if executionApp, ok := accountservice.AgentVoiceJobExecutionApp(ai.submitCtx); !ok || executionApp != runtimeAgentVoiceSynthesisAppID {

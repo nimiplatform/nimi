@@ -18,7 +18,7 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	installPublicChatFollowUpGate(t, svc)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -84,7 +84,7 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 func TestPublicChatReserveKeepsRuntimeTranscriptAndCommitsCurrentPairAtomically(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	committed := []*runtimev1.ChatMessage{
 		{Role: "user", Content: "first user"},
 		{Role: "assistant", Content: "first assistant"},
@@ -141,7 +141,7 @@ func TestPublicChatReserveKeepsRuntimeTranscriptAndCommitsCurrentPairAtomically(
 func TestPublicChatCommittedTranscriptTurnReplayIsIdempotentAcrossLaterTurns(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	first := &runtimev1.ChatMessage{Role: "user", Content: "first user"}
 	second := &runtimev1.ChatMessage{Role: "user", Content: "second user"}
 	if err := svc.commitPublicChatTurnTranscriptForTurn(anchorID, "turn-first", first, "first assistant"); err != nil {
@@ -167,7 +167,7 @@ func TestPublicChatCommittedTranscriptTurnReplayIsIdempotentAcrossLaterTurns(t *
 func TestPublicChatAnchorContinuityAndEventsCrossApps(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	req := publicChatTurnRequestPayload{
@@ -213,7 +213,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	installPublicChatFollowUpGate(t, svc)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -345,7 +345,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 	localStatePath := t.TempDir() + "/local-state.json"
 	svc, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	installPublicChatFollowUpGate(t, svc)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	firstCapture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(firstCapture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -488,7 +488,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	installPublicChatFollowUpGate(t, svc)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -622,7 +622,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 			t.Fatalf("unexpected hook lifecycle event at index %d: got %s want %s", index, got, want)
 		}
 		intent := detail.GetIntent()
-		if got := strings.TrimSpace(intent.GetIntentId()); got != "action-follow-up-1" {
+		if got := strings.TrimSpace(intent.GetIntentId()); got == "action-follow-up-1" || got == "" || got != hookEvents[0].GetHook().GetIntent().GetIntentId() {
 			t.Fatalf("expected canceled hook to preserve action id, got %#v", intent)
 		}
 		if got := strings.TrimSpace(intent.GetConversationAnchorId()); got != anchorID {
@@ -642,7 +642,7 @@ func TestPublicChatFollowUpIgnoresLegacySidebandAdmissionFailure(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	followUpGate := installPublicChatFollowUpGate(t, svc)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	var acceptedMu sync.Mutex
 	acceptedCount := 0
@@ -683,6 +683,9 @@ func TestPublicChatFollowUpIgnoresLegacySidebandAdmissionFailure(t *testing.T) {
 				return err
 			}
 			envelope := publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "turn-1", "action-follow-up-1", "come back later", 20)
+			if currentCall > 1 {
+				envelope = publicChatStructuredEnvelopeAPML("message-2", "follow-up completed")
+			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-follow-up-cancel-%d", currentCall),
@@ -759,7 +762,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 	t.Parallel()
 	localStatePath := t.TempDir() + "/local-state.json"
 	svc, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	firstCapture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(firstCapture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -845,7 +848,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 	if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
 		t.Fatalf("expected persisted last turn completed, got=%v", lastTurn)
 	}
-	if got := lastTurn["message_id"]; got != "message-restart-snapshot" {
+	if got := lastTurn["message_id"]; got == "message-restart-snapshot" || got != publicChatPayloadMap(t, firstCapture.waitForMessageType(t, publicChatTurnMessageCommittedType))["message_id"] {
 		t.Fatalf("expected persisted message id, got=%v", lastTurn)
 	}
 	if got := lastTurn["text"]; got != "persisted terminal text" {

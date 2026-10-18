@@ -426,3 +426,5 @@ export { createNimiLocalAppWorldCoreClient, createNimiLocalAppActivityClient } f
 export type { NimiAppActivityRecord, NimiLocalAppActivityClient, NimiAppActivityView, NimiAppActivityViewSnapshot } from '@nimiplatform/sdk/app';
 
 export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic, NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
+
+export type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit, NimiLocalAppConversationPolicyInput, NimiLocalAppConversationFollowUpInput, NimiLocalAppAgentPendingHookInput } from '@nimiplatform/sdk/app';

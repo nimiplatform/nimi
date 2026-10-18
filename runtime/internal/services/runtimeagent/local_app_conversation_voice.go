@@ -41,6 +41,7 @@ func (s *Service) commitLocalAppConversationVoiceReady(
 	turn publicChatTurnState,
 	ownerMessageID string,
 	artifactID string,
+	attempt *localAppVoiceRenderCommit,
 ) error {
 	artifactID = strings.TrimSpace(artifactID)
 	if s == nil || s.runtimeArtifacts == nil || artifactID == "" {
@@ -58,7 +59,7 @@ func (s *Service) commitLocalAppConversationVoiceReady(
 	}
 	voice := localAppConversationVoiceState(turn.TurnID, "ready")
 	voice.ArtifactID = artifactID
-	if err := s.commitLocalAppConversationVoiceSidecar(session, turn, voice); err != nil {
+	if err := s.commitLocalAppConversationVoiceSidecar(session, turn, voice, attempt); err != nil {
 		return err
 	}
 	return s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
@@ -69,6 +70,7 @@ func (s *Service) commitLocalAppConversationVoiceFailed(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
 	terminalReason string,
+	attempt *localAppVoiceRenderCommit,
 ) error {
 	reasonCode := runtimev1.ReasonCode_AI_OUTPUT_INVALID
 	if value, ok := runtimev1.ReasonCode_value[strings.TrimSpace(terminalReason)]; ok && value != int32(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED) {
@@ -84,7 +86,7 @@ func (s *Service) commitLocalAppConversationVoiceFailed(
 	if voice.Message == "" {
 		voice.Message = "VOICE_SYNTHESIS_FAILED"
 	}
-	if err := s.commitLocalAppConversationVoiceSidecar(session, turn, voice); err != nil {
+	if err := s.commitLocalAppConversationVoiceSidecar(session, turn, voice, attempt); err != nil {
 		return err
 	}
 	return s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
@@ -106,6 +108,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
 	voice *publicChatVoiceSidecarState,
+	attempt *localAppVoiceRenderCommit,
 ) error {
 	if voice == nil || !validLocalAppConversationSelector(voice.VoiceID) ||
 		!validLocalAppConversationSelector(voice.TurnID) || !validLocalAppConversationSelector(voice.MessageID) ||
@@ -118,15 +121,15 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	defer s.chatSurfaceMu.Unlock()
 	anchor := s.chatAnchors[strings.TrimSpace(session.ConversationAnchorID)]
 	activeTurn := s.chatTurns[strings.TrimSpace(turn.TurnID)]
-	completedTurn := publicChatCompletedTurnProjectionByTurnLocked(anchor, turn.TurnID)
-	if anchor == nil || (activeTurn == nil && completedTurn == nil) ||
-		(activeTurn != nil && (activeTurn.Interrupted ||
+	completedTurn := publicChatVoiceEligibleTurnProjectionLocked(anchor, turn.TurnID)
+	if anchor == nil || s.agentTerminationFencedLocked(anchor.LocalAgentRef) || (activeTurn == nil && completedTurn == nil) ||
+		(activeTurn != nil && ((attempt == nil && activeTurn.Interrupted) ||
 			strings.TrimSpace(activeTurn.ConversationAnchorID) != strings.TrimSpace(anchor.ConversationAnchorID))) {
 		return grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
 	foundTurn := false
 	for _, transcriptTurn := range anchor.CommittedTranscript {
-		if (transcriptTurn.Origin == publicChatTurnOriginUser || transcriptTurn.Origin == publicChatTurnOriginApp) && transcriptTurn.TurnID == voice.TurnID &&
+		if (transcriptTurn.Origin == publicChatTurnOriginUser || transcriptTurn.Origin == publicChatTurnOriginApp || transcriptTurn.Origin == publicChatTurnOriginFollowUp) && transcriptTurn.TurnID == voice.TurnID &&
 			strings.TrimSpace(transcriptTurn.AssistantText) != "" {
 			foundTurn = true
 			break
@@ -139,7 +142,9 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 		if *existing == *voice {
 			return nil
 		}
-		return grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		if attempt == nil || attempt.previous == nil || *attempt.previous != *existing || existing.State != "failed" || existing.ArtifactID != "" {
+			return grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 	}
 	before := clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
 	updatedAtBefore := anchor.UpdatedAt
@@ -150,7 +155,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	copy := *voice
 	anchor.VoiceSidecars[voice.TurnID] = &copy
 	anchor.UpdatedAt = time.Now().UTC()
-	if err := s.persistPublicChatSurfaceStateLocked(anchor.ConversationAnchorID); err != nil {
+	if err := s.persistLocalAppVoiceRenderCommitLocked(attempt, anchor.ConversationAnchorID); err != nil {
 		anchor.VoiceSidecars = before
 		anchor.UpdatedAt = updatedAtBefore
 		s.chatSurfaceVersion = versionBefore

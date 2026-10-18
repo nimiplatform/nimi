@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"net"
 	"net/url"
@@ -22,6 +23,46 @@ import (
 )
 
 const localAppAgentHandlePrefix = "agent_ref_"
+
+type localAppIngressCommitter interface {
+	CommitLocalAppIngress(context.Context, localappop.Ingress, func(context.Context) error) error
+}
+
+func (s *Service) persistLocalAppConversationCommitLocked(ctx context.Context, ingress localappop.Ingress, initial accountservice.LocalAppCallerDecision, anchorID string) error {
+	snapshot, err := s.capturePublicChatSurfaceSnapshotLocked(anchorID)
+	if err != nil {
+		return err
+	}
+	err = s.commitLocalAppOwnerMutation(ctx, ingress, initial, func(current context.Context) error {
+		return s.backend.WriteTx(current, func(tx *sql.Tx) error { return persistPublicChatSurfaceStateTx(tx, snapshot) })
+	})
+	if err == nil {
+		s.markPersistedTranscriptLocked(snapshot)
+	}
+	return err
+}
+
+// The owner lock precedes the persistence writer and existing Account /
+// registration / session fence. Keep the reserved context through SQL commit.
+// @nimi-authority: rule.nimi.runtime.integration.final-publication
+func (s *Service) commitLocalAppOwnerMutation(ctx context.Context, ingress localappop.Ingress, initial accountservice.LocalAppCallerDecision, persist func(context.Context) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	committer, ok := s.localAppIngressRevalidator.(localAppIngressCommitter)
+	if !ok || s.backend == nil || s.isClosed() {
+		return localAppConversationOwnerUnavailable()
+	}
+	return s.backend.WithSerializedWriter(ctx, func(writerCtx context.Context) error {
+		return committer.CommitLocalAppIngress(writerCtx, ingress, func(current context.Context) error {
+			decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(current)
+			if !ok || current.Err() != nil || decision.SessionID != initial.SessionID || decision.AccountID != initial.AccountID || decision.AppID != initial.AppID || decision.RegisteredAppSubject != initial.RegisteredAppSubject {
+				return localAppAgentAccessDenied()
+			}
+			return persist(current)
+		})
+	})
+}
 
 // @nimi-authority: rule.nimi.runtime.agent-participation.r197
 func (s *Service) ResolveDesktopAgentReference(ctx context.Context, req *runtimev1.ResolveDesktopAgentReferenceRequest) (*runtimev1.ResolveDesktopAgentReferenceResponse, error) {

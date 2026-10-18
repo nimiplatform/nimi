@@ -168,22 +168,25 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name       string
-		raw        string
-		cutAtLimit bool
+		name         string
+		raw          string
+		bodyComplete bool
+		cutAtLimit   bool
 	}{
 		{
-			name:       "output limit",
-			raw:        `<message id="message-limit">partial reply`,
-			cutAtLimit: true,
+			name: "output limit", raw: `<message id="message-limit">partial reply`, cutAtLimit: true,
 		},
 		{
-			name: "malformed",
-			raw:  `<message id="message-malformed"><activity>thinking</activity>Hello</message><action id="action-malformed" kind="image"><prompt-payload kind="image"><prompt-text>must not execute</prompt-text></prompt-payload>`,
+			name: "malformed", bodyComplete: true,
+			raw: `<message id="message-malformed"><activity>thinking</activity>Hello</message><action id="action-malformed" kind="image"><prompt-payload kind="image"><prompt-text>must not execute</prompt-text></prompt-payload>`,
 		},
 		{
-			name: "unknown tag",
-			raw:  `<message id="message-unknown">Hello</message><unknown/>`,
+			name: "message closed as activity",
+			raw:  `<message id="message-mismatch"><activity>listening</activity>Hello</activity></message>`,
+		},
+		{
+			name: "unknown tag", bodyComplete: true,
+			raw: `<message id="message-unknown">Hello</message><unknown/>`,
 		},
 		{
 			name: "wrapped",
@@ -266,6 +269,23 @@ func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T)
 			}
 			_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 			_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+			if tt.bodyComplete {
+				committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+				if publicChatTurnDetail(t, committed)["text"] != "Hello" {
+					t.Fatal("bad control erased body")
+				}
+				_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+				for _, kind := range capture.messageTypes() {
+					if kind == publicChatTurnActionPlannedType || kind == publicChatTurnActionStartedType || kind == publicChatTurnFailedType {
+						t.Fatalf("invalid control executed or denied body: %s", kind)
+					}
+				}
+				snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "control-rejection")
+				if publicChatLastTurnSnapshot(t, snapshot)["reason_code"] != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+					t.Fatal("control rejection was hidden")
+				}
+				return
+			}
 			failed := capture.waitForMessageType(t, publicChatTurnFailedType)
 			failedDetail := publicChatTurnDetail(t, failed)
 			if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
@@ -494,7 +514,7 @@ func TestPublicChatTurnRequestUsesOnlyCompleteRuntimeCommittedTranscript(t *test
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
 
-func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
+func TestPublicChatTurnRequestCommitsBodyWithUnknownEmotion(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -554,27 +574,25 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 	}
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
-	failedDetail := publicChatTurnDetail(t, failed)
-	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
-		t.Fatalf("expected AI_OUTPUT_INVALID failed.detail.reason_code, got=%v", failedDetail)
+	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	if got := publicChatTurnDetail(t, committed)["text"]; got != "hello" {
+		t.Fatalf("body lost: %#v", publicChatTurnDetail(t, committed))
 	}
-	if got := strings.TrimSpace(fmt.Sprint(failedDetail["message"])); !strings.Contains(got, "current emotion ontology") {
-		t.Fatalf("expected failed.detail.message to identify emotion ontology rejection, got=%v", failedDetail)
-	}
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 	capture.mu.Lock()
 	defer capture.mu.Unlock()
 	for _, item := range capture.items {
-		if item.GetMessageType() == publicChatTurnMessageCommittedType {
-			t.Fatalf("unknown emotion must fail before message commit; saw %s", item.GetMessageType())
+		if item.GetMessageType() == publicChatTurnFailedType {
+			t.Fatalf("bad optional cue failed the turn: %#v", item)
 		}
 	}
+
 }
 
 func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	followUpGate := installPublicChatFollowUpGate(t, svc)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})

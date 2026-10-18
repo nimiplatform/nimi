@@ -26,8 +26,8 @@ import (
 
 func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testing.T) {
 	send := (&runtimev1.SendLocalAppConversationTurnRequest{}).ProtoReflect().Descriptor()
-	if send.Fields().Len() != 4 {
-		t.Fatalf("send field count = %d, want handle, anchor, request id, parts", send.Fields().Len())
+	if send.Fields().Len() != 5 {
+		t.Fatalf("send field count = %d, want handle, anchor, request id, parts, retry reference", send.Fields().Len())
 	}
 	for _, forbidden := range []string{
 		"agent_id", "local_agent_id", "attachments", "message_type", "payload", "context",
@@ -38,7 +38,7 @@ func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testin
 		}
 	}
 	event := (&runtimev1.LocalAppConversationEvent{}).ProtoReflect().Descriptor()
-	if event.Fields().Len() != 19 || event.Oneofs().Len() != 1 {
+	if event.Fields().Len() != 20 || event.Oneofs().Len() != 1 {
 		t.Fatalf("event descriptor fields=%d oneofs=%d", event.Fields().Len(), event.Oneofs().Len())
 	}
 	for _, forbidden := range []string{
@@ -49,7 +49,7 @@ func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testin
 		}
 	}
 	snapshot := (&runtimev1.LocalAppConversationSnapshot{}).ProtoReflect().Descriptor()
-	if snapshot.Fields().Len() != 7 {
+	if snapshot.Fields().Len() != 8 {
 		t.Fatalf("snapshot field count = %d", snapshot.Fields().Len())
 	}
 }
@@ -170,13 +170,14 @@ func TestLocalAppConversationSubscriberBatchesNormalTextDeltaBurst(t *testing.T)
 func TestLocalAppConversationPublisherBatchesDeepSeekStyleDeltaBurst(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	turnID := reserveConversationPublicationTestTurn(t, svc, anchorID)
 	_, events := svc.addLocalAppConversationSubscriber(localAppConversationSubscriber{
 		accountID: "user-1", conversationAnchorID: anchorID,
 	})
 	for index := 0; index < 128; index++ {
 		if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
 			"conversation_anchor_id": anchorID,
-			"turn_id":                "agent_turn_deepseek_burst",
+			"turn_id":                turnID,
 			"timeline":               map[string]any{"sequence": int64(index + 1)},
 			"detail":                 map[string]any{"text": "x"},
 		}); err != nil {
@@ -356,7 +357,7 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	}))
 	stream := newLocalAppConversationCaptureStream(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), subscribeDecision),
-		9,
+		12,
 	)
 	streamDone := make(chan error, 1)
 	go func() {
@@ -392,7 +393,7 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	case <-time.After(3 * time.Second):
 		t.Fatal("conversation stream did not reach terminal event")
 	}
-	if len(stream.events) != 9 || stream.events[8].GetTurnCompleted() == nil {
+	if len(stream.events) != 12 || stream.events[10].GetTurnCompleted() == nil || stream.events[11].GetStateChanged() == nil {
 		t.Fatalf("typed conversation events = %+v", stream.events)
 	}
 	reasoningStatusCount := 0
@@ -948,6 +949,9 @@ func TestLocalAppConversationVoiceRenderUsesHandleAndCommittedMessageOnly(t *tes
 	}, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
 
 	decision := localAppConversationDecision(accountservice.LocalAppOperationConversationVoiceRender, 0x58, "user-1")
+	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, _ localappop.Ingress) (context.Context, error) {
+		return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
+	}))
 	handle := mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha"))
 	response, err := svc.RenderLocalAppConversationVoice(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
@@ -1032,6 +1036,9 @@ func TestLocalAppConversationVoiceRenderReturnsTypedUnavailableWithoutVoicePolic
 	)
 
 	decision := localAppConversationDecision(accountservice.LocalAppOperationConversationVoiceRender, 0x59, "user-1")
+	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, _ localappop.Ingress) (context.Context, error) {
+		return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
+	}))
 	handle := mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha"))
 	response, err := svc.RenderLocalAppConversationVoice(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
@@ -1068,7 +1075,7 @@ func TestLocalAppConversationVoiceFailurePreservesCanonicalReason(t *testing.T) 
 		svc.chatTurns[turnID] = &publicChatTurnState{ConversationAnchorID: anchorID, TurnID: turnID, SubjectUserID: "user-1"}
 		svc.chatSurfaceMu.Unlock()
 		session, _ := svc.publicChatAnchorSnapshot(anchorID)
-		if err := svc.commitLocalAppConversationVoiceFailed(session, *svc.chatTurns[turnID], reason.String()); err != nil {
+		if err := svc.commitLocalAppConversationVoiceFailed(session, *svc.chatTurns[turnID], reason.String(), nil); err != nil {
 			t.Fatal(err)
 		}
 		voice := svc.localAppConversationVoiceForTurn(anchorID, turnID)
@@ -1118,18 +1125,18 @@ func TestLocalAppConversationFinalVoiceSidecarsAreDurableReadableAndTerminal(t *
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.commitLocalAppConversationVoiceReady(session, readyTurn, ownerMessageID, "artifact-voice-ready"); err != nil {
+	if err := svc.commitLocalAppConversationVoiceReady(session, readyTurn, ownerMessageID, "artifact-voice-ready", nil); err != nil {
 		t.Fatalf("commit ready voice: %v", err)
 	}
 	failedTurn := *svc.chatTurns["turn-voice-failed"]
-	if err := svc.commitLocalAppConversationVoiceFailed(session, failedTurn, "VOICE_SYNTHESIS_UNAVAILABLE"); err != nil {
+	if err := svc.commitLocalAppConversationVoiceFailed(session, failedTurn, "VOICE_SYNTHESIS_UNAVAILABLE", nil); err != nil {
 		t.Fatalf("commit failed voice: %v", err)
 	}
 	svc.chatSurfaceMu.Lock()
 	svc.chatTurns["turn-voice-interrupted"].Interrupted = true
 	interruptedTurn := *svc.chatTurns["turn-voice-interrupted"]
 	svc.chatSurfaceMu.Unlock()
-	if err := svc.commitLocalAppConversationVoiceFailed(session, interruptedTurn, "VOICE_SYNTHESIS_FAILED"); status.Code(err) != codes.Canceled {
+	if err := svc.commitLocalAppConversationVoiceFailed(session, interruptedTurn, "VOICE_SYNTHESIS_FAILED", nil); status.Code(err) != codes.Canceled {
 		t.Fatalf("interrupted unpublished voice error = %v", err)
 	}
 
@@ -1176,9 +1183,11 @@ func localAppConversationTestPNG(t *testing.T) []byte {
 
 func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	turnID := reserveConversationPublicationTestTurn(t, svc, anchorID)
 	base := map[string]any{
-		"conversation_anchor_id": "agent_anchor_01J",
-		"turn_id":                "agent_turn_01J",
+		"conversation_anchor_id": anchorID,
+		"turn_id":                turnID,
 		"timeline":               map[string]any{"sequence": int64(3)},
 	}
 	tests := []struct {
@@ -1191,7 +1200,7 @@ func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
 			name: "accepted", messageType: publicChatTurnAcceptedType,
 			detail: map[string]any{"request_id": "request-1"},
 			assert: func(t *testing.T, event *runtimev1.LocalAppConversationEvent) {
-				if event.GetTurnAccepted().GetTurnId() != "agent_turn_01J" {
+				if event.GetTurnAccepted().GetTurnId() != turnID {
 					t.Fatalf("accepted = %+v", event)
 				}
 			},
@@ -1214,7 +1223,7 @@ func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
 			}
 			payload["detail"] = test.detail
 			events, supported, err := svc.projectLocalAppConversationEvents(test.messageType, payload, 3)
-			if err != nil || !supported || len(events) != 1 || events[0].GetSequence() != 3 {
+			if err != nil || !supported || len(events) < 2 || events[0].GetSequence() != 3 {
 				t.Fatalf("projection events=%+v supported=%v err=%v", events, supported, err)
 			}
 			test.assert(t, events[0])
@@ -1274,6 +1283,7 @@ func TestLocalAppConversationStreamPreservesWhitespaceDeltaFragments(t *testing.
 	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, _ localappop.Ingress) (context.Context, error) {
 		return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
 	}))
+	turnID := reserveConversationPublicationTestTurn(t, svc, anchorID)
 	fragments := []string{"DeepSeek", " burst", "\n", " "}
 	stream := newLocalAppConversationCaptureStream(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
@@ -1285,7 +1295,7 @@ func TestLocalAppConversationStreamPreservesWhitespaceDeltaFragments(t *testing.
 	for index, fragment := range fragments {
 		if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
 			"conversation_anchor_id": anchorID,
-			"turn_id":                "agent_turn_whitespace_delta",
+			"turn_id":                turnID,
 			"timeline":               map[string]any{"sequence": int64(index + 1)},
 			"detail":                 map[string]any{"text": fragment},
 		}); err != nil {
@@ -1327,7 +1337,9 @@ func TestLocalAppConversationSequencePersistenceFailsBeforePublication(t *testin
 	}
 	select {
 	case emission := <-events:
-		t.Fatalf("unpersisted Conversation event became observable: %+v", emission)
+		if emission.event != nil || emission.err == nil {
+			t.Fatalf("unpersisted Conversation event became observable: %+v", emission)
+		}
 	default:
 	}
 }
@@ -1650,4 +1662,49 @@ func runLocalAppConversationStreamWithTimeout(
 
 func protoreflectName(value string) protoreflect.Name {
 	return protoreflect.Name(value)
+}
+
+func reserveConversationPublicationTestTurn(t *testing.T, svc *Service, anchorID string) string {
+	t.Helper()
+	_, turn, _, err := svc.reservePublicChatTurn(context.Background(), "desktop.app", "user-1", publicChatTurnRequestPayload{
+		LocalAgentRef: testRuntimeAgentLocalRef("agent-alpha"), OwnerUserID: "user-1", RuntimeSourceRef: testRuntimeAgentSourceRef("agent-alpha"),
+		ConversationAnchorID: anchorID, Messages: []publicChatMessagePayload{{Role: "user", Content: "publication test"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { svc.releasePublicChatTurn(anchorID, turn.TurnID) })
+	return turn.TurnID
+}
+
+func (function localAppIngressRevalidatorFunc) CommitLocalAppIngress(ctx context.Context, ingress localappop.Ingress, commit func(context.Context) error) error {
+	current, err := function(ctx, ingress)
+	if err != nil {
+		return err
+	}
+	if err := current.Err(); err != nil {
+		return err
+	}
+	return commit(current)
+}
+
+func TestConversationSnapshotRetainsAdmittedStopReasonOnly(t *testing.T) {
+	for _, item := range []struct {
+		name          string
+		status        string
+		message, want string
+	}{
+		{"user stop", publicChatTurnStatusInterrupted, "user_cancel", "user_cancel"},
+		{"owner timeout", publicChatTurnStatusInterrupted, "timeout", "timeout"},
+		{"restart", publicChatTurnStatusInterrupted, "public chat turn interrupted by runtime restart", ""},
+		{"unknown", publicChatTurnStatusInterrupted, "", ""},
+		{"failed message is not cancellation", publicChatTurnStatusFailed, "user_cancel", ""},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			turn := localAppConversationTurnFromProjection("turn", &publicChatTurnProjectionState{Status: item.status, Message: item.message, ReasonCode: runtimev1.ReasonCode_AI_STREAM_BROKEN}, false)
+			if turn.GetTerminalReason() != item.want {
+				t.Fatalf("terminal reason=%q want=%q", turn.GetTerminalReason(), item.want)
+			}
+		})
+	}
 }

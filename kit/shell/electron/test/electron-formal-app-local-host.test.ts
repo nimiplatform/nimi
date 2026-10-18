@@ -10,6 +10,9 @@ import {
   GetAgentPresentationAssetRequest,
   GetAgentPresentationAssetResponse,
   OpenLocalAppConversationResponse,
+  RenderLocalAppConversationVoiceRequest,
+  RenderLocalAppConversationVoiceResponse,
+  LocalAppConversationVoiceState,
   ResolveDesktopAgentReferenceRequest,
   ResolveDesktopAgentReferenceResponse,
   ResolveLocalAppAvatarHostTargetRequest,
@@ -325,6 +328,37 @@ describe('Electron formal App local host', () => {
     } finally {
       await owner.dispose();
     }
+  });
+
+  it.each(['ready', 'failed'] as const)('preserves the canonical voice envelope for %s formal rendering', async (state) => {
+    const handle = `agent_ref_${'A'.repeat(43)}`;
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      expect(input.methodId).toBe('/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice');
+      expect(RenderLocalAppConversationVoiceRequest.fromBinary(input.requestBytes)).toMatchObject({
+        agentHandle: handle, conversationAnchorId: 'anchor-1', messageId: 'message-1', requestId: 'voice-1',
+      });
+      return RenderLocalAppConversationVoiceResponse.toBinary({ voice: {
+        voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1',
+        state: state === 'ready' ? LocalAppConversationVoiceState.READY : LocalAppConversationVoiceState.FAILED,
+        artifactId: state === 'ready' ? 'audio-1' : undefined,
+        reasonCode: state === 'ready' ? ReasonCode.REASON_CODE_UNSPECIFIED : ReasonCode.AI_ROUTE_UNSUPPORTED,
+        message: state === 'ready' ? undefined : 'Speech is not configured.',
+      } });
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile: 'desktop', appId: 'nimi.desktop',
+      control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      await expect(owner.host.conversationVoiceRender({
+        agentHandle: handle, conversationAnchorId: 'anchor-1', messageId: 'message-1', requestId: 'voice-1',
+      })).resolves.toEqual({ voice: {
+        voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1', state,
+        artifactId: state === 'ready' ? 'audio-1' : null,
+        reasonCode: state === 'ready' ? null : 'AI_ROUTE_UNSUPPORTED',
+        message: state === 'ready' ? null : 'Speech is not configured.',
+      } });
+    } finally { await owner.dispose(); }
   });
 
   it.each(['desktop', 'avatar'] as const)('carries %s Conversation binary payloads as byte views to the SDK', async (profile) => {

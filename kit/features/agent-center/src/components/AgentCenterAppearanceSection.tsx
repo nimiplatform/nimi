@@ -595,6 +595,16 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
                 value={appearance.defaultVoiceReference || ''}
               />
             </div>
+            {hasDefaultVoice ? (
+              <Button
+                disabled={!actionAvailable || resourcePackMutationBusy || !session.appearance.setDefaultVoice || operation.state === 'saving'}
+                onClick={() => void setDefaultVoice('')}
+                size="sm"
+                tone="secondary"
+              >
+                {translateAgentCenter(i18n, 'AgentCenter.appearance.clearDefaultVoice', agentCenterEnCatalog['AgentCenter.appearance.clearDefaultVoice'])}
+              </Button>
+            ) : null}
             <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.catalogDescription}</p>
             {selectedVoiceMissing && voiceCatalog?.state === 'ready' && !voiceCatalog.truncated ? (
               <InlineAlert tone="warning">{voiceCopy.currentVoiceMissing}</InlineAlert>
@@ -605,7 +615,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
             {voiceCatalog?.state === 'ready' && voiceCatalog.truncated ? (
               <InlineAlert tone="warning">{voiceCopy.catalogTruncated}</InlineAlert>
             ) : null}
-            {voiceCatalog?.state === 'unavailable' ? (
+            {!voiceCatalog || voiceCatalog.state === 'unavailable' ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-status-warning-soft-text)]">{voiceCopy.catalogUnavailable}</span>
                 <Button onClick={() => void session.refresh()} size="sm" tone="secondary">{voiceCopy.retryLabel}</Button>

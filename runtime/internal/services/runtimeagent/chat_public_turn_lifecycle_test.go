@@ -144,11 +144,11 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	// runtime.agent.turn.message_committed: yaml requires `message_id`
 	// envelope extra plus `{message_id, text}` detail.
 	committedPayload := publicChatPayloadMap(t, committed)
-	if got := committedPayload["message_id"]; got != "message-1" {
+	if got := committedPayload["message_id"]; got == "message-1" || got != messagePayload["message_id"] {
 		t.Fatalf("expected message_committed envelope message_id=message-1, got=%v", committedPayload)
 	}
 	committedDetail := publicChatTurnDetail(t, committed)
-	if got := committedDetail["message_id"]; got != "message-1" {
+	if got := committedDetail["message_id"]; got == "message-1" || got != messagePayload["message_id"] {
 		t.Fatalf("expected message_committed.detail.message_id=message-1, got=%v", committedDetail)
 	}
 	if got := committedDetail["text"]; got != "hello from runtime" {

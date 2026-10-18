@@ -172,14 +172,14 @@ func runtimeAgentManualVoiceLipsyncIdempotencyKey(turnID string, messageID strin
 }
 
 func publicChatCompletedTurnProjectionForLocalAppMessageLocked(session *publicChatAnchorState, turnID string, messageID string) *publicChatTurnProjectionState {
-	projection := publicChatCompletedTurnProjectionByTurnLocked(session, turnID)
+	projection := publicChatVoiceEligibleTurnProjectionLocked(session, turnID)
 	if projection == nil || localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
 		return nil
 	}
 	return projection
 }
 
-func publicChatCompletedTurnProjectionByTurnLocked(session *publicChatAnchorState, turnID string) *publicChatTurnProjectionState {
+func publicChatVoiceEligibleTurnProjectionLocked(session *publicChatAnchorState, turnID string) *publicChatTurnProjectionState {
 	if session == nil {
 		return nil
 	}
@@ -187,22 +187,23 @@ func publicChatCompletedTurnProjectionByTurnLocked(session *publicChatAnchorStat
 	if trimmedTurnID == "" {
 		return nil
 	}
-	if projection := session.CompletedTurnSnapshots[trimmedTurnID]; publicChatProjectionIsCompletedTurn(projection, trimmedTurnID) {
+	if projection := session.CompletedTurnSnapshots[trimmedTurnID]; publicChatProjectionIsVoiceEligible(projection, trimmedTurnID) {
 		return projection
 	}
 	for _, projection := range session.CompletedTurnSnapshots {
-		if publicChatProjectionIsCompletedTurn(projection, trimmedTurnID) {
+		if publicChatProjectionIsVoiceEligible(projection, trimmedTurnID) {
 			return projection
 		}
 	}
-	if publicChatProjectionIsCompletedTurn(session.LastTurnSnapshot, trimmedTurnID) {
+	if publicChatProjectionIsVoiceEligible(session.LastTurnSnapshot, trimmedTurnID) {
 		return session.LastTurnSnapshot
 	}
 	return nil
 }
 
-func publicChatProjectionIsCompletedTurn(projection *publicChatTurnProjectionState, turnID string) bool {
+func publicChatProjectionIsVoiceEligible(projection *publicChatTurnProjectionState, turnID string) bool {
 	return projection != nil &&
-		projection.Status == publicChatTurnStatusCompleted &&
+		(projection.Status == publicChatTurnStatusCompleted || projection.Status == publicChatTurnStatusFailed || projection.Status == publicChatTurnStatusInterrupted) &&
+		strings.TrimSpace(projection.AssistantText) != "" &&
 		strings.TrimSpace(projection.TurnID) == strings.TrimSpace(turnID)
 }

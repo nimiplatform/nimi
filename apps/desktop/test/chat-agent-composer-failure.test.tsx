@@ -38,7 +38,7 @@ test('Home composer preserves a newer same-Agent draft after an old component se
         ? reject(Object.assign(new Error('Content blocked'), { reasonCode: 'AI_CONTENT_FILTER_BLOCKED' })) : resolve(); });
       const first = await mount(() => pending);
       await act(async () => (first.node.querySelector('[data-chat-composer-send]') as HTMLButtonElement).click());
-      assert.equal(draft.current, '');
+      assert.equal(draft.current, 'Submitted earlier', 'input must stay available until the submission copy and admission settle');
       await act(async () => first.root.unmount()); mounts.splice(mounts.indexOf(first.root), 1);
       const second = await mount(async () => { throw new Error('Input refused'); });
       const field = second.node.querySelector('textarea')!;

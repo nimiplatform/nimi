@@ -769,6 +769,7 @@ pub struct LocalAppConversationOpenResult {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSendRequest {
+    pub retry_of_turn_id: Option<String>,
     pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub request_id: String,
@@ -1011,6 +1012,15 @@ pub struct LocalAppAgentUpdateConversationContextRequest {
     pub omit_supplemental_context: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppScheduledTime {pub seconds:i64,pub nanos:i32}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationPolicyRequest {pub agent_handle:String,pub conversation_anchor_id:String,pub expected_revision:u64,pub enabled:bool}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationFollowUpUpdateRequest {pub agent_handle:String,pub conversation_anchor_id:String,pub task_id:String,pub expected_revision:u64,pub action:String,pub scheduled_for:Option<LocalAppScheduledTime>}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentPendingHookUpdateRequest {pub agent_handle:String,pub task_id:String,pub expected_revision:u64,pub action:String,pub scheduled_for:Option<LocalAppScheduledTime>}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAgentPresentationAssetInput {
     pub role: String,
@@ -1063,6 +1073,7 @@ pub enum LocalAppConversationMessageRole {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationMessage {
+    pub partial: bool,
     pub message_id: String,
     pub turn_id: String,
     pub role: LocalAppConversationMessageRole,
@@ -1071,6 +1082,7 @@ pub struct LocalAppConversationMessage {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSnapshot {
+    pub state: JsonValue,
     pub conversation_anchor_id: String,
     pub through_sequence: u64,
     pub turns: Vec<JsonValue>,
@@ -1089,7 +1101,10 @@ pub struct LocalAppConversationEvent {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationEventKind {
+    StateChanged {state: JsonValue},
     TurnAccepted {
+        request_id: Option<String>,
+        origin: String,
         turn_id: String,
     },
     TurnStarted {
@@ -1149,6 +1164,8 @@ pub enum LocalAppConversationEventKind {
     TurnCompleted {
         turn_id: String,
         terminal_reason: String,
+        reason_code: Option<String>,
+        message: Option<String>,
     },
     TurnFailed {
         turn_id: String,
@@ -1297,7 +1314,9 @@ pub struct LocalAppRealmRealtimeChannelRequest {
 pub trait NimiDesktopControl: Send + Sync {
     /// Exact version of an admitted immutable production Runtime peer. Source
     /// and unadmitted builds carry no release version.
-    fn runtime_release_version(&self) -> Option<String> { None }
+    fn runtime_release_version(&self) -> Option<String> {
+        None
+    }
     /// Invalidates only the carrier cache entry owned by this exact
     /// connection-bound control. Implementations without a shared transport
     /// cache may keep the default no-op.
@@ -2082,16 +2101,20 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: JsonValue,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn integration_start_connection_setup(
-        &self, request: JsonValue,
+        &self,
+        request: JsonValue,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn integration_get_connection_setup(
-        &self, request: JsonValue,
+        &self,
+        request: JsonValue,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn integration_submit_connection_setup(
-        &self, request: JsonValue,
+        &self,
+        request: JsonValue,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn integration_cancel_connection_setup(
-        &self, request: JsonValue,
+        &self,
+        request: JsonValue,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn conversation_open(
         &self,
@@ -2437,6 +2460,14 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
         request: LocalAppAgentUpdateAutonomyRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn conversation_follow_up_policy(&self, request: LocalAppConversationPolicyRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn conversation_follow_up_update(&self, request: LocalAppConversationFollowUpUpdateRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_pending_hooks(&self, request: LocalAppAgentHandleRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_pending_hook_update(&self, request: LocalAppAgentPendingHookUpdateRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_update_conversation_context(
         &self,

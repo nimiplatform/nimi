@@ -247,3 +247,17 @@ test('runtime agent debug accessory renders runtime.agent.turns anchor evidence'
   assert.doesNotMatch(markup, /modelResolved=/u);
   assert.doesNotMatch(markup, /routeDecision=/u);
 });
+
+
+test('image failures retain readable content and keep diagnostic codes collapsed', async () => {
+  const RuntimeImageMessageContent = await loadRuntimeImageMessageContent();
+  const markup = renderToStaticMarkup(<RuntimeImageMessageContent
+    imageLabel="Image" showCaptionLabel="Show prompt" hideCaptionLabel="Hide prompt"
+    failureMessage="Image generation failed. Your text is kept."
+    technicalDetailsLabel="Technical details"
+    message={buildCanonicalMessage({ status: 'error', metadata: { imageFailureReasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED', imageOperationId: 'action-1' } })}
+  />);
+  assert.match(markup, /Image generation failed. Your text is kept./u);
+  assert.match(markup, /<details[^>]*><summary[^>]*>Technical details<\/summary>.*AI_MEDIA_OPTION_UNSUPPORTED/u);
+  assert.doesNotMatch(markup, /<details[^>]*\bopen\b/u);
+});

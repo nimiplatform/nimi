@@ -608,6 +608,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationConversationTurnInterrupt,
 		localappop.OperationConversationEventsSubscribe,
 		localappop.OperationConversationSnapshotGet,
+		localappop.OperationConversationFollowUpPolicyUpdate,
+		localappop.OperationConversationFollowUpUpdate,
 		localappop.OperationConversationAttachmentUpload,
 		localappop.OperationConversationArtifactRead,
 		localappop.OperationConversationVoiceTranscribe,
@@ -621,6 +623,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationAgentAutonomySnapshotGet,
 		localappop.OperationAgentAutonomyUpdate,
 		localappop.OperationAgentConversationContextUpdate,
+		localappop.OperationAgentPendingHooksList,
+		localappop.OperationAgentPendingHookUpdate,
 		localappop.OperationAgentPresentationSnapshotGet,
 		localappop.OperationAgentPresentationCommit,
 		localappop.OperationAgentMemoryInspect,
@@ -689,7 +693,7 @@ func bindLocalAppSessionInvalidation(ctx context.Context, invalidated <-chan str
 }
 
 // @nimi-authority: rule.nimi.runtime.integration.final-publication
-// CommitLocalAppIngress retains the technical-session fence across a short
+// CommitLocalAppIngress retains registration, Account and technical-session fences across a short
 // resource-owner commit. Exact operation admission is revalidated first;
 // resource permission remains the caller owner's responsibility.
 func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.Ingress, commit func(context.Context) error) error {
@@ -702,20 +706,35 @@ func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.
 	if !ok || !bound || connection == nil || commit == nil {
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
+	classification, classifyErr := localappop.ClassifyIngress(ingress)
+	if classifyErr != nil || s.localAppKernel == nil {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
 	account, available := s.accountSecurity.(runtimeAccountGenerationCommitter)
 	if !available {
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	}
-	// Integration reserves its persistence writer before this Account fence,
+	// Owners reserve their persistence writer before these commit fences,
 	// matching Account audit mutation order. No callback re-enters admission
 	// or performs external network I/O; the actual local commit stays fenced.
 	accepted, err := account.CommitAuthenticatedRuntimeGeneration(ctx, decision.AccountID, decision.RealmEnvironmentID, decision.AccountGeneration, func() error {
-		return connection.CommitSession(decision.SessionID, func() error {
-			if ctx.Err() != nil || !s.now().UTC().Before(decision.ExpiresAt) {
-				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
-			}
-			return commit(authorized)
+		// Canonical registration changes serialize here, rather than depending
+		// on the later session invalidation notification. The order matches Job
+		// publication: Account -> registration -> technical session.
+		entered := false
+		err := s.localAppKernel.Registrations().WithRegistrationAuthority(ctx, decision.RegisteredAppSubject, decision.SourceGeneration, decision.DeclarationGeneration, string(classification.Domain), func() error {
+			entered = true
+			return connection.CommitSession(decision.SessionID, func() error {
+				if ctx.Err() != nil || !s.now().UTC().Before(decision.ExpiresAt) {
+					return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+				}
+				return commit(authorized)
+			})
 		})
+		if err != nil && !entered {
+			return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		}
+		return err
 	})
 	if !accepted && err == nil {
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)

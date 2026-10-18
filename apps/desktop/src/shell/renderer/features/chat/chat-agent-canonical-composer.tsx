@@ -441,31 +441,23 @@ export function AgentCanonicalComposer(props: {
     const submittedAttachments = input.attachments as readonly PendingAttachment[];
     const submittedEdits = scope.edits;
     const canUpdateDraft = () => scope.active && currentScope.current === scope && scope.edits === submittedEdits;
-    setComposerText('');
-    props.onInputCaptureText('');
-    if (submittedAttachments.length > 0) {
-      props.onAttachmentsChange([]);
-    }
     try {
       await props.onSubmit({
         text: submittedText,
         attachments: submittedAttachments,
         canUpdateDraft,
       });
+      if (canUpdateDraft()) {
+        setComposerText('');
+        props.onInputCaptureText('');
+        if (submittedAttachments.length > 0) props.onAttachmentsChange([]);
+      }
     } catch (error) {
       // A retired composer cannot write into the same partner's newer draft.
       // Keep live edits too; a failure is not permission to replace them.
       if (!canUpdateDraft()) throw error;
       setComposerText(submittedText);
       props.onInputCaptureText(submittedText);
-      if (submittedAttachments.length > 0) {
-        // Clearing above revoked the staged preview URLs; restore with fresh
-        // ones so the re-staged thumbnails still render.
-        props.onAttachmentsChange(submittedAttachments.map((attachment) => ({
-          ...attachment,
-          previewUrl: URL.createObjectURL(attachment.file),
-        })));
-      }
       throw error;
     }
   }, [props, scope]);

@@ -361,6 +361,42 @@
           "response_stream": false
         },
         {
+          "name": "UpdateLocalAppConversationFollowUpPolicy",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
+          "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpdateLocalAppConversationFollowUp",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppConversationFollowUpRequest",
+          "response_type": "UpdateLocalAppConversationFollowUpResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalAppAgentPendingHooks",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
+          "kind": "unary",
+          "request_type": "ListLocalAppAgentPendingHooksRequest",
+          "response_type": "ListLocalAppAgentPendingHooksResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpdateLocalAppAgentPendingHook",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppAgentPendingHookRequest",
+          "response_type": "UpdateLocalAppAgentPendingHookResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "OpenLocalAppAgentRealtime",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
           "kind": "unary",
@@ -2775,6 +2811,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls",
@@ -2812,6 +2849,9 @@
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
     "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
@@ -3393,6 +3433,14 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppAgentPendingHooks",
+      "kind": "unary",
+      "request_type": "ListLocalAppAgentPendingHooksRequest",
+      "response_type": "ListLocalAppAgentPendingHooksResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
       "service": "RuntimeAgentService",
       "method": "ListLocalAppAgentReferences",
@@ -3687,6 +3735,30 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentConversationContextRequest",
       "response_type": "UpdateLocalAppAgentConversationContextResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentPendingHook",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentPendingHookRequest",
+      "response_type": "UpdateLocalAppAgentPendingHookResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppConversationFollowUp",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppConversationFollowUpRequest",
+      "response_type": "UpdateLocalAppConversationFollowUpResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppConversationFollowUpPolicy",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
+      "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -5683,6 +5755,14 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppAgentPendingHooks",
+      "kind": "unary",
+      "request_type": "ListLocalAppAgentPendingHooksRequest",
+      "response_type": "ListLocalAppAgentPendingHooksResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
       "service": "RuntimeAgentService",
       "method": "ListLocalAppAgentReferences",
@@ -5977,6 +6057,30 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentConversationContextRequest",
       "response_type": "UpdateLocalAppAgentConversationContextResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentPendingHook",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentPendingHookRequest",
+      "response_type": "UpdateLocalAppAgentPendingHookResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppConversationFollowUp",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppConversationFollowUpRequest",
+      "response_type": "UpdateLocalAppConversationFollowUpResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppConversationFollowUpPolicy",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
+      "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -8070,6 +8174,8 @@
       "ListIntegrationConnectionsResponse",
       "ListLoadoutRecipesRequest",
       "ListLoadoutRecipesResponse",
+      "ListLocalAppAgentPendingHooksRequest",
+      "ListLocalAppAgentPendingHooksResponse",
       "ListLocalAppAgentReferencesRequest",
       "ListLocalAppAgentReferencesResponse",
       "ListLocalAppAgentWorkReferencesRequest",
@@ -8145,6 +8251,7 @@
       "LocalAppAgentManagerContextProjection",
       "LocalAppAgentManagerSnapshot",
       "LocalAppAgentManagerSourceProjection",
+      "LocalAppAgentPendingHook",
       "LocalAppAgentPresentationIntent",
       "LocalAppAgentPresentationProjection",
       "LocalAppAgentPresentationSnapshotResponse",
@@ -8177,6 +8284,7 @@
       "LocalAppConversationArtifactPart",
       "LocalAppConversationArtifactReady",
       "LocalAppConversationEvent",
+      "LocalAppConversationFollowUp",
       "LocalAppConversationInputArtifactRef",
       "LocalAppConversationInputPart",
       "LocalAppConversationLiveAction",
@@ -8186,6 +8294,7 @@
       "LocalAppConversationMessagePart",
       "LocalAppConversationReasoningStatus",
       "LocalAppConversationSnapshot",
+      "LocalAppConversationState",
       "LocalAppConversationTextDelta",
       "LocalAppConversationTextPart",
       "LocalAppConversationTurn",
@@ -8608,6 +8717,12 @@
       "UpdateLocalAppAgentAutonomyRequest",
       "UpdateLocalAppAgentConversationContextRequest",
       "UpdateLocalAppAgentConversationContextResponse",
+      "UpdateLocalAppAgentPendingHookRequest",
+      "UpdateLocalAppAgentPendingHookResponse",
+      "UpdateLocalAppConversationFollowUpPolicyRequest",
+      "UpdateLocalAppConversationFollowUpPolicyResponse",
+      "UpdateLocalAppConversationFollowUpRequest",
+      "UpdateLocalAppConversationFollowUpResponse",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
@@ -8790,6 +8905,7 @@
       "LocalAppConversationVoiceState",
       "LocalAppEmbodimentEventKind",
       "LocalAppEmbodimentVoicePhase",
+      "LocalAppScheduledTaskAction",
       "LocalAppSessionState",
       "LocalAppTrustClass",
       "LocalAssetKind",
@@ -23666,6 +23782,39 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "ListLocalAppAgentPendingHooksRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ListLocalAppAgentPendingHooksResponse",
+        "fields": [
+          {
+            "name": "hooks",
+            "type": "LocalAppAgentPendingHook",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "truncated",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "ListLocalAppAgentReferencesRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -26280,6 +26429,54 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "LocalAppAgentPendingHook",
+        "fields": [
+          {
+            "name": "task_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "scheduled_for",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "system_cadence",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "status",
+            "type": "HookAdmissionState",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "can_modify",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "LocalAppAgentPresentationIntent",
         "fields": [
           {
@@ -27454,6 +27651,47 @@
             "repeated": false,
             "optional": false,
             "number": 27
+          },
+          {
+            "name": "state_changed",
+            "type": "LocalAppConversationState",
+            "repeated": false,
+            "optional": false,
+            "number": 28
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationFollowUp",
+        "fields": [
+          {
+            "name": "task_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "scheduled_for",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "source_turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -27631,6 +27869,13 @@
             "repeated": true,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "partial",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -27739,6 +27984,54 @@
             "repeated": true,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "state",
+            "type": "LocalAppConversationState",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationState",
+        "fields": [
+          {
+            "name": "follow_up_enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "follow_up_policy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "max_follow_up_turns",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "pending_follow_up",
+            "type": "LocalAppConversationFollowUp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "text_turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -27820,6 +28113,41 @@
             "repeated": false,
             "optional": true,
             "number": 6
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "retry_of_turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 8
+          },
+          {
+            "name": "input_turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 9
+          },
+          {
+            "name": "can_regenerate",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "origin",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -27833,6 +28161,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "origin",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -27853,6 +28195,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -34009,6 +34365,20 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "runtime_cadence",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -38857,6 +39227,13 @@
             "repeated": true,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "retry_of_turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -42927,6 +43304,168 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "UpdateLocalAppAgentPendingHookRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "task_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "action",
+            "type": "LocalAppScheduledTaskAction",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "scheduled_for",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpdateLocalAppAgentPendingHookResponse",
+        "fields": [
+          {
+            "name": "hook",
+            "type": "LocalAppAgentPendingHook",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpdateLocalAppConversationFollowUpPolicyRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpdateLocalAppConversationFollowUpPolicyResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "LocalAppConversationState",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpdateLocalAppConversationFollowUpRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "task_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "action",
+            "type": "LocalAppScheduledTaskAction",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "scheduled_for",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpdateLocalAppConversationFollowUpResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "LocalAppConversationState",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "UploadArtifactChunk",
         "fields": [
           {
@@ -46246,6 +46785,15 @@
           "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"
         ],
         "source_file": "proto/runtime/v1/agent_embodiment.proto"
+      },
+      {
+        "name": "LocalAppScheduledTaskAction",
+        "values": [
+          "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED",
+          "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL",
+          "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE"
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "LocalAppSessionState",

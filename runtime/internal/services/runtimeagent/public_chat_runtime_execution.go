@@ -294,6 +294,14 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	structuredStartedAt := time.Now()
+	if finish.GetFinishReason() != runtimev1.FinishReason_FINISH_REASON_STOP && finish.GetFinishReason() != runtimev1.FinishReason_FINISH_REASON_LENGTH {
+		reason := runtimev1.ReasonCode_AI_OUTPUT_INVALID
+		if finish.GetFinishReason() == runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER {
+			reason = runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED
+		}
+		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, nil, usage, finish, reason, "The reply did not complete normally.")
+		return
+	}
 	rawStructuredOutput := accumulatedText.String()
 	recallRequest, recalled, recallParseErr := parsePublicChatPrivateSourceRecall(rawStructuredOutput)
 	if recallParseErr != nil {
@@ -346,7 +354,13 @@ func (r publicChatRuntime) runTurn(
 		r.svc.mutatePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.ContextSummary = cloneAgentTurnContextSummary(roundTwoCompilation.Summary)
 		})
-		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation, req.MaxOutputTokens)
+		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation, req.MaxOutputTokens, func(delta string) error {
+			if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": delta}); err != nil {
+				return err
+			}
+			projectedText += delta
+			return nil
+		})
 		if roundTwo != nil {
 			usage = aggregatePublicChatPrivateRoundUsage(usage, roundTwo.Usage)
 			finish = roundTwo.Finish
@@ -393,6 +407,15 @@ func (r publicChatRuntime) runTurn(
 		rawStructuredOutput = roundTwo.RawOutput
 		streamCompletedAt = time.Now()
 	}
+	if finish.GetFinishReason() != runtimev1.FinishReason_FINISH_REASON_STOP {
+		// @nimi-authority: rule.nimi.runtime.ai-provider.internal-output-budget
+		message := "The reply is incomplete. You can retry or send another message."
+		if finish.GetFinishReason() == runtimev1.FinishReason_FINISH_REASON_LENGTH {
+			message = "The reply reached its output token limit. You can retry or send another message."
+		}
+		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, nil, usage, finish, runtimev1.ReasonCode_AI_OUTPUT_INVALID, message)
+		return
+	}
 	structured, parseErr := parsePublicChatStructuredEnvelope(rawStructuredOutput)
 	if !streamCompletedAt.IsZero() {
 		r.svc.observeLatency("runtime.agent.turn.stream_completed_to_structured_ms", streamCompletedAt,
@@ -409,11 +432,6 @@ func (r publicChatRuntime) runTurn(
 		)
 	}
 	if parseErr != nil {
-		// @nimi-authority: rule.nimi.runtime.ai-provider.internal-output-budget
-		message := strings.TrimSpace(parseErr.Error())
-		if finish.GetFinishReason() == runtimev1.FinishReason_FINISH_REASON_LENGTH {
-			message = "APML output was cut off at the output token limit: " + message
-		}
 		if r.svc.logger != nil {
 			r.svc.logger.Warn("public chat structured parse failed",
 				"agent_id", session.AgentID,
@@ -430,7 +448,7 @@ func (r publicChatRuntime) runTurn(
 			projection.ModelResolved = modelResolved
 			projection.RouteDecision = routeDecision
 			projection.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
-			projection.Message = message
+			projection.Message = "The reply could not be completed. You can retry or send another message."
 			if finish != nil {
 				projection.FinishReason = publicChatFinishReasonLabel(finish.GetFinishReason())
 				projection.StreamSimulated = finish.GetStreamSimulated()
@@ -439,8 +457,13 @@ func (r publicChatRuntime) runTurn(
 				projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
 			}
 		})
-		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, message, "")
+		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "The reply could not be completed. You can retry or send another message.", "")
 		return
+	}
+	assignPublicChatOutputIdentities(structured, turn.TurnID)
+	if turn.RetryOfTurnID != "" && len(structured.Actions) != 0 {
+		structured.Actions = nil
+		structured.ControlError = "Regeneration does not execute media or continuation proposals."
 	}
 	if !recalled && reasoningObserved {
 		r.svc.mutatePublicChatTurnProjection(turn.TurnID, false, func(projection *publicChatTurnProjectionState) {
@@ -525,15 +548,28 @@ func (r publicChatRuntime) runTurn(
 		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat message_committed event failed: "+err.Error())
 		return
 	}
+	r.projectCommittedStatusCue(session, turn, structured)
+	postTurnOutcome := r.applyPostTurn(ctx, session, turn, req, structured)
+	if err := r.svc.releasePublicChatTextSlot(session.ConversationAnchorID, turn.TurnID); err != nil {
+		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, &postTurnOutcome, runtimev1.ReasonCode_AI_STREAM_BROKEN, "The reply was saved, but its media could not start.")
+		return
+	}
+	r.setIdleIfTextUnclaimed(session, turn.TurnID)
+	r.svc.wakeDuePublicChatFollowUp(session.ConversationAnchorID)
 	// Project committed runtime interpretation into state+presentation per
 	// K-AGCORE-037 / K-AGCORE-038 only after the commit point succeeds.
-	r.projectCommittedStatusCue(session, turn, structured)
 	// Voice/lipsync projection is policy-gated. Missing avatar autoplay,
 	// speech model, route, voice reference, or audio bytes leaves the turn as
 	// normal text-only output.
-	r.projectCommittedConversationVoice(ctx, session, turn, structured)
+	if turn.RetryOfTurnID == "" {
+		r.projectCommittedConversationVoice(ctx, session, turn, structured)
+	}
 	postCommitReasonCode := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	postCommitDiagnostic := ""
+	if structured.ControlError != "" {
+		postCommitReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
+		postCommitDiagnostic = "The reply was saved, but its attached operation was not executed."
+	}
 	actionErr := r.executeCommittedActions(ctx, session, turn, structured)
 	if barrierErr := r.ensureCoupledPublicChatActionTerminal(session, turn, structured); actionErr == nil && barrierErr != nil {
 		actionErr = barrierErr
@@ -583,7 +619,6 @@ func (r publicChatRuntime) runTurn(
 		"trace_id", traceID,
 		"message_id", structured.Message.MessageID,
 	)
-	postTurnOutcome := r.applyPostTurn(ctx, session, turn, req, structured)
 	postTurnEventStartedAt := time.Now()
 	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		applyCompletedPublicChatTurnProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, &postTurnOutcome)

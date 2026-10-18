@@ -153,6 +153,7 @@ type Service struct {
 
 	chatSurfaceMu      sync.Mutex
 	chatSurfaceVersion uint64
+	chatVoiceRenders   map[string]*localAppVoiceRenderFlight
 	// chatAnchors stores Runtime-issued continuity tokens. Open resolution
 	// converges on one resumable anchor per (owner_user_id, local_agent_ref).
 	chatAnchors   map[string]*publicChatAnchorState

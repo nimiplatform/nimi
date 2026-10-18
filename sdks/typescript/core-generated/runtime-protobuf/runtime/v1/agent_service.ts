@@ -573,6 +573,14 @@ export interface PendingHook {
      * @generated from protobuf field: google.protobuf.Timestamp admitted_at = 3
      */
     admittedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: bool runtime_cadence = 4
+     */
+    runtimeCadence: boolean;
+    /**
+     * @generated from protobuf field: uint64 revision = 5
+     */
+    revision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentLifecycleEventDetail
@@ -1951,6 +1959,10 @@ export interface SendLocalAppConversationTurnRequest {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationInputPart parts = 5
      */
     parts: LocalAppConversationInputPart[];
+    /**
+     * @generated from protobuf field: optional string retry_of_turn_id = 7
+     */
+    retryOfTurnId?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SendLocalAppConversationTurnResponse
@@ -2207,6 +2219,13 @@ export interface LocalAppConversationMessage {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationMessagePart parts = 5
      */
     parts: LocalAppConversationMessagePart[];
+    /**
+     * Only a saved assistant text prefix may be partial. User input admission
+     * and complete replies are separate durable facts.
+     *
+     * @generated from protobuf field: bool partial = 6
+     */
+    partial: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTextPart
@@ -2289,6 +2308,28 @@ export interface LocalAppConversationTurn {
      * @generated from protobuf field: optional string message = 6
      */
     message?: string;
+    /**
+     * Correlation is populated only for the originating Registered App Subject.
+     *
+     * @generated from protobuf field: optional string request_id = 7
+     */
+    requestId?: string;
+    /**
+     * @generated from protobuf field: optional string retry_of_turn_id = 8
+     */
+    retryOfTurnId?: string;
+    /**
+     * @generated from protobuf field: optional string input_turn_id = 9
+     */
+    inputTurnId?: string;
+    /**
+     * @generated from protobuf field: bool can_regenerate = 10
+     */
+    canRegenerate: boolean;
+    /**
+     * @generated from protobuf field: string origin = 11
+     */
+    origin: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationAction
@@ -2361,6 +2402,205 @@ export interface LocalAppConversationVoice {
     message?: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationFollowUp
+ */
+export interface LocalAppConversationFollowUp {
+    /**
+     * @generated from protobuf field: string task_id = 1
+     */
+    taskId: string;
+    /**
+     * @generated from protobuf field: uint64 revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 3
+     */
+    scheduledFor?: Timestamp;
+    /**
+     * @generated from protobuf field: string source_turn_id = 4
+     */
+    sourceTurnId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationState
+ */
+export interface LocalAppConversationState {
+    /**
+     * @generated from protobuf field: bool follow_up_enabled = 1
+     */
+    followUpEnabled: boolean;
+    /**
+     * @generated from protobuf field: uint64 follow_up_policy_revision = 2
+     */
+    followUpPolicyRevision: string;
+    /**
+     * @generated from protobuf field: uint32 max_follow_up_turns = 3
+     */
+    maxFollowUpTurns: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationFollowUp pending_follow_up = 4
+     */
+    pendingFollowUp?: LocalAppConversationFollowUp;
+    /**
+     * @generated from protobuf field: optional string text_turn_id = 5
+     */
+    textTurnId?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyRequest
+ */
+export interface UpdateLocalAppConversationFollowUpPolicyRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: uint64 expected_revision = 3
+     */
+    expectedRevision: string;
+    /**
+     * @generated from protobuf field: bool enabled = 4
+     */
+    enabled: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpRequest
+ */
+export interface UpdateLocalAppConversationFollowUpRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string task_id = 3
+     */
+    taskId: string;
+    /**
+     * @generated from protobuf field: uint64 expected_revision = 4
+     */
+    expectedRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppScheduledTaskAction action = 5
+     */
+    action: LocalAppScheduledTaskAction;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 6
+     */
+    scheduledFor?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyResponse
+ */
+export interface UpdateLocalAppConversationFollowUpPolicyResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationState state = 1
+     */
+    state?: LocalAppConversationState;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpResponse
+ */
+export interface UpdateLocalAppConversationFollowUpResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationState state = 1
+     */
+    state?: LocalAppConversationState;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksRequest
+ */
+export interface ListLocalAppAgentPendingHooksRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentPendingHook
+ */
+export interface LocalAppAgentPendingHook {
+    /**
+     * @generated from protobuf field: string task_id = 1
+     */
+    taskId: string;
+    /**
+     * @generated from protobuf field: uint64 revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 3
+     */
+    scheduledFor?: Timestamp;
+    /**
+     * @generated from protobuf field: bool system_cadence = 4
+     */
+    systemCadence: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.HookAdmissionState status = 5
+     */
+    status: HookAdmissionState;
+    /**
+     * @generated from protobuf field: bool can_modify = 6
+     */
+    canModify: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse
+ */
+export interface ListLocalAppAgentPendingHooksResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentPendingHook hooks = 1
+     */
+    hooks: LocalAppAgentPendingHook[];
+    /**
+     * @generated from protobuf field: bool truncated = 2
+     */
+    truncated: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookRequest
+ */
+export interface UpdateLocalAppAgentPendingHookRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string task_id = 2
+     */
+    taskId: string;
+    /**
+     * @generated from protobuf field: uint64 expected_revision = 3
+     */
+    expectedRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppScheduledTaskAction action = 4
+     */
+    action: LocalAppScheduledTaskAction;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 5
+     */
+    scheduledFor?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookResponse
+ */
+export interface UpdateLocalAppAgentPendingHookResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentPendingHook hook = 1
+     */
+    hook?: LocalAppAgentPendingHook;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationSnapshot
  */
 export interface LocalAppConversationSnapshot {
@@ -2392,6 +2632,10 @@ export interface LocalAppConversationSnapshot {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppConversationVoice voices = 8
      */
     voices: LocalAppConversationVoice[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationState state = 9
+     */
+    state?: LocalAppConversationState;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
@@ -2410,6 +2654,14 @@ export interface LocalAppConversationTurnAccepted {
      * @generated from protobuf field: string turn_id = 1
      */
     turnId: string;
+    /**
+     * @generated from protobuf field: optional string request_id = 3
+     */
+    requestId?: string;
+    /**
+     * @generated from protobuf field: string origin = 4
+     */
+    origin: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTurnStarted
@@ -2467,6 +2719,14 @@ export interface LocalAppConversationTurnCompleted {
      * @generated from protobuf field: string terminal_reason = 2
      */
     terminalReason: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: optional string message = 4
+     */
+    message?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTurnFailed
@@ -2724,6 +2984,12 @@ export interface LocalAppConversationEvent {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationLiveTool live_tool = 27
          */
         liveTool: LocalAppConversationLiveTool;
+    } | {
+        oneofKind: "stateChanged";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationState state_changed = 28
+         */
+        stateChanged: LocalAppConversationState;
     } | {
         oneofKind: undefined;
     };
@@ -4394,6 +4660,23 @@ export enum LocalAppConversationVoiceState {
     FAILED = 2
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppScheduledTaskAction
+ */
+export enum LocalAppScheduledTaskAction {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL = 1;
+     */
+    CANCEL = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE = 2;
+     */
+    RESCHEDULE = 2
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationReasoningState
  */
 export enum LocalAppConversationReasoningState {
@@ -5719,11 +6002,15 @@ class PendingHook$Type extends MessageType<PendingHook> {
         super("nimi.runtime.v1.PendingHook", [
             { no: 1, name: "intent", kind: "message", T: () => HookIntent },
             { no: 2, name: "scheduled_for", kind: "message", T: () => Timestamp },
-            { no: 3, name: "admitted_at", kind: "message", T: () => Timestamp }
+            { no: 3, name: "admitted_at", kind: "message", T: () => Timestamp },
+            { no: 4, name: "runtime_cadence", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<PendingHook>): PendingHook {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.runtimeCadence = false;
+        message.revision = "0";
         if (value !== undefined)
             reflectionMergePartial<PendingHook>(this, message, value);
         return message;
@@ -5741,6 +6028,12 @@ class PendingHook$Type extends MessageType<PendingHook> {
                     break;
                 case /* google.protobuf.Timestamp admitted_at */ 3:
                     message.admittedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.admittedAt);
+                    break;
+                case /* bool runtime_cadence */ 4:
+                    message.runtimeCadence = reader.bool();
+                    break;
+                case /* uint64 revision */ 5:
+                    message.revision = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5763,6 +6056,12 @@ class PendingHook$Type extends MessageType<PendingHook> {
         /* google.protobuf.Timestamp admitted_at = 3; */
         if (message.admittedAt)
             Timestamp.internalBinaryWrite(message.admittedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* bool runtime_cadence = 4; */
+        if (message.runtimeCadence !== false)
+            writer.tag(4, WireType.Varint).bool(message.runtimeCadence);
+        /* uint64 revision = 5; */
+        if (message.revision !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.revision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9948,7 +10247,8 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
             { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationInputPart }
+            { no: 5, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationInputPart },
+            { no: 7, name: "retry_of_turn_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SendLocalAppConversationTurnRequest>): SendLocalAppConversationTurnRequest {
@@ -9978,6 +10278,9 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
                 case /* repeated nimi.runtime.v1.LocalAppConversationInputPart parts */ 5:
                     message.parts.push(LocalAppConversationInputPart.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* optional string retry_of_turn_id */ 7:
+                    message.retryOfTurnId = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10002,6 +10305,9 @@ class SendLocalAppConversationTurnRequest$Type extends MessageType<SendLocalAppC
         /* repeated nimi.runtime.v1.LocalAppConversationInputPart parts = 5; */
         for (let i = 0; i < message.parts.length; i++)
             LocalAppConversationInputPart.internalBinaryWrite(message.parts[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* optional string retry_of_turn_id = 7; */
+        if (message.retryOfTurnId !== undefined)
+            writer.tag(7, WireType.LengthDelimited).string(message.retryOfTurnId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10902,7 +11208,8 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
             { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "role", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationMessageRole", LocalAppConversationMessageRole, "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_"] },
             { no: 4, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationMessagePart }
+            { no: 5, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationMessagePart },
+            { no: 6, name: "partial", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationMessage>): LocalAppConversationMessage {
@@ -10911,6 +11218,7 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
         message.role = 0;
         message.messageId = "";
         message.parts = [];
+        message.partial = false;
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationMessage>(this, message, value);
         return message;
@@ -10931,6 +11239,9 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
                     break;
                 case /* repeated nimi.runtime.v1.LocalAppConversationMessagePart parts */ 5:
                     message.parts.push(LocalAppConversationMessagePart.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool partial */ 6:
+                    message.partial = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10956,6 +11267,9 @@ class LocalAppConversationMessage$Type extends MessageType<LocalAppConversationM
         /* repeated nimi.runtime.v1.LocalAppConversationMessagePart parts = 5; */
         for (let i = 0; i < message.parts.length; i++)
             LocalAppConversationMessagePart.internalBinaryWrite(message.parts[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* bool partial = 6; */
+        if (message.partial !== false)
+            writer.tag(6, WireType.Varint).bool(message.partial);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11152,7 +11466,12 @@ class LocalAppConversationTurn$Type extends MessageType<LocalAppConversationTurn
             { no: 3, name: "phase", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationTurnPhase", LocalAppConversationTurnPhase, "LOCAL_APP_CONVERSATION_TURN_PHASE_"] },
             { no: 4, name: "terminal_reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 6, name: "message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "request_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "retry_of_turn_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "input_turn_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "can_regenerate", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 11, name: "origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationTurn>): LocalAppConversationTurn {
@@ -11161,6 +11480,8 @@ class LocalAppConversationTurn$Type extends MessageType<LocalAppConversationTurn
         message.status = 0;
         message.phase = 0;
         message.reasonCode = 0;
+        message.canRegenerate = false;
+        message.origin = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationTurn>(this, message, value);
         return message;
@@ -11187,6 +11508,21 @@ class LocalAppConversationTurn$Type extends MessageType<LocalAppConversationTurn
                     break;
                 case /* optional string message */ 6:
                     message.message = reader.string();
+                    break;
+                case /* optional string request_id */ 7:
+                    message.requestId = reader.string();
+                    break;
+                case /* optional string retry_of_turn_id */ 8:
+                    message.retryOfTurnId = reader.string();
+                    break;
+                case /* optional string input_turn_id */ 9:
+                    message.inputTurnId = reader.string();
+                    break;
+                case /* bool can_regenerate */ 10:
+                    message.canRegenerate = reader.bool();
+                    break;
+                case /* string origin */ 11:
+                    message.origin = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11218,6 +11554,21 @@ class LocalAppConversationTurn$Type extends MessageType<LocalAppConversationTurn
         /* optional string message = 6; */
         if (message.message !== undefined)
             writer.tag(6, WireType.LengthDelimited).string(message.message);
+        /* optional string request_id = 7; */
+        if (message.requestId !== undefined)
+            writer.tag(7, WireType.LengthDelimited).string(message.requestId);
+        /* optional string retry_of_turn_id = 8; */
+        if (message.retryOfTurnId !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.retryOfTurnId);
+        /* optional string input_turn_id = 9; */
+        if (message.inputTurnId !== undefined)
+            writer.tag(9, WireType.LengthDelimited).string(message.inputTurnId);
+        /* bool can_regenerate = 10; */
+        if (message.canRegenerate !== false)
+            writer.tag(10, WireType.Varint).bool(message.canRegenerate);
+        /* string origin = 11; */
+        if (message.origin !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.origin);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11422,6 +11773,714 @@ class LocalAppConversationVoice$Type extends MessageType<LocalAppConversationVoi
  */
 export const LocalAppConversationVoice = new LocalAppConversationVoice$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationFollowUp$Type extends MessageType<LocalAppConversationFollowUp> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationFollowUp", [
+            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "scheduled_for", kind: "message", T: () => Timestamp },
+            { no: 4, name: "source_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationFollowUp>): LocalAppConversationFollowUp {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.taskId = "";
+        message.revision = "0";
+        message.sourceTurnId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationFollowUp>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationFollowUp): LocalAppConversationFollowUp {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string task_id */ 1:
+                    message.taskId = reader.string();
+                    break;
+                case /* uint64 revision */ 2:
+                    message.revision = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Timestamp scheduled_for */ 3:
+                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
+                    break;
+                case /* string source_turn_id */ 4:
+                    message.sourceTurnId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationFollowUp, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string task_id = 1; */
+        if (message.taskId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.taskId);
+        /* uint64 revision = 2; */
+        if (message.revision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.revision);
+        /* google.protobuf.Timestamp scheduled_for = 3; */
+        if (message.scheduledFor)
+            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string source_turn_id = 4; */
+        if (message.sourceTurnId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.sourceTurnId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationFollowUp
+ */
+export const LocalAppConversationFollowUp = new LocalAppConversationFollowUp$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationState$Type extends MessageType<LocalAppConversationState> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationState", [
+            { no: 1, name: "follow_up_enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "follow_up_policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "max_follow_up_turns", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "pending_follow_up", kind: "message", T: () => LocalAppConversationFollowUp },
+            { no: 5, name: "text_turn_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationState>): LocalAppConversationState {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.followUpEnabled = false;
+        message.followUpPolicyRevision = "0";
+        message.maxFollowUpTurns = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationState>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationState): LocalAppConversationState {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool follow_up_enabled */ 1:
+                    message.followUpEnabled = reader.bool();
+                    break;
+                case /* uint64 follow_up_policy_revision */ 2:
+                    message.followUpPolicyRevision = reader.uint64().toString();
+                    break;
+                case /* uint32 max_follow_up_turns */ 3:
+                    message.maxFollowUpTurns = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationFollowUp pending_follow_up */ 4:
+                    message.pendingFollowUp = LocalAppConversationFollowUp.internalBinaryRead(reader, reader.uint32(), options, message.pendingFollowUp);
+                    break;
+                case /* optional string text_turn_id */ 5:
+                    message.textTurnId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationState, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool follow_up_enabled = 1; */
+        if (message.followUpEnabled !== false)
+            writer.tag(1, WireType.Varint).bool(message.followUpEnabled);
+        /* uint64 follow_up_policy_revision = 2; */
+        if (message.followUpPolicyRevision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.followUpPolicyRevision);
+        /* uint32 max_follow_up_turns = 3; */
+        if (message.maxFollowUpTurns !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.maxFollowUpTurns);
+        /* nimi.runtime.v1.LocalAppConversationFollowUp pending_follow_up = 4; */
+        if (message.pendingFollowUp)
+            LocalAppConversationFollowUp.internalBinaryWrite(message.pendingFollowUp, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* optional string text_turn_id = 5; */
+        if (message.textTurnId !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.textTurnId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationState
+ */
+export const LocalAppConversationState = new LocalAppConversationState$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppConversationFollowUpPolicyRequest$Type extends MessageType<UpdateLocalAppConversationFollowUpPolicyRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpPolicyRequest>): UpdateLocalAppConversationFollowUpPolicyRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.conversationAnchorId = "";
+        message.expectedRevision = "0";
+        message.enabled = false;
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppConversationFollowUpPolicyRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpPolicyRequest): UpdateLocalAppConversationFollowUpPolicyRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* uint64 expected_revision */ 3:
+                    message.expectedRevision = reader.uint64().toString();
+                    break;
+                case /* bool enabled */ 4:
+                    message.enabled = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpPolicyRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* uint64 expected_revision = 3; */
+        if (message.expectedRevision !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.expectedRevision);
+        /* bool enabled = 4; */
+        if (message.enabled !== false)
+            writer.tag(4, WireType.Varint).bool(message.enabled);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyRequest
+ */
+export const UpdateLocalAppConversationFollowUpPolicyRequest = new UpdateLocalAppConversationFollowUpPolicyRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppConversationFollowUpRequest$Type extends MessageType<UpdateLocalAppConversationFollowUpRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppScheduledTaskAction", LocalAppScheduledTaskAction, "LOCAL_APP_SCHEDULED_TASK_ACTION_"] },
+            { no: 6, name: "scheduled_for", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpRequest>): UpdateLocalAppConversationFollowUpRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.conversationAnchorId = "";
+        message.taskId = "";
+        message.expectedRevision = "0";
+        message.action = 0;
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppConversationFollowUpRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpRequest): UpdateLocalAppConversationFollowUpRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string task_id */ 3:
+                    message.taskId = reader.string();
+                    break;
+                case /* uint64 expected_revision */ 4:
+                    message.expectedRevision = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.LocalAppScheduledTaskAction action */ 5:
+                    message.action = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp scheduled_for */ 6:
+                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string task_id = 3; */
+        if (message.taskId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.taskId);
+        /* uint64 expected_revision = 4; */
+        if (message.expectedRevision !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.expectedRevision);
+        /* nimi.runtime.v1.LocalAppScheduledTaskAction action = 5; */
+        if (message.action !== 0)
+            writer.tag(5, WireType.Varint).int32(message.action);
+        /* google.protobuf.Timestamp scheduled_for = 6; */
+        if (message.scheduledFor)
+            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpRequest
+ */
+export const UpdateLocalAppConversationFollowUpRequest = new UpdateLocalAppConversationFollowUpRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppConversationFollowUpPolicyResponse$Type extends MessageType<UpdateLocalAppConversationFollowUpPolicyResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyResponse", [
+            { no: 1, name: "state", kind: "message", T: () => LocalAppConversationState }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpPolicyResponse>): UpdateLocalAppConversationFollowUpPolicyResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppConversationFollowUpPolicyResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpPolicyResponse): UpdateLocalAppConversationFollowUpPolicyResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppConversationState state */ 1:
+                    message.state = LocalAppConversationState.internalBinaryRead(reader, reader.uint32(), options, message.state);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpPolicyResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppConversationState state = 1; */
+        if (message.state)
+            LocalAppConversationState.internalBinaryWrite(message.state, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyResponse
+ */
+export const UpdateLocalAppConversationFollowUpPolicyResponse = new UpdateLocalAppConversationFollowUpPolicyResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppConversationFollowUpResponse$Type extends MessageType<UpdateLocalAppConversationFollowUpResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpResponse", [
+            { no: 1, name: "state", kind: "message", T: () => LocalAppConversationState }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpResponse>): UpdateLocalAppConversationFollowUpResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppConversationFollowUpResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpResponse): UpdateLocalAppConversationFollowUpResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppConversationState state */ 1:
+                    message.state = LocalAppConversationState.internalBinaryRead(reader, reader.uint32(), options, message.state);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppConversationState state = 1; */
+        if (message.state)
+            LocalAppConversationState.internalBinaryWrite(message.state, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpResponse
+ */
+export const UpdateLocalAppConversationFollowUpResponse = new UpdateLocalAppConversationFollowUpResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAgentPendingHooksRequest$Type extends MessageType<ListLocalAppAgentPendingHooksRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAgentPendingHooksRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppAgentPendingHooksRequest>): ListLocalAppAgentPendingHooksRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAgentPendingHooksRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAgentPendingHooksRequest): ListLocalAppAgentPendingHooksRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAgentPendingHooksRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksRequest
+ */
+export const ListLocalAppAgentPendingHooksRequest = new ListLocalAppAgentPendingHooksRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentPendingHook$Type extends MessageType<LocalAppAgentPendingHook> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentPendingHook", [
+            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "scheduled_for", kind: "message", T: () => Timestamp },
+            { no: 4, name: "system_cadence", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
+            { no: 6, name: "can_modify", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentPendingHook>): LocalAppAgentPendingHook {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.taskId = "";
+        message.revision = "0";
+        message.systemCadence = false;
+        message.status = 0;
+        message.canModify = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentPendingHook>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentPendingHook): LocalAppAgentPendingHook {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string task_id */ 1:
+                    message.taskId = reader.string();
+                    break;
+                case /* uint64 revision */ 2:
+                    message.revision = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Timestamp scheduled_for */ 3:
+                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
+                    break;
+                case /* bool system_cadence */ 4:
+                    message.systemCadence = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.HookAdmissionState status */ 5:
+                    message.status = reader.int32();
+                    break;
+                case /* bool can_modify */ 6:
+                    message.canModify = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentPendingHook, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string task_id = 1; */
+        if (message.taskId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.taskId);
+        /* uint64 revision = 2; */
+        if (message.revision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.revision);
+        /* google.protobuf.Timestamp scheduled_for = 3; */
+        if (message.scheduledFor)
+            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* bool system_cadence = 4; */
+        if (message.systemCadence !== false)
+            writer.tag(4, WireType.Varint).bool(message.systemCadence);
+        /* nimi.runtime.v1.HookAdmissionState status = 5; */
+        if (message.status !== 0)
+            writer.tag(5, WireType.Varint).int32(message.status);
+        /* bool can_modify = 6; */
+        if (message.canModify !== false)
+            writer.tag(6, WireType.Varint).bool(message.canModify);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentPendingHook
+ */
+export const LocalAppAgentPendingHook = new LocalAppAgentPendingHook$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAgentPendingHooksResponse$Type extends MessageType<ListLocalAppAgentPendingHooksResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse", [
+            { no: 1, name: "hooks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentPendingHook },
+            { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppAgentPendingHooksResponse>): ListLocalAppAgentPendingHooksResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.hooks = [];
+        message.truncated = false;
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAgentPendingHooksResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAgentPendingHooksResponse): ListLocalAppAgentPendingHooksResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalAppAgentPendingHook hooks */ 1:
+                    message.hooks.push(LocalAppAgentPendingHook.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool truncated */ 2:
+                    message.truncated = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAgentPendingHooksResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalAppAgentPendingHook hooks = 1; */
+        for (let i = 0; i < message.hooks.length; i++)
+            LocalAppAgentPendingHook.internalBinaryWrite(message.hooks[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool truncated = 2; */
+        if (message.truncated !== false)
+            writer.tag(2, WireType.Varint).bool(message.truncated);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse
+ */
+export const ListLocalAppAgentPendingHooksResponse = new ListLocalAppAgentPendingHooksResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppAgentPendingHookRequest$Type extends MessageType<UpdateLocalAppAgentPendingHookRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppAgentPendingHookRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppScheduledTaskAction", LocalAppScheduledTaskAction, "LOCAL_APP_SCHEDULED_TASK_ACTION_"] },
+            { no: 5, name: "scheduled_for", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppAgentPendingHookRequest>): UpdateLocalAppAgentPendingHookRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.taskId = "";
+        message.expectedRevision = "0";
+        message.action = 0;
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppAgentPendingHookRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppAgentPendingHookRequest): UpdateLocalAppAgentPendingHookRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string task_id */ 2:
+                    message.taskId = reader.string();
+                    break;
+                case /* uint64 expected_revision */ 3:
+                    message.expectedRevision = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.LocalAppScheduledTaskAction action */ 4:
+                    message.action = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp scheduled_for */ 5:
+                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppAgentPendingHookRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string task_id = 2; */
+        if (message.taskId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.taskId);
+        /* uint64 expected_revision = 3; */
+        if (message.expectedRevision !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.expectedRevision);
+        /* nimi.runtime.v1.LocalAppScheduledTaskAction action = 4; */
+        if (message.action !== 0)
+            writer.tag(4, WireType.Varint).int32(message.action);
+        /* google.protobuf.Timestamp scheduled_for = 5; */
+        if (message.scheduledFor)
+            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookRequest
+ */
+export const UpdateLocalAppAgentPendingHookRequest = new UpdateLocalAppAgentPendingHookRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalAppAgentPendingHookResponse$Type extends MessageType<UpdateLocalAppAgentPendingHookResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalAppAgentPendingHookResponse", [
+            { no: 1, name: "hook", kind: "message", T: () => LocalAppAgentPendingHook }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalAppAgentPendingHookResponse>): UpdateLocalAppAgentPendingHookResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalAppAgentPendingHookResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppAgentPendingHookResponse): UpdateLocalAppAgentPendingHookResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAgentPendingHook hook */ 1:
+                    message.hook = LocalAppAgentPendingHook.internalBinaryRead(reader, reader.uint32(), options, message.hook);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalAppAgentPendingHookResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAgentPendingHook hook = 1; */
+        if (message.hook)
+            LocalAppAgentPendingHook.internalBinaryWrite(message.hook, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookResponse
+ */
+export const UpdateLocalAppAgentPendingHookResponse = new UpdateLocalAppAgentPendingHookResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversationSnapshot> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationSnapshot", [
@@ -11431,7 +12490,8 @@ class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversation
             { no: 5, name: "through_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 6, name: "turns", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationTurn },
             { no: 7, name: "actions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationAction },
-            { no: 8, name: "voices", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationVoice }
+            { no: 8, name: "voices", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppConversationVoice },
+            { no: 9, name: "state", kind: "message", T: () => LocalAppConversationState }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationSnapshot>): LocalAppConversationSnapshot {
@@ -11473,6 +12533,9 @@ class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversation
                 case /* repeated nimi.runtime.v1.LocalAppConversationVoice voices */ 8:
                     message.voices.push(LocalAppConversationVoice.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.LocalAppConversationState state */ 9:
+                    message.state = LocalAppConversationState.internalBinaryRead(reader, reader.uint32(), options, message.state);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11506,6 +12569,9 @@ class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversation
         /* repeated nimi.runtime.v1.LocalAppConversationVoice voices = 8; */
         for (let i = 0; i < message.voices.length; i++)
             LocalAppConversationVoice.internalBinaryWrite(message.voices[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationState state = 9; */
+        if (message.state)
+            LocalAppConversationState.internalBinaryWrite(message.state, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11566,12 +12632,15 @@ export const GetLocalAppConversationSnapshotResponse = new GetLocalAppConversati
 class LocalAppConversationTurnAccepted$Type extends MessageType<LocalAppConversationTurnAccepted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationTurnAccepted", [
-            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "request_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationTurnAccepted>): LocalAppConversationTurnAccepted {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.turnId = "";
+        message.origin = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationTurnAccepted>(this, message, value);
         return message;
@@ -11583,6 +12652,12 @@ class LocalAppConversationTurnAccepted$Type extends MessageType<LocalAppConversa
             switch (fieldNo) {
                 case /* string turn_id */ 1:
                     message.turnId = reader.string();
+                    break;
+                case /* optional string request_id */ 3:
+                    message.requestId = reader.string();
+                    break;
+                case /* string origin */ 4:
+                    message.origin = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11599,6 +12674,12 @@ class LocalAppConversationTurnAccepted$Type extends MessageType<LocalAppConversa
         /* string turn_id = 1; */
         if (message.turnId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* optional string request_id = 3; */
+        if (message.requestId !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.requestId);
+        /* string origin = 4; */
+        if (message.origin !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.origin);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11817,13 +12898,16 @@ class LocalAppConversationTurnCompleted$Type extends MessageType<LocalAppConvers
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationTurnCompleted", [
             { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "terminal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "terminal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 4, name: "message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationTurnCompleted>): LocalAppConversationTurnCompleted {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.turnId = "";
         message.terminalReason = "";
+        message.reasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationTurnCompleted>(this, message, value);
         return message;
@@ -11838,6 +12922,12 @@ class LocalAppConversationTurnCompleted$Type extends MessageType<LocalAppConvers
                     break;
                 case /* string terminal_reason */ 2:
                     message.terminalReason = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* optional string message */ 4:
+                    message.message = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11857,6 +12947,12 @@ class LocalAppConversationTurnCompleted$Type extends MessageType<LocalAppConvers
         /* string terminal_reason = 2; */
         if (message.terminalReason !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.terminalReason);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* optional string message = 4; */
+        if (message.message !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.message);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12363,7 +13459,8 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
             { no: 24, name: "text_delta", kind: "message", oneof: "event", T: () => LocalAppConversationTextDelta },
             { no: 25, name: "reasoning_status", kind: "message", oneof: "event", T: () => LocalAppConversationReasoningStatus },
             { no: 26, name: "live_action", kind: "message", oneof: "event", T: () => LocalAppConversationLiveAction },
-            { no: 27, name: "live_tool", kind: "message", oneof: "event", T: () => LocalAppConversationLiveTool }
+            { no: 27, name: "live_tool", kind: "message", oneof: "event", T: () => LocalAppConversationLiveTool },
+            { no: 28, name: "state_changed", kind: "message", oneof: "event", T: () => LocalAppConversationState }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationEvent>): LocalAppConversationEvent {
@@ -12488,6 +13585,12 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
                         liveTool: LocalAppConversationLiveTool.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).liveTool)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppConversationState state_changed */ 28:
+                    message.event = {
+                        oneofKind: "stateChanged",
+                        stateChanged: LocalAppConversationState.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).stateChanged)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12557,6 +13660,9 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
         /* nimi.runtime.v1.LocalAppConversationLiveTool live_tool = 27; */
         if (message.event.oneofKind === "liveTool")
             LocalAppConversationLiveTool.internalBinaryWrite(message.event.liveTool, writer.tag(27, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationState state_changed = 28; */
+        if (message.event.oneofKind === "stateChanged")
+            LocalAppConversationState.internalBinaryWrite(message.event.stateChanged, writer.tag(28, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

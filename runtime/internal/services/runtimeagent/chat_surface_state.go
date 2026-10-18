@@ -35,6 +35,8 @@ type persistedPublicChatSurfaceState struct {
 }
 
 type persistedPublicChatAnchor struct {
+	LatestAcceptedTurnID   string                                      `json:"latestAcceptedTurnId,omitempty"`
+	Recoveries             map[string]*publicChatTurnRecovery          `json:"-"`
 	ConversationContext    publicChatConversationContextSelection      `json:"conversationContext,omitempty"`
 	TranscriptFrom         int                                         `json:"-"`
 	ConversationAnchorID   string                                      `json:"conversationAnchorId"`
@@ -56,7 +58,10 @@ type persistedPublicChatAnchor struct {
 	ActiveTurnSnapshot     *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
 	LastTurnSnapshot       *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
 	CompletedTurnSnapshots map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
+	VoiceRenderRequests    map[string]string                           `json:"voiceRenderRequests,omitempty"`
 	VoiceSidecars          map[string]*publicChatVoiceSidecarState     `json:"voiceSidecars,omitempty"`
+	FollowUpEnabled        bool                                        `json:"followUpEnabled"`
+	FollowUpPolicyRevision uint64                                      `json:"followUpPolicyRevision"`
 	PendingFollowUpID      string                                      `json:"pendingFollowUpId,omitempty"`
 	Status                 int32                                       `json:"status,omitempty"`
 	LastTurnID             string                                      `json:"lastTurnId,omitempty"`
@@ -150,6 +155,7 @@ func parseOptionalTime(value string) time.Time {
 }
 
 type persistedPublicChatFollowUp struct {
+	Revision             uint64          `json:"revision"`
 	FollowUpID           string          `json:"followUpId"`
 	ConversationAnchorID string          `json:"conversationAnchorId"`
 	AgentID              string          `json:"agentId"`
@@ -211,6 +217,8 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 			return persistedPublicChatSurfaceState{}, fmt.Errorf("committed transcript was truncated")
 		}
 		item := persistedPublicChatAnchor{
+			LatestAcceptedTurnID:   session.LatestAcceptedTurnID,
+			Recoveries:             clonePublicChatRecoveries(session.Recoveries),
 			TranscriptFrom:         from,
 			ConversationAnchorID:   session.ConversationAnchorID,
 			AgentID:                session.AgentID,
@@ -230,14 +238,16 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 			LastTurnSnapshot:       toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
 			CompletedTurnSnapshots: toPersistedPublicChatTurnSnapshotMap(session.CompletedTurnSnapshots),
 			VoiceSidecars:          clonePublicChatVoiceSidecars(session.VoiceSidecars),
+			VoiceRenderRequests:    cloneVoiceRenderRequests(session.VoiceRenderRequests),
 			PendingFollowUpID:      session.PendingFollowUpID,
-			CommittedTranscript:    clonePublicChatCommittedTranscript(session.CommittedTranscript[from:]),
-			ConversationSummary:    clonePublicChatConversationSummary(session.ConversationSummary),
-			ConversationContext:    session.ConversationContext,
-			Status:                 int32(session.Status),
-			LastTurnID:             session.LastTurnID,
-			LastMessageID:          session.LastMessageID,
-			LocalAppSequence:       session.LocalAppSequence,
+			FollowUpEnabled:        session.FollowUpEnabled, FollowUpPolicyRevision: session.FollowUpPolicyRevision,
+			CommittedTranscript: clonePublicChatCommittedTranscript(session.CommittedTranscript[from:]),
+			ConversationSummary: clonePublicChatConversationSummary(session.ConversationSummary),
+			ConversationContext: session.ConversationContext,
+			Status:              int32(session.Status),
+			LastTurnID:          session.LastTurnID,
+			LastMessageID:       session.LastMessageID,
+			LocalAppSequence:    session.LocalAppSequence,
 		}
 		if !session.CreatedAt.IsZero() {
 			item.CreatedAt = session.CreatedAt.UTC().Format(time.RFC3339Nano)
@@ -253,6 +263,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 		}
 		item := persistedPublicChatFollowUp{
 			FollowUpID:           followUp.FollowUpID,
+			Revision:             followUp.Revision,
 			ConversationAnchorID: followUp.ConversationAnchorID,
 			AgentID:              followUp.AgentID,
 			CallerAppID:          followUp.CallerAppID,
@@ -294,24 +305,6 @@ func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceStateWithTxHo
 			return txHook(tx)
 		}
 		return nil
-	})
-}
-
-func (r *publicChatSurfaceStateRepository) persistLocalAppConversationSequences(sequences map[string]uint64) error {
-	if r == nil || r.backend == nil {
-		return fmt.Errorf("public chat surface persistence unavailable")
-	}
-	raw, err := json.Marshal(sequences)
-	if err != nil {
-		return fmt.Errorf("marshal Local App Conversation sequences: %w", err)
-	}
-	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		_, err := tx.Exec(
-			`INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
-			runtimeAgentMetaLocalAppSequencesKey,
-			string(raw),
-		)
-		return err
 	})
 }
 
@@ -414,28 +407,6 @@ func (s *Service) persistCurrentPublicChatSurfaceState(anchorIDs ...string) {
 		s.markPersistedTranscriptLocked(snapshot)
 		s.chatSurfaceMu.Unlock()
 	}
-}
-
-// persistCurrentPublicChatSurfaceStateForProjection is the fail-closed
-// persistence boundary for a protected Conversation sequence range. Callers
-// serialize allocation through localAppConversationPublishMu and publish no
-// event until this capture and transaction succeed.
-func (s *Service) persistCurrentPublicChatSurfaceStateForProjection() error {
-	if s == nil || s.isClosed() || s.chatStateRepo == nil {
-		return fmt.Errorf("public chat surface persistence unavailable")
-	}
-	s.chatSurfaceMu.Lock()
-	sequences := make(map[string]uint64, len(s.chatAnchors))
-	for anchorID, anchor := range s.chatAnchors {
-		if anchor != nil && anchor.LocalAppSequence > 0 {
-			sequences[anchorID] = anchor.LocalAppSequence
-		}
-	}
-	s.chatSurfaceMu.Unlock()
-	if err := s.chatStateRepo.persistLocalAppConversationSequences(sequences); err != nil {
-		return fmt.Errorf("persist Local App Conversation sequence range: %w", err)
-	}
-	return nil
 }
 
 // persistPublicChatSurfaceStateLocked is the fail-closed persistence path for
@@ -571,6 +542,8 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			return err
 		}
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
+			LatestAcceptedTurnID:     item.LatestAcceptedTurnID,
+			Recoveries:               clonePublicChatRecoveries(item.Recoveries),
 			ConversationAnchorID:     item.ConversationAnchorID,
 			AgentID:                  item.AgentID,
 			LocalAgentRef:            item.LocalAgentRef,
@@ -594,13 +567,15 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			LastTurnSnapshot:         fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
 			CompletedTurnSnapshots:   fromPersistedPublicChatTurnSnapshotMap(item.CompletedTurnSnapshots),
 			VoiceSidecars:            clonePublicChatVoiceSidecars(item.VoiceSidecars),
+			VoiceRenderRequests:      cloneVoiceRenderRequests(item.VoiceRenderRequests),
 			PendingFollowUpID:        item.PendingFollowUpID,
-			Status:                   status,
-			LastTurnID:               item.LastTurnID,
-			LastMessageID:            item.LastMessageID,
-			LocalAppSequence:         localAppSequence,
-			CreatedAt:                createdAt,
-			UpdatedAt:                updatedAt,
+			FollowUpEnabled:          item.FollowUpEnabled, FollowUpPolicyRevision: item.FollowUpPolicyRevision,
+			Status:           status,
+			LastTurnID:       item.LastTurnID,
+			LastMessageID:    item.LastMessageID,
+			LocalAppSequence: localAppSequence,
+			CreatedAt:        createdAt,
+			UpdatedAt:        updatedAt,
 		}
 		if restored := s.chatAnchors[item.ConversationAnchorID]; restored != nil && restored.ActiveTurnSnapshot != nil {
 			recovered := clonePublicChatTurnProjectionState(restored.ActiveTurnSnapshot)
@@ -622,6 +597,24 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			restored.ActiveTurnID = ""
 		}
 	}
+	for _, anchor := range s.chatAnchors {
+		for id, projection := range anchor.CompletedTurnSnapshots {
+			if projection == nil || publicChatTurnProjectionIsTerminal(projection) {
+				continue
+			}
+			recovered := clonePublicChatTurnProjectionState(projection)
+			recovered.Status = publicChatTurnStatusInterrupted
+			recovered.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+			recovered.Message = "Media execution ended when Runtime restarted; the saved reply is kept."
+			if recovered.ActionStatus == publicChatActionStatusPlanned || recovered.ActionStatus == publicChatActionStatusStarted {
+				recovered.ActionStatus = publicChatActionStatusFailed
+				recovered.ActionReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+				recovered.ActionMessage = "Media execution interrupted by Runtime restart."
+			}
+			anchor.CompletedTurnSnapshots[id] = recovered
+		}
+	}
+
 	for _, item := range persisted.FollowUps {
 		scheduledFor, err := time.Parse(time.RFC3339Nano, item.ScheduledFor)
 		if err != nil {
@@ -636,6 +629,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 		s.chatFollowUps[item.FollowUpID] = &publicChatFollowUpState{
 			FollowUpID:           item.FollowUpID,
+			Revision:             item.Revision,
 			ConversationAnchorID: item.ConversationAnchorID,
 			AgentID:              item.AgentID,
 			CallerAppID:          item.CallerAppID,

@@ -283,6 +283,24 @@ describe('AgentCenter UI session contract', () => {
     }
   });
 
+  it('explicit activity refresh also refreshes canonical usage without a duplicate initial Manager read', async () => {
+    const session = await sessionFor();
+    const list = vi.spyOn(session, 'listPendingHooks').mockResolvedValue({ hooks: [], truncated: false });
+    const refresh = vi.spyOn(session, 'refresh').mockResolvedValue(undefined);
+    const node = render(<AgentCenter activeSection="behavior" session={session} />);
+    await flush();
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(1); // AgentCenter owns the initial Manager read.
+    await act(async () => {
+      const button = Array.from(node.querySelectorAll('button')).find(item => item.textContent === 'Refresh activities');
+      expect(button).toBeTruthy();
+      button?.click();
+      await flush();
+    });
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
   it('routes the background picker through the existing canonical appearance action', async () => {
     let backgroundSelections = 0;
     const session = await sessionFor({}, {

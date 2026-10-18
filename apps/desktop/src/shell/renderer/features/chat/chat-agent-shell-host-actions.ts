@@ -5,9 +5,7 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
 import { ensureThreadAnchorBindingForTarget } from './chat-agent-shell-host-actions-helpers';
-import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type {
-  ActiveAgentSubmit,
   AgentConversationSubmitPayload,
   UseAgentConversationHostActionsInput,
 } from './chat-agent-shell-host-actions-types';
@@ -16,10 +14,9 @@ export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {
   handleSelectAgent: (agentHandle: string | null) => void;
-  handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
+  handleSubmit: (input: AgentConversationSubmitPayload) => Promise<void>;
   ensureConversationAnchor: () => Promise<string>;
 } {
-  const visibleProjections = useAgentVisibleProjectionStore();
   useEffect(() => {
     if (!input.threadsReady) {
       return;
@@ -29,7 +26,7 @@ export function useAgentConversationHostActions(
     }
   }, [input]);
 
-  const activeSubmitsByThreadRef = useRef<Map<string, ActiveAgentSubmit>>(new Map());
+  const sendPending = useRef(false);
   const submittingLockTokenRef = useRef(0);
   const draftScope = useMemo(() => ({ active: true }), [input.currentComposerTextRef]);
   const currentDraftScope = useRef(draftScope);
@@ -79,13 +76,13 @@ export function useAgentConversationHostActions(
       && (payload.canUpdateDraft ? payload.canUpdateDraft()
         : startedEmpty && input.currentComposerTextRef.current === ''
           && input.currentComposerTextRef.revision === revision && attachmentDraft.current.revision === attachmentRevision);
-    await submitAgentConversationTurn({
+    if(sendPending.current) throw new Error(input.t('Chat.agentSending'));
+    sendPending.current=true;
+    try { await submitAgentConversationTurn({
       hostInput: input,
       payload: { ...payload, canUpdateDraft },
-      activeSubmitsByThreadRef,
       submittingLockTokenRef,
-      visibleProjections,
-    });
+    }); } finally {sendPending.current=false;}
   }, [input, draftScope]);
 
   const ensureConversationAnchor = useCallback(async () => {

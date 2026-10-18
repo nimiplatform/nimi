@@ -162,6 +162,10 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAgentManagerSnapshot',
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
+  'localAppConversationFollowUpPolicy',
+  'localAppConversationFollowUpUpdate',
+  'localAppAgentPendingHooks',
+  'localAppAgentPendingHookUpdate',
   'localAppAgentUpdateConversationContext',
   'localAppAgentPresentationSnapshot',
   'localAppAgentPresentationReadAsset',
@@ -559,6 +563,10 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAgentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationFollowUpPolicy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationFollowUpUpdate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentPendingHooks: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentPendingHookUpdate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateConversationContext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -711,6 +719,10 @@ export type NimiElectronLocalAppHost = {
   readonly agentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationFollowUpPolicy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationFollowUpUpdate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentPendingHooks: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentPendingHookUpdate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateConversationContext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1635,6 +1647,14 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppAgentUpdateAutonomy(input));
   }
 
+  conversationFollowUpPolicy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppConversationFollowUpPolicy(input));}
+
+  conversationFollowUpUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppConversationFollowUpUpdate(input));}
+
+  agentPendingHooks(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppAgentPendingHooks(input));}
+
+  agentPendingHookUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppAgentPendingHookUpdate(input));}
+
   agentUpdateConversationContext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentUpdateConversationContext(input));
   }
@@ -2030,6 +2050,14 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentUpdateAutonomy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentUpdateAutonomy(input);
   }
+
+  conversationFollowUpPolicy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().conversationFollowUpPolicy(input);}
+
+  conversationFollowUpUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().conversationFollowUpUpdate(input);}
+
+  agentPendingHooks(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().agentPendingHooks(input);}
+
+  agentPendingHookUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().agentPendingHookUpdate(input);}
 
   agentUpdateConversationContext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentUpdateConversationContext(input);
@@ -3179,10 +3207,14 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
     throw untrustedRuntimeError();
   }
   exactText(value.conversationAnchorId);
+  if (value.type === 'state-changed') {if (!hasExactKeys(value,['type','conversationAnchorId','sequence','state'])) throw untrustedRuntimeError(); validateConversationState(value.state); return Object.freeze({...value}) as NimiElectronLocalAppRecord;}
   exactText(value.turnId);
   const common = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
   switch (value.type) {
     case 'turn-accepted':
+      if (!hasExactKeys(value,[...common,'requestId','origin']) || !['user','app','follow_up'].includes(String(value.origin))) throw untrustedRuntimeError();
+      if(value.requestId!==null) exactText(value.requestId);
+      break;
     case 'turn-started':
       if (!hasExactKeys(value, common)) throw untrustedRuntimeError();
       break;
@@ -3226,8 +3258,10 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
       validateConversationVoice(value.voice);
       break;
     case 'turn-completed':
-      if (!hasExactKeys(value, [...common, 'terminalReason'])
+      if (!hasExactKeys(value, [...common, 'terminalReason', 'reasonCode', 'message'])
         || typeof value.terminalReason !== 'string'
+        || (value.reasonCode !== null && (typeof value.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(value.reasonCode)))
+        || (value.message !== null && (typeof value.message !== 'string' || value.message.length > 1024))
         || !['', 'stop', 'length', 'tool_call', 'content_filter', 'error', 'unspecified'].includes(value.terminalReason)) {
         throw untrustedRuntimeError();
       }
@@ -3285,11 +3319,11 @@ async function invokeConversationSnapshot(
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
   if (!isPlainRecord(value)
-    || !hasExactKeys(value, ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore'])
+    || !hasExactKeys(value, ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore', 'state'])
     || typeof value.throughSequence !== 'string'
     || !/^(0|[1-9][0-9]*)$/u.test(value.throughSequence)
     || !Array.isArray(value.turns)
-    || value.turns.length > 201
+    || value.turns.length > 202
     || !Array.isArray(value.messages)
     || value.messages.length > 203
     || !Array.isArray(value.actions)
@@ -3307,6 +3341,7 @@ async function invokeConversationSnapshot(
   return Object.freeze({
     conversationAnchorId,
     throughSequence: value.throughSequence,
+    state: validateConversationState(value.state),
     turns: Object.freeze(turns),
     messages: Object.freeze(messages),
     actions: Object.freeze(actions),
@@ -3316,8 +3351,8 @@ async function invokeConversationSnapshot(
 }
 
 function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord {
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['messageId', 'turnId', 'role', 'parts'])
-    || (value.role !== 'user' && value.role !== 'assistant' && value.role !== 'app')
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['messageId', 'turnId', 'role', 'parts', 'partial'])
+    || typeof value.partial !== 'boolean' || (value.role !== 'user' && value.role !== 'assistant' && value.role !== 'app')
     || !Array.isArray(value.parts) || value.parts.length < 1 || value.parts.length > 2) {
     throw untrustedRuntimeError();
   }
@@ -3330,7 +3365,9 @@ function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord
     if (part.kind === 'text') {
       if (!hasExactKeys(part, ['kind', 'text'])) throw untrustedRuntimeError();
       textCount++;
-      return Object.freeze({ kind: 'text', text: boundedUtf8Content(part.text, 64 * 1024) });
+      if (value.partial && (typeof part.text !== 'string' || !part.text || part.text.includes('\0') || new TextEncoder().encode(part.text).byteLength > 64 * 1024)) throw untrustedRuntimeError();
+      const text = value.partial ? part.text as string : boundedUtf8Content(part.text, 64 * 1024);
+      return Object.freeze({ kind: 'text', text });
     }
     if (part.kind === 'artifact-ref') {
       if (!hasExactKeys(part, ['kind', 'artifactId', 'mediaKind', 'mimeType', 'displayName'])
@@ -3349,20 +3386,23 @@ function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord
     }
     throw untrustedRuntimeError();
   });
-  if (textCount > 1 || artifactCount > 1 || (value.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
+  if ((value.partial && (value.role !== 'assistant' || textCount !== 1 || artifactCount !== 0)) || textCount > 1 || artifactCount > 1 || (value.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
     throw untrustedRuntimeError();
   }
-  return Object.freeze({ messageId, turnId, role: value.role, parts: Object.freeze(parts) });
+  return Object.freeze({ messageId, turnId, role: value.role, parts: Object.freeze(parts), partial: value.partial });
 }
 
 function validateConversationTurn(value: unknown): NimiElectronLocalAppRecord {
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message'])
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message', 'requestId', 'retryOfTurnId', 'inputTurnId', 'canRegenerate', 'origin'])
+    || !['user','app','follow_up'].includes(String(value.origin))
     || !['active', 'completed', 'failed', 'interrupted'].includes(String(value.status))
     || (value.phase !== null && value.phase !== 'accepted' && value.phase !== 'started')
     || (value.terminalReason !== null && typeof value.terminalReason !== 'string')
     || (value.reasonCode !== null && (typeof value.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(value.reasonCode)))
     || (value.message !== null && typeof value.message !== 'string')
     || ((value.status === 'active') !== (value.phase === 'accepted' || value.phase === 'started'))) throw untrustedRuntimeError();
+  if (typeof value.canRegenerate !== 'boolean' || (value.canRegenerate && (value.status === 'active' || value.inputTurnId === null))) throw untrustedRuntimeError();
+  for (const key of ['requestId', 'retryOfTurnId', 'inputTurnId']) { if (value[key] !== null) exactText(value[key]); }
   return Object.freeze({ ...value, turnId: exactText(value.turnId) }) as NimiElectronLocalAppRecord;
 }
 
@@ -3573,4 +3613,11 @@ function validateJobObservationIssue(value: unknown): NimiElectronLocalAppRecord
   const observedAt = validateTimestamp(value.observedAt);
   if (typeof code !== 'number' || code === RuntimeReasonCode.REASON_CODE_UNSPECIFIED || !observedAt) throw untrustedRuntimeError();
   return Object.freeze({ reasonCode, observedAt });
+}
+
+function validateConversationState(value:unknown):NimiElectronLocalAppRecord {
+ if(!isPlainRecord(value)||!hasExactKeys(value,['followUpEnabled','followUpPolicyRevision','maxFollowUpTurns','pendingFollowUp','textTurnId'])||typeof value.followUpEnabled!=='boolean'||typeof value.followUpPolicyRevision!=='string'||!/^(0|[1-9][0-9]*)$/u.test(value.followUpPolicyRevision)||typeof value.maxFollowUpTurns!=='number'||!Number.isSafeInteger(value.maxFollowUpTurns)||value.maxFollowUpTurns<1)throw untrustedRuntimeError();
+ if(value.textTurnId!==null)exactText(value.textTurnId);
+ if(value.pendingFollowUp!==null){const task=value.pendingFollowUp;if(!isPlainRecord(task)||!hasExactKeys(task,['taskId','revision','scheduledFor','sourceTurnId'])||typeof task.revision!=='string'||!/^[1-9][0-9]*$/u.test(task.revision)||!isPlainRecord(task.scheduledFor)||!hasExactKeys(task.scheduledFor,['seconds','nanos'])||typeof task.scheduledFor.seconds!=='string'||!Number.isInteger(task.scheduledFor.nanos))throw untrustedRuntimeError();exactText(task.taskId);exactText(task.sourceTurnId);}
+ return Object.freeze({...value}) as NimiElectronLocalAppRecord;
 }

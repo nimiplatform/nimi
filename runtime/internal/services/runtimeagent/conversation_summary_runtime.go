@@ -532,14 +532,17 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 }
 
 func parsePublicChatConversationSummaryOutput(raw string) (string, error) {
-	structured, err := parsePublicChatStructuredEnvelope(raw)
-	if err != nil {
-		return "", fmt.Errorf("conversation summary output invalid: %w", err)
+	interpreted := interpretPublicChatAPML(raw)
+	if interpreted.Err != nil || !interpreted.BodyComplete || interpreted.QuerySeen {
+		return "", fmt.Errorf("conversation summary output invalid: incomplete or non-public message")
 	}
-	if structured.Message.MessageID != "conversation-summary" {
+	// This private task keeps its own exact message-only marker. Public chat
+	// identity and optional-cue isolation do not relax summary admission.
+	if requirePublicChatAPMLAttrs(interpreted.MessageRoot, "message", "id") != nil || xmlAttr(interpreted.MessageRoot, "id") != "conversation-summary" {
 		return "", fmt.Errorf("conversation summary output invalid: message id must equal conversation-summary")
 	}
-	if structured.StatusCue != nil || len(structured.Actions) != 0 {
+	structured := interpreted.Envelope
+	if interpreted.CuePresent || len(structured.Actions) != 0 {
 		return "", fmt.Errorf("conversation summary output invalid: status cues and actions are not admitted")
 	}
 	text := strings.TrimSpace(structured.Message.Text)

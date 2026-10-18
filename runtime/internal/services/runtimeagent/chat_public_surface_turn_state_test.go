@@ -2,34 +2,15 @@ package runtimeagent
 
 import (
 	"context"
-	"strconv"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-type blockingFirstChatTrackSidecarExecutor struct {
-	entered     chan struct{}
-	release     <-chan struct{}
-	callerAppID chan string
-	once        sync.Once
-}
-
-func (e *blockingFirstChatTrackSidecarExecutor) ExecuteChatTrackSidecar(_ context.Context, req *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
-	e.once.Do(func() {
-		if e.callerAppID != nil {
-			e.callerAppID <- req.CallerAppID
-		}
-		close(e.entered)
-		<-e.release
-	})
-	return &ChatTrackSidecarResult{}, nil
-}
 
 func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 	t.Parallel()
@@ -277,7 +258,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	close(release)
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
-	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 	terminalSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-live-2")
@@ -295,7 +276,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
 		t.Fatalf("expected last turn completed, got=%v", lastTurn)
 	}
-	if got := lastTurn["message_id"]; got != "message-snapshot" {
+	if got := lastTurn["message_id"]; got == "message-snapshot" || got != publicChatPayloadMap(t, committed)["message_id"] {
 		t.Fatalf("expected last turn message_id, got=%v", lastTurn)
 	}
 	if got := lastTurn["text"]; got != "snapshot complete" {
@@ -333,127 +314,94 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	}
 }
 
-func TestPublicChatCommittedSnapshotRemainsActiveUntilTerminalDeliveryReleasesReservation(t *testing.T) {
-	t.Parallel()
+func TestPublicChatMediaTailDoesNotHoldTextOrClobberNextTurn(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
-	sidecarEntered := make(chan struct{})
-	sidecarRelease := make(chan struct{})
-	sidecarCallerAppID := make(chan string, 1)
-	svc.SetChatTrackSidecarExecutor(&blockingFirstChatTrackSidecarExecutor{
-		entered:     sidecarEntered,
-		release:     sidecarRelease,
-		callerAppID: sidecarCallerAppID,
-	})
-
-	var executionIndex uint32
-	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
-		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			index := atomic.AddUint32(&executionIndex, 1)
-			envelope := publicChatStructuredEnvelopeAPML("message-terminal-boundary-"+strconv.FormatUint(uint64(index), 10), "terminal boundary reply")
-			if err := emit(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-				TraceId:   "trace-terminal-boundary",
-				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
-					ModelResolved: "qwen3-chat",
-					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				}},
-			}); err != nil {
-				return err
-			}
-			if err := emit(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				TraceId:   "trace-terminal-boundary",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
-					envelope)},
-			}); err != nil {
-				return err
-			}
-			return emit(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-				TraceId:   "trace-terminal-boundary",
-				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
-					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
-				}},
-			})
-		},
-	})
-
-	request := func(requestID string, content string) *runtimev1.AppMessageEvent {
-		return &runtimev1.AppMessageEvent{
-			ToAppId:       publicChatRuntimeAppID,
-			FromAppId:     "desktop.app",
-			SubjectUserId: "user-1",
-			MessageId:     requestID,
-			MessageType:   publicChatTurnRequestType,
-			Payload: publicChatStructPayload(t, map[string]any{
-				"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
-				"owner_user_id":          "user-1",
-				"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
-				"conversation_anchor_id": anchorID,
-				"request_id":             requestID,
-				"messages": []any{map[string]any{
-					"role": "user", "content": content,
-				}},
-			}),
+	svc.SetPublicChatAppEmitter(capture.emit)
+	media := &interruptiblePublicChatActionExecutor{entered: make(chan struct{})}
+	svc.SetPublicChatActionExecutor(media)
+	nextEntered := make(chan struct{})
+	nextRelease := make(chan struct{})
+	nextCanceled := make(chan struct{}, 1)
+	var calls uint32
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{stream: func(ctx context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+		if atomic.AddUint32(&calls, 1) == 1 {
+			return emitPublicChatImageActionStream("old-media", publicChatImageActionAPML("unused", "saved first answer", "unused-action", "draw"))(ctx, req, emit)
 		}
-	}
-	immediateNextRequest := request("request-immediate-next", "start immediately after terminal")
-	immediateNextResult := make(chan error, 1)
-	var terminalCallbackOnce sync.Once
-	svc.SetPublicChatAppEmitter(func(ctx context.Context, emitted *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
-		response, err := capture.emit(ctx, emitted)
-		if err == nil && emitted.GetMessageType() == publicChatTurnCompletedType {
-			terminalCallbackOnce.Do(func() {
-				immediateNextResult <- svc.ConsumePublicChatAppMessage(context.Background(), immediateNextRequest)
-			})
+		close(nextEntered)
+		select {
+		case <-nextRelease:
+			return emitPublicChatImageActionStream("new-text", `<message>new answer</message>`)(ctx, req, emit)
+		case <-ctx.Done():
+			nextCanceled <- struct{}{}
+			return ctx.Err()
 		}
-		return response, err
-	})
-
-	if err := svc.ConsumePublicChatAppMessage(context.Background(), request("request-first", "finish with a blocking sidecar")); err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(first): %v", err)
-	}
-	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
-	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	}})
+	submitPublicChatImageActionTurn(t, svc, anchorID, true)
+	first := publicChatPayloadMap(t, capture.waitForMessageType(t, publicChatTurnAcceptedType))["turn_id"].(string)
 	select {
-	case <-sidecarEntered:
-	case <-time.After(10 * time.Second):
-		t.Fatal("timed out waiting for post-turn sidecar")
+	case <-media.entered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("media did not start")
+	}
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[anchorID]
+	slot := anchor.ActiveTurnID
+	oldAlive := svc.chatTurns[first] != nil
+	svc.chatSurfaceMu.Unlock()
+	if slot != "" || !oldAlive {
+		t.Fatalf("text slot=%q old tail alive=%v", slot, oldAlive)
+	}
+	req := publicChatTurnRequestPayload{LocalAgentRef: testRuntimeAgentLocalRef("agent-alpha"), OwnerUserID: "user-1", RuntimeSourceRef: testRuntimeAgentSourceRef("agent-alpha"), ConversationAnchorID: anchorID, RequestID: "next-text", Messages: []publicChatMessagePayload{{Role: "user", Content: "a new question"}}}
+	second, err := svc.publicChatRuntime().handleTurnRequestWithID(context.Background(), &runtimev1.AppMessageEvent{FromAppId: "desktop.app", SubjectUserId: "user-1"}, req)
+	if err != nil {
+		t.Fatalf("new text rejected while old media runs: %v", err)
 	}
 	select {
-	case callerAppID := <-sidecarCallerAppID:
-		if callerAppID != "desktop.app" {
-			t.Fatalf("post-turn sidecar caller app id = %q", callerAppID)
-		}
+	case <-nextEntered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("new text did not start")
+	}
+	decision := localAppConversationDecision(accountservice.LocalAppOperationInterruptConversation, 0x51, "user-1")
+	interrupted, err := svc.InterruptLocalAppConversationTurn(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision), &runtimev1.InterruptLocalAppConversationTurnRequest{AgentHandle: mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha")), ConversationAnchorId: anchorID, ExpectedTurnId: &first})
+	if err != nil || interrupted.GetTurnId() != first {
+		t.Fatalf("old media stop=%+v err=%v", interrupted, err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
+	svc.chatSurfaceMu.Lock()
+	anchor = svc.chatAnchors[anchorID]
+	active := anchor.ActiveTurnID
+	firstSaved := publicChatHasCompleteAnswer(anchor, first)
+	newLive := svc.chatTurns[second]
+	clobbered := newLive == nil || newLive.Interrupted
+	svc.chatSurfaceMu.Unlock()
+	if active != second || !firstSaved || clobbered {
+		t.Fatalf("old tail damaged new turn or saved reply: active=%s new=%s saved=%v clobbered=%v", active, second, firstSaved, clobbered)
+	}
+	select {
+	case <-nextCanceled:
+		t.Fatal("next input canceled old media or old media canceled next input")
 	default:
-		t.Fatal("post-turn sidecar did not receive the canonical Conversation caller App identity")
 	}
+	close(nextRelease)
+	waitForPublicChatAsyncDrain(t, svc)
+}
 
-	committedSnapshot := publicChatSessionSnapshotDetail(t, requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-committed"))
-	if got := committedSnapshot["session_status"]; got != "turn_active" {
-		t.Fatalf("committed message must remain turn_active until terminal delivery, got=%v", committedSnapshot)
-	}
-	activeTurn, ok := committedSnapshot["active_turn"].(map[string]any)
-	if !ok || activeTurn["status"] != publicChatTurnStatusCommitted {
-		t.Fatalf("expected active committed turn while sidecar runs, got=%v", committedSnapshot)
-	}
-	if _, exists := committedSnapshot["last_turn"]; exists {
-		t.Fatalf("committed message must not fabricate terminal last_turn before post-turn completion: %v", committedSnapshot)
-	}
-	if err := svc.ConsumePublicChatAppMessage(context.Background(), request("request-blocked", "must remain blocked before terminal")); status.Code(err) != codes.ResourceExhausted {
-		t.Fatalf("expected pre-terminal request to remain blocked, got %v", err)
-	}
-
-	close(sidecarRelease)
-	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
-	select {
-	case err := <-immediateNextResult:
-		if err != nil {
-			t.Fatalf("terminal callback observed unreleased reservation: %v", err)
-		}
-	case <-time.After(10 * time.Second):
-		t.Fatal("timed out waiting for immediate post-terminal request")
+func TestStopCancelsEvenWhenAcknowledgementCannotPublish(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	turnID := reserveConversationPublicationTestTurn(t, svc, anchorID)
+	canceled := false
+	svc.chatSurfaceMu.Lock()
+	svc.chatTurns[turnID].Cancel = func() { canceled = true }
+	svc.chatSurfaceMu.Unlock()
+	svc.chatSurfaceMu.Lock()
+	// Exhausted publication sequence makes acknowledgement fail after Stop is accepted.
+	svc.chatAnchors[anchorID].LocalAppSequence = ^uint64(0)
+	svc.chatSurfaceMu.Unlock()
+	_, err := (publicChatRuntime{svc: svc}).handleTurnInterruptWithID(&runtimev1.AppMessageEvent{FromAppId: "desktop.app", SubjectUserId: "user-1"}, publicChatTurnInterruptPayload{ConversationAnchorID: anchorID, ExpectedTurnID: turnID, Reason: "user_cancel"})
+	if err == nil || !canceled {
+		t.Fatalf("stop must cancel and report save failure: canceled=%v err=%v", canceled, err)
 	}
 }

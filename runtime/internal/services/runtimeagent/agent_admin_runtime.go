@@ -396,166 +396,180 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 	if err != nil {
 		return nil, err
 	}
-	entry, err := r.svc.agentByID(identity.LocalAgentRef)
-	if err != nil {
-		return nil, err
-	}
-	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
-		return nil, err
-	}
-	nextState := cloneAgentState(entry.State)
-	if nextState.Attributes == nil {
-		nextState.Attributes = map[string]string{}
-	}
-	// K-AGCORE-037 state_envelope: admin mutations have no continuity origin.
-	// Runtime MUST NOT fabricate anchor/turn/stream linkage.
-	adminOrigin := stateEventOrigin{}
-	previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
-	hadPreviousStatusText := previousStatusText != ""
-	for _, mutation := range req.GetMutations() {
-		switch item := mutation.GetMutation().(type) {
-		case *runtimev1.AgentStateMutation_SetStatusText:
-			nextState.StatusText = strings.TrimSpace(item.SetStatusText.GetStatusText())
-		case *runtimev1.AgentStateMutation_SetWorldContext:
-			nextState.ActiveWorldId = strings.TrimSpace(item.SetWorldContext.GetWorldId())
-		case *runtimev1.AgentStateMutation_ClearWorldContext:
-			nextState.ActiveWorldId = ""
-		case *runtimev1.AgentStateMutation_SetDyadicContext:
-			nextState.ActiveUserId = strings.TrimSpace(item.SetDyadicContext.GetUserId())
-		case *runtimev1.AgentStateMutation_ClearDyadicContext:
-			nextState.ActiveUserId = ""
-		case *runtimev1.AgentStateMutation_PutAttribute:
-			key := strings.TrimSpace(item.PutAttribute.GetKey())
-			if key == "" {
-				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-			}
-			nextState.Attributes[key] = item.PutAttribute.GetValue()
-		case *runtimev1.AgentStateMutation_RemoveAttribute:
-			delete(nextState.Attributes, strings.TrimSpace(item.RemoveAttribute.GetKey()))
-		default:
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	var response *runtimev1.UpdateAgentStateResponse
+	err = r.svc.mutateAgent(identity.LocalAgentRef, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
+			return nil, nil, err
 		}
-	}
-	now := time.Now().UTC()
-	nextState.UpdatedAt = timestamppb.New(now)
-	entry.State = nextState
-	events := make([]*runtimev1.AgentEvent, 0, 1)
-	newStatusText := strings.TrimSpace(nextState.GetStatusText())
-	if newStatusText != previousStatusText {
-		events = append(events, r.svc.stateStatusTextChangedEvent(
-			entry.Agent.GetLocalAgentRef(),
-			newStatusText,
-			previousStatusText,
-			hadPreviousStatusText,
-			adminOrigin,
-			now,
-		))
-	}
-	if err := r.svc.updateAgent(entry, events...); err != nil {
-		return nil, err
-	}
-	return &runtimev1.UpdateAgentStateResponse{State: cloneAgentState(nextState)}, nil
+		nextState := cloneAgentState(entry.State)
+		if nextState.Attributes == nil {
+			nextState.Attributes = map[string]string{}
+		}
+		// K-AGCORE-037 state_envelope: admin mutations have no continuity origin.
+		// Runtime MUST NOT fabricate anchor/turn/stream linkage.
+		adminOrigin := stateEventOrigin{}
+		previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
+		hadPreviousStatusText := previousStatusText != ""
+		for _, mutation := range req.GetMutations() {
+			switch item := mutation.GetMutation().(type) {
+			case *runtimev1.AgentStateMutation_SetStatusText:
+				nextState.StatusText = strings.TrimSpace(item.SetStatusText.GetStatusText())
+			case *runtimev1.AgentStateMutation_SetWorldContext:
+				nextState.ActiveWorldId = strings.TrimSpace(item.SetWorldContext.GetWorldId())
+			case *runtimev1.AgentStateMutation_ClearWorldContext:
+				nextState.ActiveWorldId = ""
+			case *runtimev1.AgentStateMutation_SetDyadicContext:
+				nextState.ActiveUserId = strings.TrimSpace(item.SetDyadicContext.GetUserId())
+			case *runtimev1.AgentStateMutation_ClearDyadicContext:
+				nextState.ActiveUserId = ""
+			case *runtimev1.AgentStateMutation_PutAttribute:
+				key := strings.TrimSpace(item.PutAttribute.GetKey())
+				if key == "" {
+					return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+				}
+				nextState.Attributes[key] = item.PutAttribute.GetValue()
+			case *runtimev1.AgentStateMutation_RemoveAttribute:
+				delete(nextState.Attributes, strings.TrimSpace(item.RemoveAttribute.GetKey()))
+			default:
+				return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			}
+		}
+		now := time.Now().UTC()
+		nextState.UpdatedAt = timestamppb.New(now)
+		entry.State = nextState
+		events := make([]*runtimev1.AgentEvent, 0, 1)
+		newStatusText := strings.TrimSpace(nextState.GetStatusText())
+		if newStatusText != previousStatusText {
+			events = append(events, r.svc.stateStatusTextChangedEvent(
+				entry.Agent.GetLocalAgentRef(),
+				newStatusText,
+				previousStatusText,
+				hadPreviousStatusText,
+				adminOrigin,
+				now,
+			))
+		}
+		response = &runtimev1.UpdateAgentStateResponse{State: cloneAgentState(nextState)}
+		return events, nil, nil
+	})
+	return response, err
 }
 
 func (r agentAdminRuntime) enableAutonomy(req *runtimev1.EnableAutonomyRequest) (*runtimev1.EnableAutonomyResponse, error) {
-	identity, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now().UTC()
-	if entry.Agent.Autonomy == nil {
-		entry.Agent.Autonomy = buildInitialAutonomyState(nil, now)
-	}
-	if autonomyMode(entry.Agent.Autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
-		return &runtimev1.EnableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
-	}
-	entry.Agent.Autonomy.Enabled = true
-	if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
-		return nil, err
-	}
-	if entry.Agent.Autonomy.WindowStartedAt == nil {
-		entry.Agent.Autonomy.WindowStartedAt = timestamppb.New(now)
-	}
-	entry.Agent.UpdatedAt = timestamppb.New(now)
-	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
-		Budget: &runtimev1.AgentBudgetEventDetail{
-			BudgetExhausted: entry.Agent.GetAutonomy().GetBudgetExhausted(),
-			RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
-			WindowStartedAt: cloneTimestamp(entry.Agent.GetAutonomy().GetWindowStartedAt()),
-		},
+	var response *runtimev1.EnableAutonomyResponse
+	err = r.svc.mutateAgent(identity.LocalAgentRef, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
+			return nil, nil, err
+		}
+		now := time.Now().UTC()
+		if entry.Agent.Autonomy == nil {
+			entry.Agent.Autonomy = buildInitialAutonomyState(nil, now)
+		}
+		if autonomyMode(entry.Agent.Autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+			response = &runtimev1.EnableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}
+			return nil, nil, nil
+		}
+		entry.Agent.Autonomy.Enabled = true
+		if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
+			return nil, nil, err
+		}
+		advanceAutonomyWindow(entry, now)
+		entry.Agent.UpdatedAt = timestamppb.New(now)
+		event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+			Budget: &runtimev1.AgentBudgetEventDetail{
+				BudgetExhausted: entry.Agent.GetAutonomy().GetBudgetExhausted(),
+				RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
+				WindowStartedAt: cloneTimestamp(entry.Agent.GetAutonomy().GetWindowStartedAt()),
+			},
+		})
+		response = &runtimev1.EnableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}
+		return []*runtimev1.AgentEvent{event}, nil, nil
 	})
-	if err := r.svc.updateAgent(entry, event); err != nil {
-		return nil, err
-	}
-	return &runtimev1.EnableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
+	return response, err
 }
 
 func (r agentAdminRuntime) disableAutonomy(req *runtimev1.DisableAutonomyRequest) (*runtimev1.DisableAutonomyResponse, error) {
-	identity, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now().UTC()
-	if entry.Agent.Autonomy == nil {
-		entry.Agent.Autonomy = buildInitialAutonomyState(nil, now)
-	}
-	entry.Agent.Autonomy.Enabled = false
-	entry.Agent.Autonomy.BudgetExhausted = false
-	if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
-		return nil, err
-	}
-	entry.Agent.UpdatedAt = timestamppb.New(now)
-	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
-		Budget: &runtimev1.AgentBudgetEventDetail{
-			BudgetExhausted: false,
-			RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
-			WindowStartedAt: cloneTimestamp(entry.Agent.GetAutonomy().GetWindowStartedAt()),
-		},
+	var response *runtimev1.DisableAutonomyResponse
+	err = r.svc.mutateAgent(identity.LocalAgentRef, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
+			return nil, nil, err
+		}
+		now := time.Now().UTC()
+		if entry.Agent.Autonomy == nil {
+			entry.Agent.Autonomy = buildInitialAutonomyState(nil, now)
+		}
+		advanceAutonomyWindow(entry, now)
+		entry.Agent.Autonomy.Enabled = false
+		entry.Agent.Autonomy.BudgetExhausted = false
+		if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
+			return nil, nil, err
+		}
+		entry.Agent.UpdatedAt = timestamppb.New(now)
+		event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+			Budget: &runtimev1.AgentBudgetEventDetail{
+				BudgetExhausted: false,
+				RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
+				WindowStartedAt: cloneTimestamp(entry.Agent.GetAutonomy().GetWindowStartedAt()),
+			},
+		})
+		response = &runtimev1.DisableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}
+		return []*runtimev1.AgentEvent{event}, nil, nil
 	})
-	if err := r.svc.updateAgent(entry, event); err != nil {
-		return nil, err
-	}
-	return &runtimev1.DisableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
+	return response, err
 }
 
 func (r agentAdminRuntime) setAutonomyConfig(req *runtimev1.SetAutonomyConfigRequest) (*runtimev1.SetAutonomyConfigResponse, error) {
 	if req.GetConfig() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	identity, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now().UTC()
-	config := normalizeAutonomyConfig(req.GetConfig())
-	if entry.Agent.Autonomy == nil {
-		entry.Agent.Autonomy = buildInitialAutonomyState(config, now)
-	} else {
-		entry.Agent.Autonomy.Config = config
-	}
-	entry.Agent.Autonomy.SuspendedUntil = cloneTimestamp(config.GetSuspendUntil())
-	if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
-		return nil, err
-	}
-	if autonomyMode(config) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
-		entry.Agent.Autonomy.Enabled = false
-		entry.Agent.Autonomy.BudgetExhausted = false
-	} else {
-		entry.Agent.Autonomy.BudgetExhausted = entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget() > 0 &&
-			entry.Agent.Autonomy.GetUsedTokensInWindow() >= entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget()
-	}
-	entry.Agent.UpdatedAt = timestamppb.New(now)
-	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
-		Budget: &runtimev1.AgentBudgetEventDetail{
-			BudgetExhausted: entry.Agent.GetAutonomy().GetBudgetExhausted(),
-			RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
-			WindowStartedAt: cloneTimestamp(entry.Agent.GetAutonomy().GetWindowStartedAt()),
-		},
+	var response *runtimev1.SetAutonomyConfigResponse
+	err = r.svc.mutateAgent(identity.LocalAgentRef, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
+			return nil, nil, err
+		}
+		now := time.Now().UTC()
+		config := normalizeAutonomyConfig(req.GetConfig())
+		if entry.Agent.Autonomy == nil {
+			entry.Agent.Autonomy = buildInitialAutonomyState(config, now)
+		} else {
+			entry.Agent.Autonomy.Config = config
+		}
+		entry.Agent.Autonomy.SuspendedUntil = cloneTimestamp(config.GetSuspendUntil())
+		if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
+			return nil, nil, err
+		}
+		advanceAutonomyWindow(entry, now)
+		if autonomyMode(config) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+			entry.Agent.Autonomy.Enabled = false
+			entry.Agent.Autonomy.BudgetExhausted = false
+		} else {
+			entry.Agent.Autonomy.BudgetExhausted = entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget() > 0 &&
+				entry.Agent.Autonomy.GetUsedTokensInWindow() >= entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget()
+		}
+		entry.Agent.UpdatedAt = timestamppb.New(now)
+		event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+			Budget: &runtimev1.AgentBudgetEventDetail{
+				BudgetExhausted: entry.Agent.GetAutonomy().GetBudgetExhausted(),
+				RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
+				WindowStartedAt: cloneTimestamp(entry.Agent.GetAutonomy().GetWindowStartedAt()),
+			},
+		})
+		response = &runtimev1.SetAutonomyConfigResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}
+		return []*runtimev1.AgentEvent{event}, nil, nil
 	})
-	if err := r.svc.updateAgent(entry, event); err != nil {
-		return nil, err
-	}
-	return &runtimev1.SetAutonomyConfigResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
+	return response, err
 }
 
 func advanceAutonomyRevision(state *runtimev1.AgentAutonomyState) error {

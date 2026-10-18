@@ -1,3 +1,4 @@
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type {
@@ -12,6 +13,7 @@ import { bundleQueryKey } from './chat-agent-shell-core';
 import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
 import {
+  createCanonicalConversationMediaReader,
   materializeCanonicalConversationBundle,
   reduceCanonicalConversationEvent,
   seedCanonicalConversationProjection,
@@ -32,7 +34,6 @@ type UseAgentRuntimeSessionSnapshotHydrationInput = {
   onRuntimeError?: (error: unknown) => void;
   queryClient: QueryClient;
   selectedThreadRecord: AgentLocalThreadSummary | null;
-  submittingThreadId: string | null;
 };
 
 function normalizeText(value: unknown): string {
@@ -49,6 +50,7 @@ function compareEvents(
 }
 
 export type AgentRuntimeSessionHydrationState = {
+  readonly controlState: import('@nimiplatform/sdk/app').NimiLocalAppConversationState | null;
   /** The conversation has history that has not been read yet. */
   readonly loading: boolean;
   readonly error: Error | null;
@@ -81,22 +83,26 @@ export function useAgentRuntimeSessionSnapshotHydration(
   const visibleProjections = useAgentVisibleProjectionStore();
   const activeKeyRef = useRef<string | null>(null);
   const [outcome, setOutcome] = useState<HydrationOutcome | null>(null);
+  const reconnects = useRef({key:'', count:0});
   const [attempt, setAttempt] = useState(0);
-  const retry = useCallback(() => setAttempt((current) => current + 1), []);
+  const [control, setControl] = useState<{key:string;value:import('@nimiplatform/sdk/app').NimiLocalAppConversationState}|null>(null);
+  const retry = useCallback(() => { reconnects.current.count=0; setAttempt(current=>current+1); }, []);
   const currentKey = hydrationKey(input);
 
   useEffect(() => {
     let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelSubscription: () => Promise<void> = async () => {};
     const thread = input.selectedThreadRecord;
     const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
     const agentHandle = normalizeText(thread?.targetSnapshot.agentHandle) as NimiLocalAppAgentHandle;
     const key = hydrationKey(input);
-    if (!key || !thread || input.submittingThreadId === thread.id) {
+    if (!key || !thread) {
       return () => { cancelled = true; };
     }
 
     activeKeyRef.current = key;
+    if(reconnects.current.key!==key) reconnects.current={key,count:0};
     setOutcome((current) => (current?.key === key && current.status !== 'error'
       ? current
       : { key, status: 'loading', error: null }));
@@ -106,16 +112,23 @@ export function useAgentRuntimeSessionSnapshotHydration(
     let resyncing = false;
     let serial = Promise.resolve();
 
-    const publish = async () => {
+    const media = createCanonicalConversationMediaReader({
+      conversation,
+      thread,
+      conversationAnchorId,
+      onChange: () => publish(),
+    });
+    const publish: () => void = () => {
       if (!projection || cancelled || activeKeyRef.current !== key) return;
-      const bundle = await materializeCanonicalConversationBundle({
-        conversation,
+      const bundle = materializeCanonicalConversationBundle({
+        media,
         thread,
         projection,
         nowMs: bindings.clock.now(),
       });
       if (cancelled || activeKeyRef.current !== key) return;
       input.queryClient.setQueryData(bundleQueryKey(thread.id), bundle);
+      setControl(current => current?.key === key && current.value === projection!.state ? current : {key,value:projection!.state});
       visibleProjections.set(thread.id, bundle);
       setOutcome((current) => (current?.key === key && current.status === 'ready'
         ? current
@@ -147,8 +160,8 @@ export function useAgentRuntimeSessionSnapshotHydration(
               projection = reduced.projection;
             }
             if (!gap) await publish();
-            // publish may resolve artifacts asynchronously. Consume any event
-            // buffered during that work before exposing the resync as ready.
+            // Text projection never waits for preview bytes. Media completion
+            // reprojects the current state through the same scoped publisher.
           } while (!gap && bufferedEvents.length > 0);
           if (!gap) return;
           gapResyncCount += 1;
@@ -177,7 +190,9 @@ export function useAgentRuntimeSessionSnapshotHydration(
       }
       if (reduced.status === 'stale') return;
       projection = reduced.projection;
+      reconnects.current.count=0;
       await publish();
+      if (event.type === 'turn-failed' || event.type === 'turn-interrupted') await authoritativeResync();
     };
 
     void (async () => {
@@ -192,9 +207,15 @@ export function useAgentRuntimeSessionSnapshotHydration(
       })();
       await authoritativeResync();
       await eventPump;
+      if (!cancelled) throw Object.assign(new Error('Conversation connection ended. Reconnecting does not resend your message.'), {retryable:true});
     })().catch((error) => {
       if (cancelled) return;
-      setOutcome({ key, status: 'error', error: error instanceof Error ? error : new Error(String(error)) });
+      void cancelSubscription().catch(() => undefined);
+      if (extractNimiErrorFields(error).retryable === true && reconnects.current.key === key && reconnects.current.count < 3) {
+        const delay=[100,500,1500][reconnects.current.count++]!;
+        reconnectTimer=setTimeout(() => {if(!cancelled && activeKeyRef.current===key) setAttempt(value=>value+1);},delay);
+      }
+      setOutcome({ key, status: 'error' , error: error instanceof Error ? error : new Error(String(error)) });
       input.onRuntimeError?.(error);
       logRendererEvent({
         level: 'warn',
@@ -209,6 +230,8 @@ export function useAgentRuntimeSessionSnapshotHydration(
 
     return () => {
       cancelled = true;
+      if(reconnectTimer!==null) clearTimeout(reconnectTimer);
+      media.close();
       if (activeKeyRef.current === key) activeKeyRef.current = null;
       void cancelSubscription().catch(() => undefined);
     };
@@ -222,13 +245,13 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.onRuntimeError,
     input.queryClient,
     input.selectedThreadRecord,
-    input.submittingThreadId,
     visibleProjections,
     attempt,
   ]);
 
   const settled = outcome?.key === currentKey ? outcome : null;
   return {
+    controlState: control?.key === currentKey ? control.value : null,
     loading: currentKey !== null && settled?.status !== 'ready' && settled?.status !== 'error',
     error: currentKey !== null && settled?.status === 'error' ? settled.error : null,
     retry,

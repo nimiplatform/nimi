@@ -694,11 +694,26 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         voiceTranscriptions.delete(requestId);
       }
     },
-    conversationVoiceRender: (record) => conversation.renderVoice(record as never) as Promise<NimiElectronLocalAppRecord>,
+    conversationVoiceRender: async (record) => {
+      const result = await conversation.renderVoice(record as never);
+      // The renderer carrier consumes the canonical voice envelope, while the
+      // SDK consumer returns a ready/unavailable convenience result.
+      return { voice: {
+        voiceId: result.voiceId,
+        turnId: result.turnId,
+        messageId: result.messageId,
+        state: result.status === 'ready' ? 'ready' : 'failed',
+        artifactId: result.status === 'ready' ? result.artifactId : null,
+        reasonCode: result.status === 'unavailable' ? result.reasonCode : null,
+        message: result.status === 'unavailable' ? result.message : null,
+      } };
+    },
     conversationInterruptTurn: (record) => conversation.interruptTurn(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSubscribe: async (record) => openPullStream(await conversation.subscribe(record as never)),
     conversationStreamNext: nextPullStream,
     conversationStreamClose: closePullStream,
+    conversationFollowUpPolicy: (record) => conversation.setFollowUpPolicy(record as never) as Promise<NimiElectronLocalAppRecord>,
+    conversationFollowUpUpdate: (record) => conversation.updateFollowUp(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSnapshot: (record) => conversation.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     embodimentSnapshot: (record) => embodiment.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     embodimentSubscribe: async (record) => openPullStream(await embodiment.subscribe(record as never)),
@@ -766,6 +781,8 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     agentManagerSnapshot: (record) => configure.manager.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentAutonomySnapshot: (record) => configure.autonomy.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateAutonomy: (record) => configure.autonomy.update(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentPendingHooks: (record) => configure.pendingHooks.list(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentPendingHookUpdate: (record) => configure.pendingHooks.update(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateConversationContext: (record) => configure.conversationContext.update(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentPresentationSnapshot: (record) => configure.presentation.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentPresentationReadAsset: (record) => configure.presentation.readAsset(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,

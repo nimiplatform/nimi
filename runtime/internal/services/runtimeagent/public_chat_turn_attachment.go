@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -49,8 +50,13 @@ func (s *Service) resolvePublicChatTurnAttachments(
 		default:
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED)
 		}
+		expiresAt := time.Time{}
+		if record.ConversationAttachment != nil {
+			expiresAt = record.ConversationAttachment.ExpiresAt
+		}
 		resolved = append(resolved, publicChatResolvedAttachment{
 			ArtifactID:  artifactID,
+			ExpiresAt:   expiresAt,
 			MimeType:    strings.ToLower(strings.TrimSpace(record.MimeType)),
 			DisplayName: strings.TrimSpace(attachment.DisplayName),
 		})

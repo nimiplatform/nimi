@@ -26,8 +26,8 @@ test('Desktop Agent chat uses the canonical handle-only Conversation stream', as
         queueMicrotask(() => {
           for (const event of [
             { conversationAnchorId: 'anchor-1', sequence: '1', turnId: 'turn-1', type: 'text-delta', delta: 'hello ' },
-            { conversationAnchorId: 'anchor-1', sequence: '2', turnId: 'turn-1', type: 'message-committed', message: { turnId: 'turn-1', role: 'assistant', messageId: 'message-1', parts: [{ kind: 'text', text: 'hello back' }] } },
-            { conversationAnchorId: 'anchor-1', sequence: '3', turnId: 'turn-1', type: 'turn-completed', terminalReason: 'stop' },
+            { conversationAnchorId: 'anchor-1', sequence: '2', turnId: 'turn-1', type: 'message-committed', message: { partial: false, turnId: 'turn-1', role: 'assistant', messageId: 'message-1', parts: [{ kind: 'text', text: 'hello back' }] } },
+            { conversationAnchorId: 'anchor-1', sequence: '3', turnId: 'turn-1', type: 'turn-completed', terminalReason: 'stop', reasonCode: null, message: null },
           ]) streamListener?.({ payload: { subscriptionId: 'subscription-1', eventType: 'next', event } });
           streamListener?.({ payload: { subscriptionId: 'subscription-1', eventType: 'completed' } });
         });
@@ -74,13 +74,13 @@ test('Desktop Agent chat uses the canonical handle-only Conversation stream', as
           yield {
             conversationAnchorId: 'anchor-1', sequence: '5',
             event: { oneofKind: 'messageCommitted', messageCommitted: { message: {
-              turnId: 'turn-1', role: 2, messageId: 'message-1',
+              partial: false, turnId: 'turn-1', role: 2, messageId: 'message-1',
               parts: [{ part: { oneofKind: 'text', text: { text: 'hello back' } } }],
             } } },
           };
           yield {
             conversationAnchorId: 'anchor-1', sequence: '6',
-            event: { oneofKind: 'turnCompleted', turnCompleted: { turnId: 'turn-1', terminalReason: 'stop' } },
+            event: { oneofKind: 'turnCompleted', turnCompleted: { turnId: 'turn-1', terminalReason: 'stop', reasonCode: 0 } },
           };
         })(),
         sendLocalAppConversationTurn: async (request: unknown) => {

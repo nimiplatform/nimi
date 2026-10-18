@@ -1,3 +1,5 @@
+import { createPendingHooksClient, type NimiLocalAppPendingHooksClient, type NimiLocalAppPendingHooksShell } from './local-app-runtime-platform-proactive.js';
+import type { ListLocalAppAgentPendingHooksRequest, ListLocalAppAgentPendingHooksResponse, UpdateLocalAppAgentPendingHookRequest, UpdateLocalAppAgentPendingHookResponse, LocalAppAgentPendingHook } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import type {
   NimiSharedLocalAgentAIConfigOptionsQuery,
   NimiSharedLocalAgentAIConfigOptionsResult,
@@ -103,6 +105,7 @@ export type NimiLocalAppDuration = {
 
 export type NimiLocalAppAgentAutonomyConfig = {
   readonly dailyTokenBudget: number;
+  /** Output-token cap per LifeTrack activity; 0 uses the Runtime default. Not a total-usage or cost cap. */
   readonly maxTokensPerHook: number;
   readonly minHookInterval?: NimiLocalAppDuration;
   readonly suspendUntil?: NimiLocalAppTimestamp;
@@ -496,6 +499,7 @@ export type NimiLocalAppAgentManagerSnapshotInput = NimiLocalAppAgentScopedInput
 };
 
 export type NimiLocalAppAgentConfigureShell = {
+  readonly pendingHooks: NimiLocalAppPendingHooksShell;
   readonly conversationContext: { readonly update: (input: NimiLocalAppConversationContextUpdateInput) => Promise<unknown> };
   readonly sharedAIConfig: {
     readonly get: () => Promise<unknown>;
@@ -550,6 +554,8 @@ type AgentConfigureRuntimeUnary<Request, Response> = (
  * it creates no first-party product semantics or identity sideband.
  */
 export interface NimiLocalAppAgentConfigureRuntime {
+ readonly listLocalAppAgentPendingHooks: AgentConfigureRuntimeUnary<ListLocalAppAgentPendingHooksRequest,ListLocalAppAgentPendingHooksResponse>;
+ readonly updateLocalAppAgentPendingHook: AgentConfigureRuntimeUnary<UpdateLocalAppAgentPendingHookRequest,UpdateLocalAppAgentPendingHookResponse>;
   readonly updateLocalAppAgentConversationContext: AgentConfigureRuntimeUnary<UpdateLocalAppAgentConversationContextRequest, UpdateLocalAppAgentConversationContextResponse>;
   readonly getLocalAppAgentManagerSnapshot: AgentConfigureRuntimeUnary<
     GetLocalAppAgentManagerSnapshotRequest,
@@ -610,6 +616,7 @@ export interface NimiLocalAppAgentConfigureRuntime {
 }
 
 export type NimiLocalAppAgentConfigureClient = {
+  readonly pendingHooks: NimiLocalAppPendingHooksClient;
   readonly conversationContext: { readonly update: (input: NimiLocalAppConversationContextUpdateInput) => Promise<NimiLocalAppAgentConversationContextProjection> };
   readonly sharedAIConfig: {
     readonly get: () => Promise<NimiSharedLocalAgentAIConfigSnapshot>;
@@ -728,6 +735,10 @@ export function createNimiLocalAppAgentConfigureRuntimeShell(
   runtime: NimiLocalAppAgentConfigureRuntime,
 ): NimiLocalAppAgentConfigureShell {
   return Object.freeze({
+    pendingHooks: Object.freeze({
+      list: async (input: Parameters<NimiLocalAppPendingHooksShell['list']>[0]) => {const result=await runtime.listLocalAppAgentPendingHooks(input);return {hooks:result.hooks.map(projectRuntimePendingHook),truncated:result.truncated};},
+      update: async (input: Parameters<NimiLocalAppPendingHooksShell['update']>[0]) => projectRuntimePendingHook((await runtime.updateLocalAppAgentPendingHook({...input,action:input.action==='cancel'?1:2})).hook!),
+    }),
     conversationContext: Object.freeze({
       update: async (input: NimiLocalAppConversationContextUpdateInput) => {
         const wire = requireWireProjection((await runtime.updateLocalAppAgentConversationContext(validateConversationContextInput(input))).projection, 'Conversation context');
@@ -852,6 +863,7 @@ export function createNimiLocalAppAgentConfigureClient(
   shell: NimiLocalAppAgentConfigureShell,
 ): NimiLocalAppAgentConfigureClient {
   return Object.freeze({
+    pendingHooks: createPendingHooksClient(shell.pendingHooks),
     sharedAIConfig: Object.freeze({
       get: async (): Promise<NimiSharedLocalAgentAIConfigSnapshot> => projectSharedAIConfigSnapshot(await shell.sharedAIConfig.get()),
       overwrite: async (input: NimiAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> => {
@@ -2478,7 +2490,12 @@ function projectManagerContext(value: unknown): NimiLocalAppAgentManagerContextP
   });
   const inputBudgetTokens = managerUint64(context.inputBudgetTokens, 'Agent Center manager context inputBudgetTokens');
   const usedTokens = managerUint64(context.usedTokens, 'Agent Center manager context usedTokens');
-  if (BigInt(usedTokens) > BigInt(inputBudgetTokens)) localAppProjectionError('Agent Center manager context token usage');
+  // A rejected composition retains its actual mandatory-token demand so the
+  // owner can explain the failure and let the user repair the model settings.
+  const capacityExceeded = state === 'context_capacity_exceeded' && reasonCode === 'context_capacity_exceeded';
+  if (BigInt(usedTokens) > BigInt(inputBudgetTokens) && !capacityExceeded) {
+    localAppProjectionError('Agent Center manager context token usage');
+  }
   return Object.freeze({
     ready: context.ready,
     state,
@@ -2827,4 +2844,9 @@ function projectedRevision(value: unknown, field: string): string {
     localAppProjectionError(field);
   }
   return value;
+}
+
+function projectRuntimePendingHook(value:LocalAppAgentPendingHook):Record<string,unknown>{
+ if(!value)throw new Error('Runtime activity plan is missing');
+ return {...value,scheduledFor:runtimeTimestamp(value.scheduledFor),status:({2:'pending',4:'running',7:'canceled'} as Record<number,string>)[value.status]??''};
 }

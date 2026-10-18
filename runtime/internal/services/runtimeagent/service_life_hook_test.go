@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -670,15 +671,17 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *t
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one AI execution request, got %d", len(fakeAI.requests))
 	}
-	// max_tokens_per_hook stays non-enforced; the step carries the life-turn
-	// budget that fits a model reasoning before its short APML as the Runtime's
-	// own output budget, never as a caller max_tokens.
-	spec := fakeAI.requests[0].GetSpec().GetTextGenerate()
-	if spec.MaxTokens != nil {
-		t.Fatalf("life turn must not send a caller max_tokens, got %d", spec.GetMaxTokens())
+	if owner, ok := executionintent.RuntimeAccountSubjectFromContext(fakeAI.contexts[0]); !ok || owner != entry.Agent.GetOwnerUserId() {
+		t.Fatalf("life turn lost its validated account owner: %q, %v", owner, ok)
 	}
-	if got := textbehavior.ApplyInternalOutputBudget(fakeAI.contexts[0], spec, nil, false).GetMaxTokens(); got != 1024 {
-		t.Fatalf("life turn output budget = %d, want 1024", got)
+	// The configured per-activity output cap is explicit, independently of
+	// the seven input+output tokens reported and charged above.
+	spec := fakeAI.requests[0].GetSpec().GetTextGenerate()
+	if spec.MaxTokens == nil || spec.GetMaxTokens() != 1 {
+		t.Fatalf("life turn configured output cap = %v, want 1", spec.MaxTokens)
+	}
+	if got := textbehavior.ApplyInternalOutputBudget(fakeAI.contexts[0], spec, nil, false).GetMaxTokens(); got != 1 {
+		t.Fatalf("life turn output cap = %d, want 1", got)
 	}
 	if got := fakeAI.requests[0].GetHead().GetTimeoutMs(); got != 30_000 {
 		t.Fatalf("life turn timeout = %d ms, want 30000", got)

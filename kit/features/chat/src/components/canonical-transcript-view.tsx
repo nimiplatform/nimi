@@ -61,6 +61,8 @@ export type CanonicalTranscriptViewProps = {
   scrollViewportWidthClassName?: string;
   scrollViewportPositionClassName?: string;
   contentPaddingBottomClassName?: string;
+  /** Measured floating composer clearance; omitted hosts keep their class-based spacing. */
+  contentBottomInsetPx?: number;
   onNearBottomChange?: (value: boolean) => void;
   onSeedFirstTurn?: () => void;
   footerContent?: ReactNode;
@@ -110,6 +112,7 @@ export function CanonicalTranscriptView({
   scrollViewportWidthClassName = 'w-full',
   scrollViewportPositionClassName = '',
   contentPaddingBottomClassName = 'pb-6',
+  contentBottomInsetPx,
   onNearBottomChange,
   onSeedFirstTurn,
   footerContent,
@@ -143,12 +146,14 @@ export function CanonicalTranscriptView({
     lastMessageUpdatedAt: string | null;
     pendingFirstBeat: boolean;
     footerVisible: boolean;
+    bottomInsetPx: number | undefined;
   }>({
     messageCount: 0,
     lastMessageId: null,
     lastMessageUpdatedAt: null,
     pendingFirstBeat: false,
     footerVisible: false,
+    bottomInsetPx: undefined,
   });
   const showEmptyState = !loading && !error && messages.length === 0 && !content;
   const compactEmptyState = emptyStateVariant === 'compact';
@@ -209,6 +214,7 @@ export function CanonicalTranscriptView({
       lastMessageUpdatedAt: null,
       pendingFirstBeat: false,
       footerVisible: false,
+      bottomInsetPx: undefined,
     };
     return cancelInitialPin;
   }, [activeConversationId, cancelInitialPin]);
@@ -224,7 +230,8 @@ export function CanonicalTranscriptView({
       || previousRenderState.lastMessageId !== (lastMessage?.id || null)
       || previousRenderState.lastMessageUpdatedAt !== (lastMessage?.updatedAt || null)
       || previousRenderState.pendingFirstBeat !== pendingFirstBeat
-      || previousRenderState.footerVisible !== footerVisible;
+      || previousRenderState.footerVisible !== footerVisible
+      || previousRenderState.bottomInsetPx !== contentBottomInsetPx;
     // Sending a message is an explicit request to see it: jump to the bottom
     // even when the person had scrolled up to read history.
     const ownMessageAppended = messages.length > previousRenderState.messageCount
@@ -253,9 +260,10 @@ export function CanonicalTranscriptView({
       lastMessageUpdatedAt: lastMessage?.updatedAt || null,
       pendingFirstBeat,
       footerVisible,
+      bottomInsetPx: contentBottomInsetPx,
     };
     onNearBottomChange?.(nextNearBottom);
-  }, [activeConversationId, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat, showEmptyState]);
+  }, [activeConversationId, contentBottomInsetPx, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat, showEmptyState]);
 
   useLayoutEffect(() => {
     const root = scrollRootRef.current;
@@ -306,6 +314,7 @@ export function CanonicalTranscriptView({
         onWheelCapture={handleWheelCapture}
         style={{
           overflowAnchor: 'none',
+          scrollPaddingBottom: contentBottomInsetPx,
         }}
       >
         <div
@@ -317,6 +326,7 @@ export function CanonicalTranscriptView({
             contentPaddingBottomClassName,
             showEmptyState ? 'flex min-h-full flex-col' : '',
           )}
+          style={contentBottomInsetPx === undefined ? undefined : { paddingBottom: contentBottomInsetPx }}
           data-canonical-transcript-width={widthClassName}
         >
         {loading ? (

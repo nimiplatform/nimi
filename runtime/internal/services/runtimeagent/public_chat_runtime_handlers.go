@@ -34,23 +34,32 @@ func (r publicChatRuntime) handleTurnRequestWithID(
 	}
 	callerAppID := strings.TrimSpace(event.GetFromAppId())
 	subjectUserID := strings.TrimSpace(event.GetSubjectUserId())
-	resolvedAttachments, err := r.svc.resolvePublicChatTurnAttachments(subjectUserID, callerAppID, req.Messages)
-	if err != nil {
-		return "", publicChatDiagnosticError(err, "runtime_agent_public_chat_turn_attachment")
+	if req.RequestID == "" {
+		req.RequestID = strings.TrimSpace(event.GetMessageId())
 	}
-	req.resolvedAttachments = resolvedAttachments
+	if req.resolvedAttachments == nil {
+		resolvedAttachments, err := r.svc.resolvePublicChatTurnAttachments(subjectUserID, callerAppID, req.Messages)
+		if err != nil {
+			return "", publicChatDiagnosticError(err, "runtime_agent_public_chat_turn_attachment")
+		}
+		req.resolvedAttachments = resolvedAttachments
+	}
 	session, turn, turnCtx, err := r.reserveTurn(ctx, callerAppID, subjectUserID, req)
 	if err != nil {
 		return "", publicChatDiagnosticError(err, "runtime_agent_public_chat_turn_reserve")
 	}
-	// A new authenticated turn cancels only the pending continuation on the
-	// exact anchor that reserveTurn just admitted. App id is a delivery origin,
-	// not authorization; thread ids must never widen cancellation across
-	// anchors, agents, or subjects.
-	if _, err := r.svc.cancelPublicChatFollowUpForAnchor(session.ConversationAnchorID, "user_message", true); err != nil {
-		r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
-		return "", publicChatDiagnosticError(err, "runtime_agent_public_chat_follow_up_cancel")
+	if turn.AdmissionReused {
+		return turn.TurnID, nil
 	}
+	if canceled := turn.CanceledFollowUp; canceled != nil {
+		if canceled.Cancel != nil {
+			canceled.Cancel()
+		}
+		if err := r.svc.emitPublicChatFollowUpCanceled(*canceled, "user_message", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", ""); err != nil && r.svc.logger != nil {
+			r.svc.logger.Warn("publish admitted continuation cancellation failed", "turn_id", turn.TurnID, "error", err)
+		}
+	}
+
 	r.svc.observeLatency("runtime.agent.turn.reserve_ms", reserveStartedAt,
 		"caller_app_id", callerAppID,
 		"agent_id", session.AgentID,
@@ -72,6 +81,13 @@ func (r publicChatRuntime) handleTurnRequestWithID(
 		r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
 		_ = r.setExecutionStateWithOrigin(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE, turnOrigin)
 	}()
+	failAccepted := func(stage string, failure error) (string, error) {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("admitted conversation could not start", "turn_id", turn.TurnID, "stage", stage, "error", failure)
+		}
+		r.failUncommittedPublicChatTurn(session, turn, "", session.Binding.ModelID, session.Binding.RoutePolicy, nil, nil, nil, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE, "Your input was saved, but the reply could not start.")
+		return turn.TurnID, nil
+	}
 	if err := r.setExecutionStateWithOrigin(
 		session.AgentID,
 		session.SubjectUserID,
@@ -79,7 +95,7 @@ func (r publicChatRuntime) handleTurnRequestWithID(
 		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE,
 		turnOrigin,
 	); err != nil {
-		return "", publicChatDiagnosticError(err, "runtime_agent_public_chat_execution_state")
+		return failAccepted("execution_state", err)
 	}
 	requestID := strings.TrimSpace(req.RequestID)
 	if requestID == "" {
@@ -88,18 +104,14 @@ func (r publicChatRuntime) handleTurnRequestWithID(
 	r.svc.setPublicChatTurnRequestID(turn.TurnID, requestID)
 	turn.RequestID = requestID
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail(requestID)); err != nil {
-		return "", publicChatDiagnosticError(err, "runtime_agent_public_chat_turn_accepted_emit")
+		return failAccepted("accepted_emit", err)
 	}
-	released = true
 	if !r.svc.startPublicChatAsync(func() {
 		r.runTurn(turnCtx, session, turn, req)
 	}) {
-		r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
-		return "", publicChatDiagnosticError(
-			status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable"),
-			"runtime_agent_public_chat_async_start",
-		)
+		return failAccepted("async_start", status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable"))
 	}
+	released = true
 	return turn.TurnID, nil
 }
 
@@ -168,7 +180,7 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 	if req.ExpectedTurnID != "" {
 		anchor := r.svc.chatAnchors[session.ConversationAnchorID]
 		current := r.svc.chatTurns[turn.TurnID]
-		if anchor == nil || anchor.ActiveTurnID != req.ExpectedTurnID || turn.TurnID != req.ExpectedTurnID || current == nil || current.Interrupted {
+		if anchor == nil || turn.TurnID != req.ExpectedTurnID || current == nil || current.ConversationAnchorID != anchor.ConversationAnchorID || current.Interrupted || current.TerminalProjection != nil {
 			r.svc.chatSurfaceMu.Unlock()
 			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_TURN_NOT_ACTIVE)
 		}
@@ -179,14 +191,16 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 		cancel = current.Cancel
 	}
 	r.svc.chatSurfaceMu.Unlock()
+	// Once the owner accepts Stop, cancellation must not depend on saving or
+	// publishing its acknowledgement. No service lock is held by the callback.
+	if cancel != nil {
+		cancel()
+	}
 	r.svc.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnInterruptAckType, map[string]any{
 		"interrupted_turn_id": turn.TurnID,
 	}); err != nil {
 		return "", err
-	}
-	if cancel != nil {
-		cancel()
 	}
 	return turn.TurnID, nil
 }

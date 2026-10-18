@@ -31,12 +31,12 @@ export async function streamChatAgentRuntimeAgentTurn(
   const agentHandle = normalizeText(request.agentHandle) as NimiLocalAppAgentHandle;
   if (!agentHandle) throw new Error('Desktop canonical Agent turn requires agentHandle');
 	const conversation = sdk.conversation();
-  const requestId = createNimiClientId('runtime-agent-turn-request');
+  const requestId = request.requestId || createNimiClientId('runtime-agent-turn-request');
   const parts = [
     ...(normalizeText(request.userText) ? [{ kind: 'text' as const, text: normalizeText(request.userText) }] : []),
     ...((request.userAttachments || []).map((attachment) => ({ kind: 'artifact-ref' as const, artifactId: attachment.artifactId }))),
   ];
-  if (parts.length === 0) throw new Error('Desktop canonical Agent turn requires input');
+  if (!request.retryOfTurnId && parts.length === 0) throw new Error('Desktop canonical Agent turn requires input');
 
   return {
     stream: runCanonicalDesktopAgentTurn({
@@ -44,6 +44,8 @@ export async function streamChatAgentRuntimeAgentTurn(
       agentHandle,
       conversationAnchorId: request.conversationAnchorId,
       requestId,
+      onAdmitted: request.onAdmitted,
+      retryOfTurnId: request.retryOfTurnId,
       parts,
       signal: request.signal,
     }),
@@ -55,6 +57,8 @@ async function* runCanonicalDesktopAgentTurn(input: {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly requestId: string;
+  readonly onAdmitted?: () => void;
+  readonly retryOfTurnId?: string;
   readonly parts: readonly ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'artifact-ref'; readonly artifactId: string })[];
   readonly signal?: AbortSignal;
 }): AsyncIterable<AgentRuntimeChatTurnStreamPart> {
@@ -73,8 +77,11 @@ async function* runCanonicalDesktopAgentTurn(input: {
 	}
     // After submission begins, a lost reply cannot prove the owner rejected it.
     if (input.signal) turnAdmissions.set(input.signal, 'unconfirmed');
-    const accepted = await input.conversation.send({ ...scope, requestId: input.requestId, parts: input.parts });
+    const accepted = await input.conversation.send(input.retryOfTurnId
+      ? { ...scope, requestId: input.requestId, retryOfTurnId: input.retryOfTurnId }
+      : { ...scope, requestId: input.requestId, parts: input.parts });
     if (input.signal) turnAdmissions.set(input.signal, 'admitted');
+    input.onAdmitted?.();
     const runtimeTurnId = accepted.turnId;
 	interrupt = () => {
 		interrupted = true;
@@ -87,7 +94,7 @@ async function* runCanonicalDesktopAgentTurn(input: {
       details: { conversationAnchorId: input.conversationAnchorId, runtimeTurnId },
     });
     for await (const event of subscription) {
-      if (event.turnId !== runtimeTurnId) continue;
+      if (event.type === 'state-changed' || event.turnId !== runtimeTurnId) continue;
       const projected = canonicalEventPart(event, outputText);
       if (projected.outputText !== undefined) outputText = projected.outputText;
       if (projected.part) yield projected.part;
@@ -173,6 +180,7 @@ function canonicalEventPart(
         progress: event.tool.progress || undefined, result: event.tool.result || undefined,
         reasonCode: event.tool.reasonCode || undefined,
       } };
+    case 'state-changed':
     case 'turn-accepted':
     case 'turn-started':
     case 'artifact-ready':

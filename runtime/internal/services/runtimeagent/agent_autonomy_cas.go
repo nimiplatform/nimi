@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"math"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -16,7 +17,7 @@ type agentAutonomyMutationIntent struct {
 }
 
 func validateAgentAutonomyMutationConfig(input *runtimev1.AgentAutonomyConfig) (*runtimev1.AgentAutonomyConfig, error) {
-	if input == nil || input.GetDailyTokenBudget() < 0 || input.GetMaxTokensPerHook() < 0 ||
+	if input == nil || input.GetDailyTokenBudget() < 0 || input.GetMaxTokensPerHook() < 0 || input.GetMaxTokensPerHook() > math.MaxInt32 ||
 		(input.GetMinHookInterval() != nil && input.GetMinHookInterval().CheckValid() != nil) ||
 		(input.GetSuspendUntil() != nil && input.GetSuspendUntil().CheckValid() != nil) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -68,6 +69,7 @@ func (s *Service) updateAgentAutonomyCAS(
 	if intent.enabled != nil {
 		next.Agent.Autonomy.Enabled = *intent.enabled
 	}
+	advanceAutonomyWindow(next, time.Now().UTC())
 	if autonomyMode(next.Agent.Autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
 		next.Agent.Autonomy.Enabled = false
 		next.Agent.Autonomy.BudgetExhausted = false

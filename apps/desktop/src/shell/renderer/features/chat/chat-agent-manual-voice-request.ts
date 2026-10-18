@@ -1,6 +1,5 @@
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
-import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 
 export type AgentManualVoiceRenderRequest = {
   agentHandle: string;
@@ -12,13 +11,14 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+// @nimi-authority: rule.nimi.desktop.agent-projection.r029
 export function resolveAgentManualVoiceRenderRequest(input: {
   message: ConversationCanonicalMessage;
   activeTarget: AgentLocalTargetSnapshot | null;
   activeConversationAnchorId: string | null;
 }): AgentManualVoiceRenderRequest | null {
   const message = input.message;
-  if ((message.kind || 'text') !== 'text' || (message.role !== 'assistant' && message.role !== 'agent')) {
+  if ((message.kind || 'text') !== 'text' || (message.role !== 'assistant' && message.role !== 'agent') || message.status !== 'complete') {
     return null;
   }
   const target = input.activeTarget;
@@ -29,12 +29,11 @@ export function resolveAgentManualVoiceRenderRequest(input: {
   if (!activeConversationAnchorId) {
     return null;
   }
-  const debugMetadata = parseAgentTextTurnDebugMetadata(message.metadata);
-  const runtimeTurns = debugMetadata?.runtimeAgentTurns;
-  if (!runtimeTurns || runtimeTurns.transport !== 'runtime.agent.turns') {
+  const metadata = message.metadata as Record<string, unknown> | undefined;
+  if (metadata?.canonicalPartial === true || (metadata?.canonicalTurnStatus === 'active' && metadata?.canonicalVoiceState !== 'ready') || !normalizeText(metadata?.canonicalTurnId)) {
     return null;
   }
-  const conversationAnchorId = normalizeText(runtimeTurns.conversationAnchorId);
+  const conversationAnchorId = normalizeText(metadata?.canonicalConversationAnchorId);
   const messageId = normalizeText(message.id);
   if (!conversationAnchorId || conversationAnchorId !== activeConversationAnchorId || !messageId) {
     return null;

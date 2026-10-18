@@ -37,32 +37,10 @@ function runtimeAssistantMessage(overrides?: Partial<ConversationCanonicalMessag
     createdAt: '2026-06-17T00:00:00.000Z',
     updatedAt: '2026-06-17T00:00:00.000Z',
     metadata: {
-      debugType: 'agent-text-turn',
-      prompt: 'Prompt',
-      systemPrompt: null,
-      rawModelOutput: null,
-      normalizedModelOutput: null,
-      statusCue: null,
-      followUpInstruction: null,
-      followUpTurn: false,
-      chainId: null,
-      followUpDepth: null,
-      maxFollowUpTurns: null,
-      followUpCanceledByUser: false,
-      followUpSourceActionId: null,
-      followUpDelayMs: null,
-      runtimeAgentTurns: {
-        transport: 'runtime.agent.turns',
-        conversationAnchorId: 'anchor-1',
-        runtimeTurnId: 'turn-1',
-        runtimeStreamId: 'stream-1',
-        route: 'local',
-        modelId: 'model-1',
-        connectorId: null,
-        traceId: null,
-        modelResolved: null,
-        routeDecision: null,
-      },
+      canonicalTurnId: 'turn-1',
+      canonicalConversationAnchorId: 'anchor-1',
+      canonicalPartial: false,
+      canonicalTurnStatus: 'completed',
     },
     ...overrides,
   };
@@ -104,4 +82,18 @@ test('desktop manual voice playback uses only canonical Conversation voice and a
   assert.match(source, /conversation\.renderVoice\(\{/u);
   assert.match(source, /conversation\.readArtifact\(\{/u);
   assert.doesNotMatch(source, /createNimiRuntimeAgentTurnsModule|runtimeAgentTurns|readArtifactBytes|ownerUserId|runtimeSourceRef|localAgentRef/u);
+});
+
+
+test('manual voice excludes uncommitted, partial, user, and legacy debug-only messages', () => {
+  for (const message of [
+    runtimeAssistantMessage({ status: 'pending' }),
+    runtimeAssistantMessage({ metadata: { canonicalTurnId: 'turn-1', canonicalConversationAnchorId: 'anchor-1', canonicalTurnStatus: 'active' } }),
+    runtimeAssistantMessage({ status: 'error' }),
+    runtimeAssistantMessage({ role: 'user' }),
+    runtimeAssistantMessage({ metadata: { canonicalTurnId: 'turn-1', canonicalConversationAnchorId: 'anchor-1', canonicalPartial: true } }),
+    runtimeAssistantMessage({ metadata: { runtimeAgentTurns: { transport: 'runtime.agent.turns', conversationAnchorId: 'anchor-1' } } }),
+  ]) {
+    assert.equal(resolveAgentManualVoiceRenderRequest({ message, activeTarget: target(), activeConversationAnchorId: 'anchor-1' }), null);
+  }
 });

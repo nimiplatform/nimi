@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"math"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
@@ -20,96 +20,23 @@ import (
 
 const publicChatPrivateSourceRecallMaxQueryRunes = 512
 
+// One shared wait budget per optional context phase; never the model timeout.
+const publicChatOptionalContextBudget = 750 * time.Millisecond
+
 type publicChatPrivateSourceRecallRequest struct {
 	Query string
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.r012
 func parsePublicChatPrivateSourceRecall(raw string) (*publicChatPrivateSourceRecallRequest, bool, error) {
-	trimmed := strings.TrimSpace(raw)
-	if !startsWithAPMLRoot(trimmed, "message") {
+	result := interpretPublicChatAPML(raw)
+	if !result.QuerySeen {
 		return nil, false, nil
 	}
-	decoder := xml.NewDecoder(strings.NewReader(trimmed))
-	decoder.Strict = true
-	depth := 0
-	rootSeen := false
-	rootClosed := false
-	queryFound := false
-	queryOpen := false
-	invalidShape := false
-	var queryText strings.Builder
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			if queryFound {
-				return nil, true, fmt.Errorf("private source recall XML is invalid")
-			}
-			return nil, false, nil
-		}
-		switch item := token.(type) {
-		case xml.StartElement:
-			switch {
-			case depth == 0:
-				if rootSeen {
-					invalidShape = true
-				}
-				rootSeen = true
-				if item.Name.Space != "" || item.Name.Local != "message" || len(item.Attr) != 1 ||
-					item.Attr[0].Name.Space != "" || item.Attr[0].Name.Local != "id" || item.Attr[0].Value != "message-0" {
-					invalidShape = true
-				}
-			case depth == 1 && !rootClosed:
-				if item.Name.Space == "" && item.Name.Local == "query" {
-					if queryFound || len(item.Attr) != 0 {
-						invalidShape = true
-					}
-					queryFound = true
-					queryOpen = true
-				} else {
-					invalidShape = true
-				}
-			case queryOpen:
-				invalidShape = true
-			default:
-				invalidShape = true
-			}
-			depth++
-		case xml.CharData:
-			switch {
-			case queryOpen && depth == 2:
-				queryText.Write([]byte(item))
-			case strings.TrimSpace(string(item)) != "":
-				invalidShape = true
-			}
-		case xml.EndElement:
-			if depth <= 0 {
-				invalidShape = true
-				continue
-			}
-			if queryOpen && depth == 2 {
-				if item.Name.Space != "" || item.Name.Local != "query" {
-					invalidShape = true
-				}
-				queryOpen = false
-			}
-			depth--
-			if depth == 0 {
-				rootClosed = true
-			}
-		case xml.Comment, xml.Directive, xml.ProcInst:
-			invalidShape = true
-		}
+	if result.Err != nil {
+		return nil, true, fmt.Errorf("private source recall message is invalid: %w", result.Err)
 	}
-	if !queryFound {
-		return nil, false, nil
-	}
-	if !rootSeen || !rootClosed || depth != 0 || queryOpen || invalidShape {
-		return nil, true, fmt.Errorf("private source recall message wrapper is invalid")
-	}
-	request, err := validatePublicChatPrivateSourceRecallQuery(queryText.String())
+	request, err := validatePublicChatPrivateSourceRecallQuery(result.Query)
 	return request, true, err
 }
 
@@ -223,6 +150,8 @@ func agentTurnPrivateRecallMemoryCount(input *agentTurnPrivateRecallInput) int {
 }
 
 func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Context, session publicChatAnchorState, query string) *agentTurnPrivateRecallInput {
+	ctx, cancel := context.WithTimeout(ctx, publicChatOptionalContextBudget)
+	defer cancel()
 	result := &agentTurnPrivateRecallInput{Query: strings.TrimSpace(query), Status: "unavailable"}
 	if r.svc == nil {
 		return result
@@ -312,12 +241,13 @@ type publicChatPrivateRoundResult struct {
 
 // @nimi-authority: rule.nimi.runtime.agent-service.r061
 // @nimi-authority: rule.nimi.runtime.agent-participation.r189
-func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, compilation *agentTurnContextCompilation, callerMaxTokens int32) (*publicChatPrivateRoundResult, error) {
+func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, compilation *agentTurnContextCompilation, callerMaxTokens int32, publish func(string) error) (*publicChatPrivateRoundResult, error) {
 	if compilation == nil {
 		return nil, fmt.Errorf("private recall Round 2 context is unavailable")
 	}
 	result := &publicChatPrivateRoundResult{ModelResolved: session.Binding.ModelID, RouteDecision: session.Binding.RoutePolicy}
 	var output strings.Builder
+	projected := ""
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID: session.CallerAppID, SubjectUserID: session.SubjectUserID,
 		Messages:             publicChatAgentTurnProviderMessages(compilation.ProviderPrompt.Messages),
@@ -339,6 +269,15 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 		if delta := event.GetDelta(); delta != nil {
 			if text := scenarioStreamText(event); text != "" {
 				output.WriteString(text)
+				visible, valid := publicChatStreamingMessageText(output.String())
+				if valid && strings.HasPrefix(visible, projected) && len(visible) > len(projected) {
+					if publish != nil {
+						if err := publish(visible[len(projected):]); err != nil {
+							return err
+						}
+					}
+					projected = visible
+				}
 			}
 		}
 		if event.GetUsage() != nil {

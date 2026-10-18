@@ -21711,6 +21711,10 @@ pub struct PendingHook {
     pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "3")]
     pub admitted_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "4")]
+    pub runtime_cadence: bool,
+    #[prost(uint64, tag = "5")]
+    pub revision: u64,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentLifecycleEventDetail {
@@ -22460,6 +22464,8 @@ pub struct SendLocalAppConversationTurnRequest {
     pub request_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "5")]
     pub parts: ::prost::alloc::vec::Vec<LocalAppConversationInputPart>,
+    #[prost(string, optional, tag = "7")]
+    pub retry_of_turn_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SendLocalAppConversationTurnResponse {
@@ -22599,6 +22605,10 @@ pub struct LocalAppConversationMessage {
     pub message_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "5")]
     pub parts: ::prost::alloc::vec::Vec<LocalAppConversationMessagePart>,
+    /// Only a saved assistant text prefix may be partial. User input admission
+    /// and complete replies are separate durable facts.
+    #[prost(bool, tag = "6")]
+    pub partial: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationTextPart {
@@ -22645,6 +22655,17 @@ pub struct LocalAppConversationTurn {
     pub reason_code: i32,
     #[prost(string, optional, tag = "6")]
     pub message: ::core::option::Option<::prost::alloc::string::String>,
+    /// Correlation is populated only for the originating Registered App Subject.
+    #[prost(string, optional, tag = "7")]
+    pub request_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "8")]
+    pub retry_of_turn_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "9")]
+    pub input_turn_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "10")]
+    pub can_regenerate: bool,
+    #[prost(string, tag = "11")]
+    pub origin: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationAction {
@@ -22682,6 +22703,111 @@ pub struct LocalAppConversationVoice {
     #[prost(string, optional, tag = "7")]
     pub message: ::core::option::Option<::prost::alloc::string::String>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationFollowUp {
+    #[prost(string, tag = "1")]
+    pub task_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "4")]
+    pub source_turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationState {
+    #[prost(bool, tag = "1")]
+    pub follow_up_enabled: bool,
+    #[prost(uint64, tag = "2")]
+    pub follow_up_policy_revision: u64,
+    #[prost(uint32, tag = "3")]
+    pub max_follow_up_turns: u32,
+    #[prost(message, optional, tag = "4")]
+    pub pending_follow_up: ::core::option::Option<LocalAppConversationFollowUp>,
+    #[prost(string, optional, tag = "5")]
+    pub text_turn_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppConversationFollowUpPolicyRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub expected_revision: u64,
+    #[prost(bool, tag = "4")]
+    pub enabled: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppConversationFollowUpRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub task_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub expected_revision: u64,
+    #[prost(enumeration = "LocalAppScheduledTaskAction", tag = "5")]
+    pub action: i32,
+    #[prost(message, optional, tag = "6")]
+    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppConversationFollowUpPolicyResponse {
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<LocalAppConversationState>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppConversationFollowUpResponse {
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<LocalAppConversationState>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAgentPendingHooksRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPendingHook {
+    #[prost(string, tag = "1")]
+    pub task_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "4")]
+    pub system_cadence: bool,
+    #[prost(enumeration = "HookAdmissionState", tag = "5")]
+    pub status: i32,
+    #[prost(bool, tag = "6")]
+    pub can_modify: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAgentPendingHooksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub hooks: ::prost::alloc::vec::Vec<LocalAppAgentPendingHook>,
+    #[prost(bool, tag = "2")]
+    pub truncated: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentPendingHookRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub task_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub expected_revision: u64,
+    #[prost(enumeration = "LocalAppScheduledTaskAction", tag = "4")]
+    pub action: i32,
+    #[prost(message, optional, tag = "5")]
+    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentPendingHookResponse {
+    #[prost(message, optional, tag = "1")]
+    pub hook: ::core::option::Option<LocalAppAgentPendingHook>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationSnapshot {
     #[prost(string, tag = "1")]
@@ -22698,6 +22824,8 @@ pub struct LocalAppConversationSnapshot {
     pub actions: ::prost::alloc::vec::Vec<LocalAppConversationAction>,
     #[prost(message, repeated, tag = "8")]
     pub voices: ::prost::alloc::vec::Vec<LocalAppConversationVoice>,
+    #[prost(message, optional, tag = "9")]
+    pub state: ::core::option::Option<LocalAppConversationState>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLocalAppConversationSnapshotResponse {
@@ -22708,6 +22836,10 @@ pub struct GetLocalAppConversationSnapshotResponse {
 pub struct LocalAppConversationTurnAccepted {
     #[prost(string, tag = "1")]
     pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub request_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub origin: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationTurnStarted {
@@ -22739,6 +22871,10 @@ pub struct LocalAppConversationTurnCompleted {
     pub turn_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub terminal_reason: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(string, optional, tag = "4")]
+    pub message: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationTurnFailed {
@@ -22821,7 +22957,7 @@ pub struct LocalAppConversationEvent {
     pub sequence: u64,
     #[prost(
         oneof = "local_app_conversation_event::Event",
-        tags = "10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27"
+        tags = "10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28"
     )]
     pub event: ::core::option::Option<local_app_conversation_event::Event>,
 }
@@ -22863,6 +22999,8 @@ pub mod local_app_conversation_event {
         LiveAction(super::LocalAppConversationLiveAction),
         #[prost(message, tag = "27")]
         LiveTool(super::LocalAppConversationLiveTool),
+        #[prost(message, tag = "28")]
+        StateChanged(super::LocalAppConversationState),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -24527,6 +24665,35 @@ impl LocalAppConversationVoiceState {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum LocalAppScheduledTaskAction {
+    Unspecified = 0,
+    Cancel = 1,
+    Reschedule = 2,
+}
+impl LocalAppScheduledTaskAction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED",
+            Self::Cancel => "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL",
+            Self::Reschedule => "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL" => Some(Self::Cancel),
+            "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE" => Some(Self::Reschedule),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum LocalAppConversationReasoningState {
     Unspecified = 0,
     Started = 1,
@@ -25464,6 +25631,128 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "GetLocalAppConversationSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_conversation_follow_up_policy(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalAppConversationFollowUpPolicyRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateLocalAppConversationFollowUpPolicyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppConversationFollowUpPolicy",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_conversation_follow_up(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalAppConversationFollowUpRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateLocalAppConversationFollowUpResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppConversationFollowUp",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_agent_pending_hooks(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppAgentPendingHooksRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppAgentPendingHooksResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppAgentPendingHooks",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_agent_pending_hook(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalAppAgentPendingHookRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateLocalAppAgentPendingHookResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppAgentPendingHook",
                     ),
                 );
             self.inner.unary(req, path, codec).await

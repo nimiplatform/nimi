@@ -28,6 +28,12 @@ func (r publicChatRuntime) executeCommittedActions(
 		return nil
 	}
 	for _, action := range structured.Actions {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if stopped, _, _ := r.svc.publicChatInterruptStatus(turn.TurnID); stopped {
+			return context.Canceled
+		}
 		if action.Modality != "image" || action.Operation != "image.generate" {
 			continue
 		}
@@ -82,18 +88,18 @@ func (r publicChatRuntime) executeCommittedActions(
 		}
 		r.recordPublicChatActionState(turn.TurnID, publicChatActionStatusCompleted, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "")
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnArtifactReadyType, map[string]any{
-			"action_id":             result.ActionID,
-			"projection_message_id": result.ProjectionMessageID,
+			"action_id":             action.ActionID,
+			"projection_message_id": projectionMessageID,
 			"artifact_id":           artifact.ArtifactID,
 			"mime_type":             artifact.MimeType,
 		}); err != nil {
 			return fmt.Errorf("emit public chat artifact_ready failed: %w", err)
 		}
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnActionCompletedType, map[string]any{
-			"action_id":             result.ActionID,
+			"action_id":             action.ActionID,
 			"modality":              action.Modality,
 			"operation":             action.Operation,
-			"projection_message_id": result.ProjectionMessageID,
+			"projection_message_id": projectionMessageID,
 			"artifact_id":           artifact.ArtifactID,
 			"mime_type":             artifact.MimeType,
 			"job_id":                result.JobID,

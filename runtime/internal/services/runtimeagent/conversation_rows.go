@@ -54,6 +54,11 @@ func persistPublicChatSurfaceStateTx(tx *sql.Tx, snapshot persistedPublicChatSur
 				return err
 			}
 		}
+		for _, item := range anchor.Recoveries {
+			if err := persistPublicChatRecoveryTx(tx, id, snapshot.Version, item); err != nil {
+				return err
+			}
+		}
 	}
 	// Deletion retains only a content-free version tombstone, so a previously
 	// captured projection cannot recreate the deleted history.
@@ -89,6 +94,9 @@ func persistPublicChatSurfaceStateTx(tx *sql.Tx, snapshot persistedPublicChatSur
 			return err
 		}
 		if _, err := tx.Exec(`DELETE FROM runtime_conversation_turn WHERE anchor_id=?`, id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`DELETE FROM runtime_conversation_recovery WHERE anchor_id=?`, id); err != nil {
 			return err
 		}
 	}
@@ -253,6 +261,9 @@ func readConversationRows(db *sql.DB, raw string) (persistedPublicChatSurfaceSta
 		return snapshot, err
 	}
 	if err := rows.Close(); err != nil {
+		return snapshot, err
+	}
+	if err := readPublicChatRecoveries(db, &snapshot, indices); err != nil {
 		return snapshot, err
 	}
 	rows, err = db.Query(`SELECT followup_id,followup_json FROM runtime_conversation_followup WHERE followup_json IS NOT NULL ORDER BY followup_id`)

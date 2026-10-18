@@ -619,6 +619,39 @@ test('Memory inspect carries one bounded opaque page request and preserves the n
   assert.equal(calls.length, 1);
 });
 
+test('manager preserves over-budget diagnostics without blocking model repair or accepting false readiness', async () => {
+  const context = {
+    ...MANAGER_PROJECTION.context,
+    ready: false,
+    state: 'context_capacity_exceeded',
+    reasonCode: 'context_capacity_exceeded',
+    inputBudgetTokens: '6400',
+    usedTokens: '7833',
+    requiredInputTokens: '7833',
+    requiredContextWindowTokens: '9625',
+  } as const;
+  const clientFor = (value: typeof MANAGER_PROJECTION.context | typeof context | Record<string, unknown>) =>
+    createNimiLocalAppAgentConfigureClient({
+      ...shell([]),
+      manager: { snapshot: async () => ({ ...MANAGER_PROJECTION, context: value }) },
+    });
+  const result = await clientFor(context).manager.snapshot({ agentHandle: HANDLE });
+  assert.equal(result.context?.ready, false);
+  assert.equal(result.context?.usedTokens, '7833');
+  assert.equal(result.context?.inputBudgetTokens, '6400');
+  assert.equal(result.actionAvailability.overwriteSharedAIConfig.state, 'available');
+  for (const invalid of [
+    { ...context, ready: true, state: 'ready', reasonCode: 'none' },
+    { ...context, state: 'invalid', reasonCode: 'context_manifest_invalid' },
+    { ...context, reasonCode: 'none' },
+  ]) {
+    await assert.rejects(
+      () => clientFor(invalid).manager.snapshot({ agentHandle: HANDLE }),
+      (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
+});
+
 test('Desktop Runtime transport uses the same canonical configure shell and strips generated enum/wrapper shape', async () => {
   const calls: unknown[] = [];
   const runtime = {

@@ -472,6 +472,47 @@ describe('AgentCenterSession', () => {
     );
   });
 
+  it('refreshes only speech-dependent voice choices and rejects a late catalog from an old revision', async () => {
+    const base = appClient([]);
+    const speech = { capabilityContract: 'audio.synthesize', route: { oneofKind: 'local' as const, local: {} }, requiredFeatures: [] };
+    let config = sharedConfig([speech]);
+    let revision = 1;
+    let reads = 0;
+    let finishOld!: () => void;
+    const preset = (name: string) => ({ kind: 'preset-voices' as const, truncated: false, options: [{ voiceId: name, name, supportedLangs: ['zh'] }] });
+    const session = createAppAgentCenterSession({ handle: HANDLE, client: {
+      ...base,
+      sharedAIConfig: {
+        ...base.sharedAIConfig,
+        async get() { return { config, revision: String(revision), effectiveSelections: [], participation: PARTICIPATION }; },
+        async overwrite(input) {
+          config = sharedConfig([...input.capabilities]); revision += 1;
+          return { outcome: 'committed' as const, config, revision: String(revision), participation: PARTICIPATION };
+        },
+        async listOptions(query) {
+          if (query.kind !== 'preset-voices') return base.sharedAIConfig.listOptions(query);
+          reads += 1;
+          if (reads === 2) return new Promise(resolve => { finishOld = () => resolve(preset('stale')); });
+          return preset(reads === 1 ? 'initial' : 'current');
+        },
+      },
+    } });
+    await session.refresh();
+    expect(session.getSnapshot().state.appearance.voiceCatalog?.options[0]?.name).toBe('initial');
+    await session.overwriteSharedAIConfig({ expectedRevision: '1', capabilities: [] });
+    expect(session.getSnapshot().state.appearance.voiceCatalog).toBeUndefined();
+    await session.overwriteSharedAIConfig({ expectedRevision: '2', capabilities: [speech] });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(session.getSnapshot().state.appearance.voiceCatalog?.options[0]?.name).toBe('current');
+    finishOld();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(session.getSnapshot().state.appearance.voiceCatalog?.options[0]?.name).toBe('current');
+    await session.appearance.setDefaultVoice?.('preset_voice_id:current');
+    expect(session.getSnapshot().state.appearance.voiceCatalog?.options[0]?.name).toBe('current');
+    expect(reads).toBe(3);
+    session.dispose();
+  });
+
   it('merges preset voices with bounded canonical VoiceAsset options from the same manager client', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);

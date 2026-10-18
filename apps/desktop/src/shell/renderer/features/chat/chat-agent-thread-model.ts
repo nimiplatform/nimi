@@ -219,6 +219,7 @@ export function toConversationMessageViewModel(
     artifactId: message.artifactId,
     voiceTranscript: transcriptText,
     mediaError: message.error?.message || null,
+    canonicalFailureReasonCode: canonicalMessage ? message.error?.code || null : null,
   };
   return {
     id: message.id,

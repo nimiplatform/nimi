@@ -23,6 +23,13 @@ describe('Electron protected local-app host', () => {
     await expect(stale.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
     expect(attempts).toBe(1); expect(invalidations).toBe(0);
   });
+  it.each(['local-app-operation-unavailable','local-app-owner-unavailable'])('keeps rejected optional activity control %s in its healthy session', async reasonCode => {
+    let invalidations=0;
+    const host=createNimiElectronLocalAppHostForBinding({...binding([]),localAppConversationFollowUpUpdate:async()=>({status:'error' as const,reasonCode,retryable:false})},()=>{invalidations++;});
+    await expect(host.conversationFollowUpUpdate({agentHandle:'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',conversationAnchorId:'anchor',taskId:'task',expectedRevision:'1',action:'cancel'})).rejects.toMatchObject({reasonCode});
+    await expect(host.sessionStatus()).resolves.toMatchObject({state:'ready'});
+    expect(invalidations).toBe(0);
+  });
   it('keeps safe content-check constants and rejects dynamic metadata', async () => {
     let metadata: Record<string, string> = { rule_id: 'github-classic-pat', failure_stage: 'input', content_part: 'history' };
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]), localAppTextTurnSubscribe: async () => ({ status: 'error' as const, reasonCode: 'ai-content-filter-blocked', retryable: false, reasonMetadata: metadata }) });
@@ -1522,6 +1529,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,
       autonomyRevision: '1',
     }),
+    localAppConversationFollowUpPolicy: record('localAppConversationFollowUpPolicy', {}),
+    localAppConversationFollowUpUpdate: record('localAppConversationFollowUpUpdate', {}),
+    localAppAgentPendingHooks: record('localAppAgentPendingHooks', {}),
+    localAppAgentPendingHookUpdate: record('localAppAgentPendingHookUpdate', {}),
     localAppAgentUpdateConversationContext: record('localAppAgentUpdateConversationContext', {
       conversationAnchorId: 'anchor-1', contextRevision: '2', firstTurnSequence: '1', omitSupplementalContext: true,
       committedTurnCount: '8', suggestedFirstTurnSequence: null, busy: false, canUpdate: true,
@@ -1996,9 +2007,9 @@ describe('Electron App activity carrier', () => {
 
 
 it('preserves App-originated routine input through both native Conversation snapshot and event validation', async () => {
-  const message = { messageId: 'message-app', turnId: 'turn-app', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.day · Routine: Morning] Plan the day.' }] };
+  const message = { partial:false, messageId: 'message-app', turnId: 'turn-app', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.day · Routine: Morning] Plan the day.' }] };
   const candidate = { ...binding([]),
-    localAppConversationSnapshot: async () => ({ status: 'ok', value: { conversationAnchorId: 'anchor-1', throughSequence: '1', turns: [], messages: [message], actions: [], voices: [], truncatedBefore: false } }),
+    localAppConversationSnapshot: async () => ({ status: 'ok', value: { conversationAnchorId: 'anchor-1', throughSequence: '1', state:{followUpEnabled:false,followUpPolicyRevision:'0',maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null}, turns: [], messages: [message], actions: [], voices: [], truncatedBefore: false } }),
     localAppConversationStreamNext: async () => ({ status: 'ok', value: { completed: false, event: { type: 'message-committed', conversationAnchorId: 'anchor-1', sequence: '1', turnId: 'turn-app', message } } }),
   };
   const host = createNimiElectronLocalAppHostForBinding(candidate);

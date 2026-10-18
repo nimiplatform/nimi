@@ -31,6 +31,7 @@ import {
   agentCenterInputClassName,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
+import { AgentCenterPendingHooks } from './AgentCenterPendingHooks.js';
 import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
 
 type AgentCenterAutonomyMode = AgentCenterAutonomyMutationInput['mode'];
@@ -355,6 +356,11 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
             <Info aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)]" />
           </div>
           <p className="m-0 text-[length:var(--nimi-type-body-sm-size)] leading-[1.45] text-[var(--nimi-text-muted)]">{labels.budgetDescription}</p>
+          {autonomy.enabled === true && autonomy.budgetExhausted === true ? (
+            <InlineAlert tone="warning">
+              {translateAgentCenter(i18n, 'AgentCenter.behavior.windowExhausted', 'Usage limit reached. New status activity waits for the next 24-hour window.')}
+            </InlineAlert>
+          ) : null}
         </div>
         <div className="mx-4 mb-0 overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)]">
           <div className="px-4 py-3.5">
@@ -379,11 +385,11 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
           <div className="grid border-t border-[var(--nimi-border-subtle)] sm:grid-cols-2">
             <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-3 sm:border-b-0 sm:border-r">
               <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.dailyLimitLabel}</div>
-              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{dailyLimit === null ? unknownValue : `${dailyLimit} ${labels.tokensUnit}`}</div>
+              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{dailyLimit === null ? unknownValue : dailyLimit === 0 ? translateAgentCenter(i18n, 'AgentCenter.behavior.notConfigured', 'Not configured') : `${dailyLimit} ${labels.tokensUnit}`}</div>
             </div>
             <div className="px-4 py-3">
               <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.singleLimitLabel}</div>
-              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{singleLimit === null ? unknownValue : `${singleLimit} ${labels.tokensUnit}`}</div>
+              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{singleLimit === null ? unknownValue : singleLimit === 0 ? translateAgentCenter(i18n, 'AgentCenter.behavior.runtimeDefault', 'Runtime default') : `${singleLimit} ${labels.tokensUnit}`}</div>
             </div>
           </div>
           <button
@@ -418,6 +424,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
                 <span>{labels.singleLimitLabel}</span>
                 <input
                   aria-label={labels.singleLimitLabel}
+                  max={2147483647}
                   className={agentCenterInputClassName}
                   disabled={!mutationAvailable}
                   min={0}
@@ -446,6 +453,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
         </div>
         <div className="h-4" />
       </Card>
+      <AgentCenterPendingHooks session={session} i18n={i18n} />
       {mutationStatus ? (
         <InlineAlert tone={mutationStatus.tone}>
           {mutationStatus.text}

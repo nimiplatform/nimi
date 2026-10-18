@@ -1,3 +1,4 @@
+import type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit } from '@nimiplatform/kit/core/sdk-contract';
 import { createAgentReferenceVoiceController, type AgentReferenceVoiceController } from './reference-voice.js';
 import {
   asNimiError,
@@ -188,6 +189,8 @@ type ResourcePackMutationResolution = Readonly<
 >;
 
 interface SessionTransport {
+  listPendingHooks(): Promise<NimiLocalAppAgentPendingHooks>;
+  updatePendingHook(input: NimiLocalAppScheduledTaskEdit): Promise<NimiLocalAppAgentPendingHook>;
   readonly referenceVoice: AgentReferenceVoiceController | null;
   useReferenceVoice?: () => Promise<AgentCenterAppearanceProjection>;
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
@@ -536,6 +539,7 @@ class ManagerSession {
 
   async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
+    const previousSpeech = JSON.stringify(this.#snapshot.state.sharedAIConfig?.aiConfig.capabilities.find(item => item.capabilityContract === 'audio.synthesize'));
     const mutation = await this.#runMutation(
       'overwriteSharedAIConfig',
       () => this.transport.overwriteSharedAIConfig(input),
@@ -559,9 +563,30 @@ class ManagerSession {
         ),
         error: null,
       });
+      if (previousSpeech !== JSON.stringify(result.config?.capabilities.find(item => item.capabilityContract === 'audio.synthesize'))) {
+        // Old model voices are not choices for a newly committed speech route.
+        this.#set({ ...this.#snapshot, state: { ...this.#snapshot.state,
+          appearance: { ...this.#snapshot.state.appearance, voiceCatalog: undefined },
+        } });
+        void this.#refreshVoiceCatalog(result.revision);
+      }
       if (result.config) void this.#refreshSharedAIConfigEffectiveSelections(result.revision);
     }
     return result;
+  }
+
+  async #refreshVoiceCatalog(expectedRevision: string): Promise<void> {
+    const lifetime = this.#lifecycleEpoch;
+    try {
+      const refreshed = await this.transport.appearanceAdapter?.load();
+      if (!refreshed || !this.#isLifecycleCurrent(lifetime)
+        || this.#snapshot.state.sharedAIConfig?.revision !== expectedRevision) return;
+      this.#set({ ...this.#snapshot, state: { ...this.#snapshot.state,
+        appearance: { ...this.#snapshot.state.appearance, voiceCatalog: refreshed.voiceCatalog },
+      } });
+    } catch {
+      // An optional catalog read cannot undo the committed model setting.
+    }
   }
 
   async #refreshSharedAIConfigEffectiveSelections(expectedRevision: string): Promise<void> {
@@ -601,6 +626,19 @@ class ManagerSession {
     const mutation = await this.#runMutation('updateConversationContext', () => this.transport.updateConversationContext(input));
     if (!mutation.adopt) return;
     this.#set({ ...this.#snapshot, phase: 'ready', error: null, state: { ...this.#snapshot.state, conversationContext: mutation.result } });
+  }
+
+  async listPendingHooks(): Promise<NimiLocalAppAgentPendingHooks> {
+    this.#assertActive();
+    const result = await this.transport.listPendingHooks();
+    this.#assertActive();
+    return result;
+  }
+  async updatePendingHook(input: NimiLocalAppScheduledTaskEdit): Promise<NimiLocalAppAgentPendingHook> {
+    this.#assertActive();
+    const result = await this.transport.updatePendingHook(input);
+    this.#assertActive();
+    return result;
   }
 
   async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
@@ -948,7 +986,7 @@ export function createAppAgentCenterSession(
     preset: unavailableVoiceSource('Runtime preset voice catalog has not been loaded.'),
     custom: unavailableVoiceSource('Runtime custom VoiceAsset catalog has not been loaded.'),
   });
-  let voiceCatalog: AgentCenterVoiceCatalogProjection = {
+  const initialVoiceCatalog: AgentCenterVoiceCatalogProjection = {
     state: 'unavailable', sourceLabel: null, options: [], truncated: false,
     message: 'Runtime voice catalog has not been loaded.', sources: initialVoiceSources,
   };
@@ -1118,9 +1156,10 @@ export function createAppAgentCenterSession(
 
   const projectCurrentAppearance = async (
     projection: NimiLocalAppAgentPresentationProjection,
+    catalog = manager?.getSnapshot().state.appearance.voiceCatalog ?? initialVoiceCatalog,
   ): Promise<AgentCenterAppearanceProjection> => ({
     ...await projectAppAppearanceWithHostPreview(
-      projection, voiceCatalog, input.hostMechanics, targetSnapshot(),
+      projection, catalog, input.hostMechanics, targetSnapshot(),
       input.resourcePackPlacement?.availability ?? RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
     ),
     ...(referenceVoice ? { referenceVoice: referenceVoice.getSnapshot() } : {}),
@@ -1195,11 +1234,10 @@ export function createAppAgentCenterSession(
     collectError('Memory', memoryRead);
     collectError('Manager', managerRead);
 
-    if (voiceRead.status === 'fulfilled') voiceCatalog = voiceRead.value;
     let appearance: AgentCenterAppearanceProjection | undefined;
     if (presentationRead.status === 'fulfilled') {
       const current = await adoptObservedPresentation(presentationRead.value);
-      appearance = await projectCurrentAppearance(current);
+      appearance = await projectCurrentAppearance(current, voiceRead.status === 'fulfilled' ? voiceRead.value : undefined);
     }
 
     const failedAvailability = (result: PromiseSettledResult<unknown>): AgentCenterActionAvailability => (
@@ -1294,8 +1332,7 @@ export function createAppAgentCenterSession(
         currentPresentation(),
         readVoiceCatalog(),
       ]);
-      voiceCatalog = nextVoiceCatalog;
-      return projectCurrentAppearance(await adoptObservedPresentation(current));
+      return projectCurrentAppearance(await adoptObservedPresentation(current), nextVoiceCatalog);
     },
     ...(input.hostMechanics?.selectAvatar ? {
       async replaceAvatar(kind: 'live2d' | 'vrm') {
@@ -1659,6 +1696,8 @@ export function createAppAgentCenterSession(
     async listSharedAIConfigOptions(query) {
       return input.client.sharedAIConfig.listOptions(query);
     },
+    async listPendingHooks() { return input.client.pendingHooks.list({agentHandle:handle}); },
+    async updatePendingHook(mutation) { return input.client.pendingHooks.update({agentHandle:handle,...mutation}); },
     async updateConversationContext(mutation) { return input.client.conversationContext.update({ agentHandle: handle, ...mutation }); },
     async updateAutonomy(mutation) {
       const autonomy = await input.client.autonomy.update({

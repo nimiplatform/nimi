@@ -84,6 +84,10 @@ const (
 	protectedAgentManagerSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
 	protectedAutonomySnapshotMethod               = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod                 = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+	protectedConversationFollowUpPolicyMethod     = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy"
+	protectedConversationFollowUpMethod           = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp"
+	protectedAgentPendingHooksMethod              = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks"
+	protectedAgentPendingHookMethod               = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook"
 	protectedUpdateConversationContextMethod      = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext"
 	protectedPresentationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedPresentationAssetMethod              = "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset"
@@ -212,6 +216,10 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedAgentManagerSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:               localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:                 localAppSessionMethodPolicy(),
+	protectedConversationFollowUpPolicyMethod:     localAppSessionMethodPolicy(),
+	protectedConversationFollowUpMethod:           localAppSessionMethodPolicy(),
+	protectedAgentPendingHooksMethod:              localAppSessionMethodPolicy(),
+	protectedAgentPendingHookMethod:               localAppSessionMethodPolicy(),
 	protectedUpdateConversationContextMethod:      localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedPresentationAssetMethod:              localAppSessionMethodPolicy(),
@@ -732,6 +740,14 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentAutonomySnapshotGet
 	case protectedUpdateAutonomyMethod:
 		return localappop.IngressAgentAutonomyUpdate
+	case protectedConversationFollowUpPolicyMethod:
+		return localappop.IngressConversationFollowUpPolicyUpdate
+	case protectedConversationFollowUpMethod:
+		return localappop.IngressConversationFollowUpUpdate
+	case protectedAgentPendingHooksMethod:
+		return localappop.IngressAgentPendingHooksList
+	case protectedAgentPendingHookMethod:
+		return localappop.IngressAgentPendingHookUpdate
 	case protectedUpdateConversationContextMethod:
 		return localappop.IngressAgentConversationContextUpdate
 	case protectedPresentationSnapshotMethod, protectedPresentationAssetMethod:
@@ -788,6 +804,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
 		protectedAgentManagerSnapshotMethod,
 		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod, protectedUpdateConversationContextMethod,
+		protectedConversationFollowUpPolicyMethod, protectedConversationFollowUpMethod, protectedAgentPendingHooksMethod, protectedAgentPendingHookMethod,
 		protectedPresentationSnapshotMethod, protectedPresentationAssetMethod, protectedCommitPresentationMethod,
 		protectedInspectAgentMemoryMethod, protectedCorrectAgentMemoryMethod, protectedForgetAgentMemoryMethod,
 		protectedSwitchAgentMemoryMethod, protectedDeleteAgentMemoryMethod:

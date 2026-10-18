@@ -1,3 +1,4 @@
+import type { NimiLocalAppConversationPolicyInput, NimiLocalAppConversationFollowUpInput, NimiLocalAppAgentPendingHookInput } from '@nimiplatform/kit/core/sdk-contract';
 import { createNimiContentRefusalObserver, createNimiScenarioJobRefusalObserver, getNimiContentRefusalPresentationEpoch, observeNimiSubmittedJob, rememberNimiScenarioJobSubmission, reportNimiContentRefusal } from './content-refusal.js';
 import { RuntimeReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
@@ -389,6 +390,11 @@ export type NimiLocalAppPersonaCharacterListOwnedInput = {
   readonly take?: number;
 };
 
+type ConversationSendContent =
+  | { readonly parts: readonly ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'artifact-ref'; readonly artifactId: string })[]; readonly retryOfTurnId?: never }
+  | { readonly retryOfTurnId: string; readonly parts?: never };
+type ConversationSendInput = NimiLocalAppConversationScopeInput & { readonly requestId: string } & ConversationSendContent;
+
 export type NimiLocalAppConversationScopeInput = {
   readonly agentHandle: string;
   readonly conversationAnchorId: string;
@@ -424,6 +430,7 @@ export type NimiLocalAppEmbodimentShellSurface = {
 };
 
 export type NimiLocalAppAgentConfigureShellSurface = {
+  readonly pendingHooks: {readonly list:(input:{readonly agentHandle:string})=>Promise<JsonObject>;readonly update:(input:NimiLocalAppAgentPendingHookInput)=>Promise<JsonObject>};
   readonly conversationContext: { readonly update: (input: { readonly agentHandle: string; readonly conversationAnchorId: string; readonly expectedContextRevision: string; readonly firstTurnSequence: string; readonly omitSupplementalContext: boolean }) => Promise<JsonObject> };
   readonly manager: {
     readonly snapshot: (input: {
@@ -583,17 +590,12 @@ export type NimiLocalAppStandardShellSurface = {
   readonly integration: NimiLocalAppIntegrationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShellSurface;
   readonly conversation: {
+    readonly setFollowUpPolicy:(input:NimiLocalAppConversationPolicyInput)=>Promise<JsonObject>;
+    readonly updateFollowUp:(input:NimiLocalAppConversationFollowUpInput)=>Promise<JsonObject>;
     readonly open: (input: {
       readonly agentHandle: string;
     }) => Promise<JsonObject>;
-    readonly send: (input: NimiLocalAppConversationScopeInput & {
-
-      readonly requestId: string;
-      readonly parts: readonly (
-        | { readonly kind: 'text'; readonly text: string }
-        | { readonly kind: 'artifact-ref'; readonly artifactId: string }
-      )[];
-    }) => Promise<JsonObject>;
+    readonly send: (input: ConversationSendInput) => Promise<JsonObject>;
     readonly uploadAttachment: (input: NimiLocalAppConversationScopeInput & {
       readonly mimeType: string;
       readonly displayName?: string;
@@ -721,6 +723,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       listReferences: listNimiLocalAppAgentReferences,
     },
     agentConfigure: {
+      pendingHooks: { list: listNimiLocalAppAgentPendingHooks, update: updateNimiLocalAppAgentPendingHook },
       conversationContext: { update: updateNimiLocalAppAgentConversationContext },
       manager: {
         snapshot: getNimiLocalAppAgentManagerSnapshot,
@@ -778,6 +781,8 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       cancelConnectionSetup: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationCancelConnectionSetup'], input as unknown as JsonObject),
     },
     conversation: {
+      setFollowUpPolicy: updateNimiLocalAppConversationFollowUpPolicy,
+      updateFollowUp: updateNimiLocalAppConversationFollowUp,
       open: openNimiLocalAppConversation,
       send: sendNimiLocalAppConversationTurn,
       uploadAttachment: uploadNimiLocalAppConversationAttachment,
@@ -1438,6 +1443,29 @@ export function getNimiLocalAppAgentAutonomySnapshot(
   return invokeAgentConfigureHandle('local-app.agentAutonomySnapshot', input);
 }
 
+export function listNimiLocalAppAgentPendingHooks(input: {readonly agentHandle: string}): Promise<JsonObject> {
+ return invokeAgentConfigureHandle('local-app.agentPendingHooks',input);
+}
+export function updateNimiLocalAppConversationFollowUpPolicy(input: NimiLocalAppConversationPolicyInput): Promise<JsonObject> {
+ const command=NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpPolicy'];
+ assertExactInput(input,['agentHandle','conversationAnchorId','expectedRevision','enabled'],command);
+ if(typeof input.enabled!=='boolean')throw invalidInput(command,'enabled must be boolean');
+ return invokeLocalAppRecord(command,{agentHandle:requiredText(input.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),conversationAnchorId:requiredText(input.conversationAnchorId,'conversationAnchorId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(input.expectedRevision,'expectedRevision',command,true),enabled:input.enabled});
+}
+export function updateNimiLocalAppConversationFollowUp(input: NimiLocalAppConversationFollowUpInput): Promise<JsonObject> {
+ return updatePendingTask(NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpUpdate'],input,true);
+}
+export function updateNimiLocalAppAgentPendingHook(input: NimiLocalAppAgentPendingHookInput): Promise<JsonObject> {
+ return updatePendingTask(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPendingHookUpdate'],input,false);
+}
+function updatePendingTask(command:string,input:NimiLocalAppConversationFollowUpInput|NimiLocalAppAgentPendingHookInput,anchored:boolean):Promise<JsonObject>{
+ const row=input as unknown as JsonObject;
+ assertExactInput(row,['agentHandle',...(anchored?['conversationAnchorId']:[]),'taskId','expectedRevision','action',...(input.action==='reschedule'?['scheduledFor']:[])],command);
+ if(input.action!=='cancel'&&input.action!=='reschedule')throw invalidInput(command,'unsupported task action');
+ if(input.action==='reschedule')validateProjectionValue(row.scheduledFor,command);
+ return invokeLocalAppRecord(command,{...row,agentHandle:requiredText(input.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),taskId:requiredText(input.taskId,'taskId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(input.expectedRevision,'expectedRevision',command,false)});
+}
+
 export function updateNimiLocalAppAgentConversationContext(input: { readonly agentHandle: string; readonly conversationAnchorId: string; readonly expectedContextRevision: string; readonly firstTurnSequence: string; readonly omitSupplementalContext: boolean }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConversationContext'];
   assertExactInput(input, ['agentHandle','conversationAnchorId','expectedContextRevision','firstTurnSequence','omitSupplementalContext'], command);
@@ -1665,7 +1693,7 @@ export function deleteAllNimiLocalAppAgentMemory(input: { readonly agentHandle: 
 }
 
 function invokeAgentConfigureHandle(
-  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot',
+  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot' | 'local-app.agentPendingHooks',
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS[operation];
@@ -1691,22 +1719,18 @@ export function openNimiLocalAppConversation(input: {
   );
 }
 
-export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
-
-  readonly requestId: string;
-  readonly parts: readonly (
-    | { readonly kind: 'text'; readonly text: string }
-    | { readonly kind: 'artifact-ref'; readonly artifactId: string }
-  )[];
-}): Promise<JsonObject> {
+export function sendNimiLocalAppConversationTurn(input: ConversationSendInput): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
-  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
-  return invokeLocalAppRecord(command, {
+  const regenerate = input?.retryOfTurnId !== undefined;
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'], command);
+  const scope = {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
-    parts: parseConversationInputParts(input.parts, command),
-  });
+  };
+  return invokeLocalAppRecord(command, regenerate
+    ? { ...scope, retryOfTurnId: requiredText(input.retryOfTurnId, 'retryOfTurnId', command, MAX_IDENTIFIER_LENGTH) }
+    : { ...scope, parts: parseConversationInputParts(input.parts, command) });
 }
 
 export function uploadNimiLocalAppConversationAttachment(
@@ -2385,9 +2409,14 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
   }
   const common = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
   parseRequiredString(record.conversationAnchorId, 'conversationAnchorId', command);
+  if(record.type==='state-changed'){assertProjectionKeys(record,['type','conversationAnchorId','sequence','state'],command,'conversation state event');parseConversationState(record.state,command);return Object.freeze({...record}) as JsonObject;}
   parseRequiredString(record.turnId, 'turnId', command);
   switch (record.type) {
     case 'turn-accepted':
+      assertProjectionKeys(record,[...common,'requestId','origin'],command,'turn accepted event');
+      if(!['user','app','follow_up'].includes(String(record.origin)))throw new Error(`${command}: origin is invalid`);
+      if(record.requestId!==null)parseRequiredString(record.requestId,'requestId',command);
+      break;
     case 'turn-started':
       assertProjectionKeys(record, common, command, 'turn started event');
       break;
@@ -2450,7 +2479,7 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
       break;
     }
     case 'turn-completed':
-      assertProjectionKeys(record, [...common, 'terminalReason'], command, 'turn completed event');
+      assertProjectionKeys(record, [...common, 'terminalReason', 'reasonCode', 'message'], command, 'turn completed event');
       if (typeof record.terminalReason !== 'string'
         || !['', 'stop', 'length', 'tool_call', 'content_filter', 'error', 'unspecified'].includes(record.terminalReason)) {
         throw new Error(`${command}: terminalReason is invalid`);
@@ -2510,13 +2539,13 @@ function parseConversationSnapshot(value: unknown, command: string): JsonObject 
   const record = assertRecord(value, `${command} returned invalid conversation snapshot`);
   assertProjectionKeys(
     record,
-    ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore'],
+    ['conversationAnchorId', 'throughSequence', 'turns', 'messages', 'actions', 'voices', 'truncatedBefore', 'state'],
     command,
     'conversation snapshot',
   );
   const conversationAnchorId = parseRequiredString(record.conversationAnchorId, 'conversationAnchorId', command);
   if (typeof record.throughSequence !== 'string' || !/^(0|[1-9][0-9]*)$/u.test(record.throughSequence)
-    || !Array.isArray(record.turns) || record.turns.length > 201
+    || !Array.isArray(record.turns) || record.turns.length > 202
     || !Array.isArray(record.messages) || record.messages.length > 203
     || !Array.isArray(record.actions) || record.actions.length > 201
     || !Array.isArray(record.voices) || record.voices.length > 201
@@ -2541,6 +2570,7 @@ function parseConversationSnapshot(value: unknown, command: string): JsonObject 
   return Object.freeze({
     conversationAnchorId,
     throughSequence: record.throughSequence,
+    state: parseConversationState(record.state,command),
     turns: Object.freeze(turns),
     messages: Object.freeze(messages),
     actions: Object.freeze(actions),
@@ -2555,8 +2585,8 @@ function parseConversationMessage(
   observeText: (text: string) => void = () => {},
 ): JsonObject {
   const message = assertRecord(value, `${command} returned invalid conversation message`);
-  assertProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts'], command, 'conversation message');
-  if ((message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
+  assertProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts', 'partial'], command, 'conversation message');
+  if (typeof message.partial !== 'boolean' || (message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
     || !Array.isArray(message.parts) || message.parts.length < 1 || message.parts.length > 2) {
     throw new Error(`${command}: conversation message is invalid`);
   }
@@ -2566,7 +2596,7 @@ function parseConversationMessage(
     const part = assertRecord(value, `${command} returned invalid conversation message part`);
     if (part.kind === 'text') {
       assertProjectionKeys(part, ['kind', 'text'], command, 'conversation text part');
-      const text = parseRequiredString(part.text, 'text', command);
+      const text = message.partial === true && typeof part.text === 'string' && part.text.length>0 && !part.text.includes('\0') ? part.text : parseRequiredString(part.text, 'text', command);
       textCount += 1;
       observeText(text);
       return Object.freeze({ kind: 'text', text });
@@ -2595,7 +2625,7 @@ function parseConversationMessage(
     }
     throw new Error(`${command}: conversation message part kind is invalid`);
   });
-  if (textCount > 1 || artifactCount > 1
+  if ((message.partial === true && (message.role !== 'assistant' || textCount !== 1 || artifactCount !== 0)) || textCount > 1 || artifactCount > 1
     || (message.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
     throw new Error(`${command}: conversation message cardinality is invalid`);
   }
@@ -2603,14 +2633,15 @@ function parseConversationMessage(
     messageId: parseRequiredString(message.messageId, 'messageId', command),
     turnId: parseRequiredString(message.turnId, 'turnId', command),
     role: message.role,
+    partial: message.partial,
     parts: Object.freeze(parts),
   }) as JsonObject;
 }
 
 function parseConversationTurn(value: unknown, command: string): JsonObject {
   const turn = assertRecord(value, `${command} returned invalid conversation turn`);
-  assertProjectionKeys(turn, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message'], command, 'conversation turn');
-  if (!['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
+  assertProjectionKeys(turn, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message', 'requestId', 'retryOfTurnId', 'inputTurnId', 'canRegenerate', 'origin'], command, 'conversation turn');
+  if (typeof turn.canRegenerate !== 'boolean' || !['user','app','follow_up'].includes(String(turn.origin)) || !['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
     || (turn.phase !== null && turn.phase !== 'accepted' && turn.phase !== 'started')
     || (turn.terminalReason !== null && typeof turn.terminalReason !== 'string')
     || (turn.reasonCode !== null && typeof turn.reasonCode !== 'string')
@@ -4777,4 +4808,14 @@ function parseJobObservationIssue(value: unknown, command: string): NonNullable<
   const observedAt = parseScenarioTimestamp(record.observedAt, command);
   if (typeof code !== 'number' || code === RuntimeReasonCode.REASON_CODE_UNSPECIFIED || !observedAt) throw new Error(`${command}: Job observation issue is invalid`);
   return Object.freeze({ reasonCode, observedAt });
+}
+
+function parseConversationState(value:unknown,command:string):JsonObject {
+ const row=assertRecord(value,`${command}: invalid conversation state`);
+ assertProjectionKeys(row,['followUpEnabled','followUpPolicyRevision','maxFollowUpTurns','pendingFollowUp','textTurnId'],command,'conversation state');
+ if(typeof row.followUpEnabled!=='boolean'||typeof row.maxFollowUpTurns!=='number'||!Number.isSafeInteger(row.maxFollowUpTurns)||row.maxFollowUpTurns<1)throw new Error(`${command}: invalid follow-up policy`);
+ decimalRevision(row.followUpPolicyRevision,'followUpPolicyRevision',command,true);
+ if(row.textTurnId!==null)parseRequiredString(row.textTurnId,'textTurnId',command);
+ if(row.pendingFollowUp!==null){const task=assertRecord(row.pendingFollowUp,`${command}: invalid pending follow-up`);assertProjectionKeys(task,['taskId','revision','scheduledFor','sourceTurnId'],command,'pending follow-up');parseRequiredString(task.taskId,'taskId',command);parseRequiredString(task.sourceTurnId,'sourceTurnId',command);decimalRevision(task.revision,'revision',command,false);validateProjectionValue(task.scheduledFor as JsonValue,command);}
+ return Object.freeze({...row}) as JsonObject;
 }

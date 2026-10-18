@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 )
 
 // @nimi-authority: definition.nimi.runtime.agent-participation.hook-intent-plane
@@ -13,31 +14,68 @@ func (s *Service) armPublicChatFollowUp(followUp *publicChatFollowUpState) {
 	if followUp == nil || s == nil || s.isClosed() || !s.canRunPublicChatFollowUps() {
 		return
 	}
+	lifetime := s.publicChatAsyncLifetime()
 	s.chatSurfaceMu.Lock()
-	if followUp.Armed {
+	if followUp.Armed || s.chatFollowUps[followUp.FollowUpID] != followUp {
 		s.chatSurfaceMu.Unlock()
 		return
 	}
-	if strings.TrimSpace(followUp.FollowUpID) == "" || s.chatFollowUps[followUp.FollowUpID] == nil {
-		s.chatSurfaceMu.Unlock()
-		return
-	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(lifetime)
 	followUp.Context = ctx
 	followUp.Cancel = cancel
 	followUp.Armed = true
-	waitUntilDue := s.chatFollowUpWait
+	due := followUp.ScheduledFor
+	wait := s.chatFollowUpWait
 	s.chatSurfaceMu.Unlock()
-	if waitUntilDue == nil {
-		waitUntilDue = waitForPublicChatFollowUpDue
+	if wait == nil {
+		wait = waitForPublicChatFollowUpDue
 	}
 	if !s.startPublicChatAsync(func() {
-		if !waitUntilDue(followUp.Context, followUp.ScheduledFor) {
+		defer cancel()
+		if !wait(ctx, due) {
 			return
 		}
+		s.chatSurfaceMu.Lock()
+		current := s.chatFollowUps[followUp.FollowUpID]
+		if current != followUp || ctx.Err() != nil {
+			s.chatSurfaceMu.Unlock()
+			return
+		}
+		// A still-running text turn will wake this task when it releases its
+		// slot. Otherwise keep the timer claimed through launch: clearing Armed
+		// before the atomic turn claim allowed a second timer to replace Cancel.
+		if anchor := s.chatAnchors[followUp.ConversationAnchorID]; anchor != nil && anchor.ActiveTurnID != "" {
+			followUp.Armed = false
+			s.chatSurfaceMu.Unlock()
+			return
+		}
+		s.chatSurfaceMu.Unlock()
 		s.launchPublicChatFollowUp(followUp.FollowUpID)
+		s.chatSurfaceMu.Lock()
+		if s.chatFollowUps[followUp.FollowUpID] == followUp {
+			followUp.Armed = false
+		}
+		s.chatSurfaceMu.Unlock()
 	}) {
 		cancel()
+		s.chatSurfaceMu.Lock()
+		if s.chatFollowUps[followUp.FollowUpID] == followUp {
+			followUp.Armed = false
+		}
+		s.chatSurfaceMu.Unlock()
+	}
+}
+
+func (s *Service) wakeDuePublicChatFollowUp(anchorID string) {
+	s.chatSurfaceMu.Lock()
+	anchor := s.chatAnchors[anchorID]
+	var pending *publicChatFollowUpState
+	if anchor != nil && anchor.FollowUpEnabled && anchor.ActiveTurnID == "" {
+		pending = s.chatFollowUps[anchor.PendingFollowUpID]
+	}
+	s.chatSurfaceMu.Unlock()
+	if pending != nil {
+		s.armPublicChatFollowUp(pending)
 	}
 }
 
@@ -84,68 +122,42 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	if s == nil || s.isClosed() {
 		return
 	}
-	followUp := s.takePublicChatFollowUp(followUpID)
-	if followUp == nil {
+	s.chatSurfaceMu.Lock()
+	pending := s.chatFollowUps[followUpID]
+	if pending == nil {
+		s.chatSurfaceMu.Unlock()
 		return
 	}
-	session, ok := s.publicChatAnchorSnapshot(followUp.ConversationAnchorID)
-	if !ok {
-		_ = s.emitPublicChatFollowUpCanceled(*followUp, "anchor_unavailable", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "public chat anchor unavailable")
+	followUp := *pending
+	anchor := s.chatAnchors[followUp.ConversationAnchorID]
+	if anchor == nil || !anchor.FollowUpEnabled || anchor.ActiveTurnID != "" {
+		s.chatSurfaceMu.Unlock()
 		return
 	}
-	req := publicChatTurnRequestPayload{
-		LocalAgentRef:        session.LocalAgentRef,
-		OwnerUserID:          session.OwnerUserID,
-		RuntimeSourceRef:     session.RuntimeSourceRef,
-		ConversationAnchorID: session.ConversationAnchorID,
-		ThreadID:             session.ThreadID,
-		MaxOutputTokens:      session.MaxTokens,
-		Messages:             publicChatFollowUpInstructionInput(followUp.Instruction),
-		Reasoning:            publicChatReasoningPayloadFromConfig(session.Reasoning),
+	session := *anchor
+	s.chatSurfaceMu.Unlock()
+	if s.runtimeAccountProjection == nil {
+		return
 	}
-	reservedSession, reservedTurn, turnCtx, err := s.reservePublicChatTurn(context.Background(), followUp.CallerAppID, followUp.SubjectUserID, req)
+	projection, ok := s.runtimeAccountProjection.AuthenticatedRuntimeProjection(context.Background())
+	if !ok || projection.GetAccountId() != session.SubjectUserID {
+		return
+	}
+	req := publicChatTurnRequestPayload{LocalAgentRef: session.LocalAgentRef, OwnerUserID: session.OwnerUserID, RuntimeSourceRef: session.RuntimeSourceRef, ConversationAnchorID: session.ConversationAnchorID, ThreadID: session.ThreadID, RequestID: followUp.FollowUpID, MaxOutputTokens: session.MaxTokens, Messages: publicChatFollowUpInstructionInput(followUp.Instruction), Reasoning: publicChatReasoningPayloadFromConfig(session.Reasoning), followUpClaim: &followUp}
+	ownerCtx := executionintent.WithRuntimeAccountSubject(context.Background(), projection.GetAccountId())
+	turnID, err := s.publicChatRuntime().handleTurnRequestWithID(ownerCtx, &runtimev1.AppMessageEvent{FromAppId: followUp.CallerAppID, SubjectUserId: followUp.SubjectUserID, MessageId: followUp.FollowUpID}, req)
 	if err != nil {
-		failure := runtimeErrorDetailFromError(err)
-		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
+		if s.logger != nil {
+			s.logger.Warn("pending follow-up not claimed", "follow_up_id", followUpID, "error", err)
+		}
 		return
 	}
-	turn := s.markPublicChatTurnAsFollowUp(reservedTurn.TurnID, *followUp)
-	s.persistCurrentPublicChatSurfaceState(followUp.ConversationAnchorID)
-	if err := s.setPublicChatExecutionStateWithOrigin(
-		reservedSession.AgentID,
-		reservedSession.SubjectUserID,
-		"",
-		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE,
-		stateEventOrigin{
-			ConversationAnchorID: reservedSession.ConversationAnchorID,
-			OriginatingTurnID:    reservedTurn.TurnID,
-			OriginatingStreamID:  reservedTurn.StreamID,
-		},
-	); err != nil {
-		s.releasePublicChatTurn(reservedSession.ConversationAnchorID, reservedTurn.TurnID)
-		failure := runtimeErrorDetailFromError(err)
-		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
-		return
+	if followUp.Cancel != nil {
+		followUp.Cancel()
 	}
-	s.setPublicChatTurnRequestID(turn.TurnID, followUp.FollowUpID)
-	turn.RequestID = followUp.FollowUpID
-	if err := s.emitPublicChatTurnEvent(reservedSession, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail(followUp.FollowUpID)); err != nil {
-		s.releasePublicChatTurn(reservedSession.ConversationAnchorID, reservedTurn.TurnID)
-		failure := runtimeErrorDetailFromError(err)
-		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
-		return
+	if turnID != "" {
+		s.setPublicChatStoredFollowUpOutcome(followUp.ConversationAnchorID, followUp.SourceTurnID, publicChatFollowUpOutcome{Status: "launched", FollowUpID: followUp.FollowUpID, ChainID: followUp.ChainID, ScheduledFor: followUp.ScheduledFor.Format(time.RFC3339Nano), FollowUpDepth: followUp.FollowUpDepth, MaxFollowUpTurns: followUp.MaxFollowUpTurns, SourceTurnID: followUp.SourceTurnID, SourceActionID: followUp.SourceActionID})
 	}
-	s.setPublicChatStoredFollowUpOutcome(followUp.ConversationAnchorID, followUp.SourceTurnID, publicChatFollowUpOutcome{
-		Status:           "launched",
-		FollowUpID:       followUp.FollowUpID,
-		ChainID:          followUp.ChainID,
-		ScheduledFor:     followUp.ScheduledFor.Format(time.RFC3339Nano),
-		FollowUpDepth:    followUp.FollowUpDepth,
-		MaxFollowUpTurns: followUp.MaxFollowUpTurns,
-		SourceTurnID:     followUp.SourceTurnID,
-		SourceActionID:   followUp.SourceActionID,
-	})
-	go s.runPublicChatTurn(turnCtx, reservedSession, turn, req)
 }
 
 func (s *Service) markPublicChatTurnAsFollowUp(turnID string, followUp publicChatFollowUpState) publicChatTurnState {

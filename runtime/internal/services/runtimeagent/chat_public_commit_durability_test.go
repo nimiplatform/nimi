@@ -91,6 +91,7 @@ func TestPublicChatPostCommitEmissionFailuresPreserveCompletedTurnAcrossRestart(
 				_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 			}
 			waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+			waitForPublicChatAsyncDrain(t, svc)
 			for _, messageType := range capture.messageTypes() {
 				if messageType == publicChatTurnFailedType || messageType == publicChatTurnInterruptedType || messageType == tt.rejectedType {
 					t.Fatalf("post-commit delivery failure emitted forbidden %s: %v", messageType, capture.messageTypes())

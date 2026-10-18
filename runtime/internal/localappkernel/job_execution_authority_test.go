@@ -51,7 +51,7 @@ func TestJobRegistrationAuthorityTracksCommittedOwnerWithdrawal(t *testing.T) {
 		t.Fatal("committed withdrawal did not invalidate work")
 	}
 	called := false
-	if err := kernel.Registrations().WithJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume", func() error { called = true; return nil }); err == nil || called {
+	if err := kernel.Registrations().WithRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume", func() error { called = true; return nil }); err == nil || called {
 		t.Fatal("withdrawn owner published")
 	}
 }
@@ -69,7 +69,7 @@ func TestJobRegistrationCommitFenceOrdersActualMutation(t *testing.T) {
 	entered, release := make(chan struct{}), make(chan struct{})
 	committed, revoked := make(chan error, 1), make(chan error, 1)
 	go func() {
-		committed <- kernel.Registrations().WithJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume", func() error { close(entered); <-release; return nil })
+		committed <- kernel.Registrations().WithRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "runtime.consume", func() error { close(entered); <-release; return nil })
 	}()
 	<-entered
 	go func() { revoked <- kernel.Registrations().Tombstone(ctx, r.RegistrationHandle) }()
@@ -85,6 +85,30 @@ func TestJobRegistrationCommitFenceOrdersActualMutation(t *testing.T) {
 	}
 	if err := <-revoked; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRegistrationPublicationFenceUsesCanonicalDomainsWithoutWideningJobs(t *testing.T) {
+	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "publication", 0x33)
+	defer kernel.Close()
+	ctx := context.Background()
+	input := developmentInput()
+	input.RawDeclaration = []string{"agent.local", "integration.manage"}
+	r, err := kernel.Registrations().RegisterDevelopment(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, domain := range []string{"", "agent.local", "integration.manage", "runtime.consume", "unknown.domain"} {
+		called := false
+		err := kernel.Registrations().WithRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, domain, func() error { called = true; return nil })
+		allowed := domain == "" || domain == "agent.local" || domain == "integration.manage"
+		if (err == nil) != allowed || called != allowed {
+			t.Fatalf("domain %q: called=%v err=%v", domain, called, err)
+		}
+	}
+	if _, release, err := kernel.Registrations().BindJobRegistrationAuthority(ctx, r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "integration.manage"); err == nil {
+		release()
+		t.Fatal("shared fence widened Job authority")
 	}
 }
 

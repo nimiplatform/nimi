@@ -153,10 +153,10 @@ func installPublicChatFollowUpGate(t *testing.T, svc *Service) *publicChatFollow
 		svc.chatSurfaceMu.Unlock()
 		t.Fatal("public chat follow-up wait boundary already installed")
 	}
-	svc.chatFollowUpWait = func(ctx context.Context, _ time.Time) bool {
+	svc.chatFollowUpWait = func(ctx context.Context, due time.Time) bool {
 		select {
 		case <-gate.due:
-			return true
+			return waitForPublicChatFollowUpDue(ctx, due)
 		case <-ctx.Done():
 			return false
 		}

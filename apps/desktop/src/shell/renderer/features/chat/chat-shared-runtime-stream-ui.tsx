@@ -97,6 +97,7 @@ export function RuntimeImageMessageContent(props: {
   showCaptionLabel: string;
   hideCaptionLabel: string;
   failureMessage?: string | null;
+  technicalDetailsLabel?: string;
   retryLabel?: string;
   onRetry?: (() => void) | null;
 }) {
@@ -115,9 +116,12 @@ export function RuntimeImageMessageContent(props: {
             {normalizeText(props.failureMessage) || caption || 'Image generation failed.'}
           </p>
           {failureReasonCode || operationId ? (
-            <p className="break-all font-mono text-[10px] text-[var(--nimi-text-muted)]">
-              {[failureReasonCode, operationId].filter(Boolean).join(' · ')}
-            </p>
+            <details className="text-xs text-[var(--nimi-text-muted)]">
+              <summary className="cursor-pointer">{props.technicalDetailsLabel || 'Technical details'}</summary>
+              <p className="break-all font-mono text-[10px]">
+                {[failureReasonCode, operationId].filter(Boolean).join(' · ')}
+              </p>
+            </details>
           ) : null}
           {props.onRetry ? (
             <button

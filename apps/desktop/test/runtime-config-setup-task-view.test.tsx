@@ -25,7 +25,7 @@ import type { RuntimeSetupPreparationPlan, RuntimeSetupRunnerPorts } from '../sr
 
 const I18N_RESOURCE = { instance: { t: (key: string) => key } } as never;
 
-test('ready overview prioritizes the default and shows only active candidate preparation', async () => {
+test('ready overview shows the current model and only active candidate preparation', async () => {
   const i18n = createInstance();
   await i18n.init({ lng: 'en', resources: { en: { translation: { runtimeConfig: {
     quickStart: { defaultModel: 'Default · {{model}}', otherConfigurationModel: 'Another configuration · {{model}}' },
@@ -46,7 +46,7 @@ test('ready overview prioritizes the default and shows only active candidate pre
     );
     const defaultSection = markup.match(/data-current-model[\s\S]*?(?=<span data-candidate-configuration|<\/button>)/u)?.[0];
     assert.ok(defaultSection);
-    assert.match(defaultSection, /Default · Current model A/u);
+    assert.match(defaultSection, /^data-current-model[^>]*>Current model A<\/span>/u);
     assert.doesNotMatch(defaultSection, /Candidate model B|Prepared, not in use/u);
     if (status === 'preparing' || status === 'committing') {
       assert.match(markup, /Another configuration · Candidate model B/u);

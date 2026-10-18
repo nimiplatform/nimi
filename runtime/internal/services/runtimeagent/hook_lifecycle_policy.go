@@ -381,14 +381,8 @@ func firstPositiveDuration(value *durationpb.Duration, fallback time.Duration) t
 	return duration
 }
 
-func isCadenceTickIntent(intent *runtimev1.HookIntent) bool {
-	return intent != nil &&
-		intent.GetTriggerFamily() == runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME &&
-		strings.TrimSpace(intent.GetReason()) == autonomyCadenceHookReason
-}
-
 func isCadenceTickHook(hook *runtimev1.PendingHook) bool {
-	return hook != nil && isCadenceTickIntent(hook.GetIntent())
+	return hook != nil && hook.GetRuntimeCadence() && hook.GetIntent().GetTriggerFamily() == runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME
 }
 
 func latestLifeTurnAnchor(entry *agentEntry) (time.Time, bool) {
@@ -474,6 +468,11 @@ func cadenceTickScheduledAt(entry *agentEntry, now time.Time) (time.Time, bool) 
 			scheduledAt = minAllowed
 		}
 	}
+	if autonomy := entry.Agent.GetAutonomy(); autonomy.GetBudgetExhausted() {
+		if resumeAt := nextAutonomyWindowStart(autonomy, now); scheduledAt.Before(resumeAt) {
+			scheduledAt = resumeAt
+		}
+	}
 	return scheduledAt.UTC(), true
 }
 
@@ -507,7 +506,7 @@ func cadenceHookScheduleMatches(hook *runtimev1.PendingHook, scheduledAt time.Ti
 		hook.GetScheduledFor().AsTime().UTC().Equal(scheduledAt.UTC()) &&
 		hook.GetIntent().GetNotBefore() != nil &&
 		hook.GetIntent().GetNotBefore().AsTime().UTC().Equal(scheduledAt.UTC()) &&
-		strings.TrimSpace(hook.GetIntent().GetReason()) == autonomyCadenceHookReason
+		hook.GetRuntimeCadence()
 }
 
 // cadenceTickHookIntent builds the baseline autonomy cadence HookIntent as a
@@ -546,96 +545,51 @@ func (s *Service) reconcileCadenceHooks(now time.Time) error {
 }
 
 func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error {
-	entry, err := s.agentByID(strings.TrimSpace(agentID))
-	if err != nil {
-		return nil
-	}
-
-	pendingCadence := make([]*runtimev1.PendingHook, 0)
-	for _, hook := range entry.Hooks {
-		if hook != nil && isCadenceTickHook(hook) && hookAdmissionState(hook) == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
-			pendingCadence = append(pendingCadence, hook)
+	return s.mutateAgent(strings.TrimSpace(agentID), func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		var pending []*runtimev1.PendingHook
+		for _, hook := range entry.Hooks {
+			if hook != nil && isCadenceTickHook(hook) && hookAdmissionState(hook) == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
+				pending = append(pending, hook)
+			}
 		}
-	}
-	sort.Slice(pendingCadence, func(i, j int) bool {
-		return hookIntentID(pendingCadence[i]) < hookIntentID(pendingCadence[j])
+		sort.Slice(pending, func(i, j int) bool { return hookIntentID(pending[i]) < hookIntentID(pending[j]) })
+		beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
+		advanceAutonomyWindow(entry, now)
+		events := optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now))
+		cancel := func(hooks []*runtimev1.PendingHook, reason string) {
+			for _, hook := range hooks {
+				hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
+				events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(hook.Intent), ObservedAt: timestamppb.New(now), Reason: reason}, now))
+			}
+		}
+		autonomy := entry.Agent.GetAutonomy()
+		scheduledAt, ready := cadenceTickScheduledAt(entry, now)
+		if autonomy == nil || !autonomy.GetEnabled() || autonomyMode(autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF || !ready {
+			cancel(pending, "autonomy disabled or cadence unavailable")
+		} else if earliest, ok := earliestPendingNonCadenceHookAt(entry); ok && !earliest.After(scheduledAt) {
+			cancel(pending, "earlier non-cadence hook admitted")
+		} else if len(pending) == 0 {
+			intent := cadenceTickHookIntent(entry.Agent.GetLocalAgentRef(), scheduledAt, now)
+			entry.Hooks[intent.GetIntentId()] = &runtimev1.PendingHook{Intent: intent, ScheduledFor: timestamppb.New(scheduledAt), AdmittedAt: timestamppb.New(now), RuntimeCadence: true}
+			events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{Intent: cloneHookIntent(intent), ObservedAt: timestamppb.New(now)}, now))
+		} else {
+			primary := pending[0]
+			if !cadenceHookScheduleMatches(primary, scheduledAt) {
+				delay := scheduledAt.Sub(now)
+				if delay < 0 {
+					delay = 0
+				}
+				primary.Intent.TriggerDetail = timeTriggerDetail(delay)
+				primary.Intent.NotBefore = timestamppb.New(scheduledAt)
+				primary.ScheduledFor = timestamppb.New(scheduledAt)
+			}
+			cancel(pending[1:], "duplicate cadence hooks")
+		}
+		if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
+			events = append(events, stateEvent)
+		}
+		return events, nil, nil
 	})
-
-	cancelHooks := func(hooks []*runtimev1.PendingHook, reason string) error {
-		if len(hooks) == 0 {
-			return nil
-		}
-		events := make([]*runtimev1.AgentEvent, 0, len(hooks))
-		for _, hook := range hooks {
-			hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
-			events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
-				Intent:     cloneHookIntent(hook.GetIntent()),
-				ObservedAt: timestamppb.New(now),
-				Reason:     firstNonEmpty(strings.TrimSpace(reason), autonomyCadenceHookCancelReason),
-			}, now))
-		}
-		if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
-			events = append(events, stateEvent)
-		}
-		return s.updateAgent(entry, events...)
-	}
-
-	autonomy := entry.Agent.GetAutonomy()
-	if autonomy == nil || !autonomy.GetEnabled() || autonomyMode(autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
-		return cancelHooks(pendingCadence, "autonomy disabled or off")
-	}
-
-	scheduledAt, ok := cadenceTickScheduledAt(entry, now)
-	if !ok {
-		return cancelHooks(pendingCadence, "cadence mode unavailable")
-	}
-	if earliestOther, ok := earliestPendingNonCadenceHookAt(entry); ok && !earliestOther.After(scheduledAt) {
-		return cancelHooks(pendingCadence, "earlier non-cadence hook admitted")
-	}
-
-	if len(pendingCadence) == 0 {
-		intent := cadenceTickHookIntent(entry.Agent.GetLocalAgentRef(), scheduledAt, now)
-		hook := &runtimev1.PendingHook{
-			Intent:       intent,
-			ScheduledFor: timestamppb.New(scheduledAt),
-			AdmittedAt:   timestamppb.New(now),
-		}
-		entry.Hooks[intent.GetIntentId()] = hook
-		events := []*runtimev1.AgentEvent{hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
-			Intent:     cloneHookIntent(intent),
-			ObservedAt: timestamppb.New(now),
-		}, now)}
-		if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
-			events = append(events, stateEvent)
-		}
-		return s.updateAgent(entry, events...)
-	}
-
-	primary := pendingCadence[0]
-	scheduleChanged := !cadenceHookScheduleMatches(primary, scheduledAt)
-	if scheduleChanged {
-		delay := scheduledAt.Sub(now)
-		if delay < 0 {
-			delay = 0
-		}
-		primary.Intent.TriggerDetail = timeTriggerDetail(delay)
-		primary.Intent.NotBefore = timestamppb.New(scheduledAt)
-		primary.Intent.Reason = autonomyCadenceHookReason
-		primary.ScheduledFor = timestamppb.New(scheduledAt)
-	}
-	var events []*runtimev1.AgentEvent
-	if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
-		events = append(events, stateEvent)
-	}
-	if scheduleChanged || len(events) > 0 {
-		if err := s.updateAgent(entry, events...); err != nil {
-			return err
-		}
-	}
-	if len(pendingCadence) <= 1 {
-		return nil
-	}
-	return cancelHooks(pendingCadence[1:], "duplicate cadence hooks")
 }
 
 func nextAutonomyWindowStart(autonomy *runtimev1.AgentAutonomyState, now time.Time) time.Time {
@@ -684,14 +638,39 @@ func rejectedHookDecision(reasonCode runtimev1.ReasonCode, message string) *hook
 	}
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.r168
+// Called only on an owner mutation clone. Time advances the usage window, not
+// the independently revisioned user configuration, and never rewinds it.
+func advanceAutonomyWindow(entry *agentEntry, now time.Time) {
+	if entry == nil || entry.Agent == nil || entry.Agent.Autonomy == nil {
+		return
+	}
+	autonomy := entry.Agent.Autonomy
+	if autonomy.WindowStartedAt == nil {
+		autonomy.WindowStartedAt = timestamppb.New(now)
+	} else {
+		start := autonomy.WindowStartedAt.AsTime()
+		// Unix seconds avoid time.Duration saturation after a long idle period.
+		elapsed := now.Unix() - start.Unix()
+		if now.Nanosecond() < start.Nanosecond() {
+			elapsed--
+		}
+		if windows := elapsed / (24 * 60 * 60); windows > 0 {
+			autonomy.WindowStartedAt = timestamppb.New(time.Unix(start.Unix()+windows*24*60*60, int64(start.Nanosecond())).UTC())
+			autonomy.UsedTokensInWindow = 0
+			entry.Agent.UpdatedAt = timestamppb.New(now)
+		}
+	}
+	budget := autonomy.GetConfig().GetDailyTokenBudget()
+	autonomy.BudgetExhausted = budget > 0 && autonomy.GetUsedTokensInWindow() >= budget
+}
+
 func applyTokenUsage(entry *agentEntry, tokensUsed int64, now time.Time) {
+	advanceAutonomyWindow(entry, now)
 	if entry == nil || entry.Agent == nil || entry.Agent.Autonomy == nil || tokensUsed <= 0 {
 		return
 	}
 	entry.Agent.Autonomy.UsedTokensInWindow += tokensUsed
-	if entry.Agent.Autonomy.WindowStartedAt == nil {
-		entry.Agent.Autonomy.WindowStartedAt = timestamppb.New(now)
-	}
 	budget := entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget()
 	entry.Agent.Autonomy.BudgetExhausted = budget > 0 && entry.Agent.Autonomy.GetUsedTokensInWindow() >= budget
 	entry.Agent.UpdatedAt = timestamppb.New(now)

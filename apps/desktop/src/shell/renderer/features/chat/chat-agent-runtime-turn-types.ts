@@ -24,6 +24,9 @@ export type AgentChatUserAttachment = {
 };
 
 export type AgentRuntimeChatTurnRequest = {
+  requestId?: string;
+  onAdmitted?: () => void;
+  retryOfTurnId?: string;
   agentHandle: string;
   conversationAnchorId: string;
   threadId: string;

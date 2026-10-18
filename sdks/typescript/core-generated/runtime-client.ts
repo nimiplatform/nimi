@@ -391,6 +391,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListDelegatedProviderProfilesResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentPendingHooks",
+    "kind": "unary",
+    "requestType": "ListLocalAppAgentPendingHooksRequest",
+    "responseType": "ListLocalAppAgentPendingHooksResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
     "service": "RuntimeAgentService",
     "method": "ListLocalAppAgentReferences",
@@ -685,6 +693,30 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UpdateLocalAppAgentConversationContextRequest",
     "responseType": "UpdateLocalAppAgentConversationContextResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppAgentPendingHook",
+    "kind": "unary",
+    "requestType": "UpdateLocalAppAgentPendingHookRequest",
+    "responseType": "UpdateLocalAppAgentPendingHookResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppConversationFollowUp",
+    "kind": "unary",
+    "requestType": "UpdateLocalAppConversationFollowUpRequest",
+    "responseType": "UpdateLocalAppConversationFollowUpResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppConversationFollowUpPolicy",
+    "kind": "unary",
+    "requestType": "UpdateLocalAppConversationFollowUpPolicyRequest",
+    "responseType": "UpdateLocalAppConversationFollowUpPolicyResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",

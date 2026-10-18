@@ -713,6 +713,32 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(transcriptRoot.scrollTop).toBe(960);
   });
 
+  it('keeps the bottom visible when composer inset changes without pulling history readers down', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const messages = [{ id: 'answer', role: 'assistant' as const, text: 'Last reply', createdAt: '2026-04-05T00:00:00Z', kind: 'text' as const }];
+    const render = async (inset: number) => { await act(async () => { root?.render(<CanonicalTranscriptView messages={messages} contentBottomInsetPx={inset} />); await flush(); }); };
+    await render(100);
+    const scroll = container.querySelector('[data-canonical-transcript-root="true"]') as HTMLDivElement;
+    let height = 1000;
+    Object.defineProperty(scroll, 'clientHeight', { configurable:true, get:()=>400 });
+    Object.defineProperty(scroll, 'scrollHeight', { configurable:true, get:()=>height });
+    scroll.scrollTop = 600;
+    await act(async()=>{scroll.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));scroll.dispatchEvent(new Event('scroll',{bubbles:true}));await flush();});
+    height = 1250;
+    await render(350);
+    expect(scroll.scrollTop).toBe(1250);
+    height = 1000;
+    await render(100);
+    expect(scroll.scrollTop).toBe(1000);
+    scroll.scrollTop = 200;
+    await act(async()=>{scroll.dispatchEvent(new Event('scroll',{bubbles:true}));await flush();});
+    height = 1250;
+    await render(350);
+    expect(scroll.scrollTop).toBe(200);
+  });
+
   it('restarts the initial bottom pin when the active conversation changes', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

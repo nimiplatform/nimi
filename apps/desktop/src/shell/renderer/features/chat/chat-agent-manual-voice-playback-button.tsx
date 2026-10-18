@@ -8,15 +8,12 @@ import {
   resolveAgentManualVoiceRenderRequest,
 } from './chat-agent-manual-voice-request';
 
-type PlaybackStatus = 'idle' | 'rendering' | 'playing' | 'unavailable' | 'error';
+function formatAudioTime(seconds: number): string {
+  const value = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+}
 
-type VoicePlaybackState = {
-  conversationAnchorId: string;
-  messageId: string;
-  active: boolean;
-  amplitude: number;
-  visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
-};
+type PlaybackStatus = 'idle' | 'rendering' | 'playing' | 'paused' | 'unavailable' | 'error';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -38,7 +35,13 @@ export function AgentManualVoicePlaybackButton(props: {
   renderingLabel: string;
   unavailableLabel: string;
   errorLabel: string;
-  onPlaybackStateChange?: (state: VoicePlaybackState) => void;
+  retryLabel: string;
+  pauseLabel: string;
+  resumeLabel: string;
+  progressLabel: string;
+  settingsLabel: string;
+  settingsHint: string;
+  onOpenSettings?: () => void;
   reportHostError?: ReportAgentConversationHostError;
 }) {
   const sdk = useDesktopRendererSdk();
@@ -46,8 +49,8 @@ export function AgentManualVoicePlaybackButton(props: {
     activeConversationAnchorId,
     activeTarget,
     errorLabel,
+    retryLabel, pauseLabel, resumeLabel, progressLabel, settingsLabel, settingsHint, onOpenSettings,
     message,
-    onPlaybackStateChange,
     playLabel,
     renderingLabel,
     reportHostError,
@@ -55,27 +58,22 @@ export function AgentManualVoicePlaybackButton(props: {
     unavailableLabel,
   } = props;
   const [status, setStatus] = useState<PlaybackStatus>('idle');
+  const [progress, setProgress] = useState({ position: 0, duration: 0 });
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const generationRef = useRef(0);
-  const request = useMemo(() => resolveAgentManualVoiceRenderRequest({
-    message,
-    activeTarget,
-    activeConversationAnchorId,
-  }), [activeConversationAnchorId, activeTarget, message]);
-
-  const emitPlaybackState = useCallback((active: boolean) => {
-    if (!request) {
-      return;
-    }
-    onPlaybackStateChange?.({
-      conversationAnchorId: request.conversationAnchorId,
-      messageId: request.messageId,
-      active,
-      amplitude: active ? 0.24 : 0,
-      visemeId: active ? 'aa' : null,
-    });
-  }, [onPlaybackStateChange, request]);
+  const busyRef = useRef(false);
+  const metadata = message.metadata as Record<string, unknown> | undefined;
+  const readyArtifactId = metadata?.canonicalVoiceState === 'ready' ? normalizeText(metadata.canonicalVoiceArtifactId) : '';
+  const failed = status === 'unavailable' || status === 'error' || (!readyArtifactId && metadata?.canonicalVoiceState === 'failed');
+  const resolved = resolveAgentManualVoiceRenderRequest({ message, activeTarget, activeConversationAnchorId });
+  const agentHandle = resolved?.agentHandle ?? null;
+  const conversationAnchorId = resolved?.conversationAnchorId ?? null;
+  const messageId = resolved?.messageId ?? null;
+  // Snapshots replace message/target objects without changing the audio owner.
+  const request = useMemo(() => agentHandle && conversationAnchorId && messageId
+    ? { agentHandle, conversationAnchorId, messageId }
+    : null, [agentHandle, conversationAnchorId, messageId]);
 
   const releaseObjectUrl = useCallback(() => {
     if (objectUrlRef.current) {
@@ -84,47 +82,57 @@ export function AgentManualVoicePlaybackButton(props: {
     }
   }, []);
 
-  const stopPlayback = useCallback(() => {
+  const releasePlayback = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
+      audio.onplay = null;
+      audio.onpause = null;
+      audio.onended = null;
+      audio.ontimeupdate = null;
+      audio.onloadedmetadata = null;
+      audio.ondurationchange = null;
+      audio.onerror = null;
       audio.pause();
       audio.src = '';
       audioRef.current = null;
     }
     releaseObjectUrl();
-    emitPlaybackState(false);
+    setProgress({ position: 0, duration: 0 });
+  }, [releaseObjectUrl]);
+
+  const stopPlayback = useCallback(() => {
+    releasePlayback();
     setStatus((current) => (current === 'rendering' ? current : 'idle'));
-  }, [emitPlaybackState, releaseObjectUrl]);
+  }, [releasePlayback]);
 
   useEffect(() => {
     generationRef.current += 1;
-  }, [request?.agentHandle, request?.conversationAnchorId, request?.messageId]);
-
-  useEffect(() => () => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      audio.src = '';
-      audioRef.current = null;
-    }
-    releaseObjectUrl();
-    emitPlaybackState(false);
-  }, [emitPlaybackState, releaseObjectUrl]);
+    setStatus('idle');
+    busyRef.current = false;
+    return () => {
+      generationRef.current += 1;
+      releasePlayback();
+    };
+  }, [request, releasePlayback]);
 
   const handleClick = useCallback(async () => {
-    if (!request) {
+    if (!request || busyRef.current) {
       return;
     }
     if (status === 'playing') {
-      stopPlayback();
+      audioRef.current?.pause();
       return;
     }
-    stopPlayback();
     setStatus('rendering');
+    busyRef.current = true;
     const generation = generationRef.current;
     try {
+      if (audioRef.current) {
+        await audioRef.current.play();
+        return;
+      }
       const conversation = sdk.conversation();
-      const result = await conversation.renderVoice({
+      const result = readyArtifactId ? { status: 'ready' as const, artifactId: readyArtifactId } : await conversation.renderVoice({
         agentHandle: request.agentHandle as NimiLocalAppAgentHandle,
         conversationAnchorId: request.conversationAnchorId,
         messageId: request.messageId,
@@ -133,7 +141,6 @@ export function AgentManualVoicePlaybackButton(props: {
       if (generation !== generationRef.current) return;
       if (result.status !== 'ready') {
         setStatus('unavailable');
-        emitPlaybackState(false);
         return;
       }
       const artifact = await conversation.readArtifact({
@@ -145,7 +152,6 @@ export function AgentManualVoicePlaybackButton(props: {
       const mimeType = normalizeText(artifact.mimeType);
       if (!mimeType.toLowerCase().startsWith('audio/') || artifact.bytes.length === 0) {
         setStatus('unavailable');
-        emitPlaybackState(false);
         return;
       }
       const objectUrl = createAudioObjectUrl(artifact.bytes, mimeType);
@@ -154,24 +160,29 @@ export function AgentManualVoicePlaybackButton(props: {
       audioRef.current = audio;
       audio.onplay = () => {
         setStatus('playing');
-        emitPlaybackState(true);
       };
+      const updateProgress = () => setProgress({
+        position: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+        duration: Number.isFinite(audio.duration) ? audio.duration : 0,
+      });
+      audio.ontimeupdate = updateProgress;
+      audio.onloadedmetadata = updateProgress;
+      audio.ondurationchange = updateProgress;
+      audio.onerror = () => { releasePlayback(); setStatus('error'); };
       audio.onended = () => {
-        audioRef.current = null;
-        releaseObjectUrl();
-        emitPlaybackState(false);
+        releasePlayback();
         setStatus('idle');
       };
       audio.onpause = () => {
         if (!audio.ended) {
-          emitPlaybackState(false);
-          setStatus('idle');
+          setStatus('paused');
         }
       };
       await audio.play();
     } catch (error) {
+      if (generation !== generationRef.current) return;
+      releasePlayback();
       setStatus('error');
-      emitPlaybackState(false);
       reportHostError?.(error, {
         action: 'render-runtime-agent-manual-voice',
         extra: {
@@ -179,8 +190,10 @@ export function AgentManualVoicePlaybackButton(props: {
           messageId: request.messageId,
         },
       });
+    } finally {
+      if (generation === generationRef.current) busyRef.current = false;
     }
-  }, [emitPlaybackState, releaseObjectUrl, reportHostError, request, sdk, status, stopPlayback]);
+  }, [readyArtifactId, releaseObjectUrl, releasePlayback, reportHostError, request, sdk, status, stopPlayback]);
 
   if (!request) {
     return null;
@@ -190,14 +203,14 @@ export function AgentManualVoicePlaybackButton(props: {
   const label = status === 'rendering'
     ? renderingLabel
     : status === 'playing'
-      ? stopLabel
-      : status === 'unavailable'
-        ? unavailableLabel
-        : status === 'error'
-          ? errorLabel
-          : playLabel;
+      ? pauseLabel
+      : status === 'paused' ? resumeLabel
+        : failed ? retryLabel : playLabel;
+
 
   return (
+    <span className="mt-2 inline-flex flex-wrap items-center gap-2">
+    {failed && !disabled ? <span role="status" className="text-xs text-[var(--nimi-text-secondary)]">{status === 'error' ? errorLabel : unavailableLabel}</span> : null}
     <button
       type="button"
       onClick={(event) => {
@@ -208,7 +221,7 @@ export function AgentManualVoicePlaybackButton(props: {
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-card)] disabled:cursor-wait disabled:opacity-60"
+      className="inline-flex min-h-7 min-w-7 gap-1 px-1 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-card)] disabled:cursor-wait disabled:opacity-60"
     >
       {status === 'playing' ? (
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -220,6 +233,19 @@ export function AgentManualVoicePlaybackButton(props: {
           <polygon points="6 3 20 12 6 21 6 3" />
         </svg>
       )}
+      {failed && !disabled ? <span className="text-xs">{retryLabel}</span> : null}
     </button>
+    {(status === 'playing' || status === 'paused') ? <>
+      <input type="range" aria-label={progressLabel} min={0} max={progress.duration || 1} step={0.1}
+        value={Math.min(progress.position, progress.duration || 1)} disabled={progress.duration <= 0}
+        onChange={(event) => { const audio = audioRef.current; if (audio && progress.duration > 0) { audio.currentTime = Number(event.currentTarget.value); setProgress(current => ({...current, position: audio.currentTime})); } }}
+        className="w-28 accent-[var(--nimi-text-secondary)]" />
+      <span className="text-xs tabular-nums text-[var(--nimi-text-secondary)]">{formatAudioTime(progress.position)} / {formatAudioTime(progress.duration)}</span>
+      <button type="button" onClick={stopPlayback} aria-label={stopLabel} title={stopLabel} className="h-7 w-7 rounded-full border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)]">■</button>
+    </> : null}
+    {failed && !disabled && onOpenSettings ? <span className="basis-full text-xs text-[var(--nimi-text-secondary)]">
+      {settingsHint} <button type="button" className="underline" onClick={onOpenSettings}>{settingsLabel}</button>
+    </span> : null}
+    </span>
   );
 }

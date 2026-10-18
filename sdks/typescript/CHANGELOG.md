@@ -2,6 +2,28 @@
 
 # SDK migration notes
 
+## Unreleased — LocalAgent Conversation recovery and controls
+
+The existing autonomy `maxTokensPerHook` now means the output-token cap per
+LifeTrack activity (0 = Runtime default). A positive value must fit the existing
+text execution int32 limit and is never silently omitted on unsupported targets.
+Daily usage remains actual reported input plus output; it is not a cost cap.
+
+This source-only 0.x minor hard cut requires matching Runtime, native carrier,
+SDK and Kit. LocalAgent Conversation snapshots now include partial messages,
+request/retry/input associations, regeneration eligibility and shared follow-up
+state; events include `state-changed` and authoritative text activity. Keep an
+ongoing Conversation subscription after Send admission, including while older
+media completes. `send({ retryOfTurnId, requestId, ...scope })` references retained
+input and excludes `parts`; it regenerates text without replaying old actions.
+Retain an uncertain submission's original request ID and do not auto-resubmit.
+
+Custom LocalAgent carriers implement `conversation.setFollowUpPolicy`,
+`conversation.updateFollowUp`, `agentConfigure.pendingHooks.list/update` with the
+matching protected capabilities. Conversation follow-up and Agent autonomy are
+distinct controls. AI Consume-only consumers do not gain these requirements.
+No package release, automatic migration or old/new protocol fallback is included.
+
 ## Unreleased — Conversation context management
 
 The covered `agentConfigure.conversationContext.update` client adds an explicit

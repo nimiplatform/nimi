@@ -24,12 +24,9 @@ import (
 // Decoder/audio clock and lipsync/mouth projection belong to Avatar/Host.
 
 const (
-	runtimeAgentVoiceSynthesisAppID      = "runtime.agent.voice_lipsync"
-	runtimeAgentVoiceSynthesisSubjectID  = "anonymous"
-	defaultLocalVoiceSynthesisJobWait    = 15 * time.Minute
-	defaultNonLocalVoiceSynthesisJobWait = 45 * time.Second
-	defaultVoiceSynthesisStreamWait      = 45 * time.Second
-	defaultProviderVoiceSynthesisPoll    = 50 * time.Millisecond
+	runtimeAgentVoiceSynthesisAppID     = "runtime.agent.voice_lipsync"
+	runtimeAgentVoiceSynthesisSubjectID = "anonymous"
+	defaultProviderVoiceSynthesisPoll   = 50 * time.Millisecond
 )
 
 type voiceLipsyncSynthesisInput struct {
@@ -140,7 +137,6 @@ type voiceLipsyncScenarioExecutor interface {
 
 type aiBackedVoiceLipsyncSynthesizer struct {
 	ai           voiceLipsyncScenarioExecutor
-	streamer     publicChatScenarioStreamer
 	modelID      string
 	routePolicy  runtimev1.RoutePolicy
 	pollInterval time.Duration
@@ -153,10 +149,8 @@ func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		routePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
-	streamer, _ := ai.(publicChatScenarioStreamer)
 	return &aiBackedVoiceLipsyncSynthesizer{
 		ai:           ai,
-		streamer:     streamer,
 		modelID:      strings.TrimSpace(modelID),
 		routePolicy:  routePolicy,
 		pollInterval: defaultProviderVoiceSynthesisPoll,
@@ -213,8 +207,8 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	waitTimeout := voiceSynthesisJobWait(routePolicy)
-	ctx, cancel := context.WithTimeout(ctx, waitTimeout)
+	// ASYNC_JOB has no business deadline; the originating media scope remains cancellable.
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
@@ -301,13 +295,6 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 			audioMimeType,
 		),
 	}, nil
-}
-
-func voiceSynthesisJobWait(routePolicy runtimev1.RoutePolicy) time.Duration {
-	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return defaultLocalVoiceSynthesisJobWait
-	}
-	return defaultNonLocalVoiceSynthesisJobWait
 }
 
 func cloneVoiceSynthesisTargetRef(input *runtimeidentity.Target) *runtimeidentity.Target {
@@ -466,10 +453,10 @@ func runtimeAgentVoiceSynthesisContext(parent context.Context, appID string, own
 	if parent == nil {
 		parent = context.Background()
 	}
-	// Voice synthesis is a Runtime Agent owner call. Preserve cancellation and
-	// the deadline, but do not inherit an outer Desktop/App principal or local
-	// App operation decision: those values describe the consumer ingress, not
-	// the VoiceAsset-owning App used for this private AI execution.
+	// The VoiceAsset-owning App controls asset resolution, not work permission.
+	// Detach the transport principal but retain the exact authorized LocalAgent
+	// decision for Job admission and owner fences; never rewrite its operation
+	// or replace it with runtime.consume authority.
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if deadline, ok := parent.Deadline(); ok {
@@ -492,6 +479,10 @@ func runtimeAgentVoiceSynthesisContext(parent context.Context, appID string, own
 	ownerUserID = strings.TrimSpace(ownerUserID)
 	if ownerUserID != "" && ownerUserID != runtimeAgentVoiceSynthesisSubjectID {
 		ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: ownerUserID})
+		ctx = executionintent.WithRuntimeAccountSubject(ctx, ownerUserID)
+	}
+	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(parent); ok {
+		ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision)
 	}
 	return ctx
 }

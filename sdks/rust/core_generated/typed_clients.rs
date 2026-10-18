@@ -2066,6 +2066,19 @@ impl Default for LocalAppEmbodimentVoicePhase {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppScheduledTaskAction {
+    LOCALAPPSCHEDULEDTASKACTIONUNSPECIFIED,
+    LOCALAPPSCHEDULEDTASKACTIONCANCEL,
+    LOCALAPPSCHEDULEDTASKACTIONRESCHEDULE,
+}
+
+impl Default for LocalAppScheduledTaskAction {
+    fn default() -> Self {
+        Self::LOCALAPPSCHEDULEDTASKACTIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppSessionState {
     LOCALAPPSESSIONSTATEUNSPECIFIED,
     LOCALAPPSESSIONSTATEREADY,
@@ -9609,6 +9622,17 @@ pub struct ListLoadoutRecipesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentPendingHooksRequest {
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentPendingHooksResponse {
+    pub hooks: Vec<Box<LocalAppAgentPendingHook>>,
+    pub truncated: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAppAgentReferencesRequest {
 
 }
@@ -10225,6 +10249,16 @@ pub struct LocalAppAgentManagerSourceProjection {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentPendingHook {
+    pub task_id: Option<String>,
+    pub revision: Option<u64>,
+    pub scheduled_for: Option<String>,
+    pub system_cadence: Option<bool>,
+    pub status: Option<HookAdmissionState>,
+    pub can_modify: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentPresentationIntent {
     pub patch: Option<Box<AgentPresentationProfilePatch>>,
     pub select_imported_resource_pack: Option<bool>,
@@ -10491,6 +10525,15 @@ pub struct LocalAppConversationEvent {
     pub reasoning_status: Option<Box<LocalAppConversationReasoningStatus>>,
     pub live_action: Option<Box<LocalAppConversationLiveAction>>,
     pub live_tool: Option<Box<LocalAppConversationLiveTool>>,
+    pub state_changed: Option<Box<LocalAppConversationState>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationFollowUp {
+    pub task_id: Option<String>,
+    pub revision: Option<u64>,
+    pub scheduled_for: Option<String>,
+    pub source_turn_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10532,6 +10575,7 @@ pub struct LocalAppConversationMessage {
     pub role: Option<LocalAppConversationMessageRole>,
     pub message_id: Option<String>,
     pub parts: Vec<Box<LocalAppConversationMessagePart>>,
+    pub partial: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10560,6 +10604,16 @@ pub struct LocalAppConversationSnapshot {
     pub turns: Vec<Box<LocalAppConversationTurn>>,
     pub actions: Vec<Box<LocalAppConversationAction>>,
     pub voices: Vec<Box<LocalAppConversationVoice>>,
+    pub state: Option<Box<LocalAppConversationState>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationState {
+    pub follow_up_enabled: Option<bool>,
+    pub follow_up_policy_revision: Option<u64>,
+    pub max_follow_up_turns: Option<u32>,
+    pub pending_follow_up: Option<Box<LocalAppConversationFollowUp>>,
+    pub text_turn_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10581,17 +10635,26 @@ pub struct LocalAppConversationTurn {
     pub terminal_reason: Option<String>,
     pub reason_code: Option<ReasonCode>,
     pub message: Option<String>,
+    pub request_id: Option<String>,
+    pub retry_of_turn_id: Option<String>,
+    pub input_turn_id: Option<String>,
+    pub can_regenerate: Option<bool>,
+    pub origin: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationTurnAccepted {
     pub turn_id: Option<String>,
+    pub request_id: Option<String>,
+    pub origin: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationTurnCompleted {
     pub turn_id: Option<String>,
     pub terminal_reason: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub message: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12125,6 +12188,8 @@ pub struct PendingHook {
     pub intent: Option<Box<HookIntent>>,
     pub scheduled_for: Option<String>,
     pub admitted_at: Option<String>,
+    pub runtime_cadence: Option<bool>,
+    pub revision: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13808,6 +13873,7 @@ pub struct SendLocalAppConversationTurnRequest {
     pub conversation_anchor_id: Option<String>,
     pub request_id: Option<String>,
     pub parts: Vec<Box<LocalAppConversationInputPart>>,
+    pub retry_of_turn_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15147,6 +15213,48 @@ pub struct UpdateLocalAppAgentConversationContextRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateLocalAppAgentConversationContextResponse {
     pub projection: Option<Box<LocalAppAgentConversationContextProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppAgentPendingHookRequest {
+    pub agent_handle: Option<String>,
+    pub task_id: Option<String>,
+    pub expected_revision: Option<u64>,
+    pub action: Option<LocalAppScheduledTaskAction>,
+    pub scheduled_for: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppAgentPendingHookResponse {
+    pub hook: Option<Box<LocalAppAgentPendingHook>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppConversationFollowUpPolicyRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub expected_revision: Option<u64>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppConversationFollowUpPolicyResponse {
+    pub state: Option<Box<LocalAppConversationState>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppConversationFollowUpRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub task_id: Option<String>,
+    pub expected_revision: Option<u64>,
+    pub action: Option<LocalAppScheduledTaskAction>,
+    pub scheduled_for: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppConversationFollowUpResponse {
+    pub state: Option<Box<LocalAppConversationState>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -18,35 +18,28 @@ func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason stri
 	}
 	followUpID := session.PendingFollowUpID
 	followUp := s.chatFollowUps[followUpID]
+	version := s.chatSurfaceVersion
 	delete(s.chatFollowUps, followUpID)
 	session.PendingFollowUpID = ""
+	if err := s.persistPublicChatSurfaceStateLocked(session.ConversationAnchorID); err != nil {
+		session.PendingFollowUpID = followUpID
+		if followUp != nil {
+			s.chatFollowUps[followUpID] = followUp
+		}
+		s.chatSurfaceVersion = version
+		s.chatSurfaceMu.Unlock()
+		return nil, err
+	}
 	s.chatSurfaceMu.Unlock()
 	if followUp != nil && followUp.Cancel != nil {
 		followUp.Cancel()
 	}
-	s.persistCurrentPublicChatSurfaceState(strings.TrimSpace(anchorID))
 	if emit && followUp != nil {
 		if err := s.emitPublicChatFollowUpCanceled(*followUp, reason, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", ""); err != nil {
 			return followUp, err
 		}
 	}
 	return followUp, nil
-}
-
-func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpState {
-	s.chatSurfaceMu.Lock()
-	followUp := s.chatFollowUps[strings.TrimSpace(followUpID)]
-	if followUp == nil {
-		s.chatSurfaceMu.Unlock()
-		return nil
-	}
-	delete(s.chatFollowUps, strings.TrimSpace(followUpID))
-	if session := s.chatAnchors[followUp.ConversationAnchorID]; session != nil && session.PendingFollowUpID == strings.TrimSpace(followUpID) {
-		session.PendingFollowUpID = ""
-	}
-	s.chatSurfaceMu.Unlock()
-	s.persistCurrentPublicChatSurfaceState(followUp.ConversationAnchorID)
-	return followUp
 }
 
 // emitPublicChatFollowUpCanceled records the follow-up cancellation into the
@@ -99,7 +92,7 @@ func (s *Service) emitPublicChatFollowUpCanceled(
 		return err
 	}
 	now := time.Now().UTC()
-	return s.updateAgent(entry, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
+	return s.appendAgentEvents(entry.Agent.GetLocalAgentRef(), hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 		Intent:     intent,
 		ObservedAt: timestamppb.New(now),
 		Reason:     strings.TrimSpace(reason),

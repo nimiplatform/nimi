@@ -121,10 +121,12 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
 			status.Error(codes.DataLoss, "Runtime LocalAgent turn source identity mismatch"))
 	}
+	optionalCtx, cancelOptional := context.WithTimeout(ctx, publicChatOptionalContextBudget)
+	defer cancelOptional()
 	var memory []agentTurnMemoryInput
 	var err error
 	if !session.ConversationContext.OmitSupplementalContext {
-		memory, err = r.loadPublicChatCognitionMemoryInputs(ctx, session, req)
+		memory, err = r.loadPublicChatCognitionMemoryInputs(optionalCtx, session, req)
 	} else {
 		privateRecall = nil
 	}
@@ -154,7 +156,7 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 	}
 	cognition := agentTurnCognitionInput{AdapterStatus: "not_requested", SelectionStatus: "not_requested"}
 	if !session.ConversationContext.OmitSupplementalContext {
-		cognition = r.retrievePublicChatSourceCognition(ctx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
+		cognition = r.retrievePublicChatSourceCognition(optionalCtx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
 	}
 	catalogDigest, err := hashSourceMaterializationDomainJCS(publicChatCatalogRevisionHashDomain, struct {
 		CatalogRevision string `json:"catalogRevision"`

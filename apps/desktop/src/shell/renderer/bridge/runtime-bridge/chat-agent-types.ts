@@ -23,6 +23,8 @@ export type AgentLocalTargetSnapshot = {
   // Canonical Conversation selectors. Formal App chat uses this pair for
   // selection, cache identity, and execution.
   agentHandle?: string;
+  /** Stable App-private draft correlation; never an execution selector. */
+  agentBinding?: string;
   conversationAnchorId?: string;
   sourceRef?: NimiRuntimeAgentSourceRef | null;
   displayName: string;
@@ -88,6 +90,7 @@ export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
   canonicalConversation?: {
+    state: import('@nimiplatform/sdk/app').NimiLocalAppConversationState;
     conversationAnchorId: string;
     throughSequence: string;
     truncatedBefore: boolean;

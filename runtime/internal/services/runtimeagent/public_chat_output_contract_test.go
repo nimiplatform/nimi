@@ -162,16 +162,16 @@ func TestAIBackedPublicChatTurnExecutorPreservesRuntimeComposedAPMLOutputContrac
 	if prompt != composedPrompt {
 		t.Fatalf("provider adapter mutated the Runtime-composed output contract")
 	}
-	if !strings.Contains(prompt, `Output APML only`) || !strings.Contains(prompt, `<message id="message-0">`) {
+	if !strings.Contains(prompt, `Output APML only`) || !strings.Contains(prompt, `<message>`) {
 		t.Fatalf("expected APML output contract in system prompt, got %q", prompt)
 	}
 	if !strings.Contains(prompt, `no Markdown, JSON, fences, <think>, or other prose`) || !strings.Contains(prompt, `at most one each`) {
 		t.Fatalf("expected APML output contract to forbid non-APML wrappers and duplicate cues, got %q", prompt)
 	}
-	if !strings.Contains(prompt, `Begin exactly <message id="message-0">`) || !strings.Contains(prompt, `FINAL: reply ONLY as <message id="message-0">reply text</message>`) {
+	if !strings.Contains(prompt, `Begin exactly <message>`) || !strings.Contains(prompt, `FINAL: reply ONLY as <message>reply text</message>`) {
 		t.Fatalf("expected APML contract to reinforce the first emitted token for compact local models, got %q", prompt)
 	}
-	if !strings.Contains(prompt, `<message id="message-0">reply text</message>`) || !strings.Contains(prompt, "Never self-close <message>") {
+	if !strings.Contains(prompt, `<message>reply text</message>`) || !strings.Contains(prompt, "Never self-close <message>") {
 		t.Fatalf("expected a complete text-only APML example that forbids the observed self-closing message failure, got %q", prompt)
 	}
 	if !strings.Contains(prompt, "<emotion>angry|confused|embarrassed|excited|ext:apologetic|ext:grateful|ext:lonely|ext:proud|happy|neutral|sad|shy|surprised|worried</emotion>") {

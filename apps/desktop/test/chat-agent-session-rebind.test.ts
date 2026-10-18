@@ -10,6 +10,7 @@ import {
   type DesktopAgentSessionRebindClients,
 } from '../src/shell/renderer/features/chat/chat-agent-session-rebind.js';
 
+const binding = `agent_binding_${'d'.repeat(43)}`;
 const staleHandle = `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle;
 const firstCurrentHandle = `agent_ref_${'b'.repeat(43)}` as NimiLocalAppAgentHandle;
 const matchingCurrentHandle = `agent_ref_${'c'.repeat(43)}` as NimiLocalAppAgentHandle;
@@ -42,6 +43,7 @@ function conversationResourceNotFound(): Error {
 function target(): AgentLocalTargetSnapshot {
   return {
     agentHandle: staleHandle,
+    agentBinding: binding,
     conversationAnchorId: 'agent_anchor_current',
     displayName: 'Old display name',
     handle: '',
@@ -55,7 +57,7 @@ function target(): AgentLocalTargetSnapshot {
   };
 }
 
-test('Desktop remints an active Agent target only through its durable Conversation anchor', async () => {
+test('Desktop matches one fresh reference by binding and verifies its existing anchor', async () => {
   const probed: string[] = [];
   const clients: DesktopAgentSessionRebindClients = {
     agents: {
@@ -63,7 +65,7 @@ test('Desktop remints an active Agent target only through its durable Conversati
         return [
           { agentHandle: firstCurrentHandle, activityAgentRef: 'agr_test', agentBinding: firstCurrentHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Other Agent', avatarUrl: null },
           {
-            agentHandle: matchingCurrentHandle, activityAgentRef: 'agr_test', agentBinding: matchingCurrentHandle.replace('agent_ref_', 'agent_binding_'),
+            agentHandle: matchingCurrentHandle, activityAgentRef: 'agr_test', agentBinding: binding,
             displayName: 'Current Agent',
             avatarUrl: 'https://cdn.nimi.example/current.webp',
           },
@@ -76,7 +78,7 @@ test('Desktop remints an active Agent target only through its durable Conversati
         if (input.agentHandle === firstCurrentHandle) throw conversationResourceNotFound();
         return {
           conversationAnchorId: input.conversationAnchorId,
-          throughSequence: '4',
+          state:{followUpEnabled:false,followUpPolicyRevision:'0',maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null}, throughSequence: '4',
           truncatedBefore: false,
           turns: [],
           messages: [],
@@ -91,7 +93,7 @@ test('Desktop remints an active Agent target only through its durable Conversati
 
   const rebound = await resolveDesktopAgentSessionRebind(target(), clients);
 
-  assert.deepEqual(probed, [firstCurrentHandle, matchingCurrentHandle]);
+  assert.deepEqual(probed, [matchingCurrentHandle]);
   assert.equal(rebound?.agentHandle, matchingCurrentHandle);
   assert.equal(rebound?.conversationAnchorId, 'agent_anchor_current');
   assert.equal(rebound?.displayName, 'Current Agent');
@@ -135,7 +137,7 @@ test('Desktop makes no rebind decision when a candidate probe has a non-identity
     const clients: DesktopAgentSessionRebindClients = {
       agents: {
         async listReferences() {
-          return [{ agentHandle: matchingCurrentHandle, activityAgentRef: 'agr_test', agentBinding: matchingCurrentHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Current Agent', avatarUrl: null }];
+          return [{ agentHandle: matchingCurrentHandle, activityAgentRef: 'agr_test', agentBinding: binding, displayName: 'Current Agent', avatarUrl: null }];
         },
       },
       conversation: {

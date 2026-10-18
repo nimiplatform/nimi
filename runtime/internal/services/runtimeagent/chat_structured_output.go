@@ -10,10 +10,11 @@ const (
 )
 
 type publicChatStructuredEnvelope struct {
-	SchemaID  string                         `json:"schemaId"`
-	Message   publicChatStructuredMessage    `json:"message"`
-	StatusCue *publicChatStructuredStatusCue `json:"statusCue,omitempty"`
-	Actions   []publicChatStructuredAction   `json:"actions"`
+	ControlError string                         `json:"controlError,omitempty"`
+	SchemaID     string                         `json:"schemaId"`
+	Message      publicChatStructuredMessage    `json:"message"`
+	StatusCue    *publicChatStructuredStatusCue `json:"statusCue,omitempty"`
+	Actions      []publicChatStructuredAction   `json:"actions"`
 }
 
 type publicChatStructuredMessage struct {
@@ -58,6 +59,18 @@ func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelop
 		return nil, fmt.Errorf("structured chat output must be APML beginning with <message>")
 	}
 	return parsePublicChatAPMLOutput(trimmed)
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r012
+func assignPublicChatOutputIdentities(envelope *publicChatStructuredEnvelope, turnID string) {
+	envelope.Message.MessageID = turnID + "_message"
+	if envelope.StatusCue != nil {
+		envelope.StatusCue.SourceMessageID = envelope.Message.MessageID
+	}
+	for index := range envelope.Actions {
+		envelope.Actions[index].ActionID = fmt.Sprintf("%s_action_%d", turnID, index)
+		envelope.Actions[index].SourceMessageID = envelope.Message.MessageID
+	}
 }
 
 func validatePublicChatStructuredEnvelope(envelope *publicChatStructuredEnvelope) error {

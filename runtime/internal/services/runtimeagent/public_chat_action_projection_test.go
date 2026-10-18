@@ -26,6 +26,49 @@ type stubPublicChatActionExecutor struct {
 	request PublicChatActionExecutionRequest
 }
 
+func TestPublicChatNonStopFinalNeverCommitsOrStartsActions(t *testing.T) {
+	for _, finish := range []runtimev1.FinishReason{
+		runtimev1.FinishReason_FINISH_REASON_LENGTH,
+		runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER,
+		runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED,
+	} {
+		t.Run(finish.String(), func(t *testing.T) {
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+			capture := newPublicChatEmitCapture()
+			svc.SetPublicChatAppEmitter(capture.emit)
+			actions := &stubPublicChatActionExecutor{}
+			svc.SetPublicChatActionExecutor(actions)
+			raw := publicChatImageActionAPML("model-id", "Readable text", "model-action", "must not execute")
+			stream := emitPublicChatImageActionStream("non-stop", raw)
+			svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{stream: func(ctx context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+				return stream(ctx, req, func(event *runtimev1.StreamScenarioEvent) error {
+					if event.GetCompleted() != nil {
+						event.GetCompleted().FinishReason = finish
+					}
+					return emit(event)
+				})
+			}})
+			submitPublicChatImageActionTurn(t, svc, anchorID, true)
+			_ = capture.waitForMessageType(t, publicChatTurnFailedType)
+			waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+			if actions.calls != 0 {
+				t.Fatalf("non-stop output executed %d actions", actions.calls)
+			}
+			for _, kind := range capture.messageTypes() {
+				if kind == publicChatTurnMessageCommittedType || kind == publicChatTurnActionPlannedType || kind == publicChatTurnPostTurnType || kind == publicChatTurnCompletedType {
+					t.Fatalf("non-stop output falsely committed or started a side effect: %s", kind)
+				}
+			}
+			snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "non-stop-snapshot")
+			last := publicChatLastTurnSnapshot(t, snapshot)
+			if last["finish_reason"] != publicChatFinishReasonLabel(finish) {
+				t.Fatalf("terminal cause lost: %#v", last)
+			}
+		})
+	}
+}
+
 type interruptiblePublicChatActionExecutor struct {
 	entered chan struct{}
 }
@@ -184,7 +227,7 @@ func TestPublicChatImageActionSubmitRequestUsesAdmittedArtifactOwner(t *testing.
 	}, map[string]any{
 		"size":           "1024x1024",
 		"responseFormat": "b64_json",
-	}, "studio portrait of the current local agent", "runtime-agent-image-action:test", time.Second, "desktop.app", "user-1")
+	}, "studio portrait of the current local agent", "runtime-agent-image-action:test", "desktop.app", "user-1")
 
 	head := req.GetHead()
 	if head == nil {
@@ -263,8 +306,11 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 	if head := req.GetHead(); head.GetAppId() != "desktop.app" || head.GetSubjectUserId() != "user-1" {
 		t.Fatalf("image artifact owner = %q/%q, want desktop.app/user-1", head.GetAppId(), head.GetSubjectUserId())
 	}
-	if got := req.GetHead().GetTimeoutMs(); got != 1200000 {
-		t.Fatalf("timeout_ms = %d, want 1200000", got)
+	if got := req.GetHead().GetTimeoutMs(); got != 0 {
+		t.Fatalf("Job timeout_ms = %d, want zero reserved slot", got)
+	}
+	if _, hasDeadline := scenario.submitContext.Deadline(); hasDeadline {
+		t.Fatal("image Job must not inherit a fabricated business deadline")
 	}
 	spec := req.GetSpec().GetImageGenerate()
 	if spec.GetSize() != "768x768" || spec.GetResponseFormat() != "b64_json" || spec.GetSeed() != 42 {
@@ -361,13 +407,12 @@ func TestPublicChatImageActionContextCancellationCancelsOwnedScenarioJob(t *test
 	}
 }
 
-func TestPublicChatImageActionUsesRouteAppropriateDefaultTimeout(t *testing.T) {
+func TestPublicChatImageActionHasNoBusinessDeadlineOnEitherRoute(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		binding     publicChatExecutionBinding
-		wantTimeout time.Duration
+		name    string
+		binding publicChatExecutionBinding
 	}{
 		{
 			name: "local",
@@ -376,7 +421,6 @@ func TestPublicChatImageActionUsesRouteAppropriateDefaultTimeout(t *testing.T) {
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				TargetRef:   publicChatTestLocalRuntimeTargetRef("profile_workflow:z-image-turbo"),
 			},
-			wantTimeout: defaultLocalImageActionWait,
 		},
 		{
 			name: "cloud",
@@ -391,7 +435,6 @@ func TestPublicChatImageActionUsesRouteAppropriateDefaultTimeout(t *testing.T) {
 					Provider:             "openai",
 				}},
 			},
-			wantTimeout: defaultCloudImageActionWait,
 		},
 	}
 
@@ -423,8 +466,11 @@ func TestPublicChatImageActionUsesRouteAppropriateDefaultTimeout(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ExecuteImageAction: %v", err)
 			}
-			if got := time.Duration(scenario.submitRequest.GetHead().GetTimeoutMs()) * time.Millisecond; got != test.wantTimeout {
-				t.Fatalf("timeout = %s, want %s", got, test.wantTimeout)
+			if got := scenario.submitRequest.GetHead().GetTimeoutMs(); got != 0 {
+				t.Fatalf("Job timeout = %d, want zero reserved slot", got)
+			}
+			if _, deadline := scenario.submitContext.Deadline(); deadline {
+				t.Fatal("image action introduced a business deadline")
 			}
 		})
 	}
@@ -492,7 +538,7 @@ func TestPublicChatImageActionLeavesExecutionMaterializationRuntimePrivate(t *te
 	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
 		ModelID:     "local-z-image",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-	}, nil, "studio portrait of the current local agent", "runtime-agent-image-action:local", time.Second, "desktop.app", "user-1")
+	}, nil, "studio portrait of the current local agent", "runtime-agent-image-action:local", "desktop.app", "user-1")
 
 	if len(req.GetExtensions()) != 0 {
 		t.Fatalf("Agent Chat must not fabricate private profile_entries: %+v", req.GetExtensions())
@@ -620,7 +666,7 @@ func TestPublicChatImageActionExecutesAndEmitsArtifactLifecycle(t *testing.T) {
 	}
 	for _, req := range []*runtimev1.SendAppMessageRequest{planned, started, artifactReady, completedAction} {
 		detail := publicChatTurnDetail(t, req)
-		if got := detail["action_id"]; got != "action-image-1" {
+		if got := detail["action_id"]; got != actionExecutor.request.Action.ActionID {
 			t.Fatalf("expected action_id action-image-1 for %s, got=%v", req.GetMessageType(), detail)
 		}
 	}

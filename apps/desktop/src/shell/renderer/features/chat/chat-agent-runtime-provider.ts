@@ -34,6 +34,9 @@ type AgentRuntimeChatProviderOptions = {
 };
 
 type AgentRuntimeChatProviderMetadata = {
+  requestId?: string;
+  onAdmitted?: () => void;
+  retryOfTurnId?: string;
   agentHandle: string;
   conversationAnchorId: string;
   runtimeThreadId: string;
@@ -60,6 +63,9 @@ export function requireAgentTextDeltaFragment(value: unknown): string {
 function requireProviderMetadata(value: unknown): AgentRuntimeChatProviderMetadata {
   const record = requireRecord(value, 'agent runtime chat metadata');
   return {
+    requestId: normalizeText(record.requestId) || undefined,
+    onAdmitted: typeof record.onAdmitted === 'function' ? record.onAdmitted as () => void : undefined,
+    retryOfTurnId: normalizeText(record.retryOfTurnId) || undefined,
     agentHandle: normalizeText(record.agentHandle),
     conversationAnchorId: normalizeText(record.conversationAnchorId),
     runtimeThreadId: normalizeText(record.runtimeThreadId),
@@ -122,6 +128,9 @@ async function* runRuntimeOwnedAgentTurn(input: {
       conversationAnchorId: input.metadata.conversationAnchorId,
       threadId: input.metadata.runtimeThreadId,
       userMessageId: input.baseInput.userMessage.id,
+      retryOfTurnId: input.metadata.retryOfTurnId,
+      requestId: input.metadata.requestId,
+      onAdmitted: input.metadata.onAdmitted,
       userText: input.userText,
       userAttachments: input.userAttachments,
       maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
@@ -370,7 +379,7 @@ export function createRuntimeAgentChatConversationProvider(
       if (!metadata.agentHandle || !metadata.conversationAnchorId || !metadata.runtimeThreadId) {
         throw new Error('runtime.agent chat metadata requires agentHandle, conversationAnchorId, and Runtime-owned threadId');
       }
-      if (!userText && userAttachments.length === 0) {
+      if (!metadata.retryOfTurnId && !userText && userAttachments.length === 0) {
         throw new Error('runtime.agent chat requires a non-empty user message or admitted attachment projection');
       }
 

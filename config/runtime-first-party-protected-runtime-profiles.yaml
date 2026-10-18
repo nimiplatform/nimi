@@ -166,6 +166,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset

@@ -1219,7 +1219,7 @@ describe('renderer local-app standard-shell surface', () => {
       'activity', 'agentWork', 'integration',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
-      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory', 'conversationContext',
+      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory', 'conversationContext', 'pendingHooks',
     ].sort());
   });
 
@@ -1578,6 +1578,7 @@ describe('renderer local-app standard-shell surface', () => {
           turnId: 'agent-turn-1',
           message: {
             messageId: 'message-1',
+            partial:false,
             turnId: 'agent-turn-1',
             role: 'assistant',
             parts: [{ kind: 'text', text: 'hello' }],

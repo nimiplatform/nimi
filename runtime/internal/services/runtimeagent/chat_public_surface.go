@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"encoding/json"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -100,7 +101,9 @@ const (
 )
 
 type publicChatAvailableActions struct {
-	ImageGenerate publicChatImageActionAvailability
+	ImageGenerate   publicChatImageActionAvailability
+	TextOnly        bool
+	FollowUpEnabled bool
 }
 
 // publicChatCommittedTranscriptTurn is the single Runtime-owned conversation
@@ -108,6 +111,7 @@ type publicChatAvailableActions struct {
 // follow-up turns share this one ordered transcript; app-facing ChatMessage
 // history is derived from user-origin records and is never stored separately.
 type publicChatCommittedTranscriptTurn struct {
+	InputTurnID   string `json:"inputTurnId,omitempty"`
 	TurnID        string `json:"turnId"`
 	Sequence      uint64 `json:"sequence"`
 	Origin        string `json:"origin"`
@@ -146,6 +150,8 @@ type publicChatVoiceSidecarState struct {
 // continuity token; OwnerUserID plus LocalAgentRef resolves the singleton.
 // SubjectUserID is captured at first open and must equal OwnerUserID.
 type publicChatAnchorState struct {
+	LatestAcceptedTurnID     string
+	Recoveries               map[string]*publicChatTurnRecovery
 	ConversationContext      publicChatConversationContextSelection
 	persistedTranscriptCount int
 	ConversationAnchorID     string
@@ -172,7 +178,10 @@ type publicChatAnchorState struct {
 	ActiveTurnSnapshot     *publicChatTurnProjectionState
 	LastTurnSnapshot       *publicChatTurnProjectionState
 	CompletedTurnSnapshots map[string]*publicChatTurnProjectionState
+	VoiceRenderRequests    map[string]string
 	VoiceSidecars          map[string]*publicChatVoiceSidecarState
+	FollowUpEnabled        bool
+	FollowUpPolicyRevision uint64
 	PendingFollowUpID      string
 	Status                 runtimev1.ConversationAnchorStatus
 	LastTurnID             string
@@ -211,6 +220,9 @@ type publicChatConversationSummaryAttemptState struct {
 	AttemptedAt       time.Time `json:"attemptedAt"`
 }
 type publicChatTurnState struct {
+	CanceledFollowUp     *publicChatFollowUpState
+	AdmissionReused      bool
+	RetryOfTurnID        string
 	ConversationAnchorID string
 	TurnID               string
 	// StreamID identifies the owned foreground presentation/turn stream per
@@ -283,6 +295,7 @@ type publicChatAttachmentPayload struct {
 // fixed at turn admission: the artifact store record mime is the only trusted
 // mime, and the caller display hint is carried separately.
 type publicChatResolvedAttachment struct {
+	ExpiresAt   time.Time
 	ArtifactID  string
 	MimeType    string
 	DisplayName string
@@ -306,6 +319,13 @@ type publicChatReasoningPayload struct {
 // `GetConversationAnchorSnapshot` before turn request. Runtime rejects
 // requests that reference a non-existent anchor (no implicit creation).
 type publicChatTurnRequestPayload struct {
+	// Only the formal App owner sets this; Runtime-owned follow-ups retain
+	// their own claim authorization rather than an expired App RPC lifetime.
+	localAppAdmission *accountservice.LocalAppCallerDecision
+
+	// Captured by the protected ingress, never accepted from caller JSON.
+	RegisteredAppSubject string                                       `json:"-"`
+	RetryOfTurnID        string                                       `json:"-"`
 	AgentID              string                                       `json:"agent_id"`
 	LocalAgentRef        string                                       `json:"local_agent_ref"`
 	OwnerUserID          string                                       `json:"owner_user_id"`
@@ -322,6 +342,7 @@ type publicChatTurnRequestPayload struct {
 	Reasoning            *publicChatReasoningPayload                  `json:"reasoning,omitempty"`
 	// resolvedAttachments is Runtime-internal admission truth, never caller
 	// JSON: store-validated attachment references fixed at turn admission.
+	followUpClaim       *publicChatFollowUpState
 	resolvedAttachments []publicChatResolvedAttachment
 }
 type publicChatTurnInterruptPayload struct {

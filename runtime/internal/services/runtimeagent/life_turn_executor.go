@@ -4,18 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
 	// A life turn's APML is short, but models that always think spend part of
 	// this budget on reasoning first; at 512 Claude Opus 5.5 stopped mid-element.
-	// It is the Runtime's own output budget, not a caller hard limit.
+	// This default is an internal budget. A configured positive autonomy cap
+	// is separately carried as an explicit max_tokens and cannot be dropped.
 	lifeTurnPromptMaxTokens = 1024
 	// The sweep runs due hooks one at a time, so this bounds how long one life
 	// turn can hold it. A life-turn-shaped request to Claude Opus 5.5 took
@@ -150,9 +153,18 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 	return result, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.r168
 func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScenarioRequest, error) {
 	if req == nil || req.Agent == nil || req.State == nil || req.Hook == nil {
 		return nil, fmt.Errorf("life turn requires committed agent, state, and hook")
+	}
+	outputCap := req.Autonomy.GetConfig().GetMaxTokensPerHook()
+	if outputCap < 0 || outputCap > math.MaxInt32 {
+		return nil, fmt.Errorf("life turn output token cap must be between 0 and %d", int64(math.MaxInt32))
+	}
+	var maxTokens *int32
+	if outputCap > 0 {
+		maxTokens = proto.Int32(int32(outputCap))
 	}
 	systemPrompt, userPrompt, err := lifeTurnPrompts(req)
 	if err != nil {
@@ -177,6 +189,7 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					SystemPrompt: systemPrompt,
+					MaxTokens:    maxTokens,
 					Input: []*runtimev1.ChatMessage{
 						{
 							Role:    "user",
@@ -226,11 +239,12 @@ Minimal valid output (write your own summary from the committed context):
 <life-turn>
   <summary>No change is needed at this moment.</summary>
 </life-turn>
-Optional top-level children are behavioral-posture, status-text, tokens-used, and next-hook-intent. Omit unused children entirely.
+Optional top-level children are behavioral-posture, status-text, and next-hook-intent. Omit unused children entirely.
 
 Rules:
 - Do not emit markdown, prose, code fences, or comments.
 - Do not emit initiate_chat_intent or any app-facing action.
+- Runtime records execution usage; do not estimate or emit tokens-used.
 - Do not mutate arbitrary attributes or world/user state directly.
 - recall, hook context, and conversational evidence are read-only advisory context.
 - do not emit Memory candidates or canonical Memory judgments; Runtime commits only the typed terminal activity fact.
@@ -269,7 +283,7 @@ recall=%s
 	return systemPrompt, userPrompt, nil
 }
 
-func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnResult, error) {
+func decodeLifeTurnExecutorResult(raw string, reportedTokens int64) (*lifeTurnResult, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, fmt.Errorf("life turn executor returned empty output")
 	}
@@ -281,13 +295,10 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 		PosturePatch: nil,
 		StatusText:   payload.StatusText,
 		Summary:      strings.TrimSpace(payload.Summary),
-		TokensUsed:   fallbackTokens,
+		TokensUsed:   reportedTokens,
 	}
 	if payload.TokensUsed != nil && *payload.TokensUsed < 0 {
 		return nil, fmt.Errorf("life turn executor tokens_used must be non-negative")
-	}
-	if result.TokensUsed <= 0 && payload.TokensUsed != nil {
-		result.TokensUsed = *payload.TokensUsed
 	}
 	if payload.BehavioralPosture != nil {
 		patch := apmlPosturePatch(payload.BehavioralPosture)

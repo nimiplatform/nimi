@@ -152,12 +152,13 @@ export function useAgentConversationPresentation(
     selectionAgentHandle: input.inputSelectionAgentHandle,
     activeTargetId: input.selectedTargetId,
   });
-  const stopGeneratingReady = isAgentStreamCancelReady(input.streamState);
+  const stopGeneratingReady = Boolean(input.bundle?.canonicalConversation?.state.textTurnId) || isAgentStreamCancelReady(input.streamState);
   const handleStopGenerating = useCallback(() => {
     if (input.activeThreadId && stopGeneratingReady) {
-      streamController.cancelStream(input.activeThreadId);
+      if (input.onStopGenerating) input.onStopGenerating();
+      else streamController.cancelStream(input.activeThreadId);
     }
-  }, [input.activeThreadId, stopGeneratingReady, streamController]);
+  }, [input.activeThreadId, input.onStopGenerating, stopGeneratingReady, streamController]);
   const emptyStateAgent = null;
   const emptyStateSuggestions = input.activeTarget ? (
     <AgentIntroduction
@@ -325,7 +326,7 @@ export function useAgentConversationPresentation(
             {restoreNeedsEmptyDraft ? <p className="mt-1 text-[var(--nimi-text-secondary)]">{input.t('Chat.contentRefusalKeepNewDraft')}</p> : null}
           </div> : null}
           <AgentCanonicalComposer
-            composerKey={`${input.activeTarget?.agentHandle || 'none'}:${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
+            composerKey={`${input.activeTarget?.agentHandle || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
             disabled={Boolean(surfaceState.composer?.disabled) || input.voiceInput.opening === true}
             runtimeHint={input.voiceInput.opening

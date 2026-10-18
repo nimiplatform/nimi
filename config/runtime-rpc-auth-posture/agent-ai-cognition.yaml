@@ -54,6 +54,14 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot

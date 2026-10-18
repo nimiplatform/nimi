@@ -9,15 +9,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
-	"google.golang.org/grpc"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
-
-type ownerCapturingNativeVoiceExecutor struct {
-	*fakeVoiceLipsyncScenarioExecutor
-	streamContext context.Context
-}
 
 type ownerAwareRuntimeAIVoiceAssetService struct {
 	publicCalls  int
@@ -50,14 +45,6 @@ func (s *ownerAwareRuntimeAIVoiceAssetService) ListRuntimeAgentVoiceAssets(
 	int,
 ) ([]*runtimev1.VoiceAsset, bool, error) {
 	return []*runtimev1.VoiceAsset{proto.Clone(s.asset).(*runtimev1.VoiceAsset)}, false, nil
-}
-
-func (f *ownerCapturingNativeVoiceExecutor) StreamScenario(
-	req *runtimev1.StreamScenarioRequest,
-	stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],
-) error {
-	f.streamContext = stream.Context()
-	return f.fakeVoiceLipsyncScenarioExecutor.StreamScenario(req, stream)
 }
 
 func TestAIBackedVoiceAssetResolverUsesOwnerAwareRuntimePrivateLookupForConversationVoice(t *testing.T) {
@@ -145,31 +132,16 @@ func TestPublicChatVoiceAssetPreservesVoiceDemoOwnerAndDashScopeTarget(t *testin
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
-	voiceAI := &ownerCapturingNativeVoiceExecutor{
-		fakeVoiceLipsyncScenarioExecutor: &fakeVoiceLipsyncScenarioExecutor{
-			modelResolved: "dashscope/cosyvoice-v3-flash",
-			streamEvents: []*runtimev1.StreamScenarioEvent{
-				{
-					EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-					Payload: &runtimev1.StreamScenarioEvent_Started{
-						Started: &runtimev1.ScenarioStreamStarted{
-							ModelResolved:   "dashscope/cosyvoice-v3-flash",
-							RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-							VoiceOutputMode: runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-						},
-					},
-				},
-				nativeVoiceArtifactDeltaEvent([]byte("RIFF-song-lian-native-audio")),
-				{
-					EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-					Payload: &runtimev1.StreamScenarioEvent_Completed{
-						Completed: &runtimev1.ScenarioStreamCompleted{
-							FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
-						},
-					},
-				},
-			},
-		},
+	const artifactID = "voice-owner-final-artifact"
+	audioBytes := []byte("RIFF\x24\x00\x00\x00WAVEfmt ")
+	if err := svc.runtimeArtifacts.Put(artifactID, runtimeartifact.ArtifactRecord{
+		Bytes: audioBytes, MimeType: "audio/wav", SizeBytes: int64(len(audioBytes)),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	voiceAI := &fakeVoiceLipsyncScenarioExecutor{
+		jobID: "voice-owner-final-job", modelResolved: "dashscope/cosyvoice-v3-flash",
+		artifact: &runtimev1.ScenarioArtifact{ArtifactId: artifactID, MimeType: "audio/wav"},
 	}
 	svc.SetVoiceLipsyncScenarioExecutor(voiceAI, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
@@ -236,24 +208,24 @@ func TestPublicChatVoiceAssetPreservesVoiceDemoOwnerAndDashScopeTarget(t *testin
 		t.Fatalf("semantic voice terminal phase = %q, want completed", got)
 	}
 
-	if voiceAI.streamReq == nil {
-		t.Fatal("expected native DashScope StreamScenario request")
+	if voiceAI.streamReq != nil || voiceAI.submitReq == nil {
+		t.Fatal("durable Conversation must submit final voice directly, without a speculative native stream")
 	}
-	head := voiceAI.streamReq.GetHead()
+	head := voiceAI.submitReq.GetHead()
 	if head.GetAppId() != voiceDemoAppID || head.GetSubjectUserId() != ownerUserID {
 		t.Fatalf("voice execution owner = %q/%q, want %q/%q", head.GetAppId(), head.GetSubjectUserId(), voiceDemoAppID, ownerUserID)
 	}
-	intent, ok := executionintent.FromContext(voiceAI.streamContext)
+	intent, ok := executionintent.FromContext(voiceAI.submitCtx)
 	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "cosyvoice-v3-flash" {
 		t.Fatalf("voice execution lost private AIConfig intent: %+v, ok=%v", intent, ok)
 	}
-	voiceRef := voiceAI.streamReq.GetSpec().GetSpeechSynthesize().GetVoiceRef()
+	voiceRef := voiceAI.submitReq.GetSpec().GetSpeechSynthesize().GetVoiceRef()
 	if voiceRef.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
 		voiceRef.GetVoiceAssetId() != voiceAssetID {
 		t.Fatalf("voice execution reference = %v, want voice_asset_id:%s", voiceRef, voiceAssetID)
 	}
-	incoming, _ := metadata.FromIncomingContext(voiceAI.streamContext)
-	identity := authn.IdentityFromContext(voiceAI.streamContext)
+	incoming, _ := metadata.FromIncomingContext(voiceAI.submitCtx)
+	identity := authn.IdentityFromContext(voiceAI.submitCtx)
 	if got := strings.TrimSpace(firstString(incoming.Get("x-nimi-app-id"))); got != voiceDemoAppID {
 		t.Fatalf("voice execution context app = %q, want %q", got, voiceDemoAppID)
 	}

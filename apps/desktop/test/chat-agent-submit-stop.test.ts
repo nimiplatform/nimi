@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { QueryClient } from '@tanstack/react-query';
-
 import { submitAgentConversationTurn } from '../src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.js';
-import { createRuntimeAgentChatConversationProvider } from '../src/shell/renderer/features/chat/chat-agent-runtime-provider.js';
-import { createAgentVisibleProjectionStore } from '../src/shell/renderer/features/chat/chat-agent-visible-projection-store.js';
-import { RUNTIME_AGENT_CHAT_MODE_ID } from '../src/shell/renderer/features/chat/chat-agent-runtime-mode.js';
-import type { AgentSubmitDriverEffectQueue } from '../src/shell/renderer/features/chat/chat-agent-shell-submit-driver.js';
-import { createTestStreamController } from './helpers/test-stream-controller.js';
+import {
+  createAgentComposerPersistence,
+  type AgentPendingSubmission,
+} from '../src/shell/renderer/features/chat/chat-agent-composer-persistence.js';
 
 const TARGET = {
-  agentHandle: 'agent-a',
+  agentHandle: `agent_ref_${'a'.repeat(43)}`,
   conversationAnchorId: 'anchor-1',
-  displayName: 'Agent A',
+  displayName: 'Partner',
   handle: '',
   avatarUrl: null,
   worldId: null,
@@ -21,147 +19,210 @@ const TARGET = {
   ownershipType: null,
   greeting: null,
   builtinDocsContext: null,
-} as const;
-
-// Runs the real submit, provider and Runtime-turn chain against a scripted
-// Conversation. `stopBeforeSend` holds the subscription open so the user can
-// stop before send(); otherwise Runtime accepts the turn first.
-function createSubmitHarness(input: { stopBeforeSend: boolean; loseAck?: boolean }) {
-  const streamController = createTestStreamController();
-  const draft = { current: '' };
-  const reported: unknown[] = [];
-  let ended = false;
-  let finishSubscription: (() => void) | undefined;
-  let releaseSubscribe: (() => void) | undefined;
-  let subscribes = 0;
-  let sends = 0;
-  let rejectSend: (() => void) | undefined;
-  const endSubscription = () => { ended = true; finishSubscription?.(); };
-  const conversation = {
-    open: async () => ({ conversationAnchorId: TARGET.conversationAnchorId }),
-    subscribe: async () => {
-      subscribes += 1;
-      if (input.stopBeforeSend) await new Promise<void>((resolve) => { releaseSubscribe = resolve; });
-      return {
-        cancel: async () => { endSubscription(); },
-        [Symbol.asyncIterator]: () => ({
-          next: () => (ended
-            ? Promise.resolve<IteratorResult<never>>({ done: true, value: undefined })
-            : new Promise<IteratorResult<never>>((resolve) => {
-              finishSubscription = () => resolve({ done: true, value: undefined });
-            })),
-        }),
+};
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((ready) => {
+    resolve = ready;
+  });
+  return { promise, resolve };
+}
+async function harness(
+  options: {
+    holdCopy?: ReturnType<typeof deferred>;
+    loseAck?: boolean;
+    busy?: boolean;
+    failSave?: boolean;
+  } = {},
+) {
+  let text = 'original question',
+    revision = 0;
+  const listeners = new Set<() => void>();
+  const draft = {
+    get current() {
+      return text;
+    },
+    set current(value: string) {
+      if (value !== text) {
+        text = value;
+        revision++;
+        for (const listener of listeners) listener();
+      }
+    },
+    get revision() {
+      return revision;
+    },
+  };
+  let document: unknown = { version: 1, draft: text };
+  let pending: AgentPendingSubmission | null = null;
+  const copying = deferred();
+  const controller = createAgentComposerPersistence({
+    agentBinding: `agent_binding_${'a'.repeat(43)}`,
+    draft,
+    isCurrent: () => true,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
       };
     },
-    send: async () => {
-      sends += 1;
-      if (input.loseAck) await new Promise<void>((_resolve, reject) => { rejectSend = () => reject(new Error('accepted reply lost')); });
-      return { turnId: 'runtime-turn-1' };
+    onState: () => {},
+    onRestored: () => {},
+    onSubmission: (value) => {
+      pending = value;
     },
-    // Runtime ends the turn's events after an interrupt.
-    interruptTurn: async () => { endSubscription(); return {}; },
-    readArtifact: async () => { throw new Error('unused'); },
+    storage: {
+      readJson: async () => ({ value: document as never, sizeBytes: 20 }),
+      writeJson: async (_path, value) => {
+        copying.resolve();
+        if (options.holdCopy) await options.holdCopy.promise;
+        if (options.failSave) throw new Error('storage unavailable');
+        document = value;
+        return { value, sizeBytes: 20 };
+      },
+    },
+  });
+  await controller.ready;
+  const sent: unknown[] = [];
+  let subscriptions = 0,
+    interrupts = 0;
+  const conversation = {
+    open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null }),
+    send: async (value: unknown) => {
+      sent.push(value);
+      if (options.busy)
+        throw Object.assign(new Error('Partner busy'), { reasonCode: 'AGENT_BUSY' });
+      if (options.loseAck) throw new Error('reply lost');
+      return { turnId: 'accepted-turn' };
+    },
+    subscribe: () => {
+      subscriptions++;
+      throw new Error('Send must use the existing canonical subscription');
+    },
+    interruptTurn: () => {
+      interrupts++;
+      throw new Error('A new question must not cancel old media');
+    },
   };
-  const sdk = { conversation: () => conversation } as never;
-  const t = ((key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key) as never;
-  const provider = createRuntimeAgentChatConversationProvider({ streamController, t, sdk, now: Date.now });
+  const queryClient = new QueryClient();
+  const reports: unknown[] = [];
   const hostInput = {
     now: Date.now,
-    sdk,
-    subjectUserId: 'account-1',
-    streamController,
+    sdk: { conversation: () => conversation },
     activeTarget: TARGET,
     activeThreadId: null,
-    applyDriverEffects: (threadId: string, effects: AgentSubmitDriverEffectQueue) => {
-      for (const streamEffect of effects.streamEffects) streamController.feedStreamEvent(threadId, streamEffect);
-      if (effects.hostPatchEffect) draft.current = effects.hostPatchEffect.composerText;
-      return effects.finalSession;
-    },
-    bundle: null,
-    currentComposerTextRef: draft,
-    queryClient: new QueryClient(),
-    reportHostError: (error: unknown) => { reported.push(error); },
-    runAgentTurn: (turn: { threadId: string; turnId: string; userMessage: never; signal: AbortSignal; conversationAnchorId: string; runtimeThreadId: string }) => provider.runTurn({
-      modeId: RUNTIME_AGENT_CHAT_MODE_ID,
-      threadId: turn.threadId,
-      turnId: turn.turnId,
-      userMessage: turn.userMessage,
-      history: [],
-      signal: turn.signal,
-      metadata: {
-        agentHandle: TARGET.agentHandle,
-        conversationAnchorId: turn.conversationAnchorId,
-        runtimeThreadId: turn.runtimeThreadId,
-        reasoningPreference: 'off',
-        textMaxOutputTokensRequested: null,
-      },
-    }),
-    selectedAgentHandle: TARGET.agentHandle,
     selectedThreadRecord: null,
-    setBundleCache: () => undefined,
-    setFooterHostState: () => undefined,
-    setSelectionForAgentHandle: () => undefined,
-    setSubmittingThreadId: () => undefined,
-    clearSelectedTarget: () => undefined,
-    submittingThreadId: null,
-    syncSelectionToThread: () => undefined,
-    t,
-    textModelContextTokens: null,
-    textMaxOutputTokensRequested: null,
-    targetByAgentHandle: new Map([[TARGET.agentHandle, TARGET]]),
-    targetsReady: true,
-    threads: [],
-    threadsReady: true,
+    currentComposerTextRef: draft,
+    queryClient,
+    reportHostError: (error: unknown) => reports.push(error),
+    setSubmittingThreadId: () => {},
+    setFooterHostState: () => {},
+    setBundleCache: () => {},
+    syncSelectionToThread: () => {},
+    setSelectionForAgentHandle: () => {},
+    t: (key: string) => key,
+    submissionPersistence: controller,
   };
-  const submit = () => submitAgentConversationTurn({
-    hostInput: hostInput as never,
-    payload: { text: 'hello there', attachments: [] },
-    activeSubmitsByThreadRef: { current: new Map() },
-    submittingLockTokenRef: { current: 0 },
-    visibleProjections: createAgentVisibleProjectionStore(),
-  });
-  const stop = async () => {
-    const reached = () => (input.stopBeforeSend ? subscribes > 0 : sends > 0);
-    for (let attempt = 0; attempt < 100 && !reached(); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 5));
-    assert.ok(reached(), 'the turn did not reach the point to stop at');
-    // The composer's Stop control cancels the thread's stream.
-    streamController.cancelStream(`agent-thread:${TARGET.conversationAnchorId}`);
-    releaseSubscribe?.();
-    rejectSend?.();
+  return {
+    draft,
+    sent,
+    reports,
+    copying,
+    pending: () => pending,
+    document: () => document,
+    subscriptions: () => subscriptions,
+    interrupts: () => interrupts,
+    submit: async (retryOfTurnId?: string) => {
+      const submittedRevision = revision;
+      await submitAgentConversationTurn({
+        hostInput: hostInput as never,
+        payload: {
+          text: draft.current,
+          attachments: [],
+          retryOfTurnId,
+          canUpdateDraft: () => revision === submittedRevision,
+        },
+        submittingLockTokenRef: { current: 0 },
+      });
+    },
+    close: () => {
+      controller.close();
+      queryClient.clear();
+    },
   };
-  return { draft, reported, submit, stop, streamController, sendCount: () => sends, dispose: () => { streamController.clearAllStreams(); hostInput.queryClient.clear(); } };
 }
 
-test('stopping a reply Runtime already accepted ends the turn without an error or a resend', async (t) => {
-  const harness = createSubmitHarness({ stopBeforeSend: false });
-  t.after(harness.dispose);
-  const submitted = harness.submit();
-  await harness.stop();
-  await submitted;
-  assert.equal(harness.sendCount(), 1);
-  assert.equal(harness.draft.current, '', 'accepted text came back into the composer');
-  assert.deepEqual(harness.reported, []);
+test('Send waits for its saved copy and never creates another response stream or cancels old media', async (t) => {
+  const hold = deferred();
+  const h = await harness({ holdCopy: hold });
+  t.after(h.close);
+  const sending = h.submit();
+  await h.copying.promise;
+  assert.equal(h.draft.current, 'original question');
+  assert.equal(h.sent.length, 0);
+  hold.resolve();
+  await sending;
+  assert.equal(h.sent.length, 1);
+  assert.equal(h.subscriptions(), 0);
+  assert.equal(h.interrupts(), 0);
+  assert.equal(h.draft.current, '');
+  assert.equal(h.pending(), null);
 });
 
-test('stopping before Runtime accepted the text keeps it for the user without an error', async (t) => {
-  const harness = createSubmitHarness({ stopBeforeSend: true });
-  t.after(harness.dispose);
-  const submitted = harness.submit();
-  await harness.stop();
-  await submitted;
-  assert.equal(harness.sendCount(), 0);
-  assert.equal(harness.draft.current, 'hello there');
-  assert.deepEqual(harness.reported, []);
+test('lost admission reply retains the original request copy without an automatic resend', async (t) => {
+  const h = await harness({ loseAck: true });
+  t.after(h.close);
+  await assert.rejects(h.submit());
+  assert.equal(h.sent.length, 1);
+  assert.equal(h.pending()?.text, 'original question');
+  assert.equal(h.pending()?.requestId, (h.sent[0] as { requestId: string }).requestId);
+  assert.equal(h.reports.length, 1);
 });
 
-test('stopping after admission with a lost reply preserves the draft and reports uncertainty', async (t) => {
-  const harness = createSubmitHarness({ stopBeforeSend: false, loseAck: true });
-  t.after(harness.dispose);
-  const submitted = harness.submit();
-  const rejected = assert.rejects(submitted, /may have been accepted/);
-  await harness.stop();
-  await rejected;
-  assert.equal(harness.sendCount(), 1);
-  assert.equal(harness.draft.current, 'hello there');
-  assert.equal(harness.reported.length, 1);
+test('failed local copy leaves input intact and does not call Runtime', async (t) => {
+  const h = await harness({ failSave: true });
+  t.after(h.close);
+  await assert.rejects(h.submit());
+  assert.equal(h.sent.length, 0);
+  assert.equal(h.pending(), null);
+  assert.equal(h.draft.current, 'original question');
+});
+
+test('new edits made while saving the submission are kept', async (t) => {
+  const hold = deferred();
+  const h = await harness({ holdCopy: hold });
+  t.after(h.close);
+  const sending = h.submit();
+  await h.copying.promise;
+  h.draft.current = 'next question';
+  hold.resolve();
+  await sending;
+  assert.equal(h.draft.current, 'next question');
+  assert.equal((h.sent[0] as { parts: { text: string }[] }).parts[0]?.text, 'original question');
+});
+
+test('regeneration sends only the original-attempt reference and a new correlation', async (t) => {
+  const h = await harness();
+  t.after(h.close);
+  await h.submit('failed-attempt');
+  const sent = h.sent[0] as Record<string, unknown>;
+  assert.equal(sent.retryOfTurnId, 'failed-attempt');
+  assert.equal('parts' in sent, false);
+});
+
+test('an explicit pre-admission busy rejection does not leave an ambiguous receipt to recover', async (t) => {
+  const h = await harness({ busy: true });
+  t.after(h.close);
+  await assert.rejects(h.submit());
+  assert.equal(h.sent.length, 1);
+  assert.equal(h.pending(), null);
+});
+
+
+test('regeneration reaches Runtime with the same recoverable ID despite Home write failure', async (t) => {
+  const h=await harness({failSave:true,loseAck:true}); t.after(h.close);
+  await assert.rejects(h.submit('failed-attempt'));
+  assert.equal(h.sent.length,1);
+  assert.equal(h.pending()?.requestId,(h.sent[0] as {requestId:string}).requestId);
+  assert.equal(h.pending()?.retryOfTurnId,'failed-attempt');
 });

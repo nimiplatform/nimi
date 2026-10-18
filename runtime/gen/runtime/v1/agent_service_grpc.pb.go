@@ -45,6 +45,10 @@ const (
 	RuntimeAgentService_InterruptLocalAppConversationTurn_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	RuntimeAgentService_SubscribeLocalAppConversationEvents_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	RuntimeAgentService_GetLocalAppConversationSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
+	RuntimeAgentService_UpdateLocalAppConversationFollowUpPolicy_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy"
+	RuntimeAgentService_UpdateLocalAppConversationFollowUp_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp"
+	RuntimeAgentService_ListLocalAppAgentPendingHooks_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks"
+	RuntimeAgentService_UpdateLocalAppAgentPendingHook_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook"
 	RuntimeAgentService_OpenLocalAppAgentRealtime_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime"
 	RuntimeAgentService_AppendLocalAppAgentRealtimeInput_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput"
 	RuntimeAgentService_SubscribeLocalAppAgentRealtimeEvents_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents"
@@ -131,6 +135,10 @@ type RuntimeAgentServiceClient interface {
 	InterruptLocalAppConversationTurn(ctx context.Context, in *InterruptLocalAppConversationTurnRequest, opts ...grpc.CallOption) (*InterruptLocalAppConversationTurnResponse, error)
 	SubscribeLocalAppConversationEvents(ctx context.Context, in *SubscribeLocalAppConversationEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppConversationEvent], error)
 	GetLocalAppConversationSnapshot(ctx context.Context, in *GetLocalAppConversationSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppConversationSnapshotResponse, error)
+	UpdateLocalAppConversationFollowUpPolicy(ctx context.Context, in *UpdateLocalAppConversationFollowUpPolicyRequest, opts ...grpc.CallOption) (*UpdateLocalAppConversationFollowUpPolicyResponse, error)
+	UpdateLocalAppConversationFollowUp(ctx context.Context, in *UpdateLocalAppConversationFollowUpRequest, opts ...grpc.CallOption) (*UpdateLocalAppConversationFollowUpResponse, error)
+	ListLocalAppAgentPendingHooks(ctx context.Context, in *ListLocalAppAgentPendingHooksRequest, opts ...grpc.CallOption) (*ListLocalAppAgentPendingHooksResponse, error)
+	UpdateLocalAppAgentPendingHook(ctx context.Context, in *UpdateLocalAppAgentPendingHookRequest, opts ...grpc.CallOption) (*UpdateLocalAppAgentPendingHookResponse, error)
 	OpenLocalAppAgentRealtime(ctx context.Context, in *OpenLocalAppAgentRealtimeRequest, opts ...grpc.CallOption) (*OpenLocalAppAgentRealtimeResponse, error)
 	AppendLocalAppAgentRealtimeInput(ctx context.Context, in *AppendLocalAppAgentRealtimeInputRequest, opts ...grpc.CallOption) (*AppendLocalAppAgentRealtimeInputResponse, error)
 	SubscribeLocalAppAgentRealtimeEvents(ctx context.Context, in *SubscribeLocalAppAgentRealtimeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppAgentRealtimeEvent], error)
@@ -468,6 +476,46 @@ func (c *runtimeAgentServiceClient) GetLocalAppConversationSnapshot(ctx context.
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetLocalAppConversationSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppConversationSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) UpdateLocalAppConversationFollowUpPolicy(ctx context.Context, in *UpdateLocalAppConversationFollowUpPolicyRequest, opts ...grpc.CallOption) (*UpdateLocalAppConversationFollowUpPolicyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateLocalAppConversationFollowUpPolicyResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_UpdateLocalAppConversationFollowUpPolicy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) UpdateLocalAppConversationFollowUp(ctx context.Context, in *UpdateLocalAppConversationFollowUpRequest, opts ...grpc.CallOption) (*UpdateLocalAppConversationFollowUpResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateLocalAppConversationFollowUpResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_UpdateLocalAppConversationFollowUp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ListLocalAppAgentPendingHooks(ctx context.Context, in *ListLocalAppAgentPendingHooksRequest, opts ...grpc.CallOption) (*ListLocalAppAgentPendingHooksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppAgentPendingHooksResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppAgentPendingHooks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) UpdateLocalAppAgentPendingHook(ctx context.Context, in *UpdateLocalAppAgentPendingHookRequest, opts ...grpc.CallOption) (*UpdateLocalAppAgentPendingHookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateLocalAppAgentPendingHookResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_UpdateLocalAppAgentPendingHook_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1035,6 +1083,10 @@ type RuntimeAgentServiceServer interface {
 	InterruptLocalAppConversationTurn(context.Context, *InterruptLocalAppConversationTurnRequest) (*InterruptLocalAppConversationTurnResponse, error)
 	SubscribeLocalAppConversationEvents(*SubscribeLocalAppConversationEventsRequest, grpc.ServerStreamingServer[LocalAppConversationEvent]) error
 	GetLocalAppConversationSnapshot(context.Context, *GetLocalAppConversationSnapshotRequest) (*GetLocalAppConversationSnapshotResponse, error)
+	UpdateLocalAppConversationFollowUpPolicy(context.Context, *UpdateLocalAppConversationFollowUpPolicyRequest) (*UpdateLocalAppConversationFollowUpPolicyResponse, error)
+	UpdateLocalAppConversationFollowUp(context.Context, *UpdateLocalAppConversationFollowUpRequest) (*UpdateLocalAppConversationFollowUpResponse, error)
+	ListLocalAppAgentPendingHooks(context.Context, *ListLocalAppAgentPendingHooksRequest) (*ListLocalAppAgentPendingHooksResponse, error)
+	UpdateLocalAppAgentPendingHook(context.Context, *UpdateLocalAppAgentPendingHookRequest) (*UpdateLocalAppAgentPendingHookResponse, error)
 	OpenLocalAppAgentRealtime(context.Context, *OpenLocalAppAgentRealtimeRequest) (*OpenLocalAppAgentRealtimeResponse, error)
 	AppendLocalAppAgentRealtimeInput(context.Context, *AppendLocalAppAgentRealtimeInputRequest) (*AppendLocalAppAgentRealtimeInputResponse, error)
 	SubscribeLocalAppAgentRealtimeEvents(*SubscribeLocalAppAgentRealtimeEventsRequest, grpc.ServerStreamingServer[LocalAppAgentRealtimeEvent]) error
@@ -1176,6 +1228,18 @@ func (UnimplementedRuntimeAgentServiceServer) SubscribeLocalAppConversationEvent
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppConversationSnapshot(context.Context, *GetLocalAppConversationSnapshotRequest) (*GetLocalAppConversationSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppConversationSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) UpdateLocalAppConversationFollowUpPolicy(context.Context, *UpdateLocalAppConversationFollowUpPolicyRequest) (*UpdateLocalAppConversationFollowUpPolicyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLocalAppConversationFollowUpPolicy not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) UpdateLocalAppConversationFollowUp(context.Context, *UpdateLocalAppConversationFollowUpRequest) (*UpdateLocalAppConversationFollowUpResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLocalAppConversationFollowUp not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ListLocalAppAgentPendingHooks(context.Context, *ListLocalAppAgentPendingHooksRequest) (*ListLocalAppAgentPendingHooksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAgentPendingHooks not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) UpdateLocalAppAgentPendingHook(context.Context, *UpdateLocalAppAgentPendingHookRequest) (*UpdateLocalAppAgentPendingHookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLocalAppAgentPendingHook not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) OpenLocalAppAgentRealtime(context.Context, *OpenLocalAppAgentRealtimeRequest) (*OpenLocalAppAgentRealtimeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenLocalAppAgentRealtime not implemented")
@@ -1800,6 +1864,78 @@ func _RuntimeAgentService_GetLocalAppConversationSnapshot_Handler(srv interface{
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetLocalAppConversationSnapshot(ctx, req.(*GetLocalAppConversationSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_UpdateLocalAppConversationFollowUpPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateLocalAppConversationFollowUpPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppConversationFollowUpPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_UpdateLocalAppConversationFollowUpPolicy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppConversationFollowUpPolicy(ctx, req.(*UpdateLocalAppConversationFollowUpPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_UpdateLocalAppConversationFollowUp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateLocalAppConversationFollowUpRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppConversationFollowUp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_UpdateLocalAppConversationFollowUp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppConversationFollowUp(ctx, req.(*UpdateLocalAppConversationFollowUpRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ListLocalAppAgentPendingHooks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppAgentPendingHooksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentPendingHooks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ListLocalAppAgentPendingHooks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentPendingHooks(ctx, req.(*ListLocalAppAgentPendingHooksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_UpdateLocalAppAgentPendingHook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateLocalAppAgentPendingHookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppAgentPendingHook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_UpdateLocalAppAgentPendingHook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).UpdateLocalAppAgentPendingHook(ctx, req.(*UpdateLocalAppAgentPendingHookRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2810,6 +2946,22 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLocalAppConversationSnapshot",
 			Handler:    _RuntimeAgentService_GetLocalAppConversationSnapshot_Handler,
+		},
+		{
+			MethodName: "UpdateLocalAppConversationFollowUpPolicy",
+			Handler:    _RuntimeAgentService_UpdateLocalAppConversationFollowUpPolicy_Handler,
+		},
+		{
+			MethodName: "UpdateLocalAppConversationFollowUp",
+			Handler:    _RuntimeAgentService_UpdateLocalAppConversationFollowUp_Handler,
+		},
+		{
+			MethodName: "ListLocalAppAgentPendingHooks",
+			Handler:    _RuntimeAgentService_ListLocalAppAgentPendingHooks_Handler,
+		},
+		{
+			MethodName: "UpdateLocalAppAgentPendingHook",
+			Handler:    _RuntimeAgentService_UpdateLocalAppAgentPendingHook_Handler,
 		},
 		{
 			MethodName: "OpenLocalAppAgentRealtime",

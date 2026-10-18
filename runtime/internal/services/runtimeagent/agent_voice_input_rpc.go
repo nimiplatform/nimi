@@ -115,7 +115,6 @@ func (s *Service) transcribeAgentVoiceInput(
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         runtimeAgentVoiceInputAppID,
 			SubjectUserId: identity.OwnerUserID,
-			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
