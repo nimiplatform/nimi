@@ -24,6 +24,14 @@ matching protected capabilities. Conversation follow-up and Agent autonomy are
 distinct controls. AI Consume-only consumers do not gain these requirements.
 No package release, automatic migration or old/new protocol fallback is included.
 
+For the next 0.x minor (not a patch of the published 0.21.0),
+`LocalAppConversationTurnAccepted` restores the formerly reserved `request_id`
+name at optional field 3; field 2 remains reserved. It correlates the admitted
+turn with the originating submission for recovery, never grants authority, and
+may be absent for Runtime-initiated turns. Regenerate custom carriers from the
+matching proto; do not reuse field 2 or mix this source set with older carriers.
+The published wire baseline remains unchanged.
+
 ## Unreleased — Conversation context management
 
 The covered `agentConfigure.conversationContext.update` client adds an explicit

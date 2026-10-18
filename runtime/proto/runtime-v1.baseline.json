@@ -55,6 +55,16 @@
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
       }
+    },
+    {
+      "rule": "RESERVED_MESSAGE_NO_DELETE",
+      "path": "runtime/v1/agent_service.proto",
+      "message": "Previously present reserved name \"request_id\" on message \"LocalAppConversationTurnAccepted\" was deleted.",
+      "reason": "The approved source-only LocalAgent recovery hard cut restores an optional originating request correlation at new field 3; old field 2 stays reserved. Matching Runtime/native/SDK/Kit are required for this next 0.x minor, with no legacy carrier fallback. This declaration documents the existing recovery change; it does not refresh or replace the published baseline.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "Unreleased \u2014 LocalAgent Conversation recovery and controls"
+      }
     }
   ]
 }
