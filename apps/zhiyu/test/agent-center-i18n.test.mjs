@@ -65,8 +65,20 @@ async function createSession() {
     },
     manager: {
       async snapshot() {
-        return { lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: '', source: null, context: null };
+        return {
+          lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: '', source: null, context: null,
+          actionAvailability: Object.fromEntries([
+            'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
+            'inspectMemory', 'correctMemory', 'forgetMemory', 'switchMemory', 'deleteAllMemory',
+            'replaceAppearance', 'restorePreviousAppearance',
+          ].map(action => [action, action === 'restorePreviousAppearance'
+            ? { state: 'unavailable', reason: 'previous-presentation-unavailable' }
+            : { state: 'available', reason: null }])),
+        };
       },
+    },
+    pendingHooks: {
+      async list() { return { hooks: [], truncated: false }; },
     },
     },
   });
@@ -82,12 +94,20 @@ function renderSection(activeSection, session) {
 
 test('Zhiyu can render Kit Agent Center sections from the shipped Chinese catalog', async () => {
   const session = await createSession();
+  assert.equal(session.getSnapshot().phase, 'ready');
+  assert.equal(session.getSnapshot().error, null);
+  assert.deepEqual(await session.listPendingHooks(), { hooks: [], truncated: false });
   const appearance = renderSection('appearance', session);
   const behavior = renderSection('behavior', session);
   const cognition = renderSection('cognition', session);
+  for (const section of [appearance, behavior, cognition]) {
+    assert.doesNotMatch(section, /data-agent-center-load-error/u);
+  }
   assert.match(appearance, />外观</u);
   assert.match(appearance, /尚未设置伙伴形象/u);
-  assert.match(behavior, /让伙伴主动联系你/u);
+  assert.match(behavior, /自主状态与姿态活动/u);
+  assert.match(behavior, /不会因此向对话发送问候或提醒/u);
+  assert.match(behavior, /伙伴状态更新/u);
   assert.match(cognition, /状态与记忆/u);
   assert.doesNotMatch(appearance, /Configure this partner avatar/u);
 });
