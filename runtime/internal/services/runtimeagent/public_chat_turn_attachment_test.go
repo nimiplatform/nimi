@@ -538,10 +538,17 @@ func TestPublicChatVisionCapableRouteCompletesAttachmentTurn(t *testing.T) {
 							continue
 						}
 						mediaMessageCount++
-						if message.GetRole() != "user" || len(message.GetParts()) != 1 {
+						imageIndex := 0
+						if strings.TrimSpace(test.content) != "" {
+							imageIndex = 1
+							if message.GetParts()[0].GetText() != strings.TrimSpace(test.content) {
+								t.Fatal("original question missing from multipart input")
+							}
+						}
+						if message.GetRole() != "user" || len(message.GetParts()) != imageIndex+1 {
 							continue
 						}
-						if ref := message.GetParts()[0].GetArtifactRef(); ref != nil {
+						if ref := message.GetParts()[imageIndex].GetArtifactRef(); ref != nil {
 							observedArtifactID = ref.GetLocalArtifactId()
 							observedMime = ref.GetMimeType()
 							observedDisplayName = ref.GetDisplayName()
@@ -642,5 +649,12 @@ func TestPublicChatVisionCapableRouteCompletesAttachmentTurn(t *testing.T) {
 				t.Fatalf("committed transcript turn = %#v", committed)
 			}
 		})
+	}
+}
+
+func TestProviderMultipartPreservesCurrentQuestionWithImage(t *testing.T) {
+	messages := publicChatAgentTurnProviderMessages([]agentTurnProviderMessage{{Role: "user", Content: "Describe the original image", Media: []agentTurnContextMedia{{MediaID: "picture", Kind: "image", MIMEType: "image/png", ArtifactRef: "owned-image"}}}})
+	if len(messages) != 1 || messages[0].Role != "user" || messages[0].Content != "" || len(messages[0].Parts) != 2 || messages[0].Parts[0].GetText() != "Describe the original image" || messages[0].Parts[1].GetArtifactRef().LocalArtifactId != "owned-image" {
+		t.Fatalf("text/image lost: %v", messages)
 	}
 }

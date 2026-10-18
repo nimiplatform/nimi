@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -184,5 +186,46 @@ func TestAnthropicBackendUsagePreservesCacheAndUpdates(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestPrimitiveTextStreamKeepsUsageAndRequiresARealTerminal(t *testing.T) {
+	for _, tc := range []struct {
+		name, tail string
+		cancel     bool
+		wantErr    bool
+		wantFinish runtimev1.FinishReason
+	}{
+		{name: "missing terminal", wantErr: true},
+		{name: "DONE only", tail: "data: [DONE]\n\n", wantErr: true},
+		{name: "finish without DONE", tail: "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n", wantErr: true},
+		{name: "invalid tail", tail: "data: {broken\n\n", wantErr: true},
+		{name: "consumer canceled", cancel: true, wantErr: true},
+		{name: "length", tail: "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}\n\ndata: [DONE]\n\n", wantFinish: runtimev1.FinishReason_FINISH_REASON_LENGTH},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/event-stream")
+				io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"kept text\"}}],\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9}}\n\n"+tc.tail)
+			}))
+			defer server.Close()
+			var content strings.Builder
+			usage, finish, err := NewBackend("generic", server.URL, "", time.Second).StreamGenerateText(context.Background(), "model", []*runtimev1.ChatMessage{{Role: "user", Content: "question"}}, "rules", 0, 0, 0, textGenParams{}, func(delta string) error {
+				content.WriteString(delta)
+				if tc.cancel && delta != "" {
+					return errors.New("consumer stopped")
+				}
+				return nil
+			})
+			if (err != nil) != tc.wantErr || usage.GetInputTokens() != 17 || usage.GetOutputTokens() != 9 || content.String() != "kept text" {
+				t.Fatalf("body=%q usage=%v finish=%v err=%v", content.String(), usage, finish, err)
+			}
+			if tc.wantErr && finish != runtimev1.FinishReason_FINISH_REASON_ERROR {
+				t.Fatal("failed stream became success")
+			}
+			if !tc.wantErr && finish != tc.wantFinish {
+				t.Fatal("real finish lost")
+			}
+		})
 	}
 }

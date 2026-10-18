@@ -749,7 +749,8 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	defer func() { _ = response.Body.Close() }()
 
 	var usage *runtimev1.UsageStats
-	finish := runtimev1.FinishReason_FINISH_REASON_STOP
+	finish := runtimev1.FinishReason_FINISH_REASON_ERROR
+	terminalSeen, doneSeen := false, false
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
@@ -765,24 +766,28 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 			continue
 		}
 		if data == "[DONE]" {
+			doneSeen = true
 			break
 		}
 
 		var chunk streamResponse
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+			return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
 				codes.Internal,
 				runtimev1.ReasonCode_AI_STREAM_BROKEN,
 				err,
 				grpcerr.ReasonOptions{Message: "provider stream event could not be decoded"},
 			)
 		}
+		if reported := reportedChatCompletionUsage(map[string]any{"usage": chunk.Usage}); reported != nil {
+			usage = reported
+		}
 		if len(chunk.Choices) > 0 {
 			if handler.OnText != nil {
 				// Count any valid provider SSE chunk as streaming activity even when
 				// the chunk carries role/tool-call metadata instead of text content.
 				if err := handler.OnText(""); err != nil {
-					return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+					return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 				}
 			}
 			reasoningDelta := chunk.Choices[0].Delta.ReasoningContent
@@ -791,40 +796,47 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 			}
 			if reasoningDelta != "" && handler.OnReasoning != nil {
 				if err := handler.OnReasoning(reasoningDelta); err != nil {
-					return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+					return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 				}
 			}
 			delta := chunk.Choices[0].Delta.Content
 			if delta != "" {
 				if handler.OnText != nil {
 					if err := handler.OnText(delta); err != nil {
-						return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+						return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 					}
 				}
 			}
 			if rawFinish := strings.TrimSpace(chunk.Choices[0].FinishReason); rawFinish != "" {
+				switch strings.ToLower(rawFinish) {
+				case "stop", "length", "tool_calls", "tool_call", "content_filter", "error":
+				default:
+					return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+				}
 				finish = MapOpenAIFinishReason(rawFinish)
+				terminalSeen = true
 			}
-		}
-		if reported := reportedChatCompletionUsage(map[string]any{"usage": chunk.Usage}); reported != nil {
-			usage = reported
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+			return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
 				codes.DeadlineExceeded,
 				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
 				err,
 				grpcerr.ReasonOptions{Message: "provider stream timed out"},
 			)
 		}
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+		return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
 			codes.Internal,
 			runtimev1.ReasonCode_AI_STREAM_BROKEN,
 			err,
 			grpcerr.ReasonOptions{Message: "provider stream could not be read"},
 		)
+	}
+
+	if !terminalSeen || !doneSeen {
+		return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 	}
 
 	return usage, finish, nil

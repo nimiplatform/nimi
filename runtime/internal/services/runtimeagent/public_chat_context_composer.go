@@ -458,6 +458,12 @@ func publicChatAgentTurnProviderMessages(input []agentTurnProviderMessage) []*ru
 	out := make([]*runtimev1.ChatMessage, 0, len(input))
 	for _, message := range input {
 		item := &runtimev1.ChatMessage{Role: message.Role, Content: message.Content}
+		// Typed multipart input carries both the question and its image. Base
+		// Drivers may correctly select Parts instead of the legacy Content field.
+		if len(message.Media) > 0 && message.Content != "" {
+			item.Content = ""
+			item.Parts = append(item.Parts, &runtimev1.ChatContentPart{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: message.Content}})
+		}
 		for _, media := range message.Media {
 			item.Parts = append(item.Parts, &runtimev1.ChatContentPart{
 				Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF,
