@@ -39,7 +39,7 @@ func executeDashscopeQwen3Image(ctx context.Context, baseURL, apiKey, model stri
 	if !ok || format != "png" {
 		return nil, nil, "", dashscopeQwen3ImageInvalidOutput("png-decode")
 	}
-	if !dashscopeQwen3ImageGeometryAllowed(model, configuration.Width, configuration.Height) {
+	if !dashscopeQwen3ImageGeometryAllowed(configuration.Width, configuration.Height) {
 		pixels := int64(configuration.Width) * int64(configuration.Height)
 		slog.Warn("Dashscope Qwen Image 3 PNG geometry outside admitted bounds", "model", model,
 			"width", configuration.Width, "height", configuration.Height, "pixels", pixels)
@@ -52,20 +52,16 @@ func executeDashscopeQwen3Image(ctx context.Context, baseURL, apiKey, model stri
 	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
-func dashscopeQwen3ImageGeometryAllowed(model string, width, height int) bool {
+func dashscopeQwen3ImageGeometryAllowed(width, height int) bool {
 	if width <= 0 || height <= 0 ||
 		int64(width) > 8*int64(height) || int64(height) > 8*int64(width) {
 		return false
 	}
 	pixels := int64(width) * int64(height)
-	maximum := int64(2048 * 2048)
-	if model == dashscopeQwen3ImageProModel {
-		// A real Pro auto-resolution returned 2528x1696, slightly above the
-		// published total-pixel figure. Accept that bounded output without
-		// allowing unbounded decoded geometry.
-		maximum = 5_000_000
-	}
-	return pixels >= 512*512 && pixels <= maximum
+	// Auto-resolution on both Standard (2400x1792) and Pro (2528x1696)
+	// can exceed the published request pixel area slightly. Keep a bounded
+	// decoded-output envelope instead of rejecting usable provider images.
+	return pixels >= 512*512 && pixels <= 5_000_000
 }
 
 func dashscopeQwen3ImagePayload(model string, spec *runtimev1.ImageGenerateScenarioSpec) map[string]any {

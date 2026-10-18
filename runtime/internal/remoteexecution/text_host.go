@@ -138,10 +138,10 @@ func (h *ProviderTextHost) StreamText(
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(ctx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)
 		if err != nil {
-			return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 		}
 		if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
-			return capabilitydriver.CloudTextTransportResponse{}, err
+			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, err
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
@@ -158,15 +158,15 @@ func (h *ProviderTextHost) StreamText(
 		request.WireDirectives(),
 	)
 	if err != nil {
-		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+		return capabilitydriver.CloudTextTransportResponse{Usage: usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 	}
 	if text.Len() > 0 {
 		if err := onDelta(textbehavior.OrderedDelta{Kind: textbehavior.OrderedItemText, ItemCompleted: true}); err != nil {
-			return capabilitydriver.CloudTextTransportResponse{}, err
+			return capabilitydriver.CloudTextTransportResponse{Usage: usage}, err
 		}
 	}
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
-		return capabilitydriver.CloudTextTransportResponse{}, err
+		return capabilitydriver.CloudTextTransportResponse{Usage: usage}, err
 	}
 	return capabilitydriver.CloudTextTransportResponse{Items: primitiveCloudTextItems(text.String(), nil), Usage: usage, FinishReason: finish}, nil
 }

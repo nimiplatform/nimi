@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-10-15-dashscope-retire-qwen3-tts
+catalog_version: 2026-10-17-dashscope-qwen3-vl-plus-context
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -596,12 +596,12 @@ models:
       as_of: 2026-04-18
       notes: Current Qwen 3 vision-language plus route on DashScope.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/vision/
-      retrieved_at: 2026-06-06
-      note: Qwen vision-language documentation and current VL model guidance.
+      url: https://www.alibabacloud.com/help/en/model-studio/qwen3-vl-plus
+      retrieved_at: 2026-10-17
+      note: Qwen3-VL-Plus model card declares a 262144-token context window and text/image input in Beijing; reviewed for the exact model row instead of the provider floor.
     features:
       - input.image
-    context_window_tokens: 8192
+    context_window_tokens: 262144
   - model_id: qwen3-vl-flash
     provider: dashscope
     model_type: chat

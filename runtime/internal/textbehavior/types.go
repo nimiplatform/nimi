@@ -286,10 +286,20 @@ func (assembler *validatingStreamAssembler) Append(payload []byte) ([]OrderedDel
 
 func (assembler *validatingStreamAssembler) Finish() (NormalizedResult, error) {
 	result, err := assembler.inner.Finish()
-	if err != nil {
-		return NormalizedResult{}, err
+	if err == nil {
+		var validated NormalizedResult
+		validated, err = validateAndCloneNormalizedResult(result, assembler.spec)
+		if err == nil {
+			return validated, nil
+		}
 	}
-	return validateAndCloneNormalizedResult(result, assembler.spec)
+	// Failure never carries executable items or a successful terminal. Usage
+	// already reported by the adapter remains an independent accounting fact.
+	failed := NormalizedResult{}
+	if result.Usage != nil {
+		failed.Usage = proto.Clone(result.Usage).(*runtimev1.UsageStats)
+	}
+	return failed, err
 }
 
 func validateAndCloneNormalizedResult(result NormalizedResult, spec *runtimev1.TextGenerateScenarioSpec) (NormalizedResult, error) {

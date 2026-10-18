@@ -237,3 +237,66 @@ func TestDeepseekAppStreamRequiresProviderDoneBeforeCompleted(t *testing.T) {
 		}
 	}
 }
+
+func TestCloudTextStreamFailureRetainsReportedUsageWithoutCompletion(t *testing.T) {
+	for _, mode := range []string{"missing-done", "broken-body", "invalid-tail", "unknown-usage"} {
+		t.Run(mode, func(t *testing.T) {
+			fixture, _ := deepseekAppFixture(t, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/event-stream")
+				if mode == "broken-body" {
+					w.Header().Set("Content-Length", "100000")
+				}
+				fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<message>Retain this received text.\"},\"finish_reason\":\"length\"}]}\n\n")
+				if mode != "unknown-usage" {
+					fmt.Fprint(w, "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9}}\n\n")
+				}
+				if mode == "invalid-tail" {
+					fmt.Fprint(w, "data: {invalid-json}\n\n")
+				}
+			})
+			const appID = "app.deepseek"
+			ctx := scenarioJobUserContext(appID, "user-001")
+			stream := &mockScenarioEventStream{ctx: ctx}
+			err := fixture.service.StreamScenario(&runtimev1.StreamScenarioRequest{Head: &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: "user-001", TimeoutMs: 10000}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{SystemPrompt: "First policy", Input: []*runtimev1.ChatMessage{{Role: "system", Content: "Second policy"}, {Role: "user", Content: "Reply"}}}}}}, stream)
+			if err != nil {
+				t.Fatal(err)
+			}
+			usageIndex, failedIndex := -1, -1
+			for i, event := range stream.events {
+				if event.GetCompleted() != nil {
+					t.Fatal("incomplete stream became success")
+				}
+				if event.GetFailed() != nil {
+					failedIndex = i
+				}
+				if event.GetUsage() != nil {
+					usageIndex = i
+					if event.GetUsage().GetInputTokens() != 17 || event.GetUsage().GetOutputTokens() != 9 {
+						t.Fatalf("wrong stream usage: %v", event.GetUsage())
+					}
+				}
+			}
+			if failedIndex < 0 || mode != "unknown-usage" && (usageIndex < 0 || usageIndex >= failedIndex) || mode == "unknown-usage" && usageIndex >= 0 {
+				t.Fatalf("usage/failure events: usage=%d failed=%d", usageIndex, failedIndex)
+			}
+			fixture.service.scenarioJobs.mu.RLock()
+			defer fixture.service.scenarioJobs.mu.RUnlock()
+			if len(fixture.service.scenarioJobs.jobs) != 1 {
+				t.Fatalf("jobs=%d", len(fixture.service.scenarioJobs.jobs))
+			}
+			for _, record := range fixture.service.scenarioJobs.jobs {
+				if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+					t.Fatalf("job not failed: %v", record.job.GetStatus())
+				}
+				usage := record.job.GetUsage()
+				if mode == "unknown-usage" {
+					if usage != nil {
+						t.Fatalf("unknown usage invented: %v", usage)
+					}
+				} else if usage == nil || usage.GetInputTokens() != 17 || usage.GetOutputTokens() != 9 {
+					t.Fatalf("job usage lost: %v", usage)
+				}
+			}
+		})
+	}
+}

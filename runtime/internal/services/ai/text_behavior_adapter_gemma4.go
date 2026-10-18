@@ -25,6 +25,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	registrations = append(registrations, anthropicTextBehaviorRegistrations()...)
 	registrations = append(registrations, dashscopeQwen38FlashBehaviorRegistration())
 	registrations = append(registrations, dashscopeQwen38Max0902BehaviorRegistration())
+	registrations = append(registrations, dashscopeQwenVLPlusBehaviorRegistration())
 	registrations = append(registrations, gemini38FlashSchemaBehaviorRegistration())
 	registrations = append(registrations,
 		mimoChatBehaviorRegistration("mimo-v2.6-flash", "mimo.v26-flash.chat-tools"),

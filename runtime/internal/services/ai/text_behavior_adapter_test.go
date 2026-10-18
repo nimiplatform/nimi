@@ -44,10 +44,11 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 29 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and nineteen Cloud targets", len(registrations))
+	if len(registrations) != 30 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and twenty Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"dashscope/qwen3-vl-plus":         "dashscope.qwen3-vl-plus.ordered-text",
 		"mimo/mimo-v2.6-flash":            "mimo.v26-flash.chat-tools",
 		"mimo/mimo-v2.6-pro":              "mimo.v26-pro.chat-tools",
 		"anthropic/claude-sonnet-4-6":     "anthropic.sonnet46.messages",

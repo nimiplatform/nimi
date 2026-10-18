@@ -142,6 +142,10 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
+	failed := func(cause error) (textbehavior.NormalizedResult, error) {
+		observed, _ := assembler.Finish()
+		return textbehavior.NormalizedResult{Usage: observed.Usage}, cause
+	}
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), anthropicMessageStreamLimit)
 	var data []string
@@ -168,7 +172,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		line := strings.TrimSuffix(scanner.Text(), "\r")
 		if line == "" {
 			if err := consume(); err != nil {
-				return textbehavior.NormalizedResult{}, err
+				return failed(err)
 			}
 		} else if strings.HasPrefix(line, "data:") {
 			data = append(data, strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " "))
@@ -176,13 +180,13 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	if err := scanner.Err(); err != nil {
 		logProviderStreamFailure(backend.Name, path, started, err)
-		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
+		return failed(MapProviderRequestError(err))
 	}
 	if err := consume(); err != nil {
-		return textbehavior.NormalizedResult{}, err
+		return failed(err)
 	}
 	if err := ctx.Err(); err != nil {
-		return textbehavior.NormalizedResult{}, err
+		return failed(err)
 	}
 	return assembler.Finish()
 }

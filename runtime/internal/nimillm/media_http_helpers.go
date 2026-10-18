@@ -253,7 +253,12 @@ func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (m
 		} else {
 			payload = map[string]any{"message": string(raw)}
 		}
-		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL)
+		code := ValueAsString(payload["code"])
+		if detail, ok := payload["error"].(map[string]any); ok {
+			code = ValueAsString(detail["code"])
+		}
+		// Bounded structured code only; never log the provider body or message.
+		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "provider_code", providerDiagnosticID(code))
 	}
 	return payload, MapProviderHTTPError(response.StatusCode, payload)
 }

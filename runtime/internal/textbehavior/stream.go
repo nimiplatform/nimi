@@ -48,7 +48,8 @@ func (delta OrderedDelta) HasPublicPayload() bool {
 }
 
 type NormalizedResult struct {
-	Items        []OrderedItem
+	Items []OrderedItem
+	// Usage may accompany an error; that does not authorize Items or completion.
 	Usage        *runtimev1.UsageStats
 	FinishReason runtimev1.FinishReason
 }

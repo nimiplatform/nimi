@@ -362,11 +362,11 @@ func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudT
 		return onDelta(delta)
 	}, effective.dispatchAudit())
 	if err != nil {
-		return capabilitydriver.CloudTextResult{}, effective.driver.NormalizeReason(err)
+		return capabilitydriver.CloudTextResult{Usage: transportResponse.Usage}, effective.driver.NormalizeReason(err)
 	}
 	result, err := effective.driver.NormalizeResponse(transportResponse)
 	if err != nil {
-		return capabilitydriver.CloudTextResult{}, cloudTextDriverError(err)
+		return capabilitydriver.CloudTextResult{Usage: transportResponse.Usage}, cloudTextDriverError(err)
 	}
 	return result, nil
 }

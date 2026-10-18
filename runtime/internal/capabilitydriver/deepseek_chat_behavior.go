@@ -131,6 +131,18 @@ func deepseekJSONFinish(reason *string) error {
 	}
 }
 
+// A length limit is a real text terminal, not a completed answer. Preserve its
+// body and usage so the consumer can retain partial output without running actions.
+func chatTextFinish(reason *string, jsonObject bool) (runtimev1.FinishReason, error) {
+	if !jsonObject && reason != nil && *reason == "length" {
+		return runtimev1.FinishReason_FINISH_REASON_LENGTH, nil
+	}
+	if err := deepseekJSONFinish(reason); err != nil {
+		return runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED, err
+	}
+	return runtimev1.FinishReason_FINISH_REASON_STOP, nil
+}
+
 func deepseekJSONObject(text string) error {
 	var object map[string]json.RawMessage
 	if json.Unmarshal([]byte(text), &object) != nil || object == nil {
@@ -153,6 +165,12 @@ func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSce
 	if len(spec.GetTools()) > 0 {
 		return parseDeepseekToolResponse(payload, spec)
 	}
+	return parseChatTextResponse(payload, spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT)
+}
+
+// The compatible text envelope is shared; each caller validates its own exact
+// request controls before using this parser.
+func parseChatTextResponse(payload []byte, jsonObject bool) (textbehavior.NormalizedResult, error) {
 	value, err := decodeDeepseekJSONEnvelope(payload)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
@@ -161,17 +179,18 @@ func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSce
 		return textbehavior.NormalizedResult{}, deepseekJSONOutputError()
 	}
 	choice := value.Choices[0]
-	if err := deepseekJSONFinish(choice.FinishReason); err != nil {
+	finish, err := chatTextFinish(choice.FinishReason, jsonObject)
+	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
 	text, err := deepseekJSONMessageText(choice.Message)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	if err := deepseekTextOutput(text, spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT); err != nil {
+	if err := deepseekTextOutput(text, jsonObject); err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: text}}, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: deepseekJSONUsage(value)}, nil
+	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: text}}, FinishReason: finish, Usage: deepseekJSONUsage(value)}, nil
 }
 
 func DeepseekChatStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
@@ -195,12 +214,13 @@ func deepseekTextOutput(text string, jsonObject bool) error {
 }
 
 type deepseekJSONStream struct {
-	plainText bool
-	text      strings.Builder
-	finished  bool
-	done      bool
-	usageTail bool
-	usage     *runtimev1.UsageStats
+	plainText    bool
+	text         strings.Builder
+	finished     bool
+	done         bool
+	usageTail    bool
+	usage        *runtimev1.UsageStats
+	finishReason runtimev1.FinishReason
 }
 
 func (stream *deepseekJSONStream) Append(payload []byte) ([]textbehavior.OrderedDelta, error) {
@@ -246,13 +266,15 @@ func (stream *deepseekJSONStream) Append(payload []byte) ([]textbehavior.Ordered
 		deltas = append(deltas, textbehavior.OrderedDelta{ItemIndex: 0, Kind: textbehavior.OrderedItemText, Text: text})
 	}
 	if choice.FinishReason != nil {
-		if err := deepseekJSONFinish(choice.FinishReason); err != nil {
+		finish, err := chatTextFinish(choice.FinishReason, !stream.plainText)
+		if err != nil {
 			return nil, err
 		}
 		if err := deepseekTextOutput(stream.text.String(), !stream.plainText); err != nil {
 			return nil, err
 		}
 		stream.finished = true
+		stream.finishReason = finish
 		deltas = append(deltas, textbehavior.OrderedDelta{ItemIndex: 0, Kind: textbehavior.OrderedItemText, ItemCompleted: true})
 	}
 	return deltas, nil
@@ -260,9 +282,9 @@ func (stream *deepseekJSONStream) Append(payload []byte) ([]textbehavior.Ordered
 
 func (stream *deepseekJSONStream) Finish() (textbehavior.NormalizedResult, error) {
 	if !stream.done || !stream.finished {
-		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE)
+		return textbehavior.NormalizedResult{Usage: stream.usage}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE)
 	}
-	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: stream.text.String()}}, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: stream.usage}, nil
+	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: stream.text.String()}}, FinishReason: stream.finishReason, Usage: stream.usage}, nil
 }
 
 func deepseekJSONInputError(detail string) error {

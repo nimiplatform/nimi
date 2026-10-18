@@ -64,7 +64,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			if cause == nil {
 				cause = context.Canceled
 			}
-			s.finishCloudScenarioJobFailure(jobCtx, jobID, cause)
+			s.finishCloudScenarioJobFailureWithUsage(jobCtx, jobID, cause, usage)
 		}
 	}()
 	if err := s.queueImmediateScenarioJob(jobID); err != nil {
@@ -234,6 +234,11 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			}
 			s.logger.Warn("scenario stream failed", logArgs...)
 		}
+		if usage != nil {
+			if err := send(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE, Payload: &runtimev1.StreamScenarioEvent_Usage{Usage: usage}}); err != nil {
+				return err
+			}
+		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 			Payload: &runtimev1.StreamScenarioEvent_Failed{
@@ -379,6 +384,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		recordFirstDeltaSent()
 		return nil
 	})
+	usage = result.Usage
 	if contentErr != nil && requestCtx.Err() == nil {
 		streamErr = contentErr
 	} else if requestCtx.Err() != nil {
@@ -391,7 +397,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if streamErr != nil {
 		return failAndStop(streamErr)
 	}
-	usage = result.Usage
 	if err := s.checkTextResultRisk(result.Text, result.Items); err != nil {
 		return failAndStop(err)
 	}

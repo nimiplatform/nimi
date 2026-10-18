@@ -41,16 +41,15 @@ func TestDashscopeQwen3ImagePayloadAndSingleFinalURL(t *testing.T) {
 	}
 }
 
-func TestDashscopeQwen3ImageGeometryBoundsProAutoResolution(t *testing.T) {
-	if !dashscopeQwen3ImageGeometryAllowed(dashscopeQwen3ImageProModel, 2528, 1696) {
-		t.Fatal("observed Pro auto-resolution rejected")
+func TestDashscopeQwen3ImageGeometryBoundsAutoResolution(t *testing.T) {
+	for _, dimension := range [][2]int{{2400, 1792}, {2528, 1696}, {2048, 2048}} {
+		if !dashscopeQwen3ImageGeometryAllowed(dimension[0], dimension[1]) {
+			t.Fatalf("observed auto-resolution rejected: %dx%d", dimension[0], dimension[1])
+		}
 	}
-	if dashscopeQwen3ImageGeometryAllowed(dashscopeQwen3ImageModel, 2528, 1696) {
-		t.Fatal("Standard image bound widened with Pro")
-	}
-	for _, dimension := range [][2]int{{0, 1024}, {10000, 10000}, {4096, 256}} {
-		if dashscopeQwen3ImageGeometryAllowed(dashscopeQwen3ImageProModel, dimension[0], dimension[1]) {
-			t.Fatalf("unsafe Pro geometry admitted: %dx%d", dimension[0], dimension[1])
+	for _, dimension := range [][2]int{{0, 1024}, {10000, 10000}, {4096, 256}, {2304, 2304}} {
+		if dashscopeQwen3ImageGeometryAllowed(dimension[0], dimension[1]) {
+			t.Fatalf("unsafe geometry admitted: %dx%d", dimension[0], dimension[1])
 		}
 	}
 }
