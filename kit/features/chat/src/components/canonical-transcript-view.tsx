@@ -138,6 +138,7 @@ export function CanonicalTranscriptView({
   const contentRootRef = useRef<HTMLDivElement | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
   const nearBottomRef = useRef(true);
+  const lastScrollHeightRef = useRef(0);
   const initialPinRef = useRef(false);
   const initialPinReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousRenderStateRef = useRef<{
@@ -173,13 +174,21 @@ export function CanonicalTranscriptView({
   }, []);
 
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
-    const nextNearBottom = initialPinRef.current || isNearBottom(event.currentTarget);
+    const root = event.currentTarget;
+    const contentResized = root.scrollHeight !== lastScrollHeightRef.current;
+    lastScrollHeightRef.current = root.scrollHeight;
+    // A measured message or voice accessory can grow before ResizeObserver
+    // runs. Its scroll event must not release an existing bottom follow.
+    const nextNearBottom = initialPinRef.current
+      || (contentResized ? nearBottomRef.current : isNearBottom(root));
     nearBottomRef.current = nextNearBottom;
     onNearBottomChange?.(nextNearBottom);
   }, [onNearBottomChange]);
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     cancelInitialPin();
+    if (event.deltaY < 0) nearBottomRef.current = false;
+    else if (scrollRootRef.current && isNearBottom(scrollRootRef.current)) nearBottomRef.current = true;
     if (!onIntentReturnToStage) {
       return;
     }
@@ -208,6 +217,7 @@ export function CanonicalTranscriptView({
     didInitialScrollRef.current = false;
     if (scrollRootRef.current) scrollRootRef.current.scrollTop = 0;
     nearBottomRef.current = true;
+    lastScrollHeightRef.current = scrollRootRef.current?.scrollHeight ?? 0;
     previousRenderStateRef.current = {
       messageCount: 0,
       lastMessageId: null,
@@ -249,11 +259,14 @@ export function CanonicalTranscriptView({
         initialPinReleaseTimerRef.current = null;
       }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
       root.scrollTop = root.scrollHeight;
+      lastScrollHeightRef.current = root.scrollHeight;
+      nearBottomRef.current = true;
     } else if (!showEmptyState && transcriptChanged && (nearBottomRef.current || ownMessageAppended)) {
       root.scrollTop = root.scrollHeight;
+      lastScrollHeightRef.current = root.scrollHeight;
+      nearBottomRef.current = true;
     }
-    const nextNearBottom = isNearBottom(root);
-    nearBottomRef.current = nextNearBottom;
+    const nextNearBottom = nearBottomRef.current;
     previousRenderStateRef.current = {
       messageCount: messages.length,
       lastMessageId: lastMessage?.id || null,
@@ -277,6 +290,7 @@ export function CanonicalTranscriptView({
         return;
       }
       root.scrollTop = root.scrollHeight;
+      lastScrollHeightRef.current = root.scrollHeight;
       const nextNearBottom = isNearBottom(root);
       nearBottomRef.current = nextNearBottom;
       onNearBottomChange?.(nextNearBottom);

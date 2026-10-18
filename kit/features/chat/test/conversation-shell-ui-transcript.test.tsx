@@ -713,6 +713,68 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(transcriptRoot.scrollTop).toBe(960);
   });
 
+  it('keeps following when media layout scrolls before resize, but respects scrolling up', async () => {
+    let resize: ResizeObserverCallback | undefined;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) { resize = callback; }
+      observe() {}
+      disconnect() {}
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(<CanonicalTranscriptView messages={[{
+        id: 'reply', sessionId: 'chat', targetId: 'agent', source: 'agent', role: 'assistant',
+        text: 'Long reply with a voice control', createdAt: '2026-10-18T00:00:00Z',
+      }]} />);
+      await flush();
+    });
+    const scroll = container.querySelector('[data-canonical-transcript-root]') as HTMLDivElement;
+    let height = 640;
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, get: () => 320 });
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, get: () => height });
+    scroll.scrollTop = 320;
+    await act(async () => {
+      scroll.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      scroll.dispatchEvent(new Event('scroll'));
+      await flush();
+    });
+    // The voice status grows the measured row. Its resulting scroll event can
+    // precede ResizeObserver; that event was not a request to read old messages.
+    height = 960;
+    await act(async () => {
+      scroll.dispatchEvent(new Event('scroll'));
+      resize?.([], {} as ResizeObserver);
+      await flush();
+    });
+    expect(scroll.scrollTop).toBe(960);
+
+    // An actual upward gesture during another resize must still release follow.
+    height = 1120;
+    scroll.scrollTop = 100;
+    await act(async () => {
+      scroll.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -220 }));
+      scroll.dispatchEvent(new Event('scroll'));
+      resize?.([], {} as ResizeObserver);
+      await flush();
+    });
+    expect(scroll.scrollTop).toBe(100);
+
+    // Virtual measurement can temporarily shrink the list to the viewport.
+    // That must not opt a history reader back into follow when it grows again.
+    height = 320;
+    scroll.scrollTop = 0;
+    await act(async () => {
+      scroll.dispatchEvent(new Event('scroll'));
+      resize?.([], {} as ResizeObserver);
+      await flush();
+    });
+    height = 1120;
+    await act(async () => { resize?.([], {} as ResizeObserver); await flush(); });
+    expect(scroll.scrollTop).toBe(0);
+  });
+
   it('keeps the bottom visible when composer inset changes without pulling history readers down', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
