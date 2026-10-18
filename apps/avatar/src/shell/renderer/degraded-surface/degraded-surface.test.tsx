@@ -67,15 +67,17 @@ describe('DegradedSurface — composition postures', () => {
 });
 
 describe('DegradedSurface — reason interpolation', () => {
-  it('renders summary_with_reason text including the reason for reason-aware states', () => {
+  it('keeps transport details in diagnostics rather than the main recovery copy', () => {
     render(
       <DegradedSurface
         composition={makeComposition('degraded_runtime_unavailable', { reason: 'driver_start timeout' })}
         onRestart={restartAvatarMock}
       />,
     );
-    // Reason appears both in the interpolated summary AND in the diagnostics row.
-    expect(screen.getAllByText(/driver_start timeout/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("The avatar isn't receiving live data from Runtime.")).toBeTruthy();
+    const diagnostic = screen.getByText('driver_start timeout');
+    expect(diagnostic.closest('details')).not.toBeNull();
+    expect(document.querySelector('.avatar-degraded-surface__summary')?.textContent).not.toContain('driver_start');
   });
 
   it('uses bare summary text when reason is empty', () => {

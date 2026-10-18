@@ -62,8 +62,8 @@ export function ModelConfigCurrentMachineLocalAction(
   props: ModelConfigCurrentMachineLocalActionProps,
 ) {
   const copy = useMemo(
-    () => resolveModelConfigCurrentMachineLocalActionCopy(props.language),
-    [props.language],
+    () => resolveModelConfigCurrentMachineLocalActionCopy(props.language, props.ownerKey),
+    [props.language, props.ownerKey],
   );
   const [status, setStatus] = useState<ActionStatus>({ state: 'idle' });
   const explicitContracts = useMemo(() => [

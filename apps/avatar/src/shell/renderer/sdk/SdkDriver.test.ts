@@ -139,7 +139,7 @@ describe('SdkDriver canonical App Product Plane', () => {
         sequence: '1',
         turnId: 'turn-1',
         message: {
-          messageId: 'message-1', turnId: 'turn-1', role: 'assistant',
+          messageId: 'message-1', turnId: 'turn-1', role: 'assistant', partial: false,
           parts: [{ kind: 'text', text: 'Hello from canonical Conversation' }],
         },
       }]),

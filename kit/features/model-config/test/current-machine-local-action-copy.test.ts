@@ -13,6 +13,12 @@ describe('Model Config current-machine Local action copy', () => {
     expect(Object.values(MODEL_CONFIG_CURRENT_MACHINE_LOCAL_ACTION_COPY.zh).every(Boolean)).toBe(true);
   });
 
+  it('names the shared LocalAgent scope only for its existing owner', () => {
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('en', 'shared-local-agent-ai-config').hint).toContain('all partners and Apps');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh', 'shared-local-agent-ai-config').hint).toContain('共享 LocalAgent');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('en', 'app-ai-config:app-a').hint).toContain('this app');
+  });
+
   it('resolves Chinese language tags and the English base', () => {
     expect(resolveModelConfigCurrentMachineLocalActionCopy('zh-CN').label).toBe('一键应用');
     expect(resolveModelConfigCurrentMachineLocalActionCopy('zh-CN').title).toBe('本机模型');

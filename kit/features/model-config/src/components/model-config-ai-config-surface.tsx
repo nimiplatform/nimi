@@ -1274,7 +1274,7 @@ function LocalSelectionSummary(props: {
     message = props.copy.localMissingLabel;
   } else if (selection?.state === 'blocked') {
     toneClass = 'text-[var(--nimi-status-warning)]';
-    message = `${props.copy.localBrokenLabel}${selection.reasons.length > 0 ? ` ${selection.reasons.join(', ')}` : ''}`;
+    message = props.copy.localBrokenLabel;
   } else if (selection?.state === 'ready' && props.missingFeatures.length > 0) {
     toneClass = 'text-[var(--nimi-status-warning)]';
     message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
@@ -1284,7 +1284,10 @@ function LocalSelectionSummary(props: {
   }
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
-      <p className={cn('m-0 min-w-0 text-[length:var(--nimi-type-overline-size)] leading-relaxed', toneClass)}>{message}</p>
+      <div className="min-w-0">
+        <p className={cn('m-0 text-[length:var(--nimi-type-overline-size)] leading-relaxed', toneClass)}>{message}</p>
+        {selection?.state === 'blocked' && selection.reasons.length > 0 ? <details className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]"><summary>{props.copy.technicalDetailsLabel}</summary><code>{selection.reasons.join(', ')}</code></details> : null}
+      </div>
       {props.onOpenMachineLoadout ? (
         <button type="button" onClick={props.onOpenMachineLoadout} className={cn('shrink-0 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline', FOCUS_RING_CLASS_NAME)}>
           {props.copy.openMachineLabel}

@@ -1,5 +1,5 @@
 // Wave 2: every label / summary / recovery / diagnostics row is i18n-driven
-// via `Avatar.degraded.<state>.{badge,title,summary[,_with_reason],recovery}`
+// via `Avatar.degraded.<state>.{badge,title,summary,recovery}`
 // keys declared in the app-owned i18n key catalog.
 
 import { useTranslation } from '../i18n/index.js';
@@ -35,21 +35,11 @@ function stateKeyPrefix(state: CompositionDerivation['state']): string {
   }
 }
 
-// States whose summaries can carry a Runtime-supplied reason string. Other
-// states render their plain summary unconditionally.
-const REASON_AWARE_STATES = new Set<CompositionDerivation['state']>([
-  'degraded_reauth_required',
-  'degraded_cloud_offline',
-  'degraded_runtime_unavailable',
-  'error_bootstrap_fatal',
-]);
-
 export function DegradedSurface(props: DegradedSurfaceProps) {
   const { composition, onRestart } = props;
   const { t } = useTranslation();
   const tone = composition.variant;
   const keyPrefix = stateKeyPrefix(composition.state);
-  const trimmedReason = (composition.reason ?? '').trim();
   const diagnosticsVisible =
     (Boolean(composition.reason) || Boolean(composition.modelDiagnostics))
     && composition.variant !== 'loading';
@@ -61,10 +51,9 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
   // failures stay fail-closed rather than exposing a retry that cannot repair them.
   const restartVisible = tone !== 'loading' && composition.retryable !== false;
 
-  const summary =
-    REASON_AWARE_STATES.has(composition.state) && trimmedReason.length > 0
-      ? t(`${keyPrefix}.summary_with_reason`, { reason: trimmedReason })
-      : t(`${keyPrefix}.summary`);
+  // Ordinary recovery copy stays readable; raw owner/transport details remain
+  // available in the existing collapsed diagnostics below.
+  const summary = t(`${keyPrefix}.summary`);
 
   return (
     <Surface
