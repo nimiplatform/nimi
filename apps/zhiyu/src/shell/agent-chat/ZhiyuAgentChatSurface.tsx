@@ -90,6 +90,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onRestoreSubmission: (text: string) => void;
   readonly onSubmissionResolved: () => void;
   readonly onRefreshConversation: () => void;
+  readonly onReloadImages: () => void;
   readonly onRegenerate: () => void;
   readonly conversation: () => import('@nimiplatform/sdk/app').NimiLocalAppConversationClient;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
@@ -117,7 +118,7 @@ export function ZhiyuAgentChatSurface({
   submitting,
   draftSaveStatus,
   onRetryDraftSave,
-  composerState, interactionNotice, connectionStatus, pendingSubmission, onAcknowledgeSubmission, onRestoreSubmission, onSubmissionResolved, onRefreshConversation, onRegenerate, conversation,
+  composerState, interactionNotice, connectionStatus, pendingSubmission, onAcknowledgeSubmission, onRestoreSubmission, onSubmissionResolved, onRefreshConversation, onReloadImages, onRegenerate, conversation,
   avatarLaunchAction,
   agentCenterSession,
   resourcePackPresentation,
@@ -519,6 +520,12 @@ export function ZhiyuAgentChatSurface({
                 messages={conversationMessagesForDisplay(evidence.chat.messages, primaryPartnerName)}
                 activeConversationId={evidence.conversation.conversationAnchorId}
                 agentName={primaryPartnerName}
+                bannerContent={evidence.chat.mediaReadError ? <div role="status" className="rounded-lg bg-[var(--nimi-surface-card)] px-3 py-2 text-sm">
+                  图片暂时无法加载，文字仍可使用。{' '}
+                  <button type="button" className="underline" disabled={evidence.chat.mediaReadError === 'retrying'} onClick={onReloadImages}>
+                    {evidence.chat.mediaReadError === 'retrying' ? '正在重新加载图片…' : '重新加载图片'}
+                  </button>
+                </div> : undefined}
                 formatDateLabel={formatZhiyuTranscriptDateLabel}
                 emptyEyebrow={hasCurrentPartner ? '' : 'ZHIYU'}
                 emptyTitle={hasCurrentPartner ? '' : emptyTitle}

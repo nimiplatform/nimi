@@ -216,4 +216,36 @@ describe('shared LocalAgent observation', () => {
     expect(readArtifact).toHaveBeenCalledTimes(1);
     media.close();
   });
+
+  it('explicitly rereads only failed artifacts, coalesces clicks and keeps ready images', async () => {
+    const bytes = { mimeType: 'image/png', bytes: new Uint8Array([1, 2]) };
+    let finish!: (value: typeof bytes) => void;
+    let failedReads = 0;
+    const readArtifact = vi.fn(async ({ artifactId }: { artifactId: string }) => {
+      if (artifactId === 'ready') return bytes;
+      if (++failedReads === 1) throw new Error('connection interrupted');
+      return new Promise<typeof bytes>(resolve => { finish = resolve; });
+    });
+    const change = vi.fn();
+    const media = createCanonicalConversationMediaReader({ scope, conversation: { readArtifact } as unknown as NimiLocalAppConversationClient, onChange: change });
+    media.get('ready');
+    media.get('failed');
+    await vi.waitFor(() => expect(media.getReadError()).toBe('failed'));
+    const ready = media.get('ready');
+    media.get('failed');
+    expect(readArtifact).toHaveBeenCalledTimes(2);
+    media.retryFailed();
+    media.retryFailed();
+    expect(media.getReadError()).toBe('retrying');
+    expect(readArtifact).toHaveBeenCalledTimes(3);
+    expect(readArtifact).toHaveBeenLastCalledWith({ ...scope, artifactId: 'failed' });
+    finish(bytes);
+    await vi.waitFor(() => expect(media.getReadError()).toBeNull());
+    expect(media.get('failed').mediaUrl).toMatch(/^data:image\/png;base64,/);
+    expect(media.get('ready')).toBe(ready);
+    media.retryFailed();
+    media.close();
+    media.retryFailed();
+    expect(readArtifact).toHaveBeenCalledTimes(3);
+  });
 });

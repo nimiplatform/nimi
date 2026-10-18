@@ -43,12 +43,15 @@ export type AgentRuntimeSessionHydrationState = {
   readonly loading: boolean;
   readonly error: Error | null;
   readonly retry: () => void;
+  readonly mediaReadError: 'failed' | 'retrying' | null;
+  readonly retryMedia: () => void;
 };
 
 type HydrationOutcome = {
   readonly key: string;
   readonly status: 'loading' | 'ready' | 'error';
   readonly error: Error | null;
+  readonly mediaReadError: 'failed' | 'retrying' | null;
 };
 
 function hydrationKey(input: UseAgentRuntimeSessionSnapshotHydrationInput): string | null {
@@ -70,11 +73,15 @@ export function useAgentRuntimeSessionSnapshotHydration(
   const bindings = useDesktopRendererBindings();
   const visibleProjections = useAgentVisibleProjectionStore();
   const activeKeyRef = useRef<string | null>(null);
+  const mediaRef = useRef<{ key: string; reader: ReturnType<typeof createCanonicalConversationMediaReader> } | null>(null);
   const [outcome, setOutcome] = useState<HydrationOutcome | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [control, setControl] = useState<{key:string;value:import('@nimiplatform/sdk/app').NimiLocalAppConversationState}|null>(null);
   const retry = useCallback(() => { setAttempt(current=>current+1); }, []);
   const currentKey = hydrationKey(input);
+  const retryMedia = useCallback(() => {
+    if (mediaRef.current?.key === currentKey) mediaRef.current.reader.retryFailed();
+  }, [currentKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +96,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     activeKeyRef.current = key;
     setOutcome((current) => (current?.key === key && current.status !== 'error'
       ? current
-      : { key, status: 'loading', error: null }));
+      : { key, status: 'loading', error: null, mediaReadError: null }));
     const conversation = bindings.sdk.conversation();
     let projection: CanonicalConversationProjection | null = null;
     const media = createCanonicalConversationMediaReader({
@@ -97,7 +104,8 @@ export function useAgentRuntimeSessionSnapshotHydration(
       scope: { agentHandle, conversationAnchorId },
       onChange: () => publish(),
     });
-    const publish: () => void = () => {
+    mediaRef.current = { key, reader: media };
+    const publish = (connectionReady = false): void => {
       if (!projection || cancelled || activeKeyRef.current !== key) return;
       const bundle = materializeCanonicalConversationBundle({
         media,
@@ -109,18 +117,24 @@ export function useAgentRuntimeSessionSnapshotHydration(
       input.queryClient.setQueryData(bundleQueryKey(thread.id), bundle);
       setControl(current => current?.key === key && current.value === projection!.state ? current : {key,value:projection!.state});
       visibleProjections.set(thread.id, bundle);
-      setOutcome((current) => (current?.key === key && current.status === 'ready'
-        ? current
-        : { key, status: 'ready', error: null }));
+      const mediaReadError = media.getReadError();
+      setOutcome((current) => {
+        // Reloading optional bytes cannot claim the Conversation reconnected.
+        if (!connectionReady && current?.key === key && current.status === 'error') {
+          return current.mediaReadError === mediaReadError ? current : { ...current, mediaReadError };
+        }
+        return current?.key === key && current.status === 'ready' && current.mediaReadError === mediaReadError
+          ? current : { key, status: 'ready', error: null, mediaReadError };
+      });
     };
 
     const observation = observeLocalAppConversation({
       conversation,
       scope: { agentHandle, conversationAnchorId },
-      onProjection: (value) => { projection = value; publish(); },
+      onProjection: (value) => { projection = value; publish(true); },
       onStatus: (status, error) => {
         if (cancelled || activeKeyRef.current !== key || status !== 'error') return;
-        setOutcome({ key, status: 'error', error: error instanceof Error ? error : new Error(String(error)) });
+        setOutcome({ key, status: 'error', error: error instanceof Error ? error : new Error(String(error)), mediaReadError: media.getReadError() });
         input.onRuntimeError?.(error);
         logRendererEvent({ level: 'warn', area: 'agent-chat-shell', message: 'action:host-error',
           details: input.buildHostErrorDetails(error, 'hydrate-canonical-agent-conversation', { threadId: thread.id, conversationAnchorId }),
@@ -131,6 +145,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     return () => {
       cancelled = true;
       media.close();
+      if (mediaRef.current?.reader === media) mediaRef.current = null;
       if (activeKeyRef.current === key) activeKeyRef.current = null;
       observation.close();
     };
@@ -154,5 +169,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     loading: currentKey !== null && settled?.status !== 'ready' && settled?.status !== 'error',
     error: currentKey !== null && settled?.status === 'error' ? settled.error : null,
     retry,
+    mediaReadError: settled?.mediaReadError ?? null,
+    retryMedia,
   };
 }

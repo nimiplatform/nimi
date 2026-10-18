@@ -11,7 +11,10 @@ export function subscribeZhiyuAmbientConversation(input: {
 }) {
   let projection: CanonicalConversationProjection | null = null;
   const publish = () => {
-    if (projection) input.onChat(projectZhiyuConversation({ ...input.identity, projection, media }));
+    if (projection) input.onChat({
+      ...projectZhiyuConversation({ ...input.identity, projection, media }),
+      mediaReadError: media.getReadError(),
+    });
   };
   const media = createCanonicalConversationMediaReader({ conversation: input.conversation, scope: input.identity, onChange: publish });
   const observation = observeLocalAppConversation({
@@ -19,5 +22,9 @@ export function subscribeZhiyuAmbientConversation(input: {
     onProjection: value => { projection = value; publish(); },
     onStatus: input.onStatus,
   });
-  return { refresh: observation.refresh, close() { observation.close(); media.close(); } };
+  return {
+    refresh: observation.refresh,
+    retryMedia: media.retryFailed,
+    close() { observation.close(); media.close(); },
+  };
 }

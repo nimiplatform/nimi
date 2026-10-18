@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+Transcript bottom-follow survives scroll events caused by late content/voice
+measurement, while upward reading releases follow. LocalAgent media consumers can
+explicitly reread failed stored artifacts with `retryFailed()` and show the read
+state through `getReadError()`; ready previews remain cached and no generation is
+started. These additive reader methods join the pending 0.x minor additions below.
+
 LocalAgent Chat now has shared canonical observation and pending-request helpers
 in `features/chat/headless`, plus reusable voice playback/retry, media stop and follow-up
 controls in `features/chat/ui`. Desktop and Zhiyu consume these owners; App pages,

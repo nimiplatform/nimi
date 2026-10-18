@@ -609,7 +609,16 @@ export function useAgentConversationModeHost(
 
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,
-    transcriptProps: { ...presentation.transcriptProps, contentBottomInsetPx: composerInset },
+    transcriptProps: { ...presentation.transcriptProps, contentBottomInsetPx: composerInset,
+      bannerContent: history.mediaReadError ? <>{presentation.transcriptProps?.bannerContent}
+        <div role="status" className="rounded-lg bg-[var(--nimi-surface-card)] px-3 py-2 text-sm">
+          {t('Chat.agentImageLoadFailed')}{' '}
+          <Button tone="ghost" size="sm" disabled={history.mediaReadError === 'retrying'} onClick={history.retryMedia}>
+            {t(history.mediaReadError === 'retrying' ? 'Chat.agentImageReloading' : 'Chat.agentReloadImages')}
+          </Button>
+        </div>
+      </> : presentation.transcriptProps?.bannerContent,
+    },
     onSelectTarget: handleSelectAgent,
     composerContent: <div ref={measureComposer}>
       {presentation.composerContent}
@@ -645,5 +654,5 @@ export function useAgentConversationModeHost(
       </div>
       </div>
     </div>,
-  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
+  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
 }

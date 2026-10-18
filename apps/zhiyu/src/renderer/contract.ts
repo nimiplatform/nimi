@@ -88,7 +88,7 @@ export interface ZhiyuRendererEventPort {
     readonly conversationAnchorId: string;
     readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
     readonly onStatus?: (status: 'loading' | 'ready' | 'error', error?: unknown) => void;
-  }): LocalAppConversationObservation;
+  }): LocalAppConversationObservation & { retryMedia(): void };
   subscribeResourcePackPlacement?(
     listener: (request: ZhiyuResourcePackPlacementRequest) => void,
   ): () => void;

@@ -185,6 +185,26 @@ export function createCanonicalConversationMediaReader(input: {
       if (!pending.has(artifactId)) { pending.add(artifactId); queued.push(artifactId); pump(); }
       return empty;
     },
+    getReadError(): 'failed' | 'retrying' | null {
+      let failed = false;
+      for (const [artifactId, preview] of resolved) {
+        if (preview.mediaUrl) continue;
+        if (pending.has(artifactId)) return 'retrying';
+        failed = true;
+      }
+      return failed ? 'failed' : null;
+    },
+    retryFailed() {
+      if (closed) return;
+      let added = false;
+      for (const [artifactId, preview] of resolved) {
+        if (preview.mediaUrl || pending.has(artifactId)) continue;
+        pending.add(artifactId);
+        queued.push(artifactId);
+        added = true;
+      }
+      if (added) { pump(); input.onChange(); }
+    },
     close() { closed = true; queued.length = 0; resolved.clear(); pending.clear(); },
   };
 }

@@ -55,6 +55,7 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly textTurnId?: string | null;
   readonly controlState?: import('@nimiplatform/sdk/app').NimiLocalAppConversationState;
   readonly regenerateTurnId?: string | null;
+  readonly mediaReadError?: 'failed' | 'retrying' | null;
   readonly eventTypes: readonly string[];
   readonly messageCount: number;
   readonly messages: RuntimeAgentConversationProjectionState['messages'];

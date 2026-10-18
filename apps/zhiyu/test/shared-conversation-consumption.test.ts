@@ -6,6 +6,7 @@ import { projectZhiyuConversation } from '../src/shell/agent-chat/agent-conversa
 import { isZhiyuDirectLocalAppSubmitEnabled } from '../src/shell/app/direct-local-app-submit-gate.js';
 import { createInitialZhiyuEvidence } from '../src/shell/app/evidence.js';
 import { turnStatusFromChat } from '../src/shell/app/app-evidence-transitions.js';
+import { subscribeZhiyuAmbientConversation } from '../src/shell/agent-chat/ambient-conversation-subscription.js';
 
 function snapshot(): NimiLocalAppConversationSnapshot {
   return { conversationAnchorId: 'anchor', throughSequence: '5', truncatedBefore: false,
@@ -16,6 +17,40 @@ function snapshot(): NimiLocalAppConversationSnapshot {
     actions: [], voices: [] };
 }
 const scope = { agentHandle: 'agent_ref_test' as never, conversationAnchorId: 'anchor' };
+
+test('explicit media reload rereads a failed image without sending or replacing its original message', async () => {
+  const source = snapshot();
+  source.messages.push({ messageId: 'image', turnId: 'turn', role: 'assistant', partial: false,
+    parts: [{ kind: 'artifact-ref', artifactId: 'stored-image', mediaKind: 'image', mimeType: 'image/png', displayName: null }] });
+  const chats: ReturnType<typeof projectZhiyuConversation>[] = [];
+  const artifacts: string[] = [];
+  let close!: () => void;
+  const closed = new Promise<void>(resolve => { close = resolve; });
+  const observation = subscribeZhiyuAmbientConversation({ identity: scope, onChat: chat => chats.push(chat), conversation: {
+    snapshot: async () => source,
+    subscribe: async () => ({ cancel: async () => close(), async *[Symbol.asyncIterator]() { await closed; } }),
+    readArtifact: async ({ artifactId }: { artifactId: string }) => {
+      artifacts.push(artifactId);
+      if (artifacts.length === 1) throw new Error('temporary transport failure');
+      return { mimeType: 'image/png', bytes: new Uint8Array([1, 2]) };
+    },
+  } as unknown as import('@nimiplatform/sdk/app').NimiLocalAppConversationClient });
+  try {
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(chats.at(-1)?.mediaReadError, 'failed');
+    assert.equal(chats.at(-1)?.messages[0]?.text, '这部分已经收到');
+    await observation.refresh();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(artifacts, ['stored-image'], 'ordinary state refresh does not silently retry image reads');
+    observation.retryMedia();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(artifacts, ['stored-image', 'stored-image']);
+    assert.equal(chats.at(-1)?.mediaReadError, null);
+    assert.match(String(chats.at(-1)?.messages[1]?.metadata?.mediaUrl), /^data:image\/png;base64,/);
+    assert.equal(chats.at(-1)?.messages[1]?.id, 'image');
+    assert.equal(chats.at(-1)?.textTurnId, null);
+  } finally { observation.close(); }
+});
 
 test('Zhiyu preserves partial owner text and cancellation, including regeneration eligibility', () => {
   const chat = projectZhiyuConversation({ ...scope, projection: seedCanonicalConversationProjection(snapshot()) });

@@ -4,7 +4,7 @@ import { useZhiyuNavigationOwner, type ZhiyuDestination } from './navigation.js'
 import { isZhiyuAgentBusyReason } from './direct-local-app-submit-gate';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
-import { useAgentComposerPersistence, reconcileAgentSubmission, AgentSubmissionSaveError, type AgentPendingSubmission, type LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
+import { useAgentComposerPersistence, reconcileAgentSubmission, AgentSubmissionSaveError, type AgentPendingSubmission } from '@nimiplatform/kit/features/chat/headless';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { turnStatusFromChat } from './app-evidence-transitions';
 import { zhiyuRuntimeChatApplyIdentity, type ZhiyuRuntimeChatApplyIdentity } from './chat-turn-apply-guard';
@@ -48,7 +48,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const [pendingResourcePackPlacement, setPendingResourcePackPlacement] = useState<PendingResourcePackPlacement | null>(null);
-  const observationRef = useRef<LocalAppConversationObservation | null>(null);
+  const observationRef = useRef<ReturnType<typeof bindings.app.events.subscribeConversation> | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -469,6 +469,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       }}
       onSubmissionResolved={() => { setSubmissionError(null); void observationRef.current?.refresh(); }}
       onRefreshConversation={() => { void observationRef.current?.refresh(); }}
+      onReloadImages={() => { observationRef.current?.retryMedia(); }}
       onRegenerate={() => {
         if (!evidence.chat.regenerateTurnId) return;
         void handleSubmit('', undefined, evidence.chat.regenerateTurnId).catch(error => {

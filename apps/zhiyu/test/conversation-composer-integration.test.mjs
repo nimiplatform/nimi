@@ -109,7 +109,7 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
         subscribeConversation({ agentHandle, conversationAnchorId, onChat, onStatus }) {
           const chat = { ...initial.chat, agentHandle, conversationAnchorId, state: 'completed', ready: true, textTurnId: null, ...options.chat };
           onChat(chat); onStatus('ready');
-          return { async refresh() { onChat(chat); onStatus('ready'); }, close() {} };
+          return { async refresh() { options.onRefresh?.(); onChat(chat); onStatus('ready'); }, retryMedia() { options.onRetryMedia?.(); }, close() {} };
         },
       },
     } };
@@ -125,6 +125,20 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
     return { node, calls, records, navigation, async close() { await act(async () => root.unmount()); node.remove(); } };
   };
   try {
+    await t.test('reloading failed images is a read action, separate from conversation refresh or send', async () => {
+      let retries = 0;
+      let refreshes = 0;
+      const view = await mount({ chat: { mediaReadError: 'failed' },
+        onRetryMedia: () => { retries++; }, onRefresh: () => { refreshes++; } });
+      try {
+        await clickText(view.node, '重新加载图片');
+        assert.equal(retries, 1);
+        assert.equal(refreshes, 0);
+        assert.equal(view.calls.send.length, 0);
+        assert.equal(view.node.querySelector('textarea').disabled, false);
+      } finally { await view.close(); }
+    });
+
     await t.test('a busy rejection preserves text and image, and prepare never exposes recovery actions', async () => {
       const save = deferred();
       const view = await mount({ write: async value => { if (value.submission) await save.promise; },

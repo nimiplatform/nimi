@@ -21,20 +21,30 @@ test('partner history reports loading, then a retryable failure, then the read h
 
   let releaseSnapshot: ((outcome: 'fail' | 'read') => void) | undefined;
   let snapshotReads = 0;
+  let failSubscription: ((error: Error) => void) | undefined;
+  let finishImage: ((value: unknown) => void) | undefined;
+  const artifactReads: string[] = [];
   const conversation = {
     subscribe: async () => ({
       cancel: async () => undefined,
-      [Symbol.asyncIterator]: () => ({ next: () => new Promise<IteratorResult<never>>(() => undefined) }),
+      [Symbol.asyncIterator]: () => ({ next: () => new Promise<IteratorResult<never>>((_resolve, reject) => { failSubscription = reject; }) }),
     }),
     snapshot: () => {
       snapshotReads += 1;
       return new Promise((resolve, reject) => {
         releaseSnapshot = (outcome) => (outcome === 'fail'
           ? reject(new Error('conversation read failed'))
-          : resolve({ conversationAnchorId: 'anchor-1', throughSequence: '0', truncatedBefore: null, turns: [], messages: [], actions: [], voices: [] }));
+          : resolve({ conversationAnchorId: 'anchor-1', throughSequence: '0', truncatedBefore: false,
+            state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
+            turns: [], messages: [{ messageId: 'image-1', turnId: 'turn-1', role: 'assistant', partial: false,
+              parts: [{ kind: 'artifact-ref', artifactId: 'saved-image', mediaKind: 'image', mimeType: 'image/png', displayName: null }] }], actions: [], voices: [] }));
       });
     },
-    readArtifact: async () => { throw new Error('unused'); },
+    readArtifact: async ({ artifactId }: { artifactId: string }) => {
+      artifactReads.push(artifactId);
+      if (artifactReads.length === 1) throw new Error('temporary image read failure');
+      return new Promise(resolve => { finishImage = resolve; });
+    },
   };
   const bindings = { sdk: { conversation: () => conversation }, clock: { now: () => 0 } } as never;
   const thread = {
@@ -44,7 +54,7 @@ test('partner history reports loading, then a retryable failure, then the read h
     lastMessageAtMs: null,
     targetSnapshot: { agentHandle: 'agent-a', conversationAnchorId: 'anchor-1', displayName: 'Agent A' },
   } as never;
-  let state: { loading: boolean; error: Error | null; retry: () => void } | undefined;
+  let state: ReturnType<typeof useAgentRuntimeSessionSnapshotHydration> | undefined;
   const queryClient = new QueryClient();
   const buildHostErrorDetails = () => ({});
   function Probe() {
@@ -55,7 +65,6 @@ test('partner history reports loading, then a retryable failure, then the read h
       buildHostErrorDetails,
       queryClient,
       selectedThreadRecord: thread,
-      submittingThreadId: null,
     });
     return null;
   }
@@ -86,6 +95,18 @@ test('partner history reports loading, then a retryable failure, then the read h
     await settle();
     assert.equal(state?.loading, false);
     assert.equal(state?.error, null);
+    assert.equal(state?.mediaReadError, 'failed');
+    await act(async () => { failSubscription?.(new Error('subscription lost')); });
+    await settle();
+    assert.match(state?.error?.message || '', /subscription lost/);
+    await act(async () => { state?.retryMedia(); });
+    assert.equal(state?.mediaReadError, 'retrying');
+    assert.equal(snapshotReads, 2, 'reloading images does not replace the Conversation observation');
+    assert.deepEqual(artifactReads, ['saved-image', 'saved-image']);
+    await act(async () => { finishImage?.({ mimeType: 'image/png', bytes: new Uint8Array([1, 2]) }); });
+    await settle();
+    assert.equal(state?.mediaReadError, null);
+    assert.match(state?.error?.message || '', /subscription lost/, 'media success cannot claim the Conversation reconnected');
   } finally {
     await act(async () => { root.unmount(); });
     queryClient.clear();
