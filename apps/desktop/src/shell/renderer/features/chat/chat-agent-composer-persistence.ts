@@ -12,6 +12,22 @@ export type AgentPendingSubmission = {
   retryOfTurnId?: string;
 };
 
+// The request has not reached Send. Keep the original storage error for
+// diagnostics while the composer explains this specific failure to the user.
+export class AgentSubmissionSaveError extends Error {
+  readonly reasonCode?: string;
+  readonly actionHint?: string;
+  readonly traceId?: string;
+  constructor(cause?: unknown) {
+    super('The message has not been sent because it could not be saved. Your text is kept.', { cause });
+    this.name = 'AgentSubmissionSaveError';
+    const fields = extractNimiErrorFields(cause);
+    this.reasonCode = fields.reasonCode;
+    this.actionHint = fields.actionHint;
+    this.traceId = fields.traceId;
+  }
+}
+
 function readSubmission(value: unknown): AgentPendingSubmission | null {
   if (value == null) return null;
   const row = value as AgentPendingSubmission;
@@ -55,6 +71,7 @@ export function createAgentComposerPersistence(input: {
   let submissionRevision = 0;
   let writing: Promise<boolean> | null = null;
   let reading: Promise<boolean> | null = null;
+  let storageError: unknown;
   const current = () => !closed && input.isCurrent();
   const notify = (status: AgentDraftSaveStatus) => {
     if (current()) input.onState(status);
@@ -71,7 +88,10 @@ export function createAgentComposerPersistence(input: {
           const nextSubmission = submission;
           await input.storage.writeJson(path, {
             version: 1,
-            draft: text,
+            // The pending request already owns this text. Keep only a distinct
+            // next draft; recovery reads the original from submission.text.
+            draft: nextSubmission && !nextSubmission.retryOfTurnId && text.trim() === nextSubmission.text
+              ? '' : text,
             submission: nextSubmission,
           });
           if (!current()) return false;
@@ -79,9 +99,11 @@ export function createAgentComposerPersistence(input: {
           savedSubmission = nextSubmission;
         }
         if (!current()) return false;
+        storageError = undefined;
         notify('saved');
         return true;
-      } catch {
+      } catch (error) {
+        storageError = error;
         notify('unsaved');
         return false;
       }
@@ -132,7 +154,8 @@ export function createAgentComposerPersistence(input: {
         }
         loaded = true;
         return await flush();
-      } catch {
+      } catch (error) {
+        storageError = error;
         notify('unsaved');
         return false;
       }
@@ -152,7 +175,7 @@ export function createAgentComposerPersistence(input: {
       // Runtime already owns the original question. A regeneration keeps its
       // stable request in memory even when this optional Home copy is unavailable.
       if (!next.retryOfTurnId && !loaded && !(await load()))
-        throw new Error('The submission copy could not be saved. Your draft is kept.');
+        throw new AgentSubmissionSaveError(storageError);
       if (!current()) throw new Error('The selected partner changed.');
       if (submission && JSON.stringify(submission) !== JSON.stringify(next))
         throw new Error('Check the previous submission before sending another message.');
@@ -172,7 +195,7 @@ export function createAgentComposerPersistence(input: {
           submissionRevision++;
           input.onSubmission?.(submission);
         }
-        throw new Error('The submission copy could not be saved. Your draft is kept.');
+        throw new AgentSubmissionSaveError(storageError);
       }
     },
     async acknowledge(requestId: string) {
@@ -261,7 +284,7 @@ export function useAgentComposerPersistence(input: {
       if (latest.current.scopeKey !== input.scopeKey || !input.isCurrent())
         throw new Error('The selected partner changed.');
       if (!controller.current)
-        throw new Error('The saved draft is not ready. Please retry when it is available.');
+        throw new AgentSubmissionSaveError();
       await controller.current.prepare(next);
     },
     acknowledge: async (requestId: string) => {

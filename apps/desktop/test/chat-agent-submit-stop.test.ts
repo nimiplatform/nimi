@@ -106,6 +106,7 @@ async function harness(
   };
   const queryClient = new QueryClient();
   const reports: unknown[] = [];
+  const reportOptions: unknown[] = [];
   const hostInput = {
     now: Date.now,
     sdk: { conversation: () => conversation },
@@ -114,7 +115,7 @@ async function harness(
     selectedThreadRecord: null,
     currentComposerTextRef: draft,
     queryClient,
-    reportHostError: (error: unknown) => reports.push(error),
+    reportHostError: (error: unknown, options?: unknown) => { reports.push(error); reportOptions.push(options); },
     setSubmittingThreadId: () => {},
     setFooterHostState: () => {},
     setBundleCache: () => {},
@@ -127,6 +128,7 @@ async function harness(
     draft,
     sent,
     reports,
+    reportOptions,
     copying,
     pending: () => pending,
     document: () => document,
@@ -186,6 +188,7 @@ test('failed local copy leaves input intact and does not call Runtime', async (t
   assert.equal(h.sent.length, 0);
   assert.equal(h.pending(), null);
   assert.equal(h.draft.current, 'original question');
+  assert.deepEqual(h.reportOptions, [{ inlineOnly: true }]);
 });
 
 test('new edits made while saving the submission are kept', async (t) => {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createAgentComposerPersistence, type AgentDraftSaveStatus } from '../src/shell/renderer/features/chat/chat-agent-composer-persistence.js';
+import { AgentSubmissionSaveError, createAgentComposerPersistence, type AgentDraftSaveStatus } from '../src/shell/renderer/features/chat/chat-agent-composer-persistence.js';
 
 const BINDING = `agent_binding_${'a'.repeat(43)}`;
 type Storage = Parameters<typeof createAgentComposerPersistence>[0]['storage'];
@@ -235,4 +235,43 @@ test('late storage restoration cannot replace or resurrect a regeneration reques
   await writer.ready;
   assert.equal(pending,null);
   writer.close();
+});
+
+
+test('submission persists original text once and preserves a separate next draft', async () => {
+  const text = '【保存前置验收样本】\n' + '<p>x</p>\n'.repeat(6000);
+  const draft = localDraft(text);
+  let saved: any = { version:1, draft:text, submission:null };
+  const storage: Storage = {
+    readJson: async()=>({value:saved,sizeBytes:0}),
+    writeJson: async(_path,value)=>{
+      // Match Runtime JSON HTML escaping and the existing document quota.
+      const encoded=JSON.stringify(value).replaceAll('<','\\u003c').replaceAll('>','\\u003e');
+      assert.ok(Buffer.byteLength(encoded)<256*1024);
+      saved=value; return {value,sizeBytes:Buffer.byteLength(encoded)};
+    },
+  };
+  const writer=attach(draft,storage); await writer.ready;
+  const pending={requestId:'same-request',conversationAnchorId:'anchor',text:text.trim(),artifactIds:[]};
+  await writer.prepare(pending);
+  assert.equal(saved.draft,''); assert.deepEqual(saved.submission,pending);
+  assert.equal(draft.ref.current,text);
+  draft.ref.current='a separate next question'; await writer.flush();
+  assert.equal(saved.draft,'a separate next question'); assert.deepEqual(saved.submission,pending);
+  writer.close();
+  let restored: unknown;
+  const next=localDraft();
+  const controller=createAgentComposerPersistence({agentBinding:BINDING,draft:next.ref,storage,subscribe:next.subscribe,isCurrent:()=>true,onState:()=>{},onRestored:()=>{},onSubmission:value=>{restored=value;}});
+  await controller.ready;
+  assert.deepEqual(restored,pending);assert.equal(next.ref.current,'a separate next question');
+  controller.close();
+});
+
+test('failed prepare preserves the typed storage cause and leaves no pending send', async () => {
+ const cause=Object.assign(new Error('quota'),{reasonCode:'APP_STORAGE_QUOTA_EXCEEDED',traceId:'storage-trace'});
+ const draft=localDraft('original');let pending:unknown;
+ const writer=createAgentComposerPersistence({agentBinding:BINDING,draft:draft.ref,subscribe:draft.subscribe,isCurrent:()=>true,onState:()=>{},onRestored:()=>{},onSubmission:value=>{pending=value;},storage:{readJson:async()=>({value:{version:1,draft:'original'},sizeBytes:20}),writeJson:async()=>{throw cause;}}});
+ await writer.ready;
+ await assert.rejects(writer.prepare({requestId:'request',conversationAnchorId:'anchor',text:'original',artifactIds:[]}),error=>error instanceof AgentSubmissionSaveError && error.cause===cause && error.reasonCode==='APP_STORAGE_QUOTA_EXCEEDED' && error.traceId==='storage-trace');
+ assert.equal(pending,null);assert.equal(draft.ref.current,'original');writer.close();
 });

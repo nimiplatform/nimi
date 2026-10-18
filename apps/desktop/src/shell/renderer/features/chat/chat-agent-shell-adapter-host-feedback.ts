@@ -19,7 +19,7 @@ export type AgentConversationHostErrorDetails = {
 
 export type ReportAgentConversationHostError = (
   error: unknown,
-  options?: { action?: string; extra?: Record<string, unknown> },
+  options?: { action?: string; extra?: Record<string, unknown>; inlineOnly?: boolean },
 ) => void;
 
 export function useAgentConversationHostFeedback() {
@@ -58,6 +58,7 @@ export function useAgentConversationHostFeedback() {
       message: 'action:host-error',
       details,
     });
+    if (options?.inlineOnly) return;
     // Standard chrome owns the active content-refusal notice. The composer
     // keeps its original inline failure and draft; do not add a second card.
     if (userFacing.code.toUpperCase().replaceAll('-', '_') === 'AI_CONTENT_FILTER_BLOCKED') return;

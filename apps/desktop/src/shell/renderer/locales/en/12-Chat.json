@@ -752,5 +752,7 @@
   "agentSubmissionRetryRecover": "Check or continue regeneration",
   "agentSubmissionDismiss": "Dismiss this notice",
   "agentSubmissionOtherOptions": "Other options",
-  "agentSubmissionWorking": "Checking last send…"
+  "agentSubmissionWorking": "Checking last send…",
+  "agentSubmissionSaveFailed": "Message not sent: it could not be saved. Your text is kept here. Retry saving before sending again.",
+  "agentSubmissionSaveLimit": "Message not sent: the saved draft has reached its storage limit. Your text is kept here; shorten it or copy it before making changes."
 }

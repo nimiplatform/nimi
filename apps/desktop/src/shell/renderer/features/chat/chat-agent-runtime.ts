@@ -1,8 +1,13 @@
+import { AgentSubmissionSaveError } from './chat-agent-composer-persistence.js';
 import { chatRuntimeReasonCodeMessage, toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type { TFunction } from 'i18next';
 export { streamChatAgentRuntimeAgentTurn } from './chat-agent-runtime-agent';
 
 export function toChatAgentRuntimeError(error: unknown, t: TFunction): { code: string; message: string } {
+  if (error instanceof AgentSubmissionSaveError) {
+    return { code: error.reasonCode || '', message: t(error.reasonCode === 'APP_STORAGE_QUOTA_EXCEEDED'
+      ? 'Chat.agentSubmissionSaveLimit' : 'Chat.agentSubmissionSaveFailed') };
+  }
   return toChatUserFacingRuntimeError(error, 'Agent response failed', t, { localAgent: true });
 }
 

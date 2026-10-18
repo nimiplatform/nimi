@@ -1,3 +1,4 @@
+import { AgentSubmissionSaveError } from './chat-agent-composer-persistence.js';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
@@ -43,7 +44,7 @@ export async function submitAgentConversationTurn(input: {
     );
     const requestId = createNimiClientId('runtime-agent-turn-request');
     if (!host.submissionPersistence)
-      throw new Error(host.t('Chat.agentDraftUnavailableForSubmission'));
+      throw new AgentSubmissionSaveError();
     await host.submissionPersistence.prepare({
       requestId,
       conversationAnchorId,
@@ -81,7 +82,7 @@ export async function submitAgentConversationTurn(input: {
       await host.submissionPersistence?.acknowledge(preparedRequestId);
     }
     const described = toChatAgentRuntimeError(error, host.t);
-    host.reportHostError(error);
+    host.reportHostError(error, { inlineOnly: error instanceof AgentSubmissionSaveError });
     throw new Error(described.message, { cause: error });
   } finally {
     if (input.submittingLockTokenRef.current === token) host.setSubmittingThreadId(null);

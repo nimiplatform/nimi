@@ -752,5 +752,7 @@
   "agentSubmissionRetryRecover": "查看或继续重新生成",
   "agentSubmissionDismiss": "关闭此提示",
   "agentSubmissionOtherOptions": "其他方式",
-  "agentSubmissionWorking": "正在确认上次发送…"
+  "agentSubmissionWorking": "正在确认上次发送…",
+  "agentSubmissionSaveFailed": "消息尚未发送：保存失败。文字仍在这里，请先重试保存，再发送。",
+  "agentSubmissionSaveLimit": "消息尚未发送：草稿超出了存储限额。文字仍在这里，请缩短内容，或先复制再调整。"
 }

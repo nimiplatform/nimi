@@ -25,7 +25,7 @@ export type UseAgentConversationHostActionsInput = {
   currentComposerTextRef: { current: string; readonly revision?: number };
   pendingAttachments?: readonly PendingAttachment[];
   queryClient: QueryClient;
-  reportHostError: (error: unknown) => void;
+  reportHostError: import('./chat-agent-shell-adapter-host-feedback').ReportAgentConversationHostError;
   selectedAgentHandle: string | null;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   setBundleCache: (
