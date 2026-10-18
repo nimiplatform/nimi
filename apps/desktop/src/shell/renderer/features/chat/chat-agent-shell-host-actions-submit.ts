@@ -1,4 +1,4 @@
-import { AgentSubmissionSaveError } from './chat-agent-composer-persistence.js';
+import { AgentSubmissionSaveError, reconcileAgentSubmission } from '@nimiplatform/kit/features/chat/headless';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
@@ -45,34 +45,23 @@ export async function submitAgentConversationTurn(input: {
     const requestId = createNimiClientId('runtime-agent-turn-request');
     if (!host.submissionPersistence)
       throw new AgentSubmissionSaveError();
-    await host.submissionPersistence.prepare({
+    const submission = {
       requestId,
       conversationAnchorId,
       text,
       artifactIds: attachments.map((item) => item.artifactId),
       ...(input.payload.retryOfTurnId ? { retryOfTurnId: input.payload.retryOfTurnId } : {}),
-    });
+    };
+    await host.submissionPersistence.prepare(submission);
     preparedRequestId = requestId;
     if (input.payload.canUpdateDraft?.() !== false) host.currentComposerTextRef.current = '';
-    const scope = {
+    const admitted = await reconcileAgentSubmission({
+      conversation, submission,
       agentHandle: target.agentHandle as Parameters<typeof conversation.send>[0]['agentHandle'],
-      conversationAnchorId,
-      requestId,
-    };
-    await conversation.send(
-      input.payload.retryOfTurnId
-        ? { ...scope, retryOfTurnId: input.payload.retryOfTurnId }
-        : {
-            ...scope,
-            parts: [
-              ...(text ? [{ kind: 'text' as const, text }] : []),
-              ...attachments.map((attachment) => ({
-                kind: 'artifact-ref' as const,
-                artifactId: attachment.artifactId,
-              })),
-            ],
-          },
-    );
+      sendIfMissing: true,
+      isCurrent: () => input.submittingLockTokenRef.current === token,
+    });
+    if (!admitted) return;
     void host.submissionPersistence.acknowledge(requestId);
     host.setFooterHostState(context.thread.id, null);
   } catch (error) {

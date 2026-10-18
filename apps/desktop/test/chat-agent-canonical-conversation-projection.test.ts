@@ -7,10 +7,10 @@ import type {
 } from '@nimiplatform/sdk/app';
 import {
   createCanonicalConversationMediaReader,
-  materializeCanonicalConversationBundle,
   reduceCanonicalConversationEvent,
   seedCanonicalConversationProjection,
-} from '../src/shell/renderer/features/chat/chat-agent-canonical-conversation-projection.js';
+} from '@nimiplatform/kit/features/chat/headless';
+import { materializeCanonicalConversationBundle } from '../src/shell/renderer/features/chat/chat-agent-canonical-conversation-projection.js';
 import type { AgentLocalThreadRecord } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 import { toConversationMessageViewModel } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import { resolveAgentRefusedInput } from '../src/shell/renderer/features/chat/chat-agent-shell-presentation-status.js';
@@ -80,8 +80,8 @@ test('canonical projection uses snapshot sequence as a monotonic barrier', () =>
     type: 'text-delta', conversationAnchorId: 'anchor-1', sequence: '6',
     turnId: 'turn-1', delta: 'gap',
   });
-  assert.equal(gap.status, 'gap');
-  assert.equal(gap.projection.throughSequence, '4');
+  assert.equal(gap.status, 'applied');
+  assert.equal(gap.projection.throughSequence, '6');
 
   const applied = reduceCanonicalConversationEvent(seeded, {
     type: 'text-delta', conversationAnchorId: 'anchor-1', sequence: '5',
@@ -249,7 +249,7 @@ test('pending and failed media reads never block text or repeat on every event',
   const pending = new Promise<{ bytes: Uint8Array; mimeType: string }>((resolve) => { finish = resolve; });
   const media = createCanonicalConversationMediaReader({
     conversation: { readArtifact: () => { calls++; return pending; } } as unknown as NimiLocalAppConversationClient,
-    thread: thread(), conversationAnchorId: 'anchor-1', onChange: () => updates++,
+    scope: { agentHandle: AGENT_HANDLE as never, conversationAnchorId: 'anchor-1' }, onChange: () => updates++,
   });
   const state = snapshot();
   const projection = seedCanonicalConversationProjection({ ...state, actions: [], voices: [], messages: [
@@ -272,7 +272,7 @@ test('pending and failed media reads never block text or repeat on every event',
   let failedCalls = 0;
   const failed = createCanonicalConversationMediaReader({
     conversation: { readArtifact: async () => { failedCalls++; throw new Error('unavailable'); } } as unknown as NimiLocalAppConversationClient,
-    thread: thread(), conversationAnchorId: 'anchor-1', onChange: () => {},
+    scope: { agentHandle: AGENT_HANDLE as never, conversationAnchorId: 'anchor-1' }, onChange: () => {},
   });
   failed.get('old-artifact');
   await new Promise(resolve => setImmediate(resolve));
@@ -287,7 +287,7 @@ test('retired media hydration cannot update the next account or target', async (
   let updates = 0;
   const media = createCanonicalConversationMediaReader({
     conversation: { readArtifact: () => pending } as unknown as NimiLocalAppConversationClient,
-    thread: thread(), conversationAnchorId: 'anchor-1', onChange: () => updates++,
+    scope: { agentHandle: AGENT_HANDLE as never, conversationAnchorId: 'anchor-1' }, onChange: () => updates++,
   });
   media.get('old-artifact');
   media.close();

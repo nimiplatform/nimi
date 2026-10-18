@@ -1,3 +1,4 @@
+import { LocalAppConversationMediaStopButton } from '@nimiplatform/kit/features/chat/ui';
 import { localAgentReplyFailureMessage } from './chat-agent-runtime';
 import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
@@ -71,7 +72,7 @@ import type { ReportAgentConversationHostError } from './chat-agent-shell-adapte
 import { useAgentIntroduction } from '@nimiplatform/kit/features/chat/runtime';
 import type { NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 import { createAgentComposerDraftRef } from './chat-agent-composer-draft.js';
-import { useAgentComposerPersistence } from './chat-agent-composer-persistence.js';
+import { useAgentComposerPersistence } from '@nimiplatform/kit/features/chat/headless';
 import { Button } from '@nimiplatform/kit/ui';
 import { AgentFollowUpControl } from './chat-agent-follow-up-control.js';
 import { AgentSubmissionRecovery } from './chat-agent-submission-recovery.js';
@@ -423,7 +424,11 @@ export function useAgentConversationModeHost(
       const reasonCode = normalizeText(metadata.canonicalFailureReasonCode);
       const incomplete = metadata.canonicalPartial === true && message.status !== 'pending';
       return (<>
-        {metadata.canonicalMediaRunning === true && activeTarget?.agentHandle && activeConversationAnchorId ? <Button tone="ghost" size="sm" onClick={() => { void bindings.sdk.conversation().interruptTurn({agentHandle:activeTarget.agentHandle as Parameters<ReturnType<typeof bindings.sdk.conversation>['interruptTurn']>[0]['agentHandle'],conversationAnchorId:activeConversationAnchorId,expectedTurnId:String(metadata.canonicalTurnId)}).catch(reportRuntimeProductError); }}>{t('Chat.agentStopReplyMedia')}</Button> : null}
+        {metadata.canonicalMediaRunning === true && activeTarget?.agentHandle && activeConversationAnchorId ? <LocalAppConversationMediaStopButton
+          agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId}
+          turnId={String(metadata.canonicalTurnId)} conversation={() => bindings.sdk.conversation()}
+          label={t('Chat.agentStopReplyMedia')} errorLabel={t('Chat.agentStopMediaUnconfirmed')}
+          onError={reportRuntimeProductError} /> : null}
         {incomplete && message.text?.trim() ? <p role="status" className="text-xs text-neutral-500">{metadata.canonicalTerminalReason === 'user_cancel' ? t('Chat.agentReplyStoppedWithContent') : <>{t('Chat.agentPartialReplyKept')} {localAgentReplyFailureMessage(reasonCode, normalizeText(metadata.canonicalTerminalReason), t)}</>}</p> : null}
         {incomplete && reasonCode ? <details className="text-xs text-neutral-500"><summary>{t('Feedback.technicalDetails')}</summary><code>{reasonCode}</code></details> : null}
         {incomplete && localAgentConfigurationFailure(reasonCode) && input.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={input.onOpenAgentCenter}>{t('Chat.agentOpenConfiguration')}</Button> : null}

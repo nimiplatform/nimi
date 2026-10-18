@@ -1,26 +1,15 @@
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from './navigation.js';
 import { isZhiyuAgentBusyReason } from './direct-local-app-submit-gate';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
-import {
-  appendSubmittedUserMessage,
-  cancelStreamingChatMessages,
-  chatStatusFromProjection,
-  chatStatusFromResult,
-  chatStatusFromSubmitRefreshFailure,
-  ensureSubmittedUserMessageInChat,
-  mergeChatTranscript,
-  turnStatusFromChat,
-} from './app-evidence-transitions';
-import {
-  shouldApplyZhiyuRuntimeChatUpdate,
-  shouldContinueZhiyuRuntimeChatSubmit,
-  zhiyuRuntimeChatApplyIdentity,
-  type ZhiyuRuntimeChatApplyIdentity,
-} from './chat-turn-apply-guard';
+import { useAgentComposerPersistence, reconcileAgentSubmission, AgentSubmissionSaveError, type AgentPendingSubmission, type LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
+import { turnStatusFromChat } from './app-evidence-transitions';
+import { zhiyuRuntimeChatApplyIdentity, type ZhiyuRuntimeChatApplyIdentity } from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
-import type { ZhiyuRuntimeAgentChatAttachment } from '../agent-chat/runtime-agent-turn-adapter';
+import type { ZhiyuRuntimeAgentChatAttachment } from '../agent-chat/agent-conversation-state';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuCanonicalRendererBindings } from '../../renderer/contract';
@@ -29,7 +18,6 @@ import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-project
 import { projectZhiyuAuthorizedAgentCenterHandle } from '../agent/agent-center-handle';
 import {
   isZhiyuDirectLocalAppSubmitEnabled,
-  refreshZhiyuDirectLocalAppSubmitGate,
 } from './direct-local-app-submit-gate';
 import { createZhiyuCanonicalAgentCenterSession } from '../../renderer/agent-center-session';
 import { ZhiyuResourcePackPresentationController } from '../../resource-pack/presentation-controller';
@@ -60,18 +48,39 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const [pendingResourcePackPlacement, setPendingResourcePackPlacement] = useState<PendingResourcePackPlacement | null>(null);
-  const activeChatAbortRef = useRef<AbortController | null>(null);
+  const observationRef = useRef<LocalAppConversationObservation | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submissionBusy = useRef<string | null>(null);
+  const scopeKey = `${evidence.auth.accountId ?? ''}|${selectedAgentHandle ?? ''}|${evidence.conversation.conversationAnchorId ?? ''}`;
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
+  useEffect(() => { setSubmitting(false); setSubmissionError(null); }, [scopeKey]);
+  const composerDraft = useMemo(() => {
+    let text = draftByPartner.current.get(draftKey) ?? '';
+    let revision = 0;
+    const listeners = new Set<() => void>();
+    return { get current() { return text; }, set current(value: string) { if (text !== value) { text = value; revision++; listeners.forEach(listener => listener()); } },
+      get revision() { return revision; }, subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; } };
+  }, [selectedAgentHandle]);
+  const persistence = useAgentComposerPersistence({ scopeKey, agentHandle: evidence.conversation.agentHandle ?? '',
+    client: bindings.app.commands.draftClient, draft: composerDraft, subscribe: composerDraft.subscribe,
+    isCurrent: () => currentScope.current === scopeKey && evidence.conversation.ready,
+    onRestored: () => setDraft(composerDraft.current),
+  });
   draftRef.current = draft;
   useLayoutEffect(() => {
     const previous = previousPosition.current;
     const previousKey = previous?.agentHandle ?? 'unselected';
     if (previous) draftByPartner.current.set(previousKey, draftRef.current);
     const samePartner = previous && (previous.conversationAnchorId && previous.conversationAnchorId === destination.conversationAnchorId || previous.agentHandle && previous.agentHandle === destination.agentHandle);
-    setDraft(samePartner ? draftRef.current : draftByPartner.current.get(draftKey) ?? '');
+    const restoredDraft = samePartner ? draftRef.current : draftByPartner.current.get(draftKey) ?? '';
+    composerDraft.current = restoredDraft;
+    setDraft(restoredDraft);
     previousPosition.current = destination;
   }, [draftKey]);
   useLayoutEffect(() => {
-    activeChatAbortRef.current?.abort('zhiyu_navigation_partner_changed');
     setEvidence(current => ({ ...createInitialZhiyuEvidence(), runtime: current.runtime, auth: current.auth, inventory: current.inventory }));
   }, [selectedAgentHandle]);
   useEffect(() => { owner.setHasSidebar(evidence.inventory.localAgents.length > 0); }, [evidence.inventory.localAgents.length, owner.setHasSidebar]);
@@ -144,7 +153,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         const targetChanged = latest.agentHandle !== target.agentHandle
           || latest.conversationAnchorId !== target.conversationAnchorId;
         if (targetChanged) {
-          activeChatAbortRef.current?.abort('zhiyu_resource_pack_placement_target_changed');
           agentCenterSessionRef.current?.invalidate();
           agentCenterSessionRef.current?.dispose();
           void navigation.push({ id: 'partner', agentHandle: target.agentHandle as NimiLocalAppAgentHandle, conversationAnchorId: target.conversationAnchorId, panel: 'appearance' });
@@ -271,34 +279,15 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     if (!renderEvidence.conversation.ready || !agentHandle || !conversationAnchorId) {
       return undefined;
     }
-    return bindings.app.events.subscribeConversation({
-      agentHandle,
-      conversationAnchorId,
-		currentSource: renderEvidence.source,
-		currentChat: renderEvidence.chat,
-      onChat: (incoming) => {
-        setEvidence((current) => {
-          if (
-            current.conversation.agentHandle !== agentHandle
-            || current.conversation.conversationAnchorId !== conversationAnchorId
-          ) {
-            return current;
-          }
-          const chat = mergeChatTranscript(current.chat, incoming);
-          return {
-            ...current,
-            chat,
-            turn: turnStatusFromChat(chat),
-          };
-        });
-      },
+    const observation = bindings.app.events.subscribeConversation({
+      agentHandle, conversationAnchorId,
+      onChat: chat => setEvidence(current => current.conversation.agentHandle !== agentHandle || current.conversation.conversationAnchorId !== conversationAnchorId
+        ? current : { ...current, chat, turn: turnStatusFromChat(chat) }),
+      onStatus: status => setConnectionStatus(status),
     });
-  }, [
-    bindings,
-    renderEvidence.conversation.ready,
-    renderEvidence.conversation.agentHandle,
-    renderEvidence.conversation.conversationAnchorId,
-  ]);
+    observationRef.current = observation;
+    return () => { observation.close(); if (observationRef.current === observation) observationRef.current = null; };
+  }, [bindings, renderEvidence.conversation.ready, renderEvidence.conversation.agentHandle, renderEvidence.conversation.conversationAnchorId]);
 
   const product = useMemo(() => projectZhiyuHomeProductState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
@@ -327,241 +316,89 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     ? pendingResourcePackPlacement.placementKey
     : null;
 
-  const submitEnabled = isZhiyuDirectLocalAppSubmitEnabled({
-    evidence: renderEvidence,
-    draft,
-  });
-  const composerState = evidence.chat.state === 'streaming' || evidence.composer.submitState === 'submitting'
-    ? 'submitting'
-    : submitEnabled
-      ? 'ready'
-      : 'blocked';
+  const submitEnabled = connectionStatus === 'ready' && !submitting && !persistence.submission && isZhiyuDirectLocalAppSubmitEnabled({ evidence: renderEvidence, draft });
+  const composerState = evidence.chat.textTurnId || submitting ? 'submitting' : submitEnabled ? 'ready' : 'blocked';
 
-  async function handleSubmit(
-    textInput: string,
-    attachment?: ZhiyuRuntimeAgentChatAttachment,
-  ) {
-    const text = textInput.trim();
-    const chatBeforeSubmit = evidence.chat;
-    activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
-    const activeChatAbort = new AbortController();
-    activeChatAbortRef.current = activeChatAbort;
-    const submittedConversation = zhiyuRuntimeChatApplyIdentity(evidence.conversation);
-    const submittedEntry = navigation.getSnapshot();
-    const submitStillCurrent = () => navigation.getSnapshot().generation === submittedEntry.generation && activeChatAbortRef.current === activeChatAbort
-      && shouldContinueZhiyuRuntimeChatSubmit({
-        currentConversation: latestConversationIdentityRef.current,
-        submittedConversation,
-        signal: activeChatAbort.signal,
-      });
-    // Re-read Runtime inventory immediately before submit so source changes or
-    // Agent deletion cannot use a stale handle.
-    const {
-      inventory: refreshedInventory,
-      turn: refreshedTurn,
-    } = await refreshZhiyuDirectLocalAppSubmitGate({
-      conversation: evidence.conversation,
-      loadAgentInventory: bindings.app.projection.loadAgentInventory,
-      projectTurnReadiness: bindings.app.projection.projectTurnReadiness,
-    });
-    if (!submitStillCurrent()) {
-      if (activeChatAbortRef.current === activeChatAbort) {
-        activeChatAbortRef.current = null;
-      }
-      return;
-    }
-    if (!refreshedTurn.ready) {
-      setEvidence((current) => {
-        const chat = chatStatusFromSubmitRefreshFailure({
-          current: current.chat,
-          conversation: current.conversation,
-          turn: refreshedTurn,
-        });
-        return {
-          ...current,
-          inventory: refreshedInventory,
-          turn: refreshedTurn,
-          chat,
-          composer: {
-            ...current.composer,
-            submitState: 'failed',
-            draftLength: text.length,
-            reasonCode: chat.reasonCode,
-            actionHint: chat.actionHint,
-            source: chat.source,
-            message: chat.message,
-          },
-        };
-      });
-      activeChatAbortRef.current = null;
-      return;
-    }
-    const requestId = await bindings.app.commands.allocateTurnRequestId();
-    setEvidence((current) => ({
-      ...current,
-      inventory: refreshedInventory,
-      turn: refreshedTurn,
-      composer: {
-        ...current.composer,
-        submitState: 'submitting',
-        draftLength: text.trim().length,
-        reasonCode: 'zhiyu-runtime-turn-submitting',
-        actionHint: 'wait_runtime_agent_turn_stream',
-        source: 'renderer',
-        message: 'Runtime Agent chat turn is being submitted.',
-      },
-      chat: {
-        ...appendSubmittedUserMessage(
-          current.chat,
-          current.conversation,
-          requestId,
-          text,
-          new Date(bindings.clock.now()).toISOString(),
-        ),
-        ready: false,
-        state: 'streaming',
-        reasonCode: 'runtime-agent-chat-submitting',
-        actionHint: 'wait_runtime_agent_turn_stream',
-        source: 'renderer',
-        message: 'Runtime Agent chat turn is being submitted.',
-      },
-    }));
-    const submitted = await bindings.app.commands.runTurn({
-      conversation: evidence.conversation,
-      text,
-      ...(attachment ? { attachment } : {}),
-      requestId,
-      expectedConversationAnchorId: submittedConversation.conversationAnchorId,
-      signal: activeChatAbort.signal,
-      onEvent: (_event, projection) => {
-        if (activeChatAbort.signal.aborted || activeChatAbortRef.current !== activeChatAbort) {
-          return;
+  async function submitPending(submission: AgentPendingSubmission) {
+    if (submissionBusy.current === currentScope.current) return;
+    const scope = currentScope.current;
+    const agentHandle = evidence.conversation.agentHandle;
+    if (!agentHandle || submission.conversationAnchorId !== evidence.conversation.conversationAnchorId) return;
+    submissionBusy.current = scope;
+    setSubmitting(true);
+    setSubmissionError(null);
+    try {
+      const admitted = await reconcileAgentSubmission({ conversation: bindings.app.commands.conversation(), agentHandle, submission,
+        sendIfMissing: true, isCurrent: () => currentScope.current === scope });
+      if (admitted) await persistence.acknowledge(submission.requestId);
+    } catch (error) {
+      if (scope !== currentScope.current) return;
+      if (isZhiyuAgentBusyReason(extractNimiErrorFields(error).reasonCode)) {
+        // Runtime explicitly rejected admission. The original input remains a draft.
+        if (!submission.retryOfTurnId) {
+          setDraft(submission.text);
+          composerDraft.current = submission.text;
         }
-        setEvidence((current) => {
-          if (!shouldApplyZhiyuRuntimeChatUpdate({
-            currentConversation: current.conversation,
-            submittedConversation,
-          })) {
-            return current;
-          }
-          const projectionChat = ensureSubmittedUserMessageInChat(
-            chatStatusFromProjection(projection, current.conversation),
-            current.conversation,
-            requestId,
-            text,
-            new Date(bindings.clock.now()).toISOString(),
-          );
-          const chat = mergeChatTranscript(current.chat, projectionChat);
-          return {
-            ...current,
-            chat,
-            turn: turnStatusFromChat(chat),
-            composer: {
-              ...current.composer,
-              submitState: chat.state === 'streaming' ? 'submitting' : chat.ready ? 'accepted' : 'failed',
-              draftLength: text.length,
-              reasonCode: chat.reasonCode,
-              actionHint: chat.actionHint,
-              source: chat.source,
-              message: chat.message,
-            },
-          };
-        });
-      },
-    });
-    if (activeChatAbort.signal.aborted) {
-      if (activeChatAbortRef.current === activeChatAbort) {
-        activeChatAbortRef.current = null;
-      }
-      return;
-    }
-    if (activeChatAbortRef.current === activeChatAbort) {
-      activeChatAbortRef.current = null;
-    }
-    setEvidence((current) => {
-      if (!shouldApplyZhiyuRuntimeChatUpdate({
-        currentConversation: current.conversation,
-        submittedConversation,
-      })) {
-        return current;
-      }
-      const resultChat = isZhiyuAgentBusyReason(submitted.reasonCode)
-        ? chatStatusFromResult(submitted)
-        : ensureSubmittedUserMessageInChat(
-        chatStatusFromResult(submitted),
-        current.conversation,
-        submitted.requestId ?? requestId,
-        text,
-        new Date(bindings.clock.now()).toISOString(),
-      );
-      const chat = mergeChatTranscript(isZhiyuAgentBusyReason(submitted.reasonCode) ? chatBeforeSubmit : current.chat, resultChat);
-      return {
-        ...current,
-        chat,
-        turn: turnStatusFromChat(chat),
-        composer: {
-          ...current.composer,
-          submitState: submitted.ready ? 'accepted' : 'failed',
-          draftLength: text.trim().length,
-          reasonCode: chat.reasonCode,
-          actionHint: chat.actionHint,
-          source: chat.source,
-          message: chat.message,
-        },
-      };
-    });
-    if (isZhiyuAgentBusyReason(submitted.reasonCode)) {
-      throw Object.assign(new Error(submitted.message), { reasonCode: submitted.reasonCode });
-    }
-    if (submitted.ready && shouldApplyZhiyuRuntimeChatUpdate({
-      currentConversation: latestConversationIdentityRef.current,
-      submittedConversation,
-    })) {
-      setDraft('');
+        await persistence.acknowledge(submission.requestId);
+        throw new Error('伙伴正在处理另一条消息，输入已保留，请稍后再发送。', { cause: error });
+      } else setSubmissionError('暂未确认消息是否已受理。原内容已保留，可继续确认同一条消息。');
+    } finally {
+      if (submissionBusy.current === scope) submissionBusy.current = null;
+      if (scope === currentScope.current) setSubmitting(false);
     }
   }
 
-  function handleStopChat() {
-    activeChatAbortRef.current?.abort('zhiyu_chat_turn_user_stopped');
-    setEvidence((current) => {
-      if (current.chat.state !== 'streaming' && current.composer.submitState !== 'submitting') {
-        return current;
-      }
-      const messages = cancelStreamingChatMessages(
-        current.chat.messages,
-        new Date(bindings.clock.now()).toISOString(),
-      );
-      const chat = {
-        ...current.chat,
-        ready: false,
-        state: 'canceled' as const,
-        reasonCode: 'runtime-agent-chat-user-canceled',
-        actionHint: 'send_runtime_agent_turn',
-        source: 'renderer',
-        message: '当前回复已停止。',
-        messageCount: messages.length,
-        messages,
-        latestAssistantText: null,
-        outputText: null,
-      };
-      return {
-        ...current,
-        chat,
-        turn: turnStatusFromChat(chat),
-        composer: {
-          ...current.composer,
-          submitState: 'failed',
-          reasonCode: chat.reasonCode,
-          actionHint: chat.actionHint,
-          source: chat.source,
-          message: chat.message,
-        },
-      };
-    });
+  async function handleSubmit(textInput: string, attachment?: ZhiyuRuntimeAgentChatAttachment, retryOfTurnId?: string) {
+    if (submissionBusy.current === currentScope.current || (!retryOfTurnId && persistence.submission)) return;
+    const agentHandle = evidence.conversation.agentHandle;
+    const conversationAnchorId = evidence.conversation.conversationAnchorId;
+    if (!agentHandle || !conversationAnchorId) return;
+    const scope = currentScope.current;
+    const text = textInput.trim();
+    if (!text && !attachment && !retryOfTurnId) return;
+    setSubmissionError(null);
+    setSubmitting(true);
+    submissionBusy.current = scope;
+    let prepared = false;
+    try {
+      const requestId = await bindings.app.commands.allocateTurnRequestId();
+      const uploaded = attachment ? await bindings.app.commands.conversation().uploadAttachment({ agentHandle, conversationAnchorId, ...attachment }) : null;
+      if (scope !== currentScope.current) return;
+      const submission: AgentPendingSubmission = { requestId, conversationAnchorId, text, artifactIds: uploaded ? [uploaded.artifactId] : [], ...(retryOfTurnId ? { retryOfTurnId } : {}) };
+      const revision = composerDraft.revision;
+      await persistence.prepare(submission);
+      if (scope !== currentScope.current) return;
+      prepared = true;
+      if (!retryOfTurnId && composerDraft.revision === revision) { composerDraft.current = ''; setDraft(''); }
+      if (submissionBusy.current === scope) submissionBusy.current = null;
+      await submitPending(submission);
+    } catch (error) {
+      if (scope !== currentScope.current) return;
+      // A definite admission rejection must reach Composer unchanged so its
+      // text and attachment remain available for the next explicit attempt.
+      if (prepared) throw error;
+      logRendererEvent({ level: 'warn', area: 'zhiyu-chat', message: 'submission-preparation-failed', details: { ...extractNimiErrorFields(error instanceof Error ? error.cause ?? error : error), detail: error instanceof Error && error.cause instanceof Error ? error.cause.message : undefined } });
+      throw new Error(error instanceof AgentSubmissionSaveError ? '消息尚未发送：暂时无法保存。输入仍在，请稍后重试。' : '消息尚未发送，原输入已保留，请重试。', { cause: error }); // Keep the composer attachment when upload/save never reached admission.
+    } finally {
+      if (submissionBusy.current === scope) submissionBusy.current = null;
+      if (scope === currentScope.current) setSubmitting(false);
+    }
+  }
+
+  async function handleStopChat() {
+    const agentHandle = evidence.conversation.agentHandle;
+    const conversationAnchorId = evidence.conversation.conversationAnchorId;
+    const expectedTurnId = evidence.chat.textTurnId;
+    const scope = currentScope.current;
+    if (!agentHandle || !conversationAnchorId || !expectedTurnId) return;
+    try {
+      await bindings.app.commands.conversation().interruptTurn({ agentHandle, conversationAnchorId, expectedTurnId });
+    } catch {
+      if (scope === currentScope.current) setSubmissionError('尚未确认停止结果，正在重新读取。已收到的内容会保留。');
+    } finally { if (scope === currentScope.current) await observationRef.current?.refresh(); }
   }
 
   function handleSelectLocalAgent(agentHandle: NimiLocalAppAgentHandle) {
-    activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
     agentCenterSession?.invalidate();
     agentCenterSession?.dispose();
     const initial = createInitialZhiyuEvidence();
@@ -614,12 +451,41 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       product={product}
       draft={draft}
       submitEnabled={submitEnabled}
+      submitting={submitting}
       composerState={composerState}
+      draftSaveStatus={persistence.status}
+      onRetryDraftSave={persistence.retry}
+      interactionNotice={submissionError}
+      connectionStatus={connectionStatus}
+      pendingSubmission={persistence.submission}
+      onAcknowledgeSubmission={persistence.acknowledge}
+      onRestoreSubmission={text => {
+        if (currentScope.current !== scopeKey || !text) return;
+        const previous = composerDraft.current;
+        const restored = previous && previous !== text ? `${previous}\n\n${text}` : text;
+        composerDraft.current = restored;
+        draftByPartner.current.set(draftKey, restored);
+        setDraft(restored);
+      }}
+      onSubmissionResolved={() => { setSubmissionError(null); void observationRef.current?.refresh(); }}
+      onRefreshConversation={() => { void observationRef.current?.refresh(); }}
+      onRegenerate={() => {
+        if (!evidence.chat.regenerateTurnId) return;
+        void handleSubmit('', undefined, evidence.chat.regenerateTurnId).catch(error => {
+          if (currentScope.current === scopeKey) setSubmissionError(error instanceof Error ? error.message : '暂时无法重新回答，请稍后重试。');
+        });
+      }}
+      conversation={bindings.app.commands.conversation}
       avatarLaunchAction={avatarLaunchAction}
       agentCenterSession={agentCenterSession}
       resourcePackPresentation={resourcePackPresentation}
       resourcePackPlacementKey={readyResourcePackPlacementKey}
-      onDraftChange={value => { draftByPartner.current.set(draftKey, value); setDraft(value); }}
+      onDraftChange={value => {
+        if (currentScope.current !== scopeKey) return;
+        draftByPartner.current.set(draftKey, value);
+        composerDraft.current = value;
+        setDraft(value);
+      }}
       onSubmit={handleSubmit}
       onTranscribeVoice={async (audioBytes, mimeType, signal) => {
         const agentHandle = evidence.conversation.agentHandle;

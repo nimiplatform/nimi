@@ -21,7 +21,7 @@ export type UseAgentConversationHostActionsInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
   bundle: AgentLocalThreadBundle | null;
-  submissionPersistence?: Pick<ReturnType<typeof import('./chat-agent-composer-persistence').useAgentComposerPersistence>, 'prepare' | 'acknowledge'>;
+  submissionPersistence?: Pick<ReturnType<typeof import('@nimiplatform/kit/features/chat/headless').useAgentComposerPersistence>, 'prepare' | 'acknowledge'>;
   currentComposerTextRef: { current: string; readonly revision?: number };
   pendingAttachments?: readonly PendingAttachment[];
   queryClient: QueryClient;

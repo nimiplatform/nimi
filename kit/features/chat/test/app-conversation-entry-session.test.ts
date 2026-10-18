@@ -69,9 +69,11 @@ function snapshot(input: {
 } = {}): NimiLocalAppConversationSnapshot {
   return {
     conversationAnchorId: 'anchor-a',
+    state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
     throughSequence: input.throughSequence ?? '2',
     turns: [{
       turnId: 'turn-1',
+      origin: 'user', requestId: null, retryOfTurnId: null, inputTurnId: null, canRegenerate: false,
       status: 'completed',
       phase: 'started',
       terminalReason: 'stop',
@@ -80,6 +82,7 @@ function snapshot(input: {
     }],
     messages: input.messages ?? [{
       messageId: 'message-1',
+      partial: false,
       turnId: 'turn-1',
       role: 'assistant',
       parts: [{ kind: 'text', text: 'Committed snapshot text' }],
@@ -228,7 +231,7 @@ describe('App Conversation entry session', () => {
     await readySession(testHarness);
     const before = testHarness.session.getState().messages;
     const accepted = await testHarness.session.send({ requestId: 'refused-input', parts: [{ kind: 'text', text: 'synthetic input' }] });
-    testHarness.queue.push({ type: 'turn-accepted', conversationAnchorId: 'anchor-a', sequence: '3', turnId: accepted.turnId });
+    testHarness.queue.push({ type: 'turn-accepted', requestId: null, origin: 'user', conversationAnchorId: 'anchor-a', sequence: '3', turnId: accepted.turnId });
     testHarness.queue.push({ type: 'turn-failed', conversationAnchorId: 'anchor-a', sequence: '4', turnId: accepted.turnId, reasonCode: 'AI_CONTENT_FILTER_BLOCKED', message: null });
     await vi.waitFor(() => expect(testHarness.session.getState().lastTurnFailure?.turnId).toBe(accepted.turnId));
     expect(testHarness.session.getState()).toMatchObject({ status: 'ready', activeTurnId: null, messages: before });
@@ -258,6 +261,7 @@ describe('App Conversation entry session', () => {
       turnId: 'turn-1',
       message: {
         messageId: 'stale-message',
+        partial: false,
         turnId: 'turn-1',
         role: 'assistant',
         parts: [{ kind: 'text', text: 'Must be fenced' }],
@@ -270,6 +274,7 @@ describe('App Conversation entry session', () => {
       turnId: 'turn-1',
       message: {
         messageId: 'message-image',
+        partial: false,
         turnId: 'turn-1',
         role: 'assistant',
         parts: [{ kind: 'text', text: 'Visible image caption' }, {
@@ -284,6 +289,8 @@ describe('App Conversation entry session', () => {
     snapshotGate.resolve(snapshot());
     await selecting;
 
+    await vi.waitFor(() => expect(testHarness.session.getState().throughSequence).toBe('3'));
+    await vi.waitFor(() => expect(testHarness.session.getState().messages.some(message => message.metadata?.mediaUrl)).toBe(true));
     const state = testHarness.session.getState();
     expect(state.status).toBe('ready');
     expect(state.throughSequence).toBe('3');
@@ -316,6 +323,9 @@ describe('App Conversation entry session', () => {
       requestId: 'request-send-1',
       parts: [{ kind: 'text', text: 'Hello' }],
     });
+    testHarness.queue.push({ type: 'state-changed', conversationAnchorId: 'anchor-a', sequence: '3',
+      state: { textTurnId: 'turn-2', followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null } });
+    await vi.waitFor(() => expect(testHarness.session.getState().activeTurnId).toBe('turn-2'));
     await testHarness.session.interrupt();
     expect(testHarness.session.getState().messages).toEqual(before);
     expect(testHarness.calls).toContainEqual({
@@ -329,7 +339,7 @@ describe('App Conversation entry session', () => {
     });
     expect(testHarness.calls).toContainEqual({
       method: 'interrupt',
-      input: { agentHandle: HANDLE_A, conversationAnchorId: 'anchor-a' },
+      input: { agentHandle: HANDLE_A, conversationAnchorId: 'anchor-a', expectedTurnId: 'turn-2' },
     });
   });
 
@@ -368,7 +378,7 @@ describe('App Conversation entry session', () => {
       status: 'ready',
       conversationAnchorId: 'anchor-a',
       throughSequence: '4',
-      activeTurnId: 'turn-gap',
+      activeTurnId: null,
     });
     expect(testHarness.session.getState().messages).toHaveLength(1);
   });
@@ -384,6 +394,7 @@ describe('App Conversation entry session', () => {
           throughSequence: snapshotRead === 1 ? '2' : '5',
           messages: snapshotRead === 1 ? undefined : [{
             messageId: 'message-rehydrated',
+            partial: false,
             turnId: 'turn-5',
             role: 'assistant',
             parts: [{ kind: 'text', text: 'Fresh committed truth' }],
@@ -578,6 +589,7 @@ describe('App Conversation entry session', () => {
         throughSequence: '1',
         messages: [{
           messageId: 'message-image',
+          partial: false,
           turnId: 'turn-1',
           role: 'assistant',
           parts: [{

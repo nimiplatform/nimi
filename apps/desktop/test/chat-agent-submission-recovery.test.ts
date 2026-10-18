@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createRequire } from 'node:module';
-import { reconcileAgentSubmission } from '../src/shell/renderer/features/chat/chat-agent-submission-recovery.js';
+import { reconcileAgentSubmission } from '@nimiplatform/kit/features/chat/headless';
 
 test('explicit recovery uses one same-ID Send without requiring a snapshot',async()=>{
  const calls: unknown[]=[];

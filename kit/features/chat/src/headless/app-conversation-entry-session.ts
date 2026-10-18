@@ -1,11 +1,11 @@
+import { observeLocalAppConversation, type LocalAppConversationObservation } from './local-app-conversation-session.js';
+import { localAppConversationMessageState, type CanonicalConversationProjection } from './local-app-conversation-projection.js';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
   NimiLocalAppClient,
-  NimiLocalAppConversationEvent,
   NimiLocalAppConversationInputPart,
   NimiLocalAppConversationMessage,
-  NimiLocalAppConversationSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ConversationCanonicalMessage } from '../types.js';
 
@@ -148,12 +148,10 @@ type ActiveEntrySession = {
   readonly epoch: number;
   readonly reference: NimiLocalAppAgentReference;
   readonly conversationAnchorId: string;
-  subscription: Awaited<ReturnType<NimiLocalAppClient['conversation']['subscribe']>>;
-  readonly pendingEvents: NimiLocalAppConversationEvent[];
+  observation: LocalAppConversationObservation | null;
   readonly previews: Map<string, Extract<AppConversationHostPreviewResult, { status: 'ready' }>>;
-  initialized: boolean;
-  recovering: boolean;
-  throughSequence: bigint;
+  readonly previewRequests: Set<string>;
+  settle: () => void;
 };
 
 const EMPTY_STATE: AppConversationEntryState = Object.freeze({
@@ -174,28 +172,6 @@ const EMPTY_STATE: AppConversationEntryState = Object.freeze({
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message.trim() : fallback;
-}
-
-function retryableConversationOverflow(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const record = error as Record<string, unknown>;
-  const details = record.details && typeof record.details === 'object' && !Array.isArray(record.details)
-    ? record.details as Record<string, unknown>
-    : {};
-  const retryable = record.retryable === true || details.retryable === true;
-  const code = String(record.code || '').trim().toLowerCase();
-  const reasonCode = String(record.reasonCode || '').trim();
-  return retryable && (code === 'resource-exhausted'
-    || reasonCode === 'renderer-local-app-conversation-buffer-exhausted');
-}
-
-function parseSequence(value: string): bigint | null {
-  if (!/^(?:0|[1-9][0-9]*)$/u.test(value)) return null;
-  try {
-    return BigInt(value);
-  } catch {
-    return null;
-  }
 }
 
 function freezeState(state: AppConversationEntryState): AppConversationEntryState {
@@ -252,18 +228,6 @@ function projectCommittedMessage(input: {
   });
 }
 
-function replaceCommittedMessage(
-  messages: readonly ConversationCanonicalMessage[],
-  message: ConversationCanonicalMessage,
-): readonly ConversationCanonicalMessage[] {
-  const index = messages.findIndex((candidate) => candidate.id === message.id);
-  if (index < 0) return Object.freeze([...messages, message]);
-  return Object.freeze(messages.map((candidate, candidateIndex) => (
-    candidateIndex === index ? message : candidate
-  )));
-}
-
-// @nimi-authority: rule.nimi.runtime.agent-participation.r176
 export function createAppConversationEntrySession(input: Readonly<{
   client: AppConversationEntryClient;
   hostPort: AppConversationHostPort;
@@ -306,7 +270,8 @@ export function createAppConversationEntrySession(input: Readonly<{
     if (!previous) return;
     let cancelError: unknown = null;
     try {
-      await previous.subscription.cancel();
+      previous.observation?.close();
+      previous.settle();
     } catch (error) {
       cancelError = error;
     }
@@ -320,23 +285,8 @@ export function createAppConversationEntrySession(input: Readonly<{
     message: string,
   ) => {
     if (active !== session || disposed) return;
-    active = null;
-    epoch += 1;
-    publish({
-      ...state,
-      status,
-      conversationAnchorId: null,
-      throughSequence: null,
-      activeTurnId: null,
-      truncatedBefore: false,
-      messages: Object.freeze([]),
-      pendingAttachment: null,
-      recording: false,
-      error: message,
-      actionError: null,
-    });
-    void session.subscription.cancel().catch(() => {});
-    void releaseHostMechanics(session);
+    publish({ ...state, status, error: message });
+    session.settle();
   };
 
   const materializeCommittedMessage = async (
@@ -399,185 +349,36 @@ export function createAppConversationEntrySession(input: Readonly<{
     });
   };
 
-  const hydrateSession = async (
-    session: ActiveEntrySession,
-    activeTurnFallback: string | null,
-  ): Promise<boolean> => {
-    const snapshot = await input.client.conversation.snapshot({
-      agentHandle: session.reference.agentHandle,
-      conversationAnchorId: session.conversationAnchorId,
+  const projectSession = (session: ActiveEntrySession, projection: CanonicalConversationProjection) => {
+    if (active !== session || disposed || session.epoch !== epoch) return;
+    const messages = projection.messages.map(message => {
+      const presentation = localAppConversationMessageState(projection, message);
+      const mapped = projectCommittedMessage({ reference: session.reference, conversationAnchorId: session.conversationAnchorId,
+        message, mediaUrl: session.previews.get(message.messageId)?.mediaUrl });
+      return { ...mapped, status: message.partial ? presentation.textPending ? 'streaming' as const : presentation.stopped ? 'canceled' as const : 'error' as const : 'complete' as const,
+        metadata: { ...mapped.metadata, canonicalPartial: message.partial, canonicalMediaRunning: presentation.mediaRunning } };
     });
-    if (active !== session || disposed || session.epoch !== epoch) return false;
-    if (snapshot.conversationAnchorId !== session.conversationAnchorId) {
-      markSessionFailure(session, 'stale', 'Conversation snapshot no longer belongs to the active session.');
-      return false;
+    for (const turn of projection.turns) {
+      const transient = projection.transientByTurn[turn.turnId];
+      if (!transient || projection.messages.some(message => message.turnId === turn.turnId && message.role === 'assistant' && message.parts.some(part => part.kind === 'text'))) continue;
+      messages.push({ id: `canonical-turn:${turn.turnId}`, sessionId: session.conversationAnchorId, targetId: session.reference.agentHandle,
+        source: 'agent', role: 'assistant', text: transient.text, createdAt: '', kind: 'text',
+        status: turn.status === 'active' ? 'streaming' : 'error', metadata: { canonicalPartial: true, canonicalMediaRunning: false } });
     }
-    const throughSequence = parseSequence(snapshot.throughSequence);
-    if (throughSequence === null) {
-      markSessionFailure(session, 'stale', 'Conversation snapshot high-water is invalid.');
-      return false;
-    }
-    let messages: readonly ConversationCanonicalMessage[];
-    try {
-      const messageIds = new Set<string>();
-      const projectedMessages: ConversationCanonicalMessage[] = [];
-      for (const message of snapshot.messages) {
-        if (messageIds.has(message.messageId)) {
-          throw new Error('Canonical Conversation snapshot contains duplicate committed messages.');
-        }
-        messageIds.add(message.messageId);
-        const projected = await materializeCommittedMessage(session, message);
-        if (!projected) return false;
-        projectedMessages.push(projected);
-      }
-      messages = Object.freeze(projectedMessages);
-    } catch (error) {
-      markSessionFailure(session, 'failed', errorMessage(error, 'Conversation snapshot is invalid.'));
-      return false;
-    }
-    session.throughSequence = throughSequence;
-    const snapshotActiveTurn = snapshot.turns.find((turn) => turn.status === 'active')?.turnId
-      ?? activeTurnFallback;
-    publish({
-      status: 'ready',
-      references: state.references,
-      selectedReference: session.reference,
-      conversationAnchorId: session.conversationAnchorId,
-      throughSequence: snapshot.throughSequence,
-      activeTurnId: snapshotActiveTurn,
-      truncatedBefore: snapshot.truncatedBefore,
-      messages,
-      pendingAttachment: null,
-      recording: false,
-      error: null,
-      actionError: null,
-      lastTurnFailure: null,
-    });
-    for (let index = 0; index < session.pendingEvents.length; index += 1) {
-      const pendingEvent = session.pendingEvents[index];
-      if (!pendingEvent || active !== session || !await applyEvent(session, pendingEvent)) return false;
-    }
-    session.pendingEvents.length = 0;
-    session.initialized = true;
-    return true;
-  };
-
-  const applyEvent = async (
-    session: ActiveEntrySession,
-    event: NimiLocalAppConversationEvent,
-  ): Promise<boolean> => {
-    if (event.conversationAnchorId !== session.conversationAnchorId) {
-      markSessionFailure(session, 'stale', 'Conversation event no longer belongs to the active session.');
-      return false;
-    }
-    const eventSequence = parseSequence(event.sequence);
-    if (eventSequence === null) {
-      markSessionFailure(session, 'stale', 'Conversation event sequence is invalid.');
-      return false;
-    }
-    if (eventSequence <= session.throughSequence) return true;
-    let messages = state.messages;
-    let activeTurnId = state.activeTurnId;
-    let lastTurnFailure = state.lastTurnFailure;
-    if (event.type === 'message-committed') {
-      if (event.message.turnId !== event.turnId) {
-        markSessionFailure(session, 'stale', 'Conversation message linkage is invalid.');
-        return false;
-      }
-      try {
-        const projected = await materializeCommittedMessage(session, event.message);
-        if (!projected) return false;
-        messages = replaceCommittedMessage(messages, projected);
-      } catch (error) {
-        markSessionFailure(
-          session,
-          'failed',
-          errorMessage(error, 'Committed Conversation image could not be materialized.'),
-        );
-        return false;
-      }
-    } else if (event.type === 'turn-accepted' || event.type === 'turn-started') {
-      activeTurnId = event.turnId;
-      lastTurnFailure = null;
-    } else if (
-      (event.type === 'turn-completed'
-        || event.type === 'turn-failed'
-        || event.type === 'turn-interrupted')
-      && activeTurnId === event.turnId
-    ) {
-      activeTurnId = null;
-      if (event.type === 'turn-failed') lastTurnFailure = { turnId: event.turnId, reasonCode: event.reasonCode };
-    }
-    session.throughSequence = eventSequence;
-    publish({
-      ...state,
-      status: 'ready',
-      throughSequence: event.sequence,
-      activeTurnId,
-      messages,
-      lastTurnFailure,
-      error: null,
-    });
-    return true;
-  };
-
-  const consumeEvents = async (session: ActiveEntrySession): Promise<void> => {
-    try {
-      for await (const event of session.subscription) {
-        if (active !== session || disposed) return;
-        if (!session.initialized) {
-          session.pendingEvents.push(event);
-          continue;
-        }
-        if (!await applyEvent(session, event)) return;
-      }
-      if (active === session && !disposed) {
-        markSessionFailure(session, 'failed', 'Conversation subscription ended before the session was closed.');
-      }
-    } catch (error) {
-      if (active === session && !disposed) {
-        if (retryableConversationOverflow(error) && !session.recovering) {
-          await recoverConversationOverflow(session);
-          return;
-        }
-        markSessionFailure(
-          session,
-          'failed',
-          errorMessage(error, 'Conversation subscription is unavailable.'),
-        );
-      }
-    }
-  };
-
-  const recoverConversationOverflow = async (session: ActiveEntrySession): Promise<void> => {
-    if (active !== session || disposed || session.recovering) return;
-    session.recovering = true;
-    const previousSubscription = session.subscription;
-    try {
-      await previousSubscription.cancel().catch(() => undefined);
-      const replacement = await input.client.conversation.subscribe({
-        agentHandle: session.reference.agentHandle,
-        conversationAnchorId: session.conversationAnchorId,
+    const failed = [...projection.turns].reverse().find(turn => turn.status === 'failed');
+    publish({ ...state, status: 'ready', conversationAnchorId: projection.conversationAnchorId,
+      throughSequence: projection.throughSequence, activeTurnId: projection.state.textTurnId,
+      messages, truncatedBefore: projection.truncatedBefore, error: null,
+      lastTurnFailure: failed?.reasonCode ? { turnId: failed.turnId, reasonCode: failed.reasonCode } : null });
+    for (const message of projection.messages) {
+      if (!message.parts.some(part => part.kind === 'artifact-ref') || session.previewRequests.has(message.messageId)) continue;
+      session.previewRequests.add(message.messageId);
+      void materializeCommittedMessage(session, message).then(preview => {
+        if (!preview || active !== session || disposed) return;
+        publish({ ...state, messages: state.messages.map(value => value.id === message.messageId ? { ...value, metadata: { ...value.metadata, ...preview.metadata } } : value) });
+      }).catch(error => {
+        if (active === session && !disposed) publishActionError(error, 'Image preview is unavailable. Text is kept.');
       });
-      if (active !== session || disposed || session.epoch !== epoch) {
-        await replacement.cancel().catch(() => undefined);
-        return;
-      }
-      session.subscription = replacement;
-      session.pendingEvents.length = 0;
-      session.initialized = false;
-      void consumeEvents(session);
-      await hydrateSession(session, state.activeTurnId);
-    } catch (error) {
-      if (active === session && !disposed) {
-        markSessionFailure(
-          session,
-          'failed',
-          errorMessage(error, 'Conversation subscription could not recover from overflow.'),
-        );
-      }
-    } finally {
-      session.recovering = false;
     }
   };
 
@@ -644,26 +445,22 @@ export function createAppConversationEntrySession(input: Readonly<{
         agentHandle: reference.agentHandle,
         conversationAnchorId: opened.conversationAnchorId,
       } as const;
-      // Subscribe first so no event can fall between open and snapshot.
-      const subscription = await input.client.conversation.subscribe(scope);
-      if (disposed || currentEpoch !== epoch) {
-        await subscription.cancel();
-        return;
-      }
       const session: ActiveEntrySession = {
-        epoch: currentEpoch,
-        reference,
-        conversationAnchorId: opened.conversationAnchorId,
-        subscription,
-        pendingEvents: [],
-        previews: new Map(),
-        initialized: false,
-        recovering: false,
-        throughSequence: 0n,
+        epoch: currentEpoch, reference, conversationAnchorId: opened.conversationAnchorId,
+        observation: null, previews: new Map(), previewRequests: new Set(), settle: () => {},
       };
       active = session;
-      void consumeEvents(session);
-      await hydrateSession(session, opened.activeTurnId);
+      await new Promise<void>(resolve => {
+        session.settle = resolve;
+        session.observation = observeLocalAppConversation({ conversation: input.client.conversation, scope,
+          onProjection: projection => projectSession(session, projection),
+          onStatus: (status, error) => {
+            if (active !== session || disposed) return;
+            if (status === 'error') markSessionFailure(session, 'failed', errorMessage(error, 'Conversation connection is unavailable.'));
+            if (status === 'ready' || status === 'error') resolve();
+          },
+        });
+      });
     } catch (error) {
       if (disposed || currentEpoch !== epoch) return;
       const session = active;
@@ -732,7 +529,9 @@ export function createAppConversationEntrySession(input: Readonly<{
     try {
       session = requireReadySession();
       publish({ ...state, actionError: null });
+      if (!state.activeTurnId) throw new Error('There is no active text turn to stop.');
       await input.client.conversation.interruptTurn({
+        expectedTurnId: state.activeTurnId,
         agentHandle: session.reference.agentHandle,
         conversationAnchorId: session.conversationAnchorId,
       });

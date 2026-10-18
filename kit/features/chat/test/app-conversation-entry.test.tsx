@@ -71,9 +71,11 @@ function entryHarness() {
         calls.push({ method: 'snapshot', input });
         return {
           conversationAnchorId: 'anchor-a',
+          state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
           throughSequence: '1',
           turns: [{
             turnId: 'turn-1',
+            origin: 'user' as const, requestId: null, retryOfTurnId: null, inputTurnId: null, canRegenerate: false,
             status: 'completed' as const,
             phase: 'started' as const,
             terminalReason: 'stop',
@@ -82,6 +84,7 @@ function entryHarness() {
           }],
           messages: [{
             messageId: 'message-1',
+            partial: false,
             turnId: 'turn-1',
             role: 'assistant' as const,
             parts: [{ kind: 'text' as const, text: '已提交消息' }],
@@ -188,7 +191,7 @@ describe('AppConversationEntry', () => {
     await write('Earlier failed input');
     await act(async () => (container!.querySelector('[data-chat-composer-send]') as HTMLButtonElement).click());
     await flush();
-    await act(async () => harness.emit({ type: 'turn-accepted', sequence: '3', conversationAnchorId: 'anchor-a', turnId: 'turn-2' }));
+    await act(async () => harness.emit({ type: 'turn-accepted', requestId: null, origin: 'user', sequence: '3', conversationAnchorId: 'anchor-a', turnId: 'turn-2' }));
     await write('Keep this new draft');
     await act(async () => harness.emit({ type: 'turn-failed', sequence: '4', conversationAnchorId: 'anchor-a', turnId: 'turn-2', reasonCode: 'AI_CONTENT_FILTER_BLOCKED', message: null }));
     await flush();

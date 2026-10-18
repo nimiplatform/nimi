@@ -22,7 +22,6 @@ import type { ZhiyuLocalAgentStatus } from '../shell/agent/local-agent-status.js
 import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake.js';
 import { projectZhiyuRuntimeSourceProjection } from '../shell/agent/source-projection.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
-import { runZhiyuAgentChatTurn, zhiyuArtifactDataUrl } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { createZhiyuAvatarHostHandoffPort } from '../shell/avatar/avatar-host-handoff-port.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
@@ -35,7 +34,6 @@ import {
 import { probeZhiyuRuntimeStatus } from '../shell/runtime/runtime-status.js';
 import { createZhiyuProductionTurnRequestId } from './turn-request-id.js';
 import { resolveZhiyuProductionAgentCenterBinding } from './agent-center-adapters.js';
-import { hydrateZhiyuProductionConversation } from './conversation-hydration.js';
 import { subscribeZhiyuAmbientConversation } from '../shell/agent-chat/ambient-conversation-subscription.js';
 import {
   acknowledgeZhiyuResourcePackPlacement,
@@ -153,11 +151,6 @@ async function loadHome(
   };
 }
 
-async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
-  const client = getZhiyuLocalAppClient();
-  return hydrateZhiyuProductionConversation(input, client.conversation);
-}
-
 export function createZhiyuProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
   options: { readonly avatarHostPort?: AvatarHostHandoffPort } = {},
@@ -177,14 +170,14 @@ export function createZhiyuProductionBindings(
         ) => loadHome(input, avatarHostPort),
         loadAgentInventory: probeZhiyuRuntimeAgentInventory,
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
-        hydrateConversation,
         resolveResourcePackPlacementTarget: resolveZhiyuResourcePackPlacementTarget,
       }),
       commands: Object.freeze({
         async allocateTurnRequestId() {
           return createZhiyuProductionTurnRequestId();
         },
-        runTurn: runZhiyuAgentChatTurn,
+        conversation: () => getZhiyuLocalAppClient().conversation,
+        draftClient: getZhiyuLocalAppClient,
         async transcribeVoice(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[0], options?: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[1]) {
           return getZhiyuLocalAppClient().conversation.transcribeVoice(input, options);
         },
@@ -199,26 +192,10 @@ export function createZhiyuProductionBindings(
         subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
 			const conversation = getZhiyuLocalAppClient().conversation;
           return subscribeZhiyuAmbientConversation({
-			conversation,
-            identity: {
-              agentHandle: input.agentHandle as NimiLocalAppAgentHandle,
-              conversationAnchorId: input.conversationAnchorId,
-            },
-			hydrate: async () => (await hydrateZhiyuProductionConversation({
-				agentHandle: input.agentHandle,
-				conversationAnchorId: input.conversationAnchorId,
-				currentSource: input.currentSource,
-				currentChat: input.currentChat,
-			}, conversation)).chat,
-			resolveArtifactUrl: async (artifactId) => {
-				const artifact = await conversation.readArtifact({
-					agentHandle: input.agentHandle,
-					conversationAnchorId: input.conversationAnchorId,
-					artifactId,
-				});
-				return zhiyuArtifactDataUrl(artifact.bytes, artifact.mimeType);
-			},
+            conversation,
+            identity: { agentHandle: input.agentHandle, conversationAnchorId: input.conversationAnchorId },
             onChat: input.onChat,
+            onStatus: input.onStatus,
           });
         },
         subscribeResourcePackPlacement: subscribeZhiyuResourcePackPlacement,

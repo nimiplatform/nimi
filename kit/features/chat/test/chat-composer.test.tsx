@@ -37,6 +37,41 @@ afterEach(async () => {
 });
 
 describe('ChatComposer', () => {
+  it('does not clear a replacement conversation when an old submit finishes', async () => {
+    let finish!: () => void;
+    const oldSubmit = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const oldTextChange = vi.fn();
+    const oldAttachmentsChange = vi.fn();
+    const nextTextChange = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(<ChatComposer key="old" text="old question"
+        attachments={[{ id: 'image' }]} onAttachmentsChange={oldAttachmentsChange}
+        adapter={{ submit: oldSubmit }} onTextChange={oldTextChange} />);
+      await flush();
+    });
+    await act(async () => {
+      container?.querySelector('textarea')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await flush();
+    });
+    expect(oldSubmit).toHaveBeenCalledOnce();
+    await act(async () => {
+      root?.render(<ChatComposer key="next" text="new partner draft"
+        adapter={{ submit: async () => {} }} onTextChange={nextTextChange} />);
+      await flush();
+    });
+    await act(async () => {
+      finish();
+      await flush();
+    });
+    expect(container.querySelector('textarea')?.value).toBe('new partner draft');
+    expect(oldTextChange).not.toHaveBeenCalled();
+    expect(oldAttachmentsChange).not.toHaveBeenCalled();
+    expect(nextTextChange).not.toHaveBeenCalled();
+  });
+
   it('submits on Enter and trims payload', async () => {
     const submit = vi.fn(async () => {});
     container = document.createElement('div');

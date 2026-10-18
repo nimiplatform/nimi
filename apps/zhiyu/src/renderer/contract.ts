@@ -9,7 +9,8 @@ import type {
   NimiLocalAppAgentHandle,
 } from '@nimiplatform/sdk/app';
 
-import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
+import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import type { LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuDesktopOpenActionResult } from '../shell/desktop-open/desktop-open-action.js';
@@ -54,12 +55,6 @@ export interface ZhiyuRendererProjectionPort {
     conversation: ZhiyuEvidence['conversation'],
     inventory: ZhiyuEvidence['inventory'],
   ): ZhiyuEvidence['turn'];
-  hydrateConversation(input: {
-    readonly agentHandle: NimiLocalAppAgentHandle;
-    readonly conversationAnchorId: string;
-    readonly currentSource: ZhiyuEvidence['source'];
-    readonly currentChat: ZhiyuEvidence['chat'];
-  }): Promise<Pick<ZhiyuEvidence, 'source' | 'chat'>>;
   resolveResourcePackPlacementTarget?(input: {
     readonly agentHandle: string;
     readonly isCurrent: () => boolean;
@@ -68,7 +63,8 @@ export interface ZhiyuRendererProjectionPort {
 
 export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
-  runTurn(input: ZhiyuRuntimeAgentChatTurnInput): Promise<ZhiyuRuntimeAgentChatTurnResult>;
+  conversation(): NimiLocalAppClient['conversation'];
+  draftClient(): Pick<NimiLocalAppClient, 'agents' | 'storage'>;
   transcribeVoice(input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
@@ -90,10 +86,9 @@ export interface ZhiyuRendererEventPort {
   subscribeConversation(input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
-	readonly currentSource: ZhiyuEvidence['source'];
-	readonly currentChat: ZhiyuEvidence['chat'];
     readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
-  }): () => void;
+    readonly onStatus?: (status: 'loading' | 'ready' | 'error', error?: unknown) => void;
+  }): LocalAppConversationObservation;
   subscribeResourcePackPlacement?(
     listener: (request: ZhiyuResourcePackPlacementRequest) => void,
   ): () => void;

@@ -739,6 +739,7 @@
   "followUpRefresh": "Refresh status",
   "agentDraftUnavailableForSubmission": "Draft storage is not ready. Your text is kept; try again shortly.",
   "agentStopReplyMedia": "Stop media for this reply",
+  "agentStopMediaUnconfirmed": "Could not confirm the stop. Try again shortly.",
   "agentPartialReplyKept": "Incomplete reply. Partial text kept.",
   "agentReplyIncomplete": "The reply did not complete.",
   "agentIntegrationUnsupported": "This configuration and integration cannot handle this request yet. Open Agent Center to choose another model configuration.",

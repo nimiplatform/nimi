@@ -1,4 +1,4 @@
-import { AgentSubmissionSaveError } from './chat-agent-composer-persistence.js';
+import { AgentSubmissionSaveError } from '@nimiplatform/kit/features/chat/headless';
 import { chatRuntimeReasonCodeMessage, toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type { TFunction } from 'i18next';
 export { streamChatAgentRuntimeAgentTurn } from './chat-agent-runtime-agent';

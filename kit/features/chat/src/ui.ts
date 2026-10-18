@@ -101,3 +101,11 @@ export { AgentActivityReferences, type AgentActivityReferencesProps } from './co
 
 export { AgentIntroduction } from './components/agent-introduction.js';
 export type { AgentIntroductionProps } from './components/agent-introduction.js';
+
+export { LocalAppConversationVoiceButton } from './components/local-app-conversation-voice-button.js';
+
+export { LocalAppConversationFollowUpControl } from './components/local-app-conversation-follow-up-control.js';
+
+export { LocalAppConversationSubmissionRecovery } from './components/local-app-conversation-submission-recovery.js';
+
+export { LocalAppConversationMediaStopButton } from './components/local-app-conversation-media-stop-button.js';

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
-import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
+import type { NimiLocalAppClient } from '@nimiplatform/kit/core/sdk-contract';
+import { extractNimiErrorFields } from '@nimiplatform/kit/core/sdk-contract';
 
 type DraftRef = { current: string; readonly revision: number };
 type Storage = Pick<NimiLocalAppClient['storage'], 'readJson' | 'writeJson'>;
@@ -49,7 +49,7 @@ function readSubmission(value: unknown): AgentPendingSubmission | null {
 
 export type AgentDraftSaveStatus = 'loading' | 'saving' | 'saved' | 'unsaved';
 
-// @nimi-authority: rule.nimi.desktop.agent-projection.composer-draft
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-061
 export function createAgentComposerPersistence(input: {
   agentBinding: string;
   draft: DraftRef;
@@ -138,7 +138,10 @@ export function createAgentComposerPersistence(input: {
           text = record.draft;
           restoredSubmission = readSubmission(record.submission);
         } catch (error) {
-          if (extractNimiErrorFields(error).reasonCode !== 'APP_STORAGE_ENTRY_NOT_FOUND')
+          const fields = extractNimiErrorFields(error);
+          // Protected App carriers expose the bounded storage miss as not-found;
+          // Home's typed carrier retains the exact Runtime reason. Both mean no saved draft.
+          if (fields.reasonCode !== 'APP_STORAGE_ENTRY_NOT_FOUND' && fields.code !== 'not-found')
             throw error;
         }
         if (!current()) return false;
@@ -225,6 +228,7 @@ export function useAgentComposerPersistence(input: {
   const latest = useRef(input);
   latest.current = input;
   const controller = useRef<ReturnType<typeof createAgentComposerPersistence> | null>(null);
+  const startupError = useRef<unknown>(undefined);
   const [attempt, setAttempt] = useState(0);
   const [pending, setPending] = useState<{ key: string; value: AgentPendingSubmission | null }>({
     key: '',
@@ -249,6 +253,7 @@ export function useAgentComposerPersistence(input: {
     };
     if (!captured.agentHandle || !captured.isCurrent()) return;
     onState('loading');
+    startupError.current = undefined;
     void (async () => {
       const client = captured.client();
       const binding =
@@ -271,7 +276,7 @@ export function useAgentComposerPersistence(input: {
         },
       });
       await controller.current.ready;
-    })().catch(() => onState('unsaved'));
+    })().catch(error => { if (current()) { startupError.current = error; onState('unsaved'); } });
     return () => {
       retired = true;
       controller.current?.close();
@@ -284,7 +289,7 @@ export function useAgentComposerPersistence(input: {
       if (latest.current.scopeKey !== input.scopeKey || !input.isCurrent())
         throw new Error('The selected partner changed.');
       if (!controller.current)
-        throw new AgentSubmissionSaveError();
+        throw new AgentSubmissionSaveError(startupError.current);
       await controller.current.prepare(next);
     },
     acknowledge: async (requestId: string) => {

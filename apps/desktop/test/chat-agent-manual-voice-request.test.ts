@@ -5,8 +5,8 @@ import test from 'node:test';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 
 import {
-  resolveAgentManualVoiceRenderRequest,
-} from '../src/shell/renderer/features/chat/chat-agent-manual-voice-request.js';
+  resolveLocalAppConversationVoiceRequest,
+} from '@nimiplatform/kit/features/chat/headless';
 import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 
 function target(): AgentLocalTargetSnapshot {
@@ -47,9 +47,9 @@ function runtimeAssistantMessage(overrides?: Partial<ConversationCanonicalMessag
 }
 
 test('desktop manual voice request targets a committed Runtime assistant message', () => {
-  assert.deepEqual(resolveAgentManualVoiceRenderRequest({
+  assert.deepEqual(resolveLocalAppConversationVoiceRequest({
     message: runtimeAssistantMessage(),
-    activeTarget: target(),
+    agentHandle: target().agentHandle,
     activeConversationAnchorId: 'anchor-1',
   }), {
     agentHandle: 'agent_ref_test-handle',
@@ -59,17 +59,17 @@ test('desktop manual voice request targets a committed Runtime assistant message
 });
 
 test('desktop manual voice request is absent without Runtime turn identity', () => {
-  assert.equal(resolveAgentManualVoiceRenderRequest({
+  assert.equal(resolveLocalAppConversationVoiceRequest({
     message: runtimeAssistantMessage({ metadata: undefined }),
-    activeTarget: target(),
+    agentHandle: target().agentHandle,
     activeConversationAnchorId: 'anchor-1',
   }), null);
 });
 
 test('desktop manual voice request is absent when anchor identity does not match the active session', () => {
-  assert.equal(resolveAgentManualVoiceRenderRequest({
+  assert.equal(resolveLocalAppConversationVoiceRequest({
     message: runtimeAssistantMessage(),
-    activeTarget: target(),
+    agentHandle: target().agentHandle,
     activeConversationAnchorId: 'anchor-2',
   }), null);
 });
@@ -77,7 +77,7 @@ test('desktop manual voice request is absent when anchor identity does not match
 test('desktop manual voice playback uses only canonical Conversation voice and artifact operations', async () => {
   const source = await readFile(path.resolve(
     import.meta.dirname,
-    '../src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx',
+    '../../../kit/features/chat/src/components/local-app-conversation-voice-button.tsx',
   ), 'utf8');
   assert.match(source, /conversation\.renderVoice\(\{/u);
   assert.match(source, /conversation\.readArtifact\(\{/u);
@@ -94,6 +94,6 @@ test('manual voice excludes uncommitted, partial, user, and legacy debug-only me
     runtimeAssistantMessage({ metadata: { canonicalTurnId: 'turn-1', canonicalConversationAnchorId: 'anchor-1', canonicalPartial: true } }),
     runtimeAssistantMessage({ metadata: { runtimeAgentTurns: { transport: 'runtime.agent.turns', conversationAnchorId: 'anchor-1' } } }),
   ]) {
-    assert.equal(resolveAgentManualVoiceRenderRequest({ message, activeTarget: target(), activeConversationAnchorId: 'anchor-1' }), null);
+    assert.equal(resolveLocalAppConversationVoiceRequest({ message, agentHandle: target().agentHandle, activeConversationAnchorId: 'anchor-1' }), null);
   }
 });

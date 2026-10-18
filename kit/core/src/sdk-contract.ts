@@ -190,7 +190,7 @@ export {
 
 // --- Typed error envelope ---------------------------------------------------
 export type { NimiError } from '@nimiplatform/sdk/types';
-export { asNimiError, createNimiError, isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+export { asNimiError, createNimiError, isNimiError, extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 export { AiVideoPixelFormat } from '@nimiplatform/sdk/runtime/wire-types';
 export { AppActivityOpenLaunchSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 
@@ -428,3 +428,5 @@ export type { NimiAppActivityRecord, NimiLocalAppActivityClient, NimiAppActivity
 export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic, NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 
 export type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit, NimiLocalAppConversationPolicyInput, NimiLocalAppConversationFollowUpInput, NimiLocalAppAgentPendingHookInput } from '@nimiplatform/sdk/app';
+
+export type { NimiLocalAppConversationState, NimiLocalAppConversationAction, NimiLocalAppConversationLiveAction, NimiLocalAppConversationLiveTool, NimiLocalAppConversationTurn, NimiLocalAppConversationVoice } from '@nimiplatform/sdk/app';

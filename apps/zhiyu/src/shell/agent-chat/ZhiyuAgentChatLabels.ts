@@ -18,6 +18,7 @@ export function currentTurnAssistantText(chat: Pick<ZhiyuEvidence['chat'], 'mess
 }
 
 export function chatReplyChipLabel(evidence: ZhiyuEvidence): string {
+  if (evidence.chat.state === 'media-pending') return '文字已完成';
   if (evidence.chat.ready) {
     return '已就绪';
   }

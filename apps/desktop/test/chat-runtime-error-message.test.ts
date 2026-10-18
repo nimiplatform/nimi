@@ -1,4 +1,4 @@
-import { AgentSubmissionSaveError } from '../src/shell/renderer/features/chat/chat-agent-composer-persistence.js';
+import { AgentSubmissionSaveError } from '@nimiplatform/kit/features/chat/headless';
 import { localAgentReplyFailureMessage, toChatAgentRuntimeError } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';

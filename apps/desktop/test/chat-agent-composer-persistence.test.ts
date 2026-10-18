@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { AgentSubmissionSaveError, createAgentComposerPersistence, type AgentDraftSaveStatus } from '../src/shell/renderer/features/chat/chat-agent-composer-persistence.js';
+import { AgentSubmissionSaveError, createAgentComposerPersistence, type AgentDraftSaveStatus } from '@nimiplatform/kit/features/chat/headless';
 
 const BINDING = `agent_binding_${'a'.repeat(43)}`;
 type Storage = Parameters<typeof createAgentComposerPersistence>[0]['storage'];
@@ -274,4 +274,20 @@ test('failed prepare preserves the typed storage cause and leaves no pending sen
  await writer.ready;
  await assert.rejects(writer.prepare({requestId:'request',conversationAnchorId:'anchor',text:'original',artifactIds:[]}),error=>error instanceof AgentSubmissionSaveError && error.cause===cause && error.reasonCode==='APP_STORAGE_QUOTA_EXCEEDED' && error.traceId==='storage-trace');
  assert.equal(pending,null);assert.equal(draft.ref.current,'original');writer.close();
+});
+
+
+test('a protected App storage not-found starts an empty draft without swallowing access denial', async () => {
+  for (const code of ['not-found', 'permission-denied']) {
+    let writes = 0;
+    const draft = { current: '', revision: 0 };
+    const controller = createAgentComposerPersistence({ agentBinding: `agent_binding_${'a'.repeat(43)}`, draft,
+      storage: { readJson: async () => { throw Object.assign(new Error(code), { code, reasonCode: code }); },
+        writeJson: async () => { writes++; return {} as never; } } as never,
+      isCurrent: () => true, subscribe: () => () => {}, onState: () => {}, onRestored: () => {},
+    });
+    assert.equal(await controller.ready, code === 'not-found');
+    assert.equal(writes, 0);
+    controller.close();
+  }
 });

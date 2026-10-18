@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -49,6 +50,11 @@ export function useChatComposer<TAttachment = never>({
   onError,
 }: UseChatComposerOptions<TAttachment>): UseChatComposerResult<TAttachment> {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const [internalText, setInternalText] = useState(initialText);
   const [internalAttachments, setInternalAttachments] = useState<readonly TAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,6 +99,7 @@ export function useChatComposer<TAttachment = never>({
     }
     try {
       const incoming = await attachmentAdapter.openPicker();
+      if (!mounted.current) return;
       if (!incoming || incoming.length === 0) {
         return;
       }
@@ -104,6 +111,7 @@ export function useChatComposer<TAttachment = never>({
         setError(null);
       }
     } catch (nextError) {
+      if (!mounted.current) return;
       setError(nextError instanceof Error ? nextError.message : String(nextError));
       onError?.(nextError);
     }
@@ -121,13 +129,16 @@ export function useChatComposer<TAttachment = never>({
         text: trimmed,
         attachments,
       });
+      // A retired composer must not clear a new conversation's controlled draft.
+      if (!mounted.current) return;
       updateText('');
       updateAttachments([]);
     } catch (nextError) {
+      if (!mounted.current) return;
       setError(nextError instanceof Error ? nextError.message : String(nextError));
       onError?.(nextError);
     } finally {
-      setIsSubmitting(false);
+      if (mounted.current) setIsSubmitting(false);
     }
   }, [adapter, attachments, disabled, isSubmitting, onError, text, updateAttachments, updateText]);
 

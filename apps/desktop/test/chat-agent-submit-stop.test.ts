@@ -5,7 +5,7 @@ import { submitAgentConversationTurn } from '../src/shell/renderer/features/chat
 import {
   createAgentComposerPersistence,
   type AgentPendingSubmission,
-} from '../src/shell/renderer/features/chat/chat-agent-composer-persistence.js';
+} from '@nimiplatform/kit/features/chat/headless';
 
 const TARGET = {
   agentHandle: `agent_ref_${'a'.repeat(43)}`,

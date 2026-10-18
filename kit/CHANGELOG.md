@@ -4,6 +4,19 @@
 
 ## Unreleased
 
+LocalAgent Chat now has shared canonical observation and pending-request helpers
+in `features/chat/headless`, plus reusable voice playback/retry, media stop and follow-up
+controls in `features/chat/ui`. Desktop and Zhiyu consume these owners; App pages,
+navigation and view mapping remain App-owned. `AppConversationEntry`, used by Lab's
+registered `agent-conversation` workspace, delegates observation to the same owner;
+Desktop and Zhiyu do not need to adopt that full composition. Lab's real product
+path is NOT-VERIFIED in this Desktop/Zhiyu iteration, which adds no Lab adaptation.
+Public additions are a minor
+change under the 0.x policy. Existing snapshots must carry `state.textTurnId` and
+message `partial`; active text occupancy is no longer inferred from whole-turn
+activity, and optional image reads do not block the transcript. No runtime
+protocol, data migration, release or new permission is introduced.
+
 Agent Center activity rows display the optional public purpose provided by Runtime.
 This additive optional SDK field does not change task controls or require historical
 task backfill; matching Runtime/native/SDK projections carry it in the existing list.

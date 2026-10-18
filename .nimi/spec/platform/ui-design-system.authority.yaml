@@ -1110,7 +1110,7 @@ units:
     kind: rule
     title: P-KIT-061 chat composition adapter boundary
     modality: must
-    statement: Shared chat remains conversation-shell parity owner outside explicit caller-owned geometry, placement, or flow inputs and neither forks transcript, scroll-root, grouping, or virtualization truth nor widens host-local flow into shared ownership without a separate authority change.
+    statement: "Shared chat remains conversation-shell parity owner outside explicit caller-owned geometry, placement, or flow inputs and neither forks transcript, scroll-root, grouping, or virtualization truth nor widens host-local flow into shared ownership without a separate authority change. Kit Chat also owns reusable LocalAgent Conversation consumption for Desktop and Zhiyu: scoped subscribe-before-snapshot observation, monotonic event reduction, partial text and text-versus-media occupancy projection, bounded observation recovery, and explicit pending-request and optional media interactions through the public SDK. Runtime remains the sole execution, permission, persistence, cancellation and result owner; SDK owns typed calls and transport. Apps retain pages, navigation, partner selection, view-model mapping, storage and host mechanics without duplicating the common Conversation lifecycle; optional controls need not have identical placement or availability. This does not extend LocalAgent semantics to Nimi Chat or App AI Consume, create another durable Conversation, or add automatic request replay."
     condition: Whenever a host composes or adapts the shared chat shell.
     failure: Reject private shell truth or implicit expansion of Kit ownership.
     relations:

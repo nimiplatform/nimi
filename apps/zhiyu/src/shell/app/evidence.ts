@@ -42,7 +42,7 @@ export type ZhiyuConversationActionProjection = {
 export type ZhiyuRuntimeAgentChatStatus = {
   readonly transport: 'electron-ipc';
   readonly ready: boolean;
-  readonly state: 'idle' | 'streaming' | 'completed' | 'failed' | 'canceled';
+  readonly state: 'idle' | 'streaming' | 'media-pending' | 'completed' | 'failed' | 'canceled';
   readonly reasonCode: string;
   readonly actionHint: string;
   readonly source: string;
@@ -52,6 +52,9 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly requestId: string | null;
   readonly runtimeTurnId: string | null;
   readonly runtimeStreamId: string | null;
+  readonly textTurnId?: string | null;
+  readonly controlState?: import('@nimiplatform/sdk/app').NimiLocalAppConversationState;
+  readonly regenerateTurnId?: string | null;
   readonly eventTypes: readonly string[];
   readonly messageCount: number;
   readonly messages: RuntimeAgentConversationProjectionState['messages'];
