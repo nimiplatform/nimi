@@ -583,3 +583,29 @@ func textBehaviorReason(err error) runtimev1.ReasonCode {
 	reason, _ := grpcerr.ExtractReasonCode(err)
 	return reason
 }
+
+func TestSingleSystemConversationUsesExistingPlainPathWithoutChangingExternalOrderedInput(t *testing.T) {
+	for _, target := range []struct {
+		provider, model string
+		ordered         bool
+	}{{"deepseek", "deepseek-v4-flash", true}, {"dashscope", "qwen3-vl-plus", true}, {"dashscope", "qwen3.8-flash", false}} {
+		identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: target.provider, DriverId: "nimillm", DriverDialect: target.provider}
+		plain := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "system", Content: "scoped instructions"}, {Role: "user", Content: "current input"}}}
+		adapter, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, target.provider, target.model, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, plain)
+		if err != nil || adapter != nil {
+			t.Fatalf("%s plain path=%v err=%v", target.model, adapter, err)
+		}
+		external := proto.Clone(plain).(*runtimev1.TextGenerateScenarioSpec)
+		external.Input = append(external.Input, &runtimev1.ChatMessage{Role: "system", Content: "App-owned positioned instruction"})
+		adapter, err = resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, target.provider, target.model, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, external)
+		if target.ordered && (adapter == nil || err != nil) {
+			t.Fatalf("ordered adapter changed for %s", target.model)
+		}
+		if !target.ordered && textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+			t.Fatalf("unsupported external order was silently rewritten: %v", err)
+		}
+		if external.Input[2].Role != "system" {
+			t.Fatal("external message role changed")
+		}
+	}
+}

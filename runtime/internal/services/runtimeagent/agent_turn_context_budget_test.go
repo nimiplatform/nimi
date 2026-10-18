@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -570,4 +571,81 @@ func agentTurnContextTestProviderText(prompt agentTurnProviderPrompt) string {
 		parts = append(parts, message.Content)
 	}
 	return strings.Join(parts, "\n")
+}
+
+func TestConversationSingleSystemProjectionPreservesHistoryMediaAndRecall(t *testing.T) {
+	for _, recall := range []bool{false, true} {
+		input := agentTurnContextTestInput(t, "worldCharacter")
+		input.CurrentUserTurn.Media = []agentTurnContextMedia{{MediaID: "current-image", Kind: "image", MIMEType: "image/png", ArtifactRef: "owned-image"}}
+		if recall {
+			input.PrivateRecall = &agentTurnPrivateRecallInput{Query: "bounded query", Status: "unavailable"}
+			input.OutputContract.Instruction = publicChatAPMLFinalOutputContractPrompt(publicChatAvailableActions{})
+		}
+		// The shared semantic lanes still support distinct Realtime/App work projections.
+		input.OutputContract.ContractID = agentRealtimeOutputContractID
+		original, err := compileAgentTurnContext(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		input.OutputContract.ContractID = publicChatContextOutputContractID
+		actual, err := compileAgentTurnContext(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		messages := actual.ProviderPrompt.Messages
+		if len(messages) == 0 || messages[0].Role != "system" {
+			t.Fatal("missing single system prefix")
+		}
+		var expected []agentTurnProviderMessage
+		for _, m := range original.ProviderPrompt.Messages {
+			if m.Role == "system" {
+				if !strings.Contains(messages[0].Content, m.Content) {
+					t.Fatal("lost scoped context or output contract")
+				}
+			} else {
+				expected = append(expected, m)
+			}
+		}
+		if !reflect.DeepEqual(messages[1:], expected) {
+			t.Fatal("history/current input/media changed")
+		}
+		for _, m := range messages[1:] {
+			if m.Role == "system" {
+				t.Fatal("late system survived")
+			}
+		}
+		if messages[len(messages)-1].Role != "user" || messages[len(messages)-1].Content != input.OutputContract.Instruction || messages[len(messages)-2].Content != input.CurrentUserTurn.Text {
+			t.Fatal("current input or existing trailing APML reminder changed")
+		}
+		hash, err := hashAgentTurnProviderPrompt(actual.ProviderPrompt)
+		if err != nil || hash != actual.Manifest.PromptHash {
+			t.Fatal("prompt hash did not describe sent messages")
+		}
+		var bound uint64
+		for _, m := range messages {
+			n, err := agentTurnContextUTF8ByteTokenUpperBound(m.Role, m.Content)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bound += n + agentTurnContextMessageTokenOverheadUpperBound
+			for _, media := range m.Media {
+				n, err := agentTurnContextUTF8ByteTokenUpperBound(media.MediaID, media.Kind, media.MIMEType, media.ArtifactRef)
+				if err != nil {
+					t.Fatal(err)
+				}
+				bound += n + agentTurnContextMediaTokenOverheadUpperBound
+			}
+		}
+		if bound > actual.Manifest.Budget.UsedTokens {
+			t.Fatalf("unbudgeted projected bytes: %d > %d", bound, actual.Manifest.Budget.UsedTokens)
+		}
+		input.OutputContract.ContractID = "nimi.runtime.agent.work.text"
+		work, err := compileAgentTurnContext(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(work.ProviderPrompt, original.ProviderPrompt) {
+			t.Fatal("unrelated work/Realtime projection changed")
+		}
+	}
 }

@@ -48,7 +48,7 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 		capacity.Summary = projectAgentTurnContextCapacityFailure(input, lanes, budget.Manifest, toolCount)
 		return nil, capacity
 	}
-	prompt, err := buildAgentTurnProviderPrompt(lanes)
+	prompt, err := buildAgentTurnProviderPrompt(lanes, input.OutputContract.ContractID)
 	if err != nil {
 		return nil, fmt.Errorf("build agent turn provider prompt: %w", err)
 	}
@@ -401,7 +401,10 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 	return capabilityDigest, toolCount, nil
 }
 
-func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane) (agentTurnProviderPrompt, error) {
+func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID string) (agentTurnProviderPrompt, error) {
+	// The existing output contract distinguishes Conversation from Realtime and
+	// App work. This is target composition, not a provider fallback or toggle.
+	conversationText := contractID == publicChatContextOutputContractID
 	prompt := agentTurnProviderPrompt{Messages: make([]agentTurnProviderMessage, 0)}
 	var outputContractMessages []agentTurnProviderMessage
 	for _, lane := range lanes {
@@ -434,6 +437,26 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane) (agentTurnProvid
 	}
 	if len(outputContractMessages) != 1 {
 		return agentTurnProviderPrompt{}, fmt.Errorf("output contract Runtime instruction is required")
+	}
+	// @nimi-authority: rule.nimi.runtime.agent-service.r013
+	if conversationText {
+		var sections []string
+		var conversation []agentTurnProviderMessage
+		for _, message := range prompt.Messages {
+			if message.Role == "system" {
+				if len(message.Media) != 0 {
+					return agentTurnProviderPrompt{}, fmt.Errorf("Conversation system context cannot carry user media")
+				}
+				sections = append(sections, message.Content)
+			} else {
+				conversation = append(conversation, message)
+			}
+		}
+		// Keep the existing trailing APML reminder in its current user role.
+		// Each system section retains its existing source/trust envelope. Joining only
+		// saves role/message overhead: two separator bytes are bounded by the
+		// existing per-item 32-byte message overhead, so no budget is weakened.
+		prompt.Messages = append([]agentTurnProviderMessage{{Role: "system", Content: strings.Join(sections, "\n\n")}}, conversation...)
 	}
 	return prompt, nil
 }
