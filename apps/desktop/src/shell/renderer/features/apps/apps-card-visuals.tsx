@@ -31,6 +31,8 @@ const ICON_SIZE_CLASS = Object.freeze({
 
 export type AppArtworkIconSize = keyof typeof ICON_SIZE_CLASS;
 
+const desktopIconUrl = new URL('../../assets/logo.png', import.meta.url).href;
+
 export function AppArtworkIcon({
   appId,
   displayName,
@@ -46,7 +48,9 @@ export function AppArtworkIcon({
 }): ReactElement {
   const artwork = appArtworkFor(appId);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const visibleUrl = iconUrl && iconUrl !== failedUrl ? iconUrl : null;
+  // Desktop is a built-in consumer, so it has no catalog artwork entry.
+  const resolvedIconUrl = appId === 'nimi.desktop' ? desktopIconUrl : iconUrl;
+  const visibleUrl = resolvedIconUrl && resolvedIconUrl !== failedUrl ? resolvedIconUrl : null;
   return (
     <span
       aria-hidden="true"
@@ -100,10 +104,12 @@ export function AppRunStatusBadge({
 export function AppPackageStatusLine({
   entry,
   showInstalledVersion = true,
+  presentation = 'default',
   className = '',
 }: {
   readonly entry: DesktopAppsEntry;
   readonly showInstalledVersion?: boolean;
+  readonly presentation?: 'default' | 'update';
   readonly className?: string;
 }): ReactElement | null {
   const { t } = useTranslation();
@@ -115,10 +121,12 @@ export function AppPackageStatusLine({
     ? `${formatBytes(Number(job.bytesCompleted))}${job.bytesTotal ? ` / ${formatBytes(Number(job.bytesTotal))}` : ''}`
     : job ? appPackageProgressText(job) : null;
   const failureReason = job ? appPackageFailureReason(job) : null;
-  const versionLabel = showInstalledVersion && entry.committedRelease
+  // App Store update rows already name the new version under the title (see
+  // AppListRow); this line keeps only in-flight job and failure state for them.
+  const versionLabel = showInstalledVersion && presentation !== 'update' && entry.committedRelease
     ? t('Apps.version.installed', { version: entry.committedRelease.version })
     : null;
-  const updateAvailable = hasAvailableCatalogUpdate(entry);
+  const updateAvailable = presentation !== 'update' && hasAvailableCatalogUpdate(entry);
   const phaseLocaleKey = job ? appPackagePhaseLocaleKey(job) : null;
   const phaseLabel = job
     ? phaseLocaleKey ? t(`Apps.phase.${phaseLocaleKey}`) : String(job.phase)

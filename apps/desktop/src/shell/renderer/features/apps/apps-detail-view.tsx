@@ -98,6 +98,8 @@ const APP_ACCESS_FEATURE_ICON = Object.freeze({
 
 export interface AppsDetailViewProps {
   readonly entry: DesktopAppsEntry;
+  /** Shared App artwork, matching the library rail across source versions. */
+  readonly iconUrl?: string | null;
   /** Other sources of the same App, for cross-source management. */
   readonly sourceEntries: readonly DesktopAppsEntry[];
   readonly requestedSection: NimiDesktopOpenAppsSection | null;
@@ -124,6 +126,7 @@ export function AppsDetailView({
 
 function LocalDevelopmentAppsDetailView({
   entry,
+  iconUrl = entry.iconUrl,
   sourceEntries,
   requestedSection,
   navigationEntryKey,
@@ -286,7 +289,7 @@ function LocalDevelopmentAppsDetailView({
           <AppArtworkIcon
             appId={identity.appId}
             displayName={identity.displayName}
-            iconUrl={entry.iconUrl}
+            iconUrl={iconUrl}
             size="detail"
           />
           <div className="min-w-0 flex-1">
@@ -439,6 +442,7 @@ function LocalDevelopmentAppsDetailView({
 
 function InstalledAppsDetailView({
   entry,
+  iconUrl = entry.iconUrl,
   sourceEntries,
   requestedSection,
   navigationEntryKey,
@@ -663,7 +667,7 @@ function InstalledAppsDetailView({
           <AppArtworkIcon
             appId={entry.identity.appId}
             displayName={entry.identity.displayName}
-            iconUrl={entry.iconUrl}
+            iconUrl={iconUrl}
             size="detail"
           />
           <div className="min-w-0 flex-1">

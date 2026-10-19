@@ -67,9 +67,11 @@ const RUN_STATUS_TEXT_TONE: Readonly<Record<AppRunVisualState, string>> = Object
 
 /**
  * App Store style run status: a plain colored dot plus status copy, no pill
- * chrome. It shows settled states only; while a launch or stop is in
- * progress the row's action button carries it, so a row never shows two
- * spinners. Runtime package state stays on AppPackageStatusLine.
+ * chrome. It shows settled states that add information; while a launch or
+ * stop is in progress the row's action button carries it, so a row never
+ * shows two spinners. A plain stopped state stays silent because the 启动
+ * action next to it already says the App is not running, matching the rail
+ * and the detail header. Runtime package state stays on AppPackageStatusLine.
  */
 export function AppRunStatusText({
   entry,
@@ -80,7 +82,7 @@ export function AppRunStatusText({
 }): ReactElement | null {
   const { t } = useTranslation();
   const visual = appRunVisualState(entry.run?.state ?? null);
-  if (appRunTransition(visual, pendingAction)) return null;
+  if (visual === 'stopped' || appRunTransition(visual, pendingAction)) return null;
   return (
     <span
       data-run-visual={visual}
@@ -162,12 +164,14 @@ export const AppListRow = memo(function AppListRow({
   activeAction,
   actionsDisabled,
   showSourceBadge = false,
+  presentation = 'default',
   onAction,
 }: {
   readonly entry: DesktopAppsEntry;
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
   readonly showSourceBadge?: boolean;
+  readonly presentation?: 'default' | 'update';
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement {
   const { t } = useTranslation();
@@ -212,6 +216,16 @@ export const AppListRow = memo(function AppListRow({
             <AppSourceBadge source={source} variant="quiet" className="shrink-0" />
           ) : null}
         </div>
+        {/* App Store update rows lead with the new version under the name;
+            the summary then reads as the "What's New" line. */}
+        {presentation === 'update' && hasAvailableCatalogUpdate(entry) ? (
+          <p
+            data-testid={`apps-entry-${identity.entryKey}-update-version`}
+            className="mt-0.5 truncate text-xs leading-4 text-[color:var(--nimi-text-muted)]"
+          >
+            {t('Apps.update.newVersion', { version: entry.catalogTarget?.version })}
+          </p>
+        ) : null}
         {entry.summary ? (
           <p
             data-testid={`apps-entry-${identity.entryKey}-summary`}
@@ -247,19 +261,24 @@ export const AppListRow = memo(function AppListRow({
               <span className="truncate">{aiConfigSummary.label}</span>
             </button>
           ) : null}
-          {localDevelopment === null ? <AppPackageStatusLine entry={entry} /> : null}
+          {localDevelopment === null ? <AppPackageStatusLine entry={entry} presentation={presentation} /> : null}
         </div>
       </div>
       <div className="relative z-10 flex shrink-0 items-center gap-1">
         {hasAvailableCatalogUpdate(entry) ? (
-          <Button size="sm" tone="primary" data-testid={`apps-entry-${identity.entryKey}-update`}
+          <Button size="sm" tone="secondary" data-testid={`apps-entry-${identity.entryKey}-update`}
+            className={launchCapsuleClassName}
             loading={activeAction === 'update'} disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
             title={!canRequestCatalogUpdate(entry) && entry.run?.state === 'running' ? t('Apps.update.stopRequired') : undefined}
             onClick={() => onAction('update')}>
             {t('Apps.action.update')}
           </Button>
         ) : null}
-        <AppRowActionButton entry={entry} activeAction={activeAction} actionsDisabled={actionsDisabled} onAction={onAction} />
+        {/* App Store update rows carry the single Update capsule; launch
+            stays reachable in the ⋯ menu. */}
+        {presentation === 'update' ? null : (
+          <AppRowActionButton entry={entry} activeAction={activeAction} actionsDisabled={actionsDisabled} onAction={onAction} />
+        )}
         <Popover>
           <PopoverTrigger asChild>
             <IconButton

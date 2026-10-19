@@ -487,6 +487,7 @@
   },
   "update": {
     "available": "Update available: {{version}}",
+    "newVersion": "Version {{version}}",
     "toVersion": "Update to {{version}}",
     "stopRequired": "Stop the app before updating it.",
     "confirmTitle": "Update {{app}}?",

@@ -487,6 +487,7 @@
   },
   "update": {
     "available": "可更新至 {{version}}",
+    "newVersion": "版本 {{version}}",
     "toVersion": "更新至 {{version}}",
     "stopRequired": "请先停止应用，再执行更新。",
     "confirmTitle": "更新 {{app}}？",

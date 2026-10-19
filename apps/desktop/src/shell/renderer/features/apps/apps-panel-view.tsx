@@ -298,6 +298,7 @@ export function AppsPanelView({
             ) : null}
             <AppsDetailView
               entry={selectedEntry}
+              iconUrl={groups.find((group) => group.appId === selectedEntry.identity.appId)?.iconUrl ?? selectedEntry.iconUrl}
               sourceEntries={sourceEntries}
               requestedSection={requestedDetailSection}
               navigationEntryKey={navigationEntryKey}
@@ -937,6 +938,7 @@ function AppsHomeBody({
                 key={entry.identity.entryKey}
                 entry={entry}
                 showSourceBadge
+                presentation="update"
                 activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
                 actionsDisabled={appsActionsLocked(pendingActions, entry.identity.appId)}
                 onAction={actionDispatcherFor(entry.identity.entryKey)}

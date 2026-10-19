@@ -406,7 +406,7 @@ test('Apps home renders the header, recent rows, and the merged rail with resolv
   assert.equal(markup.includes('data-source-badge="local_development"'), false, 'single-source local rows keep the quiet name line');
   assert.equal(markup.includes('本地开发'), false, 'local-development source copy hidden without duplicates');
   assert.ok(markup.includes('linear-gradient'), 'expected generated artwork gradients');
-  assert.ok(markup.includes('未运行'), 'expected stopped status copy on rows');
+  assert.equal(markup.includes('未运行'), false, 'stopped rows stay silent; the launch action already says the App is not running');
   assert.ok(markup.includes('启动'), 'expected launch action copy');
   assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected header add-app action');
   assert.ok(markup.includes('添加应用'), 'expected add-app action copy');
@@ -589,6 +589,10 @@ test('Apps home lists Apps with an available catalog update in their own section
   assert.ok(markup.includes('data-testid="apps-home-updates"'), 'expected updates section');
   assert.ok(markup.includes('有更新'), 'expected updates section copy');
   assert.ok(markup.includes(`data-testid="apps-entry-${updatable.identity.entryKey}-update"`), 'expected the update action');
+  const updatesMarkup = markup.slice(markup.indexOf('apps-home-updates'), markup.indexOf('apps-home-recent'));
+  assert.ok(updatesMarkup.includes(`data-testid="apps-entry-${updatable.identity.entryKey}-update-version"`), 'expected the new version line under the name');
+  assert.ok(updatesMarkup.includes('版本 1.1.0'), 'expected App Store style new-version copy');
+  assert.equal(updatesMarkup.includes('-launch"'), false, 'update rows carry the single Update capsule');
   const current = renderView(baseProps({
     projection: { status: 'loaded', entries: [{ ...catalog, committedRelease: installed.committedRelease }], catalogStatus: 'loaded', runtimeError: null },
   }));
@@ -978,7 +982,7 @@ test('Apps home renders with resolved en copy after locale switch', async () => 
   assert.ok(markup.includes('Search apps or App ID'), 'expected en rail search placeholder');
   assert.ok(markup.includes('Recent Activity'), 'expected en recent section copy');
   assert.ok(markup.includes('All apps'), 'expected en filter copy');
-  assert.ok(markup.includes('Not running'), 'expected en stopped status copy on rows');
+  assert.equal(markup.includes('Not running'), false, 'stopped rows stay silent next to the launch action');
   assert.equal(markup.includes('All Apps'), false, 'no second all-apps list on home');
   await changeLocale('zh');
 });

@@ -11,7 +11,7 @@ import { appRunVisualState, entryNeedsAttention, isEntryRunActive, type AppsSort
 export interface DesktopAppGroup {
   readonly appId: string;
   readonly displayName: string;
-  /** Artwork for the merged rail identity; source-specific rows use their own icon. */
+  /** Artwork for the merged rail identity and detail header; source rows keep their own icon. */
   readonly iconUrl: string | null;
   /** The entry the row acts on: live run first, then installed, dev, catalog. */
   readonly primary: DesktopAppsEntry;
