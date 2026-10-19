@@ -52,7 +52,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
       - name: Resolve and verify protected-local component identity
@@ -121,7 +121,7 @@ jobs:
           git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
           test "$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/protected-local/Cargo.toml | head -1)" = "${RELEASE_VERSION}"
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
       - name: Package exact protected-local crate

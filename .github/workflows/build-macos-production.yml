@@ -105,7 +105,7 @@ jobs:
         with:
           version: 10.34.5
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           package-manager-cache: false
@@ -128,7 +128,7 @@ jobs:
           go-version-file: runtime/go.mod
           cache: false
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
       - name: Install locked dependencies
@@ -193,14 +193,14 @@ jobs:
           rm -f "${key_file}" "${admission_file}"
       - name: Upload complete Mac product release inputs
         if: inputs.prepare_product
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nimi-product-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}
           path: .nimi/local/product-release/macos-arm64/*
           include-hidden-files: true
           if-no-files-found: error
       - name: Upload only the signed installer
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nimi-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.realm_target || 'local-acceptance' }}
           path: |
