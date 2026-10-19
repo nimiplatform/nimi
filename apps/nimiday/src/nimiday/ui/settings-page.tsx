@@ -8,6 +8,7 @@ import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
 import { deliver, requestSystemPermission, systemPermission, type SystemPermission } from '../platform/notifier.js';
 import { AgentAvatar, Card, Chip, Hint, PageHead } from './common.js';
 import { SourceCoverageNote } from './source-row.js';
+import { TimeField, timeFieldLabels } from './time-field.js';
 import { useUi } from './ui-context.js';
 
 import appPackage from '../../../package.json';
@@ -91,18 +92,21 @@ export function SettingsPage() {
               <span className="nd-setting-hint">{copy.settings.quietHint}</span>
             </div>
             <div className="nd-inline-actions">
-              <input className="nd-native-input" type="time" aria-label={copy.settings.from} value={profile.quiet.start} disabled={!profile.quiet.enabled}
-                onChange={(event) => actions.updateProfile({ quiet: { ...profile.quiet, start: event.target.value || profile.quiet.start } })} />
+              <TimeField aria-label={copy.settings.from} value={profile.quiet.start} disabled={!profile.quiet.enabled}
+                style={{ width: 104 }} labels={timeFieldLabels(copy, copy.settings.from)}
+                onValueChange={(value) => actions.updateProfile({ quiet: { ...profile.quiet, start: value } })} />
               <span className="nd-faint">–</span>
-              <input className="nd-native-input" type="time" aria-label={copy.settings.to} value={profile.quiet.end} disabled={!profile.quiet.enabled}
-                onChange={(event) => actions.updateProfile({ quiet: { ...profile.quiet, end: event.target.value || profile.quiet.end } })} />
+              <TimeField aria-label={copy.settings.to} value={profile.quiet.end} disabled={!profile.quiet.enabled}
+                style={{ width: 104 }} labels={timeFieldLabels(copy, copy.settings.to)}
+                onValueChange={(value) => actions.updateProfile({ quiet: { ...profile.quiet, end: value } })} />
               <Toggle checked={profile.quiet.enabled} ariaLabel={copy.settings.quiet} onValueChange={(value) => actions.updateProfile({ quiet: { ...profile.quiet, enabled: value } })} />
             </div>
           </div>
           <div className="nd-setting">
             <span className="nd-setting-title">{copy.settings.allDayTime}</span>
-            <input className="nd-native-input" type="time" aria-label={copy.settings.allDayTime} value={profile.allDayRemindTime}
-              onChange={(event) => actions.updateProfile({ allDayRemindTime: event.target.value || profile.allDayRemindTime })} />
+            <TimeField aria-label={copy.settings.allDayTime} value={profile.allDayRemindTime}
+              style={{ width: 104 }} labels={timeFieldLabels(copy, copy.settings.allDayTime)}
+              onValueChange={(value) => actions.updateProfile({ allDayRemindTime: value })} />
           </div>
         </Card>
 

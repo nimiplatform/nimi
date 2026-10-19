@@ -1,5 +1,6 @@
 import { emptyState } from '../domain/defaults.js';
 import type { DayState, Language, LifeItem, SkillRun } from '../domain/types.js';
+import { builtInSkillIds } from '../domain/skills.js';
 import {
   documentPath,
   readCollection,
@@ -133,7 +134,7 @@ export function createDayStore(documents: JsonDocumentStore, options: {
       case 'rhythms':
         return documents.write(documentPath('rhythms'), state.rhythms);
       case 'skills':
-        return documents.write(documentPath('skills'), { overrides: state.skillOverrides, custom: state.customSkills });
+        return documents.write(documentPath('skills'), { overrides: state.skillOverrides, custom: state.customSkills, favorites: state.favoriteSkillIds });
       case 'items':
         return writeCollection(documents, 'items', state.items);
       case 'notes':
@@ -226,12 +227,15 @@ export function createDayStore(documents: JsonDocumentStore, options: {
         ]);
         const fresh = emptyState(options.language(), now());
         const skillsRecord = skills && typeof skills === 'object' ? (skills as Record<string, unknown>) : {};
+        const customSkills = normalizeList(skillsRecord.custom, normalizeCustomSkill);
+        const availableSkills = new Set([...builtInSkillIds(), ...customSkills.map(skill => skill.id)]);
         const state: DayState = {
           profile: profile === undefined ? fresh.profile : normalizeProfile(profile),
           circles: normalizeList(circles, normalizeCircle),
           rhythms: rhythms === undefined ? fresh.rhythms : normalizeList(rhythms, normalizeRhythm),
           skillOverrides: normalizeList(skillsRecord.overrides, normalizeOverride),
-          customSkills: normalizeList(skillsRecord.custom, normalizeCustomSkill),
+          customSkills,
+          favoriteSkillIds: [...new Set(normalizeList(skillsRecord.favorites, value => typeof value === 'string' && availableSkills.has(value) ? value : null))],
           items: normalizeList(items, normalizeItem),
           notes: normalizeList(notes, normalizeNote),
           runs: normalizeList(runs, normalizeRun),

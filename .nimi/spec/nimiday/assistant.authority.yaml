@@ -2,6 +2,26 @@ format: nimicoding.authority/v2
 owner: team.nimiday
 scope: nimiday.assistant
 units:
+  - id: rule.nimi.nimiday.assistant.item-editor-scheduling
+    kind: rule
+    title: Item editing prevents new past schedules while preserving overdue items
+    modality: must
+    statement: In Day's item editor, creating an item or changing its date or time permits only today or a later local date; a timed schedule must not precede the current instant. Date and time panels constrain their selectable values and saving rechecks the current clock. All-day items may use today and undated items remain supported. An existing item's unchanged date and time, including an overdue schedule, remain editable with other fields and are never silently moved forward merely by opening or saving the editor.
+    condition: Whenever a user creates or edits an item through the Day item editor.
+    failure: Keep an invalid draft open with an actionable scheduling message and do not save it; preserve existing item data until the user saves a valid draft.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
+  - id: rule.nimi.nimiday.assistant.skill-library
+    kind: rule
+    title: Skill discovery, shortcuts and scheduled routines remain distinct
+    modality: must
+    statement: Day offers its available built-in and user-authored skills through an add-skill library and exposes only the user's saved favorites as everyday shortcuts. Using a skill once does not add a favorite or create a routine. Adding or removing a favorite changes only that shortcut and preserves the skill's method, lessons, task history and existing routines. Creating a custom skill also adds its shortcut; editing one does not restore a shortcut the user removed. Setting a routine requires choosing and saving its schedule, independently of favorites. A fresh favorites list starts empty and offers lightweight discovery guidance; historical use and available presets do not silently enroll favorites.
+    condition: Whenever a user discovers, starts, personalizes or schedules a Day skill.
+    failure: Keep unavailable skills non-executable and preserve saved user choices; do not report a shortcut as scheduled or delete underlying work when removing it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
   - id: definition.nimi.nimiday.assistant.business
     kind: definition
     title: NimiDay App-owned arrangements and follow-up

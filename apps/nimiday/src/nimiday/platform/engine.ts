@@ -10,7 +10,7 @@ import { newId } from '../domain/ids.js';
 import { markReminder } from '../domain/items.js';
 import { inQuietHours, type ReminderSettings } from '../domain/reminders.js';
 import { rhythmDue } from '../domain/rhythms.js';
-import { CHAT_SKILL, chatSkill, resolveSkills } from '../domain/skills.js';
+import { skillRunName, activeSkillRun, CHAT_SKILL, chatSkill, preparationAppointments, resolveSkills, VISIT_PREP_SKILL } from '../domain/skills.js';
 import { followedChanges, NIMIDAY_APP_ID, sourceApps, type ActivityRecordLike, type SourceApp, type SourceChange } from '../domain/sources.js';
 import { toLocalDate } from '../domain/time.js';
 import { asksToRecord } from '../domain/quick-capture.js';
@@ -72,6 +72,7 @@ export type StartSkillInput = {
   readonly runId?: string;
   readonly rhythmId?: string | null;
   readonly focusCircleId?: string | null;
+  readonly focusItemId?: string | null;
   /** A routine NimiDay starts on its own: sent as an App-originated turn, never as user speech. */
   readonly routineName?: string;
   readonly scheduledFor?: string;
@@ -79,7 +80,7 @@ export type StartSkillInput = {
 
 export type StartSkillResult =
   | { readonly ok: true; readonly runId: string }
-  | { readonly ok: false; readonly reason: 'no-agent' | 'work-unavailable' | 'unknown-skill' | 'unknown-circle' | 'method-too-long'; readonly message: string };
+  | { readonly ok: false; readonly reason: 'no-agent' | 'work-unavailable' | 'unknown-skill' | 'unknown-circle' | 'unknown-item' | 'method-too-long'; readonly message: string };
 
 export type EngineDeps = {
   readonly store: DayStore;
@@ -371,7 +372,7 @@ export function createDayEngine(deps: EngineDeps) {
         circleName(item.circleId),
       ),
       decisionSummary: (item) => copy.engine.homeDecision((item.decision?.options ?? []).join(' / ')),
-      resultTitle: (run) => copy.engine.homeResultTitle(run.skillName, run.agentName ?? agentName()),
+      resultTitle: (run) => copy.engine.homeResultTitle(skillRunName(run, deps.language()), run.agentName ?? agentName()),
       resultSummary: (run) => copy.engine.homeResultSummary(run.changes.length),
     };
   };
@@ -453,7 +454,7 @@ export function createDayEngine(deps: EngineDeps) {
     if (run && patch.state === 'done') {
       const copy = deps.copy();
       deliver({
-        title: copy.engine.runDone(run.skillName, run.agentName ?? agentName()),
+        title: copy.engine.runDone(skillRunName(run, deps.language()), run.agentName ?? agentName()),
         body: (run.replyText ?? '').slice(0, 140),
         tag: `run:${run.id}`,
         tone: 'success',
@@ -668,6 +669,9 @@ export function createDayEngine(deps: EngineDeps) {
     if (desk.phase !== 'ready' || !desk.agent) return { ok: false, reason: 'not-ready', message: notReadyMessage() };
     let work: ReturnType<typeof buildDayWork>;
     const workState = data();
+    if (run.focusItemId && !preparationAppointments(workState).some(item => item.id === run.focusItemId)) {
+      return { ok: false, reason: 'failed', message: deps.copy().engine.appointmentGone };
+    }
     const careCircleIds = workState.circles.filter(circle => circle.status !== 'ended').map(circle => circle.id);
     try {
       work = buildDayWork({
@@ -680,6 +684,7 @@ export function createDayEngine(deps: EngineDeps) {
         language: deps.language(),
         now: now(),
         focusCircleId: runById(runId)?.focusCircleId ?? null,
+        focusItemId: run.focusItemId ?? null,
         ...(run.trigger === 'chat' ? { assistantBinding: desk.agent.binding } : {}),
       }, desk.agent.displayName);
     } catch (error) {
@@ -761,6 +766,7 @@ export function createDayEngine(deps: EngineDeps) {
     trigger: run.trigger === 'chat' ? 'user' : run.trigger,
     rhythmId: run.rhythmId,
     focusCircleId: run.focusCircleId ?? null,
+    focusItemId: run.focusItemId ?? null,
   });
 
   const retryRun = async (failed: SkillRun) => {
@@ -792,9 +798,20 @@ export function createDayEngine(deps: EngineDeps) {
     const circle = input.focusCircleId ? circleName(input.focusCircleId) : null;
     // A request about one person stays about that person; it never widens to everyone.
     if (input.focusCircleId && circle === null) return { ok: false, reason: 'unknown-circle', message: copy.engine.focusGone };
-    const requestText = input.routineName
+    const appointment = input.focusItemId ? preparationAppointments(data()).find(item => item.id === input.focusItemId) : null;
+    if ((input.focusItemId && (!appointment || skill.id !== VISIT_PREP_SKILL))
+      || (skill.id === VISIT_PREP_SKILL && input.trigger === 'user' && !appointment)) {
+      return { ok: false, reason: 'unknown-item', message: copy.engine.appointmentGone };
+    }
+    // @nimi-authority: definition.nimi.nimiday.assistant.business
+    if (input.trigger === 'user' && !input.runId) {
+      const pending = activeSkillRun(data().runs, skill.id, input.focusCircleId ?? null, input.focusItemId ?? null);
+      if (pending) return { ok: true, runId: pending.id };
+    }
+    const baseRequest = input.routineName
       ? copy.engine.routineRequest(input.routineName, skill.name)
       : skill.request.replace('{circle}', circle ?? copy.engine.everyone);
+    const requestText = appointment ? `${baseRequest}\n${copy.engine.appointmentRequest(appointment.title, appointment.id)}` : baseRequest;
     const existing = input.runId ? runById(input.runId) : null;
     const runId = existing?.id ?? newId('run', current);
     const run: SkillRun = {
@@ -818,6 +835,7 @@ export function createDayEngine(deps: EngineDeps) {
       replyText: null,
       error: null,
       focusCircleId: input.focusCircleId ?? null,
+      focusItemId: input.focusItemId ?? null,
     };
     if (input.routineName) routineByRun.set(runId, input.routineName);
     deps.actions.putRun(run);

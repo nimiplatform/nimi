@@ -1,4 +1,6 @@
-import type { Language, MaterialKind, SkillDefinition, SkillOverride } from './types.js';
+import { stillInCare } from './care.js';
+import { isActive } from './reminders.js';
+import type { DayState, Language, MaterialKind, SkillDefinition, SkillOverride, SkillRun } from './types.js';
 
 type LocalizedText = Readonly<Record<Language, string>>;
 
@@ -17,6 +19,20 @@ export const MORNING_CARE_SKILL = 'morning-care';
 export const EVENING_WRAP_SKILL = 'evening-wrap';
 export const WEEK_PLAN_SKILL = 'week-plan';
 export const CARE_REVIEW_SKILL = 'care-review';
+export const VISIT_PREP_SKILL = 'visit-prep';
+
+/** Explicit preparation may include an undated or overdue appointment, but never closed care. */
+export function preparationAppointments(state: Pick<DayState, 'items' | 'circles'>) {
+  const inCare = stillInCare(state.circles);
+  return state.items.filter(item => item.kind === 'appointment' && isActive(item) && inCare(item))
+    .sort((a, b) => `${a.date ?? '9999'} ${a.time ?? ''}`.localeCompare(`${b.date ?? '9999'} ${b.time ?? ''}`));
+}
+
+export function activeSkillRun(runs: readonly SkillRun[], skillId: string, focusCircleId: string | null = null, focusItemId: string | null = null) {
+  return runs.find(run => run.trigger === 'user' && run.skillId === skillId
+    && (run.focusCircleId ?? null) === focusCircleId && (run.focusItemId ?? null) === focusItemId
+    && (run.state === 'queued' || run.state === 'running'));
+}
 
 /** A skill whose request names one person or area ({circle}); starting it asks whom it is about. */
 export function skillNeedsFocus(skill: { readonly request: string }): boolean {
@@ -29,9 +45,9 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
   {
     id: MORNING_CARE_SKILL,
     icon: 'sunrise',
-    name: { zh: '晨间照看', en: 'Morning care' },
+    name: { zh: '梳理今天', en: 'Review today' },
     purpose: {
-      zh: '看看今天：到点的事、需要准备的事、其他 App 的新变化，挑出今天最要紧的几件。',
+      zh: '梳理今日安排、逾期事项与新变化，找出最要紧的几件事。',
       en: "Look over today: what's due, what needs preparing and what changed elsewhere, then pick the few things that matter most.",
     },
     request: { zh: '帮我看看今天有什么需要照看的。', en: 'Take a look at what needs looking after today.' },
@@ -59,7 +75,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     icon: 'moon',
     name: { zh: '晚间收尾', en: 'Evening wrap-up' },
     purpose: {
-      zh: '回顾今天做完了什么、还剩什么，把没做完的事放到合适的时间，安心休息。',
+      zh: '回顾完成情况，建议如何安排未完成的事，提醒明早准备。',
       en: "Review what got done and what's left, move unfinished things to a sensible time, and rest easy.",
     },
     request: { zh: '帮我收个尾，看看今天还剩什么。', en: "Help me wrap up the day and see what's left." },
@@ -85,7 +101,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     icon: 'calendar-range',
     name: { zh: '一周家庭安排', en: 'Week ahead' },
     purpose: {
-      zh: '梳理未来 7 天的约定和事项，找出冲突、过满的日子和需要提前准备的事。',
+      zh: '检查未来 7 天的时间冲突，提前安排准备事项与提醒。',
       en: 'Lay out the next 7 days, spotting clashes, overloaded days and things to prepare early.',
     },
     request: { zh: '帮我看看这一周怎么安排。', en: 'Help me plan the week ahead.' },
@@ -109,11 +125,11 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     materials: ['week', 'circles', 'handbook', 'waiting'],
   },
   {
-    id: 'visit-prep',
+    id: VISIT_PREP_SKILL,
     icon: 'clipboard-check',
     name: { zh: '约定前准备', en: 'Appointment prep' },
     purpose: {
-      zh: '为看医生、家长会、办事等约定做准备：带什么、问什么、什么时候出发。',
+      zh: '围绕最近的约定，整理要带的东西、要问的问题和准备提醒。',
       en: 'Get ready for a doctor visit, school meeting or errand: what to bring, what to ask, when to leave.',
     },
     request: { zh: '帮我为接下来的约定做准备。', en: 'Help me prepare for my next appointment.' },
@@ -139,7 +155,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     icon: 'shopping-basket',
     name: { zh: '采购清单', en: 'Shopping list' },
     purpose: {
-      zh: '从事项、约定和家庭手册里整理一份按类别分好的采购清单。',
+      zh: '结合待办与家庭偏好整理分类清单，确认后保存为事项。',
       en: 'Gather a categorized shopping list from your items, appointments and handbook.',
     },
     request: { zh: '帮我整理一份采购清单。', en: 'Put together a shopping list for me.' },
@@ -163,7 +179,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     icon: 'gift',
     name: { zh: '生日与纪念日', en: 'Birthdays & occasions' },
     purpose: {
-      zh: '提前为生日、纪念日和节日安排礼物、预订和联络。',
+      zh: '查看近期重要日子，为礼物、预订和联络安排准备提醒。',
       en: 'Plan gifts, bookings and calls for birthdays, anniversaries and holidays in good time.',
     },
     request: { zh: '看看最近有没有需要准备的生日或纪念日。', en: 'Check whether any birthdays or occasions are coming up.' },
@@ -187,7 +203,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     icon: 'inbox',
     name: { zh: '整理新变化', en: 'Catch up on changes' },
     purpose: {
-      zh: '把其他 App 的新变化归到对应的家人或领域，分清哪些要处理、哪些只是记录。',
+      zh: '按家人或领域整理其他 App 的变化，区分提醒、记录与解读。',
       en: 'Sort new changes from other apps under the right person or area, separating what needs action from what is just a record.',
     },
     request: { zh: '帮我整理一下最近的新变化。', en: 'Help me catch up on recent changes.' },
@@ -213,7 +229,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     icon: 'heart-handshake',
     name: { zh: '照看回顾', en: 'Check-in' },
     purpose: {
-      zh: '针对一位家人或一个生活领域，回顾近况、未完成的事和下一步。',
+      zh: '选择一位家人、生活领域或全家，回顾近况并建议下一步。',
       en: 'Review one person or area of life: how things are, what is open, and what comes next.',
     },
     request: { zh: '帮我看看「{circle}」最近怎么样。', en: 'How are things with "{circle}" lately?' },
@@ -238,6 +254,11 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
 
 export function builtInSkillIds(): readonly string[] {
   return BUILT_IN_SKILLS.map((skill) => skill.id);
+}
+
+/** Built-in task labels follow the current localized skill name; custom tasks keep their recorded name. */
+export function skillRunName(run: Pick<SkillRun, 'skillId' | 'skillName'>, language: Language): string {
+  return BUILT_IN_SKILLS.find((skill) => skill.id === run.skillId)?.name[language] ?? run.skillName;
 }
 
 function builtInDefinition(skill: BuiltInSkill, language: Language, override: SkillOverride | undefined): SkillDefinition {

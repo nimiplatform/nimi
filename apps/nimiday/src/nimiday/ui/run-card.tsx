@@ -1,19 +1,20 @@
-import { useState } from 'react';
-import { Button, nimiToast, TextField } from '@nimiplatform/kit/ui';
+import { useState, type ReactNode } from 'react';
+import { Button, InlineAlert, nimiToast, TextareaField } from '@nimiplatform/kit/ui';
 import { toLocalDate } from '../domain/time.js';
-import { resolveSkills } from '../domain/skills.js';
+import { skillRunName, resolveSkills } from '../domain/skills.js';
 import type { SkillRun } from '../domain/types.js';
 import { keptChanges } from '../domain/undo.js';
 import { methodOverflow } from '../domain/work.js';
 import { describeUndone, formatInstant } from '../i18n/index.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
-import { RunStateChip } from './common.js';
+import { AgentAvatar } from './common.js';
 import { useUi } from './ui-context.js';
 import { needsAiSetup, openNimiAiCapabilities } from '../platform/ai-setup.js';
 
 export function RunChanges({ run }: { readonly run: SkillRun }) {
   const { copy, store } = useNimiDay();
   const snapshot = useDayStore();
+  const ui = useUi();
   if (run.changes.length === 0) return <p className="nd-faint" style={{ margin: '8px 0 0' }}>{copy.run.noChanges}</p>;
   const hadUnsaved = !run.undone && run.toolCalls.some((call) => call.unsaved);
   const kept = keptChanges(run, snapshot.state.items);
@@ -22,7 +23,11 @@ export function RunChanges({ run }: { readonly run: SkillRun }) {
       <ul className="nd-changes-list">
         {run.changes.map((change, index) => (
           <li key={`${change.kind}-${index}`} data-undone={run.undone && !kept.has(index)}>
-            {copy.run.change[change.kind](change.title)}
+            {change.kind !== 'note-saved' && snapshot.state.items.some(item => item.id === change.itemId) ? (
+              <button type="button" className="nd-link" onClick={() => ui.openItem(change.itemId)}>{copy.run.change[change.kind](change.title)}</button>
+            ) : change.kind === 'note-saved' && snapshot.state.notes.some(note => note.id === change.noteId) ? (
+              <button type="button" className="nd-link" onClick={() => ui.editNote({ noteId: change.noteId, circleId: snapshot.state.notes.find(note => note.id === change.noteId)!.circleId })}>{copy.run.change[change.kind](change.title)}</button>
+            ) : copy.run.change[change.kind](change.title)}
             {kept.has(index) ? <span className="nd-faint"> · {copy.run.keptOnUndo}</span> : null}
           </li>
         ))}
@@ -42,7 +47,8 @@ export function RunChanges({ run }: { readonly run: SkillRun }) {
   );
 }
 
-export function RunCard({ run, compact = false }: { readonly run: SkillRun; readonly compact?: boolean }) {
+/** Detail-dialog content for one run: progress while working, the reply once done. */
+export function RunCard({ run, children }: { readonly run: SkillRun; readonly children?: ReactNode }) {
   const { engine, copy, actions, language } = useNimiDay();
   const { state } = useDayStore();
   const desk = useDesk();
@@ -51,16 +57,21 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
   const [lesson, setLesson] = useState<string | null>(null);
   const today = toLocalDate(now);
   const agent = run.agentName ?? desk.agent?.displayName ?? copy.common.agentFallback;
+  const avatarUrl = desk.agent && desk.agent.displayName === agent ? desk.agent.avatarUrl
+    : state.profile.appointment && state.profile.appointment.displayName === agent ? state.profile.appointment.avatarUrl
+      : null;
   const liveTools = desk.liveTools.filter((tool) => tool.turnId === run.turnId && tool.lifecycle === 'started');
   const setupRequired = run.state === 'failed' && needsAiSetup(run.error?.code);
+  const requestLine = run.requestText.split('\n')[0] || '—';
 
   const start = async () => {
     // Scheduled runs start in place; a retry keeps the earlier record (and its undo) intact.
     const reuse = run.state === 'waiting-start' || run.state === 'missed';
     const result = reuse
-      ? await engine.startSkill({ skillId: run.skillId, trigger: run.trigger === 'chat' ? 'user' : run.trigger, runId: run.id, rhythmId: run.rhythmId, focusCircleId: run.focusCircleId ?? null })
+      ? await engine.startSkill({ skillId: run.skillId, trigger: run.trigger === 'chat' ? 'user' : run.trigger, runId: run.id, rhythmId: run.rhythmId, focusCircleId: run.focusCircleId ?? null, focusItemId: run.focusItemId ?? null })
       : await engine.retry(run.id);
     if (!result.ok) nimiToast.show({ tone: 'warning', message: result.message, durationMs: 6000 });
+    else ui.openRun(result.runId);
   };
 
   const undo = () => {
@@ -69,39 +80,23 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
   };
 
   return (
-    <div className="nd-row" style={{ display: 'block' }} data-testid="nd-run-card">
-      <div className="nd-split">
-        <div className="nd-inline-actions">
-          <strong style={{ fontSize: 14 }}>{run.skillName}</strong>
-          <RunStateChip state={run.state} />
-          <span className="nd-faint">{copy.run.trigger[run.trigger]} · {formatInstant(copy, run.scheduledFor ?? run.createdAt, today)}</span>
-        </div>
-        {!compact ? <button type="button" className="nd-link" onClick={() => ui.openRun(run.id)}>{copy.run.detail}</button> : null}
-      </div>
-
-      {run.state === 'waiting-start' ? (
-        <div className="nd-inline-actions" style={{ marginTop: 8 }}>
-          <Button tone="primary" size="sm" onClick={() => { void start(); }}>{copy.run.start}</Button>
-          <Button tone="ghost" size="sm" onClick={() => engine.dismissRun(run.id)}>{copy.run.dismiss}</Button>
-        </div>
-      ) : null}
-
-      {run.state === 'missed' ? (
-        <div className="nd-inline-actions" style={{ marginTop: 8 }}>
-          <span className="nd-faint">{run.error?.code === 'late' ? copy.run.missedLate : copy.run.missedReason}</span>
-          <Button tone="secondary" size="sm" onClick={() => { void start(); }}>{copy.run.startNow}</Button>
-          <Button tone="ghost" size="sm" onClick={() => engine.dismissRun(run.id)}>{copy.run.dismiss}</Button>
-        </div>
-      ) : null}
-
+    <div className="nd-run-result" data-testid="nd-run-card">
       {run.state === 'queued' || run.state === 'running' ? (
-        <div className="nd-inline-actions" style={{ marginTop: 8 }}>
-          <span className="nd-faint">
-            {run.state === 'queued' && waitingForAgent ? copy.run.waitingAgent(agent) : null}
-            {run.state === 'running' && liveTools.length > 0
-              ? copy.assistant.liveTool(liveTools.map((tool) => copy.skills.toolNames[tool.name] ?? tool.name).join('、'))
-              : run.state === 'running' ? copy.agent.replying : null}
+        <div className="nd-run-progress">
+          <span className="nd-run-progress-avatar" data-active={run.state === 'running'}>
+            <AgentAvatar name={agent} url={avatarUrl} size="md" />
           </span>
+          <div className="nd-run-progress-copy">
+            <strong>{run.state === 'running' ? copy.run.working(agent) : waitingForAgent ? copy.run.waitingAgent(agent) : copy.run.states.queued}</strong>
+            <span className="nd-run-progress-status" role="status">
+              {run.state === 'running'
+                ? liveTools.length > 0
+                  ? copy.assistant.liveTool(liveTools.map((tool) => copy.skills.toolNames[tool.name] ?? tool.name).join('、'))
+                  : copy.run.runningHint
+                : copy.run.queuedHint}
+            </span>
+            <span className="nd-run-quote">{requestLine}</span>
+          </div>
           {run.state === 'running' && activeRunId === run.id ? (
             <Button tone="ghost" size="sm" onClick={() => { void engine.stopRun(); }}>{copy.run.stop}</Button>
           ) : null}
@@ -109,42 +104,82 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
         </div>
       ) : null}
 
-      {run.replyText ? <div className="nd-reply" style={compact ? { maxHeight: 180, overflow: 'hidden' } : undefined}>{run.replyText}</div> : null}
+      {run.state === 'waiting-start' || run.state === 'missed' ? (
+        <div className="nd-run-pending">
+          <span className="nd-field-label">{copy.run.request}</span>
+          <p className="nd-run-quote">{requestLine}</p>
+          <div className="nd-inline-actions">
+            {run.state === 'waiting-start' ? (
+              <>
+                <Button tone="primary" size="sm" onClick={() => { void start(); }}>{copy.run.start}</Button>
+                <Button tone="ghost" size="sm" onClick={() => engine.dismissRun(run.id)}>{copy.run.dismiss}</Button>
+              </>
+            ) : (
+              <>
+                <span className="nd-faint">{run.error?.code === 'late' ? copy.run.missedLate : copy.run.missedReason}</span>
+                <Button tone="secondary" size="sm" onClick={() => { void start(); }}>{copy.run.startNow}</Button>
+                <Button tone="ghost" size="sm" onClick={() => engine.dismissRun(run.id)}>{copy.run.dismiss}</Button>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {run.state === 'failed' || run.state === 'interrupted' ? (
+        <InlineAlert tone="warning" className="nd-run-alert">
+          {run.state === 'interrupted'
+            ? run.error?.code === 'outcome-unknown'
+              ? copy.run.outcomeUnknown
+              : run.error?.code === 'agent-changed'
+                ? copy.run.agentChanged(run.agentName ?? agent, run.changes.length > 0)
+                : (run.changes.length > 0 ? copy.run.interruptedReason : copy.run.interruptedClean)
+            : setupRequired ? copy.assistant.needsAiSetup(agent) : copy.run.failedFriendly(agent)}
+          {run.error ? <details className="nd-run-tech"><summary>{copy.assistant.technical}</summary>{run.error.code}{run.error.message && run.error.message !== run.error.code ? ` · ${run.error.message}` : ''}</details> : null}
+        </InlineAlert>
+      ) : null}
+
+      {run.replyText ? (
+        <div className="nd-run-reply-card">
+          <div className="nd-run-reply-head">
+            <AgentAvatar name={agent} url={avatarUrl} size="sm" />
+            <strong>{agent}</strong>
+            <time>{formatInstant(copy, run.finishedAt ?? run.createdAt, today)}</time>
+          </div>
+          <div className="nd-reply">{run.replyText}</div>
+        </div>
+      ) : null}
+
+      {children}
 
       {run.state === 'done' || run.state === 'interrupted' || run.state === 'failed' ? (
         <>
-          {run.state !== 'done' && run.error ? (
-            <div className="nd-faint" style={{ margin: '8px 0 0' }}>
-              {run.state === 'interrupted' && run.error.code === 'outcome-unknown'
-                ? copy.run.outcomeUnknown
-                : run.state === 'interrupted' && run.error.code === 'agent-changed'
-                  ? copy.run.agentChanged(run.agentName ?? agent, run.changes.length > 0)
-                : run.state === 'interrupted'
-                  ? (run.changes.length > 0 ? copy.run.interruptedReason : copy.run.interruptedClean)
-                  : setupRequired ? copy.assistant.needsAiSetup(agent) : copy.run.failedFriendly(agent)}
-              <details><summary>{copy.assistant.technical}</summary>{run.error.code}{run.error.message && run.error.message !== run.error.code ? ` · ${run.error.message}` : ''}</details>
-            </div>
+          {run.changes.length > 0 ? (
+            <section className="nd-run-changes">
+              <h3 className="nd-field-label">{copy.run.changes}</h3>
+              <RunChanges run={run} />
+            </section>
           ) : null}
-          {run.changes.length > 0 || run.state === 'done' ? <RunChanges run={run} /> : null}
-          <div className="nd-inline-actions" style={{ marginTop: 8 }}>
+          <div className="nd-inline-actions nd-run-actions">
             {setupRequired ? <Button tone="secondary" size="sm" onClick={() => { void openNimiAiCapabilities().then(opened => { if (!opened) nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed }); }).catch(() => nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed })); }}>{copy.assistant.openAiSetup}</Button> : null}
             {run.changes.length > 0 && !run.undone ? <Button tone="ghost" size="sm" onClick={undo}>{copy.run.undoAll}</Button> : null}
             {run.undone ? <span className="nd-faint">{describeUndone(copy, run, state.items)}</span> : null}
             {run.state !== 'done' && run.trigger !== 'chat' ? <Button tone="secondary" size="sm" onClick={() => { void start(); }}>{copy.run.retry}</Button> : null}
-            {!compact && lesson === null && run.trigger !== 'chat' ? <Button tone="ghost" size="sm" onClick={() => setLesson('')}>{copy.run.addLesson}</Button> : null}
+            {lesson === null && run.trigger !== 'chat' ? <Button tone="ghost" size="sm" onClick={() => setLesson('')}>{copy.run.addLesson}</Button> : null}
           </div>
           {lesson !== null ? (
-            <div className="nd-capture" style={{ marginTop: 8 }}>
-              <TextField
+            <div className="nd-run-preference">
+              <p className="nd-faint">{copy.run.lessonHint}</p>
+              <TextareaField
                 autoFocus
+                rows={3}
                 value={lesson}
                 maxLength={300}
                 placeholder={copy.run.lessonPlaceholder}
                 aria-label={copy.run.addLesson}
                 onChange={(event) => setLesson(event.target.value)}
                 onKeyDown={(event) => { if (event.key === 'Escape') setLesson(null); }}
-                className="flex-1"
               />
+              <div className="nd-inline-actions">
               <Button tone="primary" size="sm" disabled={!lesson.trim()} onClick={() => {
                 // A lesson is only kept if the method can still be handed over whole with it.
                 const skill = resolveSkills(language, state.skillOverrides, state.customSkills).find((entry) => entry.id === run.skillId);
@@ -155,9 +190,10 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
                 }
                 actions.addLesson(run.skillId, lesson);
                 setLesson(null);
-                nimiToast.show({ tone: 'success', message: copy.run.lessonSaved(run.skillName), durationMs: 4000 });
+                nimiToast.show({ tone: 'success', message: copy.run.lessonSaved(skillRunName(run, language)), durationMs: 4000 });
               }}>{copy.common.save}</Button>
               <Button tone="ghost" size="sm" onClick={() => setLesson(null)}>{copy.common.cancel}</Button>
+              </div>
             </div>
           ) : null}
         </>

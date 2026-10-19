@@ -38,6 +38,7 @@ export type WorkInput = {
   readonly language: Language;
   readonly now: Date;
   readonly focusCircleId: string | null;
+  readonly focusItemId?: string | null;
   /** Assistant-page continuation only; standalone skills do not inherit that exchange. */
   readonly assistantBinding?: string | null;
 };
@@ -259,6 +260,7 @@ function groundRules(language: Language): string[] {
   return language === 'zh'
     ? [
       '【基本原则】',
+      '- 本轮直接给出具体结果、建议或需要用户回答的问题，不要只说“我将处理”“请稍候”就结束。轮次结束后不会继续后台整理。缺少资料时明确说缺什么，不编造条目。',
       '- 只有技能调用的结果才算真正完成了改动：NimiDay 的提醒只有用 day_create_item 建好才会响。没有调用技能并看到成功结果之前，绝不能说“已经记下 / 已安排 / 到时提醒你”。回复里准确说出你新增或修改了什么。',
       '- 事项、提醒和手册以本次资料和技能结果为准：之前对话里提到、但这里查不到的事项，一律当作没有建立，不要说它已经安排好。说到具体几点时，只用资料里写着的时间，不要凭记忆补时间。',
       '- 你做的改动用户都能看到，也可以撤销。不确定时先问，不要替用户做决定。',
@@ -267,6 +269,7 @@ function groundRules(language: Language): string[] {
     ]
     : [
       '[Ground rules]',
+      '- Return concrete results, suggestions or a necessary question in this turn. Do not end with only an acknowledgement or a promise to work later: no background preparation continues after this turn. State missing information instead of inventing items.',
       "- Only skill results establish that something changed: a NimiDay reminder only goes off if you created it with day_create_item. Never say you noted, arranged or will remind about something before a skill call returned success. Say exactly what you added or changed.",
       "- Items, reminders and the handbook are what this material and skill results show: anything mentioned earlier in conversation but not found here was never set up, so don't say it is arranged. When you mention a time of day, use only times written in this material, never one remembered from before.",
       '- The user sees and can undo your changes. When unsure, ask instead of deciding for them.',
@@ -406,8 +409,14 @@ export function buildDayWork(fullInput: WorkInput, agentName: string): DayWork {
   let used = 0;
   const corrections = correctionsSource(fullInput);
   const continuation = assistantContinuationSource(input);
+  const appointment = input.focusItemId ? input.state.items.find(item => item.id === input.focusItemId) : null;
+  const selected: WorkSource | null = appointment ? {
+    sourceId: 'nimiday.selected-appointment',
+    title: input.language === 'zh' ? '本次选中的约定（只为这个约定做准备）' : 'Selected appointment (prepare only for this appointment)',
+    content: itemLine(appointment, input.state.circles, input.language, input.now),
+  } : null;
   // Corrections come first so a large household can never push them out of the budget.
-  for (const source of [corrections, continuation, ...input.skill.materials.map((kind) => buildSource(kind, input))]) {
+  for (const source of [selected, corrections, continuation, ...input.skill.materials.map((kind) => buildSource(kind, input))]) {
     if (!source) continue;
     const size = byteLength(source.content) + byteLength(source.title) + byteLength(source.sourceId);
     if (used + size > TOTAL_SOURCE_BUDGET || sources.length >= WORK_LIMITS.sources) break;

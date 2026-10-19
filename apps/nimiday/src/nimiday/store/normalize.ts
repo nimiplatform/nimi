@@ -274,6 +274,7 @@ export function normalizeRun(value: unknown): SkillRun | null {
     replyMessageId: strOrNull(raw.replyMessageId),
     replyText: strOrNull(raw.replyText),
     ...(typeof raw.focusCircleId === 'string' ? { focusCircleId: raw.focusCircleId } : {}),
+    ...(typeof raw.focusItemId === 'string' ? { focusItemId: raw.focusItemId } : {}),
     error: errorRaw ? { code: str(errorRaw.code, 'unknown'), message: str(errorRaw.message) } : null,
   };
 }

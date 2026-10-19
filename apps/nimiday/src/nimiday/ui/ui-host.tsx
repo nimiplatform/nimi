@@ -1,3 +1,4 @@
+import { skillRunName, resolveSkills } from '../domain/skills.js';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Button,
@@ -16,13 +17,14 @@ import { CIRCLE_TEMPLATES } from '../domain/defaults.js';
 import type { ItemDraft } from '../domain/items.js';
 import { toLocalDate } from '../domain/time.js';
 import type { CircleKind } from '../domain/types.js';
-import { formatInstant } from '../i18n/index.js';
+import { formatInstant, formatWhen } from '../i18n/index.js';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { AppointPanel } from './appoint-panel.js';
-import { CIRCLE_ICONS, RunStateChip } from './common.js';
+import { CIRCLE_ICONS, RunStateChip, SkillIcon } from './common.js';
 import { ItemEditor } from './item-editor.js';
+import { ItemRow } from './item-row.js';
 import { RunCard } from './run-card.js';
-import { UiContext, type NoteTarget, type UiApi } from './ui-context.js';
+import { UiContext, useUi, type NoteTarget, type UiApi } from './ui-context.js';
 
 type Overlay =
   | { readonly kind: 'item'; readonly itemId: string | null; readonly draft?: Partial<ItemDraft> }
@@ -71,22 +73,48 @@ function AppointDialog({ onClose }: { readonly onClose: () => void }) {
 }
 
 function RunDetail({ runId, onClose }: { readonly runId: string; readonly onClose: () => void }) {
-  const { copy } = useNimiDay();
+  const { copy, language } = useNimiDay();
   const { state } = useDayStore();
   const { now } = useEngine();
+  const ui = useUi();
   const run = state.runs.find((entry) => entry.id === runId);
   const today = toLocalDate(now);
+  const appointment = state.items.find(item => item.id === run?.focusItemId);
+  const decisions = state.items.filter(item => item.state === 'waiting' && item.decision && run?.changes.some(change => change.kind === 'decision-asked' && change.itemId === item.id));
+  const skill = run ? resolveSkills(language, state.skillOverrides, state.customSkills).find((entry) => entry.id === run.skillId) : undefined;
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent onClose={onClose} data-testid="nd-run-detail">
-        <DialogHeader><DialogTitle>{copy.run.detail}</DialogTitle></DialogHeader>
-        <DialogBody>
+      <DialogContent onClose={onClose} data-testid="nd-run-detail" className="nd-run-dialog">
+        <DialogHeader className="nd-run-hero">
+          {skill ? <span className="nd-run-skill-badge" data-icon={skill.icon}><SkillIcon icon={skill.icon} size={20} /></span> : null}
+          <div className="nd-run-hero-copy">
+            <DialogTitle className="nd-run-hero-title">{run ? skillRunName(run, language) : copy.run.detail}</DialogTitle>
+            {skill?.purpose ? <p>{skill.purpose}</p> : null}
+          </div>
+          {run ? <RunStateChip state={run.state} /> : null}
+        </DialogHeader>
+        <DialogBody className="nd-run-dialog-body">
           {!run ? <p className="nd-empty">{copy.routines.runsEmpty}</p> : (
             <>
-              <dl className="nd-detail-grid">
-                <dt>{copy.routines.rhythmSkill}</dt><dd>{run.skillName} <RunStateChip state={run.state} /></dd>
+              {appointment ? <div className="nd-task-appointment">
+                <span className="nd-field-label">{copy.run.selectedAppointment}</span>
+                <button type="button" className="nd-link" onClick={() => ui.openItem(appointment.id)}>{appointment.title}</button>
+                <span className="nd-faint">{formatWhen(copy, appointment, today)}{appointment.place ? ` · ${appointment.place}` : ''}</span>
+              </div> : null}
+              <RunCard key={run.id} run={run}>
+                {decisions.length ? <section className="nd-task-decisions">
+                  <h3 className="nd-field-label">{copy.run.decisions}</h3>
+                  {decisions.map(item => <ItemRow key={item.id} item={item} />)}
+                </section> : null}
+              </RunCard>
+              <details className="nd-task-record">
+                <summary>{copy.run.executionDetails}</summary>
+                <dl className="nd-detail-grid">
+                <dt>{copy.routines.rhythmSkill}</dt><dd>{skillRunName(run, language)} <RunStateChip state={run.state} /></dd>
                 <dt>{copy.run.agent}</dt><dd>{run.agentName ?? '—'}</dd>
                 <dt>{copy.run.request}</dt><dd>{run.requestText || '—'}</dd>
+                <dt>{copy.run.startedBy}</dt><dd>{copy.run.trigger[run.trigger]}</dd>
+                {run.state === 'done' && run.changes.length === 0 ? <><dt>{copy.run.changes}</dt><dd>{copy.run.noChanges}</dd></> : null}
                 <dt>{copy.run.startedAt}</dt><dd>{run.startedAt ? formatInstant(copy, run.startedAt, today) : '—'}</dd>
                 <dt>{copy.run.finishedAt}</dt><dd>{run.finishedAt ? formatInstant(copy, run.finishedAt, today) : '—'}</dd>
               </dl>
@@ -102,13 +130,11 @@ function RunDetail({ runId, onClose }: { readonly runId: string; readonly onClos
                   </ul>
                 </>
               ) : null}
-              <div style={{ marginTop: 12 }}>
-                <RunCard run={run} compact />
-              </div>
+              </details>
             </>
           )}
         </DialogBody>
-        <DialogFooter><Button onClick={onClose}>{copy.common.close}</Button></DialogFooter>
+        <DialogFooter className="nd-run-dialog-footer"><Button tone={run?.state === 'done' ? 'primary' : 'secondary'} onClick={onClose}>{run?.state === 'done' ? copy.run.acknowledge : copy.common.close}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -205,21 +231,21 @@ function NoteEditor({ target, onClose }: { readonly target: NoteTarget; readonly
               <span className="nd-field-label">{copy.handbook.body}</span>
               <TextareaField value={body} rows={6} maxLength={4000} placeholder={copy.handbook.bodyPlaceholder} onChange={(event) => setBody(event.target.value)} />
             </label>
-            <div className="nd-field-row">
-              <label className="nd-field">
-                <span className="nd-field-label">{copy.item.circle}</span>
-                <SelectField
-                  contentLayer="dialog"
-                  aria-label={copy.item.circle}
-                  value={circleId}
-                  onValueChange={setCircleId}
-                  options={[{ value: 'none', label: copy.common.unassigned }, ...state.circles.map((circle) => ({ value: circle.id, label: circle.name }))]}
-                />
-              </label>
-              <div className="nd-field">
-                <span className="nd-field-label">{copy.handbook.pin}</span>
-                <Toggle checked={pinned} onValueChange={setPinned} ariaLabel={copy.handbook.pin} />
-              </div>
+            <div className="nd-field">
+              <span className="nd-field-label nd-split">
+                <span>{copy.item.circle}</span>
+                <span className="nd-inline-actions" style={{ fontWeight: 400 }}>
+                  {copy.handbook.pin}
+                  <Toggle checked={pinned} onValueChange={setPinned} ariaLabel={copy.handbook.pin} />
+                </span>
+              </span>
+              <SelectField
+                contentLayer="dialog"
+                aria-label={copy.item.circle}
+                value={circleId}
+                onValueChange={setCircleId}
+                options={[{ value: 'none', label: copy.common.unassigned }, ...state.circles.map((circle) => ({ value: circle.id, label: circle.name }))]}
+              />
             </div>
           </div>
         </DialogBody>

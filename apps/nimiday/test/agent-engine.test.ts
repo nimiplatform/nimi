@@ -566,6 +566,71 @@ describe('skill runs through the on-duty agent', () => {
     expect(store.getSnapshot().state.runs).toEqual([]);
   });
 
+  it('keeps a selected appointment outside the week in work material and across reload/retry', async () => {
+    const { fake, store, desk, documents } = await setup(true);
+    const actions = dayActions(store);
+    const appointment = actions.addItem({ title: '下个月的复诊', kind: 'appointment', date: '2027-02-04', notes: '带上报告' });
+    actions.addItem({ title: '另一场约定', kind: 'appointment', date: '2027-02-05' });
+    const started = await engine!.startSkill({ skillId: 'visit-prep', trigger: 'user', focusItemId: appointment.id });
+    expect(started.ok).toBe(true);
+    await settle();
+    const sent = fake.sent[0] as { prompt: string; work: { sources: { sourceId: string; content: string }[] } };
+    expect(sent.prompt).toContain(appointment.id);
+    const selected = sent.work.sources.find(source => source.sourceId === 'nimiday.selected-appointment');
+    expect(selected?.content).toContain('下个月的复诊');
+    expect(selected?.content).toContain('带上报告');
+    expect(selected?.content).not.toContain('另一场约定');
+    fake.push({ type: 'turn-failed', turnId: 'turn_1', reasonCode: 'UNAVAILABLE', message: 'Unavailable' });
+    await settle();
+    await store.persist();
+    await engine!.stop();
+    const reopened = createDayStore(documents, { language: () => 'zh' });
+    await reopened.load();
+    engine = createDayEngine({ store: reopened, actions: dayActions(reopened), desk, activity: idleActivity(), language: () => 'zh', copy: () => copyFor('zh'), navigate: () => undefined });
+    engine.start();
+    const previous = reopened.getSnapshot().state.runs.find(run => run.id === (started.ok ? started.runId : ''))!;
+    expect(previous.focusItemId).toBe(appointment.id);
+    const retried = await engine.retry(previous.id);
+    expect(retried.ok).toBe(true);
+    await settle();
+    expect((fake.sent[1] as { prompt: string }).prompt).toContain(appointment.id);
+    await desk.dispose();
+  });
+
+  it('reopens an active manual task without queueing it twice, but keeps different selections separate', async () => {
+    const { fake, store } = await setup(true);
+    const originalRhythms = store.getSnapshot().state.rhythms;
+    const actions = dayActions(store);
+    const first = actions.addItem({ title: '第一次约定', kind: 'appointment' });
+    const second = actions.addItem({ title: '第二次约定', kind: 'appointment' });
+    const input = { skillId: 'visit-prep', trigger: 'user' as const, focusItemId: first.id };
+    const started = await engine!.startSkill(input);
+    expect(await engine!.startSkill(input)).toEqual(started);
+    await settle();
+    expect(await engine!.startSkill(input)).toEqual(started);
+    expect(fake.sent).toHaveLength(1);
+    const another = await engine!.startSkill({ ...input, focusItemId: second.id });
+    expect(another).not.toEqual(started);
+    expect(store.getSnapshot().state.runs).toHaveLength(2);
+    expect(store.getSnapshot().state.favoriteSkillIds).toEqual([]);
+    expect(store.getSnapshot().state.rhythms).toEqual(originalRhythms);
+  });
+
+  it('refuses missing or closed appointments and rechecks a queued selection before execution', async () => {
+    const { fake, store } = await setup(true);
+    expect(await engine!.startSkill({ skillId: 'visit-prep', trigger: 'user' })).toMatchObject({ ok: false, reason: 'unknown-item' });
+    const actions = dayActions(store);
+    const appointment = actions.addItem({ title: '准备约定', kind: 'appointment' });
+    await engine!.startSkill({ skillId: 'morning-care', trigger: 'user' });
+    await settle();
+    const queued = await engine!.startSkill({ skillId: 'visit-prep', trigger: 'user', focusItemId: appointment.id });
+    actions.dropItem(appointment.id);
+    fake.push({ type: 'turn-completed', turnId: 'turn_1' });
+    await vi.waitFor(() => expect(store.getSnapshot().state.runs.find(run => run.id === (queued.ok ? queued.runId : ''))?.state).toBe('failed'));
+    expect(fake.sent).toHaveLength(1);
+    expect(await engine!.retry(queued.ok ? queued.runId : '')).toMatchObject({ ok: false, reason: 'unknown-item' });
+  });
+
   it('enforces the accepted person selection when a tool asks to write another person', async () => {
     const { fake, store, child } = await setup(true);
     const other = dayActions(store).addCircle({ kind: 'elder', name: '另一位家人' });

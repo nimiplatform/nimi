@@ -18,6 +18,7 @@ export function ItemRow({
   projected = false,
   showDay = false,
   showSnooze = false,
+  layout = 'timeline',
 }: {
   readonly item: LifeItem;
   readonly date?: LocalDate | null;
@@ -26,6 +27,7 @@ export function ItemRow({
   readonly projected?: boolean;
   readonly showDay?: boolean;
   readonly showSnooze?: boolean;
+  readonly layout?: 'timeline' | 'title-first';
 }) {
   const { actions, copy, engine, navigate } = useNimiDay();
   const desk = useDesk();
@@ -39,7 +41,7 @@ export function ItemRow({
   const closed = item.state === 'done' || item.state === 'dropped';
   const snoozed = parseInstant(item.snoozedUntil);
   const snoozePending = snoozed !== null && snoozed.getTime() > now.getTime();
-  const overdue = !done && !projected && !snoozePending && isOverdue(item, now);
+  const overdue = !done && !projected && isOverdue(item, now);
   const settings = { allDayRemindTime: state.profile.allDayRemindTime, quiet: state.profile.quiet };
   const linked = item.source ? linkedSource(item.source, changes) : null;
 
@@ -47,7 +49,7 @@ export function ItemRow({
   const dayLabel = showDay && occurrenceDate ? formatDay(copy, occurrenceDate, today) : null;
 
   return (
-    <div className="nd-row" data-done={done || closed} data-testid="nd-item-row">
+    <div className="nd-row" data-layout={layout} data-done={done || closed} data-testid="nd-item-row">
       {item.decision && item.state === 'waiting' ? (
         <span style={{ width: 20 }} aria-hidden="true" />
       ) : (
@@ -74,15 +76,18 @@ export function ItemRow({
           }}
         />
       )}
-      <div className="nd-row-time" data-tone={overdue ? 'late' : undefined}>
+      {layout === 'timeline' ? <div className="nd-row-time" data-tone={overdue ? 'late' : undefined}>
         {dayLabel ? <div>{dayLabel}</div> : null}
         {timeLabel}
-      </div>
+      </div> : null}
       <div className="nd-row-body">
         <button type="button" className="nd-link" style={{ color: 'inherit', textAlign: 'left' }} onClick={() => ui.openItem(item.id)}>
           <span className="nd-row-title">{item.decision ? item.decision.question : item.title}</span>
         </button>
         <div className="nd-row-meta">
+          {layout === 'title-first' && (dayLabel || timeLabel) ? (
+            <span className="nd-item-schedule">{[dayLabel, timeLabel].filter(Boolean).join(' · ')}</span>
+          ) : null}
           {circle ? <Chip tone="accent">{circle.status === 'ended' ? `${circle.name} · ${copy.care.endedTag}` : circle.name}</Chip> : null}
           {item.kind !== 'todo' ? <Chip>{copy.kinds.item[item.kind]}</Chip> : null}
           {overdue ? <Chip tone="danger">{copy.today.overdue}</Chip> : null}
@@ -160,8 +165,12 @@ export function ItemRow({
               trigger={<Button size="sm" tone="ghost" leadingIcon={<AlarmClock size={14} aria-hidden="true" />}>{copy.snooze.label}</Button>}
               items={snoozeOptions(now, settings).map((option) => ({
                 id: option.choice,
-                label: copy.snooze[option.choice],
-                onSelect: () => actions.snoozeItem(item.id, snoozeInstant(option.choice, new Date(), settings)),
+                label: `${copy.snooze[option.choice]} · ${formatInstant(copy, option.at.toISOString(), today)}`,
+                onSelect: () => {
+                  const until = snoozeInstant(option.choice, new Date(), settings);
+                  actions.snoozeItem(item.id, until);
+                  nimiToast.show({ tone: 'success', message: copy.snooze.saved(formatInstant(copy, until, today)), durationMs: 5000 });
+                },
               }))}
             />
           ) : null}

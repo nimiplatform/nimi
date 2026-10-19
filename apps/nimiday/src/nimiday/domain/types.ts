@@ -262,6 +262,8 @@ export type SkillRun = {
   readonly finishedAt: Instant | null;
   /** The one person or area the request was about (null: everyone), so trying again asks the same. */
   readonly focusCircleId?: string | null;
+  /** The appointment explicitly selected for this run, retained when retrying. */
+  readonly focusItemId?: string | null;
   readonly toolCalls: readonly RunToolCall[];
   readonly changes: readonly RunChange[];
   readonly undone: boolean;
@@ -339,5 +341,6 @@ export type DayState = {
   readonly rhythms: readonly Rhythm[];
   readonly skillOverrides: readonly SkillOverride[];
   readonly customSkills: readonly SkillDefinition[];
+  readonly favoriteSkillIds: readonly string[];
   readonly runs: readonly SkillRun[];
 };

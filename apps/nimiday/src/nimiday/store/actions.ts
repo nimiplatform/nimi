@@ -13,6 +13,7 @@ import {
   type ItemPatch,
 } from '../domain/items.js';
 import { handledMarkForEnable } from '../domain/rhythms.js';
+import { builtInSkillIds } from '../domain/skills.js';
 import type {
   Appointment,
   CareCircle,
@@ -172,6 +173,12 @@ export function dayActions(store: DayStore, now: () => Date = () => new Date()) 
     deleteRhythm: (id: string) => store.update((state) => ({ ...state, rhythms: state.rhythms.filter((rhythm) => rhythm.id !== id) }), ['rhythms']),
 
     // Skills ----------------------------------------------------------------
+    // @nimi-authority: rule.nimi.nimiday.assistant.skill-library
+    setSkillFavorite: (skillId: string, favorite: boolean) => store.update(state => {
+      if (!builtInSkillIds().includes(skillId) && !state.customSkills.some(skill => skill.id === skillId)) return state;
+      if (state.favoriteSkillIds.includes(skillId) === favorite) return state;
+      return { ...state, favoriteSkillIds: favorite ? [...state.favoriteSkillIds, skillId] : state.favoriteSkillIds.filter(id => id !== skillId) };
+    }, ['skills']),
     adjustSkill: (skillId: string, patch: Omit<SkillOverride, 'skillId' | 'updatedAt'>) =>
       store.update((state) => {
         const existing = state.skillOverrides.find((override) => override.skillId === skillId);
@@ -223,6 +230,7 @@ export function dayActions(store: DayStore, now: () => Date = () => new Date()) 
       const saved: SkillDefinition = { ...skill, lessons: skill.lessons ?? kept, id, builtIn: false, updatedAt: now().toISOString() };
       store.update((state) => ({
         ...state,
+        favoriteSkillIds: state.customSkills.some(entry => entry.id === saved.id) ? state.favoriteSkillIds : [...state.favoriteSkillIds, saved.id],
         customSkills: state.customSkills.some((entry) => entry.id === saved.id)
           ? replaceById(state.customSkills, saved.id, (current) => ({ ...saved, lessons: skill.lessons ?? current.lessons }))
           : [...state.customSkills, saved],
@@ -233,6 +241,7 @@ export function dayActions(store: DayStore, now: () => Date = () => new Date()) 
       store.update((state) => ({
         ...state,
         customSkills: state.customSkills.filter((skill) => skill.id !== id),
+        favoriteSkillIds: state.favoriteSkillIds.filter(skillId => skillId !== id),
         rhythms: state.rhythms.filter((rhythm) => rhythm.skillId !== id),
       }), ['skills', 'rhythms']),
 

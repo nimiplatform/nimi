@@ -91,15 +91,18 @@ export function describeRemind(copy: Copy, rule: RemindRule, allDay: boolean, al
   return copy.remind.before(rule.minutes);
 }
 
-export function describeSchedule(copy: Copy, schedule: RhythmSchedule): string {
-  const days = schedule.days === 'daily'
+export function describeScheduleDays(copy: Copy, schedule: RhythmSchedule): string {
+  return schedule.days === 'daily'
     ? copy.schedule.daily
     : schedule.days === 'weekdays'
       ? copy.schedule.weekdays
       : schedule.days === 'weekends'
         ? copy.schedule.weekends
         : copy.schedule.custom(schedule.weekdays.map((weekday) => copy.time.weekdays[weekday]).join(copy.repeat.joiner));
-  return copy.schedule.at(days, schedule.time);
+}
+
+export function describeSchedule(copy: Copy, schedule: RhythmSchedule): string {
+  return copy.schedule.at(describeScheduleDays(copy, schedule), schedule.time);
 }
 
 export function greeting(copy: Copy, now: Date): string {

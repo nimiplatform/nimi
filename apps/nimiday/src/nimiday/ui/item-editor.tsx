@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import {
   Button,
+  DatePicker,
   Dialog,
   DialogBody,
   DialogContent,
@@ -14,10 +15,12 @@ import {
   Toggle,
 } from '@nimiplatform/kit/ui';
 import type { ItemDraft } from '../domain/items.js';
-import { toLocalDate, weekdayOf } from '../domain/time.js';
+import { addDays, toLocalDate, toLocalTime, weekdayOf } from '../domain/time.js';
 import type { Importance, ItemKind, LifeItem, RemindRule, RepeatFreq } from '../domain/types.js';
 import { formatInstant } from '../i18n/index.js';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
+import { TimeField, timeFieldLabels } from './time-field.js';
+import { isEditorScheduleValid, nextScheduleMinute, updateEditorSchedule, type EditorSchedule } from './item-editor-schedule.js';
 
 type RemindChoice = 'none' | 'at-time' | '10' | '30' | '60' | '1440';
 
@@ -98,11 +101,18 @@ export function ItemEditor({
   const { actions, copy } = useNimiDay();
   const { state } = useDayStore();
   const { now } = useEngine();
-  const today = toLocalDate(now);
+  const [checkedAt, setCheckedAt] = useState(() => new Date());
+  const currentTime = now > checkedAt ? now : checkedAt;
+  const today = toLocalDate(currentTime);
   const item = itemId ? state.items.find((entry) => entry.id === itemId) ?? null : null;
   const [form, setForm] = useState<FormState>(() => initialForm(item, draft, today));
   const [confirmDelete, setConfirmDelete] = useState(false);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const setSchedule = (patch: Partial<EditorSchedule>) => {
+    const clock = new Date();
+    setCheckedAt(clock);
+    setForm((current) => updateEditorSchedule(current, patch, clock));
+  };
 
   const circles = state.circles.filter((circle) => circle.status !== 'ended' || circle.id === item?.circleId);
   const circleOptions = useMemo(() => [
@@ -110,10 +120,16 @@ export function ItemEditor({
     ...circles.map((circle) => ({ value: circle.id, label: circle.name })),
   ], [circles, copy]);
 
-  const canSave = form.title.trim().length > 0;
+  const scheduleValid = isEditorScheduleValid(form, item, currentTime);
+  const canSave = form.title.trim().length > 0 && scheduleValid;
+  const earliestMinute = nextScheduleMinute(currentTime);
+  const timeUnavailable = Boolean(form.date && form.date < toLocalDate(earliestMinute));
+  const minPickerTime = form.date === toLocalDate(earliestMinute) ? toLocalTime(earliestMinute) : undefined;
 
   const save = () => {
-    if (!canSave) return;
+    const clock = new Date();
+    setCheckedAt(clock);
+    if (!form.title.trim() || !isEditorScheduleValid(form, item, clock)) return;
     const hasDate = form.date !== '';
     const repeat = hasDate && form.repeat !== 'none'
       ? {
@@ -141,6 +157,30 @@ export function ItemEditor({
 
   const quiet = state.profile.quiet;
 
+  const dateShortcuts = [
+    { key: 'today', label: copy.time.today, value: today },
+    { key: 'tomorrow', label: copy.time.tomorrow, value: addDays(today, 1) },
+    { key: 'none', label: copy.time.noDate, value: '' },
+  ] as const;
+
+  // Items can be scheduled arbitrarily far ahead; the shared DatePicker
+  // otherwise clamps its wheel to today.
+  const maxPickerDate = `${Number(today.slice(0, 4)) + 50}-12-31`;
+  const pickerCopy = copy.time.picker;
+  const datePickerLabels = {
+    panelTitle: copy.item.date,
+    yearHeader: pickerCopy.year,
+    monthHeader: pickerCopy.month,
+    dayHeader: pickerCopy.day,
+    yearWheelAriaLabel: pickerCopy.yearWheel,
+    monthWheelAriaLabel: pickerCopy.monthWheel,
+    dayWheelAriaLabel: pickerCopy.dayWheel,
+    todayButton: copy.time.today,
+    clearButton: pickerCopy.clear,
+    confirmButton: pickerCopy.confirm,
+    clearValueAriaLabel: pickerCopy.clearDate,
+  };
+
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent onClose={onClose} data-testid="nd-item-editor">
@@ -161,6 +201,7 @@ export function ItemEditor({
                 value={form.title}
                 placeholder={copy.item.titlePlaceholder}
                 maxLength={200}
+                inputClassName="nd-item-editor-title"
                 onChange={(event) => set('title', event.target.value)}
                 onKeyDown={(event) => { if (event.key === 'Enter') save(); }}
               />
@@ -170,6 +211,7 @@ export function ItemEditor({
               <SegmentedControl
                 ariaLabel={copy.item.kind}
                 size="sm"
+                className="nd-segmented-fill"
                 value={form.kind}
                 onValueChange={(value) => set('kind', value as ItemKind)}
                 items={(['todo', 'appointment', 'reminder', 'follow-up'] as const).map((kind) => ({ value: kind, label: copy.kinds.item[kind] }))}
@@ -185,98 +227,135 @@ export function ItemEditor({
                 <TextField value={form.place} maxLength={200} placeholder={copy.common.optional} onChange={(event) => set('place', event.target.value)} />
               </label>
             </div>
-            <div className="nd-field-row">
-              <label className="nd-field">
-                <span className="nd-field-label">{copy.item.date}</span>
-                <input className="nd-native-input" type="date" value={form.date} onChange={(event) => set('date', event.target.value)} />
-              </label>
-              <div className="nd-field">
-                <span className="nd-field-label nd-split">
-                  <span id={timeLabelId}>{copy.item.time}</span>
-                  <span className="nd-inline-actions" style={{ fontWeight: 400 }}>
-                    {copy.item.allDay}
-                    <Toggle checked={form.allDay} onValueChange={(value) => set('allDay', value)} ariaLabel={copy.item.allDay} disabled={!form.date} />
+            <div className="nd-form-section">
+              <h3 className="nd-form-section-title">{copy.item.sectionWhen}</h3>
+              <div className="nd-field-row nd-item-editor-schedule">
+                <label className="nd-field">
+                  <span className="nd-field-label">{copy.item.date}</span>
+                  <DatePicker
+                    contentLayer="dialog"
+                    value={form.date}
+                    onValueChange={(value) => setSchedule({ date: value })}
+                    placeholder={copy.time.noDate}
+                    allowClear
+                    minDate={today}
+                    maxDate={maxPickerDate}
+                    labels={datePickerLabels}
+                  />
+                </label>
+                <div className="nd-field">
+                  <span className="nd-field-label nd-split">
+                    <span id={timeLabelId}>{copy.item.time}</span>
+                    <span className="nd-inline-actions" style={{ fontWeight: 400 }}>
+                      {copy.item.allDay}
+                      <Toggle checked={form.allDay} onValueChange={(value) => setSchedule({ allDay: value })} ariaLabel={copy.item.allDay} disabled={!form.date} />
+                    </span>
                   </span>
-                </span>
-                <input className="nd-native-input" type="time" aria-labelledby={timeLabelId} value={form.time} disabled={form.allDay || !form.date} onChange={(event) => set('time', event.target.value)} />
-              </div>
-            </div>
-            {form.date ? (
-              <div className="nd-field-row">
-                <label className="nd-field">
-                  <span className="nd-field-label">{copy.item.repeat}</span>
-                  <SelectField
+                  <TimeField
                     contentLayer="dialog"
-                    aria-label={copy.item.repeat}
-                    value={form.repeat}
-                    onValueChange={(value) => set('repeat', value as FormState['repeat'])}
-                    options={(['none', 'daily', 'weekly', 'monthly', 'yearly'] as const).map((value) => ({ value, label: copy.item.repeatOptions[value] }))}
+                    aria-labelledby={timeLabelId}
+                    value={form.time}
+                    disabled={form.allDay || !form.date || timeUnavailable}
+                    minTime={minPickerTime}
+                    onValueChange={(value) => setSchedule({ time: value })}
+                    labels={timeFieldLabels(copy, copy.item.time)}
                   />
-                </label>
-                <label className="nd-field">
-                  <span className="nd-field-label">{copy.item.remind}</span>
-                  <SelectField
-                    contentLayer="dialog"
-                    aria-label={copy.item.remind}
-                    value={form.remind}
-                    onValueChange={(value) => set('remind', value as RemindChoice)}
-                    options={(['none', 'at-time', '10', '30', '60', '1440'] as const).map((value) => ({ value, label: copy.item.remindOptions[value] }))}
-                  />
-                </label>
-              </div>
-            ) : null}
-            {form.date && form.repeat === 'weekly' ? (
-              <div className="nd-field">
-                <span className="nd-field-label">{copy.item.repeatDays}</span>
-                <div className="nd-weekday-picker">
-                  {[1, 2, 3, 4, 5, 6, 0].map((weekday) => (
-                    <button
-                      key={weekday}
-                      type="button"
-                      className="nd-weekday"
-                      aria-pressed={form.weekdays.includes(weekday) || (form.weekdays.length === 0 && weekdayOf(form.date) === weekday)}
-                      onClick={() => set('weekdays', form.weekdays.includes(weekday)
-                        ? form.weekdays.filter((value) => value !== weekday)
-                        : [...form.weekdays, weekday])}
-                    >
-                      {copy.time.weekdays[weekday]}
-                    </button>
-                  ))}
                 </div>
               </div>
-            ) : null}
-            <div className="nd-field">
-              <span className="nd-field-label">{copy.item.importance}</span>
-              <SegmentedControl
-                ariaLabel={copy.item.importance}
-                size="sm"
-                value={form.importance}
-                onValueChange={(value) => set('importance', value as Importance)}
-                items={(['gentle', 'normal', 'important'] as const).map((value) => ({ value, label: copy.kinds.importance[value] }))}
-              />
-              <span className="nd-faint">
-                {quiet.enabled && form.importance === 'normal'
-                  ? copy.item.quietHint(quiet.start, quiet.end)
-                  : copy.kinds.importanceHint[form.importance]}
-              </span>
+              <div className="nd-date-chips" role="group" aria-label={copy.item.date}>
+                {dateShortcuts.map((shortcut) => (
+                  <button
+                    key={shortcut.key}
+                    type="button"
+                    className="nd-date-chip"
+                    aria-pressed={form.date === shortcut.value}
+                    onClick={() => setSchedule({ date: shortcut.value })}
+                  >
+                    {shortcut.label}
+                  </button>
+                ))}
+              </div>
+              {!scheduleValid ? <p role="alert" className="nd-faint">{copy.item.futureScheduleRequired}</p> : null}
+              {form.date ? (
+                <div className="nd-field-row">
+                  <label className="nd-field">
+                    <span className="nd-field-label">{copy.item.repeat}</span>
+                    <SelectField
+                      contentLayer="dialog"
+                      aria-label={copy.item.repeat}
+                      value={form.repeat}
+                      onValueChange={(value) => set('repeat', value as FormState['repeat'])}
+                      options={(['none', 'daily', 'weekly', 'monthly', 'yearly'] as const).map((value) => ({ value, label: copy.item.repeatOptions[value] }))}
+                    />
+                  </label>
+                  <label className="nd-field">
+                    <span className="nd-field-label">{copy.item.remind}</span>
+                    <SelectField
+                      contentLayer="dialog"
+                      aria-label={copy.item.remind}
+                      value={form.remind}
+                      onValueChange={(value) => set('remind', value as RemindChoice)}
+                      options={(['none', 'at-time', '10', '30', '60', '1440'] as const).map((value) => ({ value, label: copy.item.remindOptions[value] }))}
+                    />
+                  </label>
+                </div>
+              ) : null}
+              {form.date && form.repeat === 'weekly' ? (
+                <div className="nd-field">
+                  <span className="nd-field-label">{copy.item.repeatDays}</span>
+                  <div className="nd-weekday-picker">
+                    {[1, 2, 3, 4, 5, 6, 0].map((weekday) => (
+                      <button
+                        key={weekday}
+                        type="button"
+                        className="nd-weekday"
+                        aria-pressed={form.weekdays.includes(weekday) || (form.weekdays.length === 0 && weekdayOf(form.date) === weekday)}
+                        onClick={() => set('weekdays', form.weekdays.includes(weekday)
+                          ? form.weekdays.filter((value) => value !== weekday)
+                          : [...form.weekdays, weekday])}
+                      >
+                        {copy.time.weekdays[weekday]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="nd-field">
+                <span className="nd-field-label">{copy.item.importance}</span>
+                <SegmentedControl
+                  ariaLabel={copy.item.importance}
+                  size="sm"
+                  className="nd-segmented-fill"
+                  value={form.importance}
+                  onValueChange={(value) => set('importance', value as Importance)}
+                  items={(['gentle', 'normal', 'important'] as const).map((value) => ({ value, label: copy.kinds.importance[value] }))}
+                />
+                <span className="nd-faint">
+                  {quiet.enabled && form.importance === 'normal'
+                    ? copy.item.quietHint(quiet.start, quiet.end)
+                    : copy.kinds.importanceHint[form.importance]}
+                </span>
+              </div>
             </div>
-            <label className="nd-field">
-              <span className="nd-field-label">{copy.item.notes}</span>
-              <TextareaField value={form.notes} rows={3} maxLength={4000} onChange={(event) => set('notes', event.target.value)} />
-            </label>
-            {item && item.history.length > 0 ? (
-              <details>
-                <summary className="nd-field-label" style={{ cursor: 'pointer' }}>{copy.item.history}</summary>
-                <ul className="nd-changes-list">
-                  {[...item.history].reverse().slice(0, 12).map((event, index) => (
-                    <li key={`${event.at}-${index}`}>
-                      {formatInstant(copy, event.at, today)} · {copy.item.by[event.by]} · {copy.item.events[event.kind]}
-                      {event.note && event.kind === 'decided' ? ` · ${event.note}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
+            <div className="nd-form">
+              <label className="nd-field">
+                <span className="nd-field-label">{copy.item.notes}</span>
+                <TextareaField value={form.notes} rows={3} maxLength={4000} onChange={(event) => set('notes', event.target.value)} />
+              </label>
+              {item && item.history.length > 0 ? (
+                <details>
+                  <summary className="nd-field-label" style={{ cursor: 'pointer' }}>{copy.item.history}</summary>
+                  <ul className="nd-changes-list">
+                    {[...item.history].reverse().slice(0, 12).map((event, index) => (
+                      <li key={`${event.at}-${index}`}>
+                        {formatInstant(copy, event.at, today)} · {copy.item.by[event.by]} · {copy.item.events[event.kind]}
+                        {event.note && event.kind === 'decided' ? ` · ${event.note}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </div>
           </div>
         </DialogBody>
         <DialogFooter>
@@ -295,7 +374,7 @@ export function ItemEditor({
             </div>
             <div className="nd-inline-actions">
               <Button tone="secondary" size="sm" onClick={onClose}>{copy.common.cancel}</Button>
-              <Button tone="primary" size="sm" disabled={!canSave} onClick={save}>{copy.common.save}</Button>
+              <Button tone="primary" size="sm" disabled={!canSave} onClick={save}>{item ? copy.common.save : copy.common.add}</Button>
             </div>
           </div>
           {confirmDelete ? <p className="nd-faint" style={{ margin: '8px 0 0' }}>{copy.item.deleteConfirm}</p> : null}

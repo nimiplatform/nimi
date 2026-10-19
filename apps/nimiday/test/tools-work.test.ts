@@ -395,7 +395,7 @@ describe('work payload', () => {
     expect(work.workId).toBe('run_1');
     expect(byteLength(work.instructions)).toBeLessThanOrEqual(WORK_LIMITS.instructions);
     expect(work.instructions).toContain('Aya');
-    expect(work.instructions).toContain('晨间照看');
+    expect(work.instructions).toContain('梳理今天');
     expect(work.sources.length).toBeLessThanOrEqual(WORK_LIMITS.sources);
     expect(work.sources.map((source) => source.sourceId)).toEqual(['nimiday.today', 'nimiday.overdue', 'nimiday.changes', 'nimiday.circles']);
     expect(work.sources[0]!.content).toContain(state.items[0]!.id);

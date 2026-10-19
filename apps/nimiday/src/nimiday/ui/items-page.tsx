@@ -11,6 +11,7 @@ import { Card, Hint, PageHead } from './common.js';
 import { ItemRow } from './item-row.js';
 import { QuickCapture } from './quick-capture.js';
 import { useUi } from './ui-context.js';
+import './items-page.css';
 
 type Tab = 'upcoming' | 'waiting' | 'recurring' | 'done';
 
@@ -32,6 +33,10 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
   const matches = (item: LifeItem) => circleFilter === 'all' || (circleFilter === 'none' ? item.circleId === null : item.circleId === circleFilter);
   const filtered = useMemo(() => ({ ...state, items: state.items.filter(matches) }), [state, circleFilter]);
   const agenda = useMemo(() => buildAgenda(filtered, today, 14), [filtered, today]);
+  const agendaDays = agenda.map((day) => ({
+    ...day,
+    entries: day.entries.filter((entry) => entry.kind === 'item'),
+  })).filter((day) => day.entries.length > 0);
   const horizon = addDays(today, 13);
   const later = filtered.items
     .filter((item) => isActive(item) && item.date !== null && item.date > horizon && !item.repeat)
@@ -80,48 +85,51 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
       </div>
 
       {tab === 'upcoming' ? (
-        <div className="nd-stack">
+        <Card className="nd-items-list" testId="nd-items-list">
           {overdue.length > 0 ? (
-            <Card title={copy.today.overdue}>
-              <div className="nd-list">{overdue.map((item) => <ItemRow key={item.id} item={item} showDay showSnooze />)}</div>
-            </Card>
+            <section className="nd-items-group" aria-labelledby="nd-items-overdue">
+              <h2 id="nd-items-overdue" className="nd-items-group-title">{copy.today.overdue}<span>{overdue.length}</span></h2>
+              <div className="nd-list">{overdue.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay showSnooze />)}</div>
+            </section>
           ) : null}
-          <Card title={copy.items.next14}>
-            {agenda.every((day) => day.entries.every((entry) => entry.kind !== 'item')) ? <Hint>{copy.items.empty}</Hint> : agenda.map((day) => {
-              const entries = day.entries.filter((entry) => entry.kind === 'item');
-              if (entries.length === 0) return null;
-              return (
+          {agendaDays.length > 0 ? (
+            <section className="nd-items-group" aria-labelledby="nd-items-next">
+              <h2 id="nd-items-next" className="nd-items-group-title">{copy.items.next14}<span>{agendaDays.reduce((count, day) => count + day.entries.length, 0)}</span></h2>
+              {agendaDays.map((day) => (
                 <div key={day.date} className="nd-day-group">
                   <h3 className="nd-day-label">
                     {formatDay(copy, day.date, today)}
                     <span>{formatDate(copy, day.date, today)}</span>
                   </h3>
                   <div className="nd-list">
-                    {entries.map((entry) => entry.kind === 'item' ? (
-                      <ItemRow key={entry.key} item={entry.item} date={entry.date} time={entry.time} done={entry.done} projected={entry.projected} />
-                    ) : null)}
+                    {day.entries.map((entry) => (
+                      <ItemRow key={entry.key} item={entry.item} date={entry.date} time={entry.time} done={entry.done} projected={entry.projected} layout="title-first" />
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </Card>
-          {later.length > 0 ? (
-            <Card title={copy.items.later}>
-              <div className="nd-list">{later.map((item) => <ItemRow key={item.id} item={item} showDay />)}</div>
-            </Card>
+              ))}
+            </section>
           ) : null}
-          <Card title={copy.items.someday}>
-            {someday.length === 0 ? <Hint>{copy.items.empty}</Hint> : (
-              <div className="nd-list">{someday.map((item) => <ItemRow key={item.id} item={item} />)}</div>
-            )}
-          </Card>
-        </div>
+          {later.length > 0 ? (
+            <section className="nd-items-group" aria-labelledby="nd-items-later">
+              <h2 id="nd-items-later" className="nd-items-group-title">{copy.items.later}<span>{later.length}</span></h2>
+              <div className="nd-list">{later.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
+            </section>
+          ) : null}
+          {someday.length > 0 ? (
+            <section className="nd-items-group" aria-labelledby="nd-items-undated">
+              <h2 id="nd-items-undated" className="nd-items-group-title">{copy.items.someday}<span>{someday.length}</span></h2>
+              <div className="nd-list">{someday.map((item) => <ItemRow key={item.id} item={item} layout="title-first" />)}</div>
+            </section>
+          ) : null}
+          {overdue.length === 0 && agendaDays.length === 0 && later.length === 0 && someday.length === 0 ? <Hint>{copy.items.empty}</Hint> : null}
+        </Card>
       ) : null}
 
       {tab === 'waiting' ? (
         <Card>
           {waiting.length === 0 ? <Hint>{copy.items.waitingEmpty}</Hint> : (
-            <div className="nd-list">{waiting.map((item) => <ItemRow key={item.id} item={item} />)}</div>
+            <div className="nd-list">{waiting.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
           )}
         </Card>
       ) : null}
@@ -129,7 +137,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
       {tab === 'recurring' ? (
         <Card>
           {recurring.length === 0 ? <Hint>{copy.items.recurringEmpty}</Hint> : (
-            <div className="nd-list">{recurring.map((item) => <ItemRow key={item.id} item={item} showDay />)}</div>
+            <div className="nd-list">{recurring.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
           )}
         </Card>
       ) : null}
@@ -137,7 +145,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
       {tab === 'done' ? (
         <Card>
           {done.length === 0 ? <Hint>{copy.items.doneEmpty}</Hint> : (
-            <div className="nd-list">{done.map((item) => <ItemRow key={item.id} item={item} showDay />)}</div>
+            <div className="nd-list">{done.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
           )}
         </Card>
       ) : null}

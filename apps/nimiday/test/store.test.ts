@@ -43,6 +43,51 @@ describe('persistence', () => {
 });
 
 describe('day store', () => {
+  // @nimi-authority: rule.nimi.nimiday.assistant.skill-library
+  it('persists explicit favorites without changing methods, lessons or routines', async () => {
+    const documents = memoryStore();
+    const store = createDayStore(documents, { language: () => 'zh' });
+    await store.load();
+    const actions = dayActions(store);
+    expect(store.getSnapshot().state.favoriteSkillIds).toEqual([]);
+    const rhythms = store.getSnapshot().state.rhythms;
+    actions.adjustSkill('morning-care', { instructions: '先看逾期事项' });
+    actions.addLesson('morning-care', '周一先看一周安排');
+    actions.setSkillFavorite('morning-care', true);
+    actions.setSkillFavorite('morning-care', true);
+    actions.setSkillFavorite('not-a-skill', true);
+    expect(store.getSnapshot().state.favoriteSkillIds).toEqual(['morning-care']);
+    await store.flush();
+    const reopened = createDayStore(documents, { language: () => 'zh' });
+    await reopened.load();
+    expect(reopened.getSnapshot().state.favoriteSkillIds).toEqual(['morning-care']);
+    dayActions(reopened).setSkillFavorite('morning-care', false);
+    expect(reopened.getSnapshot().state.favoriteSkillIds).toEqual([]);
+    expect(reopened.getSnapshot().state.rhythms).toEqual(rhythms);
+    expect(reopened.getSnapshot().state.skillOverrides[0]).toMatchObject({ instructions: '先看逾期事项', lessons: [{ text: '周一先看一周安排' }] });
+    await reopened.flush();
+    const again = createDayStore(documents, { language: () => 'zh' });
+    await again.load();
+    expect(again.getSnapshot().state.favoriteSkillIds).toEqual([]);
+  });
+
+  it('adds a new custom shortcut once, preserves explicit removal on edit, and cleans it on deletion', async () => {
+    const store = createDayStore(memoryStore(), { language: () => 'zh' });
+    await store.load();
+    const actions = dayActions(store);
+    const form = { icon: 'sparkles', name: '周末整理', purpose: '整理本周事项', request: '帮我整理', instructions: '先列出事项', tools: ['day_list_items'], materials: ['week'] as const, enabled: true };
+    const created = actions.saveCustomSkill(form);
+    expect(store.getSnapshot().state.favoriteSkillIds).toEqual([created.id]);
+    actions.setSkillFavorite(created.id, false);
+    actions.saveCustomSkill({ ...form, id: created.id, name: '每周整理' });
+    expect(store.getSnapshot().state.favoriteSkillIds).toEqual([]);
+    expect(store.getSnapshot().state.customSkills[0]?.name).toBe('每周整理');
+    actions.setSkillFavorite(created.id, true);
+    actions.deleteCustomSkill(created.id);
+    expect(store.getSnapshot().state.favoriteSkillIds).toEqual([]);
+    expect(store.getSnapshot().state.customSkills).toEqual([]);
+  });
+
   it('starts fresh, saves changes and reloads them', async () => {
     const documents = memoryStore();
     const store = createDayStore(documents, { language: () => 'zh' });

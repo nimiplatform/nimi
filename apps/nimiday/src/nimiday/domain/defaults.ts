@@ -19,8 +19,8 @@ export const DEFAULT_PROFILE: DayProfile = {
 };
 
 const RHYTHM_NAMES: Readonly<Record<Language, Readonly<Record<string, string>>>> = {
-  zh: { [MORNING_CARE_SKILL]: '晨间照看', [EVENING_WRAP_SKILL]: '晚间收尾', [WEEK_PLAN_SKILL]: '周日看下周' },
-  en: { [MORNING_CARE_SKILL]: 'Morning care', [EVENING_WRAP_SKILL]: 'Evening wrap-up', [WEEK_PLAN_SKILL]: 'Sunday week ahead' },
+  zh: { [MORNING_CARE_SKILL]: '梳理今天', [EVENING_WRAP_SKILL]: '晚间收尾', [WEEK_PLAN_SKILL]: '周日看下周' },
+  en: { [MORNING_CARE_SKILL]: 'Review today', [EVENING_WRAP_SKILL]: 'Evening wrap-up', [WEEK_PLAN_SKILL]: 'Sunday week ahead' },
 };
 
 /** The three everyday rhythms NimiDay offers; each starts switched off. */
@@ -54,6 +54,7 @@ export function emptyState(language: Language, now: Date): DayState {
     rhythms: starterRhythms(language, now),
     skillOverrides: [],
     customSkills: [],
+    favoriteSkillIds: [],
     runs: [],
   };
 }

@@ -56,7 +56,7 @@ export function SourceRow({ change, showCircle = true }: { readonly change: Sour
 
   return (
     <div className="nd-row nd-source-row" data-testid="nd-source-row">
-      <span className="nd-status-dot" data-tone={change.unread ? 'busy' : 'off'} aria-hidden="true" style={{ marginTop: 7 }} />
+      <span className="nd-status-dot" data-tone={change.unread ? 'busy' : 'off'} aria-hidden="true" style={{ marginTop: 7, visibility: change.unread ? 'visible' : 'hidden' }} />
       <div className="nd-row-body">
         <span className="nd-row-title">{change.title}</span>
         {change.summary ? <div className="nd-faint" style={{ marginTop: 2 }}>{change.summary}</div> : null}
@@ -78,7 +78,7 @@ export function SourceRow({ change, showCircle = true }: { readonly change: Sour
       </div>
       <div className="nd-row-actions">
         {change.openable ? (
-          <Button size="sm" tone="secondary" loading={busy} onClick={() => { void open(); }}>
+          <Button size="sm" tone="ghost" loading={busy} onClick={() => { void open(); }}>
             {change.known === 'parentos-growth-record' && change.todoState === 'open'
               ? copy.sources.parentosAction
               : change.known === 'parentos-care-reminder' && change.todoState === 'open'

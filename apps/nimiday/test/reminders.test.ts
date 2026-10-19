@@ -37,6 +37,10 @@ describe('reminders', () => {
     const item = createItem({ title: '给妈妈打电话', date: '2026-09-24', time: '10:00' }, { by: 'user' }, now);
     const snoozed = snoozeItem(item, at('2026-09-24T11:00:00+08:00').toISOString(), now);
     expect(reminderInstant(snoozed, settings)?.toISOString()).toBe(at('2026-09-24T11:00:00+08:00').toISOString());
+    expect(snoozed.date).toBe(item.date);
+    expect(snoozed.time).toBe(item.time);
+    expect(snoozed.remind).toEqual(item.remind);
+    expect(isOverdue(snoozed, at('2026-09-24T10:01:00+08:00'))).toBe(true);
     const moved = editItem(snoozed, { time: '15:00' }, 'user', now);
     expect(moved.snoozedUntil).toBeNull();
     expect(reminderInstant(moved, settings)?.toISOString()).toBe(at('2026-09-24T15:00:00+08:00').toISOString());
