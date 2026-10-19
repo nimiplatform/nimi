@@ -1637,3 +1637,81 @@
 .nd-followup-form { display: grid; gap: 14px; }
 .nd-followup-form label { display: grid; gap: 6px; font-size: 13px; }
 .nd-followup-form input, .nd-followup-form textarea { width: 100%; border: 1px solid var(--nd-line, #c8c8c8); border-radius: 8px; padding: 9px 11px; font: inherit; color: inherit; background: transparent; }
+
+/* Sectioned create form on the follow-ups page */
+.nd-followup-form.nd-followup-create { gap: 0; }
+
+.nd-followups-page .nd-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 560px) {
+  .nd-followups-page .nd-field-row { grid-template-columns: 1fr; }
+}
+
+.nd-followup-source-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.nd-followup-form .nd-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nd-followup-form input[type="checkbox"] {
+  width: auto;
+}
+
+.nd-followup-help {
+  font-size: 12px;
+  color: var(--nimi-text-muted);
+}
+
+.nd-followup-help summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.nd-followup-help ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  list-style: decimal;
+  display: grid;
+  gap: 4px;
+}
+
+.nd-followup-submit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 18px;
+  border-top: 1px solid var(--nimi-border-subtle);
+}
+
+.nd-followup-submit .nd-faint {
+  margin: 0;
+}
+
+.nd-page-subhead {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nimi-text-secondary);
+}
+
+.nd-followup-recipients {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  list-style: disc;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
