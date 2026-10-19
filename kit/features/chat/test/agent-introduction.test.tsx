@@ -42,6 +42,16 @@ describe('shared Agent introduction', () => {
   expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'work',text:'著述线索'},{kind:'topic',text:'association：数据库线索'},{kind:'topic',text:'scene-grounded-greeting'}]},'zh')).toEqual(['介绍一下你自己','陪我随便聊聊','给我讲个有趣的故事']);
   expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'topic',text:'poetry'}]},'en')).toEqual(['How would you explain poetry?']);
  });
+ it('keeps the partner image visible when an introduction has no reference image', () => {
+  const avatarUrl = 'https://cdn.example.test/avatar.png';
+  const render = (introduction: NimiLocalAppAgentIntroduction) => renderToStaticMarkup(<AgentIntroduction introduction={introduction} displayName="Partner" avatarUrl={avatarUrl} locale="en" questionsEnabled={false} />);
+  const html = render({...intro, referenceImageUrl:null, voiceSampleUrl:'https://cdn.example.test/voice.mp3'});
+  expect(html).toContain('data-agent-empty-character-image="true"');
+  expect(html).toContain(`src="${avatarUrl}"`);
+  expect(html.match(/<audio /g)).toHaveLength(1);
+  expect(render(intro)).toContain(`src="${intro.referenceImageUrl}"`);
+  expect(render(intro)).not.toContain(`src="${avatarUrl}"`);
+ });
  it('falls back to the world name when the era carries a machine identifier', () => {
   const leaked = {...intro, era:'cbdb-yuan-literati-academy-world', worldName:'元代文人书院世界', role:'书画鉴赏家'};
   const html = renderToStaticMarkup(<AgentIntroduction introduction={leaked} displayName="柯九思" locale="zh-CN" questionsEnabled={false} />);
