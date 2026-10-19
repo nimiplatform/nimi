@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, test, vi } from 'vitest';
-import { DatePicker } from '../src/index.js';
+import { DatePicker, Dialog, DialogContent } from '../src/index.js';
 
 (
   globalThis as typeof globalThis & {
@@ -58,6 +58,39 @@ afterEach(async () => {
   root = null;
   container = null;
   document.body.innerHTML = '';
+});
+
+test('minDate bounds all date wheels without rewriting an existing past field value', async () => {
+  const onValueChange = vi.fn();
+  await mount(<DatePicker value="2024-01-15" minDate="2024-02-29" maxDate="2025-12-31" onValueChange={onValueChange} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  await openPanel(input);
+  const options = (label: string) => Array.from(panel()!.querySelectorAll(`[aria-label="${label}"] [aria-selected]`)).map((el) => el.textContent);
+  expect(input.value).toBe('2024/01/15');
+  expect(onValueChange).not.toHaveBeenCalled();
+  expect(options('年份')).toEqual(['2024', '2025']);
+  expect(options('月份')[0]).toBe('02');
+  expect(options('日期')).toEqual(['29']);
+  const month = Array.from(panel()!.querySelectorAll('[aria-label="月份"] [aria-selected]')).find((el) => el.textContent === '03') as HTMLElement;
+  await act(async () => { month.click(); });
+  expect(options('日期')[0]).toBe('01');
+  expect(options('日期').at(-1)).toBe('31');
+  const february = Array.from(panel()!.querySelectorAll('[aria-label="月份"] [aria-selected]')).find((el) => el.textContent === '02') as HTMLElement;
+  await act(async () => { february.click(); });
+  const confirm = Array.from(panel()!.querySelectorAll('button')).find((el) => el.textContent === '确定')!;
+  await act(async () => { confirm.click(); });
+  expect(onValueChange).toHaveBeenCalledWith('2024-02-29');
+});
+
+test('today shortcut and confirmation stay inside a future lower bound', async () => {
+  const onValueChange = vi.fn();
+  await mount(<DatePicker value="" minDate="2090-12-31" maxDate="2090-12-31" onValueChange={onValueChange} />);
+  await openPanel(container?.querySelector('input') as HTMLInputElement);
+  const today = Array.from(panel()!.querySelectorAll('button')).find((el) => el.textContent === '今天')!;
+  await act(async () => { today.click(); });
+  const confirm = Array.from(panel()!.querySelectorAll('button')).find((el) => el.textContent === '确定')!;
+  await act(async () => { confirm.click(); });
+  expect(onValueChange).toHaveBeenCalledWith('2090-12-31');
 });
 
 test('Escape closes the open panel and returns focus to the trigger input', async () => {
@@ -176,6 +209,101 @@ test('wheel scrolling is handled by a non-passive listener so preventDefault wor
     // would scroll natively on top of the component's own row stepping.
     expect(event.defaultPrevented).toBe(true);
   }
+});
+
+test('contentLayer="dialog" raises the portalled panel above dialog overlays', async () => {
+  await mount(<DatePicker value="2024-05-20" contentLayer="dialog" onChange={() => undefined} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  await openPanel(input);
+  expect(panel()?.className).toContain('z-[calc(var(--nimi-z-dialog)+1)]');
+  expect(panel()?.className).not.toContain('z-[var(--nimi-z-popover)]');
+});
+
+test('an empty value opens the panel on today even with a future maxDate', async () => {
+  await mount(<DatePicker value="" maxDate="2099-12-31" onChange={() => undefined} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  await openPanel(input);
+
+  const now = new Date();
+  const expected = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+  expect(panel()?.querySelector('.font-mono')?.textContent).toBe(expected);
+});
+
+test('Escape closes the panel without reaching document bubble listeners', async () => {
+  await mount(<DatePicker value="2024-05-20" onChange={() => undefined} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  await openPanel(input);
+
+  // A containing modal overlay listens for Escape on document bubble; the
+  // panel's capture-phase close must stop the event from ever reaching it.
+  const outerKeydown = vi.fn();
+  document.addEventListener('keydown', outerKeydown);
+  try {
+    await act(async () => {
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await flush();
+    });
+    expect(outerKeydown).not.toHaveBeenCalled();
+    expect(panel()?.style.opacity).toBe('0');
+  } finally {
+    document.removeEventListener('keydown', outerKeydown);
+  }
+});
+
+test('pointerdown inside the panel does not reach document listeners', async () => {
+  await mount(<DatePicker value="2024-05-20" onChange={() => undefined} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  await openPanel(input);
+
+  // A containing modal overlay closes on pointerdown outside its content;
+  // panel presses belong to this component and must not look "outside".
+  const outerPointerDown = vi.fn();
+  document.addEventListener('pointerdown', outerPointerDown);
+  try {
+    await act(async () => {
+      panel()?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      await flush();
+    });
+    expect(outerPointerDown).not.toHaveBeenCalled();
+  } finally {
+    document.removeEventListener('pointerdown', outerPointerDown);
+  }
+});
+
+test('inside a modal Dialog the panel layers above it and Escape/pointer stay contained', async () => {
+  const onOpenChange = vi.fn();
+  await mount(
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DatePicker value="2024-05-20" contentLayer="dialog" onChange={() => undefined} />
+      </DialogContent>
+    </Dialog>,
+  );
+  // A modal Radix dialog neutralizes the rest of the document.
+  expect(document.body.style.pointerEvents).toBe('none');
+
+  // The kit Dialog portals its content to document.body, outside `container`.
+  const input = document.querySelector('[role="dialog"] input, .nimi-overlay-panel input') as HTMLInputElement;
+  await openPanel(input);
+  const panelEl = panel() as HTMLElement;
+  expect(panelEl.className).toContain('z-[calc(var(--nimi-z-dialog)+1)]');
+  // The panel re-enables its own hit-testing against the modal body rule.
+  expect(panelEl.style.pointerEvents).toBe('auto');
+
+  // A press inside the panel must not look like an outside press to the dialog.
+  await act(async () => {
+    panelEl.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await flush();
+  });
+  expect(onOpenChange).not.toHaveBeenCalled();
+
+  // Escape closes the panel but not the containing dialog.
+  await act(async () => {
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flush();
+  });
+  expect(panelEl.style.opacity).toBe('0');
+  expect(onOpenChange).not.toHaveBeenCalled();
 });
 
 test('legacy size aliases normal/small normalize onto the md/sm layouts', async () => {

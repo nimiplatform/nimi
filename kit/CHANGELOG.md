@@ -49,6 +49,21 @@ remain separate from Conversation follow-up. No release or data migration is imp
 with a variable-height floating composer can keep the last reply and its actions
 reachable. Hosts that omit it retain their current spacing.
 
+Minor API addition: `DatePicker` accepts an inclusive `minDate` (`YYYY-MM-DD`),
+and `DatePickerPanel` accepts the corresponding `Date`. Selection wheels and
+confirmation respect the lower bound without rewriting an existing field
+value when the panel opens. Omitted bounds preserve existing behavior.
+
+Minor API addition: `DatePicker` and `DatePickerPanel` accept an optional
+`contentLayer` prop (`'popover'` default, or `'dialog'`) that raises the
+portalled panel above a containing dialog, matching `SelectField`'s existing
+layering contract. The panel now also contains `pointerdown` and closes on a
+capture-phase `Escape`, so using it inside a modal dialog no longer closes
+that dialog. An empty or invalid `value` opens the panel on today (clamped to
+the allowed range) instead of on `maxDate`, which matters for future-bounded
+pickers; default past-bounded behavior is unchanged. Existing consumers need
+no changes.
+
 AI content refusal now has one nonmodal notice in standard App chrome, with
 bounded safe diagnostics. Ordinary Conversation controls retain a Home handoff
 for a known Conversation, separate from the notice. Agent

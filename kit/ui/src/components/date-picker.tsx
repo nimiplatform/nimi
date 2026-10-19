@@ -103,7 +103,7 @@ function selectionToValue(selection: DateSelection): string {
   return `${pad4(selection.year)}-${pad2(selection.month)}-${pad2(selection.day)}`;
 }
 
-function normalizeSelection(selection: DateSelection, minYear: number, maxDate: Date): DateSelection {
+function normalizeSelection(selection: DateSelection, minYear: number, maxDate: Date, minDate?: Date): DateSelection {
   const maxYear = maxDate.getFullYear();
   const year = Math.max(minYear, Math.min(selection.year, maxYear));
   const maxMonth = year === maxYear ? maxDate.getMonth() + 1 : 12;
@@ -113,16 +113,23 @@ function normalizeSelection(selection: DateSelection, minYear: number, maxDate: 
       ? maxDate.getDate()
       : daysInMonth(year, month);
   const day = Math.max(1, Math.min(selection.day, maxDay));
+  if (minDate && new Date(year, month - 1, day, 12) < minDate) {
+    return { year: minDate.getFullYear(), month: minDate.getMonth() + 1, day: minDate.getDate() };
+  }
   return { year, month, day };
 }
 
-function selectionFromValue(value: string, minYear: number, maxDate: Date): DateSelection {
+function selectionFromValue(value: string, minYear: number, maxDate: Date, minDate?: Date): DateSelection {
   const parsed = parseStrictDateValue(value);
-  if (parsed) return normalizeSelection(parsed, minYear, maxDate);
+  if (parsed) return normalizeSelection(parsed, minYear, maxDate, minDate);
+  // An empty or invalid value opens on today (clamped into the allowed range),
+  // not on maxDate: a future-bounded picker would otherwise open years away.
+  const today = todayAtNoon();
   return normalizeSelection(
-    { year: maxDate.getFullYear(), month: maxDate.getMonth() + 1, day: maxDate.getDate() },
+    { year: today.getFullYear(), month: today.getMonth() + 1, day: today.getDate() },
     minYear,
     maxDate,
+    minDate,
   );
 }
 
@@ -367,6 +374,10 @@ export interface DatePickerPanelProps {
   readonly value: string;
   readonly maxDate: Date | null;
   readonly minYear?: number;
+  /** Inclusive lower date bound; the displayed field value is preserved until confirmation. */
+  readonly minDate?: Date;
+  /** Raises the portalled panel above a containing dialog without changing its popover semantics. */
+  readonly contentLayer?: 'popover' | 'dialog';
   /** Copy overrides; omitted keys keep the built-in Chinese defaults. */
   readonly labels?: Partial<DatePickerLabels>;
   readonly onChange: (value: string) => void;
@@ -375,43 +386,57 @@ export interface DatePickerPanelProps {
 }
 
 export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(function DatePickerPanel(
-  { anchorRef, open, value, maxDate, minYear = DEFAULT_MIN_YEAR, labels, onChange, onClear, onClose },
+  { anchorRef, open, value, maxDate, minYear = DEFAULT_MIN_YEAR, minDate, contentLayer = 'popover', labels, onChange, onClear, onClose },
   ref,
 ) {
   const effectiveMax = maxDate ?? todayAtNoon();
   const effectiveMaxKey = formatDateValue(effectiveMax);
   const maxYear = effectiveMax.getFullYear();
+  const minimumYear = Math.max(minYear, minDate?.getFullYear() ?? minYear);
+  const minimumKey = minDate ? formatDateValue(minDate) : '';
+  if (minDate && (minimumKey > effectiveMaxKey || minimumYear > maxYear)) {
+    throw new RangeError('DatePicker minDate must not exceed maxDate');
+  }
   const text = resolveLabels(labels);
   const [pos, setPos] = useState<PanelPosition | null>(null);
-  const [draft, setDraft] = useState(() => selectionFromValue(value, minYear, effectiveMax));
+  const [draft, setDraft] = useState(() => selectionFromValue(value, minimumYear, effectiveMax, minDate));
 
   useEffect(() => {
     setPos(getPanelPosition(anchorRef, 360, PANEL_HEIGHT));
   }, [anchorRef, open]);
 
   useEffect(() => {
-    if (open) setDraft(selectionFromValue(value, minYear, effectiveMax));
-  }, [effectiveMaxKey, minYear, open, value]);
+    if (open) setDraft(selectionFromValue(value, minimumYear, effectiveMax, minDate));
+  }, [effectiveMaxKey, minimumKey, minimumYear, open, value]);
 
   if (!pos) return null;
 
+  const selection = normalizeSelection(draft, minimumYear, effectiveMax, minDate);
+  const firstMonth = minDate && selection.year === minDate.getFullYear() ? minDate.getMonth() + 1 : 1;
+  const lastMonth = selection.year === maxYear ? effectiveMax.getMonth() + 1 : 12;
   const monthItems = Array.from(
-    { length: draft.year === maxYear ? effectiveMax.getMonth() + 1 : 12 },
-    (_, i) => i + 1,
+    { length: lastMonth - firstMonth + 1 },
+    (_, i) => i + firstMonth,
   );
   const dayCount =
-    draft.year === maxYear && draft.month === effectiveMax.getMonth() + 1
+    selection.year === maxYear && selection.month === effectiveMax.getMonth() + 1
       ? effectiveMax.getDate()
-      : daysInMonth(draft.year, draft.month);
-  const dayItems = Array.from({ length: dayCount }, (_, i) => i + 1);
-  const commitValue = selectionToValue(draft);
+      : daysInMonth(selection.year, selection.month);
+  const firstDay = minDate && selection.year === minDate.getFullYear() && selection.month === minDate.getMonth() + 1 ? minDate.getDate() : 1;
+  const dayItems = Array.from({ length: dayCount - firstDay + 1 }, (_, i) => i + firstDay);
+  const commitValue = selectionToValue(selection);
 
   return (
     <div
       ref={ref}
-      className="nimi-date-picker-panel fixed z-[var(--nimi-z-popover)] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 shadow-[var(--nimi-elevation-floating)] text-[var(--nimi-text-primary)] box-border"
+      className={`nimi-date-picker-panel fixed rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 shadow-[var(--nimi-elevation-floating)] text-[var(--nimi-text-primary)] box-border ${
+        contentLayer === 'dialog' ? 'z-[calc(var(--nimi-z-dialog)+1)]' : 'z-[var(--nimi-z-popover)]'
+      }`}
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
+      // A containing modal overlay treats pointerdown outside its own content
+      // as an outside interaction; panel presses are inside this component.
+      onPointerDown={(event) => event.stopPropagation()}
       style={{
         left: pos.left,
         top: pos.top,
@@ -440,25 +465,25 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
         />
         <div className="relative flex items-stretch" style={{ height: ITEM_H * VISIBLE_ROWS }}>
           <DrumColumn
-            items={years(minYear, maxYear)}
-            selected={draft.year}
-            onSelect={(year) => setDraft((prev) => normalizeSelection({ ...prev, year }, minYear, effectiveMax))}
+            items={years(minimumYear, maxYear)}
+            selected={selection.year}
+            onSelect={(year) => setDraft(normalizeSelection({ ...selection, year }, minimumYear, effectiveMax, minDate))}
             label={text.yearWheelAriaLabel}
             renderValue={(year) => String(year)}
           />
           <div className="relative z-[6] my-[18px] w-px bg-[var(--nimi-border-subtle)]" />
           <DrumColumn
             items={monthItems}
-            selected={draft.month}
-            onSelect={(month) => setDraft((prev) => normalizeSelection({ ...prev, month }, minYear, effectiveMax))}
+            selected={selection.month}
+            onSelect={(month) => setDraft(normalizeSelection({ ...selection, month }, minimumYear, effectiveMax, minDate))}
             label={text.monthWheelAriaLabel}
             renderValue={pad2}
           />
           <div className="relative z-[6] my-[18px] w-px bg-[var(--nimi-border-subtle)]" />
           <DrumColumn
             items={dayItems}
-            selected={draft.day}
-            onSelect={(day) => setDraft((prev) => normalizeSelection({ ...prev, day }, minYear, effectiveMax))}
+            selected={selection.day}
+            onSelect={(day) => setDraft(normalizeSelection({ ...selection, day }, minimumYear, effectiveMax, minDate))}
             label={text.dayWheelAriaLabel}
             renderValue={pad2}
           />
@@ -467,7 +492,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
       <div className="flex items-center justify-between gap-3 px-0.5 pt-3">
         <button
           type="button"
-          onClick={() => setDraft(selectionFromValue(formatDateValue(todayAtNoon()), minYear, effectiveMax))}
+          onClick={() => setDraft(selectionFromValue(formatDateValue(todayAtNoon()), minimumYear, effectiveMax, minDate))}
           className={`rounded-lg bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME}`}
         >
           {text.todayButton}
@@ -519,6 +544,10 @@ export interface DatePickerProps {
   readonly allowClear?: boolean;
   readonly maxDate?: string;
   readonly minYear?: number;
+  /** Inclusive YYYY-MM-DD lower bound for selection, without changing the saved field value. */
+  readonly minDate?: string;
+  /** Raises the portalled panel above a containing dialog without changing its popover semantics. */
+  readonly contentLayer?: 'popover' | 'dialog';
   /** Copy overrides; omitted keys keep the built-in Chinese defaults. */
   readonly labels?: Partial<DatePickerLabels>;
   readonly autoOpenNonce?: number;
@@ -536,12 +565,15 @@ export function DatePicker({
   allowClear = false,
   maxDate,
   minYear = DEFAULT_MIN_YEAR,
+  minDate,
+  contentLayer = 'popover',
   labels,
   autoOpenNonce,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const parsedMax = maxDate ? parseDateValue(maxDate) : null;
+  const parsedMin = minDate ? parseDateValue(minDate) : undefined;
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -577,10 +609,14 @@ export function DatePicker({
   useEffect(() => {
     if (!open) return;
     const handler = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') closePanel();
+      if (event.key !== 'Escape') return;
+      // Window capture runs ahead of the document listeners of a containing
+      // modal overlay: closing this panel must not also close that overlay.
+      event.stopPropagation();
+      closePanel();
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
   }, [open, closePanel]);
 
   const openPanel = () => {
@@ -675,6 +711,8 @@ export function DatePicker({
             value={value}
             maxDate={parsedMax}
             minYear={minYear}
+            minDate={parsedMin}
+            contentLayer={contentLayer}
             onChange={(next) => {
               const clamped = clampToMax(parseDateValue(next), parsedMax);
               handleValueChange(formatDateValue(clamped));
