@@ -9,7 +9,7 @@ import { ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkel
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
-import { ArrowLeft, ArrowRight, ChevronDown, CircleAlert, CircleCheck, CircleHelp, FileSliders, FileUp, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bot, ChevronDown, CircleAlert, CircleCheck, CircleHelp, FileSliders, FileUp, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { homeRuntimeDestination } from '../../app-shell/providers/home-navigation.js';
@@ -17,6 +17,8 @@ import { getProfileViewState, trackProfileViewRequest, type RuntimeProfileViewDr
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
+import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
+import { groupAppsEntries } from '../apps/apps-entry-groups.js';
 import { capabilityIcon } from './runtime-capability-presentation.js';
 import { prepareRuntimeConfigAIProfilePreview } from './runtime-config-ai-profile-preview.js';
 import type { RuntimeConfigAIProfileTransferPlan } from './runtime-config-ai-profile-transfer.js';
@@ -47,12 +49,36 @@ import type {
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store.js';
 
-function profileUseOwnerLabel(
-  owner: RuntimeConfigProfileUseOwner,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
-  if (owner.kind === 'app') return owner.ownerAppId;
-  return t('runtimeConfig.setupTask.sourceLocalAgent', { defaultValue: 'the shared LocalAgent' });
+function ProfileOwnerIdentity({ owner, prominent = false }: {
+  readonly owner: RuntimeConfigProfileUseOwner;
+  readonly prominent?: boolean;
+}) {
+  const { t } = useTranslation();
+  const sdk = useDesktopRendererSdk();
+  const apps = useAppsOverview({ enabled: owner.kind === 'app' });
+  const app = useMemo(() => owner.kind === 'app' && apps.data?.status === 'loaded'
+    ? groupAppsEntries(apps.data.entries).find((entry) => entry.appId === owner.ownerAppId)
+    : undefined, [apps.data, owner]);
+  const name = owner.kind === 'app'
+    ? app?.displayName || (owner.ownerAppId === sdk.appId() ? 'Nimi Chat' : owner.ownerAppId)
+    : t('runtimeConfig.setupTask.sourceLocalAgent');
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-4" data-testid="runtime-profile-owner-identity">
+      {owner.kind === 'app' ? (
+        <AppArtworkIcon appId={owner.ownerAppId} displayName={name} iconUrl={app?.iconUrl} size={prominent ? 'detail' : 'md'} />
+      ) : (
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-subtle)] text-[var(--nimi-action-primary-bg)]"><Bot size={26} aria-hidden="true" /></span>
+      )}
+      <div className="min-w-0 space-y-1">
+        <p className={prominent ? 'break-words text-lg font-semibold text-[var(--nimi-text-primary)]' : 'break-words text-sm font-semibold text-[var(--nimi-text-primary)]'}>
+          {prominent ? t('runtimeConfig.aiSettings.profileOwnerTitle', { owner: name, defaultValue: 'Configure AI for {{owner}}' }) : name}
+        </p>
+        {prominent ? <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.aiSettings.profileOwnerContext')}</p> : null}
+        {owner.kind === 'app' && name !== owner.ownerAppId ? <p className="break-all text-xs text-[var(--nimi-text-muted)]">{owner.ownerAppId}</p> : null}
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -169,14 +195,9 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         ) : null}
 
         {props.owner ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="runtime-ai-settings-profile-owner-banner">
-            <p className="text-xs text-[var(--nimi-text-secondary)]">
-              {t('runtimeConfig.aiSettings.profileOwnerContext', {
-                owner: profileUseOwnerLabel(props.owner, t),
-                defaultValue: 'Choose a model setup for {{owner}}, then review the capabilities before applying it.',
-              })}
-            </p>
-            <Button tone="ghost" size="sm" onClick={props.onCloseOwner} data-testid="runtime-ai-settings-profile-owner-close">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-5" data-testid="runtime-ai-settings-profile-owner-banner">
+            <ProfileOwnerIdentity owner={props.owner} prominent />
+            <Button tone="ghost" size="sm" className="shrink-0" onClick={props.onCloseOwner} data-testid="runtime-ai-settings-profile-owner-close">
               {t('runtimeConfig.aiSettings.profileOwnerClose', { defaultValue: 'Exit app context' })}
             </Button>
           </div>
@@ -475,6 +496,7 @@ function ProfileUsePanel(props: {
   const navigation = useHomeNavigation();
   const views = getProfileViewState(navigation);
   const { destination, busy, outcomes } = props.draft;
+  const failedOutcomes = outcomes.filter((outcome) => outcome.error);
   const subset = props.draft.subset ?? [];
   const setDestination = (value: string) => views.update(props.viewId, () => ({ destination: value }));
   const { profile } = props;
@@ -746,9 +768,9 @@ function ProfileUsePanel(props: {
             />
           </label>
         ) : (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">{t('runtimeConfig.aiSettings.profileScope')}</h2>
-            <p className="text-sm text-[var(--nimi-text-secondary)]">{profileUseOwnerLabel(props.owner, t)}</p>
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">{t('runtimeConfig.aiSettings.profileOwnerScope')}</h2>
+            <ProfileOwnerIdentity owner={props.owner} />
           </div>
         )}
         {!owner && selectedPlans.some((plan) => plan.state === 'cloud-requires-owner') ? (
@@ -760,20 +782,14 @@ function ProfileUsePanel(props: {
           </p>
         ) : null}
       </section>
-      {outcomes.length > 0 ? (
+      {failedOutcomes.length > 0 ? (
         <div className="space-y-1" data-testid="runtime-ai-settings-profile-outcomes">
-          {outcomes.map((outcome) => (
+          {failedOutcomes.map((outcome) => (
             <div key={outcome.capabilityContract} className="flex items-center justify-between gap-2 text-xs">
               <span className="text-[var(--nimi-text-secondary)]">
                 {displayRuntimeConfigCapabilityLabel(outcome.capabilityContract, t)}
               </span>
-              {outcome.taskId ? (
-                <Button size="sm" tone="secondary" onClick={() => props.onOpenSetupTask(outcome.taskId!)}>
-                  {t('runtimeConfig.aiSettings.continueTask', { defaultValue: 'Continue' })}
-                </Button>
-              ) : (
-                <span className="text-[var(--nimi-status-danger)]">{outcome.error}</span>
-              )}
+              <span className="text-[var(--nimi-status-danger)]">{outcome.error}</span>
             </div>
           ))}
         </div>
