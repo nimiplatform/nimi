@@ -3,22 +3,22 @@ module github.com/nimiplatform/nimi/runtime
 go 1.26.9
 
 require (
-	github.com/Microsoft/go-winio v0.6.3
+	github.com/Microsoft/go-winio v0.6.4
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/hajimehoshi/go-mp3 v0.3.4
-	github.com/larksuite/oapi-sdk-go/v3 v3.12.0
+	github.com/larksuite/oapi-sdk-go/v3 v3.12.2
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/nimiplatform/nimi/nimi-cognition v0.0.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
-	golang.org/x/image v0.46.0
-	golang.org/x/mod v0.41.0
-	golang.org/x/net v0.60.0
-	golang.org/x/sys v0.48.0
-	golang.org/x/text v0.42.0
+	golang.org/x/image v0.47.0
+	golang.org/x/mod v0.42.0
+	golang.org/x/net v0.61.0
+	golang.org/x/sys v0.49.0
+	golang.org/x/text v0.43.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
