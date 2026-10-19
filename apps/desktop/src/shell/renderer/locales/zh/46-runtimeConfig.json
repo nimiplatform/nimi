@@ -753,7 +753,6 @@
     "recentChats": {
       "title": "最近对话",
       "openAll": "打开全部对话",
-      "mostRecent": "最近对话",
       "replyLabel": "回复 {{name}}",
       "replyPlaceholder": "回复{{name}}…",
       "replySend": "带草稿打开对话",
@@ -768,7 +767,7 @@
       "story": "给我讲个故事"
     },
     "messages": {
-      "viewAllShort": "查看全部",
+      "viewAllShort": "更多",
       "filters": "筛选",
       "filtersActive": "筛选（已启用）",
       "quickFilterTypeGroup": "类型筛选",

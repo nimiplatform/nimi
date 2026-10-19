@@ -32,42 +32,43 @@ function render(overrides: Partial<HomeAgentCardViewProps> = {}): string {
   return renderToStaticMarkup(<HomeAgentCardView {...props} />);
 }
 
-test('ready state renders the recent-chats header, strip, preview, and reply composer', async () => {
+test('ready state renders the recent-chats header, compact strip, and one merged mini chat bar', async () => {
   await initI18n(); await changeLocale('zh');
   const html = render();
   assert.match(html, /data-state="ready"/);
   assert.match(html, /data-testid="home-recent-chats-title">最近对话/);
-  assert.match(html, /data-testid="home-recent-chats-open-all">打开全部对话/);
+  assert.match(html, /data-testid="home-recent-chats-open-all"[^>]*><span[^>]*>打开全部对话/);
+  // The open-all action renders as a ghost button without a trailing chevron.
+  assert.doesNotMatch(html, /lucide-chevron-right/);
   assert.match(html, /data-testid="home-recent-chat:lumi"/);
   assert.match(html, /data-testid="home-recent-chat:aria"/);
   assert.match(html, /data-testid="home-recent-chat:bo"/);
   assert.match(html, /data-testid="home-recent-chat:lumi"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-testid="home-recent-chat:lumi"/);
   // Kit Avatar resolves image loading and fallback after mounting; this SSR
   // check covers the partner identity and composition, not image loading.
+  // Message preview and reply composer live in the same mini chat container.
+  assert.match(html, /data-testid="home-mini-chat"[\s\S]*data-testid="home-recent-chat-preview"[\s\S]*data-testid="home-agent-composer"/);
   // Preview of the selected partner with its last message and formatted time.
   assert.match(html, /data-testid="home-agent-name">Lumi/);
   assert.match(html, /data-testid="home-recent-chat-message">我们上次聊到的事情，还想继续吗？/);
   assert.match(html, /data-testid="home-recent-chat-time">t:1760614440000/);
-  // Reply composer targets the selected partner.
+  // Reply composer targets the selected partner and submits via a single-line input (Enter).
   assert.match(html, /<label[^>]*for="home-agent-composer-input"/);
   assert.match(html, /<input[^>]*placeholder="回复Lumi…"/);
   assert.match(html, /data-testid="home-agent-send"/);
-  assert.match(html, /aria-label="带草稿打开对话"/);
-  assert.doesNotMatch(html, /当前伙伴|切换|去聊天|home-agent-switch/);
+  // The send button lives inside the composer capsule, right after the input.
+  assert.match(html, /id="home-agent-composer-input"[^>]*>[\s\S]*?data-testid="home-agent-send"/);
+  // With an empty draft the send button renders in the muted gray treatment.
+  assert.match(html, /class="[^"]*--nimi-surface-active[^"]*--nimi-text-muted[^"]*"[^>]*data-testid="home-agent-send"/);
+  assert.doesNotMatch(html, /当前伙伴|切换|去聊天|home-agent-switch|<textarea/);
 });
 
-test('most-recent partner carries the recency caption and unread partners carry a dot', async () => {
+test('unread partners carry a dot on the avatar corner', async () => {
   await initI18n(); await changeLocale('zh');
   const html = render();
-  const lumiTile = html.match(/data-testid="home-recent-chat:lumi"[\s\S]*?<\/button>/)?.[0] ?? '';
-  assert.match(lumiTile, /最近对话/);
-  const ariaTile = html.match(/data-testid="home-recent-chat:aria"[\s\S]*?<\/button>/)?.[0] ?? '';
-  assert.doesNotMatch(ariaTile, /最近对话/);
   assert.match(html, /data-testid="home-recent-chat-unread:aria"/);
   assert.doesNotMatch(html, /data-testid="home-recent-chat-unread:lumi"/);
-  // A partner without a conversation is not the most recent.
-  const htmlNoChats = render({ partners: PARTNERS.map((partner) => ({ ...partner, updatedAtMs: null })) });
-  assert.doesNotMatch(htmlNoChats, /home-recent-chat-time/);
+  assert.doesNotMatch(html, /data-testid="home-recent-chat-unread:bo"/);
 });
 
 test('the strip slices partner tiles to the measured visible count', async () => {

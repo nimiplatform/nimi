@@ -134,7 +134,7 @@ function wrap(node: React.ReactNode, client = new QueryClient({ defaultOptions: 
   return <QueryClientProvider client={client}><DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider></QueryClientProvider>;
 }
 
-test('Home summarizes interruptions while the message center retains every notice', async () => {
+test('Home and message center show a compact interruption entry without exposing records inline', async () => {
   await initI18n(); await changeLocale('en');
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['desktop-execution-notices'], {
@@ -144,15 +144,15 @@ test('Home summarizes interruptions while the message center retains every notic
       occurredAt: NOW.toISOString(), availableNow: true, notification: 'disabled',
     })),
   });
-  const summary = renderToStaticMarkup(wrap(<HomeExecutionNotices onViewAll={noop} />, client));
-  assert.match(summary, /16 execution notices/);
-  assert.match(summary, /View notices/);
-  assert.match(summary, /Work does not resume automatically/);
-  assert.doesNotMatch(summary, /App 15:|>Dismiss</);
-  const details = renderToStaticMarkup(wrap(<HomeExecutionNotices />, client));
-  assert.equal((details.match(/>Dismiss</g) ?? []).length, 16);
-  assert.match(details, /App 15:.*execution stopped/);
-  assert.match(details, /Connection restored/);
+  const summary = renderToStaticMarkup(wrap(<HomeExecutionNotices />, client));
+  assert.match(summary, /App interruption records · 16 records/);
+  assert.match(summary, /View records/);
+  assert.match(summary, /aria-haspopup="dialog"/);
+  assert.doesNotMatch(summary, /App 15|>Remove record<|role="alert"/);
+  const center = renderToStaticMarkup(wrap(<HomeMessageCenter messages={controller({ messages: [] })} context={context()}
+    filter="all" sourceKey={null} onFilterChange={noop} onSourceChange={noop} onBack={noop} onOpenSettings={noop} />, client));
+  assert.match(center, /App interruption records · 16 records/);
+  assert.doesNotMatch(center, /App 15|>Remove record</);
   client.clear();
 });
 
@@ -401,12 +401,15 @@ test('Settings can reach an off-Home source beyond the first activity page witho
 
 test('a collapsed stack only expands, and a group hide covers exactly its shown members', async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
+  // Kit ScrollArea (Radix) measures with ResizeObserver; jsdom has none.
+  class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
   const values = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
     HTMLElement: dom.window.HTMLElement, HTMLButtonElement: dom.window.HTMLButtonElement,
     Element: dom.window.Element, Node: dom.window.Node, MutationObserver: dom.window.MutationObserver,
     Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle,
     requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    ResizeObserver: (globalThis as { ResizeObserver?: unknown }).ResizeObserver ?? ResizeObserverStub,
     React, IS_REACT_ACT_ENVIRONMENT: true,
   };
   const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));

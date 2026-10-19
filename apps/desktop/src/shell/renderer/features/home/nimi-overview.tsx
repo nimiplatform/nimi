@@ -279,10 +279,12 @@ export function NimiOverview() {
 
   const renderOverview = (messages: HomeMessages | null) => (
     // The greeting/date header and conversation card stay above the main
-    // sections. From xl, Messages keeps its independent right-hand scroll;
-    // narrow windows retain the existing single-page stacking order.
+    // sections. From xl, the Messages toolbar joins the greeting row so both
+    // titles share one text baseline, and the message list keeps its
+    // independent right-hand scroll; narrow windows retain the single-page
+    // stacking order.
     <div className="grid items-start gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[auto_auto_minmax(0,1fr)]">
-      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2 xl:col-start-1 xl:row-start-1">
+      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2 xl:col-start-1 xl:row-start-1 xl:self-baseline">
         {heading}
         <p className="shrink-0 text-[13px] text-[var(--nimi-text-secondary)]" data-testid="home-date">
           {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
@@ -292,15 +294,11 @@ export function NimiOverview() {
         <HomeAgentCard />
       </div>
       {messages ? (
-        <div className="min-w-0 xl:col-start-2 xl:row-span-3 xl:row-start-1 xl:min-h-0 xl:self-stretch">
-          <ScrollArea className="xl:h-full" viewportClassName="bg-transparent [&>div]:!block">
-            <HomeMessagesColumn
-              messages={messages}
-              context={cardContext(messages)}
-              onViewAll={() => openCenter('all')}
-            />
-          </ScrollArea>
-        </div>
+        <HomeMessagesColumn
+          messages={messages}
+          context={cardContext(messages)}
+          onViewAll={() => openCenter('all')}
+        />
       ) : null}
       <div className="min-w-0 xl:col-start-1 xl:row-start-3 xl:min-h-0 xl:self-stretch">
         <ScrollArea

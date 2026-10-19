@@ -753,7 +753,6 @@
     "recentChats": {
       "title": "Recent chats",
       "openAll": "Open all chats",
-      "mostRecent": "Most recent",
       "replyLabel": "Reply to {{name}}",
       "replyPlaceholder": "Reply to {{name}}…",
       "replySend": "Open chat with draft",
@@ -768,7 +767,7 @@
       "story": "Tell me a story"
     },
     "messages": {
-      "viewAllShort": "View all",
+      "viewAllShort": "More",
       "filters": "Filter",
       "filtersActive": "Filter (active)",
       "quickFilterTypeGroup": "Type filters",

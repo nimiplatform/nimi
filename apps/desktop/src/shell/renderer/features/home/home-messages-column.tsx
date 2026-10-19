@@ -1,5 +1,5 @@
 import { HomeExecutionNotices } from './execution-notices.js';
-import { ActionMenu, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { ActionMenu, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -165,9 +165,12 @@ export function HomeMessagesColumn({ messages, context, onViewAll }: {
       />
     );
   };
+  // Separate overview grid cells: the toolbar shares the greeting row so
+  // xl:self-baseline aligns both titles' text baselines, and only the list
+  // scrolls; below xl they stack in the page's single-column order.
   return (
-    <aside className="flex min-w-0 flex-col gap-3" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
-      <div className="flex min-h-10 flex-wrap items-center gap-1.5 px-1" data-testid="home-messages-toolbar">
+    <>
+      <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-1.5 px-1 xl:col-start-2 xl:row-start-1 xl:self-baseline" data-testid="home-messages-toolbar">
         <h2 className="text-xl font-semibold tracking-tight">{t('runtimeConfig.overview.messages.title')}</h2>
         <button
           type="button"
@@ -210,42 +213,46 @@ export function HomeMessagesColumn({ messages, context, onViewAll }: {
           </Popover>
         </div>
       </div>
-      {filtered ? (
-        <div className="flex items-center justify-between gap-2 px-1 text-xs text-[var(--nimi-text-secondary)]" role="status">
-          <span>{t(`runtimeConfig.overview.messages.quickFilters.${filter}`)}</span>
-          <Button tone="ghost" size="sm" onClick={clearFilters}>{t('runtimeConfig.overview.messages.clearFilters')}</Button>
-        </div>
-      ) : null}
+      <aside className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-2 xl:min-h-0 xl:self-stretch" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
+        <ScrollArea className="xl:h-full" viewportClassName="bg-transparent" contentClassName="flex flex-col gap-5">
+          {filtered ? (
+            <div className="flex items-center justify-between gap-2 px-1 text-xs text-[var(--nimi-text-secondary)]" role="status">
+              <span>{t(`runtimeConfig.overview.messages.quickFilters.${filter}`)}</span>
+              <Button tone="ghost" size="sm" onClick={clearFilters}>{t('runtimeConfig.overview.messages.clearFilters')}</Button>
+            </div>
+          ) : null}
 
-      <HomeExecutionNotices onViewAll={onViewAll} />
-      <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
+          <HomeExecutionNotices />
+          <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
 
-      <div
-        ref={listRef}
-        tabIndex={-1}
-        aria-label={t('runtimeConfig.overview.messages.title')}
-        className="flex flex-col gap-5 outline-none"
-        data-testid="home-messages-list"
-      >
-        {groups?.map(renderGroup)}
-        {!groups?.length && !loading ? (
-          <EmptyHint>
-            <Bell size={18} aria-hidden="true" className="text-[var(--nimi-text-muted)]" />
-            <p>
-              {!filtered && messages.offHomeCount > 0
-                ? t('runtimeConfig.overview.messages.allHidden')
-                : complete
-                  ? t(filtered ? 'runtimeConfig.overview.messages.noMatches' : 'runtimeConfig.overview.messages.empty')
-                  : t('runtimeConfig.overview.messages.notLoaded')}
-            </p>
-          </EmptyHint>
-        ) : null}
-        {loading ? (
-          <div className="rounded-[20px] px-3.5 py-3">
-            <LoadingSkeleton lines={2} label={t('Common.loading')} />
+          <div
+            ref={listRef}
+            tabIndex={-1}
+            aria-label={t('runtimeConfig.overview.messages.title')}
+            className="flex flex-col gap-5 outline-none"
+            data-testid="home-messages-list"
+          >
+            {groups?.map(renderGroup)}
+            {!groups?.length && !loading ? (
+              <EmptyHint>
+                <Bell size={18} aria-hidden="true" className="text-[var(--nimi-text-muted)]" />
+                <p>
+                  {!filtered && messages.offHomeCount > 0
+                    ? t('runtimeConfig.overview.messages.allHidden')
+                    : complete
+                      ? t(filtered ? 'runtimeConfig.overview.messages.noMatches' : 'runtimeConfig.overview.messages.empty')
+                      : t('runtimeConfig.overview.messages.notLoaded')}
+                </p>
+              </EmptyHint>
+            ) : null}
+            {loading ? (
+              <div className="rounded-[20px] px-3.5 py-3">
+                <LoadingSkeleton lines={2} label={t('Common.loading')} />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
-    </aside>
+        </ScrollArea>
+      </aside>
+    </>
   );
 }
