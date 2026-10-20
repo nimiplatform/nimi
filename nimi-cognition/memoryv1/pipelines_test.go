@@ -11,6 +11,25 @@ import (
 	"testing"
 )
 
+func TestBaselineRememberRecognizesExplicitChineseLongTermRequest(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-long-term-request")
+	text := "请长期记住：验收便签偏好 20261020 是青绿色。用一句话确认就好。"
+	request := testCommit(bank, 1, "long-term-request", "remember-long-term-request", text)
+	if _, err := core.ReceiveCommittedEvent(ctx, request); err != nil {
+		t.Fatal(err)
+	}
+	result, err := core.ExecuteRemember(ctx, request.OperationID)
+	if err != nil || result.Outcome != OutcomeAdmitted || len(result.AffectedMemoryRefs) != 1 {
+		t.Fatalf("explicit long-term request was lost: %+v %v", result, err)
+	}
+	memories, err := core.ListMemories(ctx, bank.BankRef, false)
+	if err != nil || len(memories) != 1 || memories[0].Content != text || memories[0].EventRef != request.EventRef {
+		t.Fatalf("remembered content or provenance changed: %+v %v", memories, err)
+	}
+}
+
 func TestBaselineRememberOwnsJudgmentAndCoreOwnsCommit(t *testing.T) {
 	core := openTestCore(t, t.TempDir())
 	ctx := context.Background()

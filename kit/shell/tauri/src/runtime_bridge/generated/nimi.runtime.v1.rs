@@ -20782,10 +20782,25 @@ pub struct CognitionMemoryActivityTerminal {
     pub activity: ::core::option::Option<CognitionMemorySourceRef>,
     #[prost(string, tag = "2")]
     pub activity_kind: ::prost::alloc::string::String,
-    #[prost(enumeration = "CognitionMemoryTerminalState", tag = "3")]
-    pub state: i32,
     #[prost(string, tag = "4")]
     pub bounded_outcome: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub occurred_start: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub occurred_end: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "7")]
+    pub retrospective: bool,
+    #[prost(enumeration = "CognitionMemoryActivityChange", tag = "8")]
+    pub change: i32,
+    /// The owner change, not the lifetime of the activity, is the deduplication key.
+    #[prost(message, optional, tag = "9")]
+    pub change_ref: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(string, tag = "10")]
+    pub activity_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub self_action: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub self_object: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CognitionMemoryCorrectionCommitted {
@@ -20948,6 +20963,8 @@ pub struct CognitionMemoryRecallRequest {
     pub limit: u32,
     #[prost(message, optional, tag = "8")]
     pub capabilities: ::core::option::Option<CognitionMemoryCapabilitySnapshot>,
+    #[prost(bool, tag = "9")]
+    pub include_recent_life: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CognitionMemoryRecallResponse {
@@ -21562,6 +21579,52 @@ impl CognitionMemoryDeleteReason {
             }
             "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION" => {
                 Some(Self::AccountTermination)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryActivityChange {
+    Unspecified = 0,
+    Routine = 1,
+    Progress = 2,
+    ProjectCompleted = 3,
+    KeyResult = 4,
+    DirectionChanged = 5,
+}
+impl CognitionMemoryActivityChange {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED",
+            Self::Routine => "COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE",
+            Self::Progress => "COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS",
+            Self::ProjectCompleted => {
+                "COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED"
+            }
+            Self::KeyResult => "COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT",
+            Self::DirectionChanged => {
+                "COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE" => Some(Self::Routine),
+            "COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS" => Some(Self::Progress),
+            "COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED" => {
+                Some(Self::ProjectCompleted)
+            }
+            "COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT" => Some(Self::KeyResult),
+            "COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED" => {
+                Some(Self::DirectionChanged)
             }
             _ => None,
         }

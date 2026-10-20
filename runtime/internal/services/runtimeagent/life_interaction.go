@@ -195,11 +195,12 @@ func (s *Service) recordVoiceLife(session *localAppAgentRealtimeSession, utteran
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
 	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	err := s.mutateAgent(session.agentID, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-		_, err := e.Life.beginInteraction(sourceID, now, lifeEnabled(e), source.LifeWorldPaused)
+		completed, err := e.Life.beginInteraction(sourceID, now, lifeEnabled(e), source.LifeWorldPaused)
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, nil, nil
+		hook, err := s.lifeActivityMemoryTxHook(e, completed, now)
+		return nil, hook, err
 	})
 	if err == nil {
 		session.mu.Lock()

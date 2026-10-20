@@ -98,9 +98,13 @@ func (r publicChatRuntime) reserveTurn(
 	source, _ := r.svc.turnSourceView(localAgentRef)
 	r.svc.cognitionMemoryOwnerLifecycleMu.Lock()
 	r.svc.mu.Lock()
+	memoryReady := false
 	defer func() {
 		r.svc.mu.Unlock()
 		r.svc.cognitionMemoryOwnerLifecycleMu.Unlock()
+		if memoryReady {
+			r.svc.triggerCognitionMemory(localAgentRef)
+		}
 	}()
 	for {
 		r.svc.chatSurfaceMu.Lock()
@@ -272,6 +276,7 @@ func (r publicChatRuntime) reserveTurn(
 		// A deduplicated read or Runtime-owned follow-up is not a new App commit.
 		var commitErr error
 		nextEntry := cloneAgentEntry(r.svc.agents[localAgentRef])
+		var interactionHook runtimeAgentStateTxHook
 		if turn.Origin == publicChatTurnOriginUser {
 			if req.RetryOfTurnID == "" {
 				nextEntry.Life.ContactSinceUser = false
@@ -280,11 +285,18 @@ func (r publicChatRuntime) reserveTurn(
 				nextEntry.Life.cancelFreeIntents("contact")
 				turn.AvailableActions.FollowUpEnabled = lifeContactAllowed(nextEntry, timelineStartedAt)
 			}
-			_, commitErr = nextEntry.Life.beginInteraction(turnID, timelineStartedAt, lifeEnabled(nextEntry), source.LifeWorldPaused)
+			var completed []string
+			completed, commitErr = nextEntry.Life.beginInteraction(turnID, timelineStartedAt, lifeEnabled(nextEntry), source.LifeWorldPaused)
+			if commitErr == nil {
+				interactionHook, commitErr = r.svc.lifeActivityMemoryTxHook(nextEntry, completed, timelineStartedAt)
+			}
 		}
 		lifeHook := func(tx *sql.Tx) error {
 			if err := persistAgentLifeTx(tx, localAgentRef, nextEntry.Life); err != nil {
 				return err
+			}
+			if interactionHook != nil {
+				return interactionHook(tx)
 			}
 			return nil
 		}
@@ -305,6 +317,7 @@ func (r publicChatRuntime) reserveTurn(
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, commitErr
 		}
 		r.svc.agents[localAgentRef] = nextEntry
+		memoryReady = interactionHook != nil
 		// Only accepted work outlives the RPC. Preserve authority values for Job
 		// custody and the existing explicit Stop/provider timeout ownership.
 		turnParent := context.WithoutCancel(parent)

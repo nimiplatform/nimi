@@ -111,6 +111,7 @@ CatalogModelSource = Literal["CATALOG_MODEL_SOURCE_UNSPECIFIED", "CATALOG_MODEL_
 CatalogSourceKind = Literal["CATALOG_SOURCE_KIND_UNSPECIFIED", "CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION", "CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY"]
 CharacterSourceKindV3 = Literal["CHARACTER_SOURCE_KIND_V3_UNSPECIFIED", "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER", "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER"]
 ChatContentPartType = Literal["CHAT_CONTENT_PART_TYPE_UNSPECIFIED", "CHAT_CONTENT_PART_TYPE_TEXT", "CHAT_CONTENT_PART_TYPE_IMAGE_URL", "CHAT_CONTENT_PART_TYPE_VIDEO_URL", "CHAT_CONTENT_PART_TYPE_AUDIO_URL", "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF"]
+CognitionMemoryActivityChange = Literal["COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED", "COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE", "COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS", "COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED", "COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT", "COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED"]
 CognitionMemoryActorRole = Literal["COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED", "COGNITION_MEMORY_ACTOR_ROLE_USER", "COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT", "COGNITION_MEMORY_ACTOR_ROLE_TOOL"]
 CognitionMemoryCapability = Literal["COGNITION_MEMORY_CAPABILITY_UNSPECIFIED", "COGNITION_MEMORY_CAPABILITY_FTS_INDEX", "COGNITION_MEMORY_CAPABILITY_TEXT_EMBED", "COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX"]
 CognitionMemoryDeleteReason = Literal["COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED", "COGNITION_MEMORY_DELETE_REASON_DELETE_ALL", "COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION", "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION"]
@@ -1635,8 +1636,15 @@ class CloseVideoSessionResponse:
 class CognitionMemoryActivityTerminal:
     activity: CognitionMemorySourceRef | None = None
     activity_kind: str | None = None
-    state: CognitionMemoryTerminalState | None = None
     bounded_outcome: str | None = None
+    occurred_start: str | None = None
+    occurred_end: str | None = None
+    retrospective: bool | None = None
+    change: CognitionMemoryActivityChange | None = None
+    change_ref: CognitionMemorySourceRef | None = None
+    activity_state: str | None = None
+    self_action: str | None = None
+    self_object: str | None = None
 
 @dataclass(frozen=True)
 class CognitionMemoryAiJobRequest:
@@ -1858,6 +1866,7 @@ class CognitionMemoryRecallRequest:
     subject_scope: tuple[CognitionMemorySubjectRef, ...] = field(default_factory=tuple)
     limit: int | None = None
     capabilities: CognitionMemoryCapabilitySnapshot | None = None
+    include_recent_life: bool | None = None
 
 @dataclass(frozen=True)
 class CognitionMemoryRecallResponse:

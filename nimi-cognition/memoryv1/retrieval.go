@@ -14,14 +14,15 @@ import (
 )
 
 type RecallRequest struct {
-	OperationID  string
-	BindingRef   string
-	BankRef      string
-	LifecycleRef string
-	Subject      TypedRef
-	Query        string
-	Limit        int
-	Capabilities CapabilitySnapshot
+	IncludeRecentLife bool
+	OperationID       string
+	BindingRef        string
+	BankRef           string
+	LifecycleRef      string
+	Subject           TypedRef
+	Query             string
+	Limit             int
+	Capabilities      CapabilitySnapshot
 }
 
 type RecallResult struct {
@@ -31,11 +32,12 @@ type RecallResult struct {
 }
 
 type recallRouteRequest struct {
-	BindingRef   string
-	LifecycleRef string
-	Subject      TypedRef
-	Query        string
-	Limit        int
+	IncludeRecentLife bool
+	BindingRef        string
+	LifecycleRef      string
+	Subject           TypedRef
+	Query             string
+	Limit             int
 }
 
 type AIEmbeddingRequest struct {
@@ -156,7 +158,7 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if descriptor.Name == PipelineRecallEmbedding {
 		revision = "embedding-1"
 	}
-	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit}}); err != nil {
+	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit}}); err != nil {
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: descriptor.Name}, err
 	}
 	var result RecallResult
@@ -168,6 +170,9 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	default:
 		err = contractError(OutcomeUnsupported, "recall_pipeline")
 		result = RecallResult{Outcome: OutcomeUnsupported}
+	}
+	if err == nil && request.IncludeRecentLife {
+		result, err = c.includeRecentLife(ctx, request, result)
 	}
 	if descriptor.Name == PipelineRecallEmbedding {
 		return result, err

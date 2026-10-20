@@ -11,8 +11,12 @@ local controls are retired only through explicitly reviewed one-time tools.
 
 Life projections distinguish current interaction from simulated activities,
 with unknown interaction end/progress left absent. Optional self-intentions
-commit before confirmation. This unreleased 0.x hard cut has no compatibility
-path or automatic migration.
+commit before confirmation. Cognition activity facts now carry actual activity
+state, a stable change reference and a separate self-action/object description;
+the old terminal-only state field is reserved. Different real changes in one
+intention may be remembered separately. Recall can include a bounded recent-life
+selection under the same bank and Forget controls. This unreleased 0.x hard cut
+has no compatibility path or automatic migration.
 
 ## Unreleased — LocalAgent Conversation recovery and controls
 

@@ -113,13 +113,18 @@ func (s *Service) updateAgentAutonomyCAS(
 			next.Life.ContactBudgetWaiting = false
 		}
 	}
+	var completionHook runtimeAgentStateTxHook
 	if lifeEnabled(current) && !lifeEnabled(next) {
 		source, found := s.turnSourceViews[identity.LocalAgentRef]
-		_, err := next.Life.advance(now, !found || source.WorldTimeDecodeFailure != "" || source.LifeWorldPaused)
+		completed, err := next.Life.advance(now, !found || source.WorldTimeDecodeFailure != "" || source.LifeWorldPaused)
 		if err != nil {
 			return nil, err
 		}
 
+		completionHook, err = s.lifeActivityMemoryTxHook(next, completed, now)
+		if err != nil {
+			return nil, err
+		}
 		if err := next.Life.pause(now); err != nil {
 			return nil, err
 		}
@@ -160,9 +165,12 @@ func (s *Service) updateAgentAutonomyCAS(
 	}
 	next.Agent.UpdatedAt = timestamppb.New(time.Now().UTC())
 	var err error
-	after, err = s.commitAutonomyAndConversationControls(current, next)
+	after, err = s.commitAutonomyAndConversationControls(current, next, completionHook)
 	if err != nil {
 		return nil, err
+	}
+	if completionHook != nil {
+		after = append(after, func() { s.triggerCognitionMemory(identity.LocalAgentRef) })
 	}
 	return cloneAutonomy(next.Agent.GetAutonomy()), nil
 }

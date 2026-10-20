@@ -434,9 +434,12 @@ func TestCommittedEnvelopeRequiresCompleteTypedFact(t *testing.T) {
 		},
 		"activity": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
 			envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_ActivityTerminal{ActivityTerminal: &runtimev1.CognitionMemoryActivityTerminal{
-				Activity: validSource("life_track_hook", "activity-complete"), ActivityKind: "life_track",
-				State: runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED,
+				Activity: validSource("life_activity", "activity-complete"), ActivityKind: "life_frame",
+				ActivityState: "completed", ChangeRef: validSource("life_change", "change-complete"), SelfAction: "create", SelfObject: "Sketch",
+				OccurredStart: envelope.CommittedAt, OccurredEnd: envelope.CommittedAt,
+				Change: runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE,
 			}}
+			envelope.Sources = append(envelope.Sources, envelope.GetActivityTerminal().Activity, envelope.GetActivityTerminal().ChangeRef)
 		},
 		"correction": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
 			envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_CorrectionCommitted{CorrectionCommitted: &runtimev1.CognitionMemoryCorrectionCommitted{

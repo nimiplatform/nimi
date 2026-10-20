@@ -70,7 +70,7 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 		if !found {
 			continue
 		}
-		var shouldPlan, shouldContact bool
+		var shouldPlan, shouldContact, delivered bool
 		var proactive *lifeProactiveIntent
 		s.cognitionMemoryOwnerLifecycleMu.Lock()
 		err := s.mutateAgent(ref, func(entry *agentEntry) (outEvents []*runtimev1.AgentEvent, outHook runtimeAgentStateTxHook, outErr error) {
@@ -113,34 +113,42 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 					return nil, nil, err
 				}
 			}
-			_, err := l.advance(now, source.LifeWorldPaused)
+			completed, err := l.advance(now, source.LifeWorldPaused)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			proactive = selectLifeProactive(entry, now)
+			hook, err := s.lifeActivityMemoryTxHook(entry, completed, now)
+			if err != nil {
+				return nil, nil, err
+			}
+			delivered = hook != nil
 			if source.LifeWorldPaused {
 				l.WaitReason = "world_paused"
-				return nil, nil, nil
+				return nil, hook, nil
 			}
 			if entry.Agent.GetAutonomy().GetBudgetExhausted() {
 				l.WaitReason = "budget_exhausted"
-				return nil, nil, nil
+				return nil, hook, nil
 			}
 			if until := entry.Agent.GetAutonomy().GetSuspendedUntil(); until != nil && until.AsTime().After(now) {
 				l.WaitReason = "suspended"
-				return nil, nil, nil
+				return nil, hook, nil
 			}
 			minimum := 30 * time.Second
 			if configured := entry.Agent.GetAutonomy().GetConfig().GetMinPlanningInterval(); configured != nil {
 				minimum = max(minimum, configured.AsDuration())
 			}
 			shouldPlan = l.canPlanAt(now, source.LifeFlowRatio) && !now.Before(l.LastLifeAttempt.Add(minimum))
-			return nil, nil, nil
+			return nil, hook, nil
 		})
 		s.cognitionMemoryOwnerLifecycleMu.Unlock()
 		if err != nil {
 			return err
+		}
+		if delivered {
+			s.triggerCognitionMemory(ref)
 		}
 		if proactive != nil {
 			s.chatSurfaceMu.Lock()
@@ -254,7 +262,7 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 		query := entry.Agent.GetDisplayName() + " ongoing activities interests"
 		query += " " + input.Context.RecallQuery
 		optional, cancel := context.WithTimeout(ctx, publicChatOptionalContextBudget)
-		recalled, recallErr := s.cognitionMemoryFacade.Recall(optional, cognitionmemory.RecallIntent{LocalAgentRef: ref, Query: query, Limit: 8})
+		recalled, recallErr := s.cognitionMemoryFacade.Recall(optional, cognitionmemory.RecallIntent{IncludeRecentLife: true, LocalAgentRef: ref, Query: query, Limit: 8})
 		cancel()
 		if recallErr == nil {
 			input.Memory, err = publicChatCognitionMemoryInputs(recalled.Hits)
@@ -294,6 +302,8 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	err = s.commitLifeFramePlanning(work, input, result, usage)
 	if err != nil {
 		s.recordLifePlanningFailure(work, entry, err, usage)
+	} else {
+		s.triggerCognitionMemory(ref)
 	}
 }
 
@@ -399,10 +409,17 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 		if err := l.changed(); err != nil {
 			return nil, nil, err
 		}
+		hook, err := s.lifeActivityMemoryTxHook(current, completed, time.Now().UTC())
+		if err != nil {
+			return nil, nil, err
+		}
 		return append(budgetEvents, optionalEvents(s.syncLifePresentation(current, false, now))...), func(tx *sql.Tx) error {
 			// mutateAgent holds chatSurfaceMu through commit, ordered with yield.
 			if work.invalidated || s.backgroundByAgent[ref] != work || !s.lifeConversationReadCurrentLocked(input.ConversationRead) {
 				return fmt.Errorf("life planning yielded to foreground")
+			}
+			if hook != nil {
+				return hook(tx)
 			}
 			return nil
 		}, nil

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -99,7 +100,7 @@ func (BaselineRemember) Descriptor() PipelineDescriptor {
 	return PipelineDescriptor{Name: PipelineRememberBaseline, Operation: "remember"}
 }
 
-func (BaselineRemember) Revision() string { return "baseline-1" }
+func (BaselineRemember) Revision() string { return "baseline-2" }
 
 func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationPlan, error) {
 	switch request.Fact.Kind {
@@ -117,14 +118,29 @@ func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationP
 		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: fact.BoundedFact, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed relationship event"}), nil
 	case EventKindActivity:
 		fact := request.Fact.Activity
-		if fact == nil || fact.BoundedOutcome == "" || forbiddenMemoryContent(fact.BoundedOutcome) {
+		if err := validateCommittedFact(request.Fact); err != nil {
+			return MutationPlan{}, err
+		}
+		if fact.OccurredEnd.After(request.CommittedAt) || forbiddenMemoryContent(fact.BoundedOutcome) {
 			return MutationPlan{Outcome: OutcomeRejected}, nil
 		}
-		if !baselineMeaningfulActivity(fact.BoundedOutcome) {
+		if !baselineMeaningfulActivity(fact) {
 			return MutationPlan{Outcome: OutcomeNoEffect}, nil
 		}
-		content := strings.TrimSpace(string(fact.State) + ": " + fact.BoundedOutcome)
-		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: content, EpistemicStatus: EpistemicInferred, OccurredAt: request.CommittedAt, SourceExplanation: "Committed activity terminal"}), nil
+		// Event custody prevents replay; source identity also prevents a second
+		// wording of the same terminal result from creating another Memory.
+		for _, item := range current {
+			for _, source := range item.Sources {
+				if source == fact.ChangeRef {
+					return MutationPlan{Outcome: OutcomeNoEffect}, nil
+				}
+			}
+		}
+		content := lifeExperienceContent(fact)
+		explanation := fmt.Sprintf("Committed simulated activity %s; occurred %s to %s; retrospective=%t", fact.Change, fact.OccurredStart.UTC().Format(time.RFC3339Nano), fact.OccurredEnd.UTC().Format(time.RFC3339Nano), fact.Retrospective)
+		// Activity facts must not enter preference inference or correction based
+		// on incidental wording in an activity result.
+		return MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationRemember, Content: content, EpistemicStatus: EpistemicInferred, OccurredAt: fact.OccurredEnd, SourceExplanation: explanation}}}, nil
 	case EventKindMessage:
 		fact := request.Fact.Message
 		if fact == nil || fact.Actor != ActorUser {
@@ -259,7 +275,12 @@ func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID stri
 	if _, err := c.MarkProcessing(ctx, operationID); err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
 	}
-	current, err := c.rememberInputs(ctx, request.BankRef)
+	var current []Memory
+	if request.Fact.Activity != nil {
+		current, err = c.rememberActivityInputs(ctx, request.BankRef, request.Fact.Activity.ChangeRef)
+	} else {
+		current, err = c.rememberInputs(ctx, request.BankRef)
+	}
 	if err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
 	}
@@ -348,7 +369,7 @@ func committedMessageText(fact *MessageFact) string {
 
 func baselineLongTermCue(text string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(text))
-	for _, cue := range []string{"i prefer", "i like", "my favorite", "please remember", "remember that", "我喜欢", "我偏好", "请记住", "记住我"} {
+	for _, cue := range []string{"i prefer", "i like", "my favorite", "please remember", "remember that", "我喜欢", "我偏好", "请记住", "长期记住", "记住我"} {
 		if strings.Contains(normalized, cue) {
 			return true
 		}
@@ -367,17 +388,19 @@ func baselineLongTermCue(text string) bool {
 	return false
 }
 
-func baselineMeaningfulActivity(outcome string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(outcome))
-	if len([]rune(normalized)) < 12 {
+// @nimi-authority: rule.nimi.cognition.memory.simulated-life-activity
+func baselineMeaningfulActivity(fact *ActivityTerminalFact) bool {
+	if !validLifeExperience(fact) {
 		return false
 	}
-	for _, generic := range []string{"life track activity completed", "life track activity failed", "heartbeat", "idle tick", "poll completed", "refresh completed"} {
-		if normalized == generic || strings.HasPrefix(normalized, generic+":") {
-			return false
-		}
+	switch fact.Change {
+	case ActivityChangeProjectCompleted:
+		return fact.ActivityState == "completed"
+	case ActivityChangeKeyResult, ActivityChangeDirectionChanged:
+		return true
+	default:
+		return false
 	}
-	return true
 }
 
 func descriptorByName(descriptors []PipelineDescriptor, name PipelineName) PipelineDescriptor {

@@ -1240,6 +1240,22 @@ impl Default for ChatContentPartType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryActivityChange {
+    COGNITIONMEMORYACTIVITYCHANGEUNSPECIFIED,
+    COGNITIONMEMORYACTIVITYCHANGEROUTINE,
+    COGNITIONMEMORYACTIVITYCHANGEPROGRESS,
+    COGNITIONMEMORYACTIVITYCHANGEPROJECTCOMPLETED,
+    COGNITIONMEMORYACTIVITYCHANGEKEYRESULT,
+    COGNITIONMEMORYACTIVITYCHANGEDIRECTIONCHANGED,
+}
+
+impl Default for CognitionMemoryActivityChange {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYACTIVITYCHANGEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CognitionMemoryActorRole {
     COGNITIONMEMORYACTORROLEUNSPECIFIED,
     COGNITIONMEMORYACTORROLEUSER,
@@ -6606,8 +6622,15 @@ impl CloseVideoSessionResponse {
 pub struct CognitionMemoryActivityTerminal {
     pub activity: Option<Box<CognitionMemorySourceRef>>,
     pub activity_kind: Option<String>,
-    pub state: Option<CognitionMemoryTerminalState>,
     pub bounded_outcome: Option<String>,
+    pub occurred_start: Option<String>,
+    pub occurred_end: Option<String>,
+    pub retrospective: Option<bool>,
+    pub change: Option<CognitionMemoryActivityChange>,
+    pub change_ref: Option<Box<CognitionMemorySourceRef>>,
+    pub activity_state: Option<String>,
+    pub self_action: Option<String>,
+    pub self_object: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6860,6 +6883,7 @@ pub struct CognitionMemoryRecallRequest {
     pub subject_scope: Vec<Box<CognitionMemorySubjectRef>>,
     pub limit: Option<u32>,
     pub capabilities: Option<Box<CognitionMemoryCapabilitySnapshot>>,
+    pub include_recent_life: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -8,7 +8,7 @@ import (
 
 // Caller holds the Agent mutex. There is one durable free-contact policy;
 // anchor flags below are only transient snapshot projections of that policy.
-func (s *Service) commitAutonomyAndConversationControls(current, next *agentEntry) ([]func(), error) {
+func (s *Service) commitAutonomyAndConversationControls(current, next *agentEntry, completionHook runtimeAgentStateTxHook) ([]func(), error) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
 	ref := next.Agent.GetLocalAgentRef()
@@ -53,7 +53,7 @@ func (s *Service) commitAutonomyAndConversationControls(current, next *agentEntr
 		}
 		hook = func(tx *sql.Tx) error { return persistPublicChatSurfaceStateTx(tx, snapshot) }
 	}
-	if err := s.stateRepo.persistAgentDelta(next, nil, s.sequence, hook); err != nil {
+	if err := s.stateRepo.persistAgentDelta(next, nil, s.sequence, chainRuntimeAgentStateTxHooks(completionHook, hook)); err != nil {
 		rollback()
 		return nil, err
 	}

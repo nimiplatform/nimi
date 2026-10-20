@@ -191,11 +191,30 @@ message CognitionMemoryTurnTerminal {
   CognitionMemoryTerminalState state = 3;
 }
 
+enum CognitionMemoryActivityChange {
+  COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED = 0;
+  COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE = 1;
+  COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS = 2;
+  COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED = 3;
+  COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT = 4;
+  COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED = 5;
+}
+
 message CognitionMemoryActivityTerminal {
   CognitionMemorySourceRef activity = 1;
   string activity_kind = 2;
-  CognitionMemoryTerminalState state = 3;
+  reserved 3;
+  reserved "state";
   string bounded_outcome = 4;
+  google.protobuf.Timestamp occurred_start = 5;
+  google.protobuf.Timestamp occurred_end = 6;
+  bool retrospective = 7;
+  CognitionMemoryActivityChange change = 8;
+  // The owner change, not the lifetime of the activity, is the deduplication key.
+  CognitionMemorySourceRef change_ref = 9;
+  string activity_state = 10;
+  string self_action = 11;
+  string self_object = 12;
 }
 
 message CognitionMemoryCorrectionCommitted {
@@ -290,6 +309,7 @@ message CognitionMemoryRecallRequest {
   repeated CognitionMemorySubjectRef subject_scope = 6;
   uint32 limit = 7;
   CognitionMemoryCapabilitySnapshot capabilities = 8;
+  bool include_recent_life = 9;
 }
 
 message CognitionMemoryRecallResponse {

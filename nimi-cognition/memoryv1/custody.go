@@ -233,6 +233,22 @@ func validateCommitRequest(request CommitRequest) error {
 	if err := validateCommittedFact(request.Fact); err != nil {
 		return err
 	}
+	if fact := request.Fact.Activity; fact != nil && fact.OccurredEnd.After(request.CommittedAt) {
+		return contractError(OutcomeInvalid, "activity_occurrence_after_commit")
+	}
+	if fact := request.Fact.Activity; fact != nil {
+		found := false
+		for _, source := range request.Sources {
+			found = found || source == fact.Activity
+		}
+		changeFound := false
+		for _, source := range request.Sources {
+			changeFound = changeFound || source == fact.ChangeRef
+		}
+		if !found || !changeFound {
+			return contractError(OutcomeInvalid, "activity_source_missing")
+		}
+	}
 	return nil
 }
 
@@ -277,8 +293,19 @@ func validateCommittedFact(fact CommittedFact) error {
 			return contractError(OutcomeInvalid, "turn_fact")
 		}
 	case EventKindActivity:
-		if fact.Activity == nil || !validTypedRef(fact.Activity.Activity) || !validOpaqueRef(fact.Activity.ActivityKind) || !validTerminalState(fact.Activity.State) || (fact.Activity.BoundedOutcome != "" && !validContent(fact.Activity.BoundedOutcome)) {
+		if fact.Activity == nil || !validTypedRef(fact.Activity.Activity) || !validOpaqueRef(fact.Activity.ActivityKind) || !validLifeExperience(fact.Activity) || (fact.Activity.BoundedOutcome != "" && !validContent(fact.Activity.BoundedOutcome)) {
 			return contractError(OutcomeInvalid, "activity_fact")
+		}
+		if fact.Activity.OccurredStart.IsZero() || fact.Activity.OccurredEnd.IsZero() || fact.Activity.OccurredEnd.Before(fact.Activity.OccurredStart) {
+			return contractError(OutcomeInvalid, "activity_occurrence_interval")
+		}
+		switch fact.Activity.Change {
+		case ActivityChangeRoutine, ActivityChangeProgress, ActivityChangeProjectCompleted, ActivityChangeKeyResult, ActivityChangeDirectionChanged:
+		default:
+			return contractError(OutcomeInvalid, "activity_change")
+		}
+		if fact.Activity.Change == ActivityChangeProjectCompleted && fact.Activity.ActivityState != "completed" {
+			return contractError(OutcomeInvalid, "activity_completion_state")
 		}
 	case EventKindCorrection:
 		if fact.Correction == nil || !validOpaqueRef(fact.Correction.TargetMemoryRef) || !validContent(fact.Correction.CorrectedContent) {

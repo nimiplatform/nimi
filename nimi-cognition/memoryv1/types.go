@@ -113,11 +113,28 @@ type TurnTerminalFact struct {
 	State        TerminalState `json:"state"`
 }
 
+type ActivityChange string
+
+const (
+	ActivityChangeRoutine          ActivityChange = "routine"
+	ActivityChangeProgress         ActivityChange = "progress"
+	ActivityChangeProjectCompleted ActivityChange = "project_completed"
+	ActivityChangeKeyResult        ActivityChange = "key_result"
+	ActivityChangeDirectionChanged ActivityChange = "direction_changed"
+)
+
 type ActivityTerminalFact struct {
-	Activity       TypedRef      `json:"activity"`
-	ActivityKind   string        `json:"activity_kind"`
-	State          TerminalState `json:"state"`
-	BoundedOutcome string        `json:"bounded_outcome,omitempty"`
+	Activity       TypedRef       `json:"activity"`
+	ActivityKind   string         `json:"activity_kind"`
+	ActivityState  string         `json:"activity_state"`
+	ChangeRef      TypedRef       `json:"change_ref"`
+	SelfAction     string         `json:"self_action"`
+	SelfObject     string         `json:"self_object"`
+	BoundedOutcome string         `json:"bounded_outcome,omitempty"`
+	OccurredStart  time.Time      `json:"occurred_start"`
+	OccurredEnd    time.Time      `json:"occurred_end"`
+	Retrospective  bool           `json:"retrospective"`
+	Change         ActivityChange `json:"change"`
 }
 
 type CorrectionFact struct {

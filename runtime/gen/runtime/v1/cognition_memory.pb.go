@@ -547,6 +547,64 @@ func (CognitionMemoryDeleteReason) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{8}
 }
 
+type CognitionMemoryActivityChange int32
+
+const (
+	CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED       CognitionMemoryActivityChange = 0
+	CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE           CognitionMemoryActivityChange = 1
+	CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS          CognitionMemoryActivityChange = 2
+	CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED CognitionMemoryActivityChange = 3
+	CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT        CognitionMemoryActivityChange = 4
+	CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED CognitionMemoryActivityChange = 5
+)
+
+// Enum value maps for CognitionMemoryActivityChange.
+var (
+	CognitionMemoryActivityChange_name = map[int32]string{
+		0: "COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED",
+		1: "COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE",
+		2: "COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS",
+		3: "COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED",
+		4: "COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT",
+		5: "COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED",
+	}
+	CognitionMemoryActivityChange_value = map[string]int32{
+		"COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED":       0,
+		"COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE":           1,
+		"COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS":          2,
+		"COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED": 3,
+		"COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT":        4,
+		"COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED": 5,
+	}
+)
+
+func (x CognitionMemoryActivityChange) Enum() *CognitionMemoryActivityChange {
+	p := new(CognitionMemoryActivityChange)
+	*p = x
+	return p
+}
+
+func (x CognitionMemoryActivityChange) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CognitionMemoryActivityChange) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_cognition_memory_proto_enumTypes[9].Descriptor()
+}
+
+func (CognitionMemoryActivityChange) Type() protoreflect.EnumType {
+	return &file_runtime_v1_cognition_memory_proto_enumTypes[9]
+}
+
+func (x CognitionMemoryActivityChange) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CognitionMemoryActivityChange.Descriptor instead.
+func (CognitionMemoryActivityChange) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{9}
+}
+
 type MemoryEmbeddingCloudBindingRef struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	ConnectorId          string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
@@ -1510,13 +1568,21 @@ func (x *CognitionMemoryTurnTerminal) GetState() CognitionMemoryTerminalState {
 }
 
 type CognitionMemoryActivityTerminal struct {
-	state          protoimpl.MessageState       `protogen:"open.v1"`
-	Activity       *CognitionMemorySourceRef    `protobuf:"bytes,1,opt,name=activity,proto3" json:"activity,omitempty"`
-	ActivityKind   string                       `protobuf:"bytes,2,opt,name=activity_kind,json=activityKind,proto3" json:"activity_kind,omitempty"`
-	State          CognitionMemoryTerminalState `protobuf:"varint,3,opt,name=state,proto3,enum=nimi.runtime.v1.CognitionMemoryTerminalState" json:"state,omitempty"`
-	BoundedOutcome string                       `protobuf:"bytes,4,opt,name=bounded_outcome,json=boundedOutcome,proto3" json:"bounded_outcome,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state          protoimpl.MessageState        `protogen:"open.v1"`
+	Activity       *CognitionMemorySourceRef     `protobuf:"bytes,1,opt,name=activity,proto3" json:"activity,omitempty"`
+	ActivityKind   string                        `protobuf:"bytes,2,opt,name=activity_kind,json=activityKind,proto3" json:"activity_kind,omitempty"`
+	BoundedOutcome string                        `protobuf:"bytes,4,opt,name=bounded_outcome,json=boundedOutcome,proto3" json:"bounded_outcome,omitempty"`
+	OccurredStart  *timestamppb.Timestamp        `protobuf:"bytes,5,opt,name=occurred_start,json=occurredStart,proto3" json:"occurred_start,omitempty"`
+	OccurredEnd    *timestamppb.Timestamp        `protobuf:"bytes,6,opt,name=occurred_end,json=occurredEnd,proto3" json:"occurred_end,omitempty"`
+	Retrospective  bool                          `protobuf:"varint,7,opt,name=retrospective,proto3" json:"retrospective,omitempty"`
+	Change         CognitionMemoryActivityChange `protobuf:"varint,8,opt,name=change,proto3,enum=nimi.runtime.v1.CognitionMemoryActivityChange" json:"change,omitempty"`
+	// The owner change, not the lifetime of the activity, is the deduplication key.
+	ChangeRef     *CognitionMemorySourceRef `protobuf:"bytes,9,opt,name=change_ref,json=changeRef,proto3" json:"change_ref,omitempty"`
+	ActivityState string                    `protobuf:"bytes,10,opt,name=activity_state,json=activityState,proto3" json:"activity_state,omitempty"`
+	SelfAction    string                    `protobuf:"bytes,11,opt,name=self_action,json=selfAction,proto3" json:"self_action,omitempty"`
+	SelfObject    string                    `protobuf:"bytes,12,opt,name=self_object,json=selfObject,proto3" json:"self_object,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CognitionMemoryActivityTerminal) Reset() {
@@ -1563,16 +1629,65 @@ func (x *CognitionMemoryActivityTerminal) GetActivityKind() string {
 	return ""
 }
 
-func (x *CognitionMemoryActivityTerminal) GetState() CognitionMemoryTerminalState {
-	if x != nil {
-		return x.State
-	}
-	return CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED
-}
-
 func (x *CognitionMemoryActivityTerminal) GetBoundedOutcome() string {
 	if x != nil {
 		return x.BoundedOutcome
+	}
+	return ""
+}
+
+func (x *CognitionMemoryActivityTerminal) GetOccurredStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.OccurredStart
+	}
+	return nil
+}
+
+func (x *CognitionMemoryActivityTerminal) GetOccurredEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.OccurredEnd
+	}
+	return nil
+}
+
+func (x *CognitionMemoryActivityTerminal) GetRetrospective() bool {
+	if x != nil {
+		return x.Retrospective
+	}
+	return false
+}
+
+func (x *CognitionMemoryActivityTerminal) GetChange() CognitionMemoryActivityChange {
+	if x != nil {
+		return x.Change
+	}
+	return CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED
+}
+
+func (x *CognitionMemoryActivityTerminal) GetChangeRef() *CognitionMemorySourceRef {
+	if x != nil {
+		return x.ChangeRef
+	}
+	return nil
+}
+
+func (x *CognitionMemoryActivityTerminal) GetActivityState() string {
+	if x != nil {
+		return x.ActivityState
+	}
+	return ""
+}
+
+func (x *CognitionMemoryActivityTerminal) GetSelfAction() string {
+	if x != nil {
+		return x.SelfAction
+	}
+	return ""
+}
+
+func (x *CognitionMemoryActivityTerminal) GetSelfObject() string {
+	if x != nil {
+		return x.SelfObject
 	}
 	return ""
 }
@@ -2405,17 +2520,18 @@ func (x *CognitionMemoryHit) GetSourceExplanation() string {
 }
 
 type CognitionMemoryRecallRequest struct {
-	state           protoimpl.MessageState             `protogen:"open.v1"`
-	ContractVersion uint32                             `protobuf:"varint,1,opt,name=contract_version,json=contractVersion,proto3" json:"contract_version,omitempty"`
-	BankBinding     *CognitionMemoryBankBindingRef     `protobuf:"bytes,2,opt,name=bank_binding,json=bankBinding,proto3" json:"bank_binding,omitempty"`
-	Bank            *CognitionMemoryBankRef            `protobuf:"bytes,3,opt,name=bank,proto3" json:"bank,omitempty"`
-	Operation       *CognitionMemoryOperationRef       `protobuf:"bytes,4,opt,name=operation,proto3" json:"operation,omitempty"`
-	Query           string                             `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`
-	SubjectScope    []*CognitionMemorySubjectRef       `protobuf:"bytes,6,rep,name=subject_scope,json=subjectScope,proto3" json:"subject_scope,omitempty"`
-	Limit           uint32                             `protobuf:"varint,7,opt,name=limit,proto3" json:"limit,omitempty"`
-	Capabilities    *CognitionMemoryCapabilitySnapshot `protobuf:"bytes,8,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state             protoimpl.MessageState             `protogen:"open.v1"`
+	ContractVersion   uint32                             `protobuf:"varint,1,opt,name=contract_version,json=contractVersion,proto3" json:"contract_version,omitempty"`
+	BankBinding       *CognitionMemoryBankBindingRef     `protobuf:"bytes,2,opt,name=bank_binding,json=bankBinding,proto3" json:"bank_binding,omitempty"`
+	Bank              *CognitionMemoryBankRef            `protobuf:"bytes,3,opt,name=bank,proto3" json:"bank,omitempty"`
+	Operation         *CognitionMemoryOperationRef       `protobuf:"bytes,4,opt,name=operation,proto3" json:"operation,omitempty"`
+	Query             string                             `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`
+	SubjectScope      []*CognitionMemorySubjectRef       `protobuf:"bytes,6,rep,name=subject_scope,json=subjectScope,proto3" json:"subject_scope,omitempty"`
+	Limit             uint32                             `protobuf:"varint,7,opt,name=limit,proto3" json:"limit,omitempty"`
+	Capabilities      *CognitionMemoryCapabilitySnapshot `protobuf:"bytes,8,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	IncludeRecentLife bool                               `protobuf:"varint,9,opt,name=include_recent_life,json=includeRecentLife,proto3" json:"include_recent_life,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CognitionMemoryRecallRequest) Reset() {
@@ -2502,6 +2618,13 @@ func (x *CognitionMemoryRecallRequest) GetCapabilities() *CognitionMemoryCapabil
 		return x.Capabilities
 	}
 	return nil
+}
+
+func (x *CognitionMemoryRecallRequest) GetIncludeRecentLife() bool {
+	if x != nil {
+		return x.IncludeRecentLife
+	}
+	return false
 }
 
 type CognitionMemoryRecallResponse struct {
@@ -4235,12 +4358,23 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"\x1bCognitionMemoryTurnTerminal\x12M\n" +
 	"\fconversation\x18\x01 \x01(\v2).nimi.runtime.v1.CognitionMemorySourceRefR\fconversation\x12=\n" +
 	"\x04turn\x18\x02 \x01(\v2).nimi.runtime.v1.CognitionMemorySourceRefR\x04turn\x12C\n" +
-	"\x05state\x18\x03 \x01(\x0e2-.nimi.runtime.v1.CognitionMemoryTerminalStateR\x05state\"\xfb\x01\n" +
+	"\x05state\x18\x03 \x01(\x0e2-.nimi.runtime.v1.CognitionMemoryTerminalStateR\x05state\"\xe6\x04\n" +
 	"\x1fCognitionMemoryActivityTerminal\x12E\n" +
 	"\bactivity\x18\x01 \x01(\v2).nimi.runtime.v1.CognitionMemorySourceRefR\bactivity\x12#\n" +
-	"\ractivity_kind\x18\x02 \x01(\tR\factivityKind\x12C\n" +
-	"\x05state\x18\x03 \x01(\x0e2-.nimi.runtime.v1.CognitionMemoryTerminalStateR\x05state\x12'\n" +
-	"\x0fbounded_outcome\x18\x04 \x01(\tR\x0eboundedOutcome\"\x9b\x01\n" +
+	"\ractivity_kind\x18\x02 \x01(\tR\factivityKind\x12'\n" +
+	"\x0fbounded_outcome\x18\x04 \x01(\tR\x0eboundedOutcome\x12A\n" +
+	"\x0eoccurred_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\roccurredStart\x12=\n" +
+	"\foccurred_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\voccurredEnd\x12$\n" +
+	"\rretrospective\x18\a \x01(\bR\rretrospective\x12F\n" +
+	"\x06change\x18\b \x01(\x0e2..nimi.runtime.v1.CognitionMemoryActivityChangeR\x06change\x12H\n" +
+	"\n" +
+	"change_ref\x18\t \x01(\v2).nimi.runtime.v1.CognitionMemorySourceRefR\tchangeRef\x12%\n" +
+	"\x0eactivity_state\x18\n" +
+	" \x01(\tR\ractivityState\x12\x1f\n" +
+	"\vself_action\x18\v \x01(\tR\n" +
+	"selfAction\x12\x1f\n" +
+	"\vself_object\x18\f \x01(\tR\n" +
+	"selfObjectJ\x04\b\x03\x10\x04R\x05state\"\x9b\x01\n" +
 	"\"CognitionMemoryCorrectionCommitted\x12H\n" +
 	"\rtarget_memory\x18\x01 \x01(\v2#.nimi.runtime.v1.CognitionMemoryRefR\ftargetMemory\x12+\n" +
 	"\x11corrected_content\x18\x02 \x01(\tR\x10correctedContent\"v\n" +
@@ -4306,7 +4440,7 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"\bsubjects\x18\b \x03(\v2*.nimi.runtime.v1.CognitionMemorySubjectRefR\bsubjects\x12C\n" +
 	"\asources\x18\t \x03(\v2).nimi.runtime.v1.CognitionMemorySourceRefR\asources\x12-\n" +
 	"\x12source_explanation\x18\n" +
-	" \x01(\tR\x11sourceExplanation\"\xfa\x03\n" +
+	" \x01(\tR\x11sourceExplanation\"\xaa\x04\n" +
 	"\x1cCognitionMemoryRecallRequest\x12)\n" +
 	"\x10contract_version\x18\x01 \x01(\rR\x0fcontractVersion\x12Q\n" +
 	"\fbank_binding\x18\x02 \x01(\v2..nimi.runtime.v1.CognitionMemoryBankBindingRefR\vbankBinding\x12;\n" +
@@ -4315,7 +4449,8 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"\x05query\x18\x05 \x01(\tR\x05query\x12O\n" +
 	"\rsubject_scope\x18\x06 \x03(\v2*.nimi.runtime.v1.CognitionMemorySubjectRefR\fsubjectScope\x12\x14\n" +
 	"\x05limit\x18\a \x01(\rR\x05limit\x12V\n" +
-	"\fcapabilities\x18\b \x01(\v22.nimi.runtime.v1.CognitionMemoryCapabilitySnapshotR\fcapabilities\"\x9b\x01\n" +
+	"\fcapabilities\x18\b \x01(\v22.nimi.runtime.v1.CognitionMemoryCapabilitySnapshotR\fcapabilities\x12.\n" +
+	"\x13include_recent_life\x18\t \x01(\bR\x11includeRecentLife\"\x9b\x01\n" +
 	"\x1dCognitionMemoryRecallResponse\x12A\n" +
 	"\aoutcome\x18\x01 \x01(\x0e2'.nimi.runtime.v1.CognitionMemoryOutcomeR\aoutcome\x127\n" +
 	"\x04hits\x18\x02 \x03(\v2#.nimi.runtime.v1.CognitionMemoryHitR\x04hits\"\x82\x03\n" +
@@ -4518,7 +4653,14 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"*COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED\x10\x00\x12-\n" +
 	")COGNITION_MEMORY_DELETE_REASON_DELETE_ALL\x10\x01\x124\n" +
 	"0COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION\x10\x02\x126\n" +
-	"2COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION\x10\x03B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"2COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION\x10\x03*\xcf\x02\n" +
+	"\x1dCognitionMemoryActivityChange\x120\n" +
+	",COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED\x10\x00\x12,\n" +
+	"(COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE\x10\x01\x12-\n" +
+	")COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS\x10\x02\x126\n" +
+	"2COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED\x10\x03\x12/\n" +
+	"+COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT\x10\x04\x126\n" +
+	"2COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED\x10\x05B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_cognition_memory_proto_rawDescOnce sync.Once
@@ -4532,7 +4674,7 @@ func file_runtime_v1_cognition_memory_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_cognition_memory_proto_rawDescData
 }
 
-var file_runtime_v1_cognition_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
+var file_runtime_v1_cognition_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
 var file_runtime_v1_cognition_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_runtime_v1_cognition_memory_proto_goTypes = []any{
 	(CognitionMemoryOutcome)(0),                   // 0: nimi.runtime.v1.CognitionMemoryOutcome
@@ -4544,181 +4686,185 @@ var file_runtime_v1_cognition_memory_proto_goTypes = []any{
 	(MemoryDistanceMetric)(0),                     // 6: nimi.runtime.v1.MemoryDistanceMetric
 	(MemoryMigrationPolicy)(0),                    // 7: nimi.runtime.v1.MemoryMigrationPolicy
 	(CognitionMemoryDeleteReason)(0),              // 8: nimi.runtime.v1.CognitionMemoryDeleteReason
-	(*MemoryEmbeddingCloudBindingRef)(nil),        // 9: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
-	(*MemoryEmbeddingProfile)(nil),                // 10: nimi.runtime.v1.MemoryEmbeddingProfile
-	(*CognitionMemoryBankBindingRef)(nil),         // 11: nimi.runtime.v1.CognitionMemoryBankBindingRef
-	(*CognitionMemoryBankRef)(nil),                // 12: nimi.runtime.v1.CognitionMemoryBankRef
-	(*CognitionMemoryEventRef)(nil),               // 13: nimi.runtime.v1.CognitionMemoryEventRef
-	(*CognitionMemoryOperationRef)(nil),           // 14: nimi.runtime.v1.CognitionMemoryOperationRef
-	(*CognitionMemoryRef)(nil),                    // 15: nimi.runtime.v1.CognitionMemoryRef
-	(*CognitionMemorySubjectRef)(nil),             // 16: nimi.runtime.v1.CognitionMemorySubjectRef
-	(*CognitionMemorySourceRef)(nil),              // 17: nimi.runtime.v1.CognitionMemorySourceRef
-	(*CognitionMemoryLifecycleCutoffRef)(nil),     // 18: nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	(*CognitionMemoryCapabilitySnapshot)(nil),     // 19: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
-	(*CognitionMemoryTextPart)(nil),               // 20: nimi.runtime.v1.CognitionMemoryTextPart
-	(*CognitionMemoryTranscriptionPart)(nil),      // 21: nimi.runtime.v1.CognitionMemoryTranscriptionPart
-	(*CognitionMemoryArtifactPart)(nil),           // 22: nimi.runtime.v1.CognitionMemoryArtifactPart
-	(*CognitionMemoryMessagePart)(nil),            // 23: nimi.runtime.v1.CognitionMemoryMessagePart
-	(*CognitionMemoryMessageCommitted)(nil),       // 24: nimi.runtime.v1.CognitionMemoryMessageCommitted
-	(*CognitionMemoryTurnTerminal)(nil),           // 25: nimi.runtime.v1.CognitionMemoryTurnTerminal
-	(*CognitionMemoryActivityTerminal)(nil),       // 26: nimi.runtime.v1.CognitionMemoryActivityTerminal
-	(*CognitionMemoryCorrectionCommitted)(nil),    // 27: nimi.runtime.v1.CognitionMemoryCorrectionCommitted
-	(*CognitionMemoryRelationshipCommitted)(nil),  // 28: nimi.runtime.v1.CognitionMemoryRelationshipCommitted
-	(*CognitionMemoryCommittedEventEnvelope)(nil), // 29: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
-	(*CognitionMemoryEnsureBankRequest)(nil),      // 30: nimi.runtime.v1.CognitionMemoryEnsureBankRequest
-	(*CognitionMemoryEnsureBankResponse)(nil),     // 31: nimi.runtime.v1.CognitionMemoryEnsureBankResponse
-	(*CognitionMemoryCommitRequest)(nil),          // 32: nimi.runtime.v1.CognitionMemoryCommitRequest
-	(*CognitionMemoryCommitResponse)(nil),         // 33: nimi.runtime.v1.CognitionMemoryCommitResponse
-	(*CognitionMemoryEventStatus)(nil),            // 34: nimi.runtime.v1.CognitionMemoryEventStatus
-	(*CognitionMemoryFrontiers)(nil),              // 35: nimi.runtime.v1.CognitionMemoryFrontiers
-	(*CognitionMemoryHit)(nil),                    // 36: nimi.runtime.v1.CognitionMemoryHit
-	(*CognitionMemoryRecallRequest)(nil),          // 37: nimi.runtime.v1.CognitionMemoryRecallRequest
-	(*CognitionMemoryRecallResponse)(nil),         // 38: nimi.runtime.v1.CognitionMemoryRecallResponse
-	(*CognitionMemoryForgetRequest)(nil),          // 39: nimi.runtime.v1.CognitionMemoryForgetRequest
-	(*CognitionMemoryForgetResponse)(nil),         // 40: nimi.runtime.v1.CognitionMemoryForgetResponse
-	(*CognitionMemoryApplyCutoffRequest)(nil),     // 41: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest
-	(*CognitionMemoryApplyCutoffResponse)(nil),    // 42: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse
-	(*CognitionMemoryDeleteBankRequest)(nil),      // 43: nimi.runtime.v1.CognitionMemoryDeleteBankRequest
-	(*CognitionMemoryDeleteBankResponse)(nil),     // 44: nimi.runtime.v1.CognitionMemoryDeleteBankResponse
-	(*CognitionMemoryInspectStatusRequest)(nil),   // 45: nimi.runtime.v1.CognitionMemoryInspectStatusRequest
-	(*CognitionMemoryInspectStatusResponse)(nil),  // 46: nimi.runtime.v1.CognitionMemoryInspectStatusResponse
-	(*CognitionMemoryInspectRequest)(nil),         // 47: nimi.runtime.v1.CognitionMemoryInspectRequest
-	(*CognitionMemoryInspectResponse)(nil),        // 48: nimi.runtime.v1.CognitionMemoryInspectResponse
-	(*CognitionMemoryAiJobRequest)(nil),           // 49: nimi.runtime.v1.CognitionMemoryAiJobRequest
-	(*CognitionMemoryAiJobResult)(nil),            // 50: nimi.runtime.v1.CognitionMemoryAiJobResult
-	(*AgentMemoryItem)(nil),                       // 51: nimi.runtime.v1.AgentMemoryItem
-	(*AgentMemoryProjection)(nil),                 // 52: nimi.runtime.v1.AgentMemoryProjection
-	(*InspectLocalAppAgentMemoryRequest)(nil),     // 53: nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
-	(*InspectLocalAppAgentMemoryResponse)(nil),    // 54: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
-	(*CorrectLocalAppAgentMemoryRequest)(nil),     // 55: nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
-	(*CorrectLocalAppAgentMemoryResponse)(nil),    // 56: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
-	(*ForgetLocalAppAgentMemoryRequest)(nil),      // 57: nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
-	(*ForgetLocalAppAgentMemoryResponse)(nil),     // 58: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
-	(*SetLocalAppAgentMemoryEnabledRequest)(nil),  // 59: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
-	(*SetLocalAppAgentMemoryEnabledResponse)(nil), // 60: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
-	(*DeleteAllLocalAppAgentMemoryRequest)(nil),   // 61: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
-	(*DeleteAllLocalAppAgentMemoryResponse)(nil),  // 62: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
-	(*timestamppb.Timestamp)(nil),                 // 63: google.protobuf.Timestamp
+	(CognitionMemoryActivityChange)(0),            // 9: nimi.runtime.v1.CognitionMemoryActivityChange
+	(*MemoryEmbeddingCloudBindingRef)(nil),        // 10: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
+	(*MemoryEmbeddingProfile)(nil),                // 11: nimi.runtime.v1.MemoryEmbeddingProfile
+	(*CognitionMemoryBankBindingRef)(nil),         // 12: nimi.runtime.v1.CognitionMemoryBankBindingRef
+	(*CognitionMemoryBankRef)(nil),                // 13: nimi.runtime.v1.CognitionMemoryBankRef
+	(*CognitionMemoryEventRef)(nil),               // 14: nimi.runtime.v1.CognitionMemoryEventRef
+	(*CognitionMemoryOperationRef)(nil),           // 15: nimi.runtime.v1.CognitionMemoryOperationRef
+	(*CognitionMemoryRef)(nil),                    // 16: nimi.runtime.v1.CognitionMemoryRef
+	(*CognitionMemorySubjectRef)(nil),             // 17: nimi.runtime.v1.CognitionMemorySubjectRef
+	(*CognitionMemorySourceRef)(nil),              // 18: nimi.runtime.v1.CognitionMemorySourceRef
+	(*CognitionMemoryLifecycleCutoffRef)(nil),     // 19: nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	(*CognitionMemoryCapabilitySnapshot)(nil),     // 20: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
+	(*CognitionMemoryTextPart)(nil),               // 21: nimi.runtime.v1.CognitionMemoryTextPart
+	(*CognitionMemoryTranscriptionPart)(nil),      // 22: nimi.runtime.v1.CognitionMemoryTranscriptionPart
+	(*CognitionMemoryArtifactPart)(nil),           // 23: nimi.runtime.v1.CognitionMemoryArtifactPart
+	(*CognitionMemoryMessagePart)(nil),            // 24: nimi.runtime.v1.CognitionMemoryMessagePart
+	(*CognitionMemoryMessageCommitted)(nil),       // 25: nimi.runtime.v1.CognitionMemoryMessageCommitted
+	(*CognitionMemoryTurnTerminal)(nil),           // 26: nimi.runtime.v1.CognitionMemoryTurnTerminal
+	(*CognitionMemoryActivityTerminal)(nil),       // 27: nimi.runtime.v1.CognitionMemoryActivityTerminal
+	(*CognitionMemoryCorrectionCommitted)(nil),    // 28: nimi.runtime.v1.CognitionMemoryCorrectionCommitted
+	(*CognitionMemoryRelationshipCommitted)(nil),  // 29: nimi.runtime.v1.CognitionMemoryRelationshipCommitted
+	(*CognitionMemoryCommittedEventEnvelope)(nil), // 30: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
+	(*CognitionMemoryEnsureBankRequest)(nil),      // 31: nimi.runtime.v1.CognitionMemoryEnsureBankRequest
+	(*CognitionMemoryEnsureBankResponse)(nil),     // 32: nimi.runtime.v1.CognitionMemoryEnsureBankResponse
+	(*CognitionMemoryCommitRequest)(nil),          // 33: nimi.runtime.v1.CognitionMemoryCommitRequest
+	(*CognitionMemoryCommitResponse)(nil),         // 34: nimi.runtime.v1.CognitionMemoryCommitResponse
+	(*CognitionMemoryEventStatus)(nil),            // 35: nimi.runtime.v1.CognitionMemoryEventStatus
+	(*CognitionMemoryFrontiers)(nil),              // 36: nimi.runtime.v1.CognitionMemoryFrontiers
+	(*CognitionMemoryHit)(nil),                    // 37: nimi.runtime.v1.CognitionMemoryHit
+	(*CognitionMemoryRecallRequest)(nil),          // 38: nimi.runtime.v1.CognitionMemoryRecallRequest
+	(*CognitionMemoryRecallResponse)(nil),         // 39: nimi.runtime.v1.CognitionMemoryRecallResponse
+	(*CognitionMemoryForgetRequest)(nil),          // 40: nimi.runtime.v1.CognitionMemoryForgetRequest
+	(*CognitionMemoryForgetResponse)(nil),         // 41: nimi.runtime.v1.CognitionMemoryForgetResponse
+	(*CognitionMemoryApplyCutoffRequest)(nil),     // 42: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest
+	(*CognitionMemoryApplyCutoffResponse)(nil),    // 43: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse
+	(*CognitionMemoryDeleteBankRequest)(nil),      // 44: nimi.runtime.v1.CognitionMemoryDeleteBankRequest
+	(*CognitionMemoryDeleteBankResponse)(nil),     // 45: nimi.runtime.v1.CognitionMemoryDeleteBankResponse
+	(*CognitionMemoryInspectStatusRequest)(nil),   // 46: nimi.runtime.v1.CognitionMemoryInspectStatusRequest
+	(*CognitionMemoryInspectStatusResponse)(nil),  // 47: nimi.runtime.v1.CognitionMemoryInspectStatusResponse
+	(*CognitionMemoryInspectRequest)(nil),         // 48: nimi.runtime.v1.CognitionMemoryInspectRequest
+	(*CognitionMemoryInspectResponse)(nil),        // 49: nimi.runtime.v1.CognitionMemoryInspectResponse
+	(*CognitionMemoryAiJobRequest)(nil),           // 50: nimi.runtime.v1.CognitionMemoryAiJobRequest
+	(*CognitionMemoryAiJobResult)(nil),            // 51: nimi.runtime.v1.CognitionMemoryAiJobResult
+	(*AgentMemoryItem)(nil),                       // 52: nimi.runtime.v1.AgentMemoryItem
+	(*AgentMemoryProjection)(nil),                 // 53: nimi.runtime.v1.AgentMemoryProjection
+	(*InspectLocalAppAgentMemoryRequest)(nil),     // 54: nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
+	(*InspectLocalAppAgentMemoryResponse)(nil),    // 55: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
+	(*CorrectLocalAppAgentMemoryRequest)(nil),     // 56: nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
+	(*CorrectLocalAppAgentMemoryResponse)(nil),    // 57: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
+	(*ForgetLocalAppAgentMemoryRequest)(nil),      // 58: nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
+	(*ForgetLocalAppAgentMemoryResponse)(nil),     // 59: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
+	(*SetLocalAppAgentMemoryEnabledRequest)(nil),  // 60: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
+	(*SetLocalAppAgentMemoryEnabledResponse)(nil), // 61: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
+	(*DeleteAllLocalAppAgentMemoryRequest)(nil),   // 62: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
+	(*DeleteAllLocalAppAgentMemoryResponse)(nil),  // 63: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
+	(*timestamppb.Timestamp)(nil),                 // 64: google.protobuf.Timestamp
 }
 var file_runtime_v1_cognition_memory_proto_depIdxs = []int32{
 	6,   // 0: nimi.runtime.v1.MemoryEmbeddingProfile.distance_metric:type_name -> nimi.runtime.v1.MemoryDistanceMetric
 	7,   // 1: nimi.runtime.v1.MemoryEmbeddingProfile.migration_policy:type_name -> nimi.runtime.v1.MemoryMigrationPolicy
-	9,   // 2: nimi.runtime.v1.MemoryEmbeddingProfile.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
+	10,  // 2: nimi.runtime.v1.MemoryEmbeddingProfile.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
 	5,   // 3: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot.available:type_name -> nimi.runtime.v1.CognitionMemoryCapability
-	17,  // 4: nimi.runtime.v1.CognitionMemoryTranscriptionPart.transcription:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	17,  // 5: nimi.runtime.v1.CognitionMemoryArtifactPart.artifact:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	17,  // 6: nimi.runtime.v1.CognitionMemoryMessagePart.part:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	20,  // 7: nimi.runtime.v1.CognitionMemoryMessagePart.text:type_name -> nimi.runtime.v1.CognitionMemoryTextPart
-	21,  // 8: nimi.runtime.v1.CognitionMemoryMessagePart.transcription:type_name -> nimi.runtime.v1.CognitionMemoryTranscriptionPart
-	22,  // 9: nimi.runtime.v1.CognitionMemoryMessagePart.artifact:type_name -> nimi.runtime.v1.CognitionMemoryArtifactPart
+	18,  // 4: nimi.runtime.v1.CognitionMemoryTranscriptionPart.transcription:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	18,  // 5: nimi.runtime.v1.CognitionMemoryArtifactPart.artifact:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	18,  // 6: nimi.runtime.v1.CognitionMemoryMessagePart.part:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	21,  // 7: nimi.runtime.v1.CognitionMemoryMessagePart.text:type_name -> nimi.runtime.v1.CognitionMemoryTextPart
+	22,  // 8: nimi.runtime.v1.CognitionMemoryMessagePart.transcription:type_name -> nimi.runtime.v1.CognitionMemoryTranscriptionPart
+	23,  // 9: nimi.runtime.v1.CognitionMemoryMessagePart.artifact:type_name -> nimi.runtime.v1.CognitionMemoryArtifactPart
 	3,   // 10: nimi.runtime.v1.CognitionMemoryMessageCommitted.actor:type_name -> nimi.runtime.v1.CognitionMemoryActorRole
-	17,  // 11: nimi.runtime.v1.CognitionMemoryMessageCommitted.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	17,  // 12: nimi.runtime.v1.CognitionMemoryMessageCommitted.message:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	23,  // 13: nimi.runtime.v1.CognitionMemoryMessageCommitted.parts:type_name -> nimi.runtime.v1.CognitionMemoryMessagePart
-	17,  // 14: nimi.runtime.v1.CognitionMemoryTurnTerminal.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	17,  // 15: nimi.runtime.v1.CognitionMemoryTurnTerminal.turn:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	18,  // 11: nimi.runtime.v1.CognitionMemoryMessageCommitted.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	18,  // 12: nimi.runtime.v1.CognitionMemoryMessageCommitted.message:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	24,  // 13: nimi.runtime.v1.CognitionMemoryMessageCommitted.parts:type_name -> nimi.runtime.v1.CognitionMemoryMessagePart
+	18,  // 14: nimi.runtime.v1.CognitionMemoryTurnTerminal.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	18,  // 15: nimi.runtime.v1.CognitionMemoryTurnTerminal.turn:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
 	4,   // 16: nimi.runtime.v1.CognitionMemoryTurnTerminal.state:type_name -> nimi.runtime.v1.CognitionMemoryTerminalState
-	17,  // 17: nimi.runtime.v1.CognitionMemoryActivityTerminal.activity:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	4,   // 18: nimi.runtime.v1.CognitionMemoryActivityTerminal.state:type_name -> nimi.runtime.v1.CognitionMemoryTerminalState
-	15,  // 19: nimi.runtime.v1.CognitionMemoryCorrectionCommitted.target_memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	11,  // 20: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 21: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	13,  // 22: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
-	14,  // 23: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	16,  // 24: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
-	17,  // 25: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	63,  // 26: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.committed_at:type_name -> google.protobuf.Timestamp
-	18,  // 27: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	24,  // 28: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.message_committed:type_name -> nimi.runtime.v1.CognitionMemoryMessageCommitted
-	25,  // 29: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.turn_terminal:type_name -> nimi.runtime.v1.CognitionMemoryTurnTerminal
-	26,  // 30: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.activity_terminal:type_name -> nimi.runtime.v1.CognitionMemoryActivityTerminal
-	27,  // 31: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.correction_committed:type_name -> nimi.runtime.v1.CognitionMemoryCorrectionCommitted
-	28,  // 32: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.relationship_committed:type_name -> nimi.runtime.v1.CognitionMemoryRelationshipCommitted
-	11,  // 33: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	14,  // 34: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 35: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	11,  // 36: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 37: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	18,  // 38: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	29,  // 39: nimi.runtime.v1.CognitionMemoryCommitRequest.envelope:type_name -> nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
-	0,   // 40: nimi.runtime.v1.CognitionMemoryCommitResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	12,  // 41: nimi.runtime.v1.CognitionMemoryCommitResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	13,  // 42: nimi.runtime.v1.CognitionMemoryCommitResponse.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
-	14,  // 43: nimi.runtime.v1.CognitionMemoryCommitResponse.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	13,  // 44: nimi.runtime.v1.CognitionMemoryEventStatus.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
-	14,  // 45: nimi.runtime.v1.CognitionMemoryEventStatus.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 46: nimi.runtime.v1.CognitionMemoryEventStatus.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	15,  // 47: nimi.runtime.v1.CognitionMemoryEventStatus.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	12,  // 48: nimi.runtime.v1.CognitionMemoryHit.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	15,  // 49: nimi.runtime.v1.CognitionMemoryHit.memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	1,   // 50: nimi.runtime.v1.CognitionMemoryHit.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
-	2,   // 51: nimi.runtime.v1.CognitionMemoryHit.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
-	63,  // 52: nimi.runtime.v1.CognitionMemoryHit.occurred_at:type_name -> google.protobuf.Timestamp
-	63,  // 53: nimi.runtime.v1.CognitionMemoryHit.updated_at:type_name -> google.protobuf.Timestamp
-	16,  // 54: nimi.runtime.v1.CognitionMemoryHit.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
-	17,  // 55: nimi.runtime.v1.CognitionMemoryHit.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	11,  // 56: nimi.runtime.v1.CognitionMemoryRecallRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 57: nimi.runtime.v1.CognitionMemoryRecallRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 58: nimi.runtime.v1.CognitionMemoryRecallRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	16,  // 59: nimi.runtime.v1.CognitionMemoryRecallRequest.subject_scope:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
-	19,  // 60: nimi.runtime.v1.CognitionMemoryRecallRequest.capabilities:type_name -> nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
-	0,   // 61: nimi.runtime.v1.CognitionMemoryRecallResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	36,  // 62: nimi.runtime.v1.CognitionMemoryRecallResponse.hits:type_name -> nimi.runtime.v1.CognitionMemoryHit
-	11,  // 63: nimi.runtime.v1.CognitionMemoryForgetRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 64: nimi.runtime.v1.CognitionMemoryForgetRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 65: nimi.runtime.v1.CognitionMemoryForgetRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	15,  // 66: nimi.runtime.v1.CognitionMemoryForgetRequest.targets:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	0,   // 67: nimi.runtime.v1.CognitionMemoryForgetResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	15,  // 68: nimi.runtime.v1.CognitionMemoryForgetResponse.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	11,  // 69: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 70: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 71: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	18,  // 72: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	11,  // 73: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	0,   // 74: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	18,  // 75: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	11,  // 76: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	11,  // 77: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 78: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 79: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	8,   // 80: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.reason:type_name -> nimi.runtime.v1.CognitionMemoryDeleteReason
-	18,  // 81: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	0,   // 82: nimi.runtime.v1.CognitionMemoryDeleteBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	11,  // 83: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 84: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 85: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 86: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	35,  // 87: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.frontiers:type_name -> nimi.runtime.v1.CognitionMemoryFrontiers
-	34,  // 88: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.events:type_name -> nimi.runtime.v1.CognitionMemoryEventStatus
-	11,  // 89: nimi.runtime.v1.CognitionMemoryInspectRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	12,  // 90: nimi.runtime.v1.CognitionMemoryInspectRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 91: nimi.runtime.v1.CognitionMemoryInspectRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 92: nimi.runtime.v1.CognitionMemoryInspectResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	36,  // 93: nimi.runtime.v1.CognitionMemoryInspectResponse.memories:type_name -> nimi.runtime.v1.CognitionMemoryHit
-	14,  // 94: nimi.runtime.v1.CognitionMemoryAiJobRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	5,   // 95: nimi.runtime.v1.CognitionMemoryAiJobRequest.capability:type_name -> nimi.runtime.v1.CognitionMemoryCapability
-	0,   // 96: nimi.runtime.v1.CognitionMemoryAiJobResult.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	14,  // 97: nimi.runtime.v1.CognitionMemoryAiJobResult.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	1,   // 98: nimi.runtime.v1.AgentMemoryItem.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
-	2,   // 99: nimi.runtime.v1.AgentMemoryItem.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
-	63,  // 100: nimi.runtime.v1.AgentMemoryItem.occurred_at:type_name -> google.protobuf.Timestamp
-	63,  // 101: nimi.runtime.v1.AgentMemoryItem.updated_at:type_name -> google.protobuf.Timestamp
-	0,   // 102: nimi.runtime.v1.AgentMemoryProjection.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	51,  // 103: nimi.runtime.v1.AgentMemoryProjection.items:type_name -> nimi.runtime.v1.AgentMemoryItem
-	52,  // 104: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 105: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	52,  // 106: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 107: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	52,  // 108: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 109: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	52,  // 110: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 111: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	52,  // 112: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	113, // [113:113] is the sub-list for method output_type
-	113, // [113:113] is the sub-list for method input_type
-	113, // [113:113] is the sub-list for extension type_name
-	113, // [113:113] is the sub-list for extension extendee
-	0,   // [0:113] is the sub-list for field type_name
+	18,  // 17: nimi.runtime.v1.CognitionMemoryActivityTerminal.activity:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	64,  // 18: nimi.runtime.v1.CognitionMemoryActivityTerminal.occurred_start:type_name -> google.protobuf.Timestamp
+	64,  // 19: nimi.runtime.v1.CognitionMemoryActivityTerminal.occurred_end:type_name -> google.protobuf.Timestamp
+	9,   // 20: nimi.runtime.v1.CognitionMemoryActivityTerminal.change:type_name -> nimi.runtime.v1.CognitionMemoryActivityChange
+	18,  // 21: nimi.runtime.v1.CognitionMemoryActivityTerminal.change_ref:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	16,  // 22: nimi.runtime.v1.CognitionMemoryCorrectionCommitted.target_memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	12,  // 23: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 24: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 25: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
+	15,  // 26: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	17,  // 27: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
+	18,  // 28: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	64,  // 29: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.committed_at:type_name -> google.protobuf.Timestamp
+	19,  // 30: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	25,  // 31: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.message_committed:type_name -> nimi.runtime.v1.CognitionMemoryMessageCommitted
+	26,  // 32: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.turn_terminal:type_name -> nimi.runtime.v1.CognitionMemoryTurnTerminal
+	27,  // 33: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.activity_terminal:type_name -> nimi.runtime.v1.CognitionMemoryActivityTerminal
+	28,  // 34: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.correction_committed:type_name -> nimi.runtime.v1.CognitionMemoryCorrectionCommitted
+	29,  // 35: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.relationship_committed:type_name -> nimi.runtime.v1.CognitionMemoryRelationshipCommitted
+	12,  // 36: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	15,  // 37: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 38: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	12,  // 39: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 40: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	19,  // 41: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	30,  // 42: nimi.runtime.v1.CognitionMemoryCommitRequest.envelope:type_name -> nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
+	0,   // 43: nimi.runtime.v1.CognitionMemoryCommitResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	13,  // 44: nimi.runtime.v1.CognitionMemoryCommitResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 45: nimi.runtime.v1.CognitionMemoryCommitResponse.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
+	15,  // 46: nimi.runtime.v1.CognitionMemoryCommitResponse.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	14,  // 47: nimi.runtime.v1.CognitionMemoryEventStatus.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
+	15,  // 48: nimi.runtime.v1.CognitionMemoryEventStatus.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 49: nimi.runtime.v1.CognitionMemoryEventStatus.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	16,  // 50: nimi.runtime.v1.CognitionMemoryEventStatus.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	13,  // 51: nimi.runtime.v1.CognitionMemoryHit.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	16,  // 52: nimi.runtime.v1.CognitionMemoryHit.memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	1,   // 53: nimi.runtime.v1.CognitionMemoryHit.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
+	2,   // 54: nimi.runtime.v1.CognitionMemoryHit.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
+	64,  // 55: nimi.runtime.v1.CognitionMemoryHit.occurred_at:type_name -> google.protobuf.Timestamp
+	64,  // 56: nimi.runtime.v1.CognitionMemoryHit.updated_at:type_name -> google.protobuf.Timestamp
+	17,  // 57: nimi.runtime.v1.CognitionMemoryHit.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
+	18,  // 58: nimi.runtime.v1.CognitionMemoryHit.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	12,  // 59: nimi.runtime.v1.CognitionMemoryRecallRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 60: nimi.runtime.v1.CognitionMemoryRecallRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 61: nimi.runtime.v1.CognitionMemoryRecallRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	17,  // 62: nimi.runtime.v1.CognitionMemoryRecallRequest.subject_scope:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
+	20,  // 63: nimi.runtime.v1.CognitionMemoryRecallRequest.capabilities:type_name -> nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
+	0,   // 64: nimi.runtime.v1.CognitionMemoryRecallResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	37,  // 65: nimi.runtime.v1.CognitionMemoryRecallResponse.hits:type_name -> nimi.runtime.v1.CognitionMemoryHit
+	12,  // 66: nimi.runtime.v1.CognitionMemoryForgetRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 67: nimi.runtime.v1.CognitionMemoryForgetRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 68: nimi.runtime.v1.CognitionMemoryForgetRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	16,  // 69: nimi.runtime.v1.CognitionMemoryForgetRequest.targets:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	0,   // 70: nimi.runtime.v1.CognitionMemoryForgetResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	16,  // 71: nimi.runtime.v1.CognitionMemoryForgetResponse.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	12,  // 72: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 73: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 74: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	19,  // 75: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	12,  // 76: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	0,   // 77: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	19,  // 78: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	12,  // 79: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 80: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 81: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 82: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	8,   // 83: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.reason:type_name -> nimi.runtime.v1.CognitionMemoryDeleteReason
+	19,  // 84: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	0,   // 85: nimi.runtime.v1.CognitionMemoryDeleteBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	12,  // 86: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 87: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 88: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 89: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	36,  // 90: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.frontiers:type_name -> nimi.runtime.v1.CognitionMemoryFrontiers
+	35,  // 91: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.events:type_name -> nimi.runtime.v1.CognitionMemoryEventStatus
+	12,  // 92: nimi.runtime.v1.CognitionMemoryInspectRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	13,  // 93: nimi.runtime.v1.CognitionMemoryInspectRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 94: nimi.runtime.v1.CognitionMemoryInspectRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 95: nimi.runtime.v1.CognitionMemoryInspectResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	37,  // 96: nimi.runtime.v1.CognitionMemoryInspectResponse.memories:type_name -> nimi.runtime.v1.CognitionMemoryHit
+	15,  // 97: nimi.runtime.v1.CognitionMemoryAiJobRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	5,   // 98: nimi.runtime.v1.CognitionMemoryAiJobRequest.capability:type_name -> nimi.runtime.v1.CognitionMemoryCapability
+	0,   // 99: nimi.runtime.v1.CognitionMemoryAiJobResult.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	15,  // 100: nimi.runtime.v1.CognitionMemoryAiJobResult.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	1,   // 101: nimi.runtime.v1.AgentMemoryItem.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
+	2,   // 102: nimi.runtime.v1.AgentMemoryItem.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
+	64,  // 103: nimi.runtime.v1.AgentMemoryItem.occurred_at:type_name -> google.protobuf.Timestamp
+	64,  // 104: nimi.runtime.v1.AgentMemoryItem.updated_at:type_name -> google.protobuf.Timestamp
+	0,   // 105: nimi.runtime.v1.AgentMemoryProjection.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	52,  // 106: nimi.runtime.v1.AgentMemoryProjection.items:type_name -> nimi.runtime.v1.AgentMemoryItem
+	53,  // 107: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 108: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	53,  // 109: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 110: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	53,  // 111: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 112: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	53,  // 113: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 114: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	53,  // 115: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	116, // [116:116] is the sub-list for method output_type
+	116, // [116:116] is the sub-list for method input_type
+	116, // [116:116] is the sub-list for extension type_name
+	116, // [116:116] is the sub-list for extension extendee
+	0,   // [0:116] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_cognition_memory_proto_init() }
@@ -4743,7 +4889,7 @@ func file_runtime_v1_cognition_memory_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_cognition_memory_proto_rawDesc), len(file_runtime_v1_cognition_memory_proto_rawDesc)),
-			NumEnums:      9,
+			NumEnums:      10,
 			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   0,

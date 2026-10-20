@@ -28,10 +28,11 @@ type Facade struct {
 }
 
 type RecallIntent struct {
-	LocalAgentRef string
-	OperationID   string
-	Query         string
-	Limit         int
+	IncludeRecentLife bool
+	LocalAgentRef     string
+	OperationID       string
+	Query             string
+	Limit             int
 }
 
 type InspectIntent struct {
@@ -170,14 +171,15 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 		limit = 8
 	}
 	result, err := f.owner.Recall(ctx, &runtimev1.CognitionMemoryRecallRequest{
-		ContractVersion: memoryv1.ContractVersion,
-		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
-		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
-		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: operationID},
-		Query:           intent.Query,
-		SubjectScope:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
-		Limit:           uint32(limit),
-		Capabilities:    ownerProtoCapabilitySnapshot(snapshot),
+		ContractVersion:   memoryv1.ContractVersion,
+		BankBinding:       &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:              &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
+		Operation:         &runtimev1.CognitionMemoryOperationRef{Value: operationID},
+		Query:             intent.Query,
+		IncludeRecentLife: intent.IncludeRecentLife,
+		SubjectScope:      []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Limit:             uint32(limit),
+		Capabilities:      ownerProtoCapabilitySnapshot(snapshot),
 	}, port)
 	outcome := ownerMemoryOutcome(result.GetOutcome())
 	mapped := make([]memoryv1.Memory, 0, len(result.GetHits()))

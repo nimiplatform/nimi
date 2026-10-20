@@ -78,7 +78,7 @@ units:
     kind: rule
     title: Memory provenance is committed and epistemically honest
     modality: must
-    statement: Every admitted Memory retains legal committed Runtime event lineage and honest explicit, inferred, or consolidated posture, preserves planned, started, completed, failed, and interrupted owner facts, and never promotes assistant assertion, model inference, source hit, private recall, presentation animation, canceled delta, uncommitted tool output, or optimistic UI state into user-explicit, owner-confirmed, or completed truth.
+    statement: Every admitted Memory retains legal committed Runtime event lineage and honest explicit, inferred, or consolidated posture, preserves planned, started, completed, failed, and interrupted owner facts, and never promotes assistant assertion, model inference, source hit, private recall, presentation animation, canceled delta, uncommitted tool output, or optimistic UI state into user-explicit, owner-confirmed, or completed truth. Life activity occurrence time comes from the typed Runtime-bounded real interval; Memory OccurredAt uses occurred_end and SourceExplanation retains the interval and retrospective status, independently of recording CommittedAt. Simulated activities remain inferred. An activity field name or model source assertion never makes recalled preference or rationale independent.
     condition: Whenever Memory is proposed, admitted, corrected, consolidated, recalled, explained, or retained as history.
     failure: Reject missing, false, uncommitted, cross-Agent, or epistemically overstated provenance before canonical commit or projection.
     relations:
@@ -204,3 +204,15 @@ units:
         target: definition.nimi.cognition.memory.core-algorithm-boundary
       - type: applies_to
         target: definition.nimi.cognition.memory.lifecycle-plane
+  - id: rule.nimi.cognition.memory.simulated-life-activity
+    kind: rule
+    title: Life Memory admits independent lasting results
+    modality: must
+    statement: "The existing Baseline Remember activity branch returns no_effect for routine rest, walking, reading, mere elapsed time and ordinary ongoing progress. Independent stable project completion, a key actual result or explicit lasting direction change may be admitted from typed owner change and legal source facts, not a model is_important flag. Unknown-provenance or Recall-derived explanations are not a second Memory source; repeated delivery or wording changes cannot re-add the same activity result. Cognition alone decides admission and preserves inferred status and typed occurrence time. No cross-Memory dependency graph or recursive text-based Forget is introduced; independent completed activity remains after a recalled preference is corrected or forgotten. Cognition validates the actual active, paused, completed or abandoned state and a narrow own-action/object description, and permits key results and direction changes without pretending the whole activity completed. The producer is instructed to describe a concrete own outcome for a key result. Admission requires a nonempty bounded outcome and retains it as inferred Memory; it does not use vocabulary or punctuation blacklists to certify its natural-language meaning. Deduplicate by owner change identity: different real changes in one intention may produce different memories, while replay or rewording of one change cannot. Life-purpose Recall mixes at most a few recent important eligible own experiences with topic matches, including FTS-only operation after Runtime title eviction or restart, within the same bank, qualification and Forget lifecycle."
+    condition: Whenever a simulated-life ActivityTerminal enters Baseline Remember.
+    failure: Reject invalid provenance or time, return no_effect for non-meaningful independent facts, and never promote a recalled assertion or routine diary entry to lasting Memory.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.provenance-plane
+      - type: applies_to
+        target: definition.nimi.cognition.memory.v1-algorithm-plane

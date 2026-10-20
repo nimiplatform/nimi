@@ -508,8 +508,25 @@ func validateCommittedEnvelopeFact(envelope *runtimev1.CognitionMemoryCommittedE
 		}
 	case envelope.GetActivityTerminal() != nil:
 		fact := envelope.GetActivityTerminal()
-		if !validSourceRef(fact.GetActivity()) || !validRef(fact.GetActivityKind()) || !validCommittedTerminalState(fact.GetState()) || (fact.GetBoundedOutcome() != "" && !validCommittedContent(fact.GetBoundedOutcome())) {
+		if !validSourceRef(fact.GetActivity()) || !validRef(fact.GetActivityKind()) || !validLifeActivityCarrier(fact) || (fact.GetBoundedOutcome() != "" && !validCommittedContent(fact.GetBoundedOutcome())) {
 			return fmt.Errorf("enqueue cognition memory event: invalid activity terminal fact")
+		}
+		if fact.GetOccurredStart() == nil || !fact.GetOccurredStart().IsValid() || fact.GetOccurredEnd() == nil || !fact.GetOccurredEnd().IsValid() || fact.GetOccurredEnd().AsTime().Before(fact.GetOccurredStart().AsTime()) || fact.GetOccurredEnd().AsTime().After(envelope.GetCommittedAt().AsTime()) {
+			return fmt.Errorf("enqueue cognition memory event: invalid activity occurrence interval")
+		}
+		if ownerActivityChange(fact.GetChange()) == "" || (fact.GetChange() == runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED && fact.GetActivityState() != "completed") {
+			return fmt.Errorf("enqueue cognition memory event: invalid activity change")
+		}
+		found := false
+		for _, source := range envelope.GetSources() {
+			found = found || (source.GetKind() == fact.GetActivity().GetKind() && source.GetValue() == fact.GetActivity().GetValue())
+		}
+		changeFound := false
+		for _, source := range envelope.GetSources() {
+			changeFound = changeFound || (source.GetKind() == fact.GetChangeRef().GetKind() && source.GetValue() == fact.GetChangeRef().GetValue())
+		}
+		if !found || !changeFound {
+			return fmt.Errorf("enqueue cognition memory event: activity source missing from provenance")
 		}
 	case envelope.GetCorrectionCommitted() != nil:
 		fact := envelope.GetCorrectionCommitted()

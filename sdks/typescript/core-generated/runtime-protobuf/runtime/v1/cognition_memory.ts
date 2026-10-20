@@ -278,13 +278,43 @@ export interface CognitionMemoryActivityTerminal {
      */
     activityKind: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.CognitionMemoryTerminalState state = 3
-     */
-    state: CognitionMemoryTerminalState;
-    /**
      * @generated from protobuf field: string bounded_outcome = 4
      */
     boundedOutcome: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp occurred_start = 5
+     */
+    occurredStart?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp occurred_end = 6
+     */
+    occurredEnd?: Timestamp;
+    /**
+     * @generated from protobuf field: bool retrospective = 7
+     */
+    retrospective: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CognitionMemoryActivityChange change = 8
+     */
+    change: CognitionMemoryActivityChange;
+    /**
+     * The owner change, not the lifetime of the activity, is the deduplication key.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.CognitionMemorySourceRef change_ref = 9
+     */
+    changeRef?: CognitionMemorySourceRef;
+    /**
+     * @generated from protobuf field: string activity_state = 10
+     */
+    activityState: string;
+    /**
+     * @generated from protobuf field: string self_action = 11
+     */
+    selfAction: string;
+    /**
+     * @generated from protobuf field: string self_object = 12
+     */
+    selfObject: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CognitionMemoryCorrectionCommitted
@@ -592,6 +622,10 @@ export interface CognitionMemoryRecallRequest {
      * @generated from protobuf field: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot capabilities = 8
      */
     capabilities?: CognitionMemoryCapabilitySnapshot;
+    /**
+     * @generated from protobuf field: bool include_recent_life = 9
+     */
+    includeRecentLife: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CognitionMemoryRecallResponse
@@ -1371,6 +1405,35 @@ export enum CognitionMemoryDeleteReason {
      * @generated from protobuf enum value: COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION = 3;
      */
     ACCOUNT_TERMINATION = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.CognitionMemoryActivityChange
+ */
+export enum CognitionMemoryActivityChange {
+    /**
+     * @generated from protobuf enum value: COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE = 1;
+     */
+    ROUTINE = 1,
+    /**
+     * @generated from protobuf enum value: COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS = 2;
+     */
+    PROGRESS = 2,
+    /**
+     * @generated from protobuf enum value: COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED = 3;
+     */
+    PROJECT_COMPLETED = 3,
+    /**
+     * @generated from protobuf enum value: COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT = 4;
+     */
+    KEY_RESULT = 4,
+    /**
+     * @generated from protobuf enum value: COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED = 5;
+     */
+    DIRECTION_CHANGED = 5
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class MemoryEmbeddingCloudBindingRef$Type extends MessageType<MemoryEmbeddingCloudBindingRef> {
@@ -2360,15 +2423,26 @@ class CognitionMemoryActivityTerminal$Type extends MessageType<CognitionMemoryAc
         super("nimi.runtime.v1.CognitionMemoryActivityTerminal", [
             { no: 1, name: "activity", kind: "message", T: () => CognitionMemorySourceRef },
             { no: 2, name: "activity_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.CognitionMemoryTerminalState", CognitionMemoryTerminalState, "COGNITION_MEMORY_TERMINAL_STATE_"] },
-            { no: 4, name: "bounded_outcome", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "bounded_outcome", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "occurred_start", kind: "message", T: () => Timestamp },
+            { no: 6, name: "occurred_end", kind: "message", T: () => Timestamp },
+            { no: 7, name: "retrospective", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "change", kind: "enum", T: () => ["nimi.runtime.v1.CognitionMemoryActivityChange", CognitionMemoryActivityChange, "COGNITION_MEMORY_ACTIVITY_CHANGE_"] },
+            { no: 9, name: "change_ref", kind: "message", T: () => CognitionMemorySourceRef },
+            { no: 10, name: "activity_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "self_action", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "self_object", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CognitionMemoryActivityTerminal>): CognitionMemoryActivityTerminal {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.activityKind = "";
-        message.state = 0;
         message.boundedOutcome = "";
+        message.retrospective = false;
+        message.change = 0;
+        message.activityState = "";
+        message.selfAction = "";
+        message.selfObject = "";
         if (value !== undefined)
             reflectionMergePartial<CognitionMemoryActivityTerminal>(this, message, value);
         return message;
@@ -2384,11 +2458,32 @@ class CognitionMemoryActivityTerminal$Type extends MessageType<CognitionMemoryAc
                 case /* string activity_kind */ 2:
                     message.activityKind = reader.string();
                     break;
-                case /* nimi.runtime.v1.CognitionMemoryTerminalState state */ 3:
-                    message.state = reader.int32();
-                    break;
                 case /* string bounded_outcome */ 4:
                     message.boundedOutcome = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp occurred_start */ 5:
+                    message.occurredStart = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.occurredStart);
+                    break;
+                case /* google.protobuf.Timestamp occurred_end */ 6:
+                    message.occurredEnd = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.occurredEnd);
+                    break;
+                case /* bool retrospective */ 7:
+                    message.retrospective = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.CognitionMemoryActivityChange change */ 8:
+                    message.change = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.CognitionMemorySourceRef change_ref */ 9:
+                    message.changeRef = CognitionMemorySourceRef.internalBinaryRead(reader, reader.uint32(), options, message.changeRef);
+                    break;
+                case /* string activity_state */ 10:
+                    message.activityState = reader.string();
+                    break;
+                case /* string self_action */ 11:
+                    message.selfAction = reader.string();
+                    break;
+                case /* string self_object */ 12:
+                    message.selfObject = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2408,12 +2503,33 @@ class CognitionMemoryActivityTerminal$Type extends MessageType<CognitionMemoryAc
         /* string activity_kind = 2; */
         if (message.activityKind !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.activityKind);
-        /* nimi.runtime.v1.CognitionMemoryTerminalState state = 3; */
-        if (message.state !== 0)
-            writer.tag(3, WireType.Varint).int32(message.state);
         /* string bounded_outcome = 4; */
         if (message.boundedOutcome !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.boundedOutcome);
+        /* google.protobuf.Timestamp occurred_start = 5; */
+        if (message.occurredStart)
+            Timestamp.internalBinaryWrite(message.occurredStart, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp occurred_end = 6; */
+        if (message.occurredEnd)
+            Timestamp.internalBinaryWrite(message.occurredEnd, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* bool retrospective = 7; */
+        if (message.retrospective !== false)
+            writer.tag(7, WireType.Varint).bool(message.retrospective);
+        /* nimi.runtime.v1.CognitionMemoryActivityChange change = 8; */
+        if (message.change !== 0)
+            writer.tag(8, WireType.Varint).int32(message.change);
+        /* nimi.runtime.v1.CognitionMemorySourceRef change_ref = 9; */
+        if (message.changeRef)
+            CognitionMemorySourceRef.internalBinaryWrite(message.changeRef, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string activity_state = 10; */
+        if (message.activityState !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.activityState);
+        /* string self_action = 11; */
+        if (message.selfAction !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.selfAction);
+        /* string self_object = 12; */
+        if (message.selfObject !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.selfObject);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3222,7 +3338,8 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
             { no: 5, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "subject_scope", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CognitionMemorySubjectRef },
             { no: 7, name: "limit", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 8, name: "capabilities", kind: "message", T: () => CognitionMemoryCapabilitySnapshot }
+            { no: 8, name: "capabilities", kind: "message", T: () => CognitionMemoryCapabilitySnapshot },
+            { no: 9, name: "include_recent_life", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<CognitionMemoryRecallRequest>): CognitionMemoryRecallRequest {
@@ -3231,6 +3348,7 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
         message.query = "";
         message.subjectScope = [];
         message.limit = 0;
+        message.includeRecentLife = false;
         if (value !== undefined)
             reflectionMergePartial<CognitionMemoryRecallRequest>(this, message, value);
         return message;
@@ -3263,6 +3381,9 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
                     break;
                 case /* nimi.runtime.v1.CognitionMemoryCapabilitySnapshot capabilities */ 8:
                     message.capabilities = CognitionMemoryCapabilitySnapshot.internalBinaryRead(reader, reader.uint32(), options, message.capabilities);
+                    break;
+                case /* bool include_recent_life */ 9:
+                    message.includeRecentLife = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3300,6 +3421,9 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
         /* nimi.runtime.v1.CognitionMemoryCapabilitySnapshot capabilities = 8; */
         if (message.capabilities)
             CognitionMemoryCapabilitySnapshot.internalBinaryWrite(message.capabilities, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* bool include_recent_life = 9; */
+        if (message.includeRecentLife !== false)
+            writer.tag(9, WireType.Varint).bool(message.includeRecentLife);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

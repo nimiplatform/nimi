@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 )
 
 func TestLifePlanningFillsGapBeforeReservedFuture(t *testing.T) {
@@ -140,6 +141,10 @@ func TestLifeSparseCatchUpSpansWholeGapAndSettlesOmittedTime(t *testing.T) {
 			t.Fatal("incorrect retrospective interval")
 		}
 	}
+	fact := independentLifeFrameFact(l, l.Recent[1], now)
+	if fact == nil || !fact.GetOccurredEnd().AsTime().Equal(l.Recent[1].EndsAt) || !fact.Retrospective {
+		t.Fatal("catch-up lost Memory occurrence time")
+	}
 	before := cloneAgentLifeState(l)
 	if _, err := l.acceptPast(result.Past, now, 1, nil, false); err == nil || !lifeStateEqual(l, before) {
 		t.Fatal("settled gap replayed")
@@ -163,5 +168,61 @@ func TestLifeSparseCatchUpRejectsOverlapAndOutOfWindow(t *testing.T) {
 		if _, err := l.acceptPast(past, now, 1, nil, false); err == nil || !lifeStateEqual(l, before) {
 			t.Fatal("invalid catch-up partially committed")
 		}
+	}
+}
+
+func TestLifeDisableSettlesDueFramesCommitmentsAndMemory(t *testing.T) {
+	svc := newRuntimeAgentTestService(t)
+	sourceRef := "disable-due-life"
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(sourceRef)}); err != nil {
+		t.Fatal(err)
+	}
+	ref := testRuntimeAgentLocalRef(sourceRef)
+	start := time.Now().UTC().Add(-4 * time.Minute)
+	var activities []string
+	if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		e.Agent.Autonomy.Enabled = true
+		e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM
+		e.Life.StartedAt, e.Life.SettledAt = start, start
+		if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Finish sketch", Description: &lifeSelfDescription{Action: "create", Object: "Cloud sketch", Result: "completed"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}, {Title: "Finish poem", Description: &lifeSelfDescription{Action: "create", Object: "Cloud poem", Result: "completed"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, start, 1, nil, false); err != nil {
+			return nil, nil, err
+		}
+		for _, f := range e.Life.Future {
+			activities = append(activities, f.ActivityRef)
+		}
+		_, err := e.Life.advance(start, false)
+		return nil, nil, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	e, _ := svc.agentByID(ref)
+	identity, err := validateLocalAgentIdentity(e.Agent.GetOwnerUserId(), e.Agent.GetRuntimeSourceRef(), ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enabled := false
+	if _, err := svc.updateAgentAutonomyCAS(identity, e.Agent.GetAutonomy().GetRevision(), agentAutonomyMutationIntent{enabled: &enabled}); err != nil {
+		t.Fatal(err)
+	}
+	svc.cognitionMemoryWG.Wait()
+	e, _ = svc.agentByID(ref)
+	if lifeEnabled(e) || e.Life.Current != nil || len(e.Life.Future) != 0 || len(e.Life.Intents) != 0 {
+		t.Fatalf("disable lost completion: %+v", e.Life)
+	}
+	for _, a := range activities {
+		if e.Life.Activities[a].Phase != lifeCompleted {
+			t.Fatal("due activity was interrupted")
+		}
+	}
+	projection, err := svc.cognitionMemoryFacade.Inspect(context.Background(), cognitionmemory.InspectIntent{LocalAgentRef: ref, Limit: 100})
+	if err != nil || len(projection.Items) != 2 {
+		t.Fatalf("completion Memory handoff: %+v %v", projection, err)
+	}
+	if err := svc.stateRepo.loadAgentLifeState(svc); err != nil {
+		t.Fatal(err)
+	}
+	recovered, _ := svc.agentByID(ref)
+	if !lifeStateEqual(e.Life, recovered.Life) {
+		t.Fatal("disable settlement did not survive recovery")
 	}
 }

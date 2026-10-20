@@ -146,3 +146,20 @@ func (c *Core) rememberInputs(ctx context.Context, bankRef string) ([]Memory, er
 	}
 	return items, rows.Err()
 }
+
+func (c *Core) rememberActivityInputs(ctx context.Context, bankRef string, activity TypedRef) ([]Memory, error) {
+	rows, err := c.db.QueryContext(ctx, `SELECT m.memory_ref,m.lifecycle FROM memories m JOIN memory_lineage l ON l.memory_ref=m.memory_ref WHERE m.bank_ref=? AND l.ref_type='source' AND l.ref_kind=? AND l.ref_value=?`, bankRef, activity.Kind, activity.Value)
+	if err != nil {
+		return nil, fmt.Errorf("load activity memory lineage: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var items []Memory
+	for rows.Next() {
+		item := Memory{Sources: []TypedRef{activity}}
+		if err := rows.Scan(&item.MemoryRef, &item.Lifecycle); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}

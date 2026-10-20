@@ -175,6 +175,16 @@
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
       }
+    },
+    {
+      "rule": "FIELD_NO_DELETE",
+      "path": "runtime/v1/cognition_memory.proto",
+      "message": "Previously present field \"3\" with name \"state\" on message \"CognitionMemoryActivityTerminal\" was deleted.",
+      "reason": "Replace the terminal-only life fact with actual activity state, stable change identity and independent self-action/object. Explicitly authorized pre-release hard cut; field 3 and its name remain reserved.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+      }
     }
   ]
 }

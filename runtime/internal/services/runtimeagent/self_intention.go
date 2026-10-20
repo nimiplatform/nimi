@@ -156,6 +156,12 @@ func (s *Service) applySelfIntention(ctx context.Context, session publicChatAnch
 	if req.RetryOfTurnID != "" || turn.Origin != publicChatTurnOriginUser {
 		return &selfIntentionResult{}, nil
 	}
+	memoryPending := false
+	defer func() {
+		if memoryPending {
+			s.triggerCognitionMemory(session.LocalAgentRef)
+		}
+	}()
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
 	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	if err := s.qualifyConversationMemoryReads(ctx, session.LocalAgentRef, turn.TurnID); err != nil {
@@ -199,6 +205,10 @@ func (s *Service) applySelfIntention(ctx context.Context, session publicChatAnch
 	if result.Accepted {
 		result.Confirmation = confirmation
 	}
+	memoryHook, memoryErr := s.selfIntentionMemoryTxHook(next, p, result, turn.TurnID, time.Now().UTC())
+	if memoryErr != nil {
+		return nil, memoryErr
+	}
 	if result.Accepted {
 		next.Life.pruneActivities()
 	}
@@ -211,6 +221,9 @@ func (s *Service) applySelfIntention(ctx context.Context, session publicChatAnch
 		}
 		if err := persistAgentLifeTx(tx, session.LocalAgentRef, next.Life); err != nil {
 			return err
+		}
+		if memoryHook != nil {
+			return memoryHook(tx)
 		}
 		return nil
 	}
@@ -225,5 +238,6 @@ func (s *Service) applySelfIntention(ctx context.Context, session publicChatAnch
 		return nil, err
 	}
 	s.agents[session.LocalAgentRef] = next
+	memoryPending = memoryHook != nil
 	return result, nil
 }

@@ -164,10 +164,14 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	work.snapshot = &runtimev1.LocalAppAgentWorkExecution{ExecutionId: id, WorkId: work.input.GetWorkId(), State: runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_RUNNING}
 	work.changed = make(chan struct{})
 	next := cloneAgentEntry(s.agents[owner.identity.LocalAgentRef])
-	_, admissionErr := next.Life.beginInteraction(id, time.Now().UTC(), lifeEnabled(next), source.LifeWorldPaused)
+	completed, admissionErr := next.Life.beginInteraction(id, time.Now().UTC(), lifeEnabled(next), source.LifeWorldPaused)
+	var memoryHook runtimeAgentStateTxHook
+	if admissionErr == nil {
+		memoryHook, admissionErr = s.lifeActivityMemoryTxHook(next, completed, time.Now().UTC())
+	}
 	if admissionErr == nil {
 		admissionErr = s.commitLocalAppOwnerMutation(ctx, localappop.IngressAgentWorkStart, owner.decision, func(current context.Context) error {
-			return s.stateRepo.persistAgentDeltaContext(current, next, nil, s.sequence, nil)
+			return s.stateRepo.persistAgentDeltaContext(current, next, nil, s.sequence, memoryHook)
 		})
 	}
 	if admissionErr != nil {

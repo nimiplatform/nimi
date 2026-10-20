@@ -687,6 +687,17 @@ const (
 	CHATCONTENTPARTTYPEARTIFACTREF ChatContentPartType = "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF"
 )
 
+type CognitionMemoryActivityChange string
+
+const (
+	COGNITIONMEMORYACTIVITYCHANGEUNSPECIFIED      CognitionMemoryActivityChange = "COGNITION_MEMORY_ACTIVITY_CHANGE_UNSPECIFIED"
+	COGNITIONMEMORYACTIVITYCHANGEROUTINE          CognitionMemoryActivityChange = "COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE"
+	COGNITIONMEMORYACTIVITYCHANGEPROGRESS         CognitionMemoryActivityChange = "COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS"
+	COGNITIONMEMORYACTIVITYCHANGEPROJECTCOMPLETED CognitionMemoryActivityChange = "COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED"
+	COGNITIONMEMORYACTIVITYCHANGEKEYRESULT        CognitionMemoryActivityChange = "COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT"
+	COGNITIONMEMORYACTIVITYCHANGEDIRECTIONCHANGED CognitionMemoryActivityChange = "COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED"
+)
+
 type CognitionMemoryActorRole string
 
 const (
@@ -3693,10 +3704,17 @@ type CloseVideoSessionResponse struct {
 }
 
 type CognitionMemoryActivityTerminal struct {
-	Activity       *CognitionMemorySourceRef    `json:"activity,omitempty"`
-	ActivityKind   string                       `json:"activity_kind,omitempty"`
-	State          CognitionMemoryTerminalState `json:"state,omitempty"`
-	BoundedOutcome string                       `json:"bounded_outcome,omitempty"`
+	Activity       *CognitionMemorySourceRef     `json:"activity,omitempty"`
+	ActivityKind   string                        `json:"activity_kind,omitempty"`
+	BoundedOutcome string                        `json:"bounded_outcome,omitempty"`
+	OccurredStart  string                        `json:"occurred_start,omitempty"`
+	OccurredEnd    string                        `json:"occurred_end,omitempty"`
+	Retrospective  bool                          `json:"retrospective,omitempty"`
+	Change         CognitionMemoryActivityChange `json:"change,omitempty"`
+	ChangeRef      *CognitionMemorySourceRef     `json:"change_ref,omitempty"`
+	ActivityState  string                        `json:"activity_state,omitempty"`
+	SelfAction     string                        `json:"self_action,omitempty"`
+	SelfObject     string                        `json:"self_object,omitempty"`
 }
 
 type CognitionMemoryAiJobRequest struct {
@@ -3910,14 +3928,15 @@ type CognitionMemoryOperationRef struct {
 }
 
 type CognitionMemoryRecallRequest struct {
-	ContractVersion uint32                             `json:"contract_version,omitempty"`
-	BankBinding     *CognitionMemoryBankBindingRef     `json:"bank_binding,omitempty"`
-	Bank            *CognitionMemoryBankRef            `json:"bank,omitempty"`
-	Operation       *CognitionMemoryOperationRef       `json:"operation,omitempty"`
-	Query           string                             `json:"query,omitempty"`
-	SubjectScope    []CognitionMemorySubjectRef        `json:"subject_scope,omitempty"`
-	Limit           uint32                             `json:"limit,omitempty"`
-	Capabilities    *CognitionMemoryCapabilitySnapshot `json:"capabilities,omitempty"`
+	ContractVersion   uint32                             `json:"contract_version,omitempty"`
+	BankBinding       *CognitionMemoryBankBindingRef     `json:"bank_binding,omitempty"`
+	Bank              *CognitionMemoryBankRef            `json:"bank,omitempty"`
+	Operation         *CognitionMemoryOperationRef       `json:"operation,omitempty"`
+	Query             string                             `json:"query,omitempty"`
+	SubjectScope      []CognitionMemorySubjectRef        `json:"subject_scope,omitempty"`
+	Limit             uint32                             `json:"limit,omitempty"`
+	Capabilities      *CognitionMemoryCapabilitySnapshot `json:"capabilities,omitempty"`
+	IncludeRecentLife bool                               `json:"include_recent_life,omitempty"`
 }
 
 type CognitionMemoryRecallResponse struct {

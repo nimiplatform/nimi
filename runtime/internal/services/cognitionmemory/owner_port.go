@@ -38,6 +38,13 @@ type OwnerPort interface {
 	QualifyMemoryRefs(context.Context, string, string, string, []string) (map[string]bool, error)
 }
 
+func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifecycleRef string, refs []string) (map[string]bool, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return nil, err
+	}
+	return a.core.QualifyMemoryRefs(ctx, bindingRef, bankRef, lifecycleRef, refs)
+}
+
 type OwnerBindingResolver func(context.Context, string) (Binding, error)
 type OwnerCapabilityResolver func(context.Context, Binding) (memoryv1.CapabilitySnapshot, error)
 
@@ -138,7 +145,7 @@ func (a *OwnerAdapter) Recall(ctx context.Context, request *runtimev1.CognitionM
 	}
 	result, err := a.core.Recall(ctx, memoryv1.RecallRequest{
 		OperationID: request.GetOperation().GetValue(), BindingRef: binding.BindingRef, BankRef: binding.BankRef,
-		LifecycleRef: binding.LifecycleRef, Subject: subject, Query: request.GetQuery(), Limit: int(request.GetLimit()), Capabilities: snapshot,
+		LifecycleRef: binding.LifecycleRef, Subject: subject, Query: request.GetQuery(), Limit: int(request.GetLimit()), Capabilities: snapshot, IncludeRecentLife: request.GetIncludeRecentLife(),
 	}, embeddingPort)
 	response.Outcome = ownerProtoOutcome(result.Outcome)
 	for _, hit := range result.Hits {
@@ -513,7 +520,10 @@ func ownerCommitRequest(envelope *runtimev1.CognitionMemoryCommittedEventEnvelop
 		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindTurnTerminal, Turn: &memoryv1.TurnTerminalFact{Conversation: ownerTypedRef(fact.GetConversation()), Turn: ownerTypedRef(fact.GetTurn()), State: ownerTerminalState(fact.GetState())}}
 	case envelope.GetActivityTerminal() != nil:
 		fact := envelope.GetActivityTerminal()
-		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindActivity, Activity: &memoryv1.ActivityTerminalFact{Activity: ownerTypedRef(fact.GetActivity()), ActivityKind: fact.GetActivityKind(), State: ownerTerminalState(fact.GetState()), BoundedOutcome: fact.GetBoundedOutcome()}}
+		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindActivity, Activity: &memoryv1.ActivityTerminalFact{
+			Activity: ownerTypedRef(fact.GetActivity()), ActivityKind: fact.GetActivityKind(), ActivityState: fact.GetActivityState(), ChangeRef: ownerTypedRef(fact.GetChangeRef()), SelfAction: fact.GetSelfAction(), SelfObject: fact.GetSelfObject(), BoundedOutcome: fact.GetBoundedOutcome(),
+			OccurredStart: fact.GetOccurredStart().AsTime(), OccurredEnd: fact.GetOccurredEnd().AsTime(), Retrospective: fact.GetRetrospective(), Change: ownerActivityChange(fact.GetChange()),
+		}}
 	case envelope.GetCorrectionCommitted() != nil:
 		fact := envelope.GetCorrectionCommitted()
 		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindCorrection, Correction: &memoryv1.CorrectionFact{TargetMemoryRef: fact.GetTargetMemory().GetValue(), CorrectedContent: fact.GetCorrectedContent()}}
@@ -524,6 +534,23 @@ func ownerCommitRequest(envelope *runtimev1.CognitionMemoryCommittedEventEnvelop
 		return memoryv1.CommitRequest{}, ownerContractError(memoryv1.OutcomeUnsupported, "event_fact")
 	}
 	return request, nil
+}
+
+func ownerActivityChange(change runtimev1.CognitionMemoryActivityChange) memoryv1.ActivityChange {
+	switch change {
+	case runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE:
+		return memoryv1.ActivityChangeRoutine
+	case runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_PROGRESS:
+		return memoryv1.ActivityChangeProgress
+	case runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_PROJECT_COMPLETED:
+		return memoryv1.ActivityChangeProjectCompleted
+	case runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_KEY_RESULT:
+		return memoryv1.ActivityChangeKeyResult
+	case runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_DIRECTION_CHANGED:
+		return memoryv1.ActivityChangeDirectionChanged
+	default:
+		return ""
+	}
 }
 
 func ownerProtoMemory(item memoryv1.Memory) *runtimev1.CognitionMemoryHit {
@@ -778,11 +805,4 @@ func (a *OwnerAdapter) ResumeEmbeddingDispositions(ctx context.Context, bankRef 
 		return fmt.Errorf("Memory owner unavailable")
 	}
 	return a.core.ResumeEmbeddingDispositions(ctx, bankRef, port)
-}
-
-func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifecycleRef string, refs []string) (map[string]bool, error) {
-	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
-		return nil, err
-	}
-	return a.core.QualifyMemoryRefs(ctx, bindingRef, bankRef, lifecycleRef, refs)
 }
