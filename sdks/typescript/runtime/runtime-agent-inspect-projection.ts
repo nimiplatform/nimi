@@ -7,7 +7,6 @@ import {
   type AgentAutonomyState,
   type AgentStateMutation,
   type AgentStateProjection,
-  type PendingHook,
 } from '../core-generated/runtime-typed-client';
 import type { Struct } from '../core-generated/runtime-protobuf/google/protobuf/struct';
 import type { Timestamp } from '../core-generated/runtime-protobuf/google/protobuf/timestamp';
@@ -19,7 +18,6 @@ import type {
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,
   NimiRuntimeAgentInspectSnapshot,
-  NimiRuntimeAgentPendingHookInspect,
   NimiRuntimeAgentPresentationProfileProjection,
   NimiRuntimeAgentStateMutationInput,
   NimiRuntimeAgentStateSnapshot,
@@ -171,18 +169,6 @@ function formatNimiRuntimeAgentHookTriggerKind(input?: {
   }
 }
 
-export function projectNimiRuntimeAgentPendingHookInspect(
-  hook: PendingHook,
-): NimiRuntimeAgentPendingHookInspect {
-  return {
-    hookId: normalizeNimiRuntimeAgentText(hook.intent?.intentId),
-    status: formatNimiRuntimeAgentHookStatus(hook.intent?.admissionState),
-    triggerKind: formatNimiRuntimeAgentHookTriggerKind(hook.intent),
-    scheduledFor: runtimeAgentTimestampToIso(hook.scheduledFor),
-    admittedAt: runtimeAgentTimestampToIso(hook.admittedAt),
-  };
-}
-
 export function projectNimiRuntimeAgentAutonomySnapshot(
   autonomy?: AgentAutonomyState | null,
 ): NimiRuntimeAgentAutonomySnapshot {
@@ -193,7 +179,7 @@ export function projectNimiRuntimeAgentAutonomySnapshot(
     budgetExhausted: typeof autonomy?.budgetExhausted === 'boolean' ? autonomy.budgetExhausted : null,
     usedTokensInWindow: normalizeNimiRuntimeAgentOptionalNumber(autonomy?.usedTokensInWindow),
     dailyTokenBudget: normalizeNimiRuntimeAgentOptionalNumber(autonomy?.config?.dailyTokenBudget),
-    maxTokensPerHook: normalizeNimiRuntimeAgentOptionalNumber(autonomy?.config?.maxTokensPerHook),
+    maxBackgroundOutputTokens: normalizeNimiRuntimeAgentOptionalNumber(autonomy?.config?.maxBackgroundOutputTokens),
     windowStartedAt: runtimeAgentTimestampToIso(autonomy?.windowStartedAt),
     suspendedUntil: runtimeAgentTimestampToIso(autonomy?.suspendedUntil),
   };
@@ -249,18 +235,6 @@ export function buildNimiRuntimeAgentStateMutations(
 export function projectNimiRuntimeAgentInspectSnapshot(
   input: ProjectNimiRuntimeAgentInspectSnapshotInput,
 ): NimiRuntimeAgentInspectSnapshot {
-  const activeHooks = [...(input.activeHooks || [])];
-  const terminalHooks = [...(input.terminalHooks || [])]
-    .filter((hook) => hook.hookId)
-    .sort((left, right) => {
-      const leftTime = Date.parse(left.admittedAt || left.scheduledFor || '') || 0;
-      const rightTime = Date.parse(right.admittedAt || right.scheduledFor || '') || 0;
-      if (leftTime !== rightTime) {
-        return rightTime - leftTime;
-      }
-      return String(right.hookId).localeCompare(String(left.hookId));
-    })
-    .slice(0, input.maxRecentTerminalHooks ?? 6);
   const state = projectNimiRuntimeAgentStateSnapshot(input.state);
   const autonomy = projectNimiRuntimeAgentAutonomySnapshot(input.agent?.autonomy);
   const presentation = projectNimiRuntimeAgentPresentationRecord(input.agent);
@@ -282,12 +256,8 @@ export function projectNimiRuntimeAgentInspectSnapshot(
     autonomyBudgetExhausted: autonomy.budgetExhausted,
     autonomyUsedTokensInWindow: autonomy.usedTokensInWindow,
     autonomyDailyTokenBudget: autonomy.dailyTokenBudget,
-    autonomyMaxTokensPerHook: autonomy.maxTokensPerHook,
+    autonomyMaxBackgroundOutputTokens: autonomy.maxBackgroundOutputTokens,
     autonomyWindowStartedAt: autonomy.windowStartedAt,
     autonomySuspendedUntil: autonomy.suspendedUntil,
-    pendingHooksCount: activeHooks.length,
-    nextScheduledFor: activeHooks[0]?.scheduledFor || null,
-    pendingHooks: activeHooks.slice(0, input.maxPendingHookPreview ?? 3),
-    recentTerminalHooks: terminalHooks,
   };
 }

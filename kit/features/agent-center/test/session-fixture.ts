@@ -64,14 +64,14 @@ const EMPTY_MEMORY: AgentCenterMemoryProjection = {
   nextPageToken: null,
 };
 
-const EMPTY_AUTONOMY: AgentCenterAutonomyProjection = {
+const EMPTY_AUTONOMY: AgentCenterAutonomyProjection = { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
   revision: '1',
   mode: 'off',
   enabled: false,
   budgetExhausted: false,
   usedTokensInWindow: 0,
   dailyTokenBudget: 0,
-  maxTokensPerHook: 0,
+  maxBackgroundOutputTokens: 0,
   windowStartedAt: null,
   suspendedUntil: null,
 };
@@ -164,6 +164,7 @@ function managerSnapshot(
       ? { state: 'unavailable' as const, reason: 'memory-disabled' as const }
       : { state: 'available' as const, reason: null };
   return {
+    life: { activities: [],revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
     conversationContext: null,
     lifecycleStatus: 'active',
     executionState: 'idle',
@@ -307,10 +308,10 @@ export async function sessionFor(
         const suspendedUntil = timestamp(autonomy.suspendedUntil);
         return {
           enabled: autonomy.enabled ?? false,
-          config: {
+          config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
             mode: autonomy.mode ?? 'off',
             dailyTokenBudget: autonomy.dailyTokenBudget ?? 0,
-            maxTokensPerHook: autonomy.maxTokensPerHook ?? 0,
+            maxBackgroundOutputTokens: autonomy.maxBackgroundOutputTokens ?? 0,
           },
           usedTokensInWindow: autonomy.usedTokensInWindow ?? 0,
           ...(windowStartedAt ? { windowStartedAt } : {}),
@@ -322,11 +323,14 @@ export async function sessionFor(
       async update(input) {
         autonomy = {
           ...autonomy,
+          freeContactEnabled:input.intent.config?.freeContactEnabled??autonomy.freeContactEnabled,
+          quietHours:input.intent.config?.quietHours??autonomy.quietHours,
+          maxFreeContactsPerDay:input.intent.config?.maxFreeContactsPerDay??autonomy.maxFreeContactsPerDay,
           revision: nextRevision(input.expectedAutonomyRevision),
           enabled: input.intent.enabled ?? autonomy.enabled,
           mode: input.intent.config?.mode ?? autonomy.mode,
           dailyTokenBudget: input.intent.config?.dailyTokenBudget ?? autonomy.dailyTokenBudget,
-          maxTokensPerHook: input.intent.config?.maxTokensPerHook ?? autonomy.maxTokensPerHook,
+          maxBackgroundOutputTokens: input.intent.config?.maxBackgroundOutputTokens ?? autonomy.maxBackgroundOutputTokens,
         };
         return this.snapshot({ agentHandle: input.agentHandle });
       },

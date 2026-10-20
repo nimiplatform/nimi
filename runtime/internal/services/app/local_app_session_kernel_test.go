@@ -345,10 +345,7 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 			operation: accountservice.LocalAppOperationOpenConversation,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
 		},
-		localappop.IngressConversationFollowUpPolicyUpdate: {operation: accountservice.LocalAppOperationConversationFollowUpPolicyUpdate, class: localappop.AuthorityClassAppAccess, capability: "agent.local"},
-		localappop.IngressConversationFollowUpUpdate:       {operation: accountservice.LocalAppOperationConversationFollowUpUpdate, class: localappop.AuthorityClassAppAccess, capability: "agent.local"},
-		localappop.IngressAgentPendingHooksList:            {operation: accountservice.LocalAppOperationAgentPendingHooksList, class: localappop.AuthorityClassAppAccess, capability: "agent.configure"},
-		localappop.IngressAgentPendingHookUpdate:           {operation: accountservice.LocalAppOperationAgentPendingHookUpdate, class: localappop.AuthorityClassAppAccess, capability: "agent.configure"},
+		localappop.IngressConversationFollowUpCancel: {operation: accountservice.LocalAppOperationConversationFollowUpCancel, class: localappop.AuthorityClassAppAccess, capability: "agent.local"},
 		localappop.IngressAgentRealtimeOpen: {
 			operation: accountservice.LocalAppOperationAgentRealtimeOpen,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
@@ -763,7 +760,7 @@ func TestProactiveControlOperationsAreUnavailableToAIConsumeOnlyApp(t *testing.T
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
 		t.Fatal(err)
 	}
-	for _, ingress := range []localappop.Ingress{localappop.IngressConversationFollowUpPolicyUpdate, localappop.IngressConversationFollowUpUpdate, localappop.IngressAgentPendingHooksList, localappop.IngressAgentPendingHookUpdate} {
+	for _, ingress := range []localappop.Ingress{localappop.IngressConversationFollowUpCancel} {
 		_, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
 		assertLocalAppReason(t, err, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}

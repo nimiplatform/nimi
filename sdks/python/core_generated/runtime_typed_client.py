@@ -74,7 +74,7 @@ AgentSourceCognitionStatus = Literal["AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED"
 AgentStateEventFamily = Literal["AGENT_STATE_EVENT_FAMILY_UNSPECIFIED"]
 AgentTrackType = Literal["AGENT_TRACK_TYPE_UNSPECIFIED"]
 AgentTurnContextCompilerSchemaVersion = Literal["AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED", "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1"]
-AgentTurnContextLaneId = Literal["AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED", "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY", "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT", "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY", "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR", "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT", "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT", "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE", "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY", "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY", "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT", "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN", "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE", "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY", "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL", "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK"]
+AgentTurnContextLaneId = Literal["AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED", "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY", "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT", "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY", "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR", "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT", "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT", "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE", "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY", "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY", "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT", "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN", "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE", "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY", "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL", "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK", "AGENT_TURN_CONTEXT_LANE_ID_LIFE_CONTEXT"]
 AgentTurnContextLaneState = Literal["AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED", "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED", "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY", "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED", "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED", "AGENT_TURN_CONTEXT_LANE_STATE_INVALID"]
 AgentTurnContextManifestSchemaVersion = Literal["AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED", "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1"]
 AgentTurnContextState = Literal["AGENT_TURN_CONTEXT_STATE_UNSPECIFIED", "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED", "AGENT_TURN_CONTEXT_STATE_READY", "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED", "AGENT_TURN_CONTEXT_STATE_INVALID"]
@@ -165,7 +165,6 @@ LocalAppConversationTurnStatus = Literal["LOCAL_APP_CONVERSATION_TURN_STATUS_UNS
 LocalAppConversationVoiceState = Literal["LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_VOICE_STATE_READY", "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED"]
 LocalAppEmbodimentEventKind = Literal["LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED", "LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY", "LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION", "LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE", "LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING"]
 LocalAppEmbodimentVoicePhase = Literal["LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"]
-LocalAppScheduledTaskAction = Literal["LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED", "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL", "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
 LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_USER_IMPORTED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_MUSIC", "LOCAL_ASSET_KIND_VISION", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
@@ -434,11 +433,14 @@ class AdoptLocalAppArtifactResponse:
 @dataclass(frozen=True)
 class AgentAutonomyConfig:
     daily_token_budget: int | None = None
-    max_tokens_per_hook: int | None = None
-    min_hook_interval: str | None = None
     suspend_until: str | None = None
     mode: AgentAutonomyMode | None = None
+    free_contact_enabled: bool | None = None
+    quiet_hours: AgentContactQuietHours | None = None
+    max_free_contacts_per_day: int | None = None
+    max_background_output_tokens: int | None = None
     extensions: Mapping[str, object] | None = None
+    min_planning_interval: str | None = None
 
 @dataclass(frozen=True)
 class AgentAutonomyState:
@@ -455,6 +457,12 @@ class AgentBudgetEventDetail:
     budget_exhausted: bool | None = None
     remaining_tokens: int | None = None
     window_started_at: str | None = None
+
+@dataclass(frozen=True)
+class AgentContactQuietHours:
+    timezone: str | None = None
+    start_minute: int | None = None
+    end_minute: int | None = None
 
 @dataclass(frozen=True)
 class AgentConversationContextSummary:
@@ -1336,17 +1344,6 @@ class CancelAppPackageJobResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
-class CancelHookRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    intent_id: str | None = None
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class CancelHookResponse:
-    outcome: HookExecutionOutcome | None = None
-
-@dataclass(frozen=True)
 class CancelIntegrationCallRequest:
     call_id: str | None = None
 
@@ -1370,6 +1367,17 @@ class CancelLocalAppAgentWorkRequest:
 @dataclass(frozen=True)
 class CancelLocalAppAgentWorkResponse:
     execution: LocalAppAgentWorkExecution | None = None
+
+@dataclass(frozen=True)
+class CancelLocalAppConversationFollowUpRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    task_id: str | None = None
+    expected_revision: int | None = None
+
+@dataclass(frozen=True)
+class CancelLocalAppConversationFollowUpResponse:
+    state: LocalAppConversationState | None = None
 
 @dataclass(frozen=True)
 class CancelLocalAppScenarioJobRequest:
@@ -3389,15 +3397,6 @@ class ListLoadoutRecipesResponse:
     recipes: tuple[LoadoutRecipeDescriptor, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class ListLocalAppAgentPendingHooksRequest:
-    agent_handle: str | None = None
-
-@dataclass(frozen=True)
-class ListLocalAppAgentPendingHooksResponse:
-    hooks: tuple[LocalAppAgentPendingHook, ...] = field(default_factory=tuple)
-    truncated: bool | None = None
-
-@dataclass(frozen=True)
 class ListLocalAppAgentReferencesRequest:
     pass
 
@@ -3532,20 +3531,6 @@ class ListModelCatalogProvidersRequest:
 @dataclass(frozen=True)
 class ListModelCatalogProvidersResponse:
     providers: tuple[ModelCatalogProviderEntry, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class ListPendingHooksRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    trigger_family_filter: HookTriggerFamily | None = None
-    admission_state_filter: HookAdmissionState | None = None
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListPendingHooksResponse:
-    hooks: tuple[PendingHook, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
 
 @dataclass(frozen=True)
 class ListPortableAIProfilesRequest:
@@ -3835,10 +3820,13 @@ class LocalAgentSourceCoverageSectionStatus:
 @dataclass(frozen=True)
 class LocalAppAgentAutonomyConfig:
     daily_token_budget: int | None = None
-    max_tokens_per_hook: int | None = None
-    min_hook_interval: str | None = None
     suspend_until: str | None = None
     mode: LocalAppAgentAutonomyMode | None = None
+    free_contact_enabled: bool | None = None
+    quiet_hours: AgentContactQuietHours | None = None
+    max_free_contacts_per_day: int | None = None
+    max_background_output_tokens: int | None = None
+    min_planning_interval: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentAutonomyIntent:
@@ -3967,16 +3955,6 @@ class LocalAppAgentManagerSourceProjection:
     lorebook_ready: bool | None = None
     lorebook_item_count: int | None = None
     lorebook_estimated_tokens: int | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentPendingHook:
-    task_id: str | None = None
-    revision: int | None = None
-    scheduled_for: str | None = None
-    system_cadence: bool | None = None
-    status: HookAdmissionState | None = None
-    can_modify: bool | None = None
-    public_purpose: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
@@ -4287,11 +4265,10 @@ class LocalAppConversationSnapshot:
 
 @dataclass(frozen=True)
 class LocalAppConversationState:
-    follow_up_enabled: bool | None = None
-    follow_up_policy_revision: int | None = None
     max_follow_up_turns: int | None = None
     pending_follow_up: LocalAppConversationFollowUp | None = None
     text_turn_id: str | None = None
+    free_contact_enabled: bool | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationTextDelta:
@@ -5474,14 +5451,6 @@ class PeekSchedulingResponse:
     occupancy: SchedulingOccupancySnapshot | None = None
     aggregate_judgement: SchedulingJudgement | None = None
     target_judgements: tuple[SchedulingTargetJudgement, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class PendingHook:
-    intent: HookIntent | None = None
-    scheduled_for: str | None = None
-    admitted_at: str | None = None
-    runtime_cadence: bool | None = None
-    revision: int | None = None
 
 @dataclass(frozen=True)
 class PersonaCharacterSourceRefV3:
@@ -7373,42 +7342,6 @@ class UpdateLocalAppAgentConversationContextResponse:
     projection: LocalAppAgentConversationContextProjection | None = None
 
 @dataclass(frozen=True)
-class UpdateLocalAppAgentPendingHookRequest:
-    agent_handle: str | None = None
-    task_id: str | None = None
-    expected_revision: int | None = None
-    action: LocalAppScheduledTaskAction | None = None
-    scheduled_for: str | None = None
-
-@dataclass(frozen=True)
-class UpdateLocalAppAgentPendingHookResponse:
-    hook: LocalAppAgentPendingHook | None = None
-
-@dataclass(frozen=True)
-class UpdateLocalAppConversationFollowUpPolicyRequest:
-    agent_handle: str | None = None
-    conversation_anchor_id: str | None = None
-    expected_revision: int | None = None
-    enabled: bool | None = None
-
-@dataclass(frozen=True)
-class UpdateLocalAppConversationFollowUpPolicyResponse:
-    state: LocalAppConversationState | None = None
-
-@dataclass(frozen=True)
-class UpdateLocalAppConversationFollowUpRequest:
-    agent_handle: str | None = None
-    conversation_anchor_id: str | None = None
-    task_id: str | None = None
-    expected_revision: int | None = None
-    action: LocalAppScheduledTaskAction | None = None
-    scheduled_for: str | None = None
-
-@dataclass(frozen=True)
-class UpdateLocalAppConversationFollowUpResponse:
-    state: LocalAppConversationState | None = None
-
-@dataclass(frozen=True)
 class UploadArtifactChunk:
     sequence: int | None = None
     bytes: bytes | None = None
@@ -7871,13 +7804,13 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ApplySharedLocalAgentAIProfileResponse, raw)
 
-    async def cancel_hook(self, request: CancelHookRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelHookResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CancelHookResponse, raw)
-
     async def cancel_local_app_agent_work(self, request: CancelLocalAppAgentWorkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalAppAgentWorkResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelLocalAppAgentWorkResponse, raw)
+
+    async def cancel_local_app_conversation_follow_up(self, request: CancelLocalAppConversationFollowUpRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalAppConversationFollowUpResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CancelLocalAppConversationFollowUpResponse, raw)
 
     async def close_local_app_agent_realtime(self, request: CloseLocalAppAgentRealtimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CloseLocalAppAgentRealtimeResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -8019,10 +7952,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedProviderProfilesResponse, raw)
 
-    async def list_local_app_agent_pending_hooks(self, request: ListLocalAppAgentPendingHooksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentPendingHooksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListLocalAppAgentPendingHooksResponse, raw)
-
     async def list_local_app_agent_references(self, request: ListLocalAppAgentReferencesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentReferencesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAppAgentReferencesResponse, raw)
@@ -8038,10 +7967,6 @@ class RuntimeTypedClient:
     async def list_local_app_shared_local_agent_aiconfig_options(self, request: ListLocalAppSharedLocalAgentAIConfigOptionsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAppSharedLocalAgentAIConfigOptionsResponse, raw)
-
-    async def list_pending_hooks(self, request: ListPendingHooksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPendingHooksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListPendingHooksResponse, raw)
 
     async def list_portable_aiprofiles(self, request: ListPortableAIProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPortableAIProfilesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -8158,18 +8083,6 @@ class RuntimeTypedClient:
     async def update_local_app_agent_conversation_context(self, request: UpdateLocalAppAgentConversationContextRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateLocalAppAgentConversationContextResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateLocalAppAgentConversationContextResponse, raw)
-
-    async def update_local_app_agent_pending_hook(self, request: UpdateLocalAppAgentPendingHookRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateLocalAppAgentPendingHookResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UpdateLocalAppAgentPendingHookResponse, raw)
-
-    async def update_local_app_conversation_follow_up(self, request: UpdateLocalAppConversationFollowUpRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateLocalAppConversationFollowUpResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UpdateLocalAppConversationFollowUpResponse, raw)
-
-    async def update_local_app_conversation_follow_up_policy(self, request: UpdateLocalAppConversationFollowUpPolicyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateLocalAppConversationFollowUpPolicyResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UpdateLocalAppConversationFollowUpPolicyResponse, raw)
 
     async def upload_local_app_conversation_attachment(self, request: UploadLocalAppConversationAttachmentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadLocalAppConversationAttachmentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

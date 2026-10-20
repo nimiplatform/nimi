@@ -35,6 +35,7 @@ type OwnerPort interface {
 	ResumeEmbeddingDispositions(context.Context, string, memoryv1.EmbeddingPort) error
 	PendingEmbeddingRebuilds(context.Context, string) ([]memoryv1.PendingEmbeddingRebuild, error)
 	NeedsEmbeddingRebuild(context.Context, string, memoryv1.CapabilitySnapshot) (bool, error)
+	QualifyMemoryRefs(context.Context, string, string, string, []string) (map[string]bool, error)
 }
 
 type OwnerBindingResolver func(context.Context, string) (Binding, error)
@@ -777,4 +778,11 @@ func (a *OwnerAdapter) ResumeEmbeddingDispositions(ctx context.Context, bankRef 
 		return fmt.Errorf("Memory owner unavailable")
 	}
 	return a.core.ResumeEmbeddingDispositions(ctx, bankRef, port)
+}
+
+func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifecycleRef string, refs []string) (map[string]bool, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return nil, err
+	}
+	return a.core.QualifyMemoryRefs(ctx, bindingRef, bankRef, lifecycleRef, refs)
 }

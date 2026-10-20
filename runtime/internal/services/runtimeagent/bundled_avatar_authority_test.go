@@ -94,13 +94,6 @@ func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 			t.Fatalf("current owner state=%+v err=%v", response, err)
 		}
 	})
-	t.Run("ListPendingHooks", func(t *testing.T) {
-		_, err := svc.ListPendingHooks(callContext, &runtimev1.ListPendingHooksRequest{Context: selector(), AgentId: otherAgentID})
-		assertWrongOwner(t, err)
-		if _, err := svc.ListPendingHooks(callContext, &runtimev1.ListPendingHooksRequest{Context: selector(), AgentId: currentAgentID}); err != nil {
-			t.Fatalf("current owner list hooks: %v", err)
-		}
-	})
 	t.Run("UpdateAgentState", func(t *testing.T) {
 		mutation := []*runtimev1.AgentStateMutation{{Mutation: &runtimev1.AgentStateMutation_SetDyadicContext{SetDyadicContext: &runtimev1.AgentStateSetDyadicContext{UserId: "account-current"}}}}
 		_, err := svc.UpdateAgentState(callContext, &runtimev1.UpdateAgentStateRequest{Context: selector(), AgentId: otherAgentID, Mutations: mutation})
@@ -116,7 +109,7 @@ func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := svc.SetAutonomyConfig(callContext, &runtimev1.SetAutonomyConfigRequest{Context: selector(), AgentId: currentAgentID, ExpectedAutonomyRevision: proto.Uint64(before.GetAgent().GetAutonomy().GetRevision()), Config: &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW, DailyTokenBudget: 100, MaxTokensPerHook: 10}}); err != nil {
+		if _, err := svc.SetAutonomyConfig(callContext, &runtimev1.SetAutonomyConfigRequest{Context: selector(), AgentId: currentAgentID, ExpectedAutonomyRevision: proto.Uint64(before.GetAgent().GetAutonomy().GetRevision()), Config: &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW, DailyTokenBudget: 100, MaxBackgroundOutputTokens: 10}}); err != nil {
 			t.Fatalf("prepare current owner autonomy: %v", err)
 		}
 		response, err := svc.EnableAutonomy(callContext, &runtimev1.EnableAutonomyRequest{Context: selector(), AgentId: currentAgentID})
@@ -133,7 +126,7 @@ func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 		}
 	})
 	t.Run("SetAutonomyConfig", func(t *testing.T) {
-		config := &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW, DailyTokenBudget: 100, MaxTokensPerHook: 10}
+		config := &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW, DailyTokenBudget: 100, MaxBackgroundOutputTokens: 10}
 		_, err := svc.SetAutonomyConfig(callContext, &runtimev1.SetAutonomyConfigRequest{Context: selector(), AgentId: otherAgentID, ExpectedAutonomyRevision: proto.Uint64(1), Config: config})
 		assertWrongOwner(t, err)
 		before, err := svc.GetAgent(callContext, &runtimev1.GetAgentRequest{Context: selector(), AgentId: currentAgentID})
@@ -153,7 +146,7 @@ func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 		revision := before.GetAgent().GetAutonomy().GetRevision()
 		request := &runtimev1.SetAutonomyConfigRequest{
 			Context: selector(), AgentId: currentAgentID,
-			Config:                   &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM, DailyTokenBudget: 500, MaxTokensPerHook: 50},
+			Config:                   &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM, DailyTokenBudget: 500, MaxBackgroundOutputTokens: 50},
 			ExpectedAutonomyRevision: proto.Uint64(revision), Enabled: proto.Bool(true),
 		}
 		response, err := svc.SetAutonomyConfig(callContext, request)
@@ -171,14 +164,7 @@ func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 			t.Fatalf("stale first-party autonomy reason=%s ok=%v", reason, ok)
 		}
 	})
-	t.Run("CancelHook", func(t *testing.T) {
-		_, err := svc.CancelHook(callContext, &runtimev1.CancelHookRequest{Context: selector(), AgentId: otherAgentID, IntentId: "missing-m1"})
-		assertWrongOwner(t, err)
-		_, err = svc.CancelHook(callContext, &runtimev1.CancelHookRequest{Context: selector(), AgentId: currentAgentID, IntentId: "missing-m1"})
-		if status.Code(err) != codes.NotFound {
-			t.Fatalf("current owner did not reach hook domain: %v", err)
-		}
-	})
+
 }
 
 func TestBundledAvatarIdentityBindsToProtectedPrincipalAccount(t *testing.T) {

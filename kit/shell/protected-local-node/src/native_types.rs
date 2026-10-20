@@ -812,27 +812,12 @@ pub struct NativeWorldRelationshipGetInput {
     pub relationship_id: String,
 }
 
-#[napi(object)]
-pub struct NativeConversationPolicyInput {
-    pub agent_handle: String,
-    pub conversation_anchor_id: String,
-    pub expected_revision: String,
-    pub enabled: bool,
-}
+
+
 #[napi(object)]
 pub struct NativeConversationFollowUpInput {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub task_id: String,
     pub expected_revision: String,
-    pub action: String,
-    pub scheduled_for: Option<JsonValue>,
-}
-#[napi(object)]
-pub struct NativeAgentPendingHookInput {
-    pub agent_handle: String,
-    pub task_id: String,
-    pub expected_revision: String,
-    pub action: String,
-    pub scheduled_for: Option<JsonValue>,
 }

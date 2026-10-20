@@ -1,4 +1,4 @@
-import type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiLocalAppAgentAutonomyConfig, NimiLocalAppAgentLife, } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   NimiSharedLocalAgentAIConfigOptionsQuery,
   NimiSharedLocalAgentAIConfigOptionsResult,
@@ -205,6 +205,9 @@ export type AgentCenterActionAvailabilityProjection = Readonly<
 
 export interface AgentCenterAutonomyProjection extends NimiRuntimeAgentAutonomySnapshot {
   readonly revision: string | null;
+  readonly freeContactEnabled: boolean | null;
+  readonly quietHours: NimiLocalAppAgentAutonomyConfig['quietHours'];
+  readonly maxFreeContactsPerDay: number | null;
 }
 
 export interface AgentCenterAutonomyMutationInput {
@@ -212,7 +215,10 @@ export interface AgentCenterAutonomyMutationInput {
   readonly enabled?: boolean;
   readonly mode: NimiLocalAppAgentAutonomyMode;
   readonly dailyTokenBudget: number;
-  readonly maxTokensPerHook: number;
+  readonly maxBackgroundOutputTokens: number;
+  readonly freeContactEnabled: boolean;
+  readonly quietHours: NimiLocalAppAgentAutonomyConfig['quietHours'];
+  readonly maxFreeContactsPerDay: number;
 }
 
 export interface AgentCenterAIConfigMutation {
@@ -690,12 +696,15 @@ export interface AgentCenterCapabilityState {
 }
 
 export interface AgentCenterAutonomyState {
+  readonly freeContactEnabled: boolean | null;
+  readonly quietHours: NimiLocalAppAgentAutonomyConfig['quietHours'];
+  readonly maxFreeContactsPerDay: number | null;
   readonly revision: string | null;
   readonly enabled: boolean | null;
   readonly mode: NimiLocalAppAgentAutonomyMode | null;
   readonly usedTokensInWindow: number | null;
   readonly dailyTokenBudget: number | null;
-  readonly maxTokensPerHook: number | null;
+  readonly maxBackgroundOutputTokens: number | null;
   readonly windowStartedAt: string | null;
   readonly suspendedUntil: string | null;
   readonly budgetExhausted: boolean | null;
@@ -765,6 +774,7 @@ export interface AgentCenterAdvancedDiagnosticsState {
 export type AgentCenterConversationContextMutation = Omit<NimiLocalAppConversationContextUpdateInput, 'agentHandle'>;
 
 export interface AgentCenterState {
+  readonly life: NimiLocalAppAgentLife | null;
   readonly conversationContext: NimiLocalAppAgentConversationContextProjection | null;
   readonly runtimeStatus: AgentCenterRuntimeStatus;
   readonly statusTone: AgentCenterStatusTone;
@@ -809,8 +819,6 @@ export type AgentCenterReferenceVoiceProjection = Readonly<{
 }>;
 
 export interface AgentCenterSession {
-  listPendingHooks(): Promise<NimiLocalAppAgentPendingHooks>;
-  updatePendingHook(input: NimiLocalAppScheduledTaskEdit): Promise<NimiLocalAppAgentPendingHook>;
   readonly [AGENT_CENTER_SESSION]: true;
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;

@@ -63,7 +63,6 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 			return nil, err
 		}
 	}
-	localAgentRef := identity.LocalAgentRef
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if localAppAuthorized {
 		subjectUserID = decision.AccountID
@@ -80,6 +79,24 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
+	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
+	metadata := cloneConversationAnchorMetadata(req.GetMetadata())
+	if localAppAuthorized {
+		callerAppID = decision.AppID
+		metadata = nil
+	}
+	return s.ensureAgentConversation(identity, callerAppID, decision.RegisteredAppSubject, metadata)
+}
+
+// The Runtime owner and authorized App open share the same creation lock and
+// storage operation. Runtime proactive execution passes no fabricated App.
+func (s *Service) ensureAgentConversation(identity localAgentIdentity, callerAppID, registeredAppSubject string, metadata *structpb.Struct) (*runtimev1.OpenConversationAnchorResponse, error) {
+	localAgentRef := identity.LocalAgentRef
+	subjectUserID := identity.OwnerUserID
+	s.mu.RLock()
+	agent := s.agents[localAgentRef]
+	freeContact := agent != nil && agent.Agent.GetAutonomy().GetConfig().GetFreeContactEnabled()
+	s.mu.RUnlock()
 	s.chatSurfaceMu.Lock()
 	if s.agentTerminationFencedLocked(localAgentRef) {
 		s.chatSurfaceMu.Unlock()
@@ -91,31 +108,24 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		return s.openConversationAnchorResponse(resolvedAnchor)
 	}
 
-	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
-	if localAppAuthorized {
-		callerAppID = decision.AppID
-	}
-	metadata := cloneConversationAnchorMetadata(req.GetMetadata())
-	if localAppAuthorized {
-		metadata = nil
-	}
 	now := time.Now().UTC()
 	anchorID := "agent_anchor_" + ulid.Make().String()
 	threadID := "agent_thread_" + ulid.Make().String()
 
 	anchor := &publicChatAnchorState{
-		ConversationAnchorID: anchorID,
-		AgentID:              localAgentRef,
-		OwnerUserID:          identity.OwnerUserID,
-		RuntimeSourceRef:     identity.RuntimeSourceRef,
-		LocalAgentRef:        localAgentRef,
-		CallerAppID:          callerAppID,
-		RegisteredAppSubject: decision.RegisteredAppSubject,
-		SubjectUserID:        subjectUserID,
-		ThreadID:             threadID,
-		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
-		CreatedAt:            now,
-		UpdatedAt:            now,
+		EffectiveFreeContactEnabled: freeContact,
+		ConversationAnchorID:        anchorID,
+		AgentID:                     localAgentRef,
+		OwnerUserID:                 identity.OwnerUserID,
+		RuntimeSourceRef:            identity.RuntimeSourceRef,
+		LocalAgentRef:               localAgentRef,
+		CallerAppID:                 callerAppID,
+		RegisteredAppSubject:        registeredAppSubject,
+		SubjectUserID:               subjectUserID,
+		ThreadID:                    threadID,
+		Status:                      runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
+		CreatedAt:                   now,
+		UpdatedAt:                   now,
 	}
 
 	s.chatSurfaceMu.Lock()

@@ -6,3 +6,66 @@ units:
     kind: definition
     title: Bounded LocalAgent life timeline
     meaning: "Runtime owns one revisioned bounded life state per LocalAgent: immutable established history, at most one current simulated or actual interaction frame, tentative future frames and stable self-intentions across segments. Interaction is life, independent of one model turn. Accepted identity, timing and progress are distinct from qualified explanations. Simulated life never establishes external effects."
+  - id: definition.nimi.runtime.agent-life.life-context
+    kind: definition
+    title: Purpose-specific compressed life context
+    meaning: Runtime compiles minimum accepted activity state and bounded optional explanations for later life and Conversation inference, retaining the latest settled frame and next tentative frame between active intervals. Private life planning uses one leading system envelope preserving typed source/trust boundaries and a final Runtime planning instruction, without a fabricated user input lane or Conversation record. It requests a JSON-object response through the shared text binding; an unsupported response contract is an unavailable planning result, never a silent target switch or parser repair. Explanations retain the actual source read set through compression; Conversation input selection and Cognition Memory lifecycle are different controls and neither grants a second Memory owner.
+  - id: definition.nimi.runtime.agent-life.user-commitment
+    kind: definition
+    lifecycle: removed
+    title: Persistent explicit user commitment
+    reason: User task understanding, agreements and deterministic fulfillment belong to Personal Agent enhancement products, not Runtime LocalAgent life.
+  - id: definition.nimi.runtime.agent-life.proactive-intent
+    kind: definition
+    title: Source-qualified proactive expression
+    meaning: Runtime distinguishes optional ordinary-reply initiative, finite extra Conversation continuation and autonomous contact judgment from solitary life simulation. They reuse the same execution and budget owners; self-intentions are mutable Agent directions, not user tasks or fulfillment commitments.
+  - id: rule.nimi.runtime.agent-life.timeline
+    kind: rule
+    title: Accepted frames advance without repeated inference
+    modality: must
+    statement: Runtime advances accepted simulated frames without inference only when their time, source, intention and prior progress remain valid. Actual admitted conversation, supported voice participation and bounded App work occupy the present; first admission settles only the established part of the old current frame and interrupts its remaining interval. During interaction no autonomous frame promotes or settles. Preserve unrelated future identities, content, ordering and valid intentions; overlapping or missed frames did not occur and cannot supply progress to later segments of the same intention. A turn terminal does not close interaction. After a bounded 120-second real-time silence opportunity, recheck current activity, generation and participation under the same owner; in-flight output and known media execution prevent false silence. Deterministic review resumes or waits for valid future coverage with zero new planning calls. New chat text alone does not force replanning. First enable starts now; disabled and known-interaction intervals never become simulated backlog. Disabling simulation does not disable ordinary replies, same-turn self-intentions or independently permitted contact. Static worlds use relative durations; paused worlds freeze simulation; validated anchored clocks never rewind facts.
+    condition: Whenever Runtime starts, advances, pauses or recovers LocalAgent life.
+    failure: Reject overlapping current frames, backward settlement, fabricated pre-enable history or external effects, and consumer-authored timeline progression.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.frame-timeline
+  - id: rule.nimi.runtime.agent-life.catch-up
+    kind: rule
+    title: Missing time is filled once within known bounds
+    modality: must
+    statement: Runtime may fill at most one bounded still-open unknown interval using material known then and still eligible now. It preserves established facts, known interaction and accepted coverage, excludes pre-enable and disabled intervals, and never treats missed future plans as occurrence evidence. Relative retrospective positions map inside the assigned interval; successful settlement closes omitted ordinary time without per-tick debt. Occurrence, first-known and record times remain distinct and simulated experience remains inferred. Recovery restores known boundaries without reviving execution locks or inventing continuous participation across an unknown offline tail. Valid future coverage may leave one admitted life judgment for bounded retrospective continuity; important already-established experience delivery does not wait for optional catch-up.
+    condition: Whenever execution resumes after a gap or an inference proposes retrospective frames.
+    failure: Reject proposals outside the Runtime-assigned interval, duplicated coverage, invented delivery or tool results, or disabled-period backlog.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.frame-timeline
+  - id: rule.nimi.runtime.agent-life.replacement
+    kind: rule
+    title: Changes replace only eligible future activity
+    modality: must
+    statement: A private FutureFrameUpdater proposes future and self-intention changes using a qualified snapshot; it owns no loop, public API, current or history writes. The timeline owner validates the actual read set and relevant current permissions, maps future positions from the real commit-time available present and accepts atomically. Preserve unrelated valid future frames and stable intention references; reject jumps across unestablished prior progress. Interaction fences conflicting in-flight simulation while retained valid future remains usable. A merely appended N+1 input does not invalidate unchanged reads and is not consumed by a result based on N. Only actual completion or accepted abandonment ends an intention. Intent changes and directly affected unoccurred future update in one commit, before dependent confirmation. Established history cannot be rewritten or expired arrangements shifted wholesale.
+    condition: Whenever a qualified life proposal, same-turn self-intention or actual participation changes the timeline.
+    failure: Reject stale results, rewritten past, lost activity references, unauthorized controls and success assertions before the owner commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.frame-timeline
+  - id: rule.nimi.runtime.agent-life.control-intent
+    kind: rule
+    lifecycle: removed
+    title: Current user intent is interpreted separately from dialogue
+    reason: General natural-language task interpretation, clarification and control batches are outside Runtime LocalAgent ownership.
+  - id: rule.nimi.runtime.agent-life.context
+    kind: rule
+    title: Context selection does not revoke accepted life
+    modality: must
+    statement: The shared compiler selects by ordinary Conversation, life or contact purpose. Conversation respects history selection and supplemental omission while retaining safe current life and accepted self-intentions. Life retains required Character, World, accepted activity and unfinished intentions; any consumed chat follows current selection, while Memory eligibility follows its independent owner. Selection alone never revokes established activity or increments LifeState. Memory correction, Forget, disable and deletion invalidate actual reads, uncommitted effects and derived explanations under existing lifecycle ordering; independent established experience remains distinct. Compression retains bounded read sets and drops old derived text with its references rather than laundering it. No Recall or AI I/O occurs under commit locks. Background admission estimates the final entire compiled input, schema and adapter overhead plus the unchanged positive output cap, recalculating after optional pruning. A window too small for any legal call reports insufficiency without futile retries.
+    condition: Whenever Runtime compiles, compresses, commits or invalidates life-related input.
+    failure: Reject stale-source effects, hidden excluded chat material, discarded life caused only by input selection, derived Memory duplication, direct Cognition storage reads or new parallel Memory truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.life-context
+  - id: rule.nimi.runtime.agent-life.commitments
+    kind: rule
+    lifecycle: removed
+    title: User commitments retain their own lifetime
+    reason: Runtime LocalAgent no longer owns user commitments, timed occurrences or deterministic fulfillment.

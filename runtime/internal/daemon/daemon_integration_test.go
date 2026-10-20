@@ -9,11 +9,9 @@ import (
 	"testing"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 )
 
 func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
@@ -225,11 +223,8 @@ func TestDaemonStopSupervisedEnginesRunsOnlyOnce(t *testing.T) {
 	}
 }
 
-func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
+func TestDaemonRunStartsAndStopsLifeFrameMaintenance(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	if err := writeRuntimeLocalAgentState(localStatePath, "agent-daemon-loop", time.Now().UTC().Add(-time.Second)); err != nil {
-		t.Fatalf("writeRuntimeLocalAgentState: %v", err)
-	}
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
 		HTTPAddr:             "127.0.0.1:0",
@@ -247,17 +242,6 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
-	daemon.grpc.AgentService().SetLifeTrackExecutor(runtimeagentservice.NewAIBackedLifeTrackExecutor(&daemonLifeTurnAI{
-		response: &runtimev1.ExecuteScenarioResponse{
-			Output: &runtimev1.ScenarioOutput{
-				Output: &runtimev1.ScenarioOutput_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `<life-turn><summary>daemon life turn complete</summary><tokens-used>2</tokens-used><canonical-memory-candidates></canonical-memory-candidates></life-turn>`,
-					},
-				},
-			},
-		},
-	}))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -266,10 +250,6 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	}()
 
 	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
-	// With no shared AIConfig or machine execution binding configured, the
-	// life turn fails closed as an observable terminal hook failure
-	// (K-AGCORE-147); it is never silently completed or ambiently routed.
-	waitForDaemonHookStatus(t, daemon, "agent-daemon-loop", runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED, 2*time.Second)
 
 	cancel()
 	if err := <-done; err != nil {

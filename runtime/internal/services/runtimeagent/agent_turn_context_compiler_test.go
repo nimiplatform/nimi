@@ -50,7 +50,7 @@ func agentTurnContextTestInput(t *testing.T, kind string) agentTurnContextCompil
 		OutputContract: agentTurnOutputContractInput{
 			ContractID:  "apml-message",
 			Version:     "v1",
-			Instruction: "Return one strict <message id=\"message-0\"> APML root and no repair fallback.",
+			Instruction: "Return one strict <message intent=\"reply\" id=\"message-0\"> APML root and no repair fallback.",
 		},
 		Relationships: []agentTurnRelationshipInput{{
 			RelationshipID: "dyad-user-1",

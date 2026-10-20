@@ -1,5 +1,4 @@
-import { createPendingHooksClient, type NimiLocalAppPendingHooksClient, type NimiLocalAppPendingHooksShell } from './local-app-runtime-platform-proactive.js';
-import type { ListLocalAppAgentPendingHooksRequest, ListLocalAppAgentPendingHooksResponse, UpdateLocalAppAgentPendingHookRequest, UpdateLocalAppAgentPendingHookResponse, LocalAppAgentPendingHook } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import { projectLife, projectRuntimeLife, validateLifeTimezone, type NimiLocalAppAgentLife } from './local-app-runtime-platform-life.js';
 import type {
   NimiSharedLocalAgentAIConfigOptionsQuery,
   NimiSharedLocalAgentAIConfigOptionsResult,
@@ -105,11 +104,14 @@ export type NimiLocalAppDuration = {
 
 export type NimiLocalAppAgentAutonomyConfig = {
   readonly dailyTokenBudget: number;
-  /** Output-token cap per LifeTrack activity; 0 uses the Runtime default. Not a total-usage or cost cap. */
-  readonly maxTokensPerHook: number;
-  readonly minHookInterval?: NimiLocalAppDuration;
+  /** Output-token cap per background generation; 0 uses the finite Runtime default. */
+  readonly maxBackgroundOutputTokens: number;
+  readonly minPlanningInterval?: NimiLocalAppDuration;
   readonly suspendUntil?: NimiLocalAppTimestamp;
   readonly mode: NimiLocalAppAgentAutonomyMode;
+  readonly freeContactEnabled: boolean;
+  readonly quietHours: Readonly<{ timezone: string; startMinute: number; endMinute: number }> | null;
+  readonly maxFreeContactsPerDay: number;
 };
 
 export type NimiLocalAppAgentAutonomyProjection = {
@@ -340,7 +342,8 @@ export type NimiLocalAppAgentManagerLaneId =
   | 'cognition_source'
   | 'conversation_summary'
   | 'private_recall'
-  | 'app_work';
+  | 'app_work'
+  | 'life_context';
 
 export type NimiLocalAppAgentManagerLaneState =
   | 'included'
@@ -484,6 +487,7 @@ export type NimiLocalAppAgentConversationContextProjection = Readonly<{
 }>;
 
 export type NimiLocalAppAgentManagerSnapshot = Readonly<{
+  life: NimiLocalAppAgentLife;
   lifecycleStatus: NimiLocalAppAgentLifecycleStatus;
   executionState: NimiLocalAppAgentExecutionState;
   statusText: string;
@@ -499,7 +503,6 @@ export type NimiLocalAppAgentManagerSnapshotInput = NimiLocalAppAgentScopedInput
 };
 
 export type NimiLocalAppAgentConfigureShell = {
-  readonly pendingHooks: NimiLocalAppPendingHooksShell;
   readonly conversationContext: { readonly update: (input: NimiLocalAppConversationContextUpdateInput) => Promise<unknown> };
   readonly sharedAIConfig: {
     readonly get: () => Promise<unknown>;
@@ -554,8 +557,6 @@ type AgentConfigureRuntimeUnary<Request, Response> = (
  * it creates no first-party product semantics or identity sideband.
  */
 export interface NimiLocalAppAgentConfigureRuntime {
- readonly listLocalAppAgentPendingHooks: AgentConfigureRuntimeUnary<ListLocalAppAgentPendingHooksRequest,ListLocalAppAgentPendingHooksResponse>;
- readonly updateLocalAppAgentPendingHook: AgentConfigureRuntimeUnary<UpdateLocalAppAgentPendingHookRequest,UpdateLocalAppAgentPendingHookResponse>;
   readonly updateLocalAppAgentConversationContext: AgentConfigureRuntimeUnary<UpdateLocalAppAgentConversationContextRequest, UpdateLocalAppAgentConversationContextResponse>;
   readonly getLocalAppAgentManagerSnapshot: AgentConfigureRuntimeUnary<
     GetLocalAppAgentManagerSnapshotRequest,
@@ -616,7 +617,6 @@ export interface NimiLocalAppAgentConfigureRuntime {
 }
 
 export type NimiLocalAppAgentConfigureClient = {
-  readonly pendingHooks: NimiLocalAppPendingHooksClient;
   readonly conversationContext: { readonly update: (input: NimiLocalAppConversationContextUpdateInput) => Promise<NimiLocalAppAgentConversationContextProjection> };
   readonly sharedAIConfig: {
     readonly get: () => Promise<NimiSharedLocalAgentAIConfigSnapshot>;
@@ -709,7 +709,7 @@ const MANAGER_LANE_IDS = new Set<NimiLocalAppAgentManagerLaneId>([
   'runtime_policy', 'output_contract', 'source_identity', 'source_behavior', 'world_context',
   'relationship_context', 'source_knowledge', 'canonical_memory', 'conversation_history',
   'capability_context', 'current_user_turn', 'cognition_source', 'conversation_summary',
-  'private_recall', 'app_work',
+  'private_recall', 'app_work', 'life_context',
 ]);
 const MANAGER_LANE_STATES = new Set<NimiLocalAppAgentManagerLaneState>([
   'included', 'empty', 'omitted', 'truncated', 'invalid',
@@ -735,10 +735,6 @@ export function createNimiLocalAppAgentConfigureRuntimeShell(
   runtime: NimiLocalAppAgentConfigureRuntime,
 ): NimiLocalAppAgentConfigureShell {
   return Object.freeze({
-    pendingHooks: Object.freeze({
-      list: async (input: Parameters<NimiLocalAppPendingHooksShell['list']>[0]) => {const result=await runtime.listLocalAppAgentPendingHooks(input);return {hooks:result.hooks.map(projectRuntimePendingHook),truncated:result.truncated};},
-      update: async (input: Parameters<NimiLocalAppPendingHooksShell['update']>[0]) => projectRuntimePendingHook((await runtime.updateLocalAppAgentPendingHook({...input,action:input.action==='cancel'?1:2})).hook!),
-    }),
     conversationContext: Object.freeze({
       update: async (input: NimiLocalAppConversationContextUpdateInput) => {
         const wire = requireWireProjection((await runtime.updateLocalAppAgentConversationContext(validateConversationContextInput(input))).projection, 'Conversation context');
@@ -863,7 +859,6 @@ export function createNimiLocalAppAgentConfigureClient(
   shell: NimiLocalAppAgentConfigureShell,
 ): NimiLocalAppAgentConfigureClient {
   return Object.freeze({
-    pendingHooks: createPendingHooksClient(shell.pendingHooks),
     sharedAIConfig: Object.freeze({
       get: async (): Promise<NimiSharedLocalAgentAIConfigSnapshot> => projectSharedAIConfigSnapshot(await shell.sharedAIConfig.get()),
       overwrite: async (input: NimiAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> => {
@@ -1116,19 +1111,22 @@ function validateAutonomyIntent(value: unknown): NimiLocalAppAgentAutonomyIntent
   if (!config) return invalidAutonomyIntent('config');
   assertExactKeys(
     config,
-    ['dailyTokenBudget', 'maxTokensPerHook', 'minHookInterval', 'suspendUntil', 'mode'],
+    ['dailyTokenBudget', 'maxBackgroundOutputTokens', 'minPlanningInterval', 'suspendUntil', 'mode', 'freeContactEnabled', 'quietHours', 'maxFreeContactsPerDay'],
     'local-app autonomy config',
   );
-  const minHookInterval = optionalSecondsNanos(config.minHookInterval, 'minHookInterval');
+  const minPlanningInterval = optionalSecondsNanos(config.minPlanningInterval, 'minPlanningInterval');
   const suspendUntil = optionalSecondsNanos(config.suspendUntil, 'suspendUntil');
   return Object.freeze({
     ...(intent.enabled === undefined ? {} : { enabled: intent.enabled as boolean }),
     config: Object.freeze({
       dailyTokenBudget: nonNegativeBudget(config.dailyTokenBudget, 'dailyTokenBudget'),
-      maxTokensPerHook: nonNegativeBudget(config.maxTokensPerHook, 'maxTokensPerHook'),
-      ...(minHookInterval === undefined ? {} : { minHookInterval }),
+      maxBackgroundOutputTokens: nonNegativeBudget(config.maxBackgroundOutputTokens, 'maxBackgroundOutputTokens'),
+      ...(minPlanningInterval === undefined ? {} : { minPlanningInterval }),
       ...(suspendUntil === undefined ? {} : { suspendUntil }),
       mode: autonomyMode(config.mode),
+      freeContactEnabled: typeof config.freeContactEnabled === 'boolean' ? config.freeContactEnabled : invalidAutonomyIntent('freeContactEnabled'),
+      quietHours: projectQuietHours(config.quietHours),
+      maxFreeContactsPerDay: freeContactLimit(config.maxFreeContactsPerDay, config.freeContactEnabled),
     }),
   });
 }
@@ -1549,10 +1547,13 @@ function projectRuntimeAutonomyMode(value: LocalAppAgentAutonomyMode): NimiLocal
 function runtimeAutonomyConfig(config: NimiLocalAppAgentAutonomyConfig) {
   return {
     dailyTokenBudget: String(config.dailyTokenBudget),
-    maxTokensPerHook: String(config.maxTokensPerHook),
-    ...(config.minHookInterval ? { minHookInterval: config.minHookInterval } : {}),
+    maxBackgroundOutputTokens: String(config.maxBackgroundOutputTokens),
+    ...(config.minPlanningInterval ? { minPlanningInterval: config.minPlanningInterval } : {}),
     ...(config.suspendUntil ? { suspendUntil: config.suspendUntil } : {}),
     mode: runtimeAutonomyMode(config.mode),
+    freeContactEnabled: config.freeContactEnabled,
+    quietHours: config.quietHours ?? undefined,
+    maxFreeContactsPerDay: config.maxFreeContactsPerDay,
   };
 }
 
@@ -1561,10 +1562,13 @@ function projectRuntimeAutonomy(projection: RuntimeLocalAppAgentAutonomyProjecti
     enabled: projection.enabled,
     config: projection.config ? {
       dailyTokenBudget: runtimeSafeInteger(projection.config.dailyTokenBudget, 'agent autonomy dailyTokenBudget'),
-      maxTokensPerHook: runtimeSafeInteger(projection.config.maxTokensPerHook, 'agent autonomy maxTokensPerHook'),
-      minHookInterval: runtimeTimestamp(projection.config.minHookInterval),
+      maxBackgroundOutputTokens: runtimeSafeInteger(projection.config.maxBackgroundOutputTokens, 'agent autonomy maxBackgroundOutputTokens'),
+      minPlanningInterval: runtimeTimestamp(projection.config.minPlanningInterval),
       suspendUntil: runtimeTimestamp(projection.config.suspendUntil),
       mode: projectRuntimeAutonomyMode(projection.config.mode),
+      freeContactEnabled: projection.config.freeContactEnabled,
+      quietHours: projection.config.quietHours ?? null,
+      maxFreeContactsPerDay: projection.config.maxFreeContactsPerDay,
     } : null,
     usedTokensInWindow: runtimeSafeInteger(projection.usedTokensInWindow, 'agent autonomy usedTokensInWindow'),
     windowStartedAt: runtimeTimestamp(projection.windowStartedAt),
@@ -1847,6 +1851,7 @@ function projectRuntimeManagerLaneId(value: AgentTurnContextLaneId): NimiLocalAp
     [AgentTurnContextLaneId.CONVERSATION_SUMMARY]: 'conversation_summary',
     [AgentTurnContextLaneId.PRIVATE_RECALL]: 'private_recall',
     [AgentTurnContextLaneId.APP_WORK]: 'app_work',
+    [AgentTurnContextLaneId.LIFE_CONTEXT]: 'life_context',
   };
   return names[value] ?? localAppProjectionError('Agent Center manager lane id');
 }
@@ -1967,6 +1972,7 @@ function projectRuntimeManagerSnapshot(
   snapshot: NonNullable<GetLocalAppAgentManagerSnapshotResponse['snapshot']>,
 ) {
   return {
+    life: projectRuntimeLife(snapshot.life),
     lifecycleStatus: projectRuntimeManagerLifecycle(snapshot.lifecycleStatus),
     executionState: projectRuntimeManagerExecution(snapshot.executionState),
     statusText: snapshot.statusText,
@@ -2282,11 +2288,12 @@ function projectManagerSnapshot(value: unknown): NimiLocalAppAgentManagerSnapsho
   const projection = asRecord(value);
   assertExactProjectionKeys(
     projection,
-    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context', 'actionAvailability', ...(projection && Object.hasOwn(projection, 'conversationContext') ? ['conversationContext'] : [])],
+    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context', 'actionAvailability', 'life', ...(projection && Object.hasOwn(projection, 'conversationContext') ? ['conversationContext'] : [])],
     'Agent Center manager snapshot',
   );
   assertSafeProjection(projection);
   return Object.freeze({
+    life: projectLife(projection.life),
     lifecycleStatus: managerEnum(
       projection.lifecycleStatus,
       MANAGER_LIFECYCLE_STATUSES,
@@ -2639,29 +2646,32 @@ function projectAutonomyConfig(value: unknown): NimiLocalAppAgentAutonomyConfig 
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['dailyTokenBudget', 'maxTokensPerHook', 'minHookInterval', 'suspendUntil', 'mode'],
+    ['dailyTokenBudget', 'maxBackgroundOutputTokens', 'minPlanningInterval', 'suspendUntil', 'mode', 'freeContactEnabled', 'quietHours', 'maxFreeContactsPerDay'],
     'agent autonomy config',
   );
   if (typeof record.dailyTokenBudget !== 'number'
     || !Number.isSafeInteger(record.dailyTokenBudget)
     || record.dailyTokenBudget < 0
-    || typeof record.maxTokensPerHook !== 'number'
-    || !Number.isSafeInteger(record.maxTokensPerHook)
-    || record.maxTokensPerHook < 0) {
+    || typeof record.maxBackgroundOutputTokens !== 'number'
+    || !Number.isSafeInteger(record.maxBackgroundOutputTokens)
+    || record.maxBackgroundOutputTokens < 0) {
     localAppProjectionError('agent autonomy config budgets');
   }
   const mode = record.mode;
   if (typeof mode !== 'string' || !AUTONOMY_MODES.has(mode as NimiLocalAppAgentAutonomyMode)) {
     localAppProjectionError('agent autonomy mode');
   }
-  const minHookInterval = projectTimestamp(record.minHookInterval, 'agent autonomy minHookInterval');
+  const minPlanningInterval = projectTimestamp(record.minPlanningInterval, 'agent autonomy minPlanningInterval');
   const suspendUntil = projectTimestamp(record.suspendUntil, 'agent autonomy config suspendUntil');
   return Object.freeze({
     dailyTokenBudget: record.dailyTokenBudget,
-    maxTokensPerHook: record.maxTokensPerHook,
-    ...(minHookInterval === undefined ? {} : { minHookInterval }),
+    maxBackgroundOutputTokens: record.maxBackgroundOutputTokens,
+    ...(minPlanningInterval === undefined ? {} : { minPlanningInterval }),
     ...(suspendUntil === undefined ? {} : { suspendUntil }),
     mode: mode as NimiLocalAppAgentAutonomyMode,
+    freeContactEnabled: typeof record.freeContactEnabled === 'boolean' ? record.freeContactEnabled : localAppProjectionError('free contact state'),
+    quietHours: projectQuietHours(record.quietHours),
+    maxFreeContactsPerDay: freeContactLimit(record.maxFreeContactsPerDay, record.freeContactEnabled),
   });
 }
 
@@ -2846,7 +2856,14 @@ function projectedRevision(value: unknown, field: string): string {
   return value;
 }
 
-function projectRuntimePendingHook(value:LocalAppAgentPendingHook):Record<string,unknown>{
- if(!value)throw new Error('Runtime activity plan is missing');
- return {...value,scheduledFor:runtimeTimestamp(value.scheduledFor),status:({2:'pending',4:'running',7:'canceled'} as Record<number,string>)[value.status]??''};
+function projectQuietHours(value: unknown): NimiLocalAppAgentAutonomyConfig['quietHours'] {
+  if (value === null) return null;
+  const row = asRecord(value);
+  assertExactProjectionKeys(row, ['timezone', 'startMinute', 'endMinute'], 'quiet hours');
+  if (typeof row.startMinute !== 'number' || typeof row.endMinute !== 'number' || !Number.isInteger(row.startMinute) || !Number.isInteger(row.endMinute) || row.startMinute < 0 || row.startMinute >= 1440 || row.endMinute < 0 || row.endMinute >= 1440 || row.startMinute === row.endMinute) return localAppProjectionError('quiet hours interval');
+  return Object.freeze({ timezone: validateLifeTimezone(row.timezone), startMinute: row.startMinute, endMinute: row.endMinute });
+}
+function freeContactLimit(value: unknown, enabled: unknown): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 24 || (enabled === true && value === 0)) return localAppProjectionError('free contact limit');
+  return value;
 }

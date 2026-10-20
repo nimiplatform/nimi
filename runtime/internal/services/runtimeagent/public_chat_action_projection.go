@@ -186,7 +186,7 @@ func validateImageActionExecutionBinding(session publicChatAnchorState, turn pub
 		return publicChatActionFailedReasonImageBindingMissing,
 			fmt.Errorf("runtime public chat image action %s has no committed image.generate Runtime Agent AI Config binding", actionID)
 	}
-	if turn.AvailableActions.ImageGenerate == publicChatImageActionUnavailable {
+	if turn.AvailableActions.TextOnly || turn.AvailableActions.ImageGenerate != publicChatImageActionAvailable {
 		return publicChatActionFailedReasonImageRouteUnhealthy,
 			fmt.Errorf("runtime public chat image action %s is bound to a configured image route that is currently unavailable", actionID)
 	}

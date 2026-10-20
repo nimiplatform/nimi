@@ -2,8 +2,10 @@ package runtimeagent
 
 import (
 	"fmt"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 )
 
 const (
@@ -27,6 +29,7 @@ const (
 	agentTurnContextLaneConversationHistory agentTurnContextLaneID = "conversation_history"
 	agentTurnContextLaneCapabilityContext   agentTurnContextLaneID = "capability_context"
 	agentTurnContextLaneAppWork             agentTurnContextLaneID = "app_work"
+	agentTurnContextLaneLifeContext         agentTurnContextLaneID = "life_context"
 	agentTurnContextLaneCurrentUserTurn     agentTurnContextLaneID = "current_user_turn"
 	agentTurnContextLanePrivateRecall       agentTurnContextLaneID = "private_recall"
 )
@@ -143,11 +146,12 @@ type agentTurnRelationshipInput struct {
 }
 
 type agentTurnMemoryInput struct {
-	MemoryID      string `json:"memoryId"`
-	Scope         string `json:"scope"`
-	ProvenanceRef string `json:"provenanceRef"`
-	Text          string `json:"text"`
-	RelevanceRank int64  `json:"relevanceRank"`
+	KnownAt       time.Time `json:"-"`
+	MemoryID      string    `json:"memoryId"`
+	Scope         string    `json:"scope"`
+	ProvenanceRef string    `json:"provenanceRef"`
+	Text          string    `json:"text"`
+	RelevanceRank int64     `json:"relevanceRank"`
 }
 
 type agentTurnTranscriptPairInput struct {
@@ -206,10 +210,11 @@ type agentTurnCognitionInput struct {
 }
 
 type agentTurnPrivateRecallInput struct {
-	Query      string
-	Status     string
-	Candidates []agentTurnCognitionCandidateInput
-	Memory     []agentTurnMemoryInput
+	MemoryReadSet cognitionmemory.MemoryReadSet
+	Query         string
+	Status        string
+	Candidates    []agentTurnCognitionCandidateInput
+	Memory        []agentTurnMemoryInput
 }
 
 type agentTurnContextBudgetInput struct {
@@ -243,6 +248,7 @@ type agentTurnContextCompileInput struct {
 	Cognition            agentTurnCognitionInput
 	PrivateRecall        *agentTurnPrivateRecallInput
 	AppWork              *localAppWorkExecution
+	LifeContext          *agentTurnLifeContextInput
 	Budget               agentTurnContextBudgetInput
 	Route                agentTurnContextRouteInput
 }
@@ -357,10 +363,12 @@ type agentTurnContextManifestV1 struct {
 }
 
 type agentTurnContextCompilation struct {
-	Manifest       agentTurnContextManifestV1
-	PrivateLanes   []agentTurnContextLane
-	ProviderPrompt agentTurnProviderPrompt
-	Summary        *runtimev1.AgentTurnContextSummary
+	OutputContractID string
+	ResponseFormat   *runtimev1.ResponseFormat
+	Manifest         agentTurnContextManifestV1
+	PrivateLanes     []agentTurnContextLane
+	ProviderPrompt   agentTurnProviderPrompt
+	Summary          *runtimev1.AgentTurnContextSummary
 }
 
 type agentTurnContextCapacityExceededError struct {

@@ -162,10 +162,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAgentManagerSnapshot',
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
-  'localAppConversationFollowUpPolicy',
-  'localAppConversationFollowUpUpdate',
-  'localAppAgentPendingHooks',
-  'localAppAgentPendingHookUpdate',
+  'localAppConversationFollowUpCancel',
   'localAppAgentUpdateConversationContext',
   'localAppAgentPresentationSnapshot',
   'localAppAgentPresentationReadAsset',
@@ -563,10 +560,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAgentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppConversationFollowUpPolicy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppConversationFollowUpUpdate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentPendingHooks: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentPendingHookUpdate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationFollowUpCancel: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateConversationContext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -719,10 +713,7 @@ export type NimiElectronLocalAppHost = {
   readonly agentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly conversationFollowUpPolicy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly conversationFollowUpUpdate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentPendingHooks: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentPendingHookUpdate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationFollowUpCancel: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateConversationContext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1647,13 +1638,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppAgentUpdateAutonomy(input));
   }
 
-  conversationFollowUpPolicy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppConversationFollowUpPolicy(input));}
-
-  conversationFollowUpUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppConversationFollowUpUpdate(input));}
-
-  agentPendingHooks(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppAgentPendingHooks(input));}
-
-  agentPendingHookUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppAgentPendingHookUpdate(input));}
+  conversationFollowUpCancel(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return invokeRecord(() => this.binding.localAppConversationFollowUpCancel(input));}
 
   agentUpdateConversationContext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentUpdateConversationContext(input));
@@ -2051,13 +2036,7 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().agentUpdateAutonomy(input);
   }
 
-  conversationFollowUpPolicy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().conversationFollowUpPolicy(input);}
-
-  conversationFollowUpUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().conversationFollowUpUpdate(input);}
-
-  agentPendingHooks(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().agentPendingHooks(input);}
-
-  agentPendingHookUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().agentPendingHookUpdate(input);}
+  conversationFollowUpCancel(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {return this.resolve().conversationFollowUpCancel(input);}
 
   agentUpdateConversationContext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentUpdateConversationContext(input);
@@ -3212,7 +3191,7 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
   const common = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
   switch (value.type) {
     case 'turn-accepted':
-      if (!hasExactKeys(value,[...common,'requestId','origin']) || !['user','app','follow_up'].includes(String(value.origin))) throw untrustedRuntimeError();
+      if (!hasExactKeys(value,[...common,'requestId','origin']) || !['user','app','follow_up','life','contact'].includes(String(value.origin))) throw untrustedRuntimeError();
       if(value.requestId!==null) exactText(value.requestId);
       break;
     case 'turn-started':
@@ -3278,7 +3257,7 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
     case 'turn-interrupted':
       if (!hasExactKeys(value, [...common, 'reason'])
         || typeof value.reason !== 'string'
-        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal'].includes(value.reason)) {
+        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal', 'foreground_user_input', 'free_contact_disabled'].includes(value.reason)) {
         throw untrustedRuntimeError();
       }
       break;
@@ -3394,7 +3373,7 @@ function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord
 
 function validateConversationTurn(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || !hasExactKeys(value, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message', 'requestId', 'retryOfTurnId', 'inputTurnId', 'canRegenerate', 'origin'])
-    || !['user','app','follow_up'].includes(String(value.origin))
+    || !['user','app','follow_up','life','contact'].includes(String(value.origin))
     || !['active', 'completed', 'failed', 'interrupted'].includes(String(value.status))
     || (value.phase !== null && value.phase !== 'accepted' && value.phase !== 'started')
     || (value.terminalReason !== null && typeof value.terminalReason !== 'string')
@@ -3616,7 +3595,7 @@ function validateJobObservationIssue(value: unknown): NimiElectronLocalAppRecord
 }
 
 function validateConversationState(value:unknown):NimiElectronLocalAppRecord {
- if(!isPlainRecord(value)||!hasExactKeys(value,['followUpEnabled','followUpPolicyRevision','maxFollowUpTurns','pendingFollowUp','textTurnId'])||typeof value.followUpEnabled!=='boolean'||typeof value.followUpPolicyRevision!=='string'||!/^(0|[1-9][0-9]*)$/u.test(value.followUpPolicyRevision)||typeof value.maxFollowUpTurns!=='number'||!Number.isSafeInteger(value.maxFollowUpTurns)||value.maxFollowUpTurns<1)throw untrustedRuntimeError();
+ if(!isPlainRecord(value)||!hasExactKeys(value,['freeContactEnabled','maxFollowUpTurns','pendingFollowUp','textTurnId'])||typeof value.freeContactEnabled!=='boolean'||typeof value.maxFollowUpTurns!=='number'||!Number.isSafeInteger(value.maxFollowUpTurns)||value.maxFollowUpTurns<1)throw untrustedRuntimeError();
  if(value.textTurnId!==null)exactText(value.textTurnId);
  if(value.pendingFollowUp!==null){const task=value.pendingFollowUp;if(!isPlainRecord(task)||!hasExactKeys(task,['taskId','revision','scheduledFor','sourceTurnId'])||typeof task.revision!=='string'||!/^[1-9][0-9]*$/u.test(task.revision)||!isPlainRecord(task.scheduledFor)||!hasExactKeys(task.scheduledFor,['seconds','nanos'])||typeof task.scheduledFor.seconds!=='string'||!Number.isInteger(task.scheduledFor.nanos))throw untrustedRuntimeError();exactText(task.taskId);exactText(task.sourceTurnId);}
  return Object.freeze({...value}) as NimiElectronLocalAppRecord;

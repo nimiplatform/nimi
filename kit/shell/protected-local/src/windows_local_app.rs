@@ -1,6 +1,7 @@
 use crate::{
-    LocalAppAgentPendingHookUpdateRequest, LocalAppConversationFollowUpUpdateRequest,
-    LocalAppConversationPolicyRequest,
+    LocalAppConversationFollowUpCancelRequest,
+
+
 };
 mod agent_configure;
 mod agent_work;
@@ -1768,19 +1769,10 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
-    fn conversation_follow_up_policy(
+
+    fn conversation_follow_up_cancel(
         &self,
-        request: LocalAppConversationPolicyRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
-    {
-        Box::pin(async move {
-            let _operation = self.operation_gate.read().await;
-            proactive_control::policy(self.checked_channel()?, request).await
-        })
-    }
-    fn conversation_follow_up_update(
-        &self,
-        request: LocalAppConversationFollowUpUpdateRequest,
+        request: LocalAppConversationFollowUpCancelRequest,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
@@ -1788,26 +1780,8 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
             proactive_control::follow_up(self.checked_channel()?, request).await
         })
     }
-    fn agent_pending_hooks(
-        &self,
-        request: LocalAppAgentHandleRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
-    {
-        Box::pin(async move {
-            let _operation = self.operation_gate.read().await;
-            proactive_control::list_hooks(self.checked_channel()?, request).await
-        })
-    }
-    fn agent_pending_hook_update(
-        &self,
-        request: LocalAppAgentPendingHookUpdateRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
-    {
-        Box::pin(async move {
-            let _operation = self.operation_gate.read().await;
-            proactive_control::update_hook(self.checked_channel()?, request).await
-        })
-    }
+
+
     fn agent_update_conversation_context(
         &self,
         request: LocalAppAgentUpdateConversationContextRequest,

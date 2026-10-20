@@ -2,12 +2,22 @@
 
 # SDK migration notes
 
+## SDK 0.22.0 — LocalAgent life frames (development)
+
+Use matching Runtime, SDK, Kit and native builds. LocalAgent no longer owns
+user commitments, generic natural-language task controls, task timezones or
+control outcomes. Existing conversations and Memory are preserved; obsolete
+local controls are retired only through explicitly reviewed one-time tools.
+
+Life projections distinguish current interaction from simulated activities,
+with unknown interaction end/progress left absent. This unreleased 0.x hard cut
+has no compatibility path or automatic migration.
+
 ## Unreleased — LocalAgent Conversation recovery and controls
 
-The existing autonomy `maxTokensPerHook` now means the output-token cap per
-LifeTrack activity (0 = Runtime default). A positive value must fit the existing
-text execution int32 limit and is never silently omitted on unsupported targets.
-Daily usage remains actual reported input plus output; it is not a cost cap.
+Background output limits use `maxBackgroundOutputTokens` as described above;
+positive limits fit the text execution int32 range. Daily usage remains actual
+reported input plus output; it is not a monetary cost cap.
 
 This source-only 0.x minor hard cut requires matching Runtime, native carrier,
 SDK and Kit. LocalAgent Conversation snapshots now include partial messages,
@@ -18,10 +28,11 @@ media completes. `send({ retryOfTurnId, requestId, ...scope })` references retai
 input and excludes `parts`; it regenerates text without replaying old actions.
 Retain an uncertain submission's original request ID and do not auto-resubmit.
 
-Custom LocalAgent carriers implement `conversation.setFollowUpPolicy`,
-`conversation.updateFollowUp`, `agentConfigure.pendingHooks.list/update` with the
-matching protected capabilities. Conversation follow-up and Agent autonomy are
-distinct controls. AI Consume-only consumers do not gain these requirements.
+Custom LocalAgent carriers implement `conversation.cancelFollowUp` and
+`agentConfigure.commitments.create/update/remove` with the matching capabilities.
+Autonomous continuation and life expression share the Agent free-contact policy;
+user commitments keep their own controls. AI Consume-only consumers do not gain
+these requirements.
 No package release, automatic migration or old/new protocol fallback is included.
 
 For the next 0.x minor (not a patch of the published 0.21.0),

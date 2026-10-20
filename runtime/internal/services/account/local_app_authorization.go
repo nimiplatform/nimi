@@ -22,10 +22,7 @@ var (
 type LocalAppOperation = localappop.Operation
 
 const (
-	LocalAppOperationConversationFollowUpPolicyUpdate = localappop.OperationConversationFollowUpPolicyUpdate
-	LocalAppOperationConversationFollowUpUpdate       = localappop.OperationConversationFollowUpUpdate
-	LocalAppOperationAgentPendingHooksList            = localappop.OperationAgentPendingHooksList
-	LocalAppOperationAgentPendingHookUpdate           = localappop.OperationAgentPendingHookUpdate
+	LocalAppOperationConversationFollowUpCancel       = localappop.OperationConversationFollowUpCancel
 	LocalAppOperationOpenConversation                 = localappop.OperationConversationOpen
 	LocalAppOperationSendConversationTurn             = localappop.OperationConversationTurnSend
 	LocalAppOperationInterruptConversation            = localappop.OperationConversationTurnInterrupt

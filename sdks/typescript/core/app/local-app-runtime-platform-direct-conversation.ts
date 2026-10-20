@@ -1,4 +1,4 @@
-import type { UpdateLocalAppConversationFollowUpPolicyRequest, UpdateLocalAppConversationFollowUpRequest, UpdateLocalAppConversationFollowUpPolicyResponse, UpdateLocalAppConversationFollowUpResponse, LocalAppConversationState } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import type { CancelLocalAppConversationFollowUpRequest, CancelLocalAppConversationFollowUpResponse, LocalAppConversationState } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import type {
   GetLocalAppConversationSnapshotRequest,
   GetLocalAppConversationSnapshotResponse,
@@ -42,8 +42,7 @@ import {
 } from './local-app-runtime-platform-conversation.js';
 
 export type NimiLocalAppConversationRuntime = {
-  readonly updateLocalAppConversationFollowUpPolicy: (request: UpdateLocalAppConversationFollowUpPolicyRequest) => Promise<UpdateLocalAppConversationFollowUpPolicyResponse>;
-  readonly updateLocalAppConversationFollowUp: (request: UpdateLocalAppConversationFollowUpRequest) => Promise<UpdateLocalAppConversationFollowUpResponse>;
+  readonly cancelLocalAppConversationFollowUp: (request: CancelLocalAppConversationFollowUpRequest) => Promise<CancelLocalAppConversationFollowUpResponse>;
   readonly openLocalAppConversation: (request: OpenLocalAppConversationRequest) => Promise<OpenLocalAppConversationResponse>;
   readonly sendLocalAppConversationTurn: (request: SendLocalAppConversationTurnRequest) => Promise<SendLocalAppConversationTurnResponse>;
   readonly uploadLocalAppConversationAttachment: (request: UploadLocalAppConversationAttachmentRequest) => Promise<UploadLocalAppConversationAttachmentResponse>;
@@ -59,8 +58,7 @@ export function createNimiLocalAppConversationRuntimeClient(
   runtime: NimiLocalAppConversationRuntime,
 ): NimiLocalAppConversationClient {
   const shell: NimiLocalAppConversationShell = {
-    setFollowUpPolicy: async input => projectRuntimeConversationState((await runtime.updateLocalAppConversationFollowUpPolicy(input)).state!),
-    updateFollowUp: async input => projectRuntimeConversationState((await runtime.updateLocalAppConversationFollowUp({...input,action:input.action==='cancel'?1:2})).state!),
+    cancelFollowUp: async input => projectRuntimeConversationState((await runtime.cancelLocalAppConversationFollowUp(input)).state!),
     open: async ({ agentHandle }) => {
       const response = await runtime.openLocalAppConversation({ agentHandle });
       return { conversationAnchorId: response.conversationAnchorId, activeTurnId: response.activeTurnId ?? null };
@@ -194,6 +192,8 @@ function projectTurn(value: LocalAppConversationTurn): Record<string, unknown> {
   };
 }
 
+
+
 function projectAction(value: LocalAppConversationAction): Record<string, unknown> {
   return {
     actionId:value.actionId,turnId:value.turnId,capabilityContract:value.capabilityContract,
@@ -224,8 +224,7 @@ function projectRuntimeConversationState(value:LocalAppConversationState):Record
  if(!value)throw new Error('Runtime Conversation state is missing');
  const pending = value.pendingFollowUp;
  return {
-  followUpEnabled: value.followUpEnabled,
-  followUpPolicyRevision: value.followUpPolicyRevision,
+  freeContactEnabled: value.freeContactEnabled,
   maxFollowUpTurns: value.maxFollowUpTurns,
   textTurnId: value.textTurnId ?? null,
   pendingFollowUp: pending ? {

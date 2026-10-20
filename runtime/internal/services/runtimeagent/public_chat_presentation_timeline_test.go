@@ -15,7 +15,7 @@ func TestPublicChatTurnEventsCarryRuntimeTimelineEnvelope(t *testing.T) {
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			if err := emit(&runtimev1.StreamScenarioEvent{

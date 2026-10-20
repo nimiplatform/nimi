@@ -1,4 +1,4 @@
-import type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit } from '@nimiplatform/kit/core/sdk-contract';
+import type { } from '@nimiplatform/kit/core/sdk-contract';
 import { createAgentReferenceVoiceController, type AgentReferenceVoiceController } from './reference-voice.js';
 import {
   asNimiError,
@@ -189,8 +189,6 @@ type ResourcePackMutationResolution = Readonly<
 >;
 
 interface SessionTransport {
-  listPendingHooks(): Promise<NimiLocalAppAgentPendingHooks>;
-  updatePendingHook(input: NimiLocalAppScheduledTaskEdit): Promise<NimiLocalAppAgentPendingHook>;
   readonly referenceVoice: AgentReferenceVoiceController | null;
   useReferenceVoice?: () => Promise<AgentCenterAppearanceProjection>;
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
@@ -628,19 +626,6 @@ class ManagerSession {
     this.#set({ ...this.#snapshot, phase: 'ready', error: null, state: { ...this.#snapshot.state, conversationContext: mutation.result } });
   }
 
-  async listPendingHooks(): Promise<NimiLocalAppAgentPendingHooks> {
-    this.#assertActive();
-    const result = await this.transport.listPendingHooks();
-    this.#assertActive();
-    return result;
-  }
-  async updatePendingHook(input: NimiLocalAppScheduledTaskEdit): Promise<NimiLocalAppAgentPendingHook> {
-    this.#assertActive();
-    const result = await this.transport.updatePendingHook(input);
-    this.#assertActive();
-    return result;
-  }
-
   async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
     this.#requireAvailable('updateAutonomy');
     const mutation = await this.#runMutation('updateAutonomy', () => this.transport.updateAutonomy(input));
@@ -659,7 +644,10 @@ class ManagerSession {
           mode: autonomy.mode,
           usedTokensInWindow: autonomy.usedTokensInWindow,
           dailyTokenBudget: autonomy.dailyTokenBudget,
-          maxTokensPerHook: autonomy.maxTokensPerHook,
+          maxBackgroundOutputTokens: autonomy.maxBackgroundOutputTokens,
+          freeContactEnabled: autonomy.freeContactEnabled,
+          quietHours: autonomy.quietHours,
+          maxFreeContactsPerDay: autonomy.maxFreeContactsPerDay,
           windowStartedAt: autonomy.windowStartedAt,
           suspendedUntil: autonomy.suspendedUntil,
           budgetExhausted: autonomy.budgetExhausted,
@@ -1696,8 +1684,6 @@ export function createAppAgentCenterSession(
     async listSharedAIConfigOptions(query) {
       return input.client.sharedAIConfig.listOptions(query);
     },
-    async listPendingHooks() { return input.client.pendingHooks.list({agentHandle:handle}); },
-    async updatePendingHook(mutation) { return input.client.pendingHooks.update({agentHandle:handle,...mutation}); },
     async updateConversationContext(mutation) { return input.client.conversationContext.update({ agentHandle: handle, ...mutation }); },
     async updateAutonomy(mutation) {
       const autonomy = await input.client.autonomy.update({
@@ -1708,7 +1694,10 @@ export function createAppAgentCenterSession(
           config: {
             mode: mutation.mode,
             dailyTokenBudget: mutation.dailyTokenBudget,
-            maxTokensPerHook: mutation.maxTokensPerHook,
+            maxBackgroundOutputTokens: mutation.maxBackgroundOutputTokens,
+            freeContactEnabled: mutation.freeContactEnabled,
+            quietHours: mutation.quietHours,
+            maxFreeContactsPerDay: mutation.maxFreeContactsPerDay,
           },
         },
       });
@@ -1806,7 +1795,10 @@ function projectAppAutonomy(
     budgetExhausted: projection.budgetExhausted,
     usedTokensInWindow: projection.usedTokensInWindow,
     dailyTokenBudget: projection.config?.dailyTokenBudget ?? null,
-    maxTokensPerHook: projection.config?.maxTokensPerHook ?? null,
+    maxBackgroundOutputTokens: projection.config?.maxBackgroundOutputTokens ?? null,
+    freeContactEnabled: projection.config?.freeContactEnabled ?? null,
+    quietHours: projection.config?.quietHours ?? null,
+    maxFreeContactsPerDay: projection.config?.maxFreeContactsPerDay ?? null,
     windowStartedAt: appTimestampToIso(projection.windowStartedAt),
     suspendedUntil: appTimestampToIso(projection.suspendedUntil),
   });

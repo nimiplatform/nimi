@@ -168,7 +168,7 @@ func (s *stubPublicChatActionExecutor) ExecuteImageAction(_ context.Context, req
 
 func publicChatImageActionAPML(messageID string, text string, actionID string, prompt string) string {
 	return strings.Join([]string{
-		fmt.Sprintf(`<message id="%s">%s</message>`, messageID, text),
+		fmt.Sprintf(`<message intent="reply" id="%s">%s</message>`, messageID, text),
 		fmt.Sprintf(`<action id="%s" kind="image">`, actionID),
 		fmt.Sprintf(`<prompt-payload kind="image"><prompt-text>%s</prompt-text></prompt-payload>`, prompt),
 		`</action>`,

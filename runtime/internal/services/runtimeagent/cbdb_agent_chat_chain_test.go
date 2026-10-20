@@ -104,7 +104,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	runtimeThreadID := publicChatTestAnchorThreadID(t, svc, anchorID)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	audioBytes := []byte("RIFF\x24\x00\x00\x00WAVEfmt ")
 	if err := svc.runtimeArtifacts.Put("artifact-cbdb-chain-voice", runtimeartifact.ArtifactRecord{
 		Bytes:     audioBytes,
@@ -127,7 +127,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 			if got := strings.TrimSpace(req.SubjectUserID); got != cbdbChainVerifierOwnerID {
 				t.Fatalf("expected executor SubjectUserID %q, got %q", cbdbChainVerifierOwnerID, got)
 			}
-			if len(req.Messages) < 2 || strings.TrimSpace(req.Messages[len(req.Messages)-2].GetRole()) != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-2].GetContent()) != "validate cbdb agent chat" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
+			if len(req.Messages) < 2 || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetRole()) != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetContent()) != "validate cbdb agent chat" || !strings.Contains(req.Messages[0].GetContent(), "Runtime APML contract") {
 				t.Fatalf("expected composed context to end with the CBDB validation user message, got %#v", req.Messages)
 			}
 			if got := req.Binding.ModelID; got != "local/default" {

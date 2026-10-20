@@ -55,10 +55,27 @@ func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelop
 	if trimmed == "" {
 		return nil, fmt.Errorf("structured chat output is required")
 	}
+	if text, ok := publicChatPlainReplyText(trimmed); ok {
+		return &publicChatStructuredEnvelope{
+			SchemaID: publicChatStructuredSchemaID,
+			Message:  publicChatStructuredMessage{MessageID: "message", Text: text},
+			Actions:  []publicChatStructuredAction{},
+		}, nil
+	}
 	if !startsWithAPMLRoot(trimmed, "message") {
 		return nil, fmt.Errorf("structured chat output must be APML beginning with <message>")
 	}
 	return parsePublicChatAPMLOutput(trimmed)
+}
+
+// Plain conversation needs no effect-bearing envelope. Protocol-looking output
+// stays with its parser so private fields cannot become visible reply text.
+func publicChatPlainReplyText(raw string) (string, bool) {
+	text := strings.TrimSpace(raw)
+	if text == "" || strings.ContainsAny(text, "<>") || strings.ContainsAny(text[:1], "{[`") {
+		return "", false
+	}
+	return text, true
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-participation.r012

@@ -40,46 +40,8 @@ func (r *runtimeAgentStateRepository) persistAgentDeltaContext(ctx context.Conte
 			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref,state_json) VALUES(?,?) ON CONFLICT(local_agent_ref) DO UPDATE SET state_json=excluded.state_json WHERE state_json<>excluded.state_json`, ref, string(stateRaw)); err != nil {
 				return err
 			}
-			// Hooks are scoped to this Agent; unchanged rows stay untouched.
-			rows, err := tx.Query(`SELECT hook_id FROM runtime_local_agent_hook WHERE local_agent_ref=?`, ref)
-			if err != nil {
+			if err := persistAgentLifeTx(tx, ref, entry.Life); err != nil {
 				return err
-			}
-			var removed []string
-			keep := make(map[string]bool, len(entry.Hooks))
-			for _, h := range entry.Hooks {
-				keep[hookIntentID(h)] = true
-			}
-			for rows.Next() {
-				var id string
-				if err := rows.Scan(&id); err != nil {
-					_ = rows.Close()
-					return err
-				}
-				if !keep[id] {
-					removed = append(removed, id)
-				}
-			}
-			if err := rows.Err(); err != nil {
-				_ = rows.Close()
-				return err
-			}
-			if err := rows.Close(); err != nil {
-				return err
-			}
-			for _, id := range removed {
-				if _, err := tx.Exec(`DELETE FROM runtime_local_agent_hook WHERE local_agent_ref=? AND hook_id=?`, ref, id); err != nil {
-					return err
-				}
-			}
-			for _, h := range entry.Hooks {
-				raw, err := protojson.Marshal(h)
-				if err != nil {
-					return err
-				}
-				if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref,hook_id,status,scheduled_for,hook_json) VALUES(?,?,?,?,?) ON CONFLICT(local_agent_ref,hook_id) DO UPDATE SET status=excluded.status,scheduled_for=excluded.scheduled_for,hook_json=excluded.hook_json WHERE hook_json<>excluded.hook_json`, ref, hookIntentID(h), int(hookAdmissionState(h)), timestampString(h.GetScheduledFor()), string(raw)); err != nil {
-					return err
-				}
 			}
 		}
 		for _, event := range events {

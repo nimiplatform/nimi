@@ -53,6 +53,7 @@ func clonePublicChatRecoveries(input map[string]*publicChatTurnRecovery) map[str
 			continue
 		}
 		copied := *item
+
 		copied.Input = clonePublicChatRecoveryInput(item.Input)
 		out[id] = &copied
 	}
@@ -109,7 +110,7 @@ func publicChatRecoveryInputForTurn(anchor *publicChatAnchorState, item *publicC
 			continue
 		}
 		role := "user"
-		if turn.Origin == publicChatTurnOriginFollowUp {
+		if isProactiveOrigin(turn.Origin) {
 			role = publicChatInternalFollowUpInstructionRole
 		}
 		return clonePublicChatRecoveryInput(&publicChatRecoveryInput{Role: role, Text: turn.InputText, Attachment: turn.InputAttachment})

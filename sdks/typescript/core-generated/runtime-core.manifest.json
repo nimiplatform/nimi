@@ -362,38 +362,11 @@
           "response_stream": false
         },
         {
-          "name": "UpdateLocalAppConversationFollowUpPolicy",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+          "name": "CancelLocalAppConversationFollowUp",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
           "kind": "unary",
-          "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
-          "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "UpdateLocalAppConversationFollowUp",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
-          "kind": "unary",
-          "request_type": "UpdateLocalAppConversationFollowUpRequest",
-          "response_type": "UpdateLocalAppConversationFollowUpResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListLocalAppAgentPendingHooks",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
-          "kind": "unary",
-          "request_type": "ListLocalAppAgentPendingHooksRequest",
-          "response_type": "ListLocalAppAgentPendingHooksResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "UpdateLocalAppAgentPendingHook",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
-          "kind": "unary",
-          "request_type": "UpdateLocalAppAgentPendingHookRequest",
-          "response_type": "UpdateLocalAppAgentPendingHookResponse",
+          "request_type": "CancelLocalAppConversationFollowUpRequest",
+          "response_type": "CancelLocalAppConversationFollowUpResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -574,24 +547,6 @@
           "kind": "unary",
           "request_type": "SetAutonomyConfigRequest",
           "response_type": "SetAutonomyConfigResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListPendingHooks",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
-          "kind": "unary",
-          "request_type": "ListPendingHooksRequest",
-          "response_type": "ListPendingHooksResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "CancelHook",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-          "kind": "unary",
-          "request_type": "CancelHookRequest",
-          "response_type": "CancelHookResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2775,8 +2730,8 @@
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
     "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
-    "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
+    "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
     "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
     "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
@@ -2812,12 +2767,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
-    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
-    "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -2850,9 +2803,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
-    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
-    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
-    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
     "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
@@ -3138,20 +3088,20 @@
       "response_type": "ApplySharedLocalAgentAIProfileResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-      "service": "RuntimeAgentService",
-      "method": "CancelHook",
-      "kind": "unary",
-      "request_type": "CancelHookRequest",
-      "response_type": "CancelHookResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
       "service": "RuntimeAgentService",
       "method": "CancelLocalAppAgentWork",
       "kind": "unary",
       "request_type": "CancelLocalAppAgentWorkRequest",
       "response_type": "CancelLocalAppAgentWorkResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
+      "service": "RuntimeAgentService",
+      "method": "CancelLocalAppConversationFollowUp",
+      "kind": "unary",
+      "request_type": "CancelLocalAppConversationFollowUpRequest",
+      "response_type": "CancelLocalAppConversationFollowUpResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
@@ -3434,14 +3384,6 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
-      "service": "RuntimeAgentService",
-      "method": "ListLocalAppAgentPendingHooks",
-      "kind": "unary",
-      "request_type": "ListLocalAppAgentPendingHooksRequest",
-      "response_type": "ListLocalAppAgentPendingHooksResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
       "service": "RuntimeAgentService",
       "method": "ListLocalAppAgentReferences",
@@ -3472,14 +3414,6 @@
       "kind": "unary",
       "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
       "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
-      "service": "RuntimeAgentService",
-      "method": "ListPendingHooks",
-      "kind": "unary",
-      "request_type": "ListPendingHooksRequest",
-      "response_type": "ListPendingHooksResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
@@ -3736,30 +3670,6 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentConversationContextRequest",
       "response_type": "UpdateLocalAppAgentConversationContextResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
-      "service": "RuntimeAgentService",
-      "method": "UpdateLocalAppAgentPendingHook",
-      "kind": "unary",
-      "request_type": "UpdateLocalAppAgentPendingHookRequest",
-      "response_type": "UpdateLocalAppAgentPendingHookResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
-      "service": "RuntimeAgentService",
-      "method": "UpdateLocalAppConversationFollowUp",
-      "kind": "unary",
-      "request_type": "UpdateLocalAppConversationFollowUpRequest",
-      "response_type": "UpdateLocalAppConversationFollowUpResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
-      "service": "RuntimeAgentService",
-      "method": "UpdateLocalAppConversationFollowUpPolicy",
-      "kind": "unary",
-      "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
-      "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -5460,20 +5370,20 @@
       "response_type": "ApplySharedLocalAgentAIProfileResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-      "service": "RuntimeAgentService",
-      "method": "CancelHook",
-      "kind": "unary",
-      "request_type": "CancelHookRequest",
-      "response_type": "CancelHookResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
       "service": "RuntimeAgentService",
       "method": "CancelLocalAppAgentWork",
       "kind": "unary",
       "request_type": "CancelLocalAppAgentWorkRequest",
       "response_type": "CancelLocalAppAgentWorkResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
+      "service": "RuntimeAgentService",
+      "method": "CancelLocalAppConversationFollowUp",
+      "kind": "unary",
+      "request_type": "CancelLocalAppConversationFollowUpRequest",
+      "response_type": "CancelLocalAppConversationFollowUpResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
@@ -5756,14 +5666,6 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
-      "service": "RuntimeAgentService",
-      "method": "ListLocalAppAgentPendingHooks",
-      "kind": "unary",
-      "request_type": "ListLocalAppAgentPendingHooksRequest",
-      "response_type": "ListLocalAppAgentPendingHooksResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
       "service": "RuntimeAgentService",
       "method": "ListLocalAppAgentReferences",
@@ -5794,14 +5696,6 @@
       "kind": "unary",
       "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
       "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
-      "service": "RuntimeAgentService",
-      "method": "ListPendingHooks",
-      "kind": "unary",
-      "request_type": "ListPendingHooksRequest",
-      "response_type": "ListPendingHooksResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
@@ -6058,30 +5952,6 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentConversationContextRequest",
       "response_type": "UpdateLocalAppAgentConversationContextResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
-      "service": "RuntimeAgentService",
-      "method": "UpdateLocalAppAgentPendingHook",
-      "kind": "unary",
-      "request_type": "UpdateLocalAppAgentPendingHookRequest",
-      "response_type": "UpdateLocalAppAgentPendingHookResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
-      "service": "RuntimeAgentService",
-      "method": "UpdateLocalAppConversationFollowUp",
-      "kind": "unary",
-      "request_type": "UpdateLocalAppConversationFollowUpRequest",
-      "response_type": "UpdateLocalAppConversationFollowUpResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
-      "service": "RuntimeAgentService",
-      "method": "UpdateLocalAppConversationFollowUpPolicy",
-      "kind": "unary",
-      "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
-      "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -7733,6 +7603,7 @@
       "AgentAutonomyConfig",
       "AgentAutonomyState",
       "AgentBudgetEventDetail",
+      "AgentContactQuietHours",
       "AgentConversationContextSummary",
       "AgentConversationSummary",
       "AgentEvent",
@@ -7831,14 +7702,14 @@
       "BindLocalAppProcessResponse",
       "CancelAppPackageJobRequest",
       "CancelAppPackageJobResponse",
-      "CancelHookRequest",
-      "CancelHookResponse",
       "CancelIntegrationCallRequest",
       "CancelIntegrationCallResponse",
       "CancelIntegrationConnectionSetupRequest",
       "CancelIntegrationConnectionSetupResponse",
       "CancelLocalAppAgentWorkRequest",
       "CancelLocalAppAgentWorkResponse",
+      "CancelLocalAppConversationFollowUpRequest",
+      "CancelLocalAppConversationFollowUpResponse",
       "CancelLocalAppScenarioJobRequest",
       "CancelLocalAppScenarioJobResponse",
       "CancelLocalEnvironmentDependencyJobRequest",
@@ -8175,8 +8046,6 @@
       "ListIntegrationConnectionsResponse",
       "ListLoadoutRecipesRequest",
       "ListLoadoutRecipesResponse",
-      "ListLocalAppAgentPendingHooksRequest",
-      "ListLocalAppAgentPendingHooksResponse",
       "ListLocalAppAgentReferencesRequest",
       "ListLocalAppAgentReferencesResponse",
       "ListLocalAppAgentWorkReferencesRequest",
@@ -8203,8 +8072,6 @@
       "ListModelAssetsResponse",
       "ListModelCatalogProvidersRequest",
       "ListModelCatalogProvidersResponse",
-      "ListPendingHooksRequest",
-      "ListPendingHooksResponse",
       "ListPortableAIProfilesRequest",
       "ListPortableAIProfilesResponse",
       "ListPresetVoicesRequest",
@@ -8255,7 +8122,6 @@
       "LocalAppAgentManagerContextProjection",
       "LocalAppAgentManagerSnapshot",
       "LocalAppAgentManagerSourceProjection",
-      "LocalAppAgentPendingHook",
       "LocalAppAgentPresentationIntent",
       "LocalAppAgentPresentationProjection",
       "LocalAppAgentPresentationSnapshotResponse",
@@ -8429,7 +8295,6 @@
       "PauseLocalTransferResponse",
       "PeekSchedulingRequest",
       "PeekSchedulingResponse",
-      "PendingHook",
       "PersonaCharacterSourceRefV3",
       "PollIntegrationProviderRequest",
       "PollIntegrationProviderResponse",
@@ -8721,12 +8586,6 @@
       "UpdateLocalAppAgentAutonomyRequest",
       "UpdateLocalAppAgentConversationContextRequest",
       "UpdateLocalAppAgentConversationContextResponse",
-      "UpdateLocalAppAgentPendingHookRequest",
-      "UpdateLocalAppAgentPendingHookResponse",
-      "UpdateLocalAppConversationFollowUpPolicyRequest",
-      "UpdateLocalAppConversationFollowUpPolicyResponse",
-      "UpdateLocalAppConversationFollowUpRequest",
-      "UpdateLocalAppConversationFollowUpResponse",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
@@ -8910,7 +8769,6 @@
       "LocalAppConversationVoiceState",
       "LocalAppEmbodimentEventKind",
       "LocalAppEmbodimentVoicePhase",
-      "LocalAppScheduledTaskAction",
       "LocalAppSessionState",
       "LocalAppTrustClass",
       "LocalAssetKind",
@@ -9322,20 +9180,6 @@
             "number": 1
           },
           {
-            "name": "max_tokens_per_hook",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "min_hook_interval",
-            "type": "google.protobuf.Duration",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
             "name": "suspend_until",
             "type": "google.protobuf.Timestamp",
             "repeated": false,
@@ -9350,11 +9194,46 @@
             "number": 5
           },
           {
+            "name": "free_contact_enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "quiet_hours",
+            "type": "AgentContactQuietHours",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "max_free_contacts_per_day",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "max_background_output_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
             "name": "extensions",
             "type": "google.protobuf.Struct",
             "repeated": false,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "min_planning_interval",
+            "type": "google.protobuf.Duration",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -9440,6 +9319,33 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentContactQuietHours",
+        "fields": [
+          {
+            "name": "timezone",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "start_minute",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "end_minute",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "AgentConversationContextSummary",
@@ -14628,53 +14534,6 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "CancelHookRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "CancelHookResponse",
-        "fields": [
-          {
-            "name": "outcome",
-            "type": "HookExecutionOutcome",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "CancelIntegrationCallRequest",
         "fields": [
           {
@@ -14758,6 +14617,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_work.proto"
+      },
+      {
+        "name": "CancelLocalAppConversationFollowUpRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "task_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "CancelLocalAppConversationFollowUpResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "LocalAppConversationState",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "CancelLocalAppScenarioJobRequest",
@@ -23794,39 +23700,6 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
-        "name": "ListLocalAppAgentPendingHooksRequest",
-        "fields": [
-          {
-            "name": "agent_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "ListLocalAppAgentPendingHooksResponse",
-        "fields": [
-          {
-            "name": "hooks",
-            "type": "LocalAppAgentPendingHook",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "truncated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "ListLocalAppAgentReferencesRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -24347,74 +24220,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "ListPendingHooksRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "trigger_family_filter",
-            "type": "HookTriggerFamily",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "admission_state_filter",
-            "type": "HookAdmissionState",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "ListPendingHooksResponse",
-        "fields": [
-          {
-            "name": "hooks",
-            "type": "PendingHook",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ListPortableAIProfilesRequest",
@@ -25889,20 +25694,6 @@
             "number": 1
           },
           {
-            "name": "max_tokens_per_hook",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "min_hook_interval",
-            "type": "google.protobuf.Duration",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
             "name": "suspend_until",
             "type": "google.protobuf.Timestamp",
             "repeated": false,
@@ -25915,6 +25706,41 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "free_contact_enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "quiet_hours",
+            "type": "AgentContactQuietHours",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "max_free_contacts_per_day",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "max_background_output_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "min_planning_interval",
+            "type": "google.protobuf.Duration",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -26601,61 +26427,6 @@
             "repeated": false,
             "optional": false,
             "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "LocalAppAgentPendingHook",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "scheduled_for",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "system_cadence",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "status",
-            "type": "HookAdmissionState",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "can_modify",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "public_purpose",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -28183,20 +27954,6 @@
         "name": "LocalAppConversationState",
         "fields": [
           {
-            "name": "follow_up_enabled",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "follow_up_policy_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
             "name": "max_follow_up_turns",
             "type": "uint32",
             "repeated": false,
@@ -28216,6 +27973,13 @@
             "repeated": false,
             "optional": true,
             "number": 5
+          },
+          {
+            "name": "free_contact_enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -34525,47 +34289,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai_scheduling.proto"
-      },
-      {
-        "name": "PendingHook",
-        "fields": [
-          {
-            "name": "intent",
-            "type": "HookIntent",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "scheduled_for",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "admitted_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "runtime_cadence",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "PersonaCharacterSourceRefV3",
@@ -43488,168 +43211,6 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
-        "name": "UpdateLocalAppAgentPendingHookRequest",
-        "fields": [
-          {
-            "name": "agent_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "expected_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "action",
-            "type": "LocalAppScheduledTaskAction",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "scheduled_for",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpdateLocalAppAgentPendingHookResponse",
-        "fields": [
-          {
-            "name": "hook",
-            "type": "LocalAppAgentPendingHook",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpdateLocalAppConversationFollowUpPolicyRequest",
-        "fields": [
-          {
-            "name": "agent_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "expected_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "enabled",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpdateLocalAppConversationFollowUpPolicyResponse",
-        "fields": [
-          {
-            "name": "state",
-            "type": "LocalAppConversationState",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpdateLocalAppConversationFollowUpRequest",
-        "fields": [
-          {
-            "name": "agent_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "expected_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "action",
-            "type": "LocalAppScheduledTaskAction",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "scheduled_for",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpdateLocalAppConversationFollowUpResponse",
-        "fields": [
-          {
-            "name": "state",
-            "type": "LocalAppConversationState",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "UploadArtifactChunk",
         "fields": [
           {
@@ -46035,7 +45596,8 @@
           "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE",
           "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY",
           "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL",
-          "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK"
+          "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK",
+          "AGENT_TURN_CONTEXT_LANE_ID_LIFE_CONTEXT"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
@@ -46982,15 +46544,6 @@
           "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"
         ],
         "source_file": "proto/runtime/v1/agent_embodiment.proto"
-      },
-      {
-        "name": "LocalAppScheduledTaskAction",
-        "values": [
-          "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED",
-          "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL",
-          "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "LocalAppSessionState",

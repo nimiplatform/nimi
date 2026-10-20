@@ -114,7 +114,6 @@ func TestPublicChatLegacyMultiAnchorFailsClosedAndDifferentAgentIsolation(t *tes
 
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 
 	release := make(chan struct{})
 	callCount := 0
@@ -395,149 +394,6 @@ func TestPublicChatInterruptIsolationRejectsWrongAnchor(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
 }
 
-func TestExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-
-	now := time.Now().UTC()
-	svc.mu.RLock()
-	cursor := svc.sequence
-	svc.mu.RUnlock()
-
-	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-pack4-hook-origin"), newTestTimePendingHook(t, "hook-pack4-origin", testRuntimeAgentLocalRef("agent-pack4-hook-origin"), now.Add(time.Minute), now)); err != nil {
-		t.Fatalf("admitPendingHook: %v", err)
-	}
-	if _, err := svc.markHookRunning(testRuntimeAgentLocalRef("agent-pack4-hook-origin"), "hook-pack4-origin"); err != nil {
-		t.Fatalf("markHookRunning: %v", err)
-	}
-	if _, err := svc.CancelHook(ctx, &runtimev1.CancelHookRequest{
-		Context:  testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
-		AgentId:  testRuntimeAgentLocalRef("agent-pack4-hook-origin"),
-		IntentId: "hook-pack4-origin",
-		Reason:   "operator stop",
-	}); err != nil {
-		t.Fatalf("CancelHook: %v", err)
-	}
-
-	events := retainedAgentEventsForTest(t, svc, "agent-pack4-hook-origin", cursor)
-	if len(events) != 7 {
-		t.Fatalf("expected 7 bounded lifecycle events after execution-state closure, got %d", len(events))
-	}
-
-	wantKinds := []struct {
-		eventType runtimev1.AgentEventType
-		hook      runtimev1.HookAdmissionState
-		exec      runtimev1.AgentExecutionState
-	}{
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING},
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING},
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING},
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_RUNNING},
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED},
-		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE},
-	}
-	for i, event := range events {
-		if event.GetEventType() != wantKinds[i].eventType {
-			t.Fatalf("unexpected event type at index %d: got %s want %s", i, event.GetEventType(), wantKinds[i].eventType)
-		}
-		switch event.GetEventType() {
-		case runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK:
-			if got := event.GetHook().GetFamily(); got != wantKinds[i].hook {
-				t.Fatalf("unexpected hook family at index %d: got %s want %s", i, got, wantKinds[i].hook)
-			}
-			intent := event.GetHook().GetIntent()
-			if strings.TrimSpace(intent.GetConversationAnchorId()) != "" ||
-				strings.TrimSpace(intent.GetOriginatingTurnId()) != "" ||
-				strings.TrimSpace(intent.GetOriginatingStreamId()) != "" {
-				t.Fatalf("no-origin hook event must not fabricate linkage, got %#v", intent)
-			}
-		case runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE:
-			detail := event.GetState()
-			if detail.GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
-				t.Fatalf("expected execution_state_changed at index %d, got %#v", i, detail)
-			}
-			if got := detail.GetCurrentExecutionState(); got != wantKinds[i].exec {
-				t.Fatalf("unexpected current execution state at index %d: got %s want %s", i, got, wantKinds[i].exec)
-			}
-			if strings.TrimSpace(detail.GetConversationAnchorId()) != "" ||
-				strings.TrimSpace(detail.GetOriginatingTurnId()) != "" ||
-				strings.TrimSpace(detail.GetOriginatingStreamId()) != "" {
-				t.Fatalf("no-origin execution-state event must not fabricate linkage, got %#v", detail)
-			}
-		}
-	}
-}
-
-func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-	upsertPublicChatTestAgentAIConfigForContext(t, svc, testRuntimeAgentIdentityContext("agent-pack4-chat-track"))
-
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{
-		result: &ChatTrackSidecarResult{
-			NextHookIntent: &runtimev1.HookIntent{
-				IntentId:       "hook-pack4-chat-track",
-				TriggerFamily:  runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME,
-				TriggerDetail:  timeTriggerDetail(5 * time.Minute),
-				Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
-				AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
-			},
-		},
-	})
-
-	svc.mu.RLock()
-	cursor := svc.sequence
-	svc.mu.RUnlock()
-
-	if err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
-		AgentID:       testRuntimeAgentLocalRef("agent-pack4-chat-track"),
-		SourceEventID: "chat-turn-pack4",
-		Messages: []*runtimev1.ChatMessage{
-			{Role: "user", Content: "follow up later"},
-		},
-	}); err != nil {
-		t.Fatalf("ExecuteChatTrackSidecar: %v", err)
-	}
-
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
-		Context:              testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
-		AgentId:              testRuntimeAgentLocalRef("agent-pack4-chat-track"),
-		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
-	})
-	if err != nil {
-		t.Fatalf("ListPendingHooks(pending): %v", err)
-	}
-	if len(pendingResp.GetHooks()) != 1 || pendingResp.GetHooks()[0].GetIntent().GetIntentId() != "hook-pack4-chat-track" {
-		t.Fatalf("expected canonical pending hook from chat-track path, got %#v", pendingResp.GetHooks())
-	}
-
-	hookEvents := retainedAgentEventsForTest(t, svc, "agent-pack4-chat-track", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
-	if len(hookEvents) != 2 {
-		t.Fatalf("expected proposed+pending hook events from chat-track path, got %d", len(hookEvents))
-	}
-	if got := hookEvents[0].GetHook().GetFamily(); got != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED {
-		t.Fatalf("expected proposed hook family first, got %s", got)
-	}
-	if got := hookEvents[1].GetHook().GetFamily(); got != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
-		t.Fatalf("expected pending hook family second, got %s", got)
-	}
-}
-
 func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	t.Parallel()
 
@@ -545,7 +401,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			envelope := publicChatStructuredEnvelopeWithFollowUpAPML("message-pack4-hook", "hook me later", "action-pack4-hook", "follow up", 300)
@@ -619,21 +475,6 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 
 	requirePublicChatPostTurnHookIntent(t, postTurn, "action-pack4-hook", "pending", 300)
 
-	// The public chat APML hook path now emits runtime.agent.hook.* projection
-	// truth, but it must not be mistaken for life-track PendingHook scheduler
-	// truth. Public chat follow-up scheduling remains anchored in the chat
-	// session surface.
-	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
-		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
-		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
-	})
-	if err != nil {
-		t.Fatalf("ListPendingHooks(after public chat hook projection): %v", err)
-	}
-	if len(pendingResp.GetHooks()) != 0 {
-		t.Fatalf("public chat follow-up must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
-	}
 	hookEvents := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
 	if len(hookEvents) != 2 {
 		t.Fatalf("expected proposed+pending public chat hook projection events, got %#v", hookEvents)
@@ -670,7 +511,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	}
 	capture.mu.Unlock()
 
-	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
 		SubjectUserId: "user-1",

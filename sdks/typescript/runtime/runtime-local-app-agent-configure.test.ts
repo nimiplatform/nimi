@@ -75,10 +75,10 @@ const SHARED_PROJECTION = {
 
 const AUTONOMY_PROJECTION = {
   enabled: true,
-  config: {
+  config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
     dailyTokenBudget: '1200',
-    maxTokensPerHook: '120',
-    minHookInterval: { seconds: '30', nanos: 0 },
+    maxBackgroundOutputTokens: '120',
+    minPlanningInterval: { seconds: '30', nanos: 0 },
     mode: LocalAppAgentAutonomyMode.LOW,
   },
   usedTokensInWindow: '12',
@@ -118,7 +118,7 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
     async getLocalAppAgentManagerSnapshot(request) {
       calls.push(['manager.snapshot', request]);
       return {
-        snapshot: {
+        snapshot: { life: {activities:[],revision:'1',recent:[],future:[],waitReason:''},
           lifecycleStatus: AgentLifecycleStatus.ACTIVE,
           executionState: AgentExecutionState.IDLE,
           statusText: 'Ready',
@@ -222,7 +222,7 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
   );
 
   const manager = await client.manager.snapshot({ agentHandle: HANDLE, conversationAnchorId: 'conversation-1' });
-  assert.deepEqual(manager, {
+  assert.deepEqual(manager, { life: {activities:[],revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
     conversationContext: null,
     lifecycleStatus: 'active',
     executionState: 'idle',

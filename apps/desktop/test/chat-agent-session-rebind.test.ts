@@ -78,7 +78,7 @@ test('Desktop matches one fresh reference by binding and verifies its existing a
         if (input.agentHandle === firstCurrentHandle) throw conversationResourceNotFound();
         return {
           conversationAnchorId: input.conversationAnchorId,
-          state:{followUpEnabled:false,followUpPolicyRevision:'0',maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null}, throughSequence: '4',
+          state:{freeContactEnabled:false,maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null}, throughSequence: '4',
           truncatedBefore: false,
           turns: [],
           messages: [],

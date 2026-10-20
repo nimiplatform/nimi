@@ -34,7 +34,7 @@ export type AppConversationEntryState = Readonly<{
   recording: boolean;
   error: string | null;
   actionError: string | null;
-  lastTurnFailure: Readonly<{ turnId: string; reasonCode: string }> | null;
+  lastTurnFailure: Readonly<{ turnId: string; reasonCode: string; canRegenerate: boolean; hasReply:boolean }> | null;
 }>;
 
 export type AppConversationPendingAttachment = Readonly<{
@@ -131,6 +131,7 @@ export type AppConversationEntrySession = Readonly<{
     requestId: string;
     parts: readonly NimiLocalAppConversationInputPart[];
   }>) => Promise<{ readonly turnId: string }>;
+  regenerate: (input: Readonly<{ requestId: string; turnId: string }>) => Promise<{ readonly turnId: string }>;
   interrupt: () => Promise<void>;
   pickAttachment: () => Promise<AppConversationPendingAttachment | AppConversationHostUnavailable>;
   clearAttachment: () => void;
@@ -356,20 +357,21 @@ export function createAppConversationEntrySession(input: Readonly<{
       const mapped = projectCommittedMessage({ reference: session.reference, conversationAnchorId: session.conversationAnchorId,
         message, mediaUrl: session.previews.get(message.messageId)?.mediaUrl });
       return { ...mapped, status: message.partial ? presentation.textPending ? 'streaming' as const : presentation.stopped ? 'canceled' as const : 'error' as const : 'complete' as const,
-        metadata: { ...mapped.metadata, canonicalPartial: message.partial, canonicalMediaRunning: presentation.mediaRunning } };
+        metadata: { ...mapped.metadata, canonicalPartial: message.partial, canonicalMediaRunning: presentation.mediaRunning, } };
     });
     for (const turn of projection.turns) {
       const transient = projection.transientByTurn[turn.turnId];
       if (!transient || projection.messages.some(message => message.turnId === turn.turnId && message.role === 'assistant' && message.parts.some(part => part.kind === 'text'))) continue;
       messages.push({ id: `canonical-turn:${turn.turnId}`, sessionId: session.conversationAnchorId, targetId: session.reference.agentHandle,
         source: 'agent', role: 'assistant', text: transient.text, createdAt: '', kind: 'text',
-        status: turn.status === 'active' ? 'streaming' : 'error', metadata: { canonicalPartial: true, canonicalMediaRunning: false } });
+        status: turn.status === 'active' ? 'streaming' : 'error', metadata: { canonicalPartial: true, canonicalMediaRunning: false, } });
     }
-    const failed = [...projection.turns].reverse().find(turn => turn.status === 'failed');
+    const latest = projection.turns.at(-1);
+    const failed = latest?.status === 'failed' ? latest : undefined;
     publish({ ...state, status: 'ready', conversationAnchorId: projection.conversationAnchorId,
       throughSequence: projection.throughSequence, activeTurnId: projection.state.textTurnId,
       messages, truncatedBefore: projection.truncatedBefore, error: null,
-      lastTurnFailure: failed?.reasonCode ? { turnId: failed.turnId, reasonCode: failed.reasonCode } : null });
+      lastTurnFailure: failed?.reasonCode ? { turnId: failed.turnId, reasonCode: failed.reasonCode, canRegenerate: failed.canRegenerate,hasReply:projection.messages.some(message=>message.turnId===failed.turnId&&message.role==='assistant') } : null });
     for (const message of projection.messages) {
       if (!message.parts.some(part => part.kind === 'artifact-ref') || session.previewRequests.has(message.messageId)) continue;
       session.previewRequests.add(message.messageId);
@@ -522,6 +524,15 @@ export function createAppConversationEntrySession(input: Readonly<{
       }
       throw error;
     }
+  };
+
+  const regenerate = async (request: Readonly<{ requestId: string; turnId: string }>) => {
+    const session = requireReadySession();
+    try {
+      const result = await input.client.conversation.send({ agentHandle: session.reference.agentHandle, conversationAnchorId: session.conversationAnchorId, requestId: request.requestId, retryOfTurnId: request.turnId });
+      if (active !== session || session.epoch !== epoch) throw new Error('Conversation changed.');
+      return result;
+    } catch (error) { if (active === session && session.epoch === epoch) publishActionError(error, 'The reply could not be regenerated.'); throw error; }
   };
 
   const interrupt = async () => {
@@ -746,6 +757,7 @@ export function createAppConversationEntrySession(input: Readonly<{
     selectReference,
     clearSelection,
     send,
+    regenerate,
     interrupt,
     pickAttachment,
     clearAttachment,

@@ -58,27 +58,6 @@ func mustEnableAutonomy(t *testing.T, svc *Service, ctx context.Context, agentID
 	}
 }
 
-func mustFindPendingCadenceHook(t *testing.T, svc *Service, ctx context.Context, agentID string) *runtimev1.PendingHook {
-	t.Helper()
-	resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{Context: testRuntimeAgentIdentityContext(agentID), AgentId: agentID})
-	if err != nil {
-		t.Fatalf("ListPendingHooks(%s): %v", agentID, err)
-	}
-	for _, hook := range resp.GetHooks() {
-		if hook != nil && hook.GetIntent() != nil && hook.GetIntent().GetReason() == autonomyCadenceHookReason {
-			return hook
-		}
-	}
-	t.Fatalf("expected pending cadence hook for %s, got %#v", agentID, resp.GetHooks())
-	return nil
-}
-
-type lifeTrackExecutorFunc func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error)
-
-func (f lifeTrackExecutorFunc) ExecuteLifeTrackHook(ctx context.Context, req *lifeTurnRequest) (*lifeTurnResult, error) {
-	return f(ctx, req)
-}
-
 type fakeLifeTurnAI struct {
 	response *runtimev1.ExecuteScenarioResponse
 	err      error

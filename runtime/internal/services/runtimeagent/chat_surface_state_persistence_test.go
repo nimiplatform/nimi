@@ -323,7 +323,7 @@ func TestPublicChatStrictTranscriptPersistenceFailureRollsBackBeforeCommitEvent(
 
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			if err := emit(&runtimev1.StreamScenarioEvent{

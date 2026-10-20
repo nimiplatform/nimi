@@ -46,7 +46,6 @@ type publicChatTurnProjectionState struct {
 	MessageID         string
 	AssistantText     string
 	Structured        *publicChatStructuredEnvelope
-	Sidecar           *publicChatSidecarOutcome
 	FollowUp          *publicChatFollowUpOutcome
 	ContextSummary    *runtimev1.AgentTurnContextSummary
 	FinishReason      string
@@ -91,7 +90,6 @@ func clonePublicChatTurnProjectionState(input *publicChatTurnProjectionState) *p
 	}
 	out := *input
 	out.Structured = clonePublicChatStructuredEnvelope(input.Structured)
-	out.Sidecar = clonePublicChatSidecarOutcome(input.Sidecar)
 	out.FollowUp = clonePublicChatFollowUpOutcome(input.FollowUp)
 	out.ContextSummary = cloneAgentTurnContextSummary(input.ContextSummary)
 	if input.Usage != nil {
@@ -162,11 +160,17 @@ func (s *Service) commitPublicChatFollowUpTranscriptWithProjection(
 	if strings.TrimSpace(anchorID) == "" || strings.TrimSpace(turnID) == "" || strings.TrimSpace(instruction) == "" || strings.TrimSpace(assistantText) == "" {
 		return status.Error(codes.InvalidArgument, "committed follow-up transcript requires anchor, turn, instruction, and assistant text")
 	}
+	origin := publicChatTurnOriginFollowUp
+	s.chatSurfaceMu.Lock()
+	if turn := s.chatTurns[turnID]; turn != nil && isProactiveOrigin(turn.Origin) {
+		origin = turn.Origin
+	}
+	s.chatSurfaceMu.Unlock()
 	return s.commitPublicChatTranscriptTurn(
 		commitContext,
 		anchorID,
 		turnID,
-		publicChatTurnOriginFollowUp,
+		origin,
 		instruction,
 		nil,
 		assistantText,
@@ -201,11 +205,27 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	inputAttachment = normalizePublicChatCommittedTranscriptAttachment(inputAttachment)
 	userOnlyAttachmentFailure := origin == publicChatTurnOriginUser && inputAttachment != nil && trimmedAssistant == ""
 	if trimmedAnchorID == "" || (trimmedInput == "" && inputAttachment == nil) || (trimmedAssistant == "" && !userOnlyAttachmentFailure) ||
-		(origin != publicChatTurnOriginUser && origin != publicChatTurnOriginFollowUp && origin != publicChatTurnOriginApp) ||
-		(origin == publicChatTurnOriginFollowUp && (trimmedTurnID == "" || inputAttachment != nil)) {
+		(origin != publicChatTurnOriginUser && !isProactiveOrigin(origin) && origin != publicChatTurnOriginApp) ||
+		(isProactiveOrigin(origin) && (trimmedTurnID == "" || inputAttachment != nil)) {
 		return status.Error(codes.InvalidArgument, "committed transcript turn is invalid")
 	}
 
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if finalizeProjection != nil {
+		s.chatSurfaceMu.Lock()
+		anchor := s.chatAnchors[trimmedAnchorID]
+		ref := ""
+		if anchor != nil {
+			ref = anchor.LocalAgentRef
+		}
+		s.chatSurfaceMu.Unlock()
+		if err := s.qualifyConversationMemoryReads(commitContext, ref, trimmedTurnID); err != nil {
+			return err
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
 
@@ -341,7 +361,12 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	if trimmedAssistant != "" {
 		activityHook, activityPublished = s.appActivityTurnTxHook(session, committedTurnID, session.UpdatedAt)
 	}
-	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook), trimmedAnchorID); err != nil {
+	nextAgent, proactiveHook, err := s.prepareProactiveMessageCommit(s.agents[session.LocalAgentRef], turn, session.UpdatedAt)
+	if err != nil {
+		rollback()
+		return err
+	}
+	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook, proactiveHook), trimmedAnchorID); err != nil {
 		rollback()
 		return grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -349,6 +374,9 @@ func (s *Service) commitPublicChatTranscriptTurn(
 			err,
 			grpcerr.ReasonOptions{Message: "committed Runtime transcript could not be persisted"},
 		)
+	}
+	if nextAgent != nil {
+		s.agents[session.LocalAgentRef] = nextAgent
 	}
 	if memoryQueued {
 		s.triggerCognitionMemory(session.LocalAgentRef)
@@ -367,8 +395,8 @@ func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTrans
 		if turn.Sequence != uint64(index) || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) ||
 			(strings.TrimSpace(turn.InputText) == "" && attachment == nil) || (strings.TrimSpace(turn.AssistantText) == "" && !userOnlyAttachmentFailure) ||
 			turn.InputText != strings.TrimSpace(turn.InputText) || turn.AssistantText != strings.TrimSpace(turn.AssistantText) ||
-			(turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginFollowUp && turn.Origin != publicChatTurnOriginApp) ||
-			(turn.Origin == publicChatTurnOriginFollowUp && attachment != nil) ||
+			(turn.Origin != publicChatTurnOriginUser && !isProactiveOrigin(turn.Origin) && turn.Origin != publicChatTurnOriginApp) ||
+			(isProactiveOrigin(turn.Origin) && attachment != nil) ||
 			!publicChatCommittedTranscriptAttachmentsEqual(turn.InputAttachment, attachment) {
 			return fmt.Errorf("Runtime committed transcript turn is invalid")
 		}
@@ -702,9 +730,6 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 	if p.Structured != nil {
 		out["structured"] = p.Structured.payload()
 	}
-	if p.Sidecar != nil {
-		out["chat_sidecar"] = p.Sidecar.payload()
-	}
 	if p.FollowUp != nil {
 		out["follow_up"] = p.FollowUp.payload()
 	}
@@ -998,15 +1023,6 @@ func clonePublicChatStructuredEnvelope(input *publicChatStructuredEnvelope) *pub
 		out.Actions = append(out.Actions, action)
 	}
 	return out
-}
-
-func clonePublicChatSidecarOutcome(input *publicChatSidecarOutcome) *publicChatSidecarOutcome {
-	if input == nil {
-		return nil
-	}
-	out := *input
-	out.CanceledHookIDs = append([]string(nil), input.CanceledHookIDs...)
-	return &out
 }
 
 func clonePublicChatFollowUpOutcome(input *publicChatFollowUpOutcome) *publicChatFollowUpOutcome {

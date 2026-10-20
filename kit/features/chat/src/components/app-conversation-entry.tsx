@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiLocalAppAgentHandle, } from '@nimiplatform/kit/core/sdk-contract';
 import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ChatCopy } from '../copy.js';
@@ -47,6 +47,8 @@ type AppConversationEntryCopy = Readonly<{
   preserveDraft: string;
   conversationSettings: string;
   conversationSettingsUnavailable: string;
+  controlNotSaved:string;
+  regenerateExplanation: string;
   chatCopy: ChatCopy;
 }>;
 
@@ -77,6 +79,8 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     preserveDraft: 'Your new draft is kept. Clear it first to reuse the earlier input.',
     conversationSettings: 'Review conversation settings in Nimi',
     conversationSettingsUnavailable: 'Could not open Nimi. Check that Home is running. No context was changed.',
+    controlNotSaved:'No changes were saved.',
+    regenerateExplanation: 'Regenerate explanation',
     chatCopy: {},
   }),
   zh: Object.freeze<AppConversationEntryCopy>({
@@ -105,6 +109,8 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     preserveDraft: '已保留新草稿。如需取回之前的输入，请先清空当前草稿。',
     conversationSettings: '在 Nimi 中查看对话设置',
     conversationSettingsUnavailable: '未能打开 Nimi。请确认 Home 正在运行，上下文未被修改。',
+    controlNotSaved:'没有保存更改。',
+    regenerateExplanation: '重新生成说明',
     chatCopy: {
       characterRailBackLabel: '返回 Agent 列表',
       characterRailOpenProfileLabel: '打开资料',
@@ -144,7 +150,7 @@ function resolveEntryCopy(language: string | null | undefined): AppConversationE
     : APP_CONVERSATION_ENTRY_COPY.en;
 }
 
-function createRequestId(kind: 'send' | 'voice', copy: AppConversationEntryCopy): string {
+function createRequestId(kind: 'send' | 'voice' | 'regenerate', copy: AppConversationEntryCopy): string {
   if (typeof globalThis.crypto?.randomUUID !== 'function') {
     throw new Error(copy.requestIdUnavailable);
   }

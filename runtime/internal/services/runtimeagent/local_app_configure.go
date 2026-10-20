@@ -199,8 +199,9 @@ func runtimeAutonomyConfigFromLocalApp(input *runtimev1.LocalAppAgentAutonomyCon
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	return validateAgentAutonomyMutationConfig(&runtimev1.AgentAutonomyConfig{
-		DailyTokenBudget: input.GetDailyTokenBudget(), MaxTokensPerHook: input.GetMaxTokensPerHook(),
-		MinHookInterval: input.GetMinHookInterval(), SuspendUntil: input.GetSuspendUntil(), Mode: runtimev1.AgentAutonomyMode(input.GetMode()),
+		DailyTokenBudget: input.GetDailyTokenBudget(), MaxBackgroundOutputTokens: input.GetMaxBackgroundOutputTokens(),
+		MinPlanningInterval: input.GetMinPlanningInterval(), SuspendUntil: input.GetSuspendUntil(), Mode: runtimev1.AgentAutonomyMode(input.GetMode()),
+		FreeContactEnabled: input.GetFreeContactEnabled(), QuietHours: input.GetQuietHours(), MaxFreeContactsPerDay: input.GetMaxFreeContactsPerDay(),
 	})
 }
 
@@ -212,9 +213,10 @@ func localAppAutonomyProjection(input *runtimev1.AgentAutonomyState) *runtimev1.
 	var projectedConfig *runtimev1.LocalAppAgentAutonomyConfig
 	if config != nil {
 		projectedConfig = &runtimev1.LocalAppAgentAutonomyConfig{
-			DailyTokenBudget: config.GetDailyTokenBudget(), MaxTokensPerHook: config.GetMaxTokensPerHook(),
-			MinHookInterval: config.GetMinHookInterval(), SuspendUntil: cloneTimestamp(config.GetSuspendUntil()),
-			Mode: runtimev1.LocalAppAgentAutonomyMode(config.GetMode()),
+			DailyTokenBudget: config.GetDailyTokenBudget(), MaxBackgroundOutputTokens: config.GetMaxBackgroundOutputTokens(),
+			MinPlanningInterval: config.GetMinPlanningInterval(), SuspendUntil: cloneTimestamp(config.GetSuspendUntil()),
+			Mode:               runtimev1.LocalAppAgentAutonomyMode(config.GetMode()),
+			FreeContactEnabled: config.GetFreeContactEnabled(), QuietHours: config.GetQuietHours(), MaxFreeContactsPerDay: config.GetMaxFreeContactsPerDay(),
 		}
 	}
 	return &runtimev1.LocalAppAgentAutonomyProjection{

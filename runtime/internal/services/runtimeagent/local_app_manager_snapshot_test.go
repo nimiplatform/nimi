@@ -136,7 +136,7 @@ func TestCanonicalLocalAppManagerSnapshotIsBoundedAndConversationScoped(t *testi
 	for _, forbidden := range []string{
 		"PRIVATE-MANIFEST-HASH", "PRIVATE-CONTEXT-HASH", "PRIVATE-PROMPT-HASH", "PRIVATE-ROUTE-DIGEST",
 		"PRIVATE-CATALOG-DIGEST", "PRIVATE-TURN-ID", localAgentRef, accountID, runtimeSource,
-		"manifestInstanceHash", "contextContentHash", "promptHash", "reservedReasoningTokens", "generation", "revision",
+		"manifestInstanceHash", "contextContentHash", "promptHash", "reservedReasoningTokens", "generation", "lifecycleRef", "memoryReadSet",
 	} {
 		if strings.Contains(string(raw), forbidden) {
 			t.Fatalf("manager snapshot leaked %q: %s", forbidden, raw)

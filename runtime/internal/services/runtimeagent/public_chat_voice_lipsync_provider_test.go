@@ -18,7 +18,7 @@ func TestPublicChatCommittedTurnSkipsVoiceProjectionWithoutVoiceConfiguration(t 
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			if err := emit(&runtimev1.StreamScenarioEvent{
@@ -114,7 +114,6 @@ func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutopla
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 
 	const expectedAudioArtifactID = "artifact-provider-voice-lipsync-1"
 	audioBytes := []byte("RIFF\x24\x00\x00\x00WAVEfmt ")
@@ -316,7 +315,7 @@ func TestPublicChatCommittedTurnEmitsTypedVoiceFailureWithoutRollingBackText(t *
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetVoiceLipsyncScenarioExecutor(&fakeVoiceLipsyncScenarioExecutor{
 		jobID:         "job-provider-voice-load-failed",
 		jobStatus:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,

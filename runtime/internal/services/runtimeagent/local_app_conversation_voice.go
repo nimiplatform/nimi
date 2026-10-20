@@ -129,7 +129,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	}
 	foundTurn := false
 	for _, transcriptTurn := range anchor.CommittedTranscript {
-		if (transcriptTurn.Origin == publicChatTurnOriginUser || transcriptTurn.Origin == publicChatTurnOriginApp || transcriptTurn.Origin == publicChatTurnOriginFollowUp) && transcriptTurn.TurnID == voice.TurnID &&
+		if (transcriptTurn.Origin == publicChatTurnOriginUser || transcriptTurn.Origin == publicChatTurnOriginApp || isProactiveOrigin(transcriptTurn.Origin)) && transcriptTurn.TurnID == voice.TurnID &&
 			strings.TrimSpace(transcriptTurn.AssistantText) != "" {
 			foundTurn = true
 			break

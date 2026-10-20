@@ -142,6 +142,7 @@ fn project_manager_snapshot(
     }
     let action_availability = project_manager_action_availability(snapshot.action_availability)?;
     Ok(json!({
+        "life":super::proactive_control::life(snapshot.life.ok_or_else(untrusted)?)?,
         "lifecycleStatus": project_lifecycle_status(snapshot.lifecycle_status)?,
         "executionState": project_execution_state(snapshot.execution_state)?,
         "statusText": snapshot.status_text,
@@ -430,6 +431,7 @@ fn project_context_lane_id(value: i32) -> Result<&'static str, LocalAppOperation
             AgentTurnContextLaneId::ConversationSummary => "conversation_summary",
             AgentTurnContextLaneId::PrivateRecall => "private_recall",
             AgentTurnContextLaneId::AppWork => "app_work",
+            AgentTurnContextLaneId::LifeContext => "life_context",
             AgentTurnContextLaneId::Unspecified => return Err(untrusted()),
         },
     )
@@ -849,7 +851,7 @@ fn project_autonomy(
 fn project_autonomy_config(
     config: LocalAppAgentAutonomyConfig,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    if config.daily_token_budget < 0 || config.max_tokens_per_hook < 0 {
+    if config.daily_token_budget < 0 || config.max_background_output_tokens < 0 {
         return Err(untrusted());
     }
     let mode = match LocalAppAgentAutonomyMode::try_from(config.mode).map_err(|_| untrusted())? {
@@ -861,10 +863,13 @@ fn project_autonomy_config(
     };
     Ok(json!({
         "dailyTokenBudget": config.daily_token_budget,
-        "maxTokensPerHook": config.max_tokens_per_hook,
-        "minHookInterval": config.min_hook_interval.map(project_duration),
+        "maxBackgroundOutputTokens": config.max_background_output_tokens,
+        "minPlanningInterval": config.min_planning_interval.map(project_duration),
         "suspendUntil": config.suspend_until.map(project_timestamp),
         "mode": mode,
+        "freeContactEnabled":config.free_contact_enabled,
+        "maxFreeContactsPerDay":config.max_free_contacts_per_day,
+        "quietHours":config.quiet_hours.map(|hours|json!({"timezone":hours.timezone,"startMinute":hours.start_minute,"endMinute":hours.end_minute})),
     }))
 }
 
@@ -997,10 +1002,13 @@ fn parse_autonomy_config(
         value,
         &[
             "dailyTokenBudget",
-            "maxTokensPerHook",
-            "minHookInterval",
+            "maxBackgroundOutputTokens",
+            "minPlanningInterval",
             "suspendUntil",
             "mode",
+            "freeContactEnabled",
+            "quietHours",
+            "maxFreeContactsPerDay",
         ],
     )?;
     let mode = match text(object, "mode")? {
@@ -1012,11 +1020,22 @@ fn parse_autonomy_config(
     };
     Ok(LocalAppAgentAutonomyConfig {
         daily_token_budget: integer(object, "dailyTokenBudget")?,
-        max_tokens_per_hook: integer(object, "maxTokensPerHook")?,
-        min_hook_interval: optional_duration(object.get("minHookInterval"))?,
+        max_background_output_tokens: integer(object, "maxBackgroundOutputTokens")?,
+        min_planning_interval: optional_duration(object.get("minPlanningInterval"))?,
         suspend_until: optional_timestamp(object.get("suspendUntil"))?,
         mode: mode as i32,
+        free_contact_enabled:object.get("freeContactEnabled").and_then(JsonValue::as_bool).ok_or_else(invalid_payload)?,
+        max_free_contacts_per_day:integer(object,"maxFreeContactsPerDay")?.try_into().map_err(|_|invalid_payload())?,
+        quiet_hours:parse_quiet_hours(object.get("quietHours"))?,
     })
+}
+
+fn parse_quiet_hours(value:Option<&JsonValue>)->Result<Option<crate::generated::AgentContactQuietHours>,LocalAppOperationError>{
+    let Some(value)=value.filter(|v|!v.is_null()) else{return Ok(None)};
+    let row=allowed_object(value,&["timezone","startMinute","endMinute"])?;
+    let timezone=text(row,"timezone")?.to_owned();let start=integer(row,"startMinute")?;let end=integer(row,"endMinute")?;
+    if timezone.is_empty()||timezone.len()>128||!(0..1440).contains(&start)||!(0..1440).contains(&end)||start==end{return Err(invalid_payload());}
+    Ok(Some(crate::generated::AgentContactQuietHours{timezone,start_minute:start as u32,end_minute:end as u32}))
 }
 
 fn parse_presentation_intent(
@@ -1403,6 +1422,7 @@ mod tests {
     #[test]
     fn manager_snapshot_projects_only_bounded_camel_case_status() {
         let projected = project_manager_snapshot(crate::generated::LocalAppAgentManagerSnapshot {
+            life: Some(crate::generated::LocalAppAgentLifeProjection { revision:1, ..Default::default() }),
             conversation_context: None,
             lifecycle_status: AgentLifecycleStatus::Active as i32,
             execution_state: AgentExecutionState::ChatActive as i32,
@@ -1483,7 +1503,7 @@ mod tests {
                 .map(JsonMap::len),
             Some(11)
         );
-        assert_eq!(projected.as_object().map(|record| record.len()), Some(8));
+        assert_eq!(projected.as_object().map(|record| record.len()), Some(9));
         assert!(projected["conversationContext"].is_null());
         let serialized = projected.to_string();
         for forbidden in [

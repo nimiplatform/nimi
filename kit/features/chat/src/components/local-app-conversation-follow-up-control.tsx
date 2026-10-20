@@ -1,12 +1,8 @@
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { extractNimiErrorFields } from '@nimiplatform/kit/core/sdk-contract';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Toggle } from '@nimiplatform/kit/ui';
-import type {
-  NimiLocalAppAgentHandle,
-  NimiLocalAppConversationClient,
-  NimiLocalAppConversationState,
-} from '@nimiplatform/kit/core/sdk-contract';
+import { Button } from '@nimiplatform/kit/ui';
+import type { NimiLocalAppAgentHandle, NimiLocalAppConversationClient, NimiLocalAppConversationState } from '@nimiplatform/kit/core/sdk-contract';
 
 export function LocalAppConversationFollowUpControl(props: {
   translate: (key: string, values?: Record<string, string | number>) => string;
@@ -15,142 +11,35 @@ export function LocalAppConversationFollowUpControl(props: {
   state: NimiLocalAppConversationState | null;
   conversation: () => NimiLocalAppConversationClient;
   refresh: () => void;
+  onOpenAgentCenter?: () => void;
 }) {
-  const t = props.translate;
-  const scopeKey = `${props.agentHandle}|${props.conversationAnchorId}`;
-  const currentScope = useRef(scopeKey);
-  currentScope.current = scopeKey;
-  const alive = useRef(true);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
-  const [due, setDue] = useState('');
-  const state = props.state;
-  const scope = {
-    agentHandle: props.agentHandle as NimiLocalAppAgentHandle,
-    conversationAnchorId: props.conversationAnchorId,
+  const t = props.translate, scopeKey = `${props.agentHandle}|${props.conversationAnchorId}`;
+  const currentScope = useRef<string | null>(scopeKey); currentScope.current = scopeKey;
+  const [busy, setBusy] = useState(false), [error, setError] = useState(false);
+  useEffect(() => { currentScope.current = scopeKey; setBusy(false); setError(false); return () => { currentScope.current = null; }; }, [scopeKey]);
+  const task = props.state?.pendingFollowUp;
+  const cancel = async () => {
+    if (!task || busy) return;
+    setBusy(true); setError(false);
+    try { await props.conversation().cancelFollowUp({ agentHandle: props.agentHandle as NimiLocalAppAgentHandle, conversationAnchorId: props.conversationAnchorId, taskId: task.taskId, expectedRevision: task.revision }); if (currentScope.current === scopeKey) props.refresh(); }
+    catch (error) { logRendererEvent({ level: 'warn', area: 'agent-chat', message: 'action:follow-up-cancel-failed', details: { ...extractNimiErrorFields(error) } }); if (currentScope.current === scopeKey) { setError(true); props.refresh(); } }
+    finally { if (currentScope.current === scopeKey) setBusy(false); }
   };
-  const act = async (operation: () => Promise<unknown>) => {
-    const startedScope = scopeKey;
-    const current = () => alive.current && currentScope.current === startedScope;
-    setBusy(true);
-    setError(false);
-    try {
-      await operation();
-      if (current()) props.refresh();
-    } catch (error) {
-      logRendererEvent({
-        level: 'warn',
-        area: 'agent-chat',
-        message: 'action:follow-up-control-failed',
-        details: { ...extractNimiErrorFields(error) },
-      });
-      if (current()) {
-        setError(true);
-        props.refresh();
-      }
-    } finally {
-      if (current()) setBusy(false);
-    }
-  };
-  useEffect(() => { setBusy(false); setError(false); setDue(''); }, [scopeKey]);
-  const task = state?.pendingFollowUp;
-  const scheduled = task ? new Date(Number(task.scheduledFor.seconds) * 1000).toLocaleString() : '';
-  const newDue = Date.parse(due);
-  return (
-    <details className="mx-3 my-2 text-xs text-neutral-600">
+  return <div className="mx-3 my-2 text-xs text-[var(--nimi-text-secondary)]">
+    <details className="mt-1">
       <summary className="cursor-pointer">{t('Chat.followUpTitle')}</summary>
       <div className="grid gap-2 py-2">
         <p>{t('Chat.followUpDescription')}</p>
-        {state ? (
-          <>
-            <label className="flex items-center gap-2">
-              <Toggle
-                checked={state.followUpEnabled}
-                disabled={busy}
-                ariaLabel={t('Chat.followUpEnabled')}
-                onChange={(enabled) => {
-                  void act(() =>
-                    props.conversation().setFollowUpPolicy({
-                      ...scope,
-                      expectedRevision: state.followUpPolicyRevision,
-                      enabled,
-                    }),
-                  );
-                }}
-              />
-              <span>{t('Chat.followUpEnabled')}</span>
-            </label>
-            <p>{t('Chat.followUpLimit', { count: state.maxFollowUpTurns })}</p>
-            {task ? (
-              <>
-                <p>{t('Chat.followUpPending', { time: scheduled })}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    tone="ghost"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => {
-                      void act(() =>
-                        props.conversation().updateFollowUp({
-                          ...scope,
-                          taskId: task.taskId,
-                          expectedRevision: task.revision,
-                          action: 'cancel',
-                        }),
-                      );
-                    }}
-                  >
-                    {t('Chat.followUpCancel')}
-                  </Button>
-                  <input
-                    aria-label={t('Chat.followUpNewTime')}
-                    type="datetime-local"
-                    value={due}
-                    onChange={(event) => setDue(event.currentTarget.value)}
-                    disabled={busy}
-                    className="rounded border p-1"
-                  />
-                  <Button
-                    tone="ghost"
-                    size="sm"
-                    disabled={busy || !Number.isFinite(newDue) || newDue <= Date.now()}
-                    onClick={() => {
-                      void act(() =>
-                        props.conversation().updateFollowUp({
-                          ...scope,
-                          taskId: task.taskId,
-                          expectedRevision: task.revision,
-                          action: 'reschedule',
-                          scheduledFor: { seconds: String(Math.floor(newDue / 1000)), nanos: 0 },
-                        }),
-                      );
-                    }}
-                  >
-                    {t('Chat.followUpReschedule')}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p>{t('Chat.followUpNone')}</p>
-            )}
-            <p>{t('Chat.followUpStartedNotice')}</p>
-          </>
-        ) : (
-          <p>{t('Chat.followUpUnavailable')}</p>
-        )}
+        {props.state ? <>
+          <p>{t(props.state.freeContactEnabled ? 'Chat.freeContactOn' : 'Chat.freeContactOff')}</p>
+          <p>{t('Chat.followUpLimit', { count: props.state.maxFollowUpTurns })}</p>
+          {task ? <div className="flex flex-wrap items-center gap-2"><p>{t('Chat.followUpPending', { time: new Date(Number(task.scheduledFor.seconds) * 1000).toLocaleString() })}</p><Button tone="ghost" size="sm" disabled={busy} onClick={() => { void cancel(); }}>{t('Chat.followUpCancel')}</Button></div> : <p>{t('Chat.followUpNone')}</p>}
+          <p>{t('Chat.followUpStartedNotice')}</p>
+        </> : <p>{t('Chat.followUpUnavailable')}</p>}
+        {props.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={props.onOpenAgentCenter}>{t('Chat.followUpManage')}</Button> : null}
         {error ? <p role="alert">{t('Chat.followUpChanged')}</p> : null}
-        {!state || error ? (
-          <Button tone="ghost" size="sm" onClick={props.refresh}>
-            {t('Chat.followUpRefresh')}
-          </Button>
-        ) : null}
+        {!props.state || error ? <Button tone="ghost" size="sm" onClick={props.refresh}>{t('Chat.followUpRefresh')}</Button> : null}
       </div>
     </details>
-  );
+  </div>;
 }

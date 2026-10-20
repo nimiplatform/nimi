@@ -686,10 +686,6 @@ services:
         type: unary
       - name: SetAutonomyConfig
         type: unary
-      - name: ListPendingHooks
-        type: unary
-      - name: CancelHook
-        type: unary
       - name: TranscribeAgentVoiceInput
         type: unary
       - name: GetSharedLocalAgentAIConfig
@@ -741,18 +737,9 @@ services:
       - name: UpdateLocalAppAgentAutonomy
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
-      - name: UpdateLocalAppConversationFollowUpPolicy
+      - name: CancelLocalAppConversationFollowUp
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy
-      - name: UpdateLocalAppConversationFollowUp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp
-      - name: ListLocalAppAgentPendingHooks
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks
-      - name: UpdateLocalAppAgentPendingHook
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp
       - name: UpdateLocalAppAgentConversationContext
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext

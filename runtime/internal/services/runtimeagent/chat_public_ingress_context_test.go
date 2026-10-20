@@ -14,7 +14,7 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			select {

@@ -35,6 +35,9 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 	if err := appendAgentTurnAppWork(items, input.AppWork); err != nil {
 		return nil, err
 	}
+	if err := appendAgentTurnLifeContext(items, input.LifeContext); err != nil {
+		return nil, err
+	}
 	lanes, err := makeAgentTurnContextLanes(items)
 	if err != nil {
 		return nil, err
@@ -98,15 +101,17 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 	}
 	manifest.ManifestInstanceHash = manifestHash
 	result := &agentTurnContextCompilation{
-		Manifest:       manifest,
-		PrivateLanes:   lanes,
-		ProviderPrompt: prompt,
+		OutputContractID: input.OutputContract.ContractID,
+		Manifest:         manifest,
+		PrivateLanes:     lanes,
+		ProviderPrompt:   prompt,
 	}
 	result.Summary = projectAgentTurnContextSummary(result)
 	return result, nil
 }
 
 func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) error {
+
 	for field, value := range map[string]string{
 		"local_agent_ref": input.LocalAgentRef,
 		"request_id":      input.RequestID,
@@ -115,12 +120,19 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 			return fmt.Errorf("agent turn context %s is required", field)
 		}
 	}
-	if input.AppWork != nil {
+	if input.LifeContext != nil && input.LifeContext.Planning {
+		if input.AppWork != nil || input.ExecutionID == "" || input.ConversationAnchorID != "" || input.TurnID != "" || input.CurrentUserTurn.Text != "" || len(input.CurrentUserTurn.Media) != 0 {
+			return fmt.Errorf("life planning requires an independent execution without a fabricated user turn")
+		}
+	} else if input.AppWork != nil {
 		if strings.TrimSpace(input.ExecutionID) == "" || input.ConversationAnchorID != "" || input.TurnID != "" || len(input.Transcript) != 0 || input.ConversationSummary != nil {
 			return fmt.Errorf("App work must have an independent execution without Conversation context")
 		}
 	} else if input.ExecutionID != "" || strings.TrimSpace(input.ConversationAnchorID) == "" || strings.TrimSpace(input.TurnID) == "" {
 		return fmt.Errorf("chat context requires its Conversation anchor and turn")
+	}
+	if input.Source.WorldTimeDecodeFailure != "" {
+		return fmt.Errorf("source snapshot world time is invalid: %s", input.Source.WorldTimeDecodeFailure)
 	}
 	if input.Source.LocalAgentRef != input.LocalAgentRef || validateLocalAgentTurnSourceViewV1(input.Source) != nil {
 		return fmt.Errorf("agent turn context source snapshot is bound to another LocalAgent")
@@ -144,7 +156,7 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 	if strings.TrimSpace(input.OutputContract.ContractID) == "" || strings.TrimSpace(input.OutputContract.Version) == "" || strings.TrimSpace(input.OutputContract.Instruction) == "" {
 		return fmt.Errorf("agent turn context output contract is required")
 	}
-	if strings.TrimSpace(input.CurrentUserTurn.Text) == "" && len(input.CurrentUserTurn.Media) == 0 {
+	if !(input.LifeContext != nil && input.LifeContext.Planning) && strings.TrimSpace(input.CurrentUserTurn.Text) == "" && len(input.CurrentUserTurn.Media) == 0 {
 		return fmt.Errorf("agent turn context current user turn is required")
 	}
 	if err := validateAgentTurnContextMedia(input.CurrentUserTurn.Media); err != nil {
@@ -389,6 +401,9 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 
 	// The current semantic input is instance-agnostic: request/turn ids belong
 	// only to manifestInstanceHash, never contextContentHash or promptHash.
+	if input.LifeContext != nil && input.LifeContext.Planning {
+		return capabilityDigest, toolCount, nil
+	}
 	currentRef, err := newAgentTurnContextRuntimeRefValue("currentUserTurn", "current", "v1", input.CurrentUserTurn)
 	if err != nil {
 		return "", 0, err
@@ -405,6 +420,7 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 	// The existing output contract distinguishes Conversation from Realtime and
 	// App work. This is target composition, not a provider fallback or toggle.
 	conversationText := contractID == publicChatContextOutputContractID
+	lifePlanning := contractID == "nimi.runtime.life-frame"
 	prompt := agentTurnProviderPrompt{Messages: make([]agentTurnProviderMessage, 0)}
 	var outputContractMessages []agentTurnProviderMessage
 	for _, lane := range lanes {
@@ -416,8 +432,12 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 				if len(outputContractMessages) != 0 || len(item.Segments) != 1 || item.Segments[0].Role != "system" || strings.TrimSpace(item.Segments[0].Content) == "" || len(item.Media) != 0 {
 					return agentTurnProviderPrompt{}, fmt.Errorf("output contract lane must project exactly one Runtime instruction")
 				}
+				role := "user"
+				if conversationText || contractID == agentRealtimeOutputContractID {
+					role = "system"
+				}
 				outputContractMessages = append(outputContractMessages, agentTurnProviderMessage{
-					Role:    "user",
+					Role:    role,
 					Content: strings.TrimSpace(item.Segments[0].Content),
 				})
 			}
@@ -439,7 +459,7 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 		return agentTurnProviderPrompt{}, fmt.Errorf("output contract Runtime instruction is required")
 	}
 	// @nimi-authority: rule.nimi.runtime.agent-service.r013
-	if conversationText {
+	if conversationText || lifePlanning {
 		var sections []string
 		var conversation []agentTurnProviderMessage
 		for _, message := range prompt.Messages {
@@ -452,7 +472,9 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 				conversation = append(conversation, message)
 			}
 		}
-		// Keep the existing trailing APML reminder in its current user role.
+		// Conversation routing/output instructions stay Runtime system policy;
+		// the actual current user remains the last input. Life planning still
+		// has no fabricated user input lane or Conversation record.
 		// Each system section retains its existing source/trust envelope. Joining only
 		// saves role/message overhead: two separator bytes are bounded by the
 		// existing per-item 32-byte message overhead, so no budget is weakened.

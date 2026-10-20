@@ -9,37 +9,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func (hook *publicChatAPMLHookDraft) setEventUserIdle(idleFor string, idleForMs string) error {
-	if hook == nil {
-		return fmt.Errorf("APML event-user-idle outside event-hook")
-	}
-	if hook.triggerEvent != "" {
-		return fmt.Errorf("APML event-hook admits exactly one event trigger")
-	}
-	idleDuration, err := parseAPMLDuration(idleFor, idleForMs)
-	if err != nil {
-		return fmt.Errorf("APML event-hook event-user-idle idle-for invalid: %w", err)
-	}
-	idleMs := int(idleDuration.AsDuration().Milliseconds())
-	if idleMs <= 0 {
-		return fmt.Errorf("APML event-hook event-user-idle idle-for must be positive")
-	}
-	hook.triggerEvent = "user-idle"
-	hook.idleMs = idleMs
-	return nil
-}
-
-func (hook *publicChatAPMLHookDraft) setEventChatEnded() error {
-	if hook == nil {
-		return fmt.Errorf("APML event-chat-ended outside event-hook")
-	}
-	if hook.triggerEvent != "" {
-		return fmt.Errorf("APML event-hook admits exactly one event trigger")
-	}
-	hook.triggerEvent = "chat-ended"
-	return nil
-}
-
 func publicChatAPMLHookOperation(hook publicChatAPMLHookDraft) string {
 	if hook.triggerFamily == "event" {
 		return "assistant.turn.hook"

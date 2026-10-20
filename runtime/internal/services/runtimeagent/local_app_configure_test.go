@@ -343,7 +343,7 @@ func TestLocalAppAutonomySnapshotAndCASUpdate(t *testing.T) {
 	updated, err := svc.UpdateLocalAppAgentAutonomy(updateCtx, &runtimev1.UpdateLocalAppAgentAutonomyRequest{
 		AgentHandle: handle, ExpectedAutonomyRevision: revision,
 		Intent: &runtimev1.LocalAppAgentAutonomyIntent{Enabled: proto.Bool(true), Config: &runtimev1.LocalAppAgentAutonomyConfig{
-			Mode: runtimev1.LocalAppAgentAutonomyMode_LOCAL_APP_AGENT_AUTONOMY_MODE_LOW, DailyTokenBudget: 1000, MaxTokensPerHook: 100,
+			Mode: runtimev1.LocalAppAgentAutonomyMode_LOCAL_APP_AGENT_AUTONOMY_MODE_LOW, DailyTokenBudget: 1000, MaxBackgroundOutputTokens: 100,
 		}},
 	})
 	if err != nil || !updated.GetProjection().GetEnabled() || updated.GetProjection().GetAutonomyRevision() != revision+1 {

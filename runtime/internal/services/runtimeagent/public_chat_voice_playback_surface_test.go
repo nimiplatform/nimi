@@ -2,10 +2,40 @@ package runtimeagent
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestProactiveTextLeavesVoiceForExplicitAuthorizedRender(t *testing.T) {
+	for _, origin := range []string{"contact", "life", publicChatTurnOriginFollowUp} {
+		t.Run(origin, func(t *testing.T) {
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+			setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", false)
+			capture := newPublicChatEmitCapture()
+			svc.SetPublicChatAppEmitter(capture.emit)
+			called := false
+			svc.voiceLipsync = retryVoiceSynth(func(voiceLipsyncSynthesisInput) (voiceLipsyncSynthesisOutput, error) {
+				called = true
+				return voiceLipsyncSynthesisOutput{}, errors.New("background text has no App Job admission")
+			})
+			svc.chatSurfaceMu.Lock()
+			session := *svc.chatAnchors[anchorID]
+			svc.chatSurfaceMu.Unlock()
+			svc.publicChatRuntime().projectCommittedConversationVoice(context.Background(), session, publicChatTurnState{
+				ConversationAnchorID: anchorID, TurnID: "proactive-voice", StreamID: "proactive-stream", Origin: origin,
+			}, &publicChatStructuredEnvelope{
+				Message: publicChatStructuredMessage{MessageID: "proactive-message", Text: "A quiet evening."},
+			})
+			if called || len(capture.messageTypes()) != 0 {
+				t.Fatal("autonomous text started an unauthorized speech Job or published a failed voice sidecar")
+			}
+		})
+	}
+}
 
 func TestPublicChatCommittedTurnSkipsConversationVoiceOnEmptyText(t *testing.T) {
 	t.Parallel()

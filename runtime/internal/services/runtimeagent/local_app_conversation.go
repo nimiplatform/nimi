@@ -116,6 +116,7 @@ func (s *Service) SendLocalAppConversationTurn(
 	}
 	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
 	requestID := strings.TrimSpace(req.GetRequestId())
+
 	if !validLocalAppConversationSelector(anchorID) ||
 		!validLocalAppConversationText(requestID, localAppConversationMaxRequestIDBytes, false) {
 		return nil, localAppConversationInvalid("local-app conversation turn input is invalid")
@@ -521,7 +522,7 @@ func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
 	}
 	for _, transcriptTurn := range anchor.CommittedTranscript {
 		turnID := strings.TrimSpace(transcriptTurn.TurnID)
-		if (transcriptTurn.Origin != publicChatTurnOriginUser && transcriptTurn.Origin != publicChatTurnOriginApp && transcriptTurn.Origin != publicChatTurnOriginFollowUp) || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
+		if (transcriptTurn.Origin != publicChatTurnOriginUser && transcriptTurn.Origin != publicChatTurnOriginApp && !isProactiveOrigin(transcriptTurn.Origin)) || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
 			localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
 			continue
 		}
@@ -1134,6 +1135,8 @@ func (s *Service) buildLocalAppConversationSnapshot(
 				turn.InputTurnId = &value
 			}
 			turn.CanRegenerate = publicChatCanRegenerate(&owned, turn.TurnId)
+			if original := owned.Recoveries[item.InputTurnID]; original != nil {
+			}
 		}
 	}
 	snapshot := &runtimev1.LocalAppConversationSnapshot{
@@ -2099,6 +2102,11 @@ func (s *Service) projectLocalAppConversationEvents(
 			s.chatSurfaceMu.Unlock()
 			return nil, true, localAppConversationOwnerUnavailable()
 		}
+		if recovery := anchor.Recoveries[turnID]; recovery != nil {
+			if original := anchor.Recoveries[recovery.InputTurnID]; original != nil {
+
+			}
+		}
 		state := s.localAppConversationStateLocked(anchor)
 		s.chatSurfaceMu.Unlock()
 		return []*runtimev1.LocalAppConversationEvent{event, {ConversationAnchorId: anchorID, Sequence: sequence + 1, Event: &runtimev1.LocalAppConversationEvent_StateChanged{StateChanged: state}}}, true, nil
@@ -2150,7 +2158,7 @@ func validLocalAppConversationTerminalReason(value string) bool {
 
 func validLocalAppConversationInterruptReason(value string) bool {
 	switch value {
-	case "user_cancel", "room_closed", "superseded_turn", "budget_exhausted", "timeout", "gateway_revoked", "policy_refusal":
+	case "user_cancel", "room_closed", "superseded_turn", "budget_exhausted", "timeout", "gateway_revoked", "policy_refusal", "foreground_user_input", "free_contact_disabled":
 		return true
 	default:
 		return false

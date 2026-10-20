@@ -254,13 +254,13 @@ export interface LocalAppAgentAutonomyConfig {
      */
     dailyTokenBudget: string;
     /**
-     * @generated from protobuf field: int64 max_tokens_per_hook = 2
+     * @generated from protobuf field: int64 max_background_output_tokens = 9
      */
-    maxTokensPerHook: string;
+    maxBackgroundOutputTokens: string;
     /**
-     * @generated from protobuf field: google.protobuf.Duration min_hook_interval = 3
+     * @generated from protobuf field: google.protobuf.Duration min_planning_interval = 11
      */
-    minHookInterval?: Duration;
+    minPlanningInterval?: Duration;
     /**
      * @generated from protobuf field: google.protobuf.Timestamp suspend_until = 4
      */
@@ -269,6 +269,35 @@ export interface LocalAppAgentAutonomyConfig {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentAutonomyMode mode = 5
      */
     mode: LocalAppAgentAutonomyMode;
+    /**
+     * @generated from protobuf field: bool free_contact_enabled = 6
+     */
+    freeContactEnabled: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentContactQuietHours quiet_hours = 7
+     */
+    quietHours?: AgentContactQuietHours;
+    /**
+     * @generated from protobuf field: uint32 max_free_contacts_per_day = 8
+     */
+    maxFreeContactsPerDay: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentContactQuietHours
+ */
+export interface AgentContactQuietHours {
+    /**
+     * @generated from protobuf field: string timezone = 1
+     */
+    timezone: string;
+    /**
+     * @generated from protobuf field: uint32 start_minute = 2
+     */
+    startMinute: number;
+    /**
+     * @generated from protobuf field: uint32 end_minute = 3
+     */
+    endMinute: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentAutonomyProjection
@@ -1389,17 +1418,22 @@ class LocalAppAgentAutonomyConfig$Type extends MessageType<LocalAppAgentAutonomy
     constructor() {
         super("nimi.runtime.v1.LocalAppAgentAutonomyConfig", [
             { no: 1, name: "daily_token_budget", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 2, name: "max_tokens_per_hook", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 3, name: "min_hook_interval", kind: "message", T: () => Duration },
+            { no: 9, name: "max_background_output_tokens", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 11, name: "min_planning_interval", kind: "message", T: () => Duration },
             { no: 4, name: "suspend_until", kind: "message", T: () => Timestamp },
-            { no: 5, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAgentAutonomyMode", LocalAppAgentAutonomyMode, "LOCAL_APP_AGENT_AUTONOMY_MODE_"] }
+            { no: 5, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAgentAutonomyMode", LocalAppAgentAutonomyMode, "LOCAL_APP_AGENT_AUTONOMY_MODE_"] },
+            { no: 6, name: "free_contact_enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "quiet_hours", kind: "message", T: () => AgentContactQuietHours },
+            { no: 8, name: "max_free_contacts_per_day", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentAutonomyConfig>): LocalAppAgentAutonomyConfig {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.dailyTokenBudget = "0";
-        message.maxTokensPerHook = "0";
+        message.maxBackgroundOutputTokens = "0";
         message.mode = 0;
+        message.freeContactEnabled = false;
+        message.maxFreeContactsPerDay = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppAgentAutonomyConfig>(this, message, value);
         return message;
@@ -1412,17 +1446,26 @@ class LocalAppAgentAutonomyConfig$Type extends MessageType<LocalAppAgentAutonomy
                 case /* int64 daily_token_budget */ 1:
                     message.dailyTokenBudget = reader.int64().toString();
                     break;
-                case /* int64 max_tokens_per_hook */ 2:
-                    message.maxTokensPerHook = reader.int64().toString();
+                case /* int64 max_background_output_tokens */ 9:
+                    message.maxBackgroundOutputTokens = reader.int64().toString();
                     break;
-                case /* google.protobuf.Duration min_hook_interval */ 3:
-                    message.minHookInterval = Duration.internalBinaryRead(reader, reader.uint32(), options, message.minHookInterval);
+                case /* google.protobuf.Duration min_planning_interval */ 11:
+                    message.minPlanningInterval = Duration.internalBinaryRead(reader, reader.uint32(), options, message.minPlanningInterval);
                     break;
                 case /* google.protobuf.Timestamp suspend_until */ 4:
                     message.suspendUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.suspendUntil);
                     break;
                 case /* nimi.runtime.v1.LocalAppAgentAutonomyMode mode */ 5:
                     message.mode = reader.int32();
+                    break;
+                case /* bool free_contact_enabled */ 6:
+                    message.freeContactEnabled = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AgentContactQuietHours quiet_hours */ 7:
+                    message.quietHours = AgentContactQuietHours.internalBinaryRead(reader, reader.uint32(), options, message.quietHours);
+                    break;
+                case /* uint32 max_free_contacts_per_day */ 8:
+                    message.maxFreeContactsPerDay = reader.uint32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1439,18 +1482,27 @@ class LocalAppAgentAutonomyConfig$Type extends MessageType<LocalAppAgentAutonomy
         /* int64 daily_token_budget = 1; */
         if (message.dailyTokenBudget !== "0")
             writer.tag(1, WireType.Varint).int64(message.dailyTokenBudget);
-        /* int64 max_tokens_per_hook = 2; */
-        if (message.maxTokensPerHook !== "0")
-            writer.tag(2, WireType.Varint).int64(message.maxTokensPerHook);
-        /* google.protobuf.Duration min_hook_interval = 3; */
-        if (message.minHookInterval)
-            Duration.internalBinaryWrite(message.minHookInterval, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* google.protobuf.Timestamp suspend_until = 4; */
         if (message.suspendUntil)
             Timestamp.internalBinaryWrite(message.suspendUntil, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.LocalAppAgentAutonomyMode mode = 5; */
         if (message.mode !== 0)
             writer.tag(5, WireType.Varint).int32(message.mode);
+        /* bool free_contact_enabled = 6; */
+        if (message.freeContactEnabled !== false)
+            writer.tag(6, WireType.Varint).bool(message.freeContactEnabled);
+        /* nimi.runtime.v1.AgentContactQuietHours quiet_hours = 7; */
+        if (message.quietHours)
+            AgentContactQuietHours.internalBinaryWrite(message.quietHours, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* uint32 max_free_contacts_per_day = 8; */
+        if (message.maxFreeContactsPerDay !== 0)
+            writer.tag(8, WireType.Varint).uint32(message.maxFreeContactsPerDay);
+        /* int64 max_background_output_tokens = 9; */
+        if (message.maxBackgroundOutputTokens !== "0")
+            writer.tag(9, WireType.Varint).int64(message.maxBackgroundOutputTokens);
+        /* google.protobuf.Duration min_planning_interval = 11; */
+        if (message.minPlanningInterval)
+            Duration.internalBinaryWrite(message.minPlanningInterval, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1461,6 +1513,69 @@ class LocalAppAgentAutonomyConfig$Type extends MessageType<LocalAppAgentAutonomy
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentAutonomyConfig
  */
 export const LocalAppAgentAutonomyConfig = new LocalAppAgentAutonomyConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentContactQuietHours$Type extends MessageType<AgentContactQuietHours> {
+    constructor() {
+        super("nimi.runtime.v1.AgentContactQuietHours", [
+            { no: 1, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start_minute", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "end_minute", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentContactQuietHours>): AgentContactQuietHours {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.timezone = "";
+        message.startMinute = 0;
+        message.endMinute = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AgentContactQuietHours>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentContactQuietHours): AgentContactQuietHours {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string timezone */ 1:
+                    message.timezone = reader.string();
+                    break;
+                case /* uint32 start_minute */ 2:
+                    message.startMinute = reader.uint32();
+                    break;
+                case /* uint32 end_minute */ 3:
+                    message.endMinute = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentContactQuietHours, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string timezone = 1; */
+        if (message.timezone !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.timezone);
+        /* uint32 start_minute = 2; */
+        if (message.startMinute !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.startMinute);
+        /* uint32 end_minute = 3; */
+        if (message.endMinute !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.endMinute);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentContactQuietHours
+ */
+export const AgentContactQuietHours = new AgentContactQuietHours$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAppAgentAutonomyProjection$Type extends MessageType<LocalAppAgentAutonomyProjection> {
     constructor() {

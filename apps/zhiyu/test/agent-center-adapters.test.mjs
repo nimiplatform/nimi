@@ -93,13 +93,13 @@ test('production Agent Center routes the complete configuration family through t
       'text.generate',
     );
     assert.deepEqual(session.getSnapshot().state.participation, PARTICIPATION);
-    assert.deepEqual(session.getSnapshot().state.autonomy, {
+    assert.deepEqual(session.getSnapshot().state.autonomy, {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       revision: '7',
       enabled: true,
       mode: 'low',
       usedTokensInWindow: 12,
       dailyTokenBudget: 4096,
-      maxTokensPerHook: 512,
+      maxBackgroundOutputTokens: 512,
       windowStartedAt: '2025-06-15T15:06:40.000Z',
       suspendedUntil: null,
       budgetExhausted: false,
@@ -143,20 +143,20 @@ test('production Agent Center routes the complete configuration family through t
       replacementCapabilities,
     );
 
-    await session.updateAutonomy({
+    await session.updateAutonomy({freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       expectedRevision: '7',
       enabled: false,
       mode: 'medium',
       dailyTokenBudget: 2048,
-      maxTokensPerHook: 256,
+      maxBackgroundOutputTokens: 256,
     });
-    assert.deepEqual(session.getSnapshot().state.autonomy, {
+    assert.deepEqual(session.getSnapshot().state.autonomy, {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       revision: '8',
       enabled: false,
       mode: 'medium',
       usedTokensInWindow: 12,
       dailyTokenBudget: 2048,
-      maxTokensPerHook: 256,
+      maxBackgroundOutputTokens: 256,
       windowStartedAt: '2025-06-15T15:06:40.000Z',
       suspendedUntil: null,
       budgetExhausted: false,
@@ -192,10 +192,10 @@ test('production Agent Center routes the complete configuration family through t
         expectedAutonomyRevision: '7',
         intent: {
           enabled: false,
-          config: {
+          config: {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
             mode: 'medium',
             dailyTokenBudget: 2048,
-            maxTokensPerHook: 256,
+            maxBackgroundOutputTokens: 256,
           },
         },
       },
@@ -301,10 +301,10 @@ function createAgentConfigureHost() {
     route: { oneofKind: 'local', local: {} },
   }];
   let aiConfigRevision = '1';
-  let autonomy = {
+  let autonomy = {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
     enabled: true,
     dailyTokenBudget: 4096,
-    maxTokensPerHook: 512,
+    maxBackgroundOutputTokens: 512,
     mode: 'low',
     revision: '7',
   };
@@ -329,10 +329,10 @@ function createAgentConfigureHost() {
   });
   const autonomyProjection = () => ({
     enabled: autonomy.enabled,
-    config: {
+    config: {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       dailyTokenBudget: autonomy.dailyTokenBudget,
-      maxTokensPerHook: autonomy.maxTokensPerHook,
-      minHookInterval: null,
+      maxBackgroundOutputTokens: autonomy.maxBackgroundOutputTokens,
+      minPlanningInterval: null,
       suspendUntil: null,
       mode: autonomy.mode,
     },
@@ -360,7 +360,7 @@ function createAgentConfigureHost() {
     forgottenCount: forgottenMemoryCount,
     nextPageToken: null,
   });
-  const managerProjection = () => ({
+  const managerProjection = () => ({life:{revision:'1',current:null,recent:[],future:[],activities:[],nextCheckAt:null,waitReason:''},
     lifecycleStatus: 'active',
     executionState: 'idle',
     statusText: 'Ready',
@@ -436,10 +436,10 @@ function createAgentConfigureHost() {
           return autonomyProjection();
         case COMMANDS.autonomyUpdate:
           assert.equal(input.expectedAutonomyRevision, autonomy.revision);
-          autonomy = {
+          autonomy = {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
             enabled: input.intent.enabled ?? autonomy.enabled,
             dailyTokenBudget: input.intent.config.dailyTokenBudget,
-            maxTokensPerHook: input.intent.config.maxTokensPerHook,
+            maxBackgroundOutputTokens: input.intent.config.maxBackgroundOutputTokens,
             mode: input.intent.config.mode,
             revision: String(BigInt(autonomy.revision) + 1n),
           };

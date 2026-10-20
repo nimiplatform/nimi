@@ -1592,7 +1592,7 @@ function localAppHost(calls: unknown[]) {
     },
     agentManagerSnapshot: async (input: unknown) => {
       calls.push(['agentManagerSnapshot', input]);
-      return {
+      return { life: {revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
         lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
         source: null, context: null, actionAvailability: managerActionAvailability(),
       };

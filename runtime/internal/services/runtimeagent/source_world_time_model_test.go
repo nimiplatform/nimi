@@ -91,3 +91,20 @@ func TestWorldTimeModelRejectsMixedOrIncompleteShapes(t *testing.T) {
 		}
 	}
 }
+
+func TestRecoveredInvalidWorldTimeCannotReachInference(t *testing.T) {
+	snapshot := sourceWorldTimeModelTestSnapshotWith(t, map[string]any{"mode": "static"})
+	view, err := localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot)
+	if err != nil || view.WorldTimeDecodeFailure == "" {
+		t.Fatalf("recovery did not preserve invalid-source diagnosis: %v", err)
+	}
+	input := agentTurnContextTestInput(t, "worldCharacter")
+	input.Source = view
+	input.LocalAgentRef = view.LocalAgentRef
+	if _, err := compileAgentTurnContext(input); err == nil || !strings.Contains(err.Error(), "world time is invalid") {
+		t.Fatalf("invalid recovered source reached inference: %v", err)
+	}
+	if _, err := localAgentTurnSourceViewFromSnapshotV1(snapshot); err == nil {
+		t.Fatal("new materialization accepted invalid time")
+	}
+}

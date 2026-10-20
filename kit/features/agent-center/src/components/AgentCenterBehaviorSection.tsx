@@ -1,40 +1,11 @@
-import { useEffect, useState, type KeyboardEvent } from 'react';
-import {
-  Check,
-  ChevronRight,
-  Info,
-} from 'lucide-react';
-import {
-  Button,
-  InlineAlert,
-  ProgressIndicator,
-  StatusBadge,
-  Toggle,
-  type FeedbackTone,
-} from '@nimiplatform/kit/ui';
-import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
+import { useEffect, useRef, useState } from 'react';
+import { Button, InlineAlert, Toggle } from '@nimiplatform/kit/ui';
 import { translateAgentCenter } from '../i18n.js';
-import { getAgentCenterCatalogRecord } from '../locales/index.js';
-import type {
-  AgentCenterAutonomyProjection,
-  AgentCenterAutonomyMutationInput,
-  AgentCenterBehaviorCopy,
-  AgentCenterI18n,
-  AgentCenterPlacementActions,
-  AgentCenterSession,
-  AgentCenterSnapshot,
-} from '../types.js';
-import {
-  Card,
-  SectionHeader,
-  SectionShell,
-  agentCenterInputClassName,
-  cnAgentCenter,
-} from './AgentCenterPrimitives.js';
-import { AgentCenterPendingHooks } from './AgentCenterPendingHooks.js';
+import { getAgentCenterMessage } from '../locales/index.js';
+import type { AgentCenterAutonomyMutationInput, AgentCenterAutonomyState, AgentCenterI18n, AgentCenterPlacementActions, AgentCenterSession, AgentCenterSnapshot } from '../types.js';
+import { Card, SectionHeader, SectionShell, agentCenterInputClassName } from './AgentCenterPrimitives.js';
 import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
-
-type AgentCenterAutonomyMode = AgentCenterAutonomyMutationInput['mode'];
+import { AgentCenterLifePanel } from './AgentCenterLifePanel.js';
 
 export interface AgentCenterBehaviorSectionProps {
   readonly session: AgentCenterSession;
@@ -42,423 +13,85 @@ export interface AgentCenterBehaviorSectionProps {
   readonly i18n?: AgentCenterI18n;
   readonly placementActions?: AgentCenterPlacementActions;
 }
-
-const DEFAULT_BEHAVIOR_COPY = getAgentCenterCatalogRecord('AgentCenter.behavior.') as Required<AgentCenterBehaviorCopy>;
-
-type MutationStatus = {
-  readonly text: string;
-  readonly tone: FeedbackTone;
-};
-
-function normalizeError(error: unknown, labels: Required<AgentCenterBehaviorCopy>): string {
-  return error instanceof Error && error.message ? error.message : labels.unavailableLabel;
+function deviceTimezone(): string { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; } }
+function clock(minutes: number): string { return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`; }
+function minutes(value: string): number { const [hour, minute] = value.split(':').map(Number); return hour! * 60 + minute!; }
+function draftOf(value: AgentCenterAutonomyState) {
+  return { enabled: value.enabled === true, mode: (value.mode && value.mode !== 'off' ? value.mode : 'low') as AgentCenterAutonomyMutationInput['mode'],
+    daily: value.dailyTokenBudget === null ? '' : String(value.dailyTokenBudget), output: value.maxBackgroundOutputTokens === null ? '' : String(value.maxBackgroundOutputTokens),
+    freeContact: value.freeContactEnabled === true, limit: String(value.maxFreeContactsPerDay ?? 3), quiet: value.quietHours !== null,
+    timezone: value.quietHours?.timezone ?? deviceTimezone(), start: clock(value.quietHours?.startMinute ?? 1320), end: clock(value.quietHours?.endMinute ?? 480) };
 }
 
-function resolveCopy(copy: AgentCenterBehaviorCopy | undefined): Required<AgentCenterBehaviorCopy> {
-  return {
-    ...DEFAULT_BEHAVIOR_COPY,
-    ...(copy || {}),
-  };
-}
-
-function budgetDisplayValue(value: number | null | undefined): number | null {
-  return value !== null && value !== undefined && Number.isFinite(value) && value >= 0 ? value : null;
-}
-
-function budgetPercent(used: number | null, dailyLimit: number | null): number | null {
-  if (used === null || dailyLimit === null || dailyLimit <= 0) {
-    return null;
-  }
-  return Math.max(0, Math.min(100, Math.round((used / dailyLimit) * 100)));
-}
-
-function ModeSignalMark({
-  mode,
-  selected,
-}: {
-  readonly mode: AgentCenterAutonomyMode;
-  readonly selected: boolean;
-}) {
-  const activeBars = mode === 'high' ? 4 : mode === 'medium' ? 3 : mode === 'low' ? 2 : 1;
-  return (
-    <span
-      aria-hidden="true"
-      className="flex h-5 w-6 shrink-0 items-end justify-center gap-1"
-      data-agent-center-behavior-mode-signal={mode}
-    >
-      {[1, 2, 3, 4].map((bar) => (
-        <span
-          className={cnAgentCenter(
-            'w-1 rounded-full',
-            bar === 1 && 'h-[6px]',
-            bar === 2 && 'h-[10px]',
-            bar === 3 && 'h-[14px]',
-            bar === 4 && 'h-[18px]',
-            bar <= activeBars
-              ? selected ? 'bg-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-text-muted)]'
-              : selected ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_25%,transparent)]' : 'bg-[var(--nimi-surface-active)]',
-          )}
-          key={bar}
-        />
-      ))}
-    </span>
-  );
-}
-
-// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-006c
 export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementActions }: AgentCenterBehaviorSectionProps) {
-  const state = snapshot.state;
-  const compatibilityLabels = resolveCopy(undefined);
-  const labels = Object.fromEntries(
-    Object.entries(compatibilityLabels).map(([key, value]) => [
-      key,
-      translateAgentCenter(i18n, `AgentCenter.behavior.${key}`, value),
-    ]),
-  ) as Required<AgentCenterBehaviorCopy>;
-  const autonomy = state.autonomy;
-  const availability = snapshot.availability.updateAutonomy;
-  const actionAvailable = availability.state === 'available';
-  const mutationAvailable = actionAvailable && !autonomy.controlsDisabled;
-  const [enabled, setEnabled] = useState(autonomy.enabled === true);
-  const [mode, setMode] = useState<AgentCenterAutonomyMode>(
-    autonomy.mode || 'off',
-  );
-  const [dailyTokenBudget, setDailyTokenBudget] = useState(String(autonomy.dailyTokenBudget ?? 0));
-  const [maxTokensPerHook, setMaxTokensPerHook] = useState(String(autonomy.maxTokensPerHook ?? 0));
-  const [mutationStatus, setMutationStatus] = useState<MutationStatus | null>(null);
-  const [budgetEditing, setBudgetEditing] = useState(false);
-
-  useEffect(() => {
-    setEnabled(autonomy.enabled === true);
-    setMode(autonomy.mode || 'off');
-    setDailyTokenBudget(String(autonomy.dailyTokenBudget ?? 0));
-    setMaxTokensPerHook(String(autonomy.maxTokensPerHook ?? 0));
-  }, [autonomy.dailyTokenBudget, autonomy.enabled, autonomy.maxTokensPerHook, autonomy.mode]);
-
-  const usedTokens = budgetDisplayValue(autonomy.usedTokensInWindow);
-  // Summaries describe the committed projection, never an unsaved form value.
-  const dailyLimit = budgetDisplayValue(autonomy.dailyTokenBudget);
-  const singleLimit = budgetDisplayValue(autonomy.maxTokensPerHook);
-  const percent = autonomy.enabled === true ? budgetPercent(usedTokens, dailyLimit) : null;
-  const unknownValue = translateAgentCenter(i18n, 'AgentCenter.behavior.valueUnknown', 'Not available');
-  const modeOptions: readonly {
-    readonly id: AgentCenterAutonomyMode;
-    readonly title: string;
-    readonly description: string;
-  }[] = [
-    { id: 'off', title: labels.quietTitle, description: labels.quietDescription },
-    { id: 'low', title: labels.occasionalTitle, description: labels.occasionalDescription },
-    { id: 'medium', title: labels.dailyTitle, description: labels.dailyDescription },
-    { id: 'high', title: labels.activeTitle, description: labels.activeDescription },
-  ];
-  const disabledNotice = actionAvailable
-    ? autonomy.disabledReason || labels.unavailableLabel
-    : availability.reason;
-
-  if (!actionAvailable) {
-    return (
-      <SectionShell labelledBy="agent-center-behavior-title" className="gap-3.5">
-        <div data-agent-center-behavior-page="proactive-companion">
-          <SectionHeader
-            description={labels.description}
-            id="agent-center-behavior-title"
-            title={labels.title}
-          />
-        </div>
-        <AgentCenterProductActionNotice
-          action="updateAutonomy"
-          availability={availability}
-          i18n={i18n}
-          onOpenRuntimeSettings={placementActions?.openRuntimeSettings}
-          session={session}
-        />
-      </SectionShell>
-    );
-  }
-
-  const commit = async (patch: Partial<{
-    readonly enabled: boolean;
-    readonly mode: AgentCenterAutonomyMode;
-    readonly dailyTokenBudget: number;
-    readonly maxTokensPerHook: number;
-  }>) => {
-    if (!mutationAvailable) {
-      setMutationStatus({ text: autonomy.disabledReason || labels.unavailableLabel, tone: 'danger' });
-      return;
-    }
-
-    const previous = {
-      enabled,
-      mode,
-      dailyTokenBudget,
-      maxTokensPerHook,
-    };
-    const nextMode = patch.enabled === false
-      ? 'off'
-      : patch.enabled === true && (patch.mode ?? mode) === 'off'
-        ? 'medium'
-        : patch.mode ?? mode;
-    const nextEnabled = patch.enabled ?? nextMode !== 'off';
-    const nextDailyBudget = patch.dailyTokenBudget ?? Number(dailyTokenBudget);
-    const nextPerHookBudget = patch.maxTokensPerHook ?? Number(maxTokensPerHook);
-
-    setEnabled(nextEnabled);
-    setMode(nextMode);
-    setDailyTokenBudget(String(nextDailyBudget));
-    setMaxTokensPerHook(String(nextPerHookBudget));
-    setMutationStatus({ text: labels.savingLabel, tone: 'info' });
-
+  const autonomy = snapshot.state.autonomy;
+  const [draft, setDraft] = useState(() => draftOf(autonomy));
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<'saved' | 'failed' | null>(null);
+  const current = useRef<AgentCenterSession | null>(session); current.current = session;
+  useEffect(() => { current.current = session; return () => { current.current = null; }; }, [session]);
+  useEffect(() => { setDraft(draftOf(autonomy)); setNotice(null); }, [session, autonomy.revision]);
+  const text = (key: string) => { const id = `AgentCenter.lifeSettings.${key}`; return translateAgentCenter(i18n, id, getAgentCenterMessage('en', id) ?? ''); };
+  const change = <K extends keyof typeof draft>(key: K, value: typeof draft[K]) => { setNotice(null); setDraft(old => ({ ...old, [key]: value })); };
+  const available = snapshot.availability.updateAutonomy.state === 'available' && !autonomy.controlsDisabled;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(draftOf(autonomy));
+  const save = async () => {
+    if (!available || !autonomy.revision || saving) return;
+    setSaving(true); setNotice(null);
     try {
-      if (!autonomy.revision) {
-        throw new Error(labels.unavailableLabel);
-      }
-      await session.updateAutonomy({
-        expectedRevision: autonomy.revision,
-        enabled: nextEnabled,
-        mode: nextMode,
-        dailyTokenBudget: nextDailyBudget,
-        maxTokensPerHook: nextPerHookBudget,
-      });
-      const committed = session.getSnapshot().state.autonomy;
-      setEnabled(committed.enabled ?? nextEnabled);
-      setMode(committed.mode || nextMode);
-      setDailyTokenBudget(String(committed.dailyTokenBudget ?? nextDailyBudget));
-      setMaxTokensPerHook(String(committed.maxTokensPerHook ?? nextPerHookBudget));
-      setMutationStatus({ text: labels.savedLabel, tone: 'success' });
-    } catch (error: unknown) {
-      setEnabled(previous.enabled);
-      setMode(previous.mode);
-      setDailyTokenBudget(previous.dailyTokenBudget);
-      setMaxTokensPerHook(previous.maxTokensPerHook);
-      setMutationStatus({ text: normalizeError(error, labels), tone: 'danger' });
-    }
+      if (!/^\d+$/u.test(draft.daily) || !/^\d+$/u.test(draft.output) || !/^\d+$/u.test(draft.limit)) throw new Error('Invalid budget');
+      await session.updateAutonomy({ expectedRevision: autonomy.revision, enabled: draft.enabled, mode: draft.mode,
+        dailyTokenBudget: Number(draft.daily), maxBackgroundOutputTokens: Number(draft.output), freeContactEnabled: draft.freeContact,
+        maxFreeContactsPerDay: Number(draft.limit), quietHours: draft.quiet ? { timezone: draft.timezone, startMinute: minutes(draft.start), endMinute: minutes(draft.end) } : null });
+      if (current.current === session) { setDraft(draftOf(session.getSnapshot().state.autonomy)); setNotice('saved'); }
+    } catch { if (current.current === session) setNotice('failed'); } finally { if (current.current === session) setSaving(false); }
   };
-
-  // WAI-ARIA radiogroup roaming: arrow keys move focus and selection together
-  // (automatic activation matches the click-to-commit model of this section).
-  const handleModeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!mutationAvailable) return;
-    const currentIndex = modeOptions.findIndex((option) => option.id === mode);
-    let nextIndex: number | null = null;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      nextIndex = (currentIndex + 1) % modeOptions.length;
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      nextIndex = (currentIndex - 1 + modeOptions.length) % modeOptions.length;
-    }
-    if (nextIndex === null) return;
-    event.preventDefault();
-    const next = modeOptions[nextIndex];
-    if (!next) return;
-    void commit({ mode: next.id });
-    event.currentTarget
-      .querySelector<HTMLElement>(`[data-agent-center-behavior-mode="${next.id}"]`)
-      ?.focus();
-  };
-
-  return (
-    <SectionShell
-      labelledBy="agent-center-behavior-title"
-      className="gap-3.5"
-    >
-      <div data-agent-center-behavior-page="proactive-companion">
-        <SectionHeader
-          description={labels.description}
-          id="agent-center-behavior-title"
-          title={labels.title}
-        />
-      </div>
-
-      {!mutationAvailable ? (
-        <InlineAlert tone="warning">
-          <span data-agent-center-action="updateAutonomy" data-agent-center-action-state={availability.state}>
-            {disabledNotice}
-          </span>
-        </InlineAlert>
-      ) : null}
-
-      <Card className="rounded-[14px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]">
-        <div className="flex min-w-0 items-center justify-between gap-4 px-4 py-4">
-          <div className="grid min-w-0 gap-1">
-            <span className="text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{labels.enableTitle}</span>
-            <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.45] text-[var(--nimi-text-muted)]">{labels.enableDescription}</span>
-          </div>
-          <div className="grid shrink-0 justify-items-end gap-2">
-            <span className="inline-flex" data-agent-center-proactive-toggle="true">
-              <Toggle
-                ariaLabel={labels.enableTitle}
-                checked={enabled}
-                disabled={!mutationAvailable}
-                onChange={(next) => {
-                  void commit({ enabled: next });
-                }}
-              />
-            </span>
-            <StatusBadge tone={enabled ? 'success' : 'neutral'}>
-              {enabled ? labels.enabledStatus : labels.disabledStatus}
-            </StatusBadge>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="rounded-[14px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 shadow-[var(--nimi-elevation-base)]">
-        <h3 className="m-0 mb-2.5 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{labels.modeTitle}</h3>
-        <div
-          aria-label={labels.modeTitle}
-          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-          onKeyDown={handleModeKeyDown}
-          role="radiogroup"
-        >
-          {modeOptions.map((option) => {
-            const selected = mode === option.id;
-            return (
-              <button
-                aria-checked={selected}
-                className={cnAgentCenter(
-                  'relative flex min-h-[72px] min-w-0 items-center gap-3 rounded-[12px] border p-3 text-left transition-colors',
-                  'disabled:cursor-not-allowed disabled:opacity-55',
-                  FOCUS_RING_CLASS_NAME,
-                  selected
-                    ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_7%,transparent)] text-[var(--nimi-action-primary-bg)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]'
-                    : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,transparent)]',
-                )}
-                data-agent-center-behavior-mode={option.id}
-                disabled={!mutationAvailable}
-                key={option.id}
-                onClick={() => {
-                  void commit({ mode: option.id });
-                }}
-                role="radio"
-                tabIndex={selected ? 0 : -1}
-                type="button"
-              >
-                <ModeSignalMark mode={option.id} selected={selected} />
-                <span className="grid min-w-0 gap-0.5">
-                  <span className="truncate text-[length:var(--nimi-type-body-size)] font-semibold leading-[1.25]">{option.title}</span>
-                  <span className={cnAgentCenter('text-[length:var(--nimi-type-body-sm-size)] leading-[1.35]', selected ? 'text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_80%,transparent)]' : 'text-[var(--nimi-text-muted)]')}>
-                    {option.description}
-                  </span>
-                </span>
-                {selected ? (
-                  <span className="absolute right-3 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]">
-                    <Check aria-hidden="true" className="h-3.5 w-3.5" />
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
-      <Card className="rounded-[14px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]">
-        <div className="px-4 pb-3 pt-4">
-          <div className="mb-1 flex min-w-0 items-center gap-1.5">
-            <h3 className="m-0 min-w-0 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">{labels.budgetTitle}</h3>
-            <Info aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)]" />
-          </div>
-          <p className="m-0 text-[length:var(--nimi-type-body-sm-size)] leading-[1.45] text-[var(--nimi-text-muted)]">{labels.budgetDescription}</p>
-          {autonomy.enabled === true && autonomy.budgetExhausted === true ? (
-            <InlineAlert tone="warning">
-              {translateAgentCenter(i18n, 'AgentCenter.behavior.windowExhausted', 'Usage limit reached. New status activity waits for the next 24-hour window.')}
-            </InlineAlert>
-          ) : null}
-        </div>
-        <div className="mx-4 mb-0 overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)]">
-          <div className="px-4 py-3.5">
-            <div className="mb-2 flex min-w-0 items-end justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.todayUsedLabel}</div>
-                <div className="mt-0.5 text-[length:var(--nimi-type-section-title-size)] font-semibold leading-none text-[var(--nimi-text-primary)] tabular-nums">
-                  {usedTokens ?? unknownValue}
-                  {usedTokens !== null ? <span className="text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">{dailyLimit !== null && dailyLimit > 0 ? ` / ${dailyLimit}` : ''} {labels.tokensUnit}</span> : null}
-                </div>
-              </div>
-              {percent !== null ? <div className="shrink-0 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)]">
-                {labels.approxPrefix} {percent}%
-              </div> : null}
+  const labelClass = 'grid min-w-0 gap-1.5 text-sm text-[var(--nimi-text-primary)]';
+  const helpClass = 'text-sm leading-relaxed text-[var(--nimi-text-secondary)]';
+  return <SectionShell labelledBy="agent-center-behavior-title">
+    <SectionHeader id="agent-center-behavior-title" title={text('title')} description={text('description')} />
+    <AgentCenterProductActionNotice action="updateAutonomy" availability={snapshot.availability.updateAutonomy} session={session} i18n={i18n} onOpenRuntimeSettings={placementActions?.openRuntimeSettings} />
+    <Card>
+      <form onSubmit={event => { event.preventDefault(); void save(); }}>
+        <fieldset disabled={!available || saving} className="m-0 grid min-w-0 gap-5 border-0 p-4">
+          <section className="grid gap-3">
+            <label className="flex items-center justify-between gap-4 font-medium">
+              {text('lifeEnabled')}<Toggle checked={draft.enabled} ariaLabel={text('lifeEnabled')} disabled={!available || saving} onChange={value => change('enabled', value)} />
+            </label>
+            <p className={helpClass}>{text('lifeHelp')}</p>
+            <label className={labelClass}>{text('frequency')}
+              <select className={agentCenterInputClassName} value={draft.mode} onChange={event => change('mode', event.currentTarget.value as typeof draft.mode)}>
+                <option value="low">{text('low')}</option><option value="medium">{text('medium')}</option><option value="high">{text('high')}</option>
+              </select>
+            </label>
+          </section>
+          <section className="grid gap-3 border-t border-[var(--nimi-border-subtle)] pt-4">
+            <label className="flex items-center justify-between gap-4 font-medium">
+              {text('freeContact')}<Toggle checked={draft.freeContact} ariaLabel={text('freeContact')} disabled={!available || saving} onChange={value => change('freeContact', value)} />
+            </label>
+            <p className={helpClass}>{text('freeHelp')}</p>
+            <label className={labelClass}>{text('contactLimit')}<input className={agentCenterInputClassName} type="number" min={draft.freeContact ? 1 : 0} max={24} step={1} value={draft.limit} onChange={event => change('limit', event.currentTarget.value)} /></label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.quiet} onChange={event => change('quiet', event.currentTarget.checked)} />{text('quiet')}</label>
+            {draft.quiet ? <div className="grid grid-cols-2 gap-3">
+              <label className={labelClass}>{text('quietStart')}<input className={agentCenterInputClassName} type="time" value={draft.start} onChange={event => change('start', event.currentTarget.value)} required /></label>
+              <label className={labelClass}>{text('quietEnd')}<input className={agentCenterInputClassName} type="time" value={draft.end} onChange={event => change('end', event.currentTarget.value)} required /></label>
+              <label className={`${labelClass} col-span-2`}>{text('timezone')}<input className={agentCenterInputClassName} value={draft.timezone} onChange={event => change('timezone', event.currentTarget.value)} required /></label>
+            </div> : null}
+          </section>
+          <section className="grid gap-3 border-t border-[var(--nimi-border-subtle)] pt-4">
+            <h3 className="font-medium">{text('budget')}</h3><p className={helpClass}>{text('budgetHelp')}</p>
+            <p className="text-sm tabular-nums">{text('used')}: {autonomy.usedTokensInWindow?.toLocaleString() ?? '—'} / {autonomy.dailyTokenBudget === 0 ? text('unlimited') : autonomy.dailyTokenBudget?.toLocaleString() ?? '—'}</p>
+            {autonomy.budgetExhausted ? <InlineAlert tone="warning">{text('exhausted')}</InlineAlert> : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={labelClass}>{text('daily')}<input className={agentCenterInputClassName} type="number" min={0} step={1} value={draft.daily} onChange={event => change('daily', event.currentTarget.value)} required /><span className={helpClass}>{text('dailyHelp')}</span></label>
+              <label className={labelClass}>{text('output')}<input className={agentCenterInputClassName} type="number" min={0} max={2147483647} step={1} value={draft.output} onChange={event => change('output', event.currentTarget.value)} required /><span className={helpClass}>{text('outputHelp')}</span></label>
             </div>
-            {percent !== null ? <ProgressIndicator
-              data-agent-center-budget-progress="true"
-              max={100}
-              value={percent}
-            /> : null}
-          </div>
-          <div className="grid border-t border-[var(--nimi-border-subtle)] sm:grid-cols-2">
-            <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-3 sm:border-b-0 sm:border-r">
-              <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.dailyLimitLabel}</div>
-              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{dailyLimit === null ? unknownValue : dailyLimit === 0 ? translateAgentCenter(i18n, 'AgentCenter.behavior.notConfigured', 'Not configured') : `${dailyLimit} ${labels.tokensUnit}`}</div>
-            </div>
-            <div className="px-4 py-3">
-              <div className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-muted)]">{labels.singleLimitLabel}</div>
-              <div className="mt-0.5 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)] tabular-nums">{singleLimit === null ? unknownValue : singleLimit === 0 ? translateAgentCenter(i18n, 'AgentCenter.behavior.runtimeDefault', 'Runtime default') : `${singleLimit} ${labels.tokensUnit}`}</div>
-            </div>
-          </div>
-          <button
-            aria-expanded={budgetEditing}
-            className={cnAgentCenter(
-              'flex min-h-[44px] w-full min-w-0 items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] px-4 py-3 text-left text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)] disabled:cursor-not-allowed disabled:opacity-55',
-              FOCUS_RING_CLASS_NAME,
-            )}
-            data-agent-center-budget-adjust="true"
-            disabled={!mutationAvailable}
-            onClick={() => setBudgetEditing((value) => !value)}
-            type="button"
-          >
-            <span className="min-w-0 truncate">{labels.adjustLimitLabel}</span>
-            <ChevronRight aria-hidden="true" className={cnAgentCenter('h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform', budgetEditing && 'rotate-90')} />
-          </button>
-          {budgetEditing ? (
-            <div className="grid min-w-0 gap-2.5 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-              <label className="grid min-w-0 gap-1.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-secondary)]">
-                <span>{labels.dailyLimitLabel}</span>
-                <input
-                  aria-label={labels.dailyLimitLabel}
-                  className={agentCenterInputClassName}
-                  disabled={!mutationAvailable}
-                  min={0}
-                  onInput={(event) => setDailyTokenBudget(event.currentTarget.value)}
-                  type="number"
-                  value={dailyTokenBudget}
-                />
-              </label>
-              <label className="grid min-w-0 gap-1.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-secondary)]">
-                <span>{labels.singleLimitLabel}</span>
-                <input
-                  aria-label={labels.singleLimitLabel}
-                  max={2147483647}
-                  className={agentCenterInputClassName}
-                  disabled={!mutationAvailable}
-                  min={0}
-                  onInput={(event) => setMaxTokensPerHook(event.currentTarget.value)}
-                  type="number"
-                  value={maxTokensPerHook}
-                />
-              </label>
-              <Button
-                className="self-end"
-                data-agent-center-autonomy-apply="true"
-                disabled={!mutationAvailable}
-                onClick={() => {
-                  void commit({
-                    dailyTokenBudget: Number(dailyTokenBudget),
-                    maxTokensPerHook: Number(maxTokensPerHook),
-                  });
-                }}
-                size="sm"
-                tone="primary"
-              >
-                {labels.applyLimitLabel}
-              </Button>
-            </div>
-          ) : null}
-        </div>
-        <div className="h-4" />
-      </Card>
-      <AgentCenterPendingHooks session={session} i18n={i18n} />
-      {mutationStatus ? (
-        <InlineAlert tone={mutationStatus.tone}>
-          {mutationStatus.text}
-        </InlineAlert>
-      ) : null}
-    </SectionShell>
-  );
+          </section>
+          <div className="flex flex-wrap gap-2"><Button type="submit" tone="primary" size="sm" disabled={!dirty || saving || !available}>{saving ? text('saving') : text('save')}</Button><Button type="button" tone="ghost" size="sm" disabled={!dirty || saving} onClick={() => { setDraft(draftOf(autonomy)); setNotice(null); }}>{text('reset')}</Button></div>
+        </fieldset>
+        {notice ? <div className="px-4 pb-4"><InlineAlert tone={notice === 'saved' ? 'success' : 'danger'}>{text(notice)}</InlineAlert></div> : null}
+      </form>
+    </Card>
+    <AgentCenterLifePanel session={session} snapshot={snapshot} i18n={i18n} />
+  </SectionShell>;
 }

@@ -18,7 +18,7 @@ const LANES = [
 function manager(
   overrides: Partial<AgentCenterAppManagerSnapshot> = {},
 ): AgentCenterAppManagerSnapshot {
-  return {
+  return { life: { activities: [], revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
     conversationContext: null,
     lifecycleStatus: 'active',
     executionState: 'idle',

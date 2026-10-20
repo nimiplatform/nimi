@@ -28,6 +28,7 @@ func (s stubPublicChatTurnExecutor) StreamChatTurn(
 	req *PublicChatTurnExecutionRequest,
 	emit func(*runtimev1.StreamScenarioEvent) error,
 ) error {
+
 	return s.stream(ctx, req, emit)
 }
 
@@ -180,7 +181,7 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 	if strings.Contains(available, `Do not output <action kind="image">`) {
 		t.Fatalf("image-capable prompt must not prohibit image actions, got %q", available)
 	}
-	if !strings.Contains(available, `<message>Creating it.</message><action kind="image">`) {
+	if !strings.Contains(available, `<message intent="reply">Creating it.</message><action kind="image">`) {
 		t.Fatalf("image-capable prompt must include one complete message-plus-action example, got %q", available)
 	}
 	if !strings.Contains(available, `all reply text stays in message, with no text between/after tags`) {
@@ -241,26 +242,11 @@ func publicChatScenarioSystemPromptForImageConfig(
 		t.Fatalf("expected captured text generate stream request")
 	}
 	for _, message := range streamer.request.GetSpec().GetTextGenerate().GetInput() {
-		if message.GetRole() == "user" && strings.Contains(message.GetContent(), "Runtime APML contract") {
+		if message.GetRole() == "system" && strings.Contains(message.GetContent(), "Runtime APML contract") {
 			return message.GetContent()
 		}
 	}
 	return ""
-}
-
-type stubChatTrackSidecarExecutor struct {
-	result *ChatTrackSidecarResult
-	err    error
-}
-
-func (s stubChatTrackSidecarExecutor) ExecuteChatTrackSidecar(context.Context, *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
-	if s.err != nil {
-		return nil, s.err
-	}
-	if s.result == nil {
-		return &ChatTrackSidecarResult{}, nil
-	}
-	return s.result, nil
 }
 
 type stubPublicChatBindingResolver struct {

@@ -171,10 +171,10 @@ func TestPublicChatCommittedEmotionDoesNotCreateRendererEvent(t *testing.T) {
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := `<message id="message-presentation"><emotion>happy</emotion>presentation committed</message>`
+			envelope := `<message intent="reply" id="message-presentation"><emotion>happy</emotion>presentation committed</message>`
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-presentation-stream",
@@ -264,10 +264,10 @@ func TestPublicChatCommittedAPMLActivityReachesTypedStream(t *testing.T) {
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := `<message id="message-activity"><activity>thinking</activity>activity committed</message>`
+			envelope := `<message intent="reply" id="message-activity"><activity>thinking</activity>activity committed</message>`
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-activity-stream",

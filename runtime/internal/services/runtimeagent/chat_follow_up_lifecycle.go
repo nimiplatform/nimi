@@ -70,7 +70,7 @@ func (s *Service) wakeDuePublicChatFollowUp(anchorID string) {
 	s.chatSurfaceMu.Lock()
 	anchor := s.chatAnchors[anchorID]
 	var pending *publicChatFollowUpState
-	if anchor != nil && anchor.FollowUpEnabled && anchor.ActiveTurnID == "" {
+	if anchor != nil && anchor.EffectiveFreeContactEnabled && anchor.ActiveTurnID == "" {
 		pending = s.chatFollowUps[anchor.PendingFollowUpID]
 	}
 	s.chatSurfaceMu.Unlock()
@@ -130,12 +130,17 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	}
 	followUp := *pending
 	anchor := s.chatAnchors[followUp.ConversationAnchorID]
-	if anchor == nil || !anchor.FollowUpEnabled || anchor.ActiveTurnID != "" {
+	if anchor == nil || !anchor.EffectiveFreeContactEnabled || anchor.ActiveTurnID != "" {
 		s.chatSurfaceMu.Unlock()
 		return
 	}
 	session := *anchor
 	s.chatSurfaceMu.Unlock()
+	work := s.claimAgentBackgroundFor(s.publicChatAsyncLifetime(), session.LocalAgentRef, "follow_up")
+	if work == nil {
+		return
+	}
+	defer s.releaseAgentBackground(session.LocalAgentRef, work)
 	if s.runtimeAccountProjection == nil {
 		return
 	}
@@ -143,9 +148,10 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	if !ok || projection.GetAccountId() != session.SubjectUserID {
 		return
 	}
-	req := publicChatTurnRequestPayload{LocalAgentRef: session.LocalAgentRef, OwnerUserID: session.OwnerUserID, RuntimeSourceRef: session.RuntimeSourceRef, ConversationAnchorID: session.ConversationAnchorID, ThreadID: session.ThreadID, RequestID: followUp.FollowUpID, MaxOutputTokens: session.MaxTokens, Messages: publicChatFollowUpInstructionInput(followUp.Instruction), Reasoning: publicChatReasoningPayloadFromConfig(session.Reasoning), followUpClaim: &followUp}
-	ownerCtx := executionintent.WithRuntimeAccountSubject(context.Background(), projection.GetAccountId())
-	turnID, err := s.publicChatRuntime().handleTurnRequestWithID(ownerCtx, &runtimev1.AppMessageEvent{FromAppId: followUp.CallerAppID, SubjectUserId: followUp.SubjectUserID, MessageId: followUp.FollowUpID}, req)
+	req := publicChatTurnRequestPayload{LocalAgentRef: session.LocalAgentRef, OwnerUserID: session.OwnerUserID, RuntimeSourceRef: session.RuntimeSourceRef, ConversationAnchorID: session.ConversationAnchorID, ThreadID: session.ThreadID, RequestID: followUp.FollowUpID, MaxOutputTokens: session.MaxTokens, Messages: publicChatFollowUpInstructionInput(publicChatContinuationInstruction), Reasoning: publicChatReasoningPayloadFromConfig(session.Reasoning), followUpClaim: &followUp}
+	req.backgroundAdmission = work
+	ownerCtx := executionintent.WithRuntimeAccountSubject(work.ctx, projection.GetAccountId())
+	turnID, err := s.publicChatRuntime().handleTurnRequestWithID(ownerCtx, &runtimev1.AppMessageEvent{SubjectUserId: followUp.SubjectUserID, MessageId: followUp.FollowUpID}, req)
 	if err != nil {
 		if s.logger != nil {
 			s.logger.Warn("pending follow-up not claimed", "follow_up_id", followUpID, "error", err)

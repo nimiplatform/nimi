@@ -1090,7 +1090,7 @@ describe('renderer local-app standard-shell surface', () => {
       { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
       { role: 'conversation.action.image', capabilityContract: 'image.generate' },
     ];
-    const managerProjection = {
+    const managerProjection = { life: {activities:[],revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
       lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
       source: null, context: null, actionAvailability: managerActionAvailability(),
     };
@@ -1195,7 +1195,7 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string) => {
         if (command.endsWith('agentManagerSnapshot')) {
-          return {
+          return { life: {activities:[],revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
             lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
             source: null, context: null, actionAvailability,
           };
@@ -1219,7 +1219,7 @@ describe('renderer local-app standard-shell surface', () => {
       'activity', 'agentWork', 'integration',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
-      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory', 'conversationContext', 'pendingHooks',
+      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory', 'conversationContext',
     ].sort());
   });
 

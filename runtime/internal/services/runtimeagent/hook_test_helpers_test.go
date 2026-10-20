@@ -1,7 +1,6 @@
 package runtimeagent
 
 import (
-	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -52,35 +51,4 @@ func newTestTimeHookIntentReason(intentID, agentID, reason string, scheduledFor,
 	intent := newTestTimeHookIntent(intentID, agentID, scheduledFor, admittedAt)
 	intent.Reason = reason
 	return intent
-}
-
-// newTestTimePendingHook wraps a newly-built HookIntent into a PendingHook
-// with matching scheduled_for and admitted_at.
-func newTestTimePendingHook(t *testing.T, intentID, agentID string, scheduledFor, admittedAt time.Time) *runtimev1.PendingHook {
-	t.Helper()
-	return &runtimev1.PendingHook{
-		Intent:       newTestTimeHookIntent(intentID, agentID, scheduledFor, admittedAt),
-		ScheduledFor: timestamppb.New(scheduledFor),
-		AdmittedAt:   timestamppb.New(admittedAt),
-	}
-}
-
-// newTestTimePendingHookWithReason is the reason-carrying variant.
-func newTestTimePendingHookWithReason(t *testing.T, intentID, agentID, reason string, scheduledFor, admittedAt time.Time) *runtimev1.PendingHook {
-	t.Helper()
-	return &runtimev1.PendingHook{
-		Intent:       newTestTimeHookIntentReason(intentID, agentID, reason, scheduledFor, admittedAt),
-		ScheduledFor: timestamppb.New(scheduledFor),
-		AdmittedAt:   timestamppb.New(admittedAt),
-	}
-}
-
-// newTestTimePendingHookWithStatus is the admission-state variant, used for
-// tests that seed agent state with already-terminal hooks (e.g. LAST_TURN
-// anchors for cadence min-spacing checks).
-func newTestTimePendingHookWithStatus(t *testing.T, intentID, agentID string, state runtimev1.HookAdmissionState, scheduledFor, admittedAt time.Time) *runtimev1.PendingHook {
-	t.Helper()
-	hook := newTestTimePendingHook(t, intentID, agentID, scheduledFor, admittedAt)
-	hook.Intent.AdmissionState = state
-	return hook
 }

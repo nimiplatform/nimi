@@ -131,7 +131,7 @@ func TestPublicChatVoiceAssetPreservesVoiceDemoOwnerAndDashScopeTarget(t *testin
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", ownerUserID)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	const artifactID = "voice-owner-final-artifact"
 	audioBytes := []byte("RIFF\x24\x00\x00\x00WAVEfmt ")
 	if err := svc.runtimeArtifacts.Put(artifactID, runtimeartifact.ArtifactRecord{

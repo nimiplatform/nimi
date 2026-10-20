@@ -50,10 +50,10 @@ const PARTICIPATION = [
 
 const AUTONOMY_PROJECTION = {
   enabled: true,
-  config: {
+  config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
     dailyTokenBudget: 1000,
-    maxTokensPerHook: 100,
-    minHookInterval: null,
+    maxBackgroundOutputTokens: 100,
+    minPlanningInterval: null,
     suspendUntil: null,
     mode: 'low',
   },
@@ -94,7 +94,7 @@ const MEMORY_PROJECTION = {
   nextPageToken: null,
 } as const;
 
-const MANAGER_PROJECTION = {
+const MANAGER_PROJECTION = { life: { activities: [], revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
   conversationContext: null,
   lifecycleStatus: 'active',
   executionState: 'idle',
@@ -418,9 +418,9 @@ test('autonomy snapshot projects the exact CAS carrier', async () => {
   const snapshot = await client.autonomy.snapshot({ agentHandle: HANDLE });
   assert.deepEqual(snapshot, {
     enabled: true,
-    config: {
+    config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       dailyTokenBudget: 1000,
-      maxTokensPerHook: 100,
+      maxBackgroundOutputTokens: 100,
       mode: 'low',
     },
     usedTokensInWindow: 12,
@@ -658,7 +658,7 @@ test('Desktop Runtime transport uses the same canonical configure shell and stri
     async getLocalAppAgentManagerSnapshot(input: unknown) {
       calls.push(input);
       return {
-        snapshot: {
+        snapshot: { life: { activities: [], revision:'1',recent:[],future:[],waitReason:''},
           lifecycleStatus: AgentLifecycleStatus.ACTIVE,
           executionState: AgentExecutionState.CHAT_ACTIVE,
           statusText: 'Chatting',
@@ -834,7 +834,7 @@ test('autonomy update enforces handle, revision, and intent shape before the car
     expectedAutonomyRevision: '7',
     intent: {
       enabled: true,
-      config: { dailyTokenBudget: 1000, maxTokensPerHook: 100, mode: 'medium' },
+      config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3, dailyTokenBudget: 1000, maxBackgroundOutputTokens: 100, mode: 'medium' },
     },
   });
   assert.equal(updated.autonomyRevision, '7');
@@ -843,7 +843,7 @@ test('autonomy update enforces handle, revision, and intent shape before the car
     expectedAutonomyRevision: '7',
     intent: {
       enabled: true,
-      config: { dailyTokenBudget: 1000, maxTokensPerHook: 100, mode: 'medium' },
+      config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3, dailyTokenBudget: 1000, maxBackgroundOutputTokens: 100, mode: 'medium' },
     },
   }]]);
 

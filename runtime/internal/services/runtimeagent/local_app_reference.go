@@ -28,13 +28,25 @@ type localAppIngressCommitter interface {
 	CommitLocalAppIngress(context.Context, localappop.Ingress, func(context.Context) error) error
 }
 
-func (s *Service) persistLocalAppConversationCommitLocked(ctx context.Context, ingress localappop.Ingress, initial accountservice.LocalAppCallerDecision, anchorID string) error {
+func (s *Service) persistLocalAppConversationCommitLocked(ctx context.Context, ingress localappop.Ingress, initial accountservice.LocalAppCallerDecision, anchorID string, hooks ...runtimeAgentStateTxHook) error {
 	snapshot, err := s.capturePublicChatSurfaceSnapshotLocked(anchorID)
 	if err != nil {
 		return err
 	}
 	err = s.commitLocalAppOwnerMutation(ctx, ingress, initial, func(current context.Context) error {
-		return s.backend.WriteTx(current, func(tx *sql.Tx) error { return persistPublicChatSurfaceStateTx(tx, snapshot) })
+		return s.backend.WriteTx(current, func(tx *sql.Tx) error {
+			if err := persistPublicChatSurfaceStateTx(tx, snapshot); err != nil {
+				return err
+			}
+			for _, hook := range hooks {
+				if hook != nil {
+					if err := hook(tx); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		})
 	})
 	if err == nil {
 		s.markPersistedTranscriptLocked(snapshot)

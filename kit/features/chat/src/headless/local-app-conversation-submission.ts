@@ -13,7 +13,7 @@ export async function reconcileAgentSubmission(input: {
   const scope = { agentHandle, conversationAnchorId: submission.conversationAnchorId };
   if (!input.isCurrent()) return false;
   if (!input.sendIfMissing) {
-    const snapshot = await conversation.snapshot(scope);
+    const snapshot = await conversation.snapshot({agentHandle,conversationAnchorId:submission.conversationAnchorId});
     // Snapshot history may be bounded. Absence never proves non-admission.
     return input.isCurrent() && snapshot.turns.some((turn) => turn.requestId === submission.requestId);
   }

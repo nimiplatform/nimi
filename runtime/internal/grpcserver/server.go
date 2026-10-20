@@ -1033,7 +1033,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		runtimev1.RegisterRuntimeIntegrationServiceServer(localAppGRPCServer, integrationSvc)
 	}
 	activitySvc.StartRetention()
-	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
 	agentSvc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
 		if req == nil {

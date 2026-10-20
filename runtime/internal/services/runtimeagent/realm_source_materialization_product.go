@@ -655,7 +655,7 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 		ActiveWorldId:  snapshot.Semantic.SourceRef.WorldID, Attributes: map[string]string{},
 		UpdatedAt: timestamppb.New(capturedAt),
 	}
-	entry := &agentEntry{Agent: agent, State: state, Hooks: make(map[string]*runtimev1.PendingHook)}
+	entry := &agentEntry{Agent: agent, State: state, Life: newAgentLifeState()}
 	lifecycleEvent := s.newEventForIdentityAt(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
 		Lifecycle: &runtimev1.AgentLifecycleEventDetail{
 			PreviousStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_UNSPECIFIED,

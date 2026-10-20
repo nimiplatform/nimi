@@ -2,8 +2,8 @@ use super::{invalid_payload, untrusted};
 use crate::generated as wire;
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
-    LocalAppAgentHandleRequest, LocalAppAgentPendingHookUpdateRequest,
-    LocalAppConversationFollowUpUpdateRequest, LocalAppConversationPolicyRequest,
+
+    LocalAppConversationFollowUpCancelRequest,
     LocalAppOperationError,
 };
 use serde_json::{json, Value};
@@ -28,7 +28,7 @@ fn timestamp(value: prost_types::Timestamp) -> Result<Value, LocalAppOperationEr
     {
         return Err(untrusted());
     }
-    Ok(json!({"seconds":value.seconds.to_string(),"nanos":value.nanos}))
+    Ok(json!({"seconds": value.seconds.to_string(), "nanos": value.nanos}))
 }
 pub(super) fn state(
     input: wire::LocalAppConversationState,
@@ -47,51 +47,12 @@ pub(super) fn state(
         }
     };
     Ok(
-        json!({"followUpEnabled":input.follow_up_enabled,"followUpPolicyRevision":input.follow_up_policy_revision.to_string(),"maxFollowUpTurns":input.max_follow_up_turns,"pendingFollowUp":pending,"textTurnId":input.text_turn_id}),
+        json!({"freeContactEnabled":input.free_contact_enabled,"maxFollowUpTurns":input.max_follow_up_turns,"pendingFollowUp":pending,"textTurnId":input.text_turn_id}),
     )
-}
-fn task_action(
-    action: &str,
-    due: Option<crate::LocalAppScheduledTime>,
-) -> Result<(i32, Option<prost_types::Timestamp>), LocalAppOperationError> {
-    let code = match action {
-        "cancel" if due.is_none() => 1,
-        "reschedule" if due.is_some() => 2,
-        _ => return Err(invalid_payload()),
-    };
-    let due = due.map(|v| prost_types::Timestamp {
-        seconds: v.seconds,
-        nanos: v.nanos,
-    });
-    if let Some(ref v) = due {
-        timestamp(v.clone()).map_err(|_| invalid_payload())?;
-    }
-    Ok((code, due))
-}
-pub(super) async fn policy(
-    channel: Channel,
-    request: LocalAppConversationPolicyRequest,
-) -> Result<Value, LocalAppOperationError> {
-    if !handle(&request.agent_handle) || !selector(&request.conversation_anchor_id) {
-        return Err(invalid_payload());
-    }
-    let response = crate::grpc_limits::runtime_agent_client(channel)
-        .update_local_app_conversation_follow_up_policy(
-            wire::UpdateLocalAppConversationFollowUpPolicyRequest {
-                agent_handle: request.agent_handle,
-                conversation_anchor_id: request.conversation_anchor_id,
-                expected_revision: request.expected_revision,
-                enabled: request.enabled,
-            },
-        )
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    state(response.state.ok_or_else(untrusted)?)
 }
 pub(super) async fn follow_up(
     channel: Channel,
-    request: LocalAppConversationFollowUpUpdateRequest,
+    request: LocalAppConversationFollowUpCancelRequest,
 ) -> Result<Value, LocalAppOperationError> {
     if !handle(&request.agent_handle)
         || !selector(&request.conversation_anchor_id)
@@ -100,105 +61,90 @@ pub(super) async fn follow_up(
     {
         return Err(invalid_payload());
     }
-    let (action, scheduled_for) = task_action(&request.action, request.scheduled_for)?;
     let response = crate::grpc_limits::runtime_agent_client(channel)
-        .update_local_app_conversation_follow_up(wire::UpdateLocalAppConversationFollowUpRequest {
+        .cancel_local_app_conversation_follow_up(wire::CancelLocalAppConversationFollowUpRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
             task_id: request.task_id,
             expected_revision: request.expected_revision,
-            action,
-            scheduled_for,
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
     state(response.state.ok_or_else(untrusted)?)
 }
-fn pending_hook(input: wire::LocalAppAgentPendingHook) -> Result<Value, LocalAppOperationError> {
-    if !selector(&input.task_id) || input.revision == 0 {
+
+fn frame(value: wire::LocalAppAgentLifeFrame) -> Result<Value, LocalAppOperationError> {
+    if !selector(&value.frame_id)
+        || (!value.interaction && !selector(&value.activity_ref))
+        || value.title.is_empty()
+        || value.title.chars().count() > 160
+        || value.progress.is_some_and(|v| v > 100) || (value.interaction && value.progress.is_some()) || (!value.interaction && value.progress.is_none())
+    {
         return Err(untrusted());
     }
-    let status = match wire::HookAdmissionState::try_from(input.status).map_err(|_| untrusted())? {
-        wire::HookAdmissionState::Pending => "pending",
-        wire::HookAdmissionState::Running => "running",
-        wire::HookAdmissionState::Canceled => "canceled",
+    let phase = match value.phase {
+        1 => "planned",
+        2 => "active",
+        3 => "paused",
+        4 => "completed",
+        5 => "interrupted",
+        6 => "canceled",
         _ => return Err(untrusted()),
     };
-    if input.can_modify && (input.system_cadence || status != "pending") {
-        return Err(untrusted());
-    }
     Ok(
-        json!({"taskId":input.task_id,"revision":input.revision.to_string(),"scheduledFor":input.scheduled_for.map(timestamp).transpose()?,"systemCadence":input.system_cadence,"status":status,"canModify":input.can_modify,"publicPurpose":input.public_purpose}),
+        json!({"frameId":value.frame_id,"activityRef":value.activity_ref,"title":value.title,"phase":phase,"startsAt":timestamp(value.starts_at.ok_or_else(untrusted)?)?,"endsAt":value.ends_at.map(timestamp).transpose()?,"progress":value.progress,"interaction":value.interaction}),
     )
 }
-pub(super) async fn list_hooks(
-    channel: Channel,
-    request: LocalAppAgentHandleRequest,
+pub(super) fn life(
+    value: wire::LocalAppAgentLifeProjection,
 ) -> Result<Value, LocalAppOperationError> {
-    if !handle(&request.agent_handle) {
-        return Err(invalid_payload());
-    }
-    let response = crate::grpc_limits::runtime_agent_client(channel)
-        .list_local_app_agent_pending_hooks(wire::ListLocalAppAgentPendingHooksRequest {
-            agent_handle: request.agent_handle,
-        })
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    if response.hooks.len() > 100 {
+    if value.revision == 0
+        || value.recent.len() > 12
+        || value.future.len() > 6
+        || value.activities.len() > 24
+        || value.wait_reason.len() > 128
+    {
         return Err(untrusted());
     }
-    let hooks = response
-        .hooks
+    let recent = value
+        .recent
         .into_iter()
-        .map(pending_hook)
+        .map(frame)
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(json!({"hooks":hooks,"truncated":response.truncated}))
-}
-pub(super) async fn update_hook(
-    channel: Channel,
-    request: LocalAppAgentPendingHookUpdateRequest,
-) -> Result<Value, LocalAppOperationError> {
-    if !handle(&request.agent_handle)
-        || !selector(&request.task_id)
-        || request.expected_revision == 0
-    {
-        return Err(invalid_payload());
-    }
-    let (action, scheduled_for) = task_action(&request.action, request.scheduled_for)?;
-    let response = crate::grpc_limits::runtime_agent_client(channel)
-        .update_local_app_agent_pending_hook(wire::UpdateLocalAppAgentPendingHookRequest {
-            agent_handle: request.agent_handle,
-            task_id: request.task_id,
-            expected_revision: request.expected_revision,
-            action,
-            scheduled_for,
-        })
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    pending_hook(response.hook.ok_or_else(untrusted)?)
+    let future = value
+        .future
+        .into_iter()
+        .map(frame)
+        .collect::<Result<Vec<_>, _>>()?;
+    let activities=value.activities.into_iter().map(|a| {
+        if !selector(&a.activity_ref)||a.title.is_empty()||a.title.chars().count()>160||!matches!(a.kind.as_str(),"routine"|"project")||a.progress>100 { return Err(untrusted()); }
+        let phase=match a.phase {1=>"planned",2=>"active",3=>"paused",_=>return Err(untrusted())};
+        Ok(json!({"activityRef":a.activity_ref,"title":a.title,"kind":a.kind,"phase":phase,"progress":a.progress}))
+    }).collect::<Result<Vec<_>,LocalAppOperationError>>()?;
+    Ok(
+        json!({"activities":activities,"revision":value.revision.to_string(),"current":value.current.map(frame).transpose()?,"recent":recent,"future":future,"nextCheckAt":value.next_check_at.map(timestamp).transpose()?,"waitReason":value.wait_reason}),
+    )
 }
 
 
 #[cfg(test)]
-mod purpose_tests {
+mod audit9_projection_tests {
     use super::*;
 
     #[test]
-    fn public_purpose_uses_the_typed_field_without_changing_controls() {
-        let task = wire::LocalAppAgentPendingHook {
-            task_id: "hook-1".into(), revision: 1, status: 2,
-            can_modify: true, public_purpose: "Revisit the observation".into(),
+    fn retained_activity_projection_does_not_require_a_frame() {
+        let value = life(wire::LocalAppAgentLifeProjection {
+            revision: 1,
+            activities: vec![wire::LocalAppAgentLifeActivity {
+                activity_ref: "paused-book".into(), title: "Book A".into(), kind: "project".into(),
+                phase: 3, progress: 20,
+            }],
             ..Default::default()
-        };
-        let projected = pending_hook(task.clone()).unwrap();
-        assert_eq!(projected["publicPurpose"], "Revisit the observation");
-        assert_eq!(projected["canModify"], true);
-        assert!(projected.get("reason").is_none());
-        assert!(pending_hook(wire::LocalAppAgentPendingHook {
-            system_cadence: true, ..task
-        }).is_err());
+        }).unwrap();
+        assert_eq!(value["activities"][0]["activityRef"], "paused-book");
+        assert_eq!(value["activities"][0]["progress"], 20);
     }
+
+
 }

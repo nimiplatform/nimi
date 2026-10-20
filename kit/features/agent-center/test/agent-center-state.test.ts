@@ -46,14 +46,14 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
 }
 
 function autonomy(revision: string | null): AgentCenterAutonomyProjection {
-  return {
+  return { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
     revision,
     enabled: true,
     mode: 'low',
     budgetExhausted: false,
     usedTokensInWindow: 12,
     dailyTokenBudget: 1000,
-    maxTokensPerHook: 100,
+    maxBackgroundOutputTokens: 100,
     windowStartedAt: null,
     suspendedUntil: null,
   };
@@ -122,7 +122,7 @@ describe('Agent Center state projection', () => {
             { capability: 'audio.transcribe', route: 'local', requiredFeatures: [] },
           ],
         },
-        manager: {
+        manager: { life: { activities: [], revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
           conversationContext: null,
           lifecycleStatus: 'active',
           executionState: 'idle',

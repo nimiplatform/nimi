@@ -35,6 +35,11 @@ func (r publicChatRuntime) runTurn(
 	defer r.finishTurnReservation(session, turn.TurnID)
 	accumulatedText := &strings.Builder{}
 	var usage *runtimev1.UsageStats
+	defer func() {
+		if isProactiveOrigin(turn.Origin) {
+			r.svc.accountProactiveUsage(turn, usage)
+		}
+	}()
 	var finish *runtimev1.ScenarioStreamCompleted
 	var failed *runtimev1.ScenarioStreamFailed
 	modelResolved := strings.TrimSpace(session.Binding.ModelID)
@@ -44,6 +49,7 @@ func (r publicChatRuntime) runTurn(
 	firstDeltaObserved := false
 	projectedText := ""
 	reasoningObserved := false
+
 	contextCompilation, compositionErr := r.composePublicChatTurnContext(ctx, session, turn, req)
 	if compositionErr != nil {
 		failure := runtimeErrorDetailFromError(compositionErr)
@@ -460,6 +466,7 @@ func (r publicChatRuntime) runTurn(
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "The reply could not be completed. You can retry or send another message.", "")
 		return
 	}
+
 	assignPublicChatOutputIdentities(structured, turn.TurnID)
 	if turn.RetryOfTurnID != "" && len(structured.Actions) != 0 {
 		structured.Actions = nil
@@ -766,7 +773,6 @@ func applyCommittedPublicChatMessageProjection(
 		projection.Structured = clonePublicChatStructuredEnvelope(structured)
 	}
 	if postTurnOutcome != nil {
-		projection.Sidecar = clonePublicChatSidecarOutcome(&postTurnOutcome.Sidecar)
 		projection.FollowUp = clonePublicChatFollowUpOutcome(&postTurnOutcome.FollowUp)
 	}
 	if finish != nil {

@@ -970,6 +970,8 @@ fn valid_interrupt_reason(value: &str) -> bool {
             | "timeout"
             | "gateway_revoked"
             | "policy_refusal"
+            | "foreground_user_input"
+            | "free_contact_disabled"
     )
 }
 
@@ -1070,7 +1072,7 @@ mod tests {
 }
 
 fn project_origin(value: String) -> Result<String, LocalAppOperationError> {
-    if !matches!(value.as_str(), "user" | "app" | "follow_up") {
+    if !matches!(value.as_str(), "user" | "app" | "follow_up" | "life" | "contact") {
         return Err(untrusted());
     }
     Ok(value)

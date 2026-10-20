@@ -87,7 +87,7 @@ func cognitionMemoryMessageEnvelope(binding cognitionmemory.Binding, committedAt
 	actor := runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT
 	if userSide {
 		actor = runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_USER
-		if origin == publicChatTurnOriginFollowUp || origin == publicChatTurnOriginApp {
+		if isProactiveOrigin(origin) || origin == publicChatTurnOriginApp {
 			actor = runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_TOOL
 		}
 	}
@@ -120,73 +120,6 @@ func cognitionMemoryMessageEnvelope(binding cognitionmemory.Binding, committedAt
 			Actor: actor, Conversation: conversationSource, Message: &runtimev1.CognitionMemorySourceRef{Kind: "message", Value: messageRef}, Parts: parts,
 		}},
 	}
-}
-
-func (s *Service) cognitionMemoryActivityTerminalTxHook(
-	entry *agentEntry,
-	outcome *runtimev1.HookExecutionOutcome,
-	now time.Time,
-) (runtimeAgentStateTxHook, bool, error) {
-	if s == nil || s.cognitionMemoryStore == nil || entry == nil || outcome == nil || outcome.GetIntent() == nil {
-		return nil, false, nil
-	}
-	var terminal runtimev1.CognitionMemoryTerminalState
-	stateLabel := ""
-	switch outcome.GetIntent().GetAdmissionState() {
-	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED:
-		terminal = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED
-		stateLabel = "completed"
-	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED:
-		return nil, false, nil
-	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED:
-		terminal = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_FAILED
-		stateLabel = "failed"
-	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED:
-		terminal = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_CANCELED
-		stateLabel = "canceled"
-	default:
-		return nil, false, nil
-	}
-	binding, err := s.cognitionMemoryStore.BindingForAgent(context.Background(), entry.Agent.GetLocalAgentRef())
-	if err != nil {
-		return nil, false, fmt.Errorf("prepare Cognition Memory activity terminal: %w", err)
-	}
-	if !binding.Enabled || binding.AdoptionRequired {
-		return nil, false, nil
-	}
-	intentID := strings.TrimSpace(outcome.GetIntent().GetIntentId())
-	if intentID == "" {
-		return nil, false, fmt.Errorf("prepare Cognition Memory activity terminal: hook intent identity is required")
-	}
-	boundedOutcome := firstNonEmpty(strings.TrimSpace(outcome.GetMessage()), strings.TrimSpace(outcome.GetReason()), "Life Track activity "+stateLabel)
-	boundedOutcome = boundCognitionMemoryText(boundedOutcome, 2048)
-	sources := []*runtimev1.CognitionMemorySourceRef{{Kind: "life_track_hook", Value: intentID}}
-	if anchorID := strings.TrimSpace(outcome.GetIntent().GetConversationAnchorId()); anchorID != "" {
-		sources = append(sources, &runtimev1.CognitionMemorySourceRef{Kind: "conversation", Value: anchorID})
-	}
-	envelope := &runtimev1.CognitionMemoryCommittedEventEnvelope{
-		Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + ulid.Make().String()},
-		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: "cmop_" + ulid.Make().String()},
-		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
-		Sources:     sources,
-		CommittedAt: timestamppb.New(now.UTC()),
-		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_ActivityTerminal{ActivityTerminal: &runtimev1.CognitionMemoryActivityTerminal{
-			Activity:       &runtimev1.CognitionMemorySourceRef{Kind: "life_track_hook", Value: intentID},
-			ActivityKind:   "life_track",
-			State:          terminal,
-			BoundedOutcome: boundedOutcome,
-		}},
-	}
-	return func(tx *sql.Tx) error {
-		if _, err := s.cognitionMemoryStore.EnqueueCommittedEventTx(tx, entry.Agent.GetLocalAgentRef(), envelope); err != nil {
-			if errors.Is(err, cognitionmemory.ErrMemoryDisabled) {
-				return nil
-			}
-			return err
-		}
-		return nil
-	}, true, nil
 }
 
 func boundCognitionMemoryText(value string, maxRunes int) string {

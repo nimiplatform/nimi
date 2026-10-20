@@ -18360,6 +18360,7 @@ pub enum AgentTurnContextLaneId {
     ConversationSummary = 13,
     PrivateRecall = 14,
     AppWork = 15,
+    LifeContext = 16,
 }
 impl AgentTurnContextLaneId {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -18390,6 +18391,7 @@ impl AgentTurnContextLaneId {
             }
             Self::PrivateRecall => "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL",
             Self::AppWork => "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK",
+            Self::LifeContext => "AGENT_TURN_CONTEXT_LANE_ID_LIFE_CONTEXT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -18419,6 +18421,7 @@ impl AgentTurnContextLaneId {
             }
             "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL" => Some(Self::PrivateRecall),
             "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK" => Some(Self::AppWork),
+            "AGENT_TURN_CONTEXT_LANE_ID_LIFE_CONTEXT" => Some(Self::LifeContext),
             _ => None,
         }
     }
@@ -18799,96 +18802,6 @@ impl AgentConversationSummaryStatus {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentLifeFrame {
-    #[prost(string, tag = "1")]
-    pub frame_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub activity_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppAgentLifePhase", tag = "4")]
-    pub phase: i32,
-    #[prost(message, optional, tag = "5")]
-    pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(uint32, optional, tag = "7")]
-    pub progress: ::core::option::Option<u32>,
-    #[prost(bool, tag = "8")]
-    pub interaction: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentLifeProjection {
-    #[prost(uint64, tag = "1")]
-    pub revision: u64,
-    #[prost(message, optional, tag = "2")]
-    pub current: ::core::option::Option<LocalAppAgentLifeFrame>,
-    #[prost(message, repeated, tag = "3")]
-    pub recent: ::prost::alloc::vec::Vec<LocalAppAgentLifeFrame>,
-    #[prost(message, repeated, tag = "4")]
-    pub future: ::prost::alloc::vec::Vec<LocalAppAgentLifeFrame>,
-    #[prost(message, optional, tag = "5")]
-    pub next_check_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "6")]
-    pub wait_reason: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "7")]
-    pub activities: ::prost::alloc::vec::Vec<LocalAppAgentLifeActivity>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentLifeActivity {
-    #[prost(string, tag = "1")]
-    pub activity_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub kind: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppAgentLifePhase", tag = "4")]
-    pub phase: i32,
-    #[prost(uint32, tag = "6")]
-    pub progress: u32,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAgentLifePhase {
-    Unspecified = 0,
-    Planned = 1,
-    Active = 2,
-    Paused = 3,
-    Completed = 4,
-    Interrupted = 5,
-    Canceled = 6,
-}
-impl LocalAppAgentLifePhase {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED",
-            Self::Planned => "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED",
-            Self::Active => "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE",
-            Self::Paused => "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED",
-            Self::Completed => "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED",
-            Self::Interrupted => "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED",
-            Self::Canceled => "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED" => Some(Self::Planned),
-            "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE" => Some(Self::Active),
-            "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED" => Some(Self::Paused),
-            "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED" => Some(Self::Completed),
-            "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED" => Some(Self::Interrupted),
-            "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED" => Some(Self::Canceled),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAgentCapabilityParticipation {
     #[prost(enumeration = "LocalAgentCapabilityParticipationRole", tag = "1")]
     pub role: i32,
@@ -19011,20 +18924,35 @@ pub mod list_local_app_shared_local_agent_ai_config_options_response {
         VoiceAssets(super::SharedLocalAgentVoiceAssetOptions),
     }
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomyConfig {
     #[prost(int64, tag = "1")]
     pub daily_token_budget: i64,
-    #[prost(int64, tag = "2")]
-    pub max_tokens_per_hook: i64,
-    #[prost(message, optional, tag = "3")]
-    pub min_hook_interval: ::core::option::Option<::prost_types::Duration>,
+    #[prost(int64, tag = "9")]
+    pub max_background_output_tokens: i64,
+    #[prost(message, optional, tag = "11")]
+    pub min_planning_interval: ::core::option::Option<::prost_types::Duration>,
     #[prost(message, optional, tag = "4")]
     pub suspend_until: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "LocalAppAgentAutonomyMode", tag = "5")]
     pub mode: i32,
+    #[prost(bool, tag = "6")]
+    pub free_contact_enabled: bool,
+    #[prost(message, optional, tag = "7")]
+    pub quiet_hours: ::core::option::Option<AgentContactQuietHours>,
+    #[prost(uint32, tag = "8")]
+    pub max_free_contacts_per_day: u32,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentContactQuietHours {
+    #[prost(string, tag = "1")]
+    pub timezone: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub start_minute: u32,
+    #[prost(uint32, tag = "3")]
+    pub end_minute: u32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomyProjection {
     #[prost(bool, tag = "1")]
     pub enabled: bool,
@@ -19041,7 +18969,7 @@ pub struct LocalAppAgentAutonomyProjection {
     #[prost(uint64, tag = "7")]
     pub autonomy_revision: u64,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomyIntent {
     #[prost(bool, optional, tag = "1")]
     pub enabled: ::core::option::Option<bool>,
@@ -19053,7 +18981,7 @@ pub struct GetLocalAppAgentAutonomySnapshotRequest {
     #[prost(string, tag = "1")]
     pub agent_handle: ::prost::alloc::string::String,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomySnapshotResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
@@ -19067,7 +18995,7 @@ pub struct UpdateLocalAppAgentAutonomyRequest {
     #[prost(message, optional, tag = "3")]
     pub intent: ::core::option::Option<LocalAppAgentAutonomyIntent>,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentUpdateAutonomyResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
@@ -19674,6 +19602,96 @@ impl LocalAppAgentWorkState {
             "LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED" => Some(Self::Succeeded),
             "LOCAL_APP_AGENT_WORK_STATE_FAILED" => Some(Self::Failed),
             "LOCAL_APP_AGENT_WORK_STATE_CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentLifeFrame {
+    #[prost(string, tag = "1")]
+    pub frame_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub activity_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentLifePhase", tag = "4")]
+    pub phase: i32,
+    #[prost(message, optional, tag = "5")]
+    pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint32, optional, tag = "7")]
+    pub progress: ::core::option::Option<u32>,
+    #[prost(bool, tag = "8")]
+    pub interaction: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentLifeProjection {
+    #[prost(uint64, tag = "1")]
+    pub revision: u64,
+    #[prost(message, optional, tag = "2")]
+    pub current: ::core::option::Option<LocalAppAgentLifeFrame>,
+    #[prost(message, repeated, tag = "3")]
+    pub recent: ::prost::alloc::vec::Vec<LocalAppAgentLifeFrame>,
+    #[prost(message, repeated, tag = "4")]
+    pub future: ::prost::alloc::vec::Vec<LocalAppAgentLifeFrame>,
+    #[prost(message, optional, tag = "5")]
+    pub next_check_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "6")]
+    pub wait_reason: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "7")]
+    pub activities: ::prost::alloc::vec::Vec<LocalAppAgentLifeActivity>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentLifeActivity {
+    #[prost(string, tag = "1")]
+    pub activity_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentLifePhase", tag = "4")]
+    pub phase: i32,
+    #[prost(uint32, tag = "6")]
+    pub progress: u32,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentLifePhase {
+    Unspecified = 0,
+    Planned = 1,
+    Active = 2,
+    Paused = 3,
+    Completed = 4,
+    Interrupted = 5,
+    Canceled = 6,
+}
+impl LocalAppAgentLifePhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED",
+            Self::Planned => "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED",
+            Self::Active => "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE",
+            Self::Paused => "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED",
+            Self::Completed => "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED",
+            Self::Interrupted => "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED",
+            Self::Canceled => "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED" => Some(Self::Planned),
+            "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE" => Some(Self::Active),
+            "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED" => Some(Self::Paused),
+            "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED" => Some(Self::Completed),
+            "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED" => Some(Self::Interrupted),
+            "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED" => Some(Self::Canceled),
             _ => None,
         }
     }
@@ -21553,14 +21571,20 @@ impl CognitionMemoryDeleteReason {
 pub struct AgentAutonomyConfig {
     #[prost(int64, tag = "1")]
     pub daily_token_budget: i64,
-    #[prost(int64, tag = "2")]
-    pub max_tokens_per_hook: i64,
-    #[prost(message, optional, tag = "3")]
-    pub min_hook_interval: ::core::option::Option<::prost_types::Duration>,
+    #[prost(int64, tag = "9")]
+    pub max_background_output_tokens: i64,
+    #[prost(message, optional, tag = "11")]
+    pub min_planning_interval: ::core::option::Option<::prost_types::Duration>,
     #[prost(message, optional, tag = "4")]
     pub suspend_until: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "AgentAutonomyMode", tag = "5")]
     pub mode: i32,
+    #[prost(bool, tag = "6")]
+    pub free_contact_enabled: bool,
+    #[prost(message, optional, tag = "7")]
+    pub quiet_hours: ::core::option::Option<AgentContactQuietHours>,
+    #[prost(uint32, tag = "8")]
+    pub max_free_contacts_per_day: u32,
     #[prost(message, optional, tag = "10")]
     pub extensions: ::core::option::Option<::prost_types::Struct>,
 }
@@ -21793,22 +21817,6 @@ pub struct HookExecutionOutcome {
     pub message: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub reason: ::prost::alloc::string::String,
-}
-/// PendingHook represents admitted scheduler truth for a HookIntent that has
-/// reached `pending` admission state. The embedded HookIntent carries all
-/// admitted hook vocabulary; there is no parallel trigger/next-intent shape.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PendingHook {
-    #[prost(message, optional, tag = "1")]
-    pub intent: ::core::option::Option<HookIntent>,
-    #[prost(message, optional, tag = "2")]
-    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "3")]
-    pub admitted_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(bool, tag = "4")]
-    pub runtime_cadence: bool,
-    #[prost(uint64, tag = "5")]
-    pub revision: u64,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentLifecycleEventDetail {
@@ -22191,44 +22199,6 @@ pub struct GetAgentPresentationAssetResponse {
     pub content: ::prost::alloc::vec::Vec<u8>,
     #[prost(string, tag = "7")]
     pub sha256: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListPendingHooksRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "HookTriggerFamily", tag = "3")]
-    pub trigger_family_filter: i32,
-    #[prost(enumeration = "HookAdmissionState", tag = "4")]
-    pub admission_state_filter: i32,
-    #[prost(int32, tag = "5")]
-    pub page_size: i32,
-    #[prost(string, tag = "6")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListPendingHooksResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub hooks: ::prost::alloc::vec::Vec<PendingHook>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelHookRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelHookResponse {
-    #[prost(message, optional, tag = "1")]
-    pub outcome: ::core::option::Option<HookExecutionOutcome>,
 }
 /// First-party recorded voice ingress. Runtime validates the selected
 /// LocalAgent Conversation and executes audio.transcribe through the singular
@@ -22812,10 +22782,8 @@ pub struct LocalAppConversationFollowUp {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationState {
-    #[prost(bool, tag = "1")]
-    pub follow_up_enabled: bool,
-    #[prost(uint64, tag = "2")]
-    pub follow_up_policy_revision: u64,
+    #[prost(bool, tag = "6")]
+    pub free_contact_enabled: bool,
     #[prost(uint32, tag = "3")]
     pub max_follow_up_turns: u32,
     #[prost(message, optional, tag = "4")]
@@ -22824,18 +22792,7 @@ pub struct LocalAppConversationState {
     pub text_turn_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppConversationFollowUpPolicyRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "3")]
-    pub expected_revision: u64,
-    #[prost(bool, tag = "4")]
-    pub enabled: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppConversationFollowUpRequest {
+pub struct CancelLocalAppConversationFollowUpRequest {
     #[prost(string, tag = "1")]
     pub agent_handle: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -22844,68 +22801,11 @@ pub struct UpdateLocalAppConversationFollowUpRequest {
     pub task_id: ::prost::alloc::string::String,
     #[prost(uint64, tag = "4")]
     pub expected_revision: u64,
-    #[prost(enumeration = "LocalAppScheduledTaskAction", tag = "5")]
-    pub action: i32,
-    #[prost(message, optional, tag = "6")]
-    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppConversationFollowUpPolicyResponse {
+pub struct CancelLocalAppConversationFollowUpResponse {
     #[prost(message, optional, tag = "1")]
     pub state: ::core::option::Option<LocalAppConversationState>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppConversationFollowUpResponse {
-    #[prost(message, optional, tag = "1")]
-    pub state: ::core::option::Option<LocalAppConversationState>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListLocalAppAgentPendingHooksRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentPendingHook {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub revision: u64,
-    #[prost(message, optional, tag = "3")]
-    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(bool, tag = "4")]
-    pub system_cadence: bool,
-    #[prost(enumeration = "HookAdmissionState", tag = "5")]
-    pub status: i32,
-    #[prost(bool, tag = "6")]
-    pub can_modify: bool,
-    /// Optional plain-text description; never execution authority.
-    #[prost(string, tag = "7")]
-    pub public_purpose: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListLocalAppAgentPendingHooksResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub hooks: ::prost::alloc::vec::Vec<LocalAppAgentPendingHook>,
-    #[prost(bool, tag = "2")]
-    pub truncated: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppAgentPendingHookRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "3")]
-    pub expected_revision: u64,
-    #[prost(enumeration = "LocalAppScheduledTaskAction", tag = "4")]
-    pub action: i32,
-    #[prost(message, optional, tag = "5")]
-    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppAgentPendingHookResponse {
-    #[prost(message, optional, tag = "1")]
-    pub hook: ::core::option::Option<LocalAppAgentPendingHook>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationSnapshot {
@@ -24764,35 +24664,6 @@ impl LocalAppConversationVoiceState {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum LocalAppScheduledTaskAction {
-    Unspecified = 0,
-    Cancel = 1,
-    Reschedule = 2,
-}
-impl LocalAppScheduledTaskAction {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED",
-            Self::Cancel => "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL",
-            Self::Reschedule => "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL" => Some(Self::Cancel),
-            "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE" => Some(Self::Reschedule),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
 pub enum LocalAppConversationReasoningState {
     Unspecified = 0,
     Started = 1,
@@ -25734,13 +25605,13 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn update_local_app_conversation_follow_up_policy(
+        pub async fn cancel_local_app_conversation_follow_up(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::UpdateLocalAppConversationFollowUpPolicyRequest,
+                super::CancelLocalAppConversationFollowUpRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::UpdateLocalAppConversationFollowUpPolicyResponse>,
+            tonic::Response<super::CancelLocalAppConversationFollowUpResponse>,
             tonic::Status,
         > {
             self.inner
@@ -25753,105 +25624,14 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
+                "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "UpdateLocalAppConversationFollowUpPolicy",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn update_local_app_conversation_follow_up(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::UpdateLocalAppConversationFollowUpRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::UpdateLocalAppConversationFollowUpResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "UpdateLocalAppConversationFollowUp",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_local_app_agent_pending_hooks(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListLocalAppAgentPendingHooksRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListLocalAppAgentPendingHooksResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ListLocalAppAgentPendingHooks",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn update_local_app_agent_pending_hook(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::UpdateLocalAppAgentPendingHookRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::UpdateLocalAppAgentPendingHookResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "UpdateLocalAppAgentPendingHook",
+                        "CancelLocalAppConversationFollowUp",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -26445,61 +26225,6 @@ pub mod runtime_agent_service_client {
                         "nimi.runtime.v1.RuntimeAgentService",
                         "SetAutonomyConfig",
                     ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_pending_hooks(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListPendingHooksRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListPendingHooksResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ListPendingHooks",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn cancel_hook(
-            &mut self,
-            request: impl tonic::IntoRequest<super::CancelHookRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CancelHookResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAgentService", "CancelHook"),
                 );
             self.inner.unary(req, path, codec).await
         }

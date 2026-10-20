@@ -15,10 +15,9 @@ func (r publicChatRuntime) applyPostTurn(
 ) publicChatPostTurnOutcome {
 	totalStartedAt := time.Now()
 	outcome := publicChatPostTurnOutcome{
-		Sidecar:  publicChatSidecarOutcome{Status: "skipped"},
 		FollowUp: publicChatFollowUpOutcome{Status: "skipped"},
 	}
-	if structured == nil || structured.ControlError != "" || turn.RetryOfTurnID != "" {
+	if structured == nil || structured.ControlError != "" || turn.RetryOfTurnID != "" || turn.AvailableActions.TextOnly {
 		return outcome
 	}
 	assistantText := strings.TrimSpace(structured.Message.Text)
@@ -52,7 +51,6 @@ func (r publicChatRuntime) applyPostTurn(
 		"turn_id", turn.TurnID,
 		"stream_id", turn.StreamID,
 		"thread_id", session.ThreadID,
-		"sidecar_status", outcome.Sidecar.Status,
 		"follow_up_status", outcome.FollowUp.Status,
 	)
 	return outcome

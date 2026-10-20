@@ -42,7 +42,7 @@ async function createSession() {
     },
     autonomy: {
       async snapshot() {
-        return { enabled: true, config: { mode: 'low', dailyTokenBudget: 100, maxTokensPerHook: 10 }, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '1' };
+        return { enabled: true, config: {freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3, mode: 'low', dailyTokenBudget: 100, maxBackgroundOutputTokens: 10 }, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '1' };
       },
       async update(input) {
         return { enabled: input.intent.enabled ?? true, config: input.intent.config ?? null, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '2' };
@@ -65,7 +65,7 @@ async function createSession() {
     },
     manager: {
       async snapshot() {
-        return {
+        return {life:{revision:'1',current:null,recent:[],future:[],activities:[],nextCheckAt:null,waitReason:''},
           lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: '', source: null, context: null,
           actionAvailability: Object.fromEntries([
             'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
@@ -76,9 +76,6 @@ async function createSession() {
             : { state: 'available', reason: null }])),
         };
       },
-    },
-    pendingHooks: {
-      async list() { return { hooks: [], truncated: false }; },
     },
     },
   });
@@ -96,7 +93,7 @@ test('Zhiyu can render Kit Agent Center sections from the shipped Chinese catalo
   const session = await createSession();
   assert.equal(session.getSnapshot().phase, 'ready');
   assert.equal(session.getSnapshot().error, null);
-  assert.deepEqual(await session.listPendingHooks(), { hooks: [], truncated: false });
+  assert.equal('commitments' in session.getSnapshot().state, false);
   const appearance = renderSection('appearance', session);
   const behavior = renderSection('behavior', session);
   const cognition = renderSection('cognition', session);
@@ -105,9 +102,9 @@ test('Zhiyu can render Kit Agent Center sections from the shipped Chinese catalo
   }
   assert.match(appearance, />外观</u);
   assert.match(appearance, /尚未设置伙伴形象/u);
-  assert.match(behavior, /自主状态与姿态活动/u);
-  assert.match(behavior, /不会因此向对话发送问候或提醒/u);
-  assert.match(behavior, /伙伴状态更新/u);
+  assert.match(behavior, /生活与联系/u);
+  assert.match(behavior, /暂停模拟时也可使用/u);
+  assert.match(behavior, /此刻的生活/u);
   assert.match(cognition, /状态与记忆/u);
   assert.doesNotMatch(appearance, /Configure this partner avatar/u);
 });

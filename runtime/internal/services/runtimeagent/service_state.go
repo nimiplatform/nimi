@@ -22,9 +22,9 @@ type persistedRuntimeAgentState struct {
 }
 
 type persistedAgentState struct {
-	Agent json.RawMessage   `json:"agent"`
-	State json.RawMessage   `json:"state"`
-	Hooks []json.RawMessage `json:"hooks"`
+	Agent json.RawMessage `json:"agent"`
+	State json.RawMessage `json:"state"`
+	Life  *agentLifeState `json:"life"`
 }
 
 func (s *Service) agentByID(agentID string) (*agentEntry, error) {
@@ -153,15 +153,9 @@ func (r *runtimeAgentStateRepository) snapshotStateLocked(s *Service) (persisted
 		item := persistedAgentState{
 			Agent: agentRaw,
 			State: stateRaw,
-			Hooks: make([]json.RawMessage, 0, len(entry.Hooks)),
+			Life:  cloneAgentLifeState(entry.Life),
 		}
-		for _, hook := range entry.Hooks {
-			raw, err := protojson.Marshal(hook)
-			if err != nil {
-				return persistedRuntimeAgentState{}, fmt.Errorf("marshal hook: %w", err)
-			}
-			item.Hooks = append(item.Hooks, raw)
-		}
+
 		persisted.Agents = append(persisted.Agents, item)
 	}
 	for _, event := range s.events {
@@ -200,17 +194,12 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
 			return fmt.Errorf("persisted runtime agent %s presentation profile invalid: %w", localAgentRef, err)
 		}
-		if agent.GetAutonomy() == nil {
-			agent.Autonomy = buildInitialAutonomyState(nil, time.Now().UTC())
-		} else if agent.GetAutonomy().GetRevision() == 0 {
-			// Pre-r168 records have no independent autonomy revision. Revision 1
-			// is the deterministic migration baseline; no configured value changes.
-			agent.Autonomy.Revision = 1
+		if agent.GetAutonomy() == nil || agent.GetAutonomy().GetConfig() == nil || agent.GetAutonomy().GetRevision() == 0 {
+			return fmt.Errorf("persisted Agent %s requires the explicit pre-release life-frame data cut", localAgentRef)
 		}
 		s.agents[localAgentRef] = &agentEntry{
 			Agent: agent,
 			State: &runtimev1.AgentStateProjection{},
-			Hooks: map[string]*runtimev1.PendingHook{},
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -237,26 +226,8 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		}
 		entry.State = state
 	}
-	hookRows, err := r.backend.DB().Query(`SELECT local_agent_ref, hook_json FROM runtime_local_agent_hook ORDER BY local_agent_ref, scheduled_for, hook_id`)
-	if err != nil {
-		return fmt.Errorf("load runtime agent hooks: %w", err)
-	}
-	defer func() { _ = hookRows.Close() }()
-	for hookRows.Next() {
-		var localAgentRef string
-		var hookRaw string
-		if err := hookRows.Scan(&localAgentRef, &hookRaw); err != nil {
-			return err
-		}
-		entry := s.agents[localAgentRef]
-		if entry == nil {
-			continue
-		}
-		hook := &runtimev1.PendingHook{}
-		if err := protojson.Unmarshal([]byte(hookRaw), hook); err != nil {
-			return fmt.Errorf("parse persisted hook %s: %w", localAgentRef, err)
-		}
-		entry.Hooks[hookIntentID(hook)] = hook
+	if err := r.loadAgentLifeState(s); err != nil {
+		return err
 	}
 	eventRows, err := r.backend.DB().Query(`SELECT event_json FROM runtime_local_agent_event_log ORDER BY sequence`)
 	if err != nil {
@@ -311,7 +282,6 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 		return fmt.Errorf("persist runtime agent snapshot transaction is required")
 	}
 	refs := make([]string, 0, len(persisted.Agents))
-	hooks := []string{}
 	sequences := make([]uint64, 0, len(persisted.Events))
 	for _, item := range persisted.Agents {
 		agent := &runtimev1.LocalAgentRecord{}
@@ -320,13 +290,7 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 		}
 		ref := strings.TrimSpace(agent.GetLocalAgentRef())
 		refs = append(refs, ref)
-		for _, raw := range item.Hooks {
-			hook := &runtimev1.PendingHook{}
-			if err := protojson.Unmarshal(raw, hook); err != nil {
-				return err
-			}
-			hooks = append(hooks, ref+"\x00"+hookIntentID(hook))
-		}
+
 	}
 	for _, raw := range persisted.Events {
 		event := &runtimev1.AgentEvent{}
@@ -339,21 +303,14 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 	if err != nil {
 		return err
 	}
-	hooksJSON, err := json.Marshal(hooks)
-	if err != nil {
-		return err
-	}
 	sequencesJSON, err := json.Marshal(sequences)
 	if err != nil {
 		return err
 	}
-	for _, table := range []string{"runtime_local_agent", "runtime_local_agent_state_projection"} {
+	for _, table := range []string{"runtime_local_agent", "runtime_local_agent_state_projection", "runtime_local_agent_life"} {
 		if _, err := tx.Exec("DELETE FROM "+table+" WHERE local_agent_ref NOT IN (SELECT value FROM json_each(?))", string(refsJSON)); err != nil {
 			return err
 		}
-	}
-	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_hook WHERE local_agent_ref||char(0)||hook_id NOT IN (SELECT value FROM json_each(?))`, string(hooksJSON)); err != nil {
-		return err
 	}
 	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_event_log WHERE sequence NOT IN (SELECT value FROM json_each(?))`, string(sequencesJSON)); err != nil {
 		return err
@@ -373,15 +330,10 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref, state_json) VALUES (?, ?) ON CONFLICT(local_agent_ref) DO UPDATE SET state_json=excluded.state_json WHERE state_json<>excluded.state_json`, localAgentRef, string(item.State)); err != nil {
 			return err
 		}
-		for _, hookRaw := range item.Hooks {
-			hook := &runtimev1.PendingHook{}
-			if err := protojson.Unmarshal(hookRaw, hook); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?) ON CONFLICT(local_agent_ref,hook_id) DO UPDATE SET status=excluded.status,scheduled_for=excluded.scheduled_for,hook_json=excluded.hook_json WHERE hook_json<>excluded.hook_json`, localAgentRef, hookIntentID(hook), int(hookAdmissionState(hook)), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
-				return err
-			}
+		if err := persistAgentLifeTx(tx, localAgentRef, item.Life); err != nil {
+			return err
 		}
+
 	}
 	for _, eventRaw := range persisted.Events {
 		event := &runtimev1.AgentEvent{}

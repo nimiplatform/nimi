@@ -308,7 +308,7 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 	}
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, _ func(*runtimev1.StreamScenarioEvent) error) error {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
@@ -452,7 +452,7 @@ func TestPublicChatCrossOwnerAttachmentReferenceRejected(t *testing.T) {
 	}
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, _ func(*runtimev1.StreamScenarioEvent) error) error {
 			return nil
@@ -530,7 +530,7 @@ func TestPublicChatVisionCapableRouteCompletesAttachmentTurn(t *testing.T) {
 			mediaMessageCount := 0
 			capture := newPublicChatEmitCapture()
 			svc.SetPublicChatAppEmitter(capture.emit)
-			svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 			svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 				stream: func(_ context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 					for _, message := range req.Messages {

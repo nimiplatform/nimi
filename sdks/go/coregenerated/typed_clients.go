@@ -350,6 +350,7 @@ const (
 	AGENTTURNCONTEXTLANEIDCONVERSATIONSUMMARY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY"
 	AGENTTURNCONTEXTLANEIDPRIVATERECALL       AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL"
 	AGENTTURNCONTEXTLANEIDAPPWORK             AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK"
+	AGENTTURNCONTEXTLANEIDLIFECONTEXT         AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_LIFE_CONTEXT"
 )
 
 type AgentTurnContextLaneState string
@@ -1204,14 +1205,6 @@ const (
 	LOCALAPPEMBODIMENTVOICEPHASEFAILED      LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED"
 	LOCALAPPEMBODIMENTVOICEPHASEINTERRUPTED LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED"
 	LOCALAPPEMBODIMENTVOICEPHASECANCELED    LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"
-)
-
-type LocalAppScheduledTaskAction string
-
-const (
-	LOCALAPPSCHEDULEDTASKACTIONUNSPECIFIED LocalAppScheduledTaskAction = "LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED"
-	LOCALAPPSCHEDULEDTASKACTIONCANCEL      LocalAppScheduledTaskAction = "LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL"
-	LOCALAPPSCHEDULEDTASKACTIONRESCHEDULE  LocalAppScheduledTaskAction = "LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE"
 )
 
 type LocalAppSessionState string
@@ -2503,12 +2496,15 @@ type AdoptLocalAppArtifactResponse struct {
 }
 
 type AgentAutonomyConfig struct {
-	DailyTokenBudget int64             `json:"daily_token_budget,omitempty"`
-	MaxTokensPerHook int64             `json:"max_tokens_per_hook,omitempty"`
-	MinHookInterval  string            `json:"min_hook_interval,omitempty"`
-	SuspendUntil     string            `json:"suspend_until,omitempty"`
-	Mode             AgentAutonomyMode `json:"mode,omitempty"`
-	Extensions       map[string]any    `json:"extensions,omitempty"`
+	DailyTokenBudget          int64                   `json:"daily_token_budget,omitempty"`
+	SuspendUntil              string                  `json:"suspend_until,omitempty"`
+	Mode                      AgentAutonomyMode       `json:"mode,omitempty"`
+	FreeContactEnabled        bool                    `json:"free_contact_enabled,omitempty"`
+	QuietHours                *AgentContactQuietHours `json:"quiet_hours,omitempty"`
+	MaxFreeContactsPerDay     uint32                  `json:"max_free_contacts_per_day,omitempty"`
+	MaxBackgroundOutputTokens int64                   `json:"max_background_output_tokens,omitempty"`
+	Extensions                map[string]any          `json:"extensions,omitempty"`
+	MinPlanningInterval       string                  `json:"min_planning_interval,omitempty"`
 }
 
 type AgentAutonomyState struct {
@@ -2525,6 +2521,12 @@ type AgentBudgetEventDetail struct {
 	BudgetExhausted bool   `json:"budget_exhausted,omitempty"`
 	RemainingTokens int64  `json:"remaining_tokens,omitempty"`
 	WindowStartedAt string `json:"window_started_at,omitempty"`
+}
+
+type AgentContactQuietHours struct {
+	Timezone    string `json:"timezone,omitempty"`
+	StartMinute uint32 `json:"start_minute,omitempty"`
+	EndMinute   uint32 `json:"end_minute,omitempty"`
 }
 
 type AgentConversationContextSummary struct {
@@ -3403,17 +3405,6 @@ type CancelAppPackageJobResponse struct {
 	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
 
-type CancelHookRequest struct {
-	Context  *AgentRequestContext `json:"context,omitempty"`
-	AgentId  string               `json:"agent_id,omitempty"`
-	IntentId string               `json:"intent_id,omitempty"`
-	Reason   string               `json:"reason,omitempty"`
-}
-
-type CancelHookResponse struct {
-	Outcome *HookExecutionOutcome `json:"outcome,omitempty"`
-}
-
 type CancelIntegrationCallRequest struct {
 	CallId string `json:"call_id,omitempty"`
 }
@@ -3437,6 +3428,17 @@ type CancelLocalAppAgentWorkRequest struct {
 
 type CancelLocalAppAgentWorkResponse struct {
 	Execution *LocalAppAgentWorkExecution `json:"execution,omitempty"`
+}
+
+type CancelLocalAppConversationFollowUpRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TaskId               string `json:"task_id,omitempty"`
+	ExpectedRevision     uint64 `json:"expected_revision,omitempty"`
+}
+
+type CancelLocalAppConversationFollowUpResponse struct {
+	State *LocalAppConversationState `json:"state,omitempty"`
 }
 
 type CancelLocalAppScenarioJobRequest struct {
@@ -5432,15 +5434,6 @@ type ListLoadoutRecipesResponse struct {
 	Recipes []LoadoutRecipeDescriptor `json:"recipes,omitempty"`
 }
 
-type ListLocalAppAgentPendingHooksRequest struct {
-	AgentHandle string `json:"agent_handle,omitempty"`
-}
-
-type ListLocalAppAgentPendingHooksResponse struct {
-	Hooks     []LocalAppAgentPendingHook `json:"hooks,omitempty"`
-	Truncated bool                       `json:"truncated,omitempty"`
-}
-
 type ListLocalAppAgentReferencesRequest struct {
 }
 
@@ -5570,20 +5563,6 @@ type ListModelCatalogProvidersRequest struct {
 
 type ListModelCatalogProvidersResponse struct {
 	Providers []ModelCatalogProviderEntry `json:"providers,omitempty"`
-}
-
-type ListPendingHooksRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	AgentId              string               `json:"agent_id,omitempty"`
-	TriggerFamilyFilter  HookTriggerFamily    `json:"trigger_family_filter,omitempty"`
-	AdmissionStateFilter HookAdmissionState   `json:"admission_state_filter,omitempty"`
-	PageSize             int32                `json:"page_size,omitempty"`
-	PageToken            string               `json:"page_token,omitempty"`
-}
-
-type ListPendingHooksResponse struct {
-	Hooks         []PendingHook `json:"hooks,omitempty"`
-	NextPageToken string        `json:"next_page_token,omitempty"`
 }
 
 type ListPortableAIProfilesRequest struct {
@@ -5871,11 +5850,14 @@ type LocalAgentSourceCoverageSectionStatus struct {
 }
 
 type LocalAppAgentAutonomyConfig struct {
-	DailyTokenBudget int64                     `json:"daily_token_budget,omitempty"`
-	MaxTokensPerHook int64                     `json:"max_tokens_per_hook,omitempty"`
-	MinHookInterval  string                    `json:"min_hook_interval,omitempty"`
-	SuspendUntil     string                    `json:"suspend_until,omitempty"`
-	Mode             LocalAppAgentAutonomyMode `json:"mode,omitempty"`
+	DailyTokenBudget          int64                     `json:"daily_token_budget,omitempty"`
+	SuspendUntil              string                    `json:"suspend_until,omitempty"`
+	Mode                      LocalAppAgentAutonomyMode `json:"mode,omitempty"`
+	FreeContactEnabled        bool                      `json:"free_contact_enabled,omitempty"`
+	QuietHours                *AgentContactQuietHours   `json:"quiet_hours,omitempty"`
+	MaxFreeContactsPerDay     uint32                    `json:"max_free_contacts_per_day,omitempty"`
+	MaxBackgroundOutputTokens int64                     `json:"max_background_output_tokens,omitempty"`
+	MinPlanningInterval       string                    `json:"min_planning_interval,omitempty"`
 }
 
 type LocalAppAgentAutonomyIntent struct {
@@ -6004,16 +5986,6 @@ type LocalAppAgentManagerSourceProjection struct {
 	LorebookReady           bool                                    `json:"lorebook_ready,omitempty"`
 	LorebookItemCount       uint32                                  `json:"lorebook_item_count,omitempty"`
 	LorebookEstimatedTokens uint64                                  `json:"lorebook_estimated_tokens,omitempty"`
-}
-
-type LocalAppAgentPendingHook struct {
-	TaskId        string             `json:"task_id,omitempty"`
-	Revision      uint64             `json:"revision,omitempty"`
-	ScheduledFor  string             `json:"scheduled_for,omitempty"`
-	SystemCadence bool               `json:"system_cadence,omitempty"`
-	Status        HookAdmissionState `json:"status,omitempty"`
-	CanModify     bool               `json:"can_modify,omitempty"`
-	PublicPurpose string             `json:"public_purpose,omitempty"`
 }
 
 type LocalAppAgentPresentationIntent struct {
@@ -6324,11 +6296,10 @@ type LocalAppConversationSnapshot struct {
 }
 
 type LocalAppConversationState struct {
-	FollowUpEnabled        bool                          `json:"follow_up_enabled,omitempty"`
-	FollowUpPolicyRevision uint64                        `json:"follow_up_policy_revision,omitempty"`
-	MaxFollowUpTurns       uint32                        `json:"max_follow_up_turns,omitempty"`
-	PendingFollowUp        *LocalAppConversationFollowUp `json:"pending_follow_up,omitempty"`
-	TextTurnId             *string                       `json:"text_turn_id,omitempty"`
+	MaxFollowUpTurns   uint32                        `json:"max_follow_up_turns,omitempty"`
+	PendingFollowUp    *LocalAppConversationFollowUp `json:"pending_follow_up,omitempty"`
+	TextTurnId         *string                       `json:"text_turn_id,omitempty"`
+	FreeContactEnabled bool                          `json:"free_contact_enabled,omitempty"`
 }
 
 type LocalAppConversationTextDelta struct {
@@ -7508,14 +7479,6 @@ type PeekSchedulingResponse struct {
 	Occupancy          *SchedulingOccupancySnapshot `json:"occupancy,omitempty"`
 	AggregateJudgement *SchedulingJudgement         `json:"aggregate_judgement,omitempty"`
 	TargetJudgements   []SchedulingTargetJudgement  `json:"target_judgements,omitempty"`
-}
-
-type PendingHook struct {
-	Intent         *HookIntent `json:"intent,omitempty"`
-	ScheduledFor   string      `json:"scheduled_for,omitempty"`
-	AdmittedAt     string      `json:"admitted_at,omitempty"`
-	RuntimeCadence bool        `json:"runtime_cadence,omitempty"`
-	Revision       uint64      `json:"revision,omitempty"`
 }
 
 type PersonaCharacterSourceRefV3 struct {
@@ -9397,42 +9360,6 @@ type UpdateLocalAppAgentConversationContextResponse struct {
 	Projection *LocalAppAgentConversationContextProjection `json:"projection,omitempty"`
 }
 
-type UpdateLocalAppAgentPendingHookRequest struct {
-	AgentHandle      string                      `json:"agent_handle,omitempty"`
-	TaskId           string                      `json:"task_id,omitempty"`
-	ExpectedRevision uint64                      `json:"expected_revision,omitempty"`
-	Action           LocalAppScheduledTaskAction `json:"action,omitempty"`
-	ScheduledFor     string                      `json:"scheduled_for,omitempty"`
-}
-
-type UpdateLocalAppAgentPendingHookResponse struct {
-	Hook *LocalAppAgentPendingHook `json:"hook,omitempty"`
-}
-
-type UpdateLocalAppConversationFollowUpPolicyRequest struct {
-	AgentHandle          string `json:"agent_handle,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	ExpectedRevision     uint64 `json:"expected_revision,omitempty"`
-	Enabled              bool   `json:"enabled,omitempty"`
-}
-
-type UpdateLocalAppConversationFollowUpPolicyResponse struct {
-	State *LocalAppConversationState `json:"state,omitempty"`
-}
-
-type UpdateLocalAppConversationFollowUpRequest struct {
-	AgentHandle          string                      `json:"agent_handle,omitempty"`
-	ConversationAnchorId string                      `json:"conversation_anchor_id,omitempty"`
-	TaskId               string                      `json:"task_id,omitempty"`
-	ExpectedRevision     uint64                      `json:"expected_revision,omitempty"`
-	Action               LocalAppScheduledTaskAction `json:"action,omitempty"`
-	ScheduledFor         string                      `json:"scheduled_for,omitempty"`
-}
-
-type UpdateLocalAppConversationFollowUpResponse struct {
-	State *LocalAppConversationState `json:"state,omitempty"`
-}
-
 type UploadArtifactChunk struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Bytes    []byte `json:"bytes,omitempty"`
@@ -9996,20 +9923,20 @@ func (c RuntimeTypedClient) ApplySharedLocalAgentAIProfile(ctx context.Context, 
 	return decodeRuntimeTypedResponse[ApplySharedLocalAgentAIProfileResponse](raw, "ApplySharedLocalAgentAIProfileResponse")
 }
 
-func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelHookResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelHook", request, metadata, timeoutMS)
-	if err != nil {
-		return CancelHookResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
-}
-
 func (c RuntimeTypedClient) CancelLocalAppAgentWork(ctx context.Context, request CancelLocalAppAgentWorkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalAppAgentWorkResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork", request, metadata, timeoutMS)
 	if err != nil {
 		return CancelLocalAppAgentWorkResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[CancelLocalAppAgentWorkResponse](raw, "CancelLocalAppAgentWorkResponse")
+}
+
+func (c RuntimeTypedClient) CancelLocalAppConversationFollowUp(ctx context.Context, request CancelLocalAppConversationFollowUpRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalAppConversationFollowUpResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp", request, metadata, timeoutMS)
+	if err != nil {
+		return CancelLocalAppConversationFollowUpResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CancelLocalAppConversationFollowUpResponse](raw, "CancelLocalAppConversationFollowUpResponse")
 }
 
 func (c RuntimeTypedClient) CloseLocalAppAgentRealtime(ctx context.Context, request CloseLocalAppAgentRealtimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseLocalAppAgentRealtimeResponse, error) {
@@ -10292,14 +10219,6 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
 }
 
-func (c RuntimeTypedClient) ListLocalAppAgentPendingHooks(ctx context.Context, request ListLocalAppAgentPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentPendingHooksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks", request, metadata, timeoutMS)
-	if err != nil {
-		return ListLocalAppAgentPendingHooksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListLocalAppAgentPendingHooksResponse](raw, "ListLocalAppAgentPendingHooksResponse")
-}
-
 func (c RuntimeTypedClient) ListLocalAppAgentReferences(ctx context.Context, request ListLocalAppAgentReferencesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentReferencesResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", request, metadata, timeoutMS)
 	if err != nil {
@@ -10330,14 +10249,6 @@ func (c RuntimeTypedClient) ListLocalAppSharedLocalAgentAIConfigOptions(ctx cont
 		return ListLocalAppSharedLocalAgentAIConfigOptionsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListLocalAppSharedLocalAgentAIConfigOptionsResponse](raw, "ListLocalAppSharedLocalAgentAIConfigOptionsResponse")
-}
-
-func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", request, metadata, timeoutMS)
-	if err != nil {
-		return ListPendingHooksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListPendingHooksResponse](raw, "ListPendingHooksResponse")
 }
 
 func (c RuntimeTypedClient) ListPortableAIProfiles(ctx context.Context, request ListPortableAIProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPortableAIProfilesResponse, error) {
@@ -10578,30 +10489,6 @@ func (c RuntimeTypedClient) UpdateLocalAppAgentConversationContext(ctx context.C
 		return UpdateLocalAppAgentConversationContextResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpdateLocalAppAgentConversationContextResponse](raw, "UpdateLocalAppAgentConversationContextResponse")
-}
-
-func (c RuntimeTypedClient) UpdateLocalAppAgentPendingHook(ctx context.Context, request UpdateLocalAppAgentPendingHookRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppAgentPendingHookResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook", request, metadata, timeoutMS)
-	if err != nil {
-		return UpdateLocalAppAgentPendingHookResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[UpdateLocalAppAgentPendingHookResponse](raw, "UpdateLocalAppAgentPendingHookResponse")
-}
-
-func (c RuntimeTypedClient) UpdateLocalAppConversationFollowUp(ctx context.Context, request UpdateLocalAppConversationFollowUpRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppConversationFollowUpResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp", request, metadata, timeoutMS)
-	if err != nil {
-		return UpdateLocalAppConversationFollowUpResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[UpdateLocalAppConversationFollowUpResponse](raw, "UpdateLocalAppConversationFollowUpResponse")
-}
-
-func (c RuntimeTypedClient) UpdateLocalAppConversationFollowUpPolicy(ctx context.Context, request UpdateLocalAppConversationFollowUpPolicyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppConversationFollowUpPolicyResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy", request, metadata, timeoutMS)
-	if err != nil {
-		return UpdateLocalAppConversationFollowUpPolicyResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[UpdateLocalAppConversationFollowUpPolicyResponse](raw, "UpdateLocalAppConversationFollowUpPolicyResponse")
 }
 
 func (c RuntimeTypedClient) UploadLocalAppConversationAttachment(ctx context.Context, request UploadLocalAppConversationAttachmentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UploadLocalAppConversationAttachmentResponse, error) {

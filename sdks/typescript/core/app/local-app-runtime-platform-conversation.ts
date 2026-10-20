@@ -1,4 +1,4 @@
-import { projectConversationState, validateProactiveInput, type NimiLocalAppConversationState, type NimiLocalAppConversationPolicyInput, type NimiLocalAppConversationFollowUpInput } from './local-app-runtime-platform-proactive.js';
+import { projectConversationState, validateFollowUpCancelInput, type NimiLocalAppConversationState, type NimiLocalAppConversationFollowUpCancelInput } from './local-app-runtime-platform-proactive.js';
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 import {
   asRecord,
@@ -127,7 +127,7 @@ export type NimiLocalAppConversationEvent =
   | (NimiLocalAppConversationEventBase & {
       readonly type: 'turn-accepted';
       readonly requestId: string | null;
-      readonly origin: 'user' | 'app' | 'follow_up';
+      readonly origin: 'user' | 'app' | 'follow_up' | 'life' | 'contact';
     })
   | (NimiLocalAppConversationEventBase & {
       readonly type: 'turn-started';
@@ -180,7 +180,7 @@ export type NimiLocalAppConversationEvent =
     })
   | (NimiLocalAppConversationEventBase & {
       readonly type: 'turn-interrupted';
-      readonly reason: 'user_cancel' | 'room_closed' | 'superseded_turn' | 'budget_exhausted' | 'timeout' | 'gateway_revoked' | 'policy_refusal';
+      readonly reason: 'user_cancel' | 'room_closed' | 'superseded_turn' | 'budget_exhausted' | 'timeout' | 'gateway_revoked' | 'policy_refusal' | 'foreground_user_input' | 'free_contact_disabled';
     });
 
 export type NimiLocalAppConversationMessage = {
@@ -202,7 +202,7 @@ export type NimiLocalAppConversationMessagePart =
     };
 
 export type NimiLocalAppConversationTurn = {
-  readonly origin: 'user' | 'app' | 'follow_up';
+  readonly origin: 'user' | 'app' | 'follow_up' | 'life' | 'contact';
   readonly requestId: string | null;
   readonly retryOfTurnId: string | null;
   readonly inputTurnId: string | null;
@@ -269,8 +269,7 @@ export type NimiLocalAppConversationShellSubscription = {
 };
 
 export type NimiLocalAppConversationShell = {
-  readonly setFollowUpPolicy: (input: NimiLocalAppConversationPolicyInput) => Promise<unknown>;
-  readonly updateFollowUp: (input: NimiLocalAppConversationFollowUpInput) => Promise<unknown>;
+  readonly cancelFollowUp: (input: NimiLocalAppConversationFollowUpCancelInput) => Promise<unknown>;
   readonly open: (input: {
     readonly agentHandle: string;
   }) => Promise<unknown>;
@@ -321,8 +320,7 @@ export type NimiLocalAppConversationShell = {
 
 
 export type NimiLocalAppConversationClient = {
-  readonly setFollowUpPolicy: (input: NimiLocalAppConversationPolicyInput) => Promise<NimiLocalAppConversationState>;
-  readonly updateFollowUp: (input: NimiLocalAppConversationFollowUpInput) => Promise<NimiLocalAppConversationState>;
+  readonly cancelFollowUp: (input: NimiLocalAppConversationFollowUpCancelInput) => Promise<NimiLocalAppConversationState>;
   readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
   readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
   readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
@@ -338,8 +336,7 @@ export function createNimiLocalAppConversationClient(
   shell: NimiLocalAppConversationShell,
 ): NimiLocalAppConversationClient {
   return Object.freeze({
-    setFollowUpPolicy: async input => projectConversationState(await shell.setFollowUpPolicy(validateProactiveInput(input, true))),
-    updateFollowUp: async input => projectConversationState(await shell.updateFollowUp(validateProactiveInput(input))),
+    cancelFollowUp: async input => projectConversationState(await shell.cancelFollowUp(validateFollowUpCancelInput(input))),
     open: async (input) => {
       assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
       assertNoAuthorityMaterial(input);
@@ -654,7 +651,7 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
       assertExactProjectionKeys(record, [...commonKeys, 'reason'], 'turn interrupted event');
       const reason = record.reason;
       if (typeof reason !== 'string'
-        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal'].includes(reason)) {
+        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal', 'foreground_user_input', 'free_contact_disabled'].includes(reason)) {
         return localAppProjectionError('turn interrupted reason');
       }
       return Object.freeze({
@@ -994,7 +991,7 @@ function nullableProjectionSelector(value: unknown, field: string): string | nul
   return value === null ? null : boundedProjectionSelector(value, field);
 }
 
-function projectConversationOrigin(value:unknown): 'user'|'app'|'follow_up' {
- if(value!=='user'&&value!=='app'&&value!=='follow_up')return localAppProjectionError('conversation origin');
+function projectConversationOrigin(value:unknown): 'user'|'app'|'follow_up'|'life'|'contact' {
+ if(value!=='user'&&value!=='app'&&value!=='follow_up'&&value!=='life'&&value!=='contact')return localAppProjectionError('conversation origin');
  return value;
 }

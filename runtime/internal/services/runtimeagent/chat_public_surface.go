@@ -10,8 +10,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // K-AGCORE-032 reactive chat consume seam constants.
@@ -46,7 +48,7 @@ const (
 	publicChatTurnInterruptedType            = "runtime.agent.turn.interrupted"
 	publicChatTurnInterruptAckType           = "runtime.agent.turn.interrupt_ack"
 	publicChatDefaultTurnTimeoutMs     int32 = 120_000
-	publicChatMaxFollowUpTurns               = 8
+	publicChatMaxFollowUpTurns               = 1
 )
 const PublicChatRuntimeAppID = publicChatRuntimeAppID
 const (
@@ -180,12 +182,12 @@ type publicChatAnchorState struct {
 	CompletedTurnSnapshots map[string]*publicChatTurnProjectionState
 	VoiceRenderRequests    map[string]string
 	VoiceSidecars          map[string]*publicChatVoiceSidecarState
-	FollowUpEnabled        bool
-	FollowUpPolicyRevision uint64
-	PendingFollowUpID      string
-	Status                 runtimev1.ConversationAnchorStatus
-	LastTurnID             string
-	LastMessageID          string
+	// Transient projection of Agent autonomy, never stored or independently set.
+	EffectiveFreeContactEnabled bool
+	PendingFollowUpID           string
+	Status                      runtimev1.ConversationAnchorStatus
+	LastTurnID                  string
+	LastMessageID               string
 	// LocalAppSequence is the protected Conversation projection high-water.
 	// It advances for every source event before protected filtering and is
 	// persisted with the Runtime-owned Conversation anchor.
@@ -220,6 +222,13 @@ type publicChatConversationSummaryAttemptState struct {
 	AttemptedAt       time.Time `json:"attemptedAt"`
 }
 type publicChatTurnState struct {
+	LifeReadRevision     uint64
+	ConversationRead     *lifeConversationRead
+	AgentCreatedAt       *timestamppb.Timestamp
+	MemoryReadSet        cognitionmemory.MemoryReadSet
+	MemorySourcesInvalid bool
+	ProactiveIntent      *lifeProactiveIntent
+	BackgroundReleased   chan struct{}
 	CanceledFollowUp     *publicChatFollowUpState
 	AdmissionReused      bool
 	RetryOfTurnID        string
@@ -319,6 +328,7 @@ type publicChatReasoningPayload struct {
 // `GetConversationAnchorSnapshot` before turn request. Runtime rejects
 // requests that reference a non-existent anchor (no implicit creation).
 type publicChatTurnRequestPayload struct {
+	backgroundAdmission *agentBackgroundExecution
 	// Only the formal App owner sets this; Runtime-owned follow-ups retain
 	// their own claim authorization rather than an expired App RPC lifetime.
 	localAppAdmission *accountservice.LocalAppCallerDecision
@@ -342,8 +352,11 @@ type publicChatTurnRequestPayload struct {
 	Reasoning            *publicChatReasoningPayload                  `json:"reasoning,omitempty"`
 	// resolvedAttachments is Runtime-internal admission truth, never caller
 	// JSON: store-validated attachment references fixed at turn admission.
-	followUpClaim       *publicChatFollowUpState
-	resolvedAttachments []publicChatResolvedAttachment
+	followUpClaim             *publicChatFollowUpState
+	proactiveClaim            *lifeProactiveIntent
+	proactiveMemoryReadSet    cognitionmemory.MemoryReadSet
+	proactiveConversationRead *lifeConversationRead
+	resolvedAttachments       []publicChatResolvedAttachment
 }
 type publicChatTurnInterruptPayload struct {
 	ExpectedTurnID       string `json:"-"`
@@ -358,11 +371,12 @@ type publicChatTurnVoiceRenderPayload struct {
 	Text                 string `json:"text,omitempty"`
 }
 type PublicChatTurnExecutionRequest struct {
-	Tools         []*runtimev1.ToolSpec
-	AppID         string
-	SubjectUserID string
-	Messages      []*runtimev1.ChatMessage
-	SystemPrompt  string
+	ResponseFormat *runtimev1.ResponseFormat
+	Tools          []*runtimev1.ToolSpec
+	AppID          string
+	SubjectUserID  string
+	Messages       []*runtimev1.ChatMessage
+	SystemPrompt   string
 	// MaxTokens is a caller-requested hard output limit. It is sent as is, so a
 	// target that rejects output limits fails the turn before dispatch.
 	MaxTokens int32
@@ -388,20 +402,6 @@ type publicChatScenarioStreamServer struct {
 	ctx  context.Context
 	send func(*runtimev1.StreamScenarioEvent) error
 }
-type publicChatSidecarOutcome struct {
-	Status          string
-	CanceledHookIDs []string
-	ScheduledHookID string
-	StatusText      string
-	ReasonCode      runtimev1.ReasonCode
-	Message         string
-}
 type publicChatPostTurnOutcome struct {
-	Sidecar  publicChatSidecarOutcome
 	FollowUp publicChatFollowUpOutcome
-}
-type ChatTrackSidecarApplySummary struct {
-	CanceledHookIDs []string
-	ScheduledHookID string
-	StatusText      string
 }

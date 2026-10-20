@@ -89,10 +89,20 @@ enum LocalAppAgentAutonomyMode {
 }
 message LocalAppAgentAutonomyConfig {
   int64 daily_token_budget = 1;
-  int64 max_tokens_per_hook = 2;
-  google.protobuf.Duration min_hook_interval = 3;
+  reserved 2, 3;
+  reserved "max_tokens_per_hook", "min_hook_interval";
+  int64 max_background_output_tokens = 9;
+  google.protobuf.Duration min_planning_interval = 11;
   google.protobuf.Timestamp suspend_until = 4;
   LocalAppAgentAutonomyMode mode = 5;
+  bool free_contact_enabled = 6;
+  AgentContactQuietHours quiet_hours = 7;
+  uint32 max_free_contacts_per_day = 8;
+}
+message AgentContactQuietHours {
+  string timezone = 1;
+  uint32 start_minute = 2;
+  uint32 end_minute = 3;
 }
 message LocalAppAgentAutonomyProjection {
   bool enabled = 1;

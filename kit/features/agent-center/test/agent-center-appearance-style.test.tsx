@@ -9,8 +9,8 @@ describe('AgentCenter committed appearance surface', () => {
       appearance: {
         status: 'ready', presentationRevision: 'p-voice',
         defaultVoiceReference: 'preset_voice_id:Vivian',
-        voiceCatalog: { state: 'ready', truncated: false, options: [{
-          reference: 'preset_voice_id:default', name: 'Default', kind: 'preset_voice_id',
+        voiceCatalog: { state: 'ready', sourceLabel:'Preset', message:null, sources:{preset:{state:'ready',reason:null,message:null,truncated:false},custom:{state:'ready',reason:null,message:null,truncated:false}}, truncated: false, options: [{
+          reference: 'preset_voice_id:default', name: 'Default', kind: 'preset_voice_id', supportedLangs:[],
         }] },
       },
     });

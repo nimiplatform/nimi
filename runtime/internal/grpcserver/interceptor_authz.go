@@ -225,10 +225,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.autonomy.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig":
 		return "runtime.agent.autonomy.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks":
-		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/CancelHook":
-		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig":
 		return "runtime.agent.ai_config.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",

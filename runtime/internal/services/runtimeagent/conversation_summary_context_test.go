@@ -90,23 +90,23 @@ func TestConversationSummaryInputUsesCompleteCoveredTurns(t *testing.T) {
 }
 
 func TestConversationSummaryOutputRequiresExactMessageOnlyEnvelope(t *testing.T) {
-	text, err := parsePublicChatConversationSummaryOutput(`<message id="conversation-summary">bounded summary</message>`)
+	text, err := parsePublicChatConversationSummaryOutput(`<message intent="reply" id="conversation-summary">bounded summary</message>`)
 	if err != nil || text != "bounded summary" {
 		t.Fatalf("exact summary output = %q, %v", text, err)
 	}
 	const literalSummary = "来访者想陪伊哈坐会儿；伊哈愿意歇一歇。雅南说信写于二〇六年，她二一八年才收到；当年结七颗果，现在怎样还不知道。"
-	text, err = parsePublicChatConversationSummaryOutput(`<message id="conversation-summary">` + literalSummary + `</message>`)
+	text, err = parsePublicChatConversationSummaryOutput(`<message intent="reply" id="conversation-summary">` + literalSummary + `</message>`)
 	if err != nil || text != literalSummary {
 		t.Fatalf("summary parser changed speaker attribution or literal content: %q, %v", text, err)
 	}
-	if _, err := parsePublicChatConversationSummaryOutput(`<message id="message-0">wrong id</message>`); err == nil || !strings.Contains(err.Error(), "message id") {
+	if _, err := parsePublicChatConversationSummaryOutput(`<message intent="reply" id="message-0">wrong id</message>`); err == nil || !strings.Contains(err.Error(), "message id") {
 		t.Fatalf("wrong summary message id was admitted: %v", err)
 	}
-	withAction := `<message id="conversation-summary">summary</message><action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>must not run</prompt-text></prompt-payload></action>`
+	withAction := `<message intent="reply" id="conversation-summary">summary</message><action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>must not run</prompt-text></prompt-payload></action>`
 	if _, err := parsePublicChatConversationSummaryOutput(withAction); err == nil || !strings.Contains(err.Error(), "actions are not admitted") {
 		t.Fatalf("summary action shape was admitted: %v", err)
 	}
-	if _, err := parsePublicChatConversationSummaryOutput(`<message id="conversation-summary"><emotion>happy</emotion>summary</message>`); err == nil || !strings.Contains(err.Error(), "status cues") {
+	if _, err := parsePublicChatConversationSummaryOutput(`<message intent="reply" id="conversation-summary"><emotion>happy</emotion>summary</message>`); err == nil || !strings.Contains(err.Error(), "status cues") {
 		t.Fatalf("summary status cue was admitted: %v", err)
 	}
 }
@@ -285,7 +285,7 @@ func TestConversationSummaryRejectsCompleteAPMLCutAtLength(t *testing.T) {
 		_ *PublicChatTurnExecutionRequest,
 		emit func(*runtimev1.StreamScenarioEvent) error,
 	) error {
-		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="conversation-summary">the user asked about</message>`)}}); err != nil {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message intent="reply" id="conversation-summary">the user asked about</message>`)}}); err != nil {
 			return err
 		}
 		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_LENGTH}}})
@@ -442,7 +442,7 @@ func TestConversationSummaryFailedAttemptPreservesLastValidAndProjectsTypedStatu
 func TestConversationSummaryRunsAfterTurnTerminalAndReservationRelease(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 
@@ -486,12 +486,12 @@ func TestConversationSummaryRunsAfterTurnTerminalAndReservationRelease(t *testin
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="conversation-summary">async summary</message>`)}}); err != nil {
+			if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message intent="reply" id="conversation-summary">async summary</message>`)}}); err != nil {
 				return err
 			}
 			return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})
 		}
-		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="message-async-summary">answer</message>`)}}); err != nil {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message intent="reply" id="message-async-summary">answer</message>`)}}); err != nil {
 			return err
 		}
 		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})
@@ -580,7 +580,7 @@ func TestConversationSummaryCoalescesAdvancedTargetWhileAttemptRuns(t *testing.T
 		if call == 2 {
 			summaryText = "summary target one"
 		}
-		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="conversation-summary">` + summaryText + `</message>`)}}); err != nil {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message intent="reply" id="conversation-summary">` + summaryText + `</message>`)}}); err != nil {
 			return err
 		}
 		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})

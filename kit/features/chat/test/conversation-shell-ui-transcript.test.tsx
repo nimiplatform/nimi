@@ -779,7 +779,7 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
-    const messages = [{ id: 'answer', role: 'assistant' as const, text: 'Last reply', createdAt: '2026-04-05T00:00:00Z', kind: 'text' as const }];
+    const messages = [{ id: 'answer', sessionId:'session', targetId:'agent', source:'agent' as const, role: 'assistant' as const, text: 'Last reply', createdAt: '2026-04-05T00:00:00Z', kind: 'text' as const }];
     const render = async (inset: number) => { await act(async () => { root?.render(<CanonicalTranscriptView messages={messages} contentBottomInsetPx={inset} />); await flush(); }); };
     await render(100);
     const scroll = container.querySelector('[data-canonical-transcript-root="true"]') as HTMLDivElement;

@@ -37,7 +37,7 @@ func TestPublicChatPostCommitEmissionFailuresPreserveCompletedTurnAcrossRestart(
 				}
 				return capture.emit(ctx, req)
 			})
-			svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 			svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 				stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 					if err := emit(&runtimev1.StreamScenarioEvent{
@@ -145,7 +145,7 @@ func TestPublicChatInterruptAfterDurableCommitCannotReclassifyTurn(t *testing.T)
 		}
 		return capture.emit(ctx, req)
 	})
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			if err := emit(&runtimev1.StreamScenarioEvent{

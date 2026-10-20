@@ -54,13 +54,7 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
     posture: protected_origin_required
@@ -93,10 +87,6 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAgentService/DisableAutonomy
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPendingHooks
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelHook
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles
     posture: anonymous_read

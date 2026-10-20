@@ -1,4 +1,4 @@
-import type { NimiLocalAppConversationPolicyInput, NimiLocalAppConversationFollowUpInput, NimiLocalAppAgentPendingHookInput } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiLocalAppConversationFollowUpCancelInput, } from '@nimiplatform/kit/core/sdk-contract';
 import { createNimiContentRefusalObserver, createNimiScenarioJobRefusalObserver, getNimiContentRefusalPresentationEpoch, observeNimiSubmittedJob, rememberNimiScenarioJobSubmission, reportNimiContentRefusal } from './content-refusal.js';
 import { RuntimeReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
@@ -430,7 +430,6 @@ export type NimiLocalAppEmbodimentShellSurface = {
 };
 
 export type NimiLocalAppAgentConfigureShellSurface = {
-  readonly pendingHooks: {readonly list:(input:{readonly agentHandle:string})=>Promise<JsonObject>;readonly update:(input:NimiLocalAppAgentPendingHookInput)=>Promise<JsonObject>};
   readonly conversationContext: { readonly update: (input: { readonly agentHandle: string; readonly conversationAnchorId: string; readonly expectedContextRevision: string; readonly firstTurnSequence: string; readonly omitSupplementalContext: boolean }) => Promise<JsonObject> };
   readonly manager: {
     readonly snapshot: (input: {
@@ -590,8 +589,7 @@ export type NimiLocalAppStandardShellSurface = {
   readonly integration: NimiLocalAppIntegrationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShellSurface;
   readonly conversation: {
-    readonly setFollowUpPolicy:(input:NimiLocalAppConversationPolicyInput)=>Promise<JsonObject>;
-    readonly updateFollowUp:(input:NimiLocalAppConversationFollowUpInput)=>Promise<JsonObject>;
+    readonly cancelFollowUp:(input:NimiLocalAppConversationFollowUpCancelInput)=>Promise<JsonObject>;
     readonly open: (input: {
       readonly agentHandle: string;
     }) => Promise<JsonObject>;
@@ -723,7 +721,6 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       listReferences: listNimiLocalAppAgentReferences,
     },
     agentConfigure: {
-      pendingHooks: { list: listNimiLocalAppAgentPendingHooks, update: updateNimiLocalAppAgentPendingHook },
       conversationContext: { update: updateNimiLocalAppAgentConversationContext },
       manager: {
         snapshot: getNimiLocalAppAgentManagerSnapshot,
@@ -781,8 +778,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       cancelConnectionSetup: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationCancelConnectionSetup'], input as unknown as JsonObject),
     },
     conversation: {
-      setFollowUpPolicy: updateNimiLocalAppConversationFollowUpPolicy,
-      updateFollowUp: updateNimiLocalAppConversationFollowUp,
+      cancelFollowUp: cancelNimiLocalAppConversationFollowUp,
       open: openNimiLocalAppConversation,
       send: sendNimiLocalAppConversationTurn,
       uploadAttachment: uploadNimiLocalAppConversationAttachment,
@@ -1442,28 +1438,10 @@ export function getNimiLocalAppAgentAutonomySnapshot(
 ): Promise<JsonObject> {
   return invokeAgentConfigureHandle('local-app.agentAutonomySnapshot', input);
 }
-
-export function listNimiLocalAppAgentPendingHooks(input: {readonly agentHandle: string}): Promise<JsonObject> {
- return invokeAgentConfigureHandle('local-app.agentPendingHooks',input);
-}
-export function updateNimiLocalAppConversationFollowUpPolicy(input: NimiLocalAppConversationPolicyInput): Promise<JsonObject> {
- const command=NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpPolicy'];
- assertExactInput(input,['agentHandle','conversationAnchorId','expectedRevision','enabled'],command);
- if(typeof input.enabled!=='boolean')throw invalidInput(command,'enabled must be boolean');
- return invokeLocalAppRecord(command,{agentHandle:requiredText(input.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),conversationAnchorId:requiredText(input.conversationAnchorId,'conversationAnchorId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(input.expectedRevision,'expectedRevision',command,true),enabled:input.enabled});
-}
-export function updateNimiLocalAppConversationFollowUp(input: NimiLocalAppConversationFollowUpInput): Promise<JsonObject> {
- return updatePendingTask(NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpUpdate'],input,true);
-}
-export function updateNimiLocalAppAgentPendingHook(input: NimiLocalAppAgentPendingHookInput): Promise<JsonObject> {
- return updatePendingTask(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPendingHookUpdate'],input,false);
-}
-function updatePendingTask(command:string,input:NimiLocalAppConversationFollowUpInput|NimiLocalAppAgentPendingHookInput,anchored:boolean):Promise<JsonObject>{
- const row=input as unknown as JsonObject;
- assertExactInput(row,['agentHandle',...(anchored?['conversationAnchorId']:[]),'taskId','expectedRevision','action',...(input.action==='reschedule'?['scheduledFor']:[])],command);
- if(input.action!=='cancel'&&input.action!=='reschedule')throw invalidInput(command,'unsupported task action');
- if(input.action==='reschedule')validateProjectionValue(row.scheduledFor,command);
- return invokeLocalAppRecord(command,{...row,agentHandle:requiredText(input.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),taskId:requiredText(input.taskId,'taskId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(input.expectedRevision,'expectedRevision',command,false)});
+export function cancelNimiLocalAppConversationFollowUp(input:NimiLocalAppConversationFollowUpCancelInput):Promise<JsonObject>{
+ const command=NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpCancel'];
+ assertExactInput(input,['agentHandle','conversationAnchorId','taskId','expectedRevision'],command);
+ return invokeLocalAppRecord(command,{agentHandle:requiredText(input.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),conversationAnchorId:requiredText(input.conversationAnchorId,'conversationAnchorId',command,MAX_IDENTIFIER_LENGTH),taskId:requiredText(input.taskId,'taskId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(input.expectedRevision,'expectedRevision',command,false)});
 }
 
 export function updateNimiLocalAppAgentConversationContext(input: { readonly agentHandle: string; readonly conversationAnchorId: string; readonly expectedContextRevision: string; readonly firstTurnSequence: string; readonly omitSupplementalContext: boolean }): Promise<JsonObject> {
@@ -1693,7 +1671,7 @@ export function deleteAllNimiLocalAppAgentMemory(input: { readonly agentHandle: 
 }
 
 function invokeAgentConfigureHandle(
-  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot' | 'local-app.agentPendingHooks',
+  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot',
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS[operation];
@@ -2414,7 +2392,7 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
   switch (record.type) {
     case 'turn-accepted':
       assertProjectionKeys(record,[...common,'requestId','origin'],command,'turn accepted event');
-      if(!['user','app','follow_up'].includes(String(record.origin)))throw new Error(`${command}: origin is invalid`);
+      if(!['user','app','follow_up','life','contact'].includes(String(record.origin)))throw new Error(`${command}: origin is invalid`);
       if(record.requestId!==null)parseRequiredString(record.requestId,'requestId',command);
       break;
     case 'turn-started':
@@ -2497,7 +2475,7 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
     case 'turn-interrupted':
       assertProjectionKeys(record, [...common, 'reason'], command, 'turn interrupted event');
       if (typeof record.reason !== 'string'
-        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal'].includes(record.reason)) {
+        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal', 'foreground_user_input', 'free_contact_disabled'].includes(record.reason)) {
         throw new Error(`${command}: interrupt reason is invalid`);
       }
       break;
@@ -2641,7 +2619,7 @@ function parseConversationMessage(
 function parseConversationTurn(value: unknown, command: string): JsonObject {
   const turn = assertRecord(value, `${command} returned invalid conversation turn`);
   assertProjectionKeys(turn, ['turnId', 'status', 'phase', 'terminalReason', 'reasonCode', 'message', 'requestId', 'retryOfTurnId', 'inputTurnId', 'canRegenerate', 'origin'], command, 'conversation turn');
-  if (typeof turn.canRegenerate !== 'boolean' || !['user','app','follow_up'].includes(String(turn.origin)) || !['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
+  if (typeof turn.canRegenerate !== 'boolean' || !['user','app','follow_up','life','contact'].includes(String(turn.origin)) || !['active', 'completed', 'failed', 'interrupted'].includes(String(turn.status))
     || (turn.phase !== null && turn.phase !== 'accepted' && turn.phase !== 'started')
     || (turn.terminalReason !== null && typeof turn.terminalReason !== 'string')
     || (turn.reasonCode !== null && typeof turn.reasonCode !== 'string')
@@ -4812,9 +4790,8 @@ function parseJobObservationIssue(value: unknown, command: string): NonNullable<
 
 function parseConversationState(value:unknown,command:string):JsonObject {
  const row=assertRecord(value,`${command}: invalid conversation state`);
- assertProjectionKeys(row,['followUpEnabled','followUpPolicyRevision','maxFollowUpTurns','pendingFollowUp','textTurnId'],command,'conversation state');
- if(typeof row.followUpEnabled!=='boolean'||typeof row.maxFollowUpTurns!=='number'||!Number.isSafeInteger(row.maxFollowUpTurns)||row.maxFollowUpTurns<1)throw new Error(`${command}: invalid follow-up policy`);
- decimalRevision(row.followUpPolicyRevision,'followUpPolicyRevision',command,true);
+ assertProjectionKeys(row,['freeContactEnabled','maxFollowUpTurns','pendingFollowUp','textTurnId'],command,'conversation state');
+ if(typeof row.freeContactEnabled!=='boolean'||typeof row.maxFollowUpTurns!=='number'||!Number.isSafeInteger(row.maxFollowUpTurns)||row.maxFollowUpTurns<1)throw new Error(`${command}: invalid follow-up policy`);
  if(row.textTurnId!==null)parseRequiredString(row.textTurnId,'textTurnId',command);
  if(row.pendingFollowUp!==null){const task=assertRecord(row.pendingFollowUp,`${command}: invalid pending follow-up`);assertProjectionKeys(task,['taskId','revision','scheduledFor','sourceTurnId'],command,'pending follow-up');parseRequiredString(task.taskId,'taskId',command);parseRequiredString(task.sourceTurnId,'sourceTurnId',command);decimalRevision(task.revision,'revision',command,false);validateProjectionValue(task.scheduledFor as JsonValue,command);}
  return Object.freeze({...row}) as JsonObject;

@@ -1,8 +1,8 @@
 use super::*;
 use base64::Engine;
 use nimi_shell_protected_local::{
-    LocalAppAgentPendingHookUpdateRequest, LocalAppConversationFollowUpUpdateRequest,
-    LocalAppConversationPolicyRequest, LocalAppScheduledTime,
+    LocalAppConversationFollowUpCancelRequest,
+
 };
 use nimi_shell_protected_local::{
     LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
@@ -3732,104 +3732,10 @@ pub async fn local_app_integration_cancel_connection_setup(input: JsonValue) -> 
         .await
 }
 
-fn scheduled_time(
-    value: Option<JsonValue>,
-) -> Result<Option<LocalAppScheduledTime>, LocalAppOperationError> {
-    let Some(value) = value else { return Ok(None) };
-    let row = value.as_object().ok_or_else(native_invalid_payload)?;
-    if row.len() != 2 || !row.contains_key("seconds") || !row.contains_key("nanos") {
-        return Err(native_invalid_payload());
-    }
-    let seconds = row["seconds"]
-        .as_str()
-        .ok_or_else(native_invalid_payload)?
-        .parse::<i64>()
-        .map_err(|_| native_invalid_payload())?;
-    let nanos = row["nanos"]
-        .as_i64()
-        .filter(|v| (0..1_000_000_000).contains(v))
-        .ok_or_else(native_invalid_payload)? as i32;
-    Ok(Some(LocalAppScheduledTime { seconds, nanos }))
-}
-#[napi(js_name = "localAppConversationFollowUpPolicy")]
-pub async fn local_app_conversation_follow_up_policy(
-    input: NativeConversationPolicyInput,
-) -> NativeJsonOutcome {
-    let expected_revision = match decimal_revision(&input.expected_revision, true) {
-        Ok(v) => v,
-        Err(e) => return NativeJsonOutcome::error(e),
-    };
-    invoke_agent(|session| async move {
-        session
-            .conversation_follow_up_policy(LocalAppConversationPolicyRequest {
-                agent_handle: input.agent_handle,
-                conversation_anchor_id: input.conversation_anchor_id,
-                expected_revision,
-                enabled: input.enabled,
-            })
-            .await
-    })
-    .await
-}
-#[napi(js_name = "localAppConversationFollowUpUpdate")]
-pub async fn local_app_conversation_follow_up_update(
-    input: NativeConversationFollowUpInput,
-) -> NativeJsonOutcome {
-    let expected_revision = match decimal_revision(&input.expected_revision, false) {
-        Ok(v) => v,
-        Err(e) => return NativeJsonOutcome::error(e),
-    };
-    let scheduled_for = match scheduled_time(input.scheduled_for) {
-        Ok(v) => v,
-        Err(e) => return NativeJsonOutcome::error(e),
-    };
-    invoke_agent(|session| async move {
-        session
-            .conversation_follow_up_update(LocalAppConversationFollowUpUpdateRequest {
-                agent_handle: input.agent_handle,
-                conversation_anchor_id: input.conversation_anchor_id,
-                task_id: input.task_id,
-                expected_revision,
-                action: input.action,
-                scheduled_for,
-            })
-            .await
-    })
-    .await
-}
-#[napi(js_name = "localAppAgentPendingHooks")]
-pub async fn local_app_agent_pending_hooks(input: NativeAgentHandleInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .agent_pending_hooks(LocalAppAgentHandleRequest {
-                agent_handle: input.agent_handle,
-            })
-            .await
-    })
-    .await
-}
-#[napi(js_name = "localAppAgentPendingHookUpdate")]
-pub async fn local_app_agent_pending_hook_update(
-    input: NativeAgentPendingHookInput,
-) -> NativeJsonOutcome {
-    let expected_revision = match decimal_revision(&input.expected_revision, false) {
-        Ok(v) => v,
-        Err(e) => return NativeJsonOutcome::error(e),
-    };
-    let scheduled_for = match scheduled_time(input.scheduled_for) {
-        Ok(v) => v,
-        Err(e) => return NativeJsonOutcome::error(e),
-    };
-    invoke_agent(|session| async move {
-        session
-            .agent_pending_hook_update(LocalAppAgentPendingHookUpdateRequest {
-                agent_handle: input.agent_handle,
-                task_id: input.task_id,
-                expected_revision,
-                action: input.action,
-                scheduled_for,
-            })
-            .await
-    })
-    .await
+
+
+#[napi(js_name = "localAppConversationFollowUpCancel")]
+pub async fn local_app_conversation_follow_up_cancel(input:NativeConversationFollowUpInput)->NativeJsonOutcome{
+ let expected_revision=match decimal_revision(&input.expected_revision,false){Ok(v)=>v,Err(e)=>return NativeJsonOutcome::error(e)};
+ invoke_agent(|session|async move{session.conversation_follow_up_cancel(LocalAppConversationFollowUpCancelRequest{agent_handle:input.agent_handle,conversation_anchor_id:input.conversation_anchor_id,task_id:input.task_id,expected_revision}).await}).await
 }

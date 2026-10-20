@@ -171,11 +171,16 @@ func TestConversationRegenerationExecutesOriginalInputOnceAndNoActions(t *testin
 		if originalCount != 1 {
 			t.Errorf("original input occurs %d times", originalCount)
 		}
-		raw := `<message>previous unfinished response`
+		raw := `<message intent="reply">previous unfinished response`
 		if calls > 1 {
-			raw = publicChatImageActionAPML("ignored", "regenerated answer", "ignored-action", "do not replay") + `<time-hook><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>do not replay</prompt-text></effect></time-hook>`
+			raw = publicChatImageActionAPML("ignored", "regenerated answer", "ignored-action", "do not replay") + `<time-hook><delay-ms>600000</delay-ms></time-hook>`
 		}
-		return emitPublicChatImageActionStream("recovery", raw)(ctx, request, emit)
+		return emitPublicChatImageActionStream("recovery", raw)(ctx, request, func(event *runtimev1.StreamScenarioEvent) error {
+			if calls == 1 && event.GetCompleted() != nil {
+				event.GetCompleted().FinishReason = runtimev1.FinishReason_FINISH_REASON_LENGTH
+			}
+			return emit(event)
+		})
 	}})
 	decision.Operation = accountservice.LocalAppOperationSendConversationTurn
 	callCtx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
@@ -270,7 +275,7 @@ func TestAcceptedPictureRemainsConversationMemberAfterRestart(t *testing.T) {
 				}
 			}
 		}
-		return emitPublicChatImageActionStream("image-recovery", `<message>image answer</message>`)(ctx, request, emit)
+		return emitPublicChatImageActionStream("image-recovery", `<message intent="reply">image answer</message>`)(ctx, request, emit)
 	}})
 	reader.Operation = accountservice.LocalAppOperationSendConversationTurn
 	_, err = svc.SendLocalAppConversationTurn(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), reader), &runtimev1.SendLocalAppConversationTurnRequest{AgentHandle: freshHandle, ConversationAnchorId: anchorID, RequestId: "image-retry", RetryOfTurnId: &admitted.TurnId})
@@ -320,11 +325,12 @@ func TestConversationNewAdmissionRejectsRevocationAfterBindingResolution(t *test
 	anchor := *svc.chatAnchors[anchorID]
 	previous := *svc.chatTurns[previousID]
 	svc.chatSurfaceMu.Unlock()
-	structured, err := parsePublicChatStructuredEnvelope(`<message>body</message><time-hook><delay-ms>3600000</delay-ms><effect kind="follow-up-turn"><prompt-text>later</prompt-text></effect></time-hook>`)
+	structured, err := parsePublicChatStructuredEnvelope(`<message intent="reply">body</message><time-hook><delay-ms>3600000</delay-ms></time-hook>`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assignPublicChatOutputIdentities(structured, previousID)
+	commitFollowUpSourceForTest(t, svc, anchorID, previousID)
 	scheduled := svc.schedulePublicChatFollowUp(anchor, previous, publicChatTurnRequestPayload{}, structured)
 	if scheduled.Status != "scheduled" {
 		t.Fatalf("schedule=%+v", scheduled)

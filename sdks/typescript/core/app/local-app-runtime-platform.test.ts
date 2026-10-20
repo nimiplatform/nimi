@@ -427,8 +427,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       cancelConnectionSetup: touched('integration.cancelConnectionSetup'),
     },
     conversation: {
-      setFollowUpPolicy: async () => { throw new Error('unused test operation'); },
-      updateFollowUp: async () => { throw new Error('unused test operation'); },
+      cancelFollowUp: async () => { throw new Error('unused test operation'); },
       open: touched('conversation.open'),
       send: touched('conversation.send'),
       uploadAttachment: touched('conversation.uploadAttachment'),
@@ -452,7 +451,6 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       close: touched('agentRealtime.close'),
     },
     agentConfigure: {
-      pendingHooks: { list: async () => ({hooks:[],truncated:false}), update: async () => {throw new Error('unused test operation');} },
       conversationContext: { update: touched('agentConfigure.conversationContext.update') },
       sharedAIConfig: {
         get: touched('agentConfigure.sharedAIConfig.get'),
@@ -586,7 +584,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.realm.chat), ['list']);
   assert.deepEqual(Object.keys(client.realm.realtime).sort(), ['ack', 'closeChannel', 'closeSubscription', 'open', 'subscribe']);
   assert.deepEqual(Object.keys(client.embodiment).sort(), ['snapshot', 'subscribe']);
-  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'conversationContext', 'manager', 'memory', 'pendingHooks', 'presentation', 'sharedAIConfig']);
+  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'conversationContext', 'manager', 'memory', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
   assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'readAsset', 'snapshot']);
@@ -1092,7 +1090,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
       async snapshot(input) {
         calls.push(['snapshot', input]);
         return {
-          conversationAnchorId: 'agent_anchor_01J', throughSequence: '11', state:{followUpEnabled:false,followUpPolicyRevision:'0',maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null},
+          conversationAnchorId: 'agent_anchor_01J', throughSequence: '11', state:{freeContactEnabled:false,maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null},
           turns: [{
             turnId: 'agent_turn_01J', status: 'completed', phase: null, requestId: null, retryOfTurnId: null, inputTurnId: null, canRegenerate: false, origin:'user',
             terminalReason: 'stop', reasonCode: null, message: null,
@@ -1153,7 +1151,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
   assert.equal(JSON.stringify(events).includes('payload'), false);
   assert.equal(JSON.stringify(events).includes('messageType'), false);
   assert.deepEqual(await conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' }), {
-    conversationAnchorId: 'agent_anchor_01J', throughSequence: '11', state:{followUpEnabled:false,followUpPolicyRevision:'0',maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null},
+    conversationAnchorId: 'agent_anchor_01J', throughSequence: '11', state:{freeContactEnabled:false,maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null},
     turns: [{
       turnId: 'agent_turn_01J', status: 'completed', phase: null, requestId: null, retryOfTurnId: null, inputTurnId: null, canRegenerate: false, origin:'user',
       terminalReason: 'stop', reasonCode: null, message: null,

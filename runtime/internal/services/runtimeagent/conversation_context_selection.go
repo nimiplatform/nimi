@@ -229,9 +229,27 @@ func (s *Service) UpdateLocalAppAgentConversationContext(ctx context.Context, re
 	}
 	previous, version := anchor.ConversationContext, s.chatSurfaceVersion
 	anchor.ConversationContext = publicChatConversationContextSelection{Revision: current + 1, FirstTurnSequence: req.GetFirstTurnSequence(), OmitSupplementalContext: req.GetOmitSupplementalContext()}
+	pendingID := anchor.PendingFollowUpID
+	pending := s.chatFollowUps[pendingID]
+	excluded := pending != nil && !followUpSourceSelected(anchor, pending.SourceTurnID)
+	if excluded {
+		anchor.PendingFollowUpID = ""
+		delete(s.chatFollowUps, pendingID)
+	}
 	if err := s.persistPublicChatSurfaceStateLocked(anchor.ConversationAnchorID); err != nil {
 		anchor.ConversationContext, s.chatSurfaceVersion = previous, version
+		if excluded {
+			anchor.PendingFollowUpID = pendingID
+			s.chatFollowUps[pendingID] = pending
+		}
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+	}
+	if excluded && pending.Cancel != nil {
+		pending.Cancel()
+	}
+	if work := s.backgroundByAgent[resolved.identity.LocalAgentRef]; work != nil && work.conversationRead != nil && work.conversationRead.AnchorID == anchor.ConversationAnchorID {
+		work.invalidated = true
+		work.cancel()
 	}
 	// Keep the canceled job registered until its worker finishes, so Agent
 	// termination can still wait for its custody. Revision checks reject results.

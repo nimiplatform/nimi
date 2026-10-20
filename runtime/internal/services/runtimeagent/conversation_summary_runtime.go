@@ -538,7 +538,7 @@ func parsePublicChatConversationSummaryOutput(raw string) (string, error) {
 	}
 	// This private task keeps its own exact message-only marker. Public chat
 	// identity and optional-cue isolation do not relax summary admission.
-	if requirePublicChatAPMLAttrs(interpreted.MessageRoot, "message", "id") != nil || xmlAttr(interpreted.MessageRoot, "id") != "conversation-summary" {
+	if requirePublicChatAPMLAttrs(interpreted.MessageRoot, "message", "id", "intent") != nil || xmlAttr(interpreted.MessageRoot, "id") != "conversation-summary" {
 		return "", fmt.Errorf("conversation summary output invalid: message id must equal conversation-summary")
 	}
 	structured := interpreted.Envelope

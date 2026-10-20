@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 	"time"
 
@@ -38,7 +39,7 @@ func (r publicChatRuntime) reserveTurn(
 	}
 	r.svc.chatSurfaceMu.Unlock()
 
-	if callerAppID == "" {
+	if callerAppID == "" && req.proactiveClaim == nil && req.followUpClaim == nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat request requires caller app")
 	}
 	if anchorID == "" {
@@ -65,6 +66,13 @@ func (r publicChatRuntime) reserveTurn(
 		// admitted; turn admission binds to the committed Runtime Agent AI Config.
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, errPublicChatRequestExecutionBindingsNotAdmitted
 	}
+	if req.followUpClaim == nil && req.proactiveClaim == nil {
+		releasePriority, waitErr := r.svc.yieldAgentBackground(parent, localAgentRef)
+		if waitErr != nil {
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, waitErr
+		}
+		defer releasePriority()
+	}
 	resolvedBindings, configRevision, bindingRelease, err := r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
@@ -87,6 +95,13 @@ func (r publicChatRuntime) reserveTurn(
 		TextOnly:      req.RetryOfTurnID != "",
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
+	source, _ := r.svc.turnSourceView(localAgentRef)
+	r.svc.cognitionMemoryOwnerLifecycleMu.Lock()
+	r.svc.mu.Lock()
+	defer func() {
+		r.svc.mu.Unlock()
+		r.svc.cognitionMemoryOwnerLifecycleMu.Unlock()
+	}()
 	for {
 		r.svc.chatSurfaceMu.Lock()
 		if r.svc.agentTerminationFencedLocked(localAgentRef) {
@@ -100,11 +115,16 @@ func (r publicChatRuntime) reserveTurn(
 				return snapshot, reused, parent, err
 			}
 		}
-		if r.svc.localAgentExecutionBusyLocked(localAgentRef) {
+		ownBackground := req.backgroundAdmission != nil && r.svc.backgroundByAgent[localAgentRef] == req.backgroundAdmission && !req.backgroundAdmission.invalidated && parent.Err() == nil && r.svc.chatActiveByAgent[localAgentRef] == "" && r.svc.localAppWorkActiveByAgent[localAgentRef] == ""
+		if r.svc.localAgentExecutionBusyLocked(localAgentRef) && !ownBackground || req.backgroundAdmission != nil && !ownBackground {
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AGENT_BUSY)
 		}
 		session := r.svc.chatAnchors[anchorID]
+		if req.proactiveClaim != nil && !validLifeProactiveClaim(r.svc.agents[localAgentRef], req.proactiveClaim, time.Now().UTC()) {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "proactive intent is no longer eligible")
+		}
 		if session == nil {
 			// Hard fail: runtime.agent.turn.request must reference an existing
 			// ConversationAnchor opened through OpenConversationAnchor.
@@ -147,7 +167,7 @@ func (r publicChatRuntime) reserveTurn(
 		}
 		if claim := req.followUpClaim; claim != nil {
 			pending := r.svc.chatFollowUps[session.PendingFollowUpID]
-			if !session.FollowUpEnabled || pending == nil || pending.FollowUpID != claim.FollowUpID || pending.Revision != claim.Revision || pending.ScheduledFor.After(time.Now().UTC()) || pending.FollowUpDepth > pending.MaxFollowUpTurns {
+			if !lifeContactAllowed(r.svc.agents[localAgentRef], time.Now().UTC()) || pending == nil || !followUpSourceSelected(session, pending.SourceTurnID) || time.Now().UTC().After(pending.ScheduledFor.Add(publicChatFollowUpGrace)) || pending.FollowUpID != claim.FollowUpID || pending.Revision != claim.Revision || pending.ScheduledFor.After(time.Now().UTC()) || pending.FollowUpDepth > pending.MaxFollowUpTurns {
 				r.svc.chatSurfaceMu.Unlock()
 				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "follow-up is no longer pending or enabled")
 			}
@@ -177,7 +197,9 @@ func (r publicChatRuntime) reserveTurn(
 		}
 		// app_id is retained only as last-turn-origin information. Conversation
 		// delivery and authorization never target or partition by this field.
-		session.CallerAppID = callerAppID
+		if callerAppID != "" {
+			session.CallerAppID = callerAppID
+		}
 		if req.MaxOutputTokens > 0 || session.MaxTokens == 0 {
 			session.MaxTokens = req.MaxOutputTokens
 		}
@@ -191,8 +213,9 @@ func (r publicChatRuntime) reserveTurn(
 		turnID := "agent_turn_" + ulid.Make().String()
 		streamID := "agent_stream_" + ulid.Make().String()
 		timelineStartedAt := time.Now()
-		availableActions.FollowUpEnabled = session.FollowUpEnabled && req.RetryOfTurnID == ""
+		availableActions.FollowUpEnabled = lifeContactAllowed(r.svc.agents[localAgentRef], time.Now().UTC()) && req.RetryOfTurnID == ""
 		turn := &publicChatTurnState{
+			AgentCreatedAt:       cloneTimestamp(r.svc.agents[localAgentRef].Agent.GetCreatedAt()),
 			ConversationAnchorID: session.ConversationAnchorID,
 			TurnID:               turnID,
 			RequestID:            req.RequestID,
@@ -218,6 +241,17 @@ func (r publicChatRuntime) reserveTurn(
 			turn.SourceTurnID = claim.SourceTurnID
 			turn.SourceActionID = claim.SourceActionID
 		}
+		if claim := req.proactiveClaim; claim != nil {
+			copy := *claim
+			turn.ProactiveIntent = &copy
+			turn.Origin = claim.Source
+			turn.MemoryReadSet = req.proactiveMemoryReadSet
+			turn.ConversationRead = req.proactiveConversationRead
+		}
+		if isProactiveOrigin(turn.Origin) {
+			turn.BackgroundReleased = make(chan struct{})
+			turn.AvailableActions.ImageGenerate = publicChatImageActionNotConfigured
+		}
 		turn.Projection = newPublicChatTurnProjection(turn)
 		session.ActiveTurnID = turnID
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
@@ -237,10 +271,27 @@ func (r publicChatRuntime) reserveTurn(
 		// Keep the original caller context until new input is durably admitted.
 		// A deduplicated read or Runtime-owned follow-up is not a new App commit.
 		var commitErr error
-		if req.localAppAdmission != nil {
-			commitErr = r.svc.persistLocalAppConversationCommitLocked(parent, localappop.IngressConversationTurnSend, *req.localAppAdmission, session.ConversationAnchorID)
-		} else {
-			commitErr = r.svc.persistPublicChatSurfaceStateLocked(session.ConversationAnchorID)
+		nextEntry := cloneAgentEntry(r.svc.agents[localAgentRef])
+		if turn.Origin == publicChatTurnOriginUser {
+			if req.RetryOfTurnID == "" {
+				nextEntry.Life.ContactSinceUser = false
+				// A prepared check-in predates this real user input. It is not a
+				// life intention and must not be delivered after the new reply.
+				nextEntry.Life.cancelFreeIntents("contact")
+				turn.AvailableActions.FollowUpEnabled = lifeContactAllowed(nextEntry, timelineStartedAt)
+			}
+			_, commitErr = nextEntry.Life.beginInteraction(turnID, timelineStartedAt, lifeEnabled(nextEntry), source.LifeWorldPaused)
+		}
+		lifeHook := func(tx *sql.Tx) error {
+			if err := persistAgentLifeTx(tx, localAgentRef, nextEntry.Life); err != nil {
+				return err
+			}
+			return nil
+		}
+		if commitErr == nil && req.localAppAdmission != nil {
+			commitErr = r.svc.persistLocalAppConversationCommitLocked(parent, localappop.IngressConversationTurnSend, *req.localAppAdmission, session.ConversationAnchorID, lifeHook)
+		} else if commitErr == nil {
+			commitErr = r.svc.persistPublicChatSurfaceStateWithTxHookLocked(lifeHook, session.ConversationAnchorID)
 		}
 		if commitErr != nil {
 			*session = before
@@ -253,15 +304,27 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, commitErr
 		}
+		r.svc.agents[localAgentRef] = nextEntry
 		// Only accepted work outlives the RPC. Preserve authority values for Job
 		// custody and the existing explicit Stop/provider timeout ownership.
-		turnCtx, cancel := context.WithCancel(context.WithoutCancel(parent))
+		turnParent := context.WithoutCancel(parent)
+		if req.backgroundAdmission != nil {
+			turnParent = parent
+		}
+		turnCtx, cancel := context.WithCancel(turnParent)
 		turn.Cancel = cancel
+		if work := req.backgroundAdmission; work != nil {
+			work.transferred = true
+			delete(r.svc.backgroundByAgent, localAgentRef)
+			turn.BackgroundReleased = work.done
+			turn.Cancel = func() { cancel(); work.cancel() }
+		}
 		if req.followUpClaim == nil {
 			turn.CanceledFollowUp = canceled
 		}
 		releaseUnclaimedBinding = nil
 		snapshot := *session
+		snapshot.CallerAppID = callerAppID
 		snapshot.Reasoning = clonePublicChatReasoningConfig(effectiveReasoning)
 		snapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 		turnSnapshot := *turn
@@ -314,8 +377,18 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 	}
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.persistCurrentPublicChatSurfaceState(trimmedAnchorID)
+
 	if bindingRelease != nil {
 		bindingRelease()
+	}
+	if turn != nil && turn.BackgroundReleased != nil {
+		if turn.Cancel != nil {
+			turn.Cancel()
+		}
+		close(turn.BackgroundReleased)
+	}
+	if turn != nil {
+		r.svc.recordLifeInteractionRelease(turn.AgentID, turn.TurnID, time.Now().UTC())
 	}
 	r.svc.wakeDuePublicChatFollowUp(trimmedAnchorID)
 }

@@ -379,13 +379,9 @@ func (b *Backend) ensureSchema() error {
 			local_agent_ref TEXT PRIMARY KEY,
 			state_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_local_agent_hook (
-			local_agent_ref TEXT NOT NULL,
-			hook_id TEXT NOT NULL,
-			status INTEGER NOT NULL,
-			scheduled_for TEXT,
-			hook_json TEXT NOT NULL,
-			PRIMARY KEY (local_agent_ref, hook_id)
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_life (
+			local_agent_ref TEXT PRIMARY KEY,
+			life_json TEXT NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_local_agent_event_log (
 			sequence INTEGER PRIMARY KEY,

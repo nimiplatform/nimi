@@ -149,7 +149,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
         calls.push(['autonomy.snapshot', input]);
         return {
           enabled: true,
-          config: { mode: 'low', dailyTokenBudget: 100, maxTokensPerHook: 10 },
+          config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3, mode: 'low', dailyTokenBudget: 100, maxBackgroundOutputTokens: 10 },
           usedTokensInWindow: 1,
           budgetExhausted: false,
           autonomyRevision,
@@ -267,7 +267,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
     manager: {
       async snapshot(input) {
         calls.push(['manager.snapshot', input]);
-        return {
+        return { life: { activities: [], revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
           conversationContext: null,
           lifecycleStatus: 'active',
           executionState: 'idle',
@@ -844,12 +844,12 @@ describe('AgentCenterSession', () => {
     const calls: unknown[] = [];
     const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
     await session.refresh();
-    await session.updateAutonomy({
+    await session.updateAutonomy({ freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       expectedRevision: '1',
       enabled: true,
       mode: 'medium',
       dailyTokenBudget: 2048,
-      maxTokensPerHook: 256,
+      maxBackgroundOutputTokens: 256,
     });
     expect(calls).toContainEqual([
       'autonomy.update',
@@ -858,7 +858,7 @@ describe('AgentCenterSession', () => {
         expectedAutonomyRevision: '1',
         intent: {
           enabled: true,
-          config: { mode: 'medium', dailyTokenBudget: 2048, maxTokensPerHook: 256 },
+          config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3, mode: 'medium', dailyTokenBudget: 2048, maxBackgroundOutputTokens: 256 },
         },
       },
     ]);
@@ -888,12 +888,12 @@ describe('AgentCenterSession', () => {
     };
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     await session.refresh();
-    await session.updateAutonomy({
+    await session.updateAutonomy({ freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       expectedRevision: '1',
       enabled: true,
       mode: 'medium',
       dailyTokenBudget: 2048,
-      maxTokensPerHook: 256,
+      maxBackgroundOutputTokens: 256,
     });
 
     expect(session.getSnapshot()).toMatchObject({
@@ -1626,12 +1626,12 @@ describe('AgentCenterSession', () => {
     while (controller.getSnapshot().phase !== 'apply-in-flight') await Promise.resolve();
     session.appearance.cancelResourcePackPreview?.();
     expect(controller.getSnapshot().phase).toBe('apply-in-flight');
-    await session.updateAutonomy({
+    await session.updateAutonomy({ freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       expectedRevision: '1',
       enabled: true,
       mode: 'low',
       dailyTokenBudget: 100,
-      maxTokensPerHook: 10,
+      maxBackgroundOutputTokens: 10,
     });
     await session.refresh();
     expect(controller.getSnapshot().phase).toBe('apply-in-flight');
@@ -2293,8 +2293,8 @@ describe('AgentCenterSession', () => {
       availability: { updateAutonomy: { state: 'unavailable', reason: 'owner-rejected' } },
     });
     const updatesBefore = calls.filter((call) => Array.isArray(call) && call[0] === 'autonomy.update').length;
-    await expect(session.updateAutonomy({
-      expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxTokensPerHook: 1,
+    await expect(session.updateAutonomy({ freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
+      expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxBackgroundOutputTokens: 1,
     })).rejects.toThrow(/invalidated/u);
     expect(calls.filter((call) => Array.isArray(call) && call[0] === 'autonomy.update')).toHaveLength(updatesBefore);
   });
@@ -2502,8 +2502,8 @@ describe('AgentCenterSession', () => {
     };
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     await session.refresh();
-    await expect(session.updateAutonomy({
-      expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxTokensPerHook: 1,
+    await expect(session.updateAutonomy({ freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
+      expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxBackgroundOutputTokens: 1,
     })).rejects.toThrow('owner changed');
     expect(session.getSnapshot()).toMatchObject({
       phase: 'degraded',

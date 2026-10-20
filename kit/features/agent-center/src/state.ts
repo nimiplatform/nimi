@@ -128,6 +128,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
 
   return {
     conversationContext: input.manager?.conversationContext ?? null,
+    life: input.manager?.life ?? null,
     runtimeStatus: input.runtimeError
       ? 'failed'
       : (input.sharedAIConfig === undefined
@@ -148,7 +149,10 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
       mode: autonomyProjection?.mode ?? null,
       usedTokensInWindow: autonomyProjection?.usedTokensInWindow ?? null,
       dailyTokenBudget: autonomyProjection?.dailyTokenBudget ?? null,
-      maxTokensPerHook: autonomyProjection?.maxTokensPerHook ?? null,
+      maxBackgroundOutputTokens: autonomyProjection?.maxBackgroundOutputTokens ?? null,
+      freeContactEnabled: autonomyProjection?.freeContactEnabled ?? null,
+      quietHours: autonomyProjection?.quietHours ?? null,
+      maxFreeContactsPerDay: autonomyProjection?.maxFreeContactsPerDay ?? null,
       windowStartedAt: autonomyProjection?.windowStartedAt ?? null,
       suspendedUntil: autonomyProjection?.suspendedUntil ?? null,
       budgetExhausted: autonomyProjection?.budgetExhausted ?? null,

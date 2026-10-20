@@ -54,54 +54,6 @@ func TestAutonomyBudgetFixedWindows(t *testing.T) {
 	}
 }
 
-func TestAutonomyBudgetLateResultsKeepCancellationAndUseAccountingWindow(t *testing.T) {
-	for _, canceled := range []bool{false, true} {
-		for _, invalid := range []bool{false, true} {
-			svc := newRuntimeAgentServiceForPublicChatTest(t)
-			id := testRuntimeAgentLocalRef("agent-alpha")
-			start := time.Now().UTC().Add(-25 * time.Hour)
-			if err := svc.mutateAgent(id, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-				e.Agent.Autonomy.WindowStartedAt = timestamppb.New(start)
-				e.Agent.Autonomy.UsedTokensInWindow = 10
-				e.Agent.Autonomy.Config.DailyTokenBudget = 10
-				e.Agent.Autonomy.BudgetExhausted = true
-				return nil, nil, nil
-			}); err != nil {
-				t.Fatal(err)
-			}
-			intent := timeHookIntentForDelay(id, time.Second, "late activity")
-			if err := svc.admitPendingHook(id, &runtimev1.PendingHook{Intent: intent, ScheduledFor: timestamppb.New(start), AdmittedAt: timestamppb.New(start)}); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := svc.markHookRunningAt(id, intent.IntentId, start); err != nil {
-				t.Fatal(err)
-			}
-			if canceled {
-				if _, err := svc.cancelHook(id, intent.IntentId, "user", "stop"); err != nil {
-					t.Fatal(err)
-				}
-			}
-			result := &lifeTurnResult{TokensUsed: 7}
-			if invalid {
-				result.NextHookIntent = &runtimev1.HookIntent{}
-			}
-			if _, err := svc.lifeTrackController().applyResult(context.Background(), id, intent.IntentId, result, time.Now().UTC()); err != nil {
-				t.Fatal(err)
-			}
-			e, err := svc.agentByID(id)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if e.Agent.Autonomy.UsedTokensInWindow != 7 || e.Agent.Autonomy.BudgetExhausted || !e.Agent.Autonomy.WindowStartedAt.AsTime().Equal(start.Add(24*time.Hour)) {
-				t.Fatalf("late accounting: %v", e.Agent.Autonomy)
-			}
-			if canceled && hookAdmissionState(e.Hooks[intent.IntentId]) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED {
-				t.Fatal("late result revived canceled activity")
-			}
-		}
-	}
-}
-
 func TestAutonomyBudgetWindowRollbackAndRestart(t *testing.T) {
 	path := t.TempDir() + "/runtime-state.json"
 	svc, closeSvc := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, path)
@@ -128,7 +80,7 @@ func TestAutonomyBudgetWindowRollbackAndRestart(t *testing.T) {
 	if _, err := svc.backend.DB().Exec(`CREATE TRIGGER budget_write_failure BEFORE UPDATE ON runtime_local_agent BEGIN SELECT RAISE(FAIL, 'budget write failure'); END`); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.reconcileAgentCadenceHook(id, now); err == nil {
+	if err := svc.runLifeFrameSweep(context.Background(), now); err == nil {
 		t.Fatal("expected persistence failure")
 	}
 	failed, _ := svc.agentByID(id)
@@ -138,7 +90,7 @@ func TestAutonomyBudgetWindowRollbackAndRestart(t *testing.T) {
 	if _, err := svc.backend.DB().Exec(`DROP TRIGGER budget_write_failure`); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.reconcileAgentCadenceHook(id, now); err != nil {
+	if err := svc.runLifeFrameSweep(context.Background(), now); err != nil {
 		t.Fatal(err)
 	}
 	after, _ := svc.agentByID(id)
@@ -158,62 +110,5 @@ func TestAutonomyBudgetWindowRollbackAndRestart(t *testing.T) {
 	}
 	if !proto.Equal(after.Agent.Autonomy, restored.Agent.Autonomy) {
 		t.Fatal("restart changed committed window")
-	}
-}
-
-func TestAutonomyBudgetExpiredAdmissionAndActualResultTime(t *testing.T) {
-	for _, expiredAtAdmission := range []bool{false, true} {
-		svc := newRuntimeAgentServiceForPublicChatTest(t)
-		id := testRuntimeAgentLocalRef("agent-alpha")
-		actualNow := time.Now().UTC()
-		admissionAt := actualNow.Add(-2 * time.Hour)
-		start := actualNow.Add(-25 * time.Hour)
-		if expiredAtAdmission {
-			admissionAt = actualNow
-		}
-		if err := svc.mutateAgent(id, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-			e.Agent.Autonomy.Enabled = true
-			e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH
-			e.Agent.Autonomy.Config.DailyTokenBudget = 10
-			e.Agent.Autonomy.WindowStartedAt = timestamppb.New(start)
-			e.Agent.Autonomy.UsedTokensInWindow = 9
-			if expiredAtAdmission {
-				e.Agent.Autonomy.UsedTokensInWindow = 10
-				e.Agent.Autonomy.BudgetExhausted = true
-			}
-			return nil, nil, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-		intent := timeHookIntentForDelay(id, 0, "budget admission")
-		if err := svc.admitPendingHook(id, &runtimev1.PendingHook{Intent: intent, ScheduledFor: timestamppb.New(admissionAt), AdmittedAt: timestamppb.New(admissionAt)}); err != nil {
-			t.Fatal(err)
-		}
-		// Model an activity admitted in the previous window; fixture time is
-		// deterministic while the executor's result uses the production clock.
-		if err := svc.mutateAgent(id, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-			e.Hooks[intent.IntentId].ScheduledFor = timestamppb.New(admissionAt)
-			return nil, nil, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-		called := false
-		outcome, err := svc.lifeTrackController().executePendingHook(context.Background(), id, intent.IntentId, admissionAt, func(_ context.Context, req *lifeTurnRequest) (*lifeTurnResult, error) {
-			called = true
-			if expiredAtAdmission && req.Autonomy.UsedTokensInWindow != 0 {
-				t.Fatal("executor saw expired usage")
-			}
-			return &lifeTurnResult{TokensUsed: 3}, nil
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !called || outcome.GetObservedAt().AsTime().Before(actualNow) {
-			t.Fatalf("not executed/accounted at result time: %v", outcome)
-		}
-		e, _ := svc.agentByID(id)
-		if e.Agent.Autonomy.UsedTokensInWindow != 3 || e.Agent.Autonomy.BudgetExhausted || !e.Agent.Autonomy.WindowStartedAt.AsTime().Equal(start.Add(24*time.Hour)) {
-			t.Fatalf("wrong accounting window: %v", e.Agent.Autonomy)
-		}
 	}
 }

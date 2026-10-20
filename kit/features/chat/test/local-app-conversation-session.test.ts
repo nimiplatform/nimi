@@ -6,7 +6,7 @@ import type { CanonicalConversationProjection } from '../src/headless/local-app-
 const scope = { agentHandle: 'agent_ref_test' as never, conversationAnchorId: 'anchor' };
 function snapshot(): NimiLocalAppConversationSnapshot {
   return { conversationAnchorId: 'anchor', throughSequence: '2', truncatedBefore: false,
-    state: { textTurnId: 'turn', followUpEnabled: false, followUpPolicyRevision: '0', pendingFollowUp: null, maxFollowUpTurns: 8 },
+    state: { textTurnId: 'turn', freeContactEnabled: false, pendingFollowUp: null, maxFollowUpTurns: 8 },
     turns: [{ turnId: 'turn', origin: 'user', requestId: 'request', retryOfTurnId: null, inputTurnId: 'turn', canRegenerate: false,
       status: 'active', phase: 'started', terminalReason: null, reasonCode: null, message: null }],
     messages: [{ messageId: 'answer', turnId: 'turn', role: 'assistant', partial: true, parts: [{ kind: 'text', text: '已收到' }] }], actions: [], voices: [] };

@@ -265,9 +265,9 @@ describe('AgentCenter UI session contract', () => {
 
   it('renders AIConfig, behavior, and appearance sections through session-owned state', async () => {
     const session = await sessionFor({
-      autonomy: {
+      autonomy: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
         revision: 'a1', enabled: true, mode: 'low', budgetExhausted: false,
-        usedTokensInWindow: 1, dailyTokenBudget: 100, maxTokensPerHook: 10,
+        usedTokensInWindow: 1, dailyTokenBudget: 100, maxBackgroundOutputTokens: 10,
         windowStartedAt: null, suspendedUntil: null,
       },
       appearance: { status: 'not_configured', presentationRevision: 'p1' },
@@ -285,66 +285,17 @@ describe('AgentCenter UI session contract', () => {
 
   it('explicit activity refresh also refreshes canonical usage without a duplicate initial Manager read', async () => {
     const session = await sessionFor();
-    const list = vi.spyOn(session, 'listPendingHooks').mockResolvedValue({ hooks: [], truncated: false });
     const refresh = vi.spyOn(session, 'refresh').mockResolvedValue(undefined);
     const node = render(<AgentCenter activeSection="behavior" session={session} />);
     await flush();
-    expect(list).toHaveBeenCalledTimes(1);
     expect(refresh).toHaveBeenCalledTimes(1); // AgentCenter owns the initial Manager read.
     await act(async () => {
-      const button = Array.from(node.querySelectorAll('button')).find(item => item.textContent === 'Refresh activities');
+      const button = Array.from(node.querySelectorAll('button')).find(item => item.textContent === 'Refresh');
       expect(button).toBeTruthy();
       button?.click();
       await flush();
     });
-    expect(list).toHaveBeenCalledTimes(2);
     expect(refresh).toHaveBeenCalledTimes(2);
-  });
-
-  it('separates editable, running and system activities without changing owner controls', async () => {
-    const session = await sessionFor();
-    const scheduledFor = {seconds:'1900000000', nanos:0};
-    const editable = {taskId:'editable', revision:'4', scheduledFor, systemCadence:false, status:'pending' as const, canModify:true};
-    vi.spyOn(session, 'listPendingHooks').mockResolvedValue({hooks:[
-      {...editable,taskId:'cadence',systemCadence:true,canModify:false},
-      {...editable,taskId:'running',status:'running',canModify:false},
-      {...editable,taskId:'managed',canModify:false},
-      editable,
-    ],truncated:false});
-    const update = vi.spyOn(session,'updatePendingHook').mockResolvedValue({...editable,status:'canceled',canModify:false});
-    const node = render(<AgentCenter activeSection="behavior" session={session} />);
-    await flush();
-    const available=node.querySelector('section[aria-label="Available to adjust"]')!;
-    const running=node.querySelector('section[aria-label="Already started"]')!;
-    const other=node.querySelector('details[aria-label="Other automatic updates"]')!;
-    expect(available).toBeTruthy();expect(running).toBeTruthy();expect(other).toBeTruthy();
-    expect(running.querySelector('input')).toBeNull();expect(other.querySelector('input')).toBeNull();
-    const system=Array.from(node.querySelectorAll('details')).find(item=>item.querySelector('summary')?.textContent?.startsWith('System-managed updates'))!;
-    expect(system).toBeTruthy();expect(system.open).toBe(false);expect(system.querySelector('button')).toBeNull();
-    expect(update).not.toHaveBeenCalled();
-    await act(async()=>{Array.from(available.querySelectorAll('button')).find(button=>button.textContent==='Cancel activity')?.click();await Promise.resolve();});
-    expect(update).toHaveBeenCalledWith({taskId:'editable',expectedRevision:'4',action:'cancel'});
-  });
-
-  it('shows distinct public purposes as text without changing which task is canceled', async () => {
-    const session = await sessionFor();
-    const task = {revision:'4', scheduledFor:null, systemCadence:false, status:'pending' as const, canModify:true};
-    vi.spyOn(session, 'listPendingHooks').mockResolvedValue({hooks:[
-      {...task,taskId:'one',publicPurpose:'Revisit the landscape observation'},
-      {...task,taskId:'two',publicPurpose:'<b>Reflect on the sketch</b>'},
-      {...task,taskId:'three'},
-    ],truncated:false});
-    const update = vi.spyOn(session,'updatePendingHook').mockResolvedValue({...task,taskId:'two',status:'canceled',canModify:false});
-    const node = render(<AgentCenter activeSection="behavior" session={session} />);
-    await flush();
-    const group = node.querySelector('section[aria-label="Available to adjust"]')!;
-    const purpose = Array.from(group.querySelectorAll('p')).find(item => item.textContent === '<b>Reflect on the sketch</b>')!;
-    expect(purpose).toBeTruthy();
-    expect(purpose.querySelector('b')).toBeNull();
-    expect(group.textContent).toContain('Revisit the landscape observation');
-    expect(Array.from(group.querySelectorAll('button')).filter(button=>button.textContent==='Cancel activity')).toHaveLength(3);
-    await act(async()=>{Array.from(purpose.parentElement!.querySelectorAll('button')).find(button=>button.textContent==='Cancel activity')?.click();await Promise.resolve();});
-    expect(update).toHaveBeenCalledWith({taskId:'two',expectedRevision:'4',action:'cancel'});
   });
 
   it('routes the background picker through the existing canonical appearance action', async () => {
@@ -762,11 +713,11 @@ describe('AgentCenter UI session contract', () => {
     { budget: null, enabled: true, progress: false },
     { budget: 0, enabled: true, progress: false },
     { budget: 100, enabled: false, progress: false },
-    { budget: 100, enabled: true, progress: true },
+    { budget: 100, enabled: true, progress: false },
   ])('does not invent a budget ratio for $budget tokens when enabled=$enabled', async ({ budget, enabled, progress }) => {
-    const session = await sessionFor({ autonomy: {
+    const session = await sessionFor({ autonomy: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
       revision: 'a1', enabled, mode: enabled ? 'low' : 'off', budgetExhausted: false,
-      usedTokensInWindow: 25, dailyTokenBudget: 100, maxTokensPerHook: 10,
+      usedTokensInWindow: 25, dailyTokenBudget: 100, maxBackgroundOutputTokens: 10,
       windowStartedAt: null, suspendedUntil: null,
     } });
     const snapshot = session.getSnapshot();
@@ -775,15 +726,15 @@ describe('AgentCenter UI session contract', () => {
     }} />);
     expect(Boolean(node.querySelector('[data-agent-center-budget-progress="true"]'))).toBe(progress);
     expect(node.textContent).not.toContain('/ 0 tokens');
-    if (budget === null) expect(node.textContent).toContain('Not available');
-    if (progress) expect(node.textContent).toContain('25%');
+    if (budget === null) expect(node.textContent).toContain('25 / —');
+    if (budget === 100) expect(node.textContent).toContain('25 / 100');
   });
 
-  it('passes autonomy budget input unchanged to the SDK-owned validation boundary', async () => {
+  it('rejects invalid budget numbers without sending a mutation', async () => {
     const session = await sessionFor({
-      autonomy: {
+      autonomy: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
         revision: 'a1', enabled: true, mode: 'low', budgetExhausted: false,
-        usedTokensInWindow: 1, dailyTokenBudget: 100, maxTokensPerHook: 10,
+        usedTokensInWindow: 1, dailyTokenBudget: 100, maxBackgroundOutputTokens: 10,
         windowStartedAt: null, suspendedUntil: null,
       },
     });
@@ -791,12 +742,9 @@ describe('AgentCenter UI session contract', () => {
     const node = render(<AgentCenter activeSection="behavior" session={session} />);
     await flush();
 
-    act(() => {
-      (node.querySelector('[data-agent-center-budget-adjust="true"]') as HTMLButtonElement).click();
-    });
     const inputs = node.querySelectorAll('input[type="number"]');
-    const daily = inputs[0] as HTMLInputElement;
-    const perHook = inputs[1] as HTMLInputElement;
+    const daily = inputs[1] as HTMLInputElement;
+    const perHook = inputs[2] as HTMLInputElement;
     await act(async () => {
       Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set?.call(daily, '-1');
       daily.dispatchEvent(new Event('input', { bubbles: true }));
@@ -805,15 +753,12 @@ describe('AgentCenter UI session contract', () => {
       await Promise.resolve();
     });
     await act(async () => {
-      (node.querySelector('[data-agent-center-autonomy-apply="true"]') as HTMLButtonElement).click();
+      node.querySelector('form')!.dispatchEvent(new Event('submit', {bubbles:true,cancelable:true}));
       await Promise.resolve();
     });
 
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      dailyTokenBudget: -1,
-      maxTokensPerHook: 1.5,
-    }));
-    expect(node.textContent).toContain('invalid budget');
+    expect(update).not.toHaveBeenCalled();
+    expect(node.querySelector('[role="alert"]')).toBeTruthy();
   });
 
   it('allows first-time configuration after Runtime reports canonical AIConfig absence', async () => {

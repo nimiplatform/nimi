@@ -141,8 +141,6 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'listSharedLocalAgentAIConfigOptions'
     | 'previewSharedLocalAgentAIProfile'
     | 'applySharedLocalAgentAIProfile'
-    | 'listPendingHooks'
-    | 'cancelHook'
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
     | 'submitDelegatedApprovalDecision'>;
@@ -370,8 +368,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     listSharedLocalAgentAIConfigOptions: protectedAgents.listSharedLocalAgentAIConfigOptions,
     previewSharedLocalAgentAIProfile: protectedAgents.previewSharedLocalAgentAIProfile,
     applySharedLocalAgentAIProfile: protectedAgents.applySharedLocalAgentAIProfile,
-    listPendingHooks: protectedAgent(protectedAgents.listPendingHooks),
-    cancelHook: protectedAgent(protectedAgents.cancelHook),
     getDelegatedControlSurfaceSnapshot: protectedAgent(protectedAgents.getDelegatedControlSurfaceSnapshot),
     getDelegatedReplayTrace: protectedAgent(protectedAgents.getDelegatedReplayTrace),
     submitDelegatedApprovalDecision: protectedAgent(protectedAgents.submitDelegatedApprovalDecision),

@@ -151,7 +151,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	release := make(chan struct{})
 	firstDeltaApplied := make(chan struct{})
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			envelope := publicChatStructuredEnvelopeAPML("message-snapshot", "snapshot complete")
@@ -289,9 +289,8 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	if _, present := lastTurn["assistant_memory"]; present {
 		t.Fatalf("retired assistant memory projection persisted in last_turn: %v", lastTurn)
 	}
-	chatSidecar := lastTurn["chat_sidecar"].(map[string]any)
-	if _, present := chatSidecar["accepted_memory_count"]; present {
-		t.Fatalf("retired sidecar Memory count persisted in last_turn: %v", chatSidecar)
+	if _, present := lastTurn["chat_sidecar"]; present {
+		t.Fatalf("retired sidecar projection persisted in last_turn: %v", lastTurn)
 	}
 	followUp := lastTurn["follow_up"].(map[string]any)
 	if got := followUp["status"]; got != "skipped" {
@@ -332,7 +331,7 @@ func TestPublicChatMediaTailDoesNotHoldTextOrClobberNextTurn(t *testing.T) {
 		close(nextEntered)
 		select {
 		case <-nextRelease:
-			return emitPublicChatImageActionStream("new-text", `<message>new answer</message>`)(ctx, req, emit)
+			return emitPublicChatImageActionStream("new-text", `<message intent="reply">new answer</message>`)(ctx, req, emit)
 		case <-ctx.Done():
 			nextCanceled <- struct{}{}
 			return ctx.Err()

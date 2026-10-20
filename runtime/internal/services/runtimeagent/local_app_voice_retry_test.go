@@ -119,9 +119,9 @@ func TestVoiceRetryConcurrentRequestsShareAttemptAndRejectLateRevokedOutput(t *t
 			results := make(chan error, 2)
 			go func() { _, err := svc.RenderLocalAppConversationVoice(ctx, req); results <- err }()
 			<-started
-			other := *req
+			other := proto.Clone(req).(*runtimev1.RenderLocalAppConversationVoiceRequest)
 			other.RequestId = "concurrent-request"
-			go func() { _, err := svc.RenderLocalAppConversationVoice(ctx, &other); results <- err }()
+			go func() { _, err := svc.RenderLocalAppConversationVoice(ctx, other); results <- err }()
 			// Observe durable admission of the other request before releasing the provider.
 			deadline := time.Now().Add(time.Second)
 			for {

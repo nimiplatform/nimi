@@ -472,13 +472,13 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 	d.grpc.SyncServingState()
 	d.readyOnce.Do(func() { close(d.readyCh) })
 	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
-		if err := agentSvc.StartLifeTrackLoop(backgroundCtx); err != nil {
+		if err := agentSvc.StartLifeFrameLoop(backgroundCtx); err != nil {
 			cancelBackground()
 			backgroundWG.Wait()
 			if shutdownErr := d.shutdown(); shutdownErr != nil {
-				return fmt.Errorf("start runtime-agent life-track loop: %w (shutdown: %v)", err, shutdownErr)
+				return fmt.Errorf("start runtime-agent life-frame loop: %w (shutdown: %v)", err, shutdownErr)
 			}
-			return fmt.Errorf("start runtime-agent life-track loop: %w", err)
+			return fmt.Errorf("start runtime-agent life-frame loop: %w", err)
 		}
 	}
 	if transport == "verified-native-desktop" {
@@ -527,7 +527,7 @@ waitForShutdown:
 	cancelBackground()
 	backgroundWG.Wait()
 	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
-		agentSvc.StopLifeTrackLoop()
+		agentSvc.StopLifeFrameLoop()
 	}
 	shutdownErr := d.shutdown()
 	if serveErr != nil {

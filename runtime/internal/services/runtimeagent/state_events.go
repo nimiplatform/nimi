@@ -46,13 +46,6 @@ func stateEventOriginFromHookIntent(intent *runtimev1.HookIntent) stateEventOrig
 	}
 }
 
-func stateEventOriginFromPendingHook(hook *runtimev1.PendingHook) stateEventOrigin {
-	if hook == nil {
-		return stateEventOrigin{}
-	}
-	return stateEventOriginFromHookIntent(hook.GetIntent())
-}
-
 // stateStatusTextChangedEvent projects runtime.agent.state.status_text_changed.
 // `previous` may be empty; when non-empty we set has_previous_status_text.
 func (s *Service) stateStatusTextChangedEvent(agentID string, current string, previous string, hadPrevious bool, origin stateEventOrigin, observedAt time.Time) *runtimev1.AgentEvent {
@@ -97,13 +90,6 @@ func (s *Service) applyExecutionStateTransition(entry *agentEntry, next runtimev
 	entry.State.ExecutionState = next
 	entry.State.UpdatedAt = timestamppb.New(observedAt)
 	return s.stateExecutionStateChangedEvent(entry.Agent.GetLocalAgentRef(), next, previous, origin, observedAt)
-}
-
-func (s *Service) refreshLifeTrackExecutionState(entry *agentEntry, origin stateEventOrigin, observedAt time.Time) *runtimev1.AgentEvent {
-	if entry == nil || entry.State == nil {
-		return nil
-	}
-	return s.applyExecutionStateTransition(entry, resolveLifeTrackExecutionState(entry), origin, observedAt)
 }
 
 // stateEmotionChangedEvent projects runtime.agent.state.emotion_changed.
@@ -240,7 +226,7 @@ func stateEventObservedAt(observedAt time.Time) *timestamppb.Timestamp {
 //     actually changes; previous_status_text is carried when we had one.
 //   - origin linkage is applied verbatim; callers with no real continuity
 //     branch MUST pass an empty stateEventOrigin so no turn linkage is
-//     fabricated (admin / life-track / review paths).
+//     fabricated (admin / life-frame / review paths).
 func (s *Service) applyBehavioralPostureUpdate(
 	ctx context.Context,
 	entry *agentEntry,

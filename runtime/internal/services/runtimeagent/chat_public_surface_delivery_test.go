@@ -35,7 +35,7 @@ func TestPublicChatTurnMessageCommitDeliveryFailurePreservesDurableCommit(t *tes
 		}
 		return capture.emit(ctx, req)
 	})
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			if err := emit(&runtimev1.StreamScenarioEvent{
@@ -92,6 +92,7 @@ func TestPublicChatTurnMessageCommitDeliveryFailurePreservesDurableCommit(t *tes
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	for _, messageType := range capture.messageTypes() {
 		switch messageType {

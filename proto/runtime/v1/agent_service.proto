@@ -5,12 +5,12 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
-import "runtime/v1/agent_life.proto";
 import "runtime/v1/agent_configure.proto";
 import "runtime/v1/agent_embodiment.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
 import "runtime/v1/agent_work.proto";
+import "runtime/v1/agent_life.proto";
 import "runtime/v1/ai_realtime.proto";
 import "runtime/v1/capability_configuration.proto";
 import "runtime/v1/common.proto";
@@ -73,10 +73,15 @@ enum ConversationAnchorStatus {
 }
 message AgentAutonomyConfig {
   int64 daily_token_budget = 1;
-  int64 max_tokens_per_hook = 2;
-  google.protobuf.Duration min_hook_interval = 3;
+  reserved 2, 3;
+  reserved "max_tokens_per_hook", "min_hook_interval";
+  int64 max_background_output_tokens = 9;
+  google.protobuf.Duration min_planning_interval = 11;
   google.protobuf.Timestamp suspend_until = 4;
   AgentAutonomyMode mode = 5;
+  bool free_contact_enabled = 6;
+  AgentContactQuietHours quiet_hours = 7;
+  uint32 max_free_contacts_per_day = 8;
   google.protobuf.Struct extensions = 10;
 }
 message AgentAutonomyState {
@@ -211,16 +216,6 @@ message HookExecutionOutcome {
   ReasonCode reason_code = 3;
   string message = 4;
   string reason = 5;
-}
-// PendingHook represents admitted scheduler truth for a HookIntent that has
-// reached `pending` admission state. The embedded HookIntent carries all
-// admitted hook vocabulary; there is no parallel trigger/next-intent shape.
-message PendingHook {
-  HookIntent intent = 1;
-  google.protobuf.Timestamp scheduled_for = 2;
-  google.protobuf.Timestamp admitted_at = 3;
-  bool runtime_cadence = 4;
-  uint64 revision = 5;
 }
 message AgentLifecycleEventDetail {
   AgentLifecycleStatus previous_status = 1;
@@ -412,27 +407,6 @@ message GetAgentPresentationAssetResponse {
   string media_type = 5;
   bytes content = 6;
   string sha256 = 7;
-}
-message ListPendingHooksRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  HookTriggerFamily trigger_family_filter = 3;
-  HookAdmissionState admission_state_filter = 4;
-  int32 page_size = 5;
-  string page_token = 6;
-}
-message ListPendingHooksResponse {
-  repeated PendingHook hooks = 1;
-  string next_page_token = 2;
-}
-message CancelHookRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  string intent_id = 3;
-  string reason = 4;
-}
-message CancelHookResponse {
-  HookExecutionOutcome outcome = 1;
 }
 // First-party recorded voice ingress. Runtime validates the selected
 // LocalAgent Conversation and executes audio.transcribe through the singular
@@ -647,6 +621,8 @@ message LocalAppAgentManagerSnapshot {
   repeated LocalAppAgentManagerActionAvailability action_availability = 7;
   LocalAppAgentConversationContextProjection conversation_context = 8;
   LocalAppAgentLifeProjection life = 9;
+  reserved 10;
+  reserved "commitments";
 }
 message GetLocalAppAgentManagerSnapshotRequest {
   string agent_handle = 1;
@@ -673,6 +649,8 @@ message SendLocalAppConversationTurnRequest {
   reserved "text", "work";
   repeated LocalAppConversationInputPart parts = 5;
   optional string retry_of_turn_id = 7;
+  reserved 8;
+  reserved "timezone";
 }
 message SendLocalAppConversationTurnResponse {
   string turn_id = 1;
@@ -804,7 +782,11 @@ message LocalAppConversationTurn {
   optional string input_turn_id = 9;
   bool can_regenerate = 10;
   string origin = 11;
+  reserved 12;
+  reserved "control_outcome";
 }
+
+
 enum LocalAppConversationActionStatus {
   LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED = 0;
   LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED = 1;
@@ -843,60 +825,22 @@ message LocalAppConversationFollowUp {
   string source_turn_id = 4;
 }
 message LocalAppConversationState {
-  bool follow_up_enabled = 1;
-  uint64 follow_up_policy_revision = 2;
+  reserved 1, 2;
+  reserved "follow_up_enabled", "follow_up_policy_revision";
+  bool free_contact_enabled = 6;
   uint32 max_follow_up_turns = 3;
   LocalAppConversationFollowUp pending_follow_up = 4;
   optional string text_turn_id = 5;
 }
-enum LocalAppScheduledTaskAction {
-  LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED = 0;
-  LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL = 1;
-  LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE = 2;
-}
-message UpdateLocalAppConversationFollowUpPolicyRequest {
-  string agent_handle = 1;
-  string conversation_anchor_id = 2;
-  uint64 expected_revision = 3;
-  bool enabled = 4;
-}
-message UpdateLocalAppConversationFollowUpRequest {
+message CancelLocalAppConversationFollowUpRequest {
   string agent_handle = 1;
   string conversation_anchor_id = 2;
   string task_id = 3;
   uint64 expected_revision = 4;
-  LocalAppScheduledTaskAction action = 5;
-  google.protobuf.Timestamp scheduled_for = 6;
 }
-message UpdateLocalAppConversationFollowUpPolicyResponse {
+message CancelLocalAppConversationFollowUpResponse {
   LocalAppConversationState state = 1;
 }
-message UpdateLocalAppConversationFollowUpResponse {
-  LocalAppConversationState state = 1;
-}
-message ListLocalAppAgentPendingHooksRequest { string agent_handle = 1; }
-message LocalAppAgentPendingHook {
-  string task_id = 1;
-  uint64 revision = 2;
-  google.protobuf.Timestamp scheduled_for = 3;
-  bool system_cadence = 4;
-  HookAdmissionState status = 5;
-  bool can_modify = 6;
-  // Optional plain-text description; never execution authority.
-  string public_purpose = 7;
-}
-message ListLocalAppAgentPendingHooksResponse {
-  repeated LocalAppAgentPendingHook hooks = 1;
-  bool truncated = 2;
-}
-message UpdateLocalAppAgentPendingHookRequest {
-  string agent_handle = 1;
-  string task_id = 2;
-  uint64 expected_revision = 3;
-  LocalAppScheduledTaskAction action = 4;
-  google.protobuf.Timestamp scheduled_for = 5;
-}
-message UpdateLocalAppAgentPendingHookResponse { LocalAppAgentPendingHook hook = 1; }
 message LocalAppConversationSnapshot {
   string conversation_anchor_id = 1;
   reserved 2;
@@ -946,15 +890,21 @@ message LocalAppConversationTurnCompleted {
   string terminal_reason = 2;
   ReasonCode reason_code = 3;
   optional string message = 4;
+  reserved 5;
+  reserved "control_outcome";
 }
 message LocalAppConversationTurnFailed {
   string turn_id = 1;
   string reason_code = 2;
   optional string message = 3;
+  reserved 4;
+  reserved "control_outcome";
 }
 message LocalAppConversationTurnInterrupted {
   string turn_id = 1;
   string reason = 2;
+  reserved 3;
+  reserved "control_outcome";
 }
 message LocalAppConversationActionEvent { LocalAppConversationAction action = 1; }
 message LocalAppConversationArtifactReady {
@@ -1282,10 +1232,7 @@ service RuntimeAgentService {
   rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
   rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
   rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);
-  rpc UpdateLocalAppConversationFollowUpPolicy(UpdateLocalAppConversationFollowUpPolicyRequest) returns (UpdateLocalAppConversationFollowUpPolicyResponse);
-  rpc UpdateLocalAppConversationFollowUp(UpdateLocalAppConversationFollowUpRequest) returns (UpdateLocalAppConversationFollowUpResponse);
-  rpc ListLocalAppAgentPendingHooks(ListLocalAppAgentPendingHooksRequest) returns (ListLocalAppAgentPendingHooksResponse);
-  rpc UpdateLocalAppAgentPendingHook(UpdateLocalAppAgentPendingHookRequest) returns (UpdateLocalAppAgentPendingHookResponse);
+  rpc CancelLocalAppConversationFollowUp(CancelLocalAppConversationFollowUpRequest) returns (CancelLocalAppConversationFollowUpResponse);
   rpc OpenLocalAppAgentRealtime(OpenLocalAppAgentRealtimeRequest) returns (OpenLocalAppAgentRealtimeResponse);
   rpc AppendLocalAppAgentRealtimeInput(AppendLocalAppAgentRealtimeInputRequest) returns (AppendLocalAppAgentRealtimeInputResponse);
   rpc SubscribeLocalAppAgentRealtimeEvents(SubscribeLocalAppAgentRealtimeEventsRequest) returns (stream LocalAppAgentRealtimeEvent);
@@ -1306,8 +1253,6 @@ service RuntimeAgentService {
   rpc EnableAutonomy(EnableAutonomyRequest) returns (EnableAutonomyResponse);
   rpc DisableAutonomy(DisableAutonomyRequest) returns (DisableAutonomyResponse);
   rpc SetAutonomyConfig(SetAutonomyConfigRequest) returns (SetAutonomyConfigResponse);
-  rpc ListPendingHooks(ListPendingHooksRequest) returns (ListPendingHooksResponse);
-  rpc CancelHook(CancelHookRequest) returns (CancelHookResponse);
   rpc ListDelegatedProviderProfiles(ListDelegatedProviderProfilesRequest) returns (ListDelegatedProviderProfilesResponse);
   rpc ListDelegatedApprovalRequests(ListDelegatedApprovalRequestsRequest) returns (ListDelegatedApprovalRequestsResponse);
   rpc SubmitDelegatedApprovalDecision(SubmitDelegatedApprovalDecisionRequest) returns (SubmitDelegatedApprovalDecisionResponse);

@@ -21,7 +21,7 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(context.Context, *PublicChatTurnExecutionRequest, func(*runtimev1.StreamScenarioEvent) error) error {
 			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -216,7 +216,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	var mu sync.Mutex
 	callCount := 0
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
@@ -348,7 +348,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	firstCapture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(firstCapture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	var mu sync.Mutex
 	callCount := 0
 	executor := stubPublicChatTurnExecutor{
@@ -377,7 +377,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 				if got := strings.TrimSpace(req.SystemPrompt); got != "" {
 					t.Fatalf("follow-up instruction must not own a special system prompt path, got=%q", got)
 				}
-				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-2].GetRole() != "user" || req.Messages[len(req.Messages)-2].GetContent() != "Runtime-admitted follow-up instruction: resume after restart" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
+				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-1].GetRole() != "user" || req.Messages[len(req.Messages)-1].GetContent() != "Runtime-admitted follow-up instruction: "+publicChatContinuationInstruction || !strings.Contains(req.Messages[0].GetContent(), "Runtime APML contract") {
 					t.Fatalf("expected composed context to end with the Runtime-admitted follow-up instruction, got=%v", req.Messages)
 				}
 				envelope = publicChatStructuredEnvelopeAPML("message-2", "recovered follow up")
@@ -447,7 +447,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 	recoveredFollowUpGate := installPublicChatFollowUpGate(t, recoveredSvc)
 	recoveredCapture := newPublicChatEmitCapture()
 	recoveredSvc.SetPublicChatAppEmitter(recoveredCapture.emit)
-	recoveredSvc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	recoveredSvc.SetPublicChatTurnExecutor(executor)
 	recoveredFollowUpGate.release(t)
 	_ = recoveredCapture.waitForMessageType(t, publicChatTurnAcceptedType)
@@ -491,7 +491,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	var mu sync.Mutex
 	callCount := 0
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
@@ -661,7 +661,7 @@ func TestPublicChatFollowUpIgnoresLegacySidebandAdmissionFailure(t *testing.T) {
 		}
 		return capture.emit(ctx, req)
 	})
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	var mu sync.Mutex
 	callCount := 0
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
@@ -765,7 +765,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	firstCapture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(firstCapture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			envelope := publicChatStructuredEnvelopeAPML("message-restart-snapshot", "persisted terminal text")

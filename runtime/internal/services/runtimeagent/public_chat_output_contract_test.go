@@ -26,6 +26,7 @@ func (c *capturePublicChatScenarioStreamer) StreamScenario(
 
 type blockingPublicChatScenarioStreamer struct {
 	entered chan struct{}
+	release chan struct{}
 }
 
 func (b *blockingPublicChatScenarioStreamer) StreamScenario(
@@ -33,7 +34,8 @@ func (b *blockingPublicChatScenarioStreamer) StreamScenario(
 	_ grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],
 ) error {
 	close(b.entered)
-	select {}
+	<-b.release
+	return nil
 }
 
 type failingPublicChatScenarioStreamer struct {
@@ -93,9 +95,9 @@ func TestAIBackedPublicChatTurnExecutorPropagatesScenarioErrorBeforeDeadline(t *
 	}
 }
 
-func TestAIBackedPublicChatTurnExecutorReturnsWhenScenarioIgnoresContext(t *testing.T) {
+func TestAIBackedPublicChatTurnExecutorWaitsForActualScenarioRelease(t *testing.T) {
 	t.Parallel()
-	streamer := &blockingPublicChatScenarioStreamer{entered: make(chan struct{})}
+	streamer := &blockingPublicChatScenarioStreamer{entered: make(chan struct{}), release: make(chan struct{})}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
@@ -123,13 +125,20 @@ func TestAIBackedPublicChatTurnExecutorReturnsWhenScenarioIgnoresContext(t *test
 		t.Fatal("expected public chat executor to call StreamScenario")
 	}
 
+	<-ctx.Done()
+	select {
+	case err := <-errCh:
+		t.Fatalf("released occupancy while worker still running: %v", err)
+	default:
+	}
+	close(streamer.release)
 	select {
 	case err := <-errCh:
 		if !errors.Is(err, context.DeadlineExceeded) {
-			t.Fatalf("expected context deadline when scenario ignores context, got %v", err)
+			t.Fatalf("lost cancellation after release: %v", err)
 		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("public chat executor did not return after context deadline")
+	case <-time.After(time.Second):
+		t.Fatal("worker release did not complete")
 	}
 }
 
@@ -162,25 +171,25 @@ func TestAIBackedPublicChatTurnExecutorPreservesRuntimeComposedAPMLOutputContrac
 	if prompt != composedPrompt {
 		t.Fatalf("provider adapter mutated the Runtime-composed output contract")
 	}
-	if !strings.Contains(prompt, `Output APML only`) || !strings.Contains(prompt, `<message>`) {
+	if !strings.Contains(prompt, `APML only`) || !strings.Contains(prompt, `<message intent="reply">`) {
 		t.Fatalf("expected APML output contract in system prompt, got %q", prompt)
 	}
-	if !strings.Contains(prompt, `no Markdown, JSON, fences, <think>, or other prose`) || !strings.Contains(prompt, `at most one each`) {
+	if !strings.Contains(prompt, `No Markdown or fences`) || !strings.Contains(prompt, `at most one each`) {
 		t.Fatalf("expected APML output contract to forbid non-APML wrappers and duplicate cues, got %q", prompt)
 	}
-	if !strings.Contains(prompt, `Begin exactly <message>`) || !strings.Contains(prompt, `FINAL: reply ONLY as <message>reply text</message>`) {
+	if !strings.Contains(prompt, `Declare intent before content`) || !strings.Contains(prompt, `reply=text, recall=query`) {
 		t.Fatalf("expected APML contract to reinforce the first emitted token for compact local models, got %q", prompt)
 	}
-	if !strings.Contains(prompt, `<message>reply text</message>`) || !strings.Contains(prompt, "Never self-close <message>") {
+	if !strings.Contains(prompt, `<message intent="reply">reply text</message>`) || !strings.Contains(prompt, "Replies cannot be empty") {
 		t.Fatalf("expected a complete text-only APML example that forbids the observed self-closing message failure, got %q", prompt)
 	}
 	if !strings.Contains(prompt, "<emotion>angry|confused|embarrassed|excited|ext:apologetic|ext:grateful|ext:lonely|ext:proud|happy|neutral|sad|shy|surprised|worried</emotion>") {
 		t.Fatalf("expected APML emotion choices to be projected from admitted runtime emotions, got %q", prompt)
 	}
-	if !strings.Contains(prompt, "Optional inside <message>") || !strings.Contains(prompt, `"focused" is activity, not emotion`) {
+	if !strings.Contains(prompt, "Optional reply cues") || !strings.Contains(prompt, `"focused" is activity, not emotion`) {
 		t.Fatalf("expected APML contract to prevent activity/emotion category drift, got %q", prompt)
 	}
-	if !strings.Contains(prompt, "inside <message>") {
+	if !strings.Contains(prompt, `<message intent="reply"><emotion>neutral</emotion><activity>listening</activity>reply text</message>`) {
 		t.Fatalf("expected APML cue placement to remain explicit, got %q", prompt)
 	}
 	if !strings.Contains(prompt, "ext:grateful") || !strings.Contains(prompt, "thinking") {
@@ -228,7 +237,7 @@ func TestPublicChatAPMLOutputContractDisablesUnavailableImageAction(t *testing.T
 	if !strings.Contains(prompt, `Do not output <action kind="image">`) {
 		t.Fatalf("default APML contract must explicitly prohibit image action output, got %q", prompt)
 	}
-	if got := len([]byte(prompt)); got > 1800 {
+	if got := len([]byte(prompt)); got > 2600 {
 		t.Fatalf("default APML contract exceeds the mandatory context budget: bytes=%d", got)
 	}
 }

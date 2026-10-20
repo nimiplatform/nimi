@@ -1,4 +1,5 @@
-import { LocalAppConversationMediaStopButton } from '@nimiplatform/kit/features/chat/ui';
+import type { } from '@nimiplatform/kit/core/sdk-contract';
+import { LocalAppConversationMediaStopButton, } from '@nimiplatform/kit/features/chat/ui';
 import { localAgentReplyFailureMessage } from './chat-agent-runtime';
 import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
@@ -98,7 +99,7 @@ export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
 ): DesktopConversationModeHost {
   const homeChat = useHomeChatPosition();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const streamController = useStreamController();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
@@ -624,7 +625,7 @@ export function useAgentConversationModeHost(
       {presentation.composerContent}
       <div className={CHAT_COMPOSER_RAIL_RESERVE_CLASS}>
       <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
-      {activeTarget?.agentHandle && activeConversationAnchorId ? <AgentFollowUpControl key={`${authUserId}:${activeTarget.agentHandle}:${activeConversationAnchorId}`} agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId} state={history.controlState} conversation={() => bindings.sdk.conversation()} refresh={history.retry} /> : null}
+      {activeTarget?.agentHandle && activeConversationAnchorId ? <AgentFollowUpControl key={`${authUserId}:${activeTarget.agentHandle}:${activeConversationAnchorId}`} agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId} state={history.controlState} conversation={() => bindings.sdk.conversation()} refresh={history.retry} onOpenAgentCenter={input.onOpenAgentCenter} /> : null}
       {draftPersistence.submission && !submittingThreadId && draftAgentHandle && input.authStatus === 'authenticated' ? <AgentSubmissionRecovery
         key={`${authUserId}:${draftAgentHandle}:${draftPersistence.submission.requestId}`}
         submission={draftPersistence.submission}

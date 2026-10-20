@@ -1,8 +1,6 @@
 import type {
   AgentAutonomyState,
   AgentStateProjection,
-  CancelHookRequest,
-  CancelHookResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
   EnableAutonomyRequest,
@@ -11,8 +9,6 @@ import type {
   GetAgentResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
-  ListPendingHooksRequest,
-  ListPendingHooksResponse,
   RuntimeTypedCallOptions,
   SetAutonomyConfigRequest,
   SetAutonomyConfigResponse,
@@ -26,13 +22,6 @@ import type {
 } from './runtime-agent-protected';
 import type { RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 
-export interface NimiRuntimeAgentPendingHookInspect {
-  readonly hookId: string;
-  readonly status: string | null;
-  readonly triggerKind: string | null;
-  readonly scheduledFor: string | null;
-  readonly admittedAt?: string | null;
-}
 
 export type NimiRuntimeAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 
@@ -135,7 +124,7 @@ export interface NimiRuntimeAgentAutonomySnapshot {
   readonly budgetExhausted: boolean | null;
   readonly usedTokensInWindow: number | null;
   readonly dailyTokenBudget: number | null;
-  readonly maxTokensPerHook: number | null;
+  readonly maxBackgroundOutputTokens: number | null;
   readonly windowStartedAt: string | null;
   readonly suspendedUntil: string | null;
 }
@@ -160,13 +149,9 @@ export interface NimiRuntimeAgentInspectSnapshot extends NimiRuntimeAgentStateSn
   readonly autonomyBudgetExhausted: boolean | null;
   readonly autonomyUsedTokensInWindow: number | null;
   readonly autonomyDailyTokenBudget: number | null;
-  readonly autonomyMaxTokensPerHook: number | null;
+  readonly autonomyMaxBackgroundOutputTokens: number | null;
   readonly autonomyWindowStartedAt: string | null;
   readonly autonomySuspendedUntil: string | null;
-  readonly pendingHooksCount: number;
-  readonly nextScheduledFor: string | null;
-  readonly pendingHooks: readonly NimiRuntimeAgentPendingHookInspect[];
-  readonly recentTerminalHooks: readonly NimiRuntimeAgentPendingHookInspect[];
 }
 
 export interface ProjectNimiRuntimeAgentInspectSnapshotInput {
@@ -179,10 +164,6 @@ export interface ProjectNimiRuntimeAgentInspectSnapshotInput {
     readonly autonomy?: AgentAutonomyState | null;
   } | null;
   readonly state?: AgentStateProjection | null;
-  readonly activeHooks?: readonly NimiRuntimeAgentPendingHookInspect[];
-  readonly terminalHooks?: readonly NimiRuntimeAgentPendingHookInspect[];
-  readonly maxPendingHookPreview?: number;
-  readonly maxRecentTerminalHooks?: number;
 }
 
 export interface NimiRuntimeAgentStateMutationInput {
@@ -203,7 +184,7 @@ export interface NimiRuntimeAgentDisableAutonomyInput extends RuntimeLocalAgentI
 export interface NimiRuntimeAgentAutonomyConfigInput extends RuntimeLocalAgentIdentityInput {
   readonly mode: NimiRuntimeAgentAutonomyMode | string;
   readonly dailyTokenBudget: string | number;
-  readonly maxTokensPerHook: string | number;
+  readonly maxBackgroundOutputTokens: string | number;
 }
 
 export interface NimiRuntimeAgentAutonomyMutationInput extends NimiRuntimeAgentAutonomyConfigInput {
@@ -226,18 +207,9 @@ export type NimiRuntimeAgentAutonomyUpdateResult =
   | { readonly outcome: 'updated'; readonly projection: NimiRuntimeAgentAutonomySnapshot }
   | NimiRuntimeAgentAutonomyRevisionConflict;
 
-export interface NimiRuntimeAgentCancelHookInput extends RuntimeLocalAgentIdentityInput {
-  readonly hookId: string;
-  readonly reason: string;
-}
 
-export interface NimiRuntimeAgentCancelHookResult {
-  readonly hookId: string;
-  readonly status: string | null;
-}
 
 export interface NimiRuntimeAgentInspectSurface {
-  cancelHook(input: NimiRuntimeAgentCancelHookInput): Promise<NimiRuntimeAgentCancelHookResult>;
   disableAutonomy(input: NimiRuntimeAgentDisableAutonomyInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   enableAutonomy(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   getAutonomySnapshot(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
@@ -254,7 +226,6 @@ export interface NimiHostRuntimeAgentInspectClient {
   readonly agent: {
     getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentResponse>;
     getAgentState(request: GetAgentStateRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentStateResponse>;
-    listPendingHooks(request: ListPendingHooksRequest, options?: RuntimeTypedCallOptions): Promise<ListPendingHooksResponse>;
     updateAgentState?(
       request: UpdateAgentStateRequest,
       options?: RuntimeTypedCallOptions,
@@ -265,7 +236,6 @@ export interface NimiHostRuntimeAgentInspectClient {
       request: SetAutonomyConfigRequest,
       options?: RuntimeTypedCallOptions,
     ): Promise<SetAutonomyConfigResponse>;
-    cancelHook?(request: CancelHookRequest, options?: RuntimeTypedCallOptions): Promise<CancelHookResponse>;
   };
 }
 
@@ -273,6 +243,4 @@ export interface NimiHostRuntimeAgentInspectSurfaceOptions {
   readonly getRuntime: () => NimiHostRuntimeAgentInspectClient;
   readonly getSubjectUserId: () => string | Promise<string | undefined> | undefined;
   readonly withScopes?: NimiRuntimeAgentScopeRunner;
-  readonly maxPendingHookPreview?: number;
-  readonly maxRecentTerminalHooks?: number;
 }

@@ -10,7 +10,7 @@ Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { configurable: tr
 let root: Root | null = null;
 afterEach(async () => { if (root) await act(async () => root?.unmount()); root = null; document.body.replaceChildren(); });
 function Harness({ session }: { session: AgentCenterSession }) { return <AgentCenterConversationContext session={session} snapshot={useAgentCenterStore(session).snapshot} />; }
-const manager = (busy = false) => ({ lifecycleStatus: 'active' as const, executionState: 'idle' as const, statusText: '', currentEmotion: '', source: null, context: null,
+const manager = (busy = false) => ({ life: { activities: [], revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''}, lifecycleStatus: 'active' as const, executionState: 'idle' as const, statusText: '', currentEmotion: '', source: null, context: null,
   actionAvailability: testManagerActionAvailability(), conversationContext: { conversationAnchorId: 'agent_anchor_context', contextRevision: '1', firstTurnSequence: '0', omitSupplementalContext: false,
     committedTurnCount: '8', suggestedFirstTurnSequence: '2', busy, canUpdate: !busy } });
 const button = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent === label)!;

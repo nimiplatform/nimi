@@ -129,8 +129,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/TestConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPendingHooks
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelHook
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision
@@ -166,10 +164,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset

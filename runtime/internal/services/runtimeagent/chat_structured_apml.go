@@ -24,6 +24,19 @@ type publicChatAPMLActionDraft struct {
 	promptTextSeen    bool
 }
 
+func startsWithAPMLRoot(value, root string) bool {
+	prefix := "<" + root
+	if !strings.HasPrefix(value, prefix) || len(value) == len(prefix) {
+		return false
+	}
+	switch value[len(prefix)] {
+	case ' ', '\t', '\n', '\r', '>', '/':
+		return true
+	default:
+		return false
+	}
+}
+
 type publicChatAPMLHookDraft struct {
 	intentID      string
 	triggerFamily string
@@ -46,16 +59,25 @@ type publicChatAPMLInterpretation struct {
 	BodyComplete bool
 	QuerySeen    bool
 	Query        string
+	ResponseKind string
 	Err          error
 }
 
 func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error) {
 	result := interpretPublicChatAPML(raw)
-	if !result.BodyComplete || result.QuerySeen || strings.TrimSpace(result.Envelope.Message.Text) == "" {
+	if result.QuerySeen || strings.TrimSpace(result.Envelope.Message.Text) == "" {
 		if result.Err != nil {
 			return nil, result.Err
 		}
 		return nil, fmt.Errorf("APML public message is incomplete")
+	}
+	if !result.BodyComplete {
+		// A normally finished generation can have malformed decoration after
+		// readable public text. Keep that same streamed text, without effects.
+		return &publicChatStructuredEnvelope{
+			SchemaID: publicChatStructuredSchemaID,
+			Message:  result.Envelope.Message,
+		}, nil
 	}
 	envelope := result.Envelope
 	if result.Err != nil {
@@ -74,6 +96,9 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 // Streaming and final interpretation use the same lexical prefix, including
 // when a malformed entity and readable text arrive in one network fragment.
 func publicChatStreamingMessageText(raw string) (string, bool) {
+	if text, ok := publicChatPlainReplyText(raw); ok {
+		return text, true
+	}
 	result := interpretPublicChatAPML(raw)
 	return result.Envelope.Message.Text, result.MessageSeen
 }
@@ -137,6 +162,7 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 		switch item := token.(type) {
 		case xml.StartElement:
 			name := item.Name.Local
+
 			inCue := len(path) >= 2 && path[0] == "message" && (path[1] == "emotion" || path[1] == "activity")
 			if inCue {
 				cueInvalid[path[1]] = true
@@ -155,12 +181,28 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 				// No model-provided message attribute is identity or authority.
 				result.MessageSeen = true
 				result.MessageRoot = item
+				intentCount := 0
+				for _, attr := range item.Attr {
+					if attr.Name.Local == "intent" {
+						intentCount++
+					}
+				}
+				if intentCount != 1 {
+					return fail(fmt.Errorf("APML message requires exactly one intent"))
+				}
+				result.ResponseKind = xmlAttr(item, "intent")
+				if result.ResponseKind != "reply" && result.ResponseKind != "recall" {
+					return fail(fmt.Errorf("APML message requires reply or recall intent"))
+				}
 			case !messageClosed:
 				if parent != "message" {
 					return fail(fmt.Errorf("APML private query must contain text only"))
 				}
 				switch {
 				case isCue:
+					if result.ResponseKind != "reply" {
+						return fail(fmt.Errorf("private intent cannot carry presentation cues"))
+					}
 					result.CuePresent = true
 					if result.QuerySeen {
 						return fail(fmt.Errorf("APML query must be the only message child"))
@@ -170,7 +212,12 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 						cueInvalid[name] = true
 					}
 					capture.Reset()
+
 				case name == "query":
+					if result.ResponseKind != "recall" {
+						result.QuerySeen = true
+						return fail(fmt.Errorf("query requires recall intent"))
+					}
 					wasQuery := result.QuerySeen
 					result.QuerySeen = true
 					if wasQuery || len(cueCount) != 0 || strings.TrimSpace(text.String()) != "" || requirePublicChatAPMLAttrs(item, name) != nil {
@@ -178,12 +225,13 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 					}
 					capture.Reset()
 				default:
-					return fail(fmt.Errorf("unsupported APML message child"))
+					return fail(fmt.Errorf("unsupported APML message child: %s", name))
 				}
 			case result.QuerySeen:
 				return fail(fmt.Errorf("APML private query must not have trailing controls"))
 			case parent == "":
 				switch name {
+
 				case "action":
 					if requirePublicChatAPMLAttrs(item, name, "id", "kind") != nil || xmlAttr(item, "kind") != "image" {
 						return fail(fmt.Errorf("APML action must be an admitted image action"))
@@ -223,33 +271,23 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 				}
 				hook.delaySeen = true
 				capture.Reset()
-			case parent == "time-hook" && name == "effect":
-				if hook.effectSeen || requirePublicChatAPMLAttrs(item, name, "kind") != nil || xmlAttr(item, "kind") != "follow-up-turn" {
-					return fail(fmt.Errorf("APML time-hook requires one follow-up effect"))
-				}
-				hook.effectSeen = true
-			case parent == "time-hook/effect" && name == "prompt-text":
-				if hook.promptSeen || requirePublicChatAPMLAttrs(item, name) != nil {
-					return fail(fmt.Errorf("APML time-hook requires one prompt-text"))
-				}
-				hook.promptSeen = true
-				capture.Reset()
 			default:
 				return fail(fmt.Errorf("APML control is in an invalid position"))
 			}
 			path = append(path, name)
 		case xml.CharData:
 			value := string(item)
+
 			switch parent {
 			case "message":
-				if result.QuerySeen && strings.TrimSpace(value) != "" {
+				if result.ResponseKind != "reply" && strings.TrimSpace(value) != "" {
 					return fail(fmt.Errorf("APML query must not be mixed with public text"))
 				}
-				if !result.QuerySeen {
+				if result.ResponseKind == "reply" {
 					text.WriteString(value)
 				}
 			case "message/emotion", "message/activity", "message/query",
-				"action/prompt-payload/prompt-text", "time-hook/delay-ms", "time-hook/effect/prompt-text":
+				"action/prompt-payload/prompt-text", "time-hook/delay-ms":
 				capture.WriteString(value)
 			default:
 				if len(path) >= 2 && path[0] == "message" && (path[1] == "emotion" || path[1] == "activity") {
@@ -261,9 +299,10 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 			}
 		case xml.EndElement:
 			switch parent {
+
 			case "message":
 				messageClosed = true
-				result.BodyComplete = !result.QuerySeen
+				result.BodyComplete = result.ResponseKind == "reply"
 			case "message/emotion", "message/activity":
 				cueValue[item.Name.Local] = strings.TrimSpace(capture.String())
 			case "message/query":
@@ -276,8 +315,6 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 					return fail(fmt.Errorf("APML time-hook delay must be positive"))
 				}
 				hook.delayMs = delay
-			case "time-hook/effect/prompt-text":
-				hook.prompt.WriteString(capture.String())
 			case "action":
 				next, err := publicChatStructuredActionFromAPMLDraft(*action, result.Envelope.Message.MessageID, len(result.Envelope.Actions))
 				if err != nil {
@@ -433,11 +470,8 @@ func publicChatStructuredFollowUpActionFromAPMLHook(hook publicChatAPMLHookDraft
 	if hook.triggerFamily == "" {
 		return publicChatStructuredAction{}, fmt.Errorf("APML hook trigger family is required")
 	}
-	if !hook.effectSeen {
-		return publicChatStructuredAction{}, fmt.Errorf("APML hook effect is required")
-	}
-	if !hook.promptSeen {
-		return publicChatStructuredAction{}, fmt.Errorf("APML hook prompt-text is required")
+	if hook.delayMs > 3600000 {
+		return publicChatStructuredAction{}, fmt.Errorf("autonomous continuation delay exceeds one hour; user task scheduling belongs to Personal Agent products")
 	}
 	if hook.triggerFamily == "time" && (hook.delayMs <= 0 || int64(hook.delayMs) > math.MaxInt64/int64(time.Millisecond)) {
 		return publicChatStructuredAction{}, fmt.Errorf("APML time-hook delay-ms must be positive")
@@ -463,7 +497,7 @@ func publicChatStructuredFollowUpActionFromAPMLHook(hook publicChatAPMLHookDraft
 		DeliveryCoupling: "after-message",
 		PromptPayload: publicChatStructuredPromptPayload{
 			Kind:          "follow-up-turn",
-			PromptText:    strings.TrimSpace(hook.prompt.String()),
+			PromptText:    publicChatContinuationInstruction,
 			DelayMs:       hook.delayMs,
 			TriggerFamily: hook.triggerFamily,
 			TriggerEvent:  hook.triggerEvent,

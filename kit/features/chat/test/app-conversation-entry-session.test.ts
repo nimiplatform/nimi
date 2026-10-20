@@ -69,7 +69,7 @@ function snapshot(input: {
 } = {}): NimiLocalAppConversationSnapshot {
   return {
     conversationAnchorId: 'anchor-a',
-    state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
+    state: { textTurnId: null, freeContactEnabled: false, maxFollowUpTurns: 8, pendingFollowUp: null },
     throughSequence: input.throughSequence ?? '2',
     turns: [{
       turnId: 'turn-1',
@@ -324,7 +324,7 @@ describe('App Conversation entry session', () => {
       parts: [{ kind: 'text', text: 'Hello' }],
     });
     testHarness.queue.push({ type: 'state-changed', conversationAnchorId: 'anchor-a', sequence: '3',
-      state: { textTurnId: 'turn-2', followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null } });
+      state: { textTurnId: 'turn-2', freeContactEnabled: false, maxFollowUpTurns: 8, pendingFollowUp: null } });
     await vi.waitFor(() => expect(testHarness.session.getState().activeTurnId).toBe('turn-2'));
     await testHarness.session.interrupt();
     expect(testHarness.session.getState().messages).toEqual(before);

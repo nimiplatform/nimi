@@ -191,10 +191,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentManagerSnapshot'], 'agentManagerSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpPolicy'], 'conversationFollowUpPolicy'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpUpdate'], 'conversationFollowUpUpdate'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPendingHooks'], 'agentPendingHooks'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPendingHookUpdate'], 'agentPendingHookUpdate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpCancel'], 'conversationFollowUpCancel'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConversationContext'], 'agentUpdateConversationContext'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationReadAsset'], 'agentPresentationReadAsset'],
@@ -729,9 +726,10 @@ function validatePayload(
       return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn': {
       const regenerate = payload.retryOfTurnId !== undefined;
-      const keys = ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'];
-      assertAllowedKeys(payload, keys, keys, command);
-      const scope = identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command, new Set(), keys);
+      const required = ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'];
+      const keys = required;
+      assertAllowedKeys(payload, keys, required, command);
+      const scope = { ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command, new Set(), keys) };
       return regenerate
         ? { ...scope, retryOfTurnId: requiredText(payload.retryOfTurnId, 'retryOfTurnId', command, MAX_IDENTIFIER_LENGTH) }
         : { ...scope, parts: conversationInputParts(payload.parts, command) };
@@ -958,20 +956,9 @@ function validatePayload(
         pageToken: memoryPageToken(payload.pageToken ?? '', command),
       };
     }
-    case 'agentPendingHooks':
-      assertExactKeys(payload,['agentHandle'],command);
-      return {agentHandle:requiredText(payload.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH)};
-    case 'conversationFollowUpPolicy':
-      assertExactKeys(payload,['agentHandle','conversationAnchorId','expectedRevision','enabled'],command);
-      if(typeof payload.enabled!=='boolean')throw invalidPayload(command,'enabled must be boolean');
-      return {agentHandle:requiredText(payload.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),conversationAnchorId:requiredText(payload.conversationAnchorId,'conversationAnchorId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(payload.expectedRevision,'expectedRevision',command,true),enabled:payload.enabled};
-    case 'conversationFollowUpUpdate':
-    case 'agentPendingHookUpdate': {
-      const anchored=method==='conversationFollowUpUpdate';
-      assertExactKeys(payload,['agentHandle',...(anchored?['conversationAnchorId']:[]),'taskId','expectedRevision','action',...(payload.action==='reschedule'?['scheduledFor']:[])],command);
-      if(payload.action!=='cancel'&&payload.action!=='reschedule')throw invalidPayload(command,'unsupported task action');
-      if(payload.action==='reschedule')validateJsonValue(payload.scheduledFor,command,128);
-      return {agentHandle:requiredText(payload.agentHandle,'agentHandle',command,MAX_IDENTIFIER_LENGTH),...(anchored?{conversationAnchorId:requiredText(payload.conversationAnchorId,'conversationAnchorId',command,MAX_IDENTIFIER_LENGTH)}:{}),taskId:requiredText(payload.taskId,'taskId',command,MAX_IDENTIFIER_LENGTH),expectedRevision:decimalRevision(payload.expectedRevision,'expectedRevision',command,false),action:payload.action,...(payload.action==='reschedule'?{scheduledFor:payload.scheduledFor as NimiElectronLocalAppRecord}:{})};
+    case 'conversationFollowUpCancel': {
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'taskId', 'expectedRevision'], command);
+      return { agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH), conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH), taskId: requiredText(payload.taskId, 'taskId', command, MAX_IDENTIFIER_LENGTH), expectedRevision: decimalRevision(payload.expectedRevision, 'expectedRevision', command, false) };
     }
     case 'agentUpdateConversationContext':
       assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'expectedContextRevision', 'firstTurnSequence', 'omitSupplementalContext'], command);

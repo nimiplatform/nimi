@@ -187,35 +187,9 @@ func (s *Service) mutateAgentWithPersistence(localAgentRef string, mutate func(*
 		s.mu.Unlock()
 		return err
 	}
-	if len(events) == 0 && txHook == nil && proto.Equal(previous.Agent, next.Agent) && proto.Equal(previous.State, next.State) && len(previous.Hooks) == len(next.Hooks) {
-		unchanged := true
-		for id, hook := range next.Hooks {
-			if !proto.Equal(previous.Hooks[id], hook) {
-				unchanged = false
-				break
-			}
-		}
-		if unchanged {
-			s.mu.Unlock()
-			return nil
-		}
-	}
-	for id, hook := range next.Hooks {
-		if hook == nil {
-			continue
-		}
-		old := previous.Hooks[id]
-		if proto.Equal(old, hook) {
-			continue
-		}
-		if old != nil && old.Revision == ^uint64(0) {
-			s.mu.Unlock()
-			return status.Error(codes.FailedPrecondition, "hook revision exhausted")
-		}
-		hook.Revision = 1
-		if old != nil {
-			hook.Revision = old.Revision + 1
-		}
+	if len(events) == 0 && txHook == nil && proto.Equal(previous.Agent, next.Agent) && proto.Equal(previous.State, next.State) && lifeStateEqual(previous.Life, next.Life) {
+		s.mu.Unlock()
+		return nil
 	}
 	s.chatSurfaceMu.Lock()
 	if s.agentTerminationFencedLocked(localAgentRef) {

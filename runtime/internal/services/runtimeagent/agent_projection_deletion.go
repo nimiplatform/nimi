@@ -94,6 +94,10 @@ func (s *Service) fenceAgentChatExecutionForTerminationLocked(localAgentRef stri
 	}
 	s.chatSurfaceMu.Lock()
 	cancels := make([]func(), 0)
+	if work := s.backgroundByAgent[ref]; work != nil {
+		work.invalidated = true
+		cancels = append(cancels, work.cancel)
+	}
 	for _, turn := range s.chatTurns {
 		if turn == nil || strings.TrimSpace(turn.AgentID) != ref {
 			continue

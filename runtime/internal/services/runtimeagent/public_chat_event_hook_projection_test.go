@@ -14,10 +14,10 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := `<message id="message-event-hook">I can follow up when you pause.</message><event-hook id="action-event-hook"><event-user-idle idle-for="120s"/><effect kind="follow-up-turn"><prompt-text>continue after idle</prompt-text></effect></event-hook>`
+			envelope := `<message intent="reply" id="message-event-hook">I can follow up when you pause.</message><event-hook id="action-event-hook"><event-user-idle idle-for="120s"/><effect kind="follow-up-turn"><prompt-text>continue after idle</prompt-text></effect></event-hook>`
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-event-hook",
@@ -89,18 +89,6 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	hookEvents := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
 	if len(hookEvents) != 0 {
 		t.Fatalf("unsupported control created hook lifecycle: %#v", hookEvents)
-	}
-
-	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
-		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:              "agent-alpha",
-		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
-	})
-	if err != nil {
-		t.Fatalf("ListPendingHooks: %v", err)
-	}
-	if len(pendingResp.GetHooks()) != 0 {
-		t.Fatalf("public chat event hook must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
 	}
 
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-event-hook")

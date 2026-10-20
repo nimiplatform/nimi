@@ -71,7 +71,7 @@ function entryHarness() {
         calls.push({ method: 'snapshot', input });
         return {
           conversationAnchorId: 'anchor-a',
-          state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
+          state: { textTurnId: null, freeContactEnabled: false, maxFollowUpTurns: 8, pendingFollowUp: null },
           throughSequence: '1',
           turns: [{
             turnId: 'turn-1',

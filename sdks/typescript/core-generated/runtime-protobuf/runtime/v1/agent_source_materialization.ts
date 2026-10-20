@@ -809,7 +809,11 @@ export enum AgentTurnContextLaneId {
     /**
      * @generated from protobuf enum value: AGENT_TURN_CONTEXT_LANE_ID_APP_WORK = 15;
      */
-    APP_WORK = 15
+    APP_WORK = 15,
+    /**
+     * @generated from protobuf enum value: AGENT_TURN_CONTEXT_LANE_ID_LIFE_CONTEXT = 16;
+     */
+    LIFE_CONTEXT = 16
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentTurnContextLaneState

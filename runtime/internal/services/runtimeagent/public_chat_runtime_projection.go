@@ -79,6 +79,12 @@ func (r publicChatRuntime) projectCommittedConversationVoice(ctx context.Context
 	if r.svc == nil || r.svc.isClosed() || structured == nil {
 		return
 	}
+	if isProactiveOrigin(turn.Origin) {
+		// Autonomous text has no current App admission for a speech Job.
+		// An explicit Conversation voice.render can authorize its read-aloud;
+		// delivery itself must not manufacture App authority or a failed sidecar.
+		return
+	}
 	text := strings.TrimSpace(structured.Message.Text)
 	messageID := strings.TrimSpace(structured.Message.MessageID)
 	turnID := strings.TrimSpace(turn.TurnID)

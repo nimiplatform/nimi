@@ -1,16 +1,14 @@
 package runtimeagent
 
 type runtimePrivateAIBridgeAI interface {
-	lifeTurnScenarioExecutor
-	chatTrackSidecarScenarioExecutor
+	lifeFrameScenarioExecutor
 	publicChatBindingResolverService
 	publicChatScenarioStreamer
 	publicChatActionScenarioExecutor
 }
 
 type RuntimePrivateAIBridge struct {
-	lifeTrack         LifeTrackExecutor
-	chatTrackSidecar  ChatTrackSidecarExecutor
+	lifeFrameAI       lifeFrameScenarioExecutor
 	publicChatBinding PublicChatBindingResolver
 	publicChatTurn    PublicChatTurnExecutor
 	publicChatAction  PublicChatActionExecutor
@@ -18,8 +16,6 @@ type RuntimePrivateAIBridge struct {
 
 func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
 	return &RuntimePrivateAIBridge{
-		lifeTrack:         rejectingLifeTrackExecutor{},
-		chatTrackSidecar:  rejectingChatTrackSidecarExecutor{},
 		publicChatBinding: rejectingPublicChatBindingResolver{},
 		publicChatTurn:    rejectingPublicChatTurnExecutor{},
 		publicChatAction:  rejectingPublicChatActionExecutor{},
@@ -31,26 +27,20 @@ func NewAIBackedRuntimePrivateAIBridge(ai runtimePrivateAIBridgeAI) *RuntimePriv
 	if ai == nil {
 		return bridge
 	}
-	bridge.lifeTrack = NewAIBackedLifeTrackExecutor(ai)
-	bridge.chatTrackSidecar = NewAIBackedChatTrackSidecarExecutor(ai)
+	bridge.lifeFrameAI = ai
 	bridge.publicChatBinding = NewAIBackedPublicChatBindingResolver(ai)
 	bridge.publicChatTurn = NewAIBackedPublicChatTurnExecutor(ai)
 	bridge.publicChatAction = NewAIBackedPublicChatActionExecutor(ai)
 	return bridge
 }
 
-func (b *RuntimePrivateAIBridge) lifeTrackExecutor() LifeTrackExecutor {
-	if b == nil || b.lifeTrack == nil {
-		return rejectingLifeTrackExecutor{}
+func (s *Service) HasLifeFrameExecutor() bool {
+	if s == nil {
+		return false
 	}
-	return b.lifeTrack
-}
-
-func (b *RuntimePrivateAIBridge) chatTrackSidecarExecutor() ChatTrackSidecarExecutor {
-	if b == nil || b.chatTrackSidecar == nil {
-		return rejectingChatTrackSidecarExecutor{}
-	}
-	return b.chatTrackSidecar
+	s.aiBridgeMu.RLock()
+	defer s.aiBridgeMu.RUnlock()
+	return s.aiBridge != nil && s.aiBridge.lifeFrameAI != nil
 }
 
 func (b *RuntimePrivateAIBridge) publicChatBindingResolver() PublicChatBindingResolver {
@@ -95,28 +85,6 @@ func (s *Service) SetRuntimePrivateAIBridge(bridge *RuntimePrivateAIBridge) {
 	s.resumeRecoveredPublicChatFollowUps()
 }
 
-func (s *Service) setLifeTrackExecutor(executor LifeTrackExecutor) {
-	s.aiBridgeMu.Lock()
-	defer s.aiBridgeMu.Unlock()
-	bridge := s.ensureRuntimePrivateAIBridgeLocked()
-	if executor == nil {
-		bridge.lifeTrack = rejectingLifeTrackExecutor{}
-		return
-	}
-	bridge.lifeTrack = executor
-}
-
-func (s *Service) setChatTrackSidecarExecutor(executor ChatTrackSidecarExecutor) {
-	s.aiBridgeMu.Lock()
-	defer s.aiBridgeMu.Unlock()
-	bridge := s.ensureRuntimePrivateAIBridgeLocked()
-	if executor == nil {
-		bridge.chatTrackSidecar = rejectingChatTrackSidecarExecutor{}
-		return
-	}
-	bridge.chatTrackSidecar = executor
-}
-
 func (s *Service) setPublicChatBindingResolver(resolver PublicChatBindingResolver) {
 	s.aiBridgeMu.Lock()
 	defer s.aiBridgeMu.Unlock()
@@ -148,24 +116,6 @@ func (s *Service) setPublicChatActionExecutor(executor PublicChatActionExecutor)
 		return
 	}
 	bridge.publicChatAction = executor
-}
-
-func (s *Service) currentLifeTrackExecutorFromBridge() LifeTrackExecutor {
-	s.aiBridgeMu.RLock()
-	defer s.aiBridgeMu.RUnlock()
-	if s == nil || s.aiBridge == nil {
-		return rejectingLifeTrackExecutor{}
-	}
-	return s.aiBridge.lifeTrackExecutor()
-}
-
-func (s *Service) currentChatTrackSidecarExecutor() ChatTrackSidecarExecutor {
-	s.aiBridgeMu.RLock()
-	defer s.aiBridgeMu.RUnlock()
-	if s == nil || s.aiBridge == nil {
-		return rejectingChatTrackSidecarExecutor{}
-	}
-	return s.aiBridge.chatTrackSidecarExecutor()
 }
 
 func (s *Service) currentPublicChatBindingResolver() PublicChatBindingResolver {

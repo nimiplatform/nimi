@@ -10,9 +10,13 @@ import (
 )
 
 func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason string, emit bool) (*publicChatFollowUpState, error) {
+	return s.cancelExpectedPublicChatFollowUp(anchorID, "", reason, emit)
+}
+
+func (s *Service) cancelExpectedPublicChatFollowUp(anchorID, expectedID, reason string, emit bool) (*publicChatFollowUpState, error) {
 	s.chatSurfaceMu.Lock()
 	session := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if session == nil || strings.TrimSpace(session.PendingFollowUpID) == "" {
+	if session == nil || strings.TrimSpace(session.PendingFollowUpID) == "" || expectedID != "" && session.PendingFollowUpID != expectedID {
 		s.chatSurfaceMu.Unlock()
 		return nil, nil
 	}

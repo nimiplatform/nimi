@@ -189,17 +189,16 @@ func waitForPublicChatAsyncDrain(t *testing.T, svc *Service) {
 }
 
 func publicChatStructuredEnvelopeAPML(messageID string, text string) string {
-	return fmt.Sprintf(`<message id="%s">%s</message>`,
+	return fmt.Sprintf(`<message intent="reply" id="%s">%s</message>`,
 		messageID,
 		text,
 	)
 }
-func publicChatStructuredEnvelopeWithFollowUpAPML(messageID string, text string, actionID string, prompt string, delayMs int) string {
-	return fmt.Sprintf(`<message id="%s">%s</message><time-hook id="%s"><delay-ms>%d</delay-ms><effect kind="follow-up-turn"><prompt-text>%s</prompt-text></effect></time-hook>`,
+func publicChatStructuredEnvelopeWithFollowUpAPML(messageID string, text string, actionID string, _ string, delayMs int) string {
+	return fmt.Sprintf(`<message intent="reply" id="%s">%s</message><time-hook id="%s"><delay-ms>%d</delay-ms></time-hook>`,
 		messageID,
 		text,
 		actionID,
 		delayMs,
-		prompt,
 	)
 }

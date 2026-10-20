@@ -3,7 +3,6 @@ package runtimeagent
 import (
 	"context"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -70,8 +69,8 @@ func TestRuntimeAgentInitializeStateAndHooks(t *testing.T) {
 	initResp, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
-			DailyTokenBudget: 100,
-			MaxTokensPerHook: 20,
+			DailyTokenBudget:          100,
+			MaxBackgroundOutputTokens: 20,
 		},
 	})
 	if err != nil {
@@ -96,33 +95,9 @@ func TestRuntimeAgentInitializeStateAndHooks(t *testing.T) {
 		t.Fatalf("UpdateAgentState: %v", err)
 	}
 
-	hookNow := time.Now()
-	hookTime := hookNow.Add(5 * time.Minute)
-	hook := newTestTimePendingHook(t, "hook-1", "agent-alpha", hookTime, hookNow)
-	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-alpha"), hook); err != nil {
-		t.Fatalf("admitPendingHook: %v", err)
-	}
-
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
-	if err != nil {
-		t.Fatalf("ListPendingHooks: %v", err)
-	}
-	if len(pendingResp.GetHooks()) != 1 || pendingResp.GetHooks()[0].GetIntent().GetAdmissionState() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
-		t.Fatalf("unexpected pending hooks response: %#v", pendingResp.GetHooks())
-	}
-
-	cancelResp, err := svc.CancelHook(ctx, &runtimev1.CancelHookRequest{
-		Context:  testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:  "agent-alpha",
-		IntentId: "hook-1",
-		Reason:   "test cleanup",
-	})
-	if err != nil {
-		t.Fatalf("CancelHook: %v", err)
-	}
-	if cancelResp.GetOutcome().GetIntent().GetAdmissionState() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED {
-		t.Fatalf("unexpected hook outcome: %s", cancelResp.GetOutcome().GetIntent().GetAdmissionState())
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-alpha"))
+	if err != nil || entry.Life == nil || entry.Life.Revision != 1 || entry.Life.Current != nil {
+		t.Fatalf("new Agent life: %+v %v", entry, err)
 	}
 
 }
@@ -524,196 +499,6 @@ func TestRuntimeAgentEnableAutonomyActivatesConfiguredMode(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentRunLifeTrackSweepAdmitsCadenceTickByMode(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name     string
-		mode     runtimev1.AgentAutonomyMode
-		expected time.Duration
-	}{
-		{name: "low", mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW, expected: 120 * time.Minute},
-		{name: "medium", mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM, expected: 60 * time.Minute},
-		{name: "high", mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH, expected: 30 * time.Minute},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			svc := newRuntimeAgentTestService(t)
-			ctx := context.Background()
-			agentID := "agent-cadence-" + tc.name
-			if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-				Context: testRuntimeAgentIdentityContext(agentID),
-				AutonomyConfig: &runtimev1.AgentAutonomyConfig{
-					Mode: tc.mode,
-				},
-			}); err != nil {
-				t.Fatalf("RealmSourceMaterialization: %v", err)
-			}
-			mustEnableAutonomy(t, svc, ctx, agentID)
-
-			now := time.Now().UTC()
-			if err := svc.runLifeTrackSweep(ctx, now); err != nil {
-				t.Fatalf("runLifeTrackSweep: %v", err)
-			}
-
-			hook := mustFindPendingCadenceHook(t, svc, ctx, agentID)
-			if got := hook.GetScheduledFor().AsTime().UTC(); !got.Equal(now.Add(tc.expected).UTC()) {
-				t.Fatalf("expected cadence tick at %s, got %s", now.Add(tc.expected).UTC(), got)
-			}
-		})
-	}
-}
-
-func TestRuntimeAgentRunLifeTrackSweepKeepsPendingCadenceScheduleStable(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	agentID := "agent-cadence-stable"
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext(agentID),
-		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
-			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH,
-		},
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-	mustEnableAutonomy(t, svc, ctx, agentID)
-
-	firstSweepAt := time.Now().UTC()
-	if err := svc.runLifeTrackSweep(ctx, firstSweepAt); err != nil {
-		t.Fatalf("runLifeTrackSweep(first): %v", err)
-	}
-	first := mustFindPendingCadenceHook(t, svc, ctx, agentID)
-	firstScheduledAt := first.GetScheduledFor().AsTime().UTC()
-	firstNotBefore := first.GetIntent().GetNotBefore().AsTime().UTC()
-	firstTriggerDetail := proto.Clone(first.GetIntent().GetTriggerDetail())
-
-	if err := svc.runLifeTrackSweep(ctx, firstSweepAt.Add(5*time.Minute)); err != nil {
-		t.Fatalf("runLifeTrackSweep(second): %v", err)
-	}
-	second := mustFindPendingCadenceHook(t, svc, ctx, agentID)
-	if second.GetIntent().GetIntentId() != first.GetIntent().GetIntentId() {
-		t.Fatalf("cadence hook identity changed: first=%q second=%q", first.GetIntent().GetIntentId(), second.GetIntent().GetIntentId())
-	}
-	if got := second.GetScheduledFor().AsTime().UTC(); !got.Equal(firstScheduledAt) {
-		t.Fatalf("pending cadence schedule drifted: first=%s second=%s", firstScheduledAt, got)
-	}
-	if got := second.GetIntent().GetNotBefore().AsTime().UTC(); !got.Equal(firstNotBefore) {
-		t.Fatalf("pending cadence not_before drifted: first=%s second=%s", firstNotBefore, got)
-	}
-	if !proto.Equal(second.GetIntent().GetTriggerDetail(), firstTriggerDetail) {
-		t.Fatalf("pending cadence trigger detail drifted: first=%v second=%v", firstTriggerDetail, second.GetIntent().GetTriggerDetail())
-	}
-}
-
-func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-earlier-callback"),
-		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
-			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
-		},
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-	mustEnableAutonomy(t, svc, ctx, "agent-earlier-callback")
-
-	now := time.Now().UTC()
-	callbackAt := now.Add(30 * time.Minute)
-	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-earlier-callback"), newTestTimePendingHookWithReason(t, "hook-earlier-callback", "agent-earlier-callback", "callback first", callbackAt, now)); err != nil {
-		t.Fatalf("admitPendingHook: %v", err)
-	}
-
-	if err := svc.runLifeTrackSweep(ctx, now); err != nil {
-		t.Fatalf("runLifeTrackSweep: %v", err)
-	}
-
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
-		Context: testRuntimeAgentIdentityContext("agent-earlier-callback"), AgentId: "agent-earlier-callback"})
-	if err != nil {
-		t.Fatalf("ListPendingHooks: %v", err)
-	}
-	if len(pendingResp.GetHooks()) != 1 || pendingResp.GetHooks()[0].GetIntent().GetIntentId() != "hook-earlier-callback" {
-		t.Fatalf("expected only earlier callback hook to remain pending, got %#v", pendingResp.GetHooks())
-	}
-}
-
-func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-min-spacing"),
-		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
-			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
-		},
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-	mustEnableAutonomy(t, svc, ctx, "agent-min-spacing")
-
-	admitBase := time.Now().UTC()
-	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-min-spacing"))
-	if err != nil {
-		t.Fatalf("agentByID: %v", err)
-	}
-	entry.Hooks["hook-last-turn"] = newTestTimePendingHookWithStatus(t, "hook-last-turn", "agent-min-spacing", runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED, admitBase, admitBase)
-	if err := svc.updateAgent(entry); err != nil {
-		t.Fatalf("updateAgent: %v", err)
-	}
-
-	// Admit a hook with 10min delay; min-spacing policy requires 60min from
-	// the most recent completed hook. Execute at admitBase+30min: the hook
-	// is due (>=10min) but below the 60min min-spacing floor, so runtime
-	// reschedules to admitBase+60min.
-	tooEarly := admitBase.Add(10 * time.Minute)
-	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-min-spacing"), newTestTimePendingHookWithReason(t, "hook-too-early", "agent-min-spacing", "early callback", tooEarly, admitBase)); err != nil {
-		t.Fatalf("admitPendingHook: %v", err)
-	}
-
-	executeAt := admitBase.Add(30 * time.Minute)
-	outcomes, err := svc.executeDueHooks(ctx, executeAt, func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error) {
-		t.Fatal("executor should not run before min spacing")
-		return nil, nil
-	})
-	if err != nil {
-		t.Fatalf("executeDueHooks: %v", err)
-	}
-	if len(outcomes) != 1 || outcomes[0].GetIntent().GetAdmissionState() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED {
-		t.Fatalf("expected early callback to be rescheduled, got %#v", outcomes)
-	}
-	// The reschedule rebuilds a TIME-family follow-up hook targeting the
-	// earliest instant allowed by min-spacing (anchor + 60min).
-	expected := admitBase.Add(60 * time.Minute).UTC()
-	pendingAfter, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
-		Context: testRuntimeAgentIdentityContext("agent-min-spacing"), AgentId: "agent-min-spacing"})
-	if err != nil {
-		t.Fatalf("ListPendingHooks: %v", err)
-	}
-	var followup *runtimev1.PendingHook
-	for _, h := range pendingAfter.GetHooks() {
-		if h.GetIntent().GetIntentId() != "hook-too-early" {
-			followup = h
-			break
-		}
-	}
-	if followup == nil {
-		t.Fatalf("expected min-spacing reschedule to admit fresh follow-up hook, got %#v", pendingAfter.GetHooks())
-	}
-	if got := followup.GetScheduledFor().AsTime().UTC(); !got.Equal(expected) {
-		t.Fatalf("expected min spacing reschedule at %s, got %s", expected, got)
-	}
-}
-
 // TestValidateHookIntentRejectsNonAdmittedMatrix proves validateHookIntent
 // fails-closed for inputs outside K-AGCORE-041 (missing effect, missing
 // trigger_detail branch, TIME family with both time and event details set).
@@ -767,45 +552,5 @@ func TestValidateHookIntentRejectsNonAdmittedMatrix(t *testing.T) {
 		AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
 	}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for TIME family with event detail, got %v", err)
-	}
-}
-
-func TestRuntimeAgentExecuteDueHooksRejectsOffModeAgent(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-off-mode-gate"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-off-mode-gate"))
-	if err != nil {
-		t.Fatalf("agentByID: %v", err)
-	}
-	entry.Agent.Autonomy.Enabled = true
-	if err := svc.updateAgent(entry); err != nil {
-		t.Fatalf("updateAgent: %v", err)
-	}
-
-	admitBase := time.Now().UTC().Add(-time.Minute)
-	dueAt := admitBase.Add(-time.Second)
-	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-off-mode-gate"), newTestTimePendingHook(t, "hook-off-mode", "agent-off-mode-gate", dueAt, admitBase)); err != nil {
-		t.Fatalf("admitPendingHook: %v", err)
-	}
-
-	outcomes, err := svc.executeDueHooks(ctx, time.Now().UTC().Add(time.Hour), func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error) {
-		t.Fatal("executor should not run when autonomy mode is off")
-		return nil, nil
-	})
-	if err != nil {
-		t.Fatalf("executeDueHooks: %v", err)
-	}
-	if len(outcomes) != 1 || outcomes[0].GetIntent().GetAdmissionState() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED {
-		t.Fatalf("expected rejected outcome for OFF-mode agent, got %#v", outcomes)
-	}
-	if !strings.Contains(strings.ToLower(outcomes[0].GetMessage()), "mode is off") {
-		t.Fatalf("expected OFF-mode rejection message, got %#v", outcomes[0])
 	}
 }

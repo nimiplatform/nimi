@@ -86,11 +86,8 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if status.GetAccepted() || status.GetSnapshot() != nil || status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED {
 		t.Fatalf("non-production account status must reject without a snapshot: %+v", status)
 	}
-	if !agentSvc.HasLifeTrackExecutor() {
-		t.Fatal("expected life-track executor to be configured")
-	}
-	if !agentSvc.HasChatTrackSidecarExecutor() {
-		t.Fatal("expected chat-track sidecar executor to be configured")
+	if !agentSvc.HasLifeFrameExecutor() {
+		t.Fatal("expected life frame executor to be configured")
 	}
 	if !agentSvc.HasPublicChatBindingResolver() {
 		t.Fatal("expected public chat binding resolver to be configured")
@@ -101,8 +98,8 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if !agentSvc.HasVoiceLipsyncScenarioExecutor() {
 		t.Fatal("expected voice/lipsync scenario executor to be configured")
 	}
-	if !appSvc.HasInternalConsumer("runtime.agent.internal.chat_track_sidecar") {
-		t.Fatal("expected runtime.agent.internal.chat_track_sidecar app consumer to be configured")
+	if appSvc.HasInternalConsumer("runtime.agent.internal.chat_track_sidecar") {
+		t.Fatal("retired chat-track sidecar consumer is still registered")
 	}
 	if !appSvc.HasInternalConsumer("runtime.agent") {
 		t.Fatal("expected runtime.agent app consumer to be configured")

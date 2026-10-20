@@ -84,29 +84,6 @@ func TestDecodePublicChatTurnPayloadPreservesJSONCause(t *testing.T) {
 	}
 }
 
-func TestDecodeChatTrackSidecarIngressPreservesProtoJSONCause(t *testing.T) {
-	_, err := decodeChatTrackSidecarIngressPayload(runtimeAgentTestStructPayload{values: map[string]any{
-		"agent_id":        "agent-a",
-		"source_event_id": "event-a",
-		"thread_id":       "thread-a",
-		"messages": []any{
-			map[string]any{"role": 42, "content": "private-message-content"},
-		},
-	}})
-	if err == nil {
-		t.Fatal("expected invalid sidecar message error")
-	}
-	if errors.Unwrap(err) == nil {
-		t.Fatalf("protojson cause was discarded: %T: %v", err, err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
-		t.Fatalf("reason = %s, ok = %v", reason, ok)
-	}
-	if strings.Contains(status.Convert(err).Message(), "private-message-content") {
-		t.Fatalf("public status leaked message detail: %q", status.Convert(err).Message())
-	}
-}
-
 func TestComposePublicChatTurnContextDoesNotReadFullSourceSnapshot(t *testing.T) {
 	resolverCalls := 0
 	svc := &Service{

@@ -10,8 +10,8 @@ import { subscribeZhiyuAmbientConversation } from '../src/shell/agent-chat/ambie
 
 function snapshot(): NimiLocalAppConversationSnapshot {
   return { conversationAnchorId: 'anchor', throughSequence: '5', truncatedBefore: false,
-    state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
-    turns: [{ turnId: 'turn', origin: 'user', requestId: 'request', inputTurnId: 'turn', retryOfTurnId: null, canRegenerate: true,
+    state: { textTurnId: null, freeContactEnabled: false, maxFollowUpTurns: 8, pendingFollowUp: null },
+    turns: [{ controlOutcome: null, turnId: 'turn', origin: 'user', requestId: 'request', inputTurnId: 'turn', retryOfTurnId: null, canRegenerate: true,
       status: 'interrupted', phase: 'started', terminalReason: 'user_cancel', reasonCode: null, message: null }],
     messages: [{ messageId: 'answer', turnId: 'turn', role: 'assistant', partial: true, parts: [{ kind: 'text', text: '这部分已经收到' }] }],
     actions: [], voices: [] };

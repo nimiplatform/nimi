@@ -8,7 +8,7 @@ import (
 )
 
 func TestParsePublicChatAPMLOutputMessageAndRuntimeIdentity(t *testing.T) {
-	raw := `<message id="model-message"><emotion>happy</emotion><activity>greet</activity>Hello APML.</message><action id="model-action" kind="image"><prompt-payload kind="image"><prompt-text>a sunrise</prompt-text></prompt-payload></action>`
+	raw := `<message intent="reply" id="model-message"><emotion>happy</emotion><activity>greet</activity>Hello APML.</message><action id="model-action" kind="image"><prompt-payload kind="image"><prompt-text>a sunrise</prompt-text></prompt-payload></action>`
 	envelope, err := parsePublicChatStructuredEnvelope(raw)
 	if err != nil || envelope.ControlError != "" {
 		t.Fatalf("parse: %#v %v", envelope, err)
@@ -55,7 +55,7 @@ func TestParsePublicChatAPMLOutputOptionalCuesFailLocally(t *testing.T) {
 		{`<emotion><nested>happy</nested></emotion>`, "", ""},
 	}
 	for _, tc := range cases {
-		envelope, err := parsePublicChatStructuredEnvelope("<message>" + tc.cue + "hello</message>")
+		envelope, err := parsePublicChatStructuredEnvelope("<message intent=\"reply\">" + tc.cue + "hello</message>")
 		if err != nil || envelope.Message.Text != "hello" || envelope.ControlError != "" {
 			t.Fatalf("cue %q discarded body: %#v %v", tc.cue, envelope, err)
 		}
@@ -70,7 +70,7 @@ func TestParsePublicChatAPMLOutputOptionalCuesFailLocally(t *testing.T) {
 }
 
 func TestParsePublicChatAPMLOutputTimeHookBecomesFollowUpIntent(t *testing.T) {
-	raw := `<message>I will check later.</message><time-hook><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue with the check</prompt-text></effect></time-hook>`
+	raw := `<message intent="reply">I will check later.</message><time-hook><delay-ms>250</delay-ms></time-hook>`
 	envelope, err := parsePublicChatStructuredEnvelope(raw)
 	if err != nil || envelope.ControlError != "" || len(envelope.Actions) != 1 {
 		t.Fatalf("parse hook: %#v %v", envelope, err)
@@ -102,7 +102,7 @@ func TestParsePublicChatAPMLOutputRejectsControlBatchButRetainsBody(t *testing.T
 		`<?hidden value?>`,
 		`<!DOCTYPE apml>`,
 		`<emotion>happy</emotion>`,
-		`<message>second message</message>`,
+		`<message intent="reply">second message</message>`,
 		`<action kind="voice"><prompt-payload kind="voice"><prompt-text>say it</prompt-text></prompt-payload></action>`,
 		`<action kind="video"><prompt-payload kind="video"><prompt-text>clip</prompt-text></prompt-payload></action>`,
 		`<action kind="image" priority="high"><prompt-payload kind="image"><prompt-text>clip</prompt-text></prompt-payload></action>`,
@@ -118,13 +118,13 @@ func TestParsePublicChatAPMLOutputRejectsControlBatchButRetainsBody(t *testing.T
 		`<time-hook><delay-ms>250</delay-ms><effect kind="follow-up-turn">` + image + `<prompt-text>continue</prompt-text></effect></time-hook>`,
 		`<time-hook><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect>` + image + `</time-hook>`,
 		`<time-hook mode="soft"><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></time-hook>`,
-		`<time-hook><delay-ms>250</delay-ms></time-hook>`,
+		`<time-hook><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>arbitrary delayed task</prompt-text></effect></time-hook>`,
 		`<time-hook><delay-ms>250</delay-ms><effect kind="follow-up-turn"></effect></time-hook>`,
 		`<time-hook><effect kind="follow-up-turn"><delay-ms>250</delay-ms><prompt-text>continue</prompt-text></effect></time-hook>`,
 		`<event-hook><event-user-idle idle-for="600s"/><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
 	}
 	for _, tail := range cases {
-		envelope, err := parsePublicChatStructuredEnvelope("<message>hello</message>" + tail)
+		envelope, err := parsePublicChatStructuredEnvelope("<message intent=\"reply\">hello</message>" + tail)
 		if err != nil || envelope.Message.Text != "hello" || len(envelope.Actions) != 0 || envelope.ControlError == "" {
 			t.Fatalf("bad controls must not erase body or execute prefix: tail=%q envelope=%#v err=%v", tail, envelope, err)
 		}
@@ -133,29 +133,58 @@ func TestParsePublicChatAPMLOutputRejectsControlBatchButRetainsBody(t *testing.T
 
 func TestParsePublicChatAPMLOutputRejectsUnrecognizedBody(t *testing.T) {
 	for _, raw := range []string{
-		`<message>hello<pause>secret</pause></message>`,
-		`<message>hello<surface>avatar</surface></message>`,
-		`<message>hello</activity>`,
-		`<message><emotion>happy hello`,
-		`<message>hello &nbsp;</message>`,
-		`<message xmlns="urn:test">hello</message>`,
+		`<message intent="reply"><emotion>happy hello`,
+		`<message intent="reply" xmlns="urn:test">hello</message>`,
 		`<apml:message xmlns:apml="urn:test">hello</apml:message>`,
-		`<emotion>happy</emotion><message>hello</message>`,
-		`<action kind="image"><prompt-text>clip</prompt-text></action><message>hello</message>`,
+		`<emotion>happy</emotion><message intent="reply">hello</message>`,
+		`<action kind="image"><prompt-text>clip</prompt-text></action><message intent="reply">hello</message>`,
 		`<life-turn><summary>private only</summary></life-turn>`,
-		`<message><query>private query</query></message>`,
+		`<message intent="recall"><query>private query</query></message>`,
 		`{"message":{"text":"hello"}}`,
-		"Here is the response: <message>hello</message>",
-		"plain text",
+		"Here is the response: <message intent=\"reply\">hello</message>",
 	} {
 		if _, err := parsePublicChatStructuredEnvelope(raw); err == nil {
 			t.Fatalf("unrecognized/incomplete body accepted: %q", raw)
 		}
 	}
 	for _, attrs := range []string{"", ` id="m1"`, ` id="m1" id="m2"`, ` schema="unused"`} {
-		envelope, err := parsePublicChatStructuredEnvelope("<message" + attrs + ">hello</message>")
+		envelope, err := parsePublicChatStructuredEnvelope("<message intent=\"reply\"" + attrs + ">hello</message>")
 		if err != nil || envelope.Message.Text != "hello" {
 			t.Fatalf("unused identity denied body: %#v %v", envelope, err)
+		}
+	}
+}
+
+func TestMalformedReplyDecorationKeepsOnlyStreamedPublicText(t *testing.T) {
+	for _, raw := range []string{
+		`<message intent="reply">hello<pause>secret</pause></message>`,
+		`<message intent="reply">hello<surface>avatar</surface></message>`,
+		`<message intent="reply"><emotion>happy</emotion>hello</activity>`,
+		`<message intent="reply">hello &nbsp;</message>`,
+		`<message intent="reply">hello`,
+	} {
+		body, err := parsePublicChatStructuredEnvelope(raw)
+		if err != nil || body.Message.Text != "hello" || body.StatusCue != nil ||
+			len(body.Actions) != 0 {
+			t.Fatalf("malformed decoration discarded public text or retained effects: %+v %v", body, err)
+		}
+		streamed, visible := publicChatStreamingMessageText(raw)
+		if !visible || streamed != body.Message.Text {
+			t.Fatalf("stream/final text differs: %q %+v", streamed, body)
+		}
+	}
+}
+
+func TestPlainConversationReplyDoesNotNeedAnEffectEnvelope(t *testing.T) {
+	raw := "暮色里留一点空白就好。"
+	body, err := parsePublicChatStructuredEnvelope(raw)
+	if err != nil || body.Message.Text != raw || len(body.Actions) != 0 {
+		t.Fatalf("plain reply rejected or became an effect: %+v %v", body, err)
+	}
+	for split := 1; split <= len([]rune(raw)); split++ {
+		part := string([]rune(raw)[:split])
+		if text, visible := publicChatStreamingMessageText(part); !visible || text != part {
+			t.Fatal("plain reply waited for the final envelope")
 		}
 	}
 }

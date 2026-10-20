@@ -35,23 +35,25 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 
 // @nimi-authority: definition.nimi.runtime.agent-participation.output-wire-plane
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
-- Output APML only. Begin exactly <message>; no Markdown, JSON, fences, <think>, or other prose.
+- APML only. Declare intent before content: reply=text, recall=query. Begin <message intent="...">. No Markdown or fences.
 %s
 - Runtime generates all message/action/hook ids; omit ids.
-- Text: <message>reply text</message>. Never self-close <message>.
-- Optional inside <message>, at most one each: <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
-- Cue example: <message><emotion>neutral</emotion><activity>listening</activity>reply text</message>. Close cues before text; end with </message>, never </activity> or </emotion>.
+- Text: <message intent="reply">reply text</message>. Replies cannot be empty.
+- Optional reply cues, at most one each: <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
+- Cue example: <message intent="reply"><emotion>neutral</emotion><activity>listening</activity>reply text</message>. Close cues before text; end with </message>, never </activity> or </emotion>.
 %s
 %s
-- No top-level emotion/activity. Message first; then admitted image action/time-hook siblings; close all tags. FINAL: reply ONLY as <message>reply text</message> unless a sibling is required.`
+- No top-level emotion/activity. Close all tags. Choose one admitted response type; private query must never mix with public text or actions.`
 
-const publicChatFollowUpOutputPrompt = `- Follow-up: <time-hook><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.`
+const publicChatFollowUpOutputPrompt = `- Autonomous continuation only: <time-hook><delay-ms>600000</delay-ms></time-hook>, delay 1..3600000 ms. Runtime continues the same conversation; no task prompt is accepted. User tasks and deterministic notifications belong to Personal Agent products and must never use this hook.`
 
-const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message><query>one bounded source question</query></message>. Runtime-private recall: at most once; query only, no reply text/actions.`
+const publicChatContinuationInstruction = "Continue the current conversation naturally. This is autonomous continuation, not a user reminder or a delayed task."
 
-const publicChatRoundTwoFinalOnlyPrompt = `- Round 2 final-only: a Runtime-private recall result is already present. A second recall is forbidden; output the final user reply now.`
+const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message intent="recall"><query>one bounded source question</query></message>. Runtime-private recall: at most once; query only, no reply text/actions.`
 
-const publicChatImageActionAvailablePrompt = `- Image; all reply text stays in message, with no text between/after tags: <message>Creating it.</message><action kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
+const publicChatRoundTwoFinalOnlyPrompt = `- A Runtime-private recall result is already present. A second recall is forbidden; return a reply.`
+
+const publicChatImageActionAvailablePrompt = `- Image; all reply text stays in message, with no text between/after tags: <message intent="reply">Creating it.</message><action kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
 - If the user asks to create, draw, generate, send, or show an image/photo/picture/avatar/selfie/visual, include exactly one sibling <action kind="image"> after the message.
 - For an agent photo/avatar/selfie request, use a representative or stylized prompt.`
 
@@ -83,19 +85,19 @@ func publicChatAPMLOutputContractPromptForRound(actions publicChatAvailableActio
 	default:
 		imagePrompt = publicChatImageActionNotConfiguredPrompt
 	}
-	followUpPrompt := "- Follow-up conversation is disabled for this anchor. Do not propose time hooks or claim to have scheduled a reply."
+	followUpPrompt := "- Free proactive contact is disabled for this Agent. Do not propose autonomous time hooks. User tasks never become a hook."
 	if actions.FollowUpEnabled {
 		followUpPrompt = publicChatFollowUpOutputPrompt
 	}
 	if actions.TextOnly {
-		imagePrompt = "- This is a text-only regeneration of the saved question. Do not propose image, voice, or follow-up actions, and do not claim to have executed them."
+		imagePrompt = "- This round only renders a reply. Do not propose new image, voice, or follow-up actions."
 		followUpPrompt = ""
 	}
 	recallPrompt := publicChatRoundOneRecallPrompt
 	if !allowRecall {
 		recallPrompt = publicChatRoundTwoFinalOnlyPrompt
 	}
-	return fmt.Sprintf(
+	prompt := fmt.Sprintf(
 		publicChatAPMLOutputContractPromptTemplate,
 		recallPrompt,
 		strings.Join(publicChatSortedSetKeys(admittedCurrentEmotions), "|"),
@@ -103,6 +105,7 @@ func publicChatAPMLOutputContractPromptForRound(actions publicChatAvailableActio
 		imagePrompt,
 		followUpPrompt,
 	)
+	return prompt
 }
 
 func publicChatSortedSetKeys(values map[string]struct{}) []string {
@@ -184,11 +187,12 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-					Input:        cloneChatMessages(req.Messages),
-					Tools:        req.Tools,
-					SystemPrompt: strings.TrimSpace(req.SystemPrompt),
-					MaxTokens:    maxTokens,
-					Reasoning:    toProtoReasoningConfig(req.Reasoning),
+					ResponseFormat: req.ResponseFormat,
+					Input:          cloneChatMessages(req.Messages),
+					Tools:          req.Tools,
+					SystemPrompt:   strings.TrimSpace(req.SystemPrompt),
+					MaxTokens:      maxTokens,
+					Reasoning:      toProtoReasoningConfig(req.Reasoning),
 				},
 			},
 		},
@@ -202,19 +206,12 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			return emit(event)
 		},
 	}
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- e.ai.StreamScenario(streamReq, stream)
-	}()
-	select {
-	case err := <-errCh:
-		return err
-	case <-ctx.Done():
-		select {
-		case err := <-errCh:
-			return err
-		default:
-			return ctx.Err()
-		}
+	// Resource admission is released by the caller when this returns. Waiting
+	// for the real worker prevents a canceled stream from overlapping a new
+	// foreground generation while its provider still owns the execution slot.
+	err := e.ai.StreamScenario(streamReq, stream)
+	if err == nil {
+		err = ctx.Err()
 	}
+	return err
 }

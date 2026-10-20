@@ -145,7 +145,7 @@ pub use carrier::{
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
     LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppScheduledTime, LocalAppConversationPolicyRequest, LocalAppConversationFollowUpUpdateRequest, LocalAppAgentPendingHookUpdateRequest,
+    LocalAppConversationFollowUpCancelRequest,
     LocalAppAgentUpdateConversationContextRequest, LocalAppAiRealtimeAppendInputRequest,
     LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
     LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,

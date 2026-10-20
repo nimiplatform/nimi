@@ -26,35 +26,41 @@ func publicChatPreTurnMemoryQuery(messages []publicChatMessagePayload) string {
 	return strings.Join(parts, "\n")
 }
 
-func (r publicChatRuntime) loadPublicChatCognitionMemoryInputs(ctx context.Context, session publicChatAnchorState, req publicChatTurnRequestPayload) ([]agentTurnMemoryInput, error) {
+func (r publicChatRuntime) loadPublicChatCognitionMemoryInputs(ctx context.Context, session publicChatAnchorState, req publicChatTurnRequestPayload) ([]agentTurnMemoryInput, cognitionmemory.MemoryReadSet, error) {
 	if r.svc == nil {
-		return nil, nil
+		return nil, cognitionmemory.MemoryReadSet{}, nil
 	}
-	inputs, err := r.svc.loadLocalAgentCognitionMemoryInputs(ctx, session.LocalAgentRef, publicChatPreTurnMemoryQuery(req.Messages))
+	inputs, read, err := r.svc.loadLocalAgentCognitionMemoryInputsWithReadSet(ctx, session.LocalAgentRef, publicChatPreTurnMemoryQuery(req.Messages))
 	if err != nil {
 		if r.svc.logger != nil {
 			r.svc.logger.Warn("optional Conversation Memory projection unavailable", "local_agent_ref", session.LocalAgentRef, "error", err)
 		}
-		return nil, nil
+		return nil, cognitionmemory.MemoryReadSet{}, nil
 	}
-	return inputs, nil
+	return inputs, read, nil
 }
 
 func (s *Service) loadLocalAgentCognitionMemoryInputs(ctx context.Context, localAgentRef, query string) ([]agentTurnMemoryInput, error) {
+	inputs, _, err := s.loadLocalAgentCognitionMemoryInputsWithReadSet(ctx, localAgentRef, query)
+	return inputs, err
+}
+
+func (s *Service) loadLocalAgentCognitionMemoryInputsWithReadSet(ctx context.Context, localAgentRef, query string) ([]agentTurnMemoryInput, cognitionmemory.MemoryReadSet, error) {
 	if s == nil || s.cognitionMemoryFacade == nil || strings.TrimSpace(query) == "" {
-		return nil, nil
+		return nil, cognitionmemory.MemoryReadSet{}, nil
 	}
 	result, err := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: localAgentRef, Query: query, Limit: publicChatPreTurnMemoryLimit})
 	if err != nil {
 		if s.logger != nil {
 			s.logger.Warn("optional Cognition Memory Recall unavailable", "local_agent_ref", localAgentRef, "outcome", result.Outcome, "error", err)
 		}
-		return nil, nil
+		return nil, cognitionmemory.MemoryReadSet{}, nil
 	}
 	if result.Outcome != memoryv1.OutcomeReady {
-		return nil, nil
+		return nil, cognitionmemory.MemoryReadSet{}, nil
 	}
-	return publicChatCognitionMemoryInputs(result.Hits)
+	inputs, err := publicChatCognitionMemoryInputs(result.Hits)
+	return inputs, result.ReadSet, err
 }
 
 // publicChatCognitionMemoryInputs is the direct-test composition seam used
@@ -85,6 +91,7 @@ func publicChatCognitionMemoryInputs(hits []memoryv1.Memory) ([]agentTurnMemoryI
 			agentTurnContextTextField{Name: "memory", Values: []string{hit.Content}},
 		)
 		result = append(result, agentTurnMemoryInput{
+			KnownAt:       hit.UpdatedAt,
 			MemoryID:      hit.MemoryRef,
 			Scope:         "agent_private",
 			ProvenanceRef: hit.EventRef,

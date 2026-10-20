@@ -1013,13 +1013,7 @@ pub struct LocalAppAgentUpdateConversationContextRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppScheduledTime {pub seconds:i64,pub nanos:i32}
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppConversationPolicyRequest {pub agent_handle:String,pub conversation_anchor_id:String,pub expected_revision:u64,pub enabled:bool}
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppConversationFollowUpUpdateRequest {pub agent_handle:String,pub conversation_anchor_id:String,pub task_id:String,pub expected_revision:u64,pub action:String,pub scheduled_for:Option<LocalAppScheduledTime>}
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentPendingHookUpdateRequest {pub agent_handle:String,pub task_id:String,pub expected_revision:u64,pub action:String,pub scheduled_for:Option<LocalAppScheduledTime>}
+pub struct LocalAppConversationFollowUpCancelRequest {pub agent_handle:String,pub conversation_anchor_id:String,pub task_id:String,pub expected_revision:u64}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAgentPresentationAssetInput {
@@ -2461,13 +2455,10 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppAgentUpdateAutonomyRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn conversation_follow_up_policy(&self, request: LocalAppConversationPolicyRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn conversation_follow_up_update(&self, request: LocalAppConversationFollowUpUpdateRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn conversation_follow_up_cancel(&self, request: LocalAppConversationFollowUpCancelRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn agent_pending_hooks(&self, request: LocalAppAgentHandleRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn agent_pending_hook_update(&self, request: LocalAppAgentPendingHookUpdateRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_update_conversation_context(
         &self,

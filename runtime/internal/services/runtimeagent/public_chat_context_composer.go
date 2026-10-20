@@ -2,12 +2,14 @@ package runtimeagent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -63,12 +65,19 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 	req publicChatTurnRequestPayload,
 	privateRecall *agentTurnPrivateRecallInput,
 ) (*agentTurnContextCompilation, error) {
+
 	instruction := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
+
 	if privateRecall != nil || session.ConversationContext.OmitSupplementalContext {
 		instruction = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
 	}
 	if session.ConversationContext.OmitSupplementalContext {
 		instruction = strings.Replace(instruction, publicChatRoundTwoFinalOnlyPrompt, "- Supplemental recall is disabled for this Conversation. Answer from the provided context; do not emit a query or claim a lookup occurred.", 1)
+	}
+
+	if req.proactiveClaim != nil {
+		purpose, _ := json.Marshal(req.proactiveClaim.Purpose)
+		instruction += "\nRuntime is delivering a DUE expression now, not asking you to configure a future task. Execute this expression in the reply now: " + string(purpose) + ". Do not repeat an earlier user's scheduling request, confirm a schedule, or promise to do this later. For a greeting, greet now; for completion, report the actual completed activity now. No new controls, tools or external effects. Return only the present-tense/past-completion <message>."
 	}
 	return r.composeLocalAgentTurnContextWithRecall(
 		ctx,
@@ -116,6 +125,9 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED,
 			status.Error(codes.FailedPrecondition, "Runtime LocalAgent compact source view is not materialized"))
 	}
+	if source.WorldTimeDecodeFailure != "" {
+		return nil, newPublicChatContextCompositionError(session, turn, &source, runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID, status.Error(codes.FailedPrecondition, "LocalAgent world time model is invalid; rematerialize its source"))
+	}
 	if source.LocalAgentRef != session.LocalAgentRef || source.LocalAgentRef != session.AgentID {
 		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
@@ -124,9 +136,10 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 	optionalCtx, cancelOptional := context.WithTimeout(ctx, publicChatOptionalContextBudget)
 	defer cancelOptional()
 	var memory []agentTurnMemoryInput
+	var memoryReadSet cognitionmemory.MemoryReadSet
 	var err error
 	if !session.ConversationContext.OmitSupplementalContext {
-		memory, err = r.loadPublicChatCognitionMemoryInputs(optionalCtx, session, req)
+		memory, memoryReadSet, err = r.loadPublicChatCognitionMemoryInputs(optionalCtx, session, req)
 	} else {
 		privateRecall = nil
 	}
@@ -177,6 +190,36 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 	if req.MaxOutputTokens > 0 {
 		reservedOutput = uint64(req.MaxOutputTokens)
 	}
+	lifeInput := r.svc.chatLifeContext(ctx, session)
+
+	// Required current life keeps its qualified inputs; optional Recall and
+	// explanation fit the same bounded read set, including earlier rounds.
+	var reads cognitionmemory.MemoryReadSet
+	r.svc.chatSurfaceMu.Lock()
+	if live := r.svc.chatTurns[turn.TurnID]; live != nil {
+		reads = live.MemoryReadSet
+	}
+	r.svc.chatSurfaceMu.Unlock()
+	if lifeInput != nil {
+		merged, mergeErr := unionMemoryReadSet(reads, lifeInput.CoreMemoryReadSet)
+		if mergeErr != nil {
+			return nil, mergeErr
+		}
+		reads = merged
+	}
+	reads, memory = mergeLifeReadSet(reads, memoryReadSet, memory)
+	if privateRecall != nil {
+		copy := *privateRecall
+		reads, copy.Memory = mergeLifeReadSet(reads, copy.MemoryReadSet, copy.Memory)
+		privateRecall = &copy
+	}
+	if lifeInput != nil && lifeInput.Explanation != "" {
+		if _, mergeErr := unionMemoryReadSet(reads, lifeInput.MemoryReadSet); mergeErr != nil {
+			lifeInput.Explanation = ""
+			lifeInput.MemoryReadSet = cognitionmemory.MemoryReadSet{}
+			lifeInput.ExplanationConversationRead = nil
+		}
+	}
 	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
 		Source:               source,
 		LocalAgentRef:        session.LocalAgentRef,
@@ -197,6 +240,7 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 		CurrentUserTurn:     currentTurn,
 		Cognition:           cognition,
 		PrivateRecall:       privateRecall,
+		LifeContext:         lifeInput,
 		Budget: agentTurnContextBudgetInput{
 			ContextWindowTokens:     session.Binding.ContextWindowTokens,
 			ReservedOutputTokens:    reservedOutput,
@@ -232,6 +276,7 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, "Runtime LocalAgent reserved output budget is not provider-admissible"))
 	}
+	r.svc.recordConversationMemoryReads(turn.TurnID, compiled, memoryReadSet, privateRecall, lifeInput, session, conversationSummary)
 	return compiled, nil
 }
 
@@ -343,7 +388,7 @@ func publicChatEligibleCommittedTranscript(committed []publicChatCommittedTransc
 
 func publicChatCommittedTranscriptInputText(turn publicChatCommittedTranscriptTurn) string {
 	inputText := turn.InputText
-	if turn.Origin == publicChatTurnOriginFollowUp {
+	if isProactiveOrigin(turn.Origin) {
 		inputText = "Runtime-admitted follow-up instruction: " + inputText
 	}
 	if inputText == "" && turn.InputAttachment != nil {

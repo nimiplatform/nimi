@@ -145,13 +145,12 @@ func (s *Service) commitProactiveInterruptibilityDecision(ctx context.Context, d
 			final.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED
 			final.SuppressionReason = suppression
 			projection.LastSuppressedEvent = final
-		} else {
-			final.Family = runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED
-			projection.LastDeliveredEvent = final
 		}
-		events := []*runtimev1.AgentEvent{
-			s.proactiveEvent(entry.Agent.GetLocalAgentRef(), suggested, observedAt),
-			s.proactiveEvent(entry.Agent.GetLocalAgentRef(), final, observedAt),
+		// Admission alone establishes no delivery. Canonical Conversation
+		// message commit is the delivery fact for all proactive origins.
+		events := []*runtimev1.AgentEvent{s.proactiveEvent(entry.Agent.GetLocalAgentRef(), suggested, observedAt)}
+		if projection.LastSuppressedEvent != nil {
+			events = append(events, s.proactiveEvent(entry.Agent.GetLocalAgentRef(), final, observedAt))
 		}
 		entry.State.ProactiveInterruptibility = cloneProactiveProjection(projection)
 		entry.State.UpdatedAt = timestamppb.New(observedAt)

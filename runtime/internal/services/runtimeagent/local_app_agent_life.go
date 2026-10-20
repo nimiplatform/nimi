@@ -1,11 +1,21 @@
 package runtimeagent
 
 import (
+	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"sort"
 )
+
+func (s *Service) mutateLocalAppLife(ctx context.Context, resolved localAppAgentIdentity, ingress localappop.Ingress, mutate func(*agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error)) error {
+	return s.mutateAgentWithPersistence(resolved.identity.LocalAgentRef, mutate, func(entry *agentEntry, events []*runtimev1.AgentEvent, sequence uint64, hook runtimeAgentStateTxHook) error {
+		return s.commitLocalAppOwnerMutation(ctx, ingress, resolved.decision, func(current context.Context) error {
+			return s.stateRepo.persistAgentDeltaContext(current, entry, events, sequence, hook)
+		})
+	})
+}
 
 func projectAgentLife(l *agentLifeState) *runtimev1.LocalAppAgentLifeProjection {
 	if l == nil {

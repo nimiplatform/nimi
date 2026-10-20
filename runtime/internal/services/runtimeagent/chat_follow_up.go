@@ -20,7 +20,6 @@ type publicChatFollowUpState struct {
 	CallerAppID          string
 	SubjectUserID        string
 	ThreadID             string
-	Instruction          string
 	ScheduledFor         time.Time
 	ChainID              string
 	FollowUpDepth        int

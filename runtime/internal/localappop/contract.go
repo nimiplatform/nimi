@@ -200,10 +200,7 @@ const (
 	IngressConversationTurnInterrupt
 	IngressConversationEventsSubscribe
 	IngressConversationSnapshotGet
-	IngressConversationFollowUpPolicyUpdate
-	IngressConversationFollowUpUpdate
-	IngressAgentPendingHooksList
-	IngressAgentPendingHookUpdate
+	IngressConversationFollowUpCancel
 	IngressConversationAttachmentUpload
 	IngressConversationArtifactRead
 	IngressConversationVoiceTranscribe
@@ -335,10 +332,7 @@ const (
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
-	OperationConversationFollowUpPolicyUpdate
-	OperationConversationFollowUpUpdate
-	OperationAgentPendingHooksList
-	OperationAgentPendingHookUpdate
+	OperationConversationFollowUpCancel
 	OperationConversationAttachmentUpload
 	OperationConversationArtifactRead
 	OperationConversationVoiceTranscribe
@@ -515,10 +509,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationEventsSubscribe, OperationConversationEventsSubscribe, "runtime.agent.conversation.events.subscribe", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},
-	{IngressConversationFollowUpPolicyUpdate, OperationConversationFollowUpPolicyUpdate, "runtime.agent.conversation.follow-up-policy.update", AuthorityClassAppAccess, "agent.local"},
-	{IngressConversationFollowUpUpdate, OperationConversationFollowUpUpdate, "runtime.agent.conversation.follow-up.update", AuthorityClassAppAccess, "agent.local"},
-	{IngressAgentPendingHooksList, OperationAgentPendingHooksList, "runtime.agent.pending-hooks.list", AuthorityClassAppAccess, "agent.configure"},
-	{IngressAgentPendingHookUpdate, OperationAgentPendingHookUpdate, "runtime.agent.pending-hook.update", AuthorityClassAppAccess, "agent.configure"},
+	{IngressConversationFollowUpCancel, OperationConversationFollowUpCancel, "runtime.agent.conversation.follow-up.cancel", AuthorityClassAppAccess, "agent.local"},
 
 	{IngressConversationAttachmentUpload, OperationConversationAttachmentUpload, AppOperationIDConversationAttachmentUpload, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationArtifactRead, OperationConversationArtifactRead, AppOperationIDConversationArtifactRead, AuthorityClassAppAccess, "agent.local"},

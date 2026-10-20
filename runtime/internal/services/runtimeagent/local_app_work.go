@@ -89,7 +89,7 @@ func (s *Service) localAgentExecutionBusyLocked(agentID string) bool {
 		}
 		delete(s.chatActiveByAgent, agentID)
 	}
-	return s.localAppWorkActiveByAgent[agentID] != ""
+	return s.localAppWorkActiveByAgent[agentID] != "" || s.backgroundByAgent[agentID] != nil
 }
 
 func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.StartLocalAppAgentWorkRequest) (*runtimev1.StartLocalAppAgentWorkResponse, error) {
@@ -132,6 +132,11 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	}()
 	executionCtx, cancel := context.WithTimeout(context.WithoutCancel(ownerCtx), localAppWorkExecutionTimeout)
 	work.ctx, work.cancel, work.ingress = executionCtx, cancel, executionCtx
+	source, _ := s.turnSourceView(owner.identity.LocalAgentRef)
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	s.mu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	defer s.mu.Unlock()
 	s.chatSurfaceMu.Lock()
 	s.pruneLocalAppWorkLocked()
 	if s.isClosed() || s.agentTerminationFencedLocked(owner.identity.LocalAgentRef) {
@@ -158,6 +163,19 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	id := "agent_work_" + ulid.Make().String()
 	work.snapshot = &runtimev1.LocalAppAgentWorkExecution{ExecutionId: id, WorkId: work.input.GetWorkId(), State: runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_RUNNING}
 	work.changed = make(chan struct{})
+	next := cloneAgentEntry(s.agents[owner.identity.LocalAgentRef])
+	_, admissionErr := next.Life.beginInteraction(id, time.Now().UTC(), lifeEnabled(next), source.LifeWorldPaused)
+	if admissionErr == nil {
+		admissionErr = s.commitLocalAppOwnerMutation(ctx, localappop.IngressAgentWorkStart, owner.decision, func(current context.Context) error {
+			return s.stateRepo.persistAgentDeltaContext(current, next, nil, s.sequence, nil)
+		})
+	}
+	if admissionErr != nil {
+		s.chatSurfaceMu.Unlock()
+		cancel()
+		return nil, admissionErr
+	}
+	s.agents[owner.identity.LocalAgentRef] = next
 	s.localAppWorkExecutions[id] = work
 	s.localAppWorkActiveByAgent[owner.identity.LocalAgentRef] = id
 	s.publishLocalAppWorkSnapshotLocked(work)
@@ -448,6 +466,9 @@ func (s *Service) pruneLocalAppWorkLocked() {
 }
 
 func (s *Service) runLocalAppWork(work *localAppWorkExecution, binding publicChatExecutionBinding, release func()) {
+	defer func() {
+		s.recordLifeInteractionRelease(work.owner.identity.LocalAgentRef, work.snapshot.ExecutionId, time.Now().UTC())
+	}()
 	stopLifetime := context.AfterFunc(s.publicChatAsyncLifetime(), work.cancel)
 	defer stopLifetime()
 	defer work.cancel()

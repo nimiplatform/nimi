@@ -12,7 +12,7 @@ func TestPublicChatAPMLPreservesMessageLayout(t *testing.T) {
 		"第一段\r\n\r\n第二段",
 	} {
 		t.Run(body, func(t *testing.T) {
-			envelope, err := parsePublicChatAPMLOutput("<message id=\"message-layout\">\n" + body + "\n</message>")
+			envelope, err := parsePublicChatAPMLOutput("<message intent=\"reply\" id=\"message-layout\">\n" + body + "\n</message>")
 			if err != nil {
 				t.Fatal(err)
 			}

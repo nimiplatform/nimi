@@ -15,33 +15,33 @@ import (
 )
 
 func TestPrivateSourceRecallAPMLIsStrictAndBounded(t *testing.T) {
-	request, present, err := parsePublicChatPrivateSourceRecall(`<message id="message-0"><query>Who is the recorded spouse?</query></message>`)
+	request, present, err := parsePublicChatPrivateSourceRecall(`<message intent="recall" id="message-0"><query>Who is the recorded spouse?</query></message>`)
 	if err != nil || !present || request.Query != "Who is the recorded spouse?" {
 		t.Fatalf("valid recall = %#v present=%v err=%v", request, present, err)
 	}
-	if _, present, err := parsePublicChatPrivateSourceRecall(`<message id="message-0">done</message>`); err != nil || present {
+	if _, present, err := parsePublicChatPrivateSourceRecall(`<message intent="reply" id="message-0">done</message>`); err != nil || present {
 		t.Fatalf("final message classified as recall: present=%v err=%v", present, err)
 	}
-	if _, present, err := parsePublicChatPrivateSourceRecall(`<message id="message-0"><query></query></message>`); !present || err == nil {
+	if _, present, err := parsePublicChatPrivateSourceRecall(`<message intent="recall" id="message-0"><query></query></message>`); !present || err == nil {
 		t.Fatal("empty recall query was accepted")
 	}
-	if _, present, err := parsePublicChatPrivateSourceRecall(`<message id="message-0">reply<query>Find it.</query></message>`); !present || err == nil {
+	if _, present, err := parsePublicChatPrivateSourceRecall(`<message intent="reply" id="message-0">reply<query>Find it.</query></message>`); !present || err == nil {
 		t.Fatal("recall with public reply text was accepted")
 	}
-	if _, present, err := parsePublicChatPrivateSourceRecall(`<message id="message-0"><query>Find it.</query><activity>searching</activity></message>`); !present || err == nil {
+	if _, present, err := parsePublicChatPrivateSourceRecall(`<message intent="recall" id="message-0"><query>Find it.</query><activity>searching</activity></message>`); !present || err == nil {
 		t.Fatal("recall with an extra message tag was accepted")
 	}
-	if _, present, err := parsePublicChatPrivateSourceRecall(`<message id="message-0">done<emotion>happy</emotion></message>`); err != nil || present {
+	if _, present, err := parsePublicChatPrivateSourceRecall(`<message intent="reply" id="message-0">done<emotion>happy</emotion></message>`); err != nil || present {
 		t.Fatalf("ordinary final message classified as recall: present=%v err=%v", present, err)
 	}
 	invalidShapes := []string{
-		`<message id="message-0"><query format="text">Find it.</query></message>`,
-		`<message id="message-0"><query>Find <nested>it</nested>.</query></message>`,
-		`<message id="message-0"><query>Find it.</query><query>Again.</query></message>`,
-		`<message id="message-0"><unknown/><query>Find it.</query></message>`,
-		`<message id="message-0"><query>Find it.</query><!-- hidden --></message>`,
-		`<message id="message-0"><query>Find it.</query></message>trailing`,
-		`<message id="message-0"><query>Find it.</query></message><message id="message-1">sibling</message>`,
+		`<message intent="reply" id="message-0"><query format="text">Find it.</query></message>`,
+		`<message intent="recall" id="message-0"><query>Find <nested>it</nested>.</query></message>`,
+		`<message intent="recall" id="message-0"><query>Find it.</query><query>Again.</query></message>`,
+		`<message intent="recall" id="message-0"><unknown/><query>Find it.</query></message>`,
+		`<message intent="recall" id="message-0"><query>Find it.</query><!-- hidden --></message>`,
+		`<message intent="recall" id="message-0"><query>Find it.</query></message>trailing`,
+		`<message intent="recall" id="message-0"><query>Find it.</query></message><message intent="reply" id="message-1">sibling</message>`,
 	}
 	for _, raw := range invalidShapes {
 		if _, present, err := parsePublicChatPrivateSourceRecall(raw); present && err == nil {
@@ -52,7 +52,7 @@ func TestPrivateSourceRecallAPMLIsStrictAndBounded(t *testing.T) {
 		}
 	}
 	for _, attrs := range []string{"", ` id="another-id"`, ` id=" message-0 "`, ` extra="unused"`} {
-		request, present, err := parsePublicChatPrivateSourceRecall("<message" + attrs + "><query>Find it.</query></message>")
+		request, present, err := parsePublicChatPrivateSourceRecall("<message intent=\"recall\"" + attrs + "><query>Find it.</query></message>")
 		if err != nil || !present || request.Query != "Find it." {
 			t.Fatalf("model identity required for recall: %#v %v %v", request, present, err)
 		}
@@ -85,7 +85,7 @@ func TestPrivateSourceRecallRoundTwoContextIsMandatoryAndPrivate(t *testing.T) {
 	}
 	contractLane := agentTurnContextTestLane(t, compiled.PrivateLanes, agentTurnContextLaneOutputContract)
 	if len(contractLane.Items) != 1 || len(contractLane.Items[0].Segments) != 1 ||
-		!strings.Contains(contractLane.Items[0].Segments[0].Content, "Round 2 final-only") ||
+		!strings.Contains(contractLane.Items[0].Segments[0].Content, "A second recall is forbidden") ||
 		strings.Contains(contractLane.Items[0].Segments[0].Content, "If essential source facts are missing") {
 		t.Fatal("Round 2 reused the recall-capable Round 1 output contract")
 	}
@@ -222,7 +222,7 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 			name: "repeated-recall",
 			afterUsage: func(emit func(*runtimev1.StreamScenarioEvent) error) error {
 				if err := emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
-					`<message id="message-0"><query>repeat</query></message>`)}}); err != nil {
+					`<message intent="recall" id="message-0"><query>repeat</query></message>`)}}); err != nil {
 					return err
 				}
 				return emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})
@@ -233,7 +233,7 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 			name: "invalid-recall-shape",
 			afterUsage: func(emit func(*runtimev1.StreamScenarioEvent) error) error {
 				if err := emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
-					`<message id="message-0"><query><nested>invalid</nested></query></message>`)}}); err != nil {
+					`<message intent="recall" id="message-0"><query><nested>invalid</nested></query></message>`)}}); err != nil {
 					return err
 				}
 				return emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})
@@ -285,7 +285,6 @@ func TestPrivateRecallTurnSuppressesProviderReasoningAndAggregatesBothRounds(t *
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 
 	svc.chatSurfaceMu.Lock()
 	svc.chatAnchors[anchorID].Reasoning = &publicChatReasoningConfig{
@@ -306,7 +305,7 @@ func TestPrivateRecallTurnSuppressesProviderReasoningAndAggregatesBothRounds(t *
 			}
 			capturedReasoning = append(capturedReasoning, captured)
 			traceID := "trace-private-recall-round-1"
-			output := `<message id="message-0"><query>private-query-canary</query></message>`
+			output := `<message intent="recall" id="message-0"><query>private-query-canary</query></message>`
 			reasoning := "round-one-private-recall-reasoning-canary"
 			usage := &runtimev1.UsageStats{InputTokens: 11, OutputTokens: 7, ComputeMs: 13, CachedInputTokens: 5, ReasoningOutputTokens: 3}
 			finishReason := runtimev1.FinishReason_FINISH_REASON_LENGTH
@@ -420,7 +419,6 @@ func TestNormalTurnProjectsBoundedReasoningStatusWithoutReasoningContent(t *test
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 
 	svc.chatSurfaceMu.Lock()
 	svc.chatAnchors[anchorID].Reasoning = &publicChatReasoningConfig{
@@ -532,7 +530,7 @@ func TestPrivateRecallRoundTwoScenarioFailureAggregatesUsageAndKeepsCanonicalFai
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-private-failure-round-1",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
-					`<message id="message-0"><query>failure recall</query></message>`)},
+					`<message intent="recall" id="message-0"><query>failure recall</query></message>`)},
 			}); err != nil {
 				return err
 			}
@@ -620,7 +618,7 @@ func TestPrivateRecallReplanFailurePreservesRoundOneUsage(t *testing.T) {
 		if err := emit(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
-				`<message id="message-0"><query>replan usage</query></message>`)},
+				`<message intent="recall" id="message-0"><query>replan usage</query></message>`)},
 		}); err != nil {
 			return err
 		}

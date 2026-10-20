@@ -30,6 +30,9 @@ type publicChatPrivateSourceRecallRequest struct {
 // @nimi-authority: rule.nimi.runtime.agent-participation.r012
 func parsePublicChatPrivateSourceRecall(raw string) (*publicChatPrivateSourceRecallRequest, bool, error) {
 	result := interpretPublicChatAPML(raw)
+	if result.ResponseKind == "recall" && !result.QuerySeen {
+		return nil, true, fmt.Errorf("recall intent requires one query")
+	}
 	if !result.QuerySeen {
 		return nil, false, nil
 	}
@@ -108,7 +111,7 @@ func appendAgentTurnPrivateRecallInput(items map[agentTurnContextLaneID][]agentT
 		return err
 	}
 	var recall bytes.Buffer
-	recall.WriteString(`<message id="message-0"><query>`)
+	recall.WriteString(`<message intent="recall" id="message-0"><query>`)
 	if err := xml.EscapeText(&recall, []byte(input.Query)); err != nil {
 		return err
 	}
@@ -196,6 +199,7 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 		if err == nil {
 			memoryStatus = string(memoryResult.Outcome)
 			if memoryResult.Outcome == memoryv1.OutcomeReady {
+				result.MemoryReadSet = memoryResult.ReadSet
 				memories, mapErr := publicChatCognitionMemoryInputs(memoryResult.Hits)
 				if mapErr != nil {
 					memoryStatus = string(memoryv1.OutcomeFailed)
@@ -246,6 +250,8 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 		return nil, fmt.Errorf("private recall Round 2 context is unavailable")
 	}
 	result := &publicChatPrivateRoundResult{ModelResolved: session.Binding.ModelID, RouteDecision: session.Binding.RoutePolicy}
+	var responseFormat *runtimev1.ResponseFormat
+
 	var output strings.Builder
 	projected := ""
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
@@ -254,6 +260,7 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 		MaxTokens:            callerMaxTokens,
 		ReservedOutputTokens: int32(compilation.Manifest.Budget.ReservedOutputTokens),
 		Binding:              session.Binding,
+		ResponseFormat:       responseFormat,
 		AvailableActions:     turn.AvailableActions, Reasoning: clonePublicChatReasoningConfig(turn.Reasoning),
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {

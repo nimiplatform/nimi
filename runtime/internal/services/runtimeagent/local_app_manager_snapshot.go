@@ -46,6 +46,13 @@ func (s *Service) GetLocalAppAgentManagerSnapshot(
 		Source:          projectLocalAppAgentManagerSource(entry.Agent.GetSourceContextStatus()),
 	}
 	selection, err := s.managerConversationContext(resolved, req.GetConversationAnchorId())
+	if source, found := s.turnSourceView(resolved.identity.LocalAgentRef); found && source.WorldTimeDecodeFailure != "" {
+		snapshot.Source.Ready = false
+		snapshot.Source.LorebookReady = false
+		snapshot.Source.State = runtimev1.AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID
+		snapshot.Source.ReasonCode = runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID
+	}
+	snapshot.Life = projectAgentLife(entry.Life)
 	if err != nil {
 		return nil, err
 	}

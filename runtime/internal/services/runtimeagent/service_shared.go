@@ -240,7 +240,10 @@ func cloneAutonomyConfig(input *runtimev1.AgentAutonomyConfig) *runtimev1.AgentA
 func normalizeAutonomyConfig(input *runtimev1.AgentAutonomyConfig) *runtimev1.AgentAutonomyConfig {
 	if input == nil {
 		return &runtimev1.AgentAutonomyConfig{
-			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF,
+			Mode:                      runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF,
+			DailyTokenBudget:          24000,
+			MaxBackgroundOutputTokens: 1024,
+			MaxFreeContactsPerDay:     3,
 		}
 	}
 	config := proto.Clone(input).(*runtimev1.AgentAutonomyConfig)
@@ -282,13 +285,6 @@ func cloneAgentState(input *runtimev1.AgentStateProjection) *runtimev1.AgentStat
 	return proto.Clone(input).(*runtimev1.AgentStateProjection)
 }
 
-func clonePendingHook(input *runtimev1.PendingHook) *runtimev1.PendingHook {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.PendingHook)
-}
-
 func cloneHookOutcome(input *runtimev1.HookExecutionOutcome) *runtimev1.HookExecutionOutcome {
 	if input == nil {
 		return nil
@@ -310,10 +306,8 @@ func cloneAgentEntry(input *agentEntry) *agentEntry {
 	cloned := &agentEntry{
 		Agent: cloneLocalAgentRecord(input.Agent),
 		State: cloneAgentState(input.State),
-		Hooks: make(map[string]*runtimev1.PendingHook, len(input.Hooks)),
+		Life:  cloneAgentLifeState(input.Life),
 	}
-	for hookID, hook := range input.Hooks {
-		cloned.Hooks[hookID] = clonePendingHook(hook)
-	}
+
 	return cloned
 }

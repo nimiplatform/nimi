@@ -20,7 +20,7 @@ const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 function snapshot(): NimiLocalAppConversationSnapshot {
   return {
     conversationAnchorId: 'anchor-1',
-    state:{followUpEnabled:false,followUpPolicyRevision:'0',maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null},
+    state:{freeContactEnabled:false,maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null},
     throughSequence: '4',
     truncatedBefore: true,
     turns: [{

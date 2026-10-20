@@ -64,7 +64,7 @@ func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t
 		if message.Role == "user" && message.Content == "Continue from our prior conversation." {
 			currentUserIndex = index
 		}
-		if message.Role == "user" && strings.Contains(message.Content, `Return one strict <message id="message-0">`) {
+		if message.Role == "user" && strings.Contains(message.Content, `Return one strict <message intent="reply" id="message-0">`) {
 			outputContractIndex = index
 		}
 	}
@@ -598,6 +598,12 @@ func TestConversationSingleSystemProjectionPreservesHistoryMediaAndRecall(t *tes
 		}
 		var expected []agentTurnProviderMessage
 		for _, m := range original.ProviderPrompt.Messages {
+			if m.Content == input.OutputContract.Instruction {
+				if !strings.Contains(messages[0].Content, m.Content) {
+					t.Fatal("Runtime rules lost their system authority")
+				}
+				continue
+			}
 			if m.Role == "system" {
 				if !strings.Contains(messages[0].Content, m.Content) {
 					t.Fatal("lost scoped context or output contract")
@@ -614,8 +620,8 @@ func TestConversationSingleSystemProjectionPreservesHistoryMediaAndRecall(t *tes
 				t.Fatal("late system survived")
 			}
 		}
-		if messages[len(messages)-1].Role != "user" || messages[len(messages)-1].Content != input.OutputContract.Instruction || messages[len(messages)-2].Content != input.CurrentUserTurn.Text {
-			t.Fatal("current input or existing trailing APML reminder changed")
+		if messages[len(messages)-1].Role != "user" || messages[len(messages)-1].Content != input.CurrentUserTurn.Text {
+			t.Fatal("actual current user must remain last")
 		}
 		hash, err := hashAgentTurnProviderPrompt(actual.ProviderPrompt)
 		if err != nil || hash != actual.Manifest.PromptHash {
@@ -644,8 +650,18 @@ func TestConversationSingleSystemProjectionPreservesHistoryMediaAndRecall(t *tes
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(work.ProviderPrompt, original.ProviderPrompt) {
-			t.Fatal("unrelated work/Realtime projection changed")
+		expectedWork := original.ProviderPrompt
+		expectedWork.Messages = append([]agentTurnProviderMessage(nil), original.ProviderPrompt.Messages...)
+		for i, message := range expectedWork.Messages {
+			if message.Content == input.OutputContract.Instruction {
+				if message.Role != "system" {
+					t.Fatal("Realtime policy lost system authority")
+				}
+				expectedWork.Messages[i].Role = "user"
+			}
+		}
+		if !reflect.DeepEqual(work.ProviderPrompt, expectedWork) {
+			t.Fatal("App work changed beyond the intentional Realtime policy role")
 		}
 	}
 }

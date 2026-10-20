@@ -98,7 +98,6 @@ func attachAgentRealtimeTerminationSession(
 		agentID:              localAgentRef,
 		agentHandle:          mintLocalAppAgentHandle(decision, localAgentRef),
 		conversationAnchorID: anchorID,
-		privateInputRequests: make(map[string]struct{}),
 	}
 	if withActiveTurn {
 		turnID := "agent_turn_terminate_" + sessionID
@@ -311,7 +310,7 @@ func TestTerminateAgentHardDeletesProjectionAndCognitionBank(t *testing.T) {
 	for _, table := range []struct{ name, column string }{
 		{"runtime_local_agent", "local_agent_ref"},
 		{"runtime_local_agent_state_projection", "local_agent_ref"},
-		{"runtime_local_agent_hook", "local_agent_ref"},
+		{"runtime_local_agent_life", "local_agent_ref"},
 		{"runtime_local_agent_event_log", "local_agent_ref"},
 		{"runtime_cognition_memory_agent", "local_agent_ref"},
 		{"runtime_cognition_memory_stream", "local_agent_ref"},

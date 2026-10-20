@@ -5,6 +5,7 @@ import { extractNimiErrorFields } from '@nimiplatform/kit/core/sdk-contract';
 type DraftRef = { current: string; readonly revision: number };
 type Storage = Pick<NimiLocalAppClient['storage'], 'readJson' | 'writeJson'>;
 export type AgentPendingSubmission = {
+  timezone?: string;
   requestId: string;
   conversationAnchorId: string;
   text: string;
@@ -41,7 +42,8 @@ function readSubmission(value: unknown): AgentPendingSubmission | null {
     typeof row.text !== 'string' ||
     !Array.isArray(row.artifactIds) ||
     row.artifactIds.some((id) => typeof id !== 'string' || !id) ||
-    (row.retryOfTurnId !== undefined && typeof row.retryOfTurnId !== 'string')
+    (row.retryOfTurnId !== undefined && typeof row.retryOfTurnId !== 'string') ||
+    (row.timezone !== undefined && (typeof row.timezone !== 'string' || !row.timezone || row.timezone.length > 128))
   )
     throw new Error('The saved submission could not be read.');
   return row;

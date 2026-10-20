@@ -58,8 +58,7 @@ Agent Center accepts only the SDK-decoded, identity-free Manager snapshot. The h
 - The optional `conversationAnchorId` selects the Manager context summary to read and grants no context assembly or mutation authority.
 - **Overview** shows a human-readable, read-only status.
 - **Advanced** shows only the canonical Manager snapshot's lifecycle/execution/status/emotion, source coverage and lorebook counts, and context lane/budget/truncation/count/status summaries.
-- Activity rows may show a separately authored optional `publicPurpose` as plain text. It describes the intended activity, not a verified result or an instruction; missing text keeps the usual time/status controls. Private reason, prompts and Memory are not fallbacks.
-- **Behavior** presents Runtime autonomy configuration and its bounded pending LifeTrack activities. These update status/posture; Conversation follow-up replies use their own control.
+- **Behavior** presents current interaction, simulated history, retained intentions and tentative future frames. Autonomous life and extra contact are independent settings. Activity titles never imply external effects or user-task fulfillment; current interaction has no invented end or progress.
 
 Raw Agent/account/source identity, source references, hashes, prompt or reasoning material, internal generations, source or world content, transcript/private memory, provider/model/storage detail, and tool arguments/results are not Agent Center props or state.
 
@@ -102,6 +101,6 @@ Agent Center ships its typed `en` and `zh` catalogs through the headless surface
 
 Read `DESIGN.md`, `kit/DESIGN.md`, and the nearest owner contract before changing this feature. Runtime SDK consumption must stay behind `@nimiplatform/kit/core/sdk-contract`; app-specific surfaces belong in the host app placement outside Kit Agent Center.
 
-Autonomy `maxTokensPerHook` is an output-token cap per LifeTrack activity. Zero uses the Runtime default; positive values are explicit execution limits. Daily usage still counts actual input plus output tokens and is not a monetary cap. An unsupported explicit limit fails only that activity; it does not disable basic Conversation.
+Autonomy `maxBackgroundOutputTokens` caps each background generation. Zero uses the finite Runtime default; positive values are explicit execution limits. Daily usage counts actual input plus output tokens and is not a monetary cap. An unsupported explicit limit fails that execution; it does not disable user Conversation.
 
-LifeTrack daily usage uses consecutive fixed 24-hour windows anchored at `windowStartedAt`, not calendar days or a trailing usage ledger. Runtime refreshes the aggregate atomically before admission/accounting and in existing maintenance. Late results count when recorded, including canceled work; config edits never reset usage. Zero means no configured window limit; exhaustion prevents new activities and is not a monetary ceiling.
+Life planning, autonomous continuation and new contact judgments share consecutive fixed 24-hour usage windows anchored at `windowStartedAt`. Runtime refreshes usage before admission/accounting and in maintenance. Late results count when recorded, including canceled work; config edits never reset usage. Explicit zero removes the daily limit. Exhaustion prevents new background inference while already accepted simulated frames can still advance. Ordinary replies and same-turn self-intentions remain available with both switches off; extra contact stops after one unanswered message.

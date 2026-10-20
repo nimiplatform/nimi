@@ -112,6 +112,7 @@ import { AgentResourcePackSelection } from "./agent_presentation";
 import { LocalAgentSourceContextStatus } from "./agent_source_materialization";
 import { AgentPresentationProfile } from "./agent_presentation";
 import { Struct } from "../../google/protobuf/struct";
+import { AgentContactQuietHours } from "./agent_configure";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { Duration } from "../../google/protobuf/duration";
 /**
@@ -123,13 +124,13 @@ export interface AgentAutonomyConfig {
      */
     dailyTokenBudget: string;
     /**
-     * @generated from protobuf field: int64 max_tokens_per_hook = 2
+     * @generated from protobuf field: int64 max_background_output_tokens = 9
      */
-    maxTokensPerHook: string;
+    maxBackgroundOutputTokens: string;
     /**
-     * @generated from protobuf field: google.protobuf.Duration min_hook_interval = 3
+     * @generated from protobuf field: google.protobuf.Duration min_planning_interval = 11
      */
-    minHookInterval?: Duration;
+    minPlanningInterval?: Duration;
     /**
      * @generated from protobuf field: google.protobuf.Timestamp suspend_until = 4
      */
@@ -138,6 +139,18 @@ export interface AgentAutonomyConfig {
      * @generated from protobuf field: nimi.runtime.v1.AgentAutonomyMode mode = 5
      */
     mode: AgentAutonomyMode;
+    /**
+     * @generated from protobuf field: bool free_contact_enabled = 6
+     */
+    freeContactEnabled: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentContactQuietHours quiet_hours = 7
+     */
+    quietHours?: AgentContactQuietHours;
+    /**
+     * @generated from protobuf field: uint32 max_free_contacts_per_day = 8
+     */
+    maxFreeContactsPerDay: number;
     /**
      * @generated from protobuf field: google.protobuf.Struct extensions = 10
      */
@@ -560,35 +573,6 @@ export interface HookExecutionOutcome {
      * @generated from protobuf field: string reason = 5
      */
     reason: string;
-}
-/**
- * PendingHook represents admitted scheduler truth for a HookIntent that has
- * reached `pending` admission state. The embedded HookIntent carries all
- * admitted hook vocabulary; there is no parallel trigger/next-intent shape.
- *
- * @generated from protobuf message nimi.runtime.v1.PendingHook
- */
-export interface PendingHook {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookIntent intent = 1
-     */
-    intent?: HookIntent;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 2
-     */
-    scheduledFor?: Timestamp;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp admitted_at = 3
-     */
-    admittedAt?: Timestamp;
-    /**
-     * @generated from protobuf field: bool runtime_cadence = 4
-     */
-    runtimeCadence: boolean;
-    /**
-     * @generated from protobuf field: uint64 revision = 5
-     */
-    revision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentLifecycleEventDetail
@@ -1294,78 +1278,6 @@ export interface GetAgentPresentationAssetResponse {
      * @generated from protobuf field: string sha256 = 7
      */
     sha256: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ListPendingHooksRequest
- */
-export interface ListPendingHooksRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookTriggerFamily trigger_family_filter = 3
-     */
-    triggerFamilyFilter: HookTriggerFamily;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookAdmissionState admission_state_filter = 4
-     */
-    admissionStateFilter: HookAdmissionState;
-    /**
-     * @generated from protobuf field: int32 page_size = 5
-     */
-    pageSize: number;
-    /**
-     * @generated from protobuf field: string page_token = 6
-     */
-    pageToken: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ListPendingHooksResponse
- */
-export interface ListPendingHooksResponse {
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.PendingHook hooks = 1
-     */
-    hooks: PendingHook[];
-    /**
-     * @generated from protobuf field: string next_page_token = 2
-     */
-    nextPageToken: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.CancelHookRequest
- */
-export interface CancelHookRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: string intent_id = 3
-     */
-    intentId: string;
-    /**
-     * @generated from protobuf field: string reason = 4
-     */
-    reason: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.CancelHookResponse
- */
-export interface CancelHookResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookExecutionOutcome outcome = 1
-     */
-    outcome?: HookExecutionOutcome;
 }
 /**
  * First-party recorded voice ingress. Runtime validates the selected
@@ -2439,13 +2351,9 @@ export interface LocalAppConversationFollowUp {
  */
 export interface LocalAppConversationState {
     /**
-     * @generated from protobuf field: bool follow_up_enabled = 1
+     * @generated from protobuf field: bool free_contact_enabled = 6
      */
-    followUpEnabled: boolean;
-    /**
-     * @generated from protobuf field: uint64 follow_up_policy_revision = 2
-     */
-    followUpPolicyRevision: string;
+    freeContactEnabled: boolean;
     /**
      * @generated from protobuf field: uint32 max_follow_up_turns = 3
      */
@@ -2460,30 +2368,9 @@ export interface LocalAppConversationState {
     textTurnId?: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyRequest
+ * @generated from protobuf message nimi.runtime.v1.CancelLocalAppConversationFollowUpRequest
  */
-export interface UpdateLocalAppConversationFollowUpPolicyRequest {
-    /**
-     * @generated from protobuf field: string agent_handle = 1
-     */
-    agentHandle: string;
-    /**
-     * @generated from protobuf field: string conversation_anchor_id = 2
-     */
-    conversationAnchorId: string;
-    /**
-     * @generated from protobuf field: uint64 expected_revision = 3
-     */
-    expectedRevision: string;
-    /**
-     * @generated from protobuf field: bool enabled = 4
-     */
-    enabled: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpRequest
- */
-export interface UpdateLocalAppConversationFollowUpRequest {
+export interface CancelLocalAppConversationFollowUpRequest {
     /**
      * @generated from protobuf field: string agent_handle = 1
      */
@@ -2500,123 +2387,15 @@ export interface UpdateLocalAppConversationFollowUpRequest {
      * @generated from protobuf field: uint64 expected_revision = 4
      */
     expectedRevision: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppScheduledTaskAction action = 5
-     */
-    action: LocalAppScheduledTaskAction;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 6
-     */
-    scheduledFor?: Timestamp;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyResponse
+ * @generated from protobuf message nimi.runtime.v1.CancelLocalAppConversationFollowUpResponse
  */
-export interface UpdateLocalAppConversationFollowUpPolicyResponse {
+export interface CancelLocalAppConversationFollowUpResponse {
     /**
      * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationState state = 1
      */
     state?: LocalAppConversationState;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpResponse
- */
-export interface UpdateLocalAppConversationFollowUpResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationState state = 1
-     */
-    state?: LocalAppConversationState;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksRequest
- */
-export interface ListLocalAppAgentPendingHooksRequest {
-    /**
-     * @generated from protobuf field: string agent_handle = 1
-     */
-    agentHandle: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentPendingHook
- */
-export interface LocalAppAgentPendingHook {
-    /**
-     * @generated from protobuf field: string task_id = 1
-     */
-    taskId: string;
-    /**
-     * @generated from protobuf field: uint64 revision = 2
-     */
-    revision: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 3
-     */
-    scheduledFor?: Timestamp;
-    /**
-     * @generated from protobuf field: bool system_cadence = 4
-     */
-    systemCadence: boolean;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookAdmissionState status = 5
-     */
-    status: HookAdmissionState;
-    /**
-     * @generated from protobuf field: bool can_modify = 6
-     */
-    canModify: boolean;
-    /**
-     * Optional plain-text description; never execution authority.
-     *
-     * @generated from protobuf field: string public_purpose = 7
-     */
-    publicPurpose: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse
- */
-export interface ListLocalAppAgentPendingHooksResponse {
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentPendingHook hooks = 1
-     */
-    hooks: LocalAppAgentPendingHook[];
-    /**
-     * @generated from protobuf field: bool truncated = 2
-     */
-    truncated: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookRequest
- */
-export interface UpdateLocalAppAgentPendingHookRequest {
-    /**
-     * @generated from protobuf field: string agent_handle = 1
-     */
-    agentHandle: string;
-    /**
-     * @generated from protobuf field: string task_id = 2
-     */
-    taskId: string;
-    /**
-     * @generated from protobuf field: uint64 expected_revision = 3
-     */
-    expectedRevision: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppScheduledTaskAction action = 4
-     */
-    action: LocalAppScheduledTaskAction;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 5
-     */
-    scheduledFor?: Timestamp;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookResponse
- */
-export interface UpdateLocalAppAgentPendingHookResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentPendingHook hook = 1
-     */
-    hook?: LocalAppAgentPendingHook;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationSnapshot
@@ -4678,23 +4457,6 @@ export enum LocalAppConversationVoiceState {
     FAILED = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalAppScheduledTaskAction
- */
-export enum LocalAppScheduledTaskAction {
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_SCHEDULED_TASK_ACTION_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_SCHEDULED_TASK_ACTION_CANCEL = 1;
-     */
-    CANCEL = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_SCHEDULED_TASK_ACTION_RESCHEDULE = 2;
-     */
-    RESCHEDULE = 2
-}
-/**
  * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationReasoningState
  */
 export enum LocalAppConversationReasoningState {
@@ -4745,18 +4507,23 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
     constructor() {
         super("nimi.runtime.v1.AgentAutonomyConfig", [
             { no: 1, name: "daily_token_budget", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 2, name: "max_tokens_per_hook", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 3, name: "min_hook_interval", kind: "message", T: () => Duration },
+            { no: 9, name: "max_background_output_tokens", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 11, name: "min_planning_interval", kind: "message", T: () => Duration },
             { no: 4, name: "suspend_until", kind: "message", T: () => Timestamp },
             { no: 5, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.AgentAutonomyMode", AgentAutonomyMode, "AGENT_AUTONOMY_MODE_"] },
+            { no: 6, name: "free_contact_enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "quiet_hours", kind: "message", T: () => AgentContactQuietHours },
+            { no: 8, name: "max_free_contacts_per_day", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 10, name: "extensions", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<AgentAutonomyConfig>): AgentAutonomyConfig {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.dailyTokenBudget = "0";
-        message.maxTokensPerHook = "0";
+        message.maxBackgroundOutputTokens = "0";
         message.mode = 0;
+        message.freeContactEnabled = false;
+        message.maxFreeContactsPerDay = 0;
         if (value !== undefined)
             reflectionMergePartial<AgentAutonomyConfig>(this, message, value);
         return message;
@@ -4769,17 +4536,26 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
                 case /* int64 daily_token_budget */ 1:
                     message.dailyTokenBudget = reader.int64().toString();
                     break;
-                case /* int64 max_tokens_per_hook */ 2:
-                    message.maxTokensPerHook = reader.int64().toString();
+                case /* int64 max_background_output_tokens */ 9:
+                    message.maxBackgroundOutputTokens = reader.int64().toString();
                     break;
-                case /* google.protobuf.Duration min_hook_interval */ 3:
-                    message.minHookInterval = Duration.internalBinaryRead(reader, reader.uint32(), options, message.minHookInterval);
+                case /* google.protobuf.Duration min_planning_interval */ 11:
+                    message.minPlanningInterval = Duration.internalBinaryRead(reader, reader.uint32(), options, message.minPlanningInterval);
                     break;
                 case /* google.protobuf.Timestamp suspend_until */ 4:
                     message.suspendUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.suspendUntil);
                     break;
                 case /* nimi.runtime.v1.AgentAutonomyMode mode */ 5:
                     message.mode = reader.int32();
+                    break;
+                case /* bool free_contact_enabled */ 6:
+                    message.freeContactEnabled = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AgentContactQuietHours quiet_hours */ 7:
+                    message.quietHours = AgentContactQuietHours.internalBinaryRead(reader, reader.uint32(), options, message.quietHours);
+                    break;
+                case /* uint32 max_free_contacts_per_day */ 8:
+                    message.maxFreeContactsPerDay = reader.uint32();
                     break;
                 case /* google.protobuf.Struct extensions */ 10:
                     message.extensions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.extensions);
@@ -4799,21 +4575,30 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
         /* int64 daily_token_budget = 1; */
         if (message.dailyTokenBudget !== "0")
             writer.tag(1, WireType.Varint).int64(message.dailyTokenBudget);
-        /* int64 max_tokens_per_hook = 2; */
-        if (message.maxTokensPerHook !== "0")
-            writer.tag(2, WireType.Varint).int64(message.maxTokensPerHook);
-        /* google.protobuf.Duration min_hook_interval = 3; */
-        if (message.minHookInterval)
-            Duration.internalBinaryWrite(message.minHookInterval, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* google.protobuf.Timestamp suspend_until = 4; */
         if (message.suspendUntil)
             Timestamp.internalBinaryWrite(message.suspendUntil, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.AgentAutonomyMode mode = 5; */
         if (message.mode !== 0)
             writer.tag(5, WireType.Varint).int32(message.mode);
+        /* bool free_contact_enabled = 6; */
+        if (message.freeContactEnabled !== false)
+            writer.tag(6, WireType.Varint).bool(message.freeContactEnabled);
+        /* nimi.runtime.v1.AgentContactQuietHours quiet_hours = 7; */
+        if (message.quietHours)
+            AgentContactQuietHours.internalBinaryWrite(message.quietHours, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* uint32 max_free_contacts_per_day = 8; */
+        if (message.maxFreeContactsPerDay !== 0)
+            writer.tag(8, WireType.Varint).uint32(message.maxFreeContactsPerDay);
+        /* int64 max_background_output_tokens = 9; */
+        if (message.maxBackgroundOutputTokens !== "0")
+            writer.tag(9, WireType.Varint).int64(message.maxBackgroundOutputTokens);
         /* google.protobuf.Struct extensions = 10; */
         if (message.extensions)
             Struct.internalBinaryWrite(message.extensions, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Duration min_planning_interval = 11; */
+        if (message.minPlanningInterval)
+            Duration.internalBinaryWrite(message.minPlanningInterval, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6022,82 +5807,6 @@ class HookExecutionOutcome$Type extends MessageType<HookExecutionOutcome> {
  * @generated MessageType for protobuf message nimi.runtime.v1.HookExecutionOutcome
  */
 export const HookExecutionOutcome = new HookExecutionOutcome$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class PendingHook$Type extends MessageType<PendingHook> {
-    constructor() {
-        super("nimi.runtime.v1.PendingHook", [
-            { no: 1, name: "intent", kind: "message", T: () => HookIntent },
-            { no: 2, name: "scheduled_for", kind: "message", T: () => Timestamp },
-            { no: 3, name: "admitted_at", kind: "message", T: () => Timestamp },
-            { no: 4, name: "runtime_cadence", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
-        ]);
-    }
-    create(value?: PartialMessage<PendingHook>): PendingHook {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.runtimeCadence = false;
-        message.revision = "0";
-        if (value !== undefined)
-            reflectionMergePartial<PendingHook>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PendingHook): PendingHook {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.HookIntent intent */ 1:
-                    message.intent = HookIntent.internalBinaryRead(reader, reader.uint32(), options, message.intent);
-                    break;
-                case /* google.protobuf.Timestamp scheduled_for */ 2:
-                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
-                    break;
-                case /* google.protobuf.Timestamp admitted_at */ 3:
-                    message.admittedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.admittedAt);
-                    break;
-                case /* bool runtime_cadence */ 4:
-                    message.runtimeCadence = reader.bool();
-                    break;
-                case /* uint64 revision */ 5:
-                    message.revision = reader.uint64().toString();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: PendingHook, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.HookIntent intent = 1; */
-        if (message.intent)
-            HookIntent.internalBinaryWrite(message.intent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp scheduled_for = 2; */
-        if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp admitted_at = 3; */
-        if (message.admittedAt)
-            Timestamp.internalBinaryWrite(message.admittedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* bool runtime_cadence = 4; */
-        if (message.runtimeCadence !== false)
-            writer.tag(4, WireType.Varint).bool(message.runtimeCadence);
-        /* uint64 revision = 5; */
-        if (message.revision !== "0")
-            writer.tag(5, WireType.Varint).uint64(message.revision);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.PendingHook
- */
-export const PendingHook = new PendingHook$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentLifecycleEventDetail$Type extends MessageType<AgentLifecycleEventDetail> {
     constructor() {
@@ -8177,263 +7886,6 @@ class GetAgentPresentationAssetResponse$Type extends MessageType<GetAgentPresent
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentPresentationAssetResponse
  */
 export const GetAgentPresentationAssetResponse = new GetAgentPresentationAssetResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ListPendingHooksRequest$Type extends MessageType<ListPendingHooksRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ListPendingHooksRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "trigger_family_filter", kind: "enum", T: () => ["nimi.runtime.v1.HookTriggerFamily", HookTriggerFamily, "HOOK_TRIGGER_FAMILY_"] },
-            { no: 4, name: "admission_state_filter", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
-            { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ListPendingHooksRequest>): ListPendingHooksRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.triggerFamilyFilter = 0;
-        message.admissionStateFilter = 0;
-        message.pageSize = 0;
-        message.pageToken = "";
-        if (value !== undefined)
-            reflectionMergePartial<ListPendingHooksRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListPendingHooksRequest): ListPendingHooksRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.HookTriggerFamily trigger_family_filter */ 3:
-                    message.triggerFamilyFilter = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.HookAdmissionState admission_state_filter */ 4:
-                    message.admissionStateFilter = reader.int32();
-                    break;
-                case /* int32 page_size */ 5:
-                    message.pageSize = reader.int32();
-                    break;
-                case /* string page_token */ 6:
-                    message.pageToken = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ListPendingHooksRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* nimi.runtime.v1.HookTriggerFamily trigger_family_filter = 3; */
-        if (message.triggerFamilyFilter !== 0)
-            writer.tag(3, WireType.Varint).int32(message.triggerFamilyFilter);
-        /* nimi.runtime.v1.HookAdmissionState admission_state_filter = 4; */
-        if (message.admissionStateFilter !== 0)
-            writer.tag(4, WireType.Varint).int32(message.admissionStateFilter);
-        /* int32 page_size = 5; */
-        if (message.pageSize !== 0)
-            writer.tag(5, WireType.Varint).int32(message.pageSize);
-        /* string page_token = 6; */
-        if (message.pageToken !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.pageToken);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ListPendingHooksRequest
- */
-export const ListPendingHooksRequest = new ListPendingHooksRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ListPendingHooksResponse$Type extends MessageType<ListPendingHooksResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ListPendingHooksResponse", [
-            { no: 1, name: "hooks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => PendingHook },
-            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ListPendingHooksResponse>): ListPendingHooksResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.hooks = [];
-        message.nextPageToken = "";
-        if (value !== undefined)
-            reflectionMergePartial<ListPendingHooksResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListPendingHooksResponse): ListPendingHooksResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.PendingHook hooks */ 1:
-                    message.hooks.push(PendingHook.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* string next_page_token */ 2:
-                    message.nextPageToken = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ListPendingHooksResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.PendingHook hooks = 1; */
-        for (let i = 0; i < message.hooks.length; i++)
-            PendingHook.internalBinaryWrite(message.hooks[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string next_page_token = 2; */
-        if (message.nextPageToken !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ListPendingHooksResponse
- */
-export const ListPendingHooksResponse = new ListPendingHooksResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class CancelHookRequest$Type extends MessageType<CancelHookRequest> {
-    constructor() {
-        super("nimi.runtime.v1.CancelHookRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<CancelHookRequest>): CancelHookRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.intentId = "";
-        message.reason = "";
-        if (value !== undefined)
-            reflectionMergePartial<CancelHookRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelHookRequest): CancelHookRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* string intent_id */ 3:
-                    message.intentId = reader.string();
-                    break;
-                case /* string reason */ 4:
-                    message.reason = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CancelHookRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string intent_id = 3; */
-        if (message.intentId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.intentId);
-        /* string reason = 4; */
-        if (message.reason !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.reason);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CancelHookRequest
- */
-export const CancelHookRequest = new CancelHookRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class CancelHookResponse$Type extends MessageType<CancelHookResponse> {
-    constructor() {
-        super("nimi.runtime.v1.CancelHookResponse", [
-            { no: 1, name: "outcome", kind: "message", T: () => HookExecutionOutcome }
-        ]);
-    }
-    create(value?: PartialMessage<CancelHookResponse>): CancelHookResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<CancelHookResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelHookResponse): CancelHookResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.HookExecutionOutcome outcome */ 1:
-                    message.outcome = HookExecutionOutcome.internalBinaryRead(reader, reader.uint32(), options, message.outcome);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CancelHookResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.HookExecutionOutcome outcome = 1; */
-        if (message.outcome)
-            HookExecutionOutcome.internalBinaryWrite(message.outcome, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CancelHookResponse
- */
-export const CancelHookResponse = new CancelHookResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class TranscribeAgentVoiceInputRequest$Type extends MessageType<TranscribeAgentVoiceInputRequest> {
     constructor() {
@@ -11879,8 +11331,7 @@ export const LocalAppConversationFollowUp = new LocalAppConversationFollowUp$Typ
 class LocalAppConversationState$Type extends MessageType<LocalAppConversationState> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationState", [
-            { no: 1, name: "follow_up_enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "follow_up_policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "free_contact_enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "max_follow_up_turns", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 4, name: "pending_follow_up", kind: "message", T: () => LocalAppConversationFollowUp },
             { no: 5, name: "text_turn_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
@@ -11888,8 +11339,7 @@ class LocalAppConversationState$Type extends MessageType<LocalAppConversationSta
     }
     create(value?: PartialMessage<LocalAppConversationState>): LocalAppConversationState {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.followUpEnabled = false;
-        message.followUpPolicyRevision = "0";
+        message.freeContactEnabled = false;
         message.maxFollowUpTurns = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppConversationState>(this, message, value);
@@ -11900,11 +11350,8 @@ class LocalAppConversationState$Type extends MessageType<LocalAppConversationSta
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* bool follow_up_enabled */ 1:
-                    message.followUpEnabled = reader.bool();
-                    break;
-                case /* uint64 follow_up_policy_revision */ 2:
-                    message.followUpPolicyRevision = reader.uint64().toString();
+                case /* bool free_contact_enabled */ 6:
+                    message.freeContactEnabled = reader.bool();
                     break;
                 case /* uint32 max_follow_up_turns */ 3:
                     message.maxFollowUpTurns = reader.uint32();
@@ -11927,12 +11374,6 @@ class LocalAppConversationState$Type extends MessageType<LocalAppConversationSta
         return message;
     }
     internalBinaryWrite(message: LocalAppConversationState, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool follow_up_enabled = 1; */
-        if (message.followUpEnabled !== false)
-            writer.tag(1, WireType.Varint).bool(message.followUpEnabled);
-        /* uint64 follow_up_policy_revision = 2; */
-        if (message.followUpPolicyRevision !== "0")
-            writer.tag(2, WireType.Varint).uint64(message.followUpPolicyRevision);
         /* uint32 max_follow_up_turns = 3; */
         if (message.maxFollowUpTurns !== 0)
             writer.tag(3, WireType.Varint).uint32(message.maxFollowUpTurns);
@@ -11942,6 +11383,9 @@ class LocalAppConversationState$Type extends MessageType<LocalAppConversationSta
         /* optional string text_turn_id = 5; */
         if (message.textTurnId !== undefined)
             writer.tag(5, WireType.LengthDelimited).string(message.textTurnId);
+        /* bool free_contact_enabled = 6; */
+        if (message.freeContactEnabled !== false)
+            writer.tag(6, WireType.Varint).bool(message.freeContactEnabled);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11953,100 +11397,26 @@ class LocalAppConversationState$Type extends MessageType<LocalAppConversationSta
  */
 export const LocalAppConversationState = new LocalAppConversationState$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalAppConversationFollowUpPolicyRequest$Type extends MessageType<UpdateLocalAppConversationFollowUpPolicyRequest> {
+class CancelLocalAppConversationFollowUpRequest$Type extends MessageType<CancelLocalAppConversationFollowUpRequest> {
     constructor() {
-        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyRequest", [
-            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpPolicyRequest>): UpdateLocalAppConversationFollowUpPolicyRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentHandle = "";
-        message.conversationAnchorId = "";
-        message.expectedRevision = "0";
-        message.enabled = false;
-        if (value !== undefined)
-            reflectionMergePartial<UpdateLocalAppConversationFollowUpPolicyRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpPolicyRequest): UpdateLocalAppConversationFollowUpPolicyRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string agent_handle */ 1:
-                    message.agentHandle = reader.string();
-                    break;
-                case /* string conversation_anchor_id */ 2:
-                    message.conversationAnchorId = reader.string();
-                    break;
-                case /* uint64 expected_revision */ 3:
-                    message.expectedRevision = reader.uint64().toString();
-                    break;
-                case /* bool enabled */ 4:
-                    message.enabled = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpPolicyRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string agent_handle = 1; */
-        if (message.agentHandle !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
-        /* string conversation_anchor_id = 2; */
-        if (message.conversationAnchorId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
-        /* uint64 expected_revision = 3; */
-        if (message.expectedRevision !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.expectedRevision);
-        /* bool enabled = 4; */
-        if (message.enabled !== false)
-            writer.tag(4, WireType.Varint).bool(message.enabled);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyRequest
- */
-export const UpdateLocalAppConversationFollowUpPolicyRequest = new UpdateLocalAppConversationFollowUpPolicyRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalAppConversationFollowUpRequest$Type extends MessageType<UpdateLocalAppConversationFollowUpRequest> {
-    constructor() {
-        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpRequest", [
+        super("nimi.runtime.v1.CancelLocalAppConversationFollowUpRequest", [
             { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 5, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppScheduledTaskAction", LocalAppScheduledTaskAction, "LOCAL_APP_SCHEDULED_TASK_ACTION_"] },
-            { no: 6, name: "scheduled_for", kind: "message", T: () => Timestamp }
+            { no: 4, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
-    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpRequest>): UpdateLocalAppConversationFollowUpRequest {
+    create(value?: PartialMessage<CancelLocalAppConversationFollowUpRequest>): CancelLocalAppConversationFollowUpRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentHandle = "";
         message.conversationAnchorId = "";
         message.taskId = "";
         message.expectedRevision = "0";
-        message.action = 0;
         if (value !== undefined)
-            reflectionMergePartial<UpdateLocalAppConversationFollowUpRequest>(this, message, value);
+            reflectionMergePartial<CancelLocalAppConversationFollowUpRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpRequest): UpdateLocalAppConversationFollowUpRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelLocalAppConversationFollowUpRequest): CancelLocalAppConversationFollowUpRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -12063,12 +11433,6 @@ class UpdateLocalAppConversationFollowUpRequest$Type extends MessageType<UpdateL
                 case /* uint64 expected_revision */ 4:
                     message.expectedRevision = reader.uint64().toString();
                     break;
-                case /* nimi.runtime.v1.LocalAppScheduledTaskAction action */ 5:
-                    message.action = reader.int32();
-                    break;
-                case /* google.protobuf.Timestamp scheduled_for */ 6:
-                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12080,7 +11444,7 @@ class UpdateLocalAppConversationFollowUpRequest$Type extends MessageType<UpdateL
         }
         return message;
     }
-    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: CancelLocalAppConversationFollowUpRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string agent_handle = 1; */
         if (message.agentHandle !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
@@ -12093,12 +11457,6 @@ class UpdateLocalAppConversationFollowUpRequest$Type extends MessageType<UpdateL
         /* uint64 expected_revision = 4; */
         if (message.expectedRevision !== "0")
             writer.tag(4, WireType.Varint).uint64(message.expectedRevision);
-        /* nimi.runtime.v1.LocalAppScheduledTaskAction action = 5; */
-        if (message.action !== 0)
-            writer.tag(5, WireType.Varint).int32(message.action);
-        /* google.protobuf.Timestamp scheduled_for = 6; */
-        if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12106,23 +11464,23 @@ class UpdateLocalAppConversationFollowUpRequest$Type extends MessageType<UpdateL
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelLocalAppConversationFollowUpRequest
  */
-export const UpdateLocalAppConversationFollowUpRequest = new UpdateLocalAppConversationFollowUpRequest$Type();
+export const CancelLocalAppConversationFollowUpRequest = new CancelLocalAppConversationFollowUpRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalAppConversationFollowUpPolicyResponse$Type extends MessageType<UpdateLocalAppConversationFollowUpPolicyResponse> {
+class CancelLocalAppConversationFollowUpResponse$Type extends MessageType<CancelLocalAppConversationFollowUpResponse> {
     constructor() {
-        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyResponse", [
+        super("nimi.runtime.v1.CancelLocalAppConversationFollowUpResponse", [
             { no: 1, name: "state", kind: "message", T: () => LocalAppConversationState }
         ]);
     }
-    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpPolicyResponse>): UpdateLocalAppConversationFollowUpPolicyResponse {
+    create(value?: PartialMessage<CancelLocalAppConversationFollowUpResponse>): CancelLocalAppConversationFollowUpResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<UpdateLocalAppConversationFollowUpPolicyResponse>(this, message, value);
+            reflectionMergePartial<CancelLocalAppConversationFollowUpResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpPolicyResponse): UpdateLocalAppConversationFollowUpPolicyResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelLocalAppConversationFollowUpResponse): CancelLocalAppConversationFollowUpResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -12141,7 +11499,7 @@ class UpdateLocalAppConversationFollowUpPolicyResponse$Type extends MessageType<
         }
         return message;
     }
-    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpPolicyResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: CancelLocalAppConversationFollowUpResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.LocalAppConversationState state = 1; */
         if (message.state)
             LocalAppConversationState.internalBinaryWrite(message.state, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
@@ -12152,375 +11510,9 @@ class UpdateLocalAppConversationFollowUpPolicyResponse$Type extends MessageType<
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpPolicyResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelLocalAppConversationFollowUpResponse
  */
-export const UpdateLocalAppConversationFollowUpPolicyResponse = new UpdateLocalAppConversationFollowUpPolicyResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalAppConversationFollowUpResponse$Type extends MessageType<UpdateLocalAppConversationFollowUpResponse> {
-    constructor() {
-        super("nimi.runtime.v1.UpdateLocalAppConversationFollowUpResponse", [
-            { no: 1, name: "state", kind: "message", T: () => LocalAppConversationState }
-        ]);
-    }
-    create(value?: PartialMessage<UpdateLocalAppConversationFollowUpResponse>): UpdateLocalAppConversationFollowUpResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<UpdateLocalAppConversationFollowUpResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppConversationFollowUpResponse): UpdateLocalAppConversationFollowUpResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalAppConversationState state */ 1:
-                    message.state = LocalAppConversationState.internalBinaryRead(reader, reader.uint32(), options, message.state);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpdateLocalAppConversationFollowUpResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalAppConversationState state = 1; */
-        if (message.state)
-            LocalAppConversationState.internalBinaryWrite(message.state, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppConversationFollowUpResponse
- */
-export const UpdateLocalAppConversationFollowUpResponse = new UpdateLocalAppConversationFollowUpResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ListLocalAppAgentPendingHooksRequest$Type extends MessageType<ListLocalAppAgentPendingHooksRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ListLocalAppAgentPendingHooksRequest", [
-            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ListLocalAppAgentPendingHooksRequest>): ListLocalAppAgentPendingHooksRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentHandle = "";
-        if (value !== undefined)
-            reflectionMergePartial<ListLocalAppAgentPendingHooksRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAgentPendingHooksRequest): ListLocalAppAgentPendingHooksRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string agent_handle */ 1:
-                    message.agentHandle = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ListLocalAppAgentPendingHooksRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string agent_handle = 1; */
-        if (message.agentHandle !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksRequest
- */
-export const ListLocalAppAgentPendingHooksRequest = new ListLocalAppAgentPendingHooksRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentPendingHook$Type extends MessageType<LocalAppAgentPendingHook> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAppAgentPendingHook", [
-            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 3, name: "scheduled_for", kind: "message", T: () => Timestamp },
-            { no: 4, name: "system_cadence", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
-            { no: 6, name: "can_modify", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 7, name: "public_purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAppAgentPendingHook>): LocalAppAgentPendingHook {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.taskId = "";
-        message.revision = "0";
-        message.systemCadence = false;
-        message.status = 0;
-        message.canModify = false;
-        message.publicPurpose = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentPendingHook>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentPendingHook): LocalAppAgentPendingHook {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string task_id */ 1:
-                    message.taskId = reader.string();
-                    break;
-                case /* uint64 revision */ 2:
-                    message.revision = reader.uint64().toString();
-                    break;
-                case /* google.protobuf.Timestamp scheduled_for */ 3:
-                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
-                    break;
-                case /* bool system_cadence */ 4:
-                    message.systemCadence = reader.bool();
-                    break;
-                case /* nimi.runtime.v1.HookAdmissionState status */ 5:
-                    message.status = reader.int32();
-                    break;
-                case /* bool can_modify */ 6:
-                    message.canModify = reader.bool();
-                    break;
-                case /* string public_purpose */ 7:
-                    message.publicPurpose = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAppAgentPendingHook, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string task_id = 1; */
-        if (message.taskId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.taskId);
-        /* uint64 revision = 2; */
-        if (message.revision !== "0")
-            writer.tag(2, WireType.Varint).uint64(message.revision);
-        /* google.protobuf.Timestamp scheduled_for = 3; */
-        if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* bool system_cadence = 4; */
-        if (message.systemCadence !== false)
-            writer.tag(4, WireType.Varint).bool(message.systemCadence);
-        /* nimi.runtime.v1.HookAdmissionState status = 5; */
-        if (message.status !== 0)
-            writer.tag(5, WireType.Varint).int32(message.status);
-        /* bool can_modify = 6; */
-        if (message.canModify !== false)
-            writer.tag(6, WireType.Varint).bool(message.canModify);
-        /* string public_purpose = 7; */
-        if (message.publicPurpose !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.publicPurpose);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentPendingHook
- */
-export const LocalAppAgentPendingHook = new LocalAppAgentPendingHook$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ListLocalAppAgentPendingHooksResponse$Type extends MessageType<ListLocalAppAgentPendingHooksResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse", [
-            { no: 1, name: "hooks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentPendingHook },
-            { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ListLocalAppAgentPendingHooksResponse>): ListLocalAppAgentPendingHooksResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.hooks = [];
-        message.truncated = false;
-        if (value !== undefined)
-            reflectionMergePartial<ListLocalAppAgentPendingHooksResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAgentPendingHooksResponse): ListLocalAppAgentPendingHooksResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.LocalAppAgentPendingHook hooks */ 1:
-                    message.hooks.push(LocalAppAgentPendingHook.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* bool truncated */ 2:
-                    message.truncated = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ListLocalAppAgentPendingHooksResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.LocalAppAgentPendingHook hooks = 1; */
-        for (let i = 0; i < message.hooks.length; i++)
-            LocalAppAgentPendingHook.internalBinaryWrite(message.hooks[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* bool truncated = 2; */
-        if (message.truncated !== false)
-            writer.tag(2, WireType.Varint).bool(message.truncated);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentPendingHooksResponse
- */
-export const ListLocalAppAgentPendingHooksResponse = new ListLocalAppAgentPendingHooksResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalAppAgentPendingHookRequest$Type extends MessageType<UpdateLocalAppAgentPendingHookRequest> {
-    constructor() {
-        super("nimi.runtime.v1.UpdateLocalAppAgentPendingHookRequest", [
-            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppScheduledTaskAction", LocalAppScheduledTaskAction, "LOCAL_APP_SCHEDULED_TASK_ACTION_"] },
-            { no: 5, name: "scheduled_for", kind: "message", T: () => Timestamp }
-        ]);
-    }
-    create(value?: PartialMessage<UpdateLocalAppAgentPendingHookRequest>): UpdateLocalAppAgentPendingHookRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentHandle = "";
-        message.taskId = "";
-        message.expectedRevision = "0";
-        message.action = 0;
-        if (value !== undefined)
-            reflectionMergePartial<UpdateLocalAppAgentPendingHookRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppAgentPendingHookRequest): UpdateLocalAppAgentPendingHookRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string agent_handle */ 1:
-                    message.agentHandle = reader.string();
-                    break;
-                case /* string task_id */ 2:
-                    message.taskId = reader.string();
-                    break;
-                case /* uint64 expected_revision */ 3:
-                    message.expectedRevision = reader.uint64().toString();
-                    break;
-                case /* nimi.runtime.v1.LocalAppScheduledTaskAction action */ 4:
-                    message.action = reader.int32();
-                    break;
-                case /* google.protobuf.Timestamp scheduled_for */ 5:
-                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpdateLocalAppAgentPendingHookRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string agent_handle = 1; */
-        if (message.agentHandle !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
-        /* string task_id = 2; */
-        if (message.taskId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.taskId);
-        /* uint64 expected_revision = 3; */
-        if (message.expectedRevision !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.expectedRevision);
-        /* nimi.runtime.v1.LocalAppScheduledTaskAction action = 4; */
-        if (message.action !== 0)
-            writer.tag(4, WireType.Varint).int32(message.action);
-        /* google.protobuf.Timestamp scheduled_for = 5; */
-        if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookRequest
- */
-export const UpdateLocalAppAgentPendingHookRequest = new UpdateLocalAppAgentPendingHookRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpdateLocalAppAgentPendingHookResponse$Type extends MessageType<UpdateLocalAppAgentPendingHookResponse> {
-    constructor() {
-        super("nimi.runtime.v1.UpdateLocalAppAgentPendingHookResponse", [
-            { no: 1, name: "hook", kind: "message", T: () => LocalAppAgentPendingHook }
-        ]);
-    }
-    create(value?: PartialMessage<UpdateLocalAppAgentPendingHookResponse>): UpdateLocalAppAgentPendingHookResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<UpdateLocalAppAgentPendingHookResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalAppAgentPendingHookResponse): UpdateLocalAppAgentPendingHookResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalAppAgentPendingHook hook */ 1:
-                    message.hook = LocalAppAgentPendingHook.internalBinaryRead(reader, reader.uint32(), options, message.hook);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpdateLocalAppAgentPendingHookResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalAppAgentPendingHook hook = 1; */
-        if (message.hook)
-            LocalAppAgentPendingHook.internalBinaryWrite(message.hook, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalAppAgentPendingHookResponse
- */
-export const UpdateLocalAppAgentPendingHookResponse = new UpdateLocalAppAgentPendingHookResponse$Type();
+export const CancelLocalAppConversationFollowUpResponse = new CancelLocalAppConversationFollowUpResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationSnapshot$Type extends MessageType<LocalAppConversationSnapshot> {
     constructor() {

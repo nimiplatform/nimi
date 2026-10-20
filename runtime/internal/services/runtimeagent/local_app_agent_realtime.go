@@ -43,6 +43,8 @@ type localAppAgentRealtimeTurn struct {
 }
 
 type localAppAgentRealtimeSession struct {
+	speechActive         bool
+	speechSourceID       string
 	eventMu              sync.Mutex
 	mu                   sync.Mutex
 	realtimeSessionID    string
@@ -691,7 +693,7 @@ func (s *Service) completeAgentRealtimeTurn(ctx context.Context, session *localA
 	if err := s.publicChatRuntime().emitTurnMessageCommitted(active.session, active.turn.TurnID, structured.Message.MessageID, text); err != nil {
 		return err
 	}
-	outcome := &publicChatPostTurnOutcome{Sidecar: publicChatSidecarOutcome{Status: "skipped"}, FollowUp: publicChatFollowUpOutcome{Status: "skipped"}}
+	outcome := &publicChatPostTurnOutcome{FollowUp: publicChatFollowUpOutcome{Status: "skipped"}}
 	s.finalizePublicChatTurnProjection(active.turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		applyCompletedPublicChatTurnProjection(projection, "", "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, structured, usage, finish, outcome)
 	})

@@ -26,8 +26,6 @@ const (
 	runtimeAgentStateSchemaVersion = 1
 	defaultAgentPageSize           = 50
 	maxAgentPageSize               = 200
-	defaultHookPageSize            = 50
-	maxHookPageSize                = 200
 	maxEventLogSize                = 256
 	subscriberBuffer               = 32
 )
@@ -35,7 +33,7 @@ const (
 type agentEntry struct {
 	Agent *runtimev1.LocalAgentRecord
 	State *runtimev1.AgentStateProjection
-	Hooks map[string]*runtimev1.PendingHook
+	Life  *agentLifeState
 }
 
 type subscriber struct {
@@ -81,6 +79,9 @@ type Service struct {
 	localAppIngressRevalidator               localAppIngressRevalidator
 	localAppWorkExecutions                   map[string]*localAppWorkExecution
 	localAppWorkActiveByAgent                map[string]string
+	backgroundByAgent                        map[string]*agentBackgroundExecution
+	foregroundWaitingByAgent                 map[string]int
+	lifeFrameWG                              sync.WaitGroup
 	localAppConversationMu                   sync.Mutex
 	localAppConversationPublishMu            sync.Mutex
 	localAppConversationNextSubscriberID     uint64
@@ -299,7 +300,7 @@ func (s *Service) Close() {
 		s.sourceCognitionLifecycleMu.Unlock()
 		s.sourceCognitionWG.Wait()
 		s.cognitionMemoryWG.Wait()
-		s.StopLifeTrackLoop()
+		s.StopLifeFrameLoop()
 		s.shutdownAgentRealtime()
 		s.shutdownPublicChatSurface()
 	})
@@ -314,10 +315,6 @@ func (s *Service) SetAuditStore(store *auditlog.Store) {
 		return
 	}
 	s.auditStore = store
-}
-
-func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {
-	s.setLifeTrackExecutor(executor)
 }
 
 // SetSourceMaterializationRuntimeIdentity binds private Realm Packet requests
@@ -367,7 +364,7 @@ func (s *Service) sourceMaterializationClock() func() time.Time {
 	return nowFn
 }
 
-func (s *Service) StartLifeTrackLoop(parent context.Context) error {
+func (s *Service) StartLifeFrameLoop(parent context.Context) error {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -380,11 +377,11 @@ func (s *Service) StartLifeTrackLoop(parent context.Context) error {
 	done := make(chan struct{})
 	s.lifeLoopCancel = cancel
 	s.lifeLoopDone = done
-	go s.runLifeTrackLoop(ctx, done)
+	go s.runLifeFrameLoop(ctx, done)
 	return nil
 }
 
-func (s *Service) StopLifeTrackLoop() {
+func (s *Service) StopLifeFrameLoop() {
 	s.lifeLoopMu.Lock()
 	cancel := s.lifeLoopCancel
 	done := s.lifeLoopDone

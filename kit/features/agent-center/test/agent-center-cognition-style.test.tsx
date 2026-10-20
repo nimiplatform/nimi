@@ -6,7 +6,7 @@ import { sessionFor, testManagerActionAvailability } from './session-fixture.js'
 describe('AgentCenter cognition projection surface', () => {
   it('projects cognition status only from the canonical Manager and Memory owners', async () => {
     const session = await sessionFor({
-      manager: {
+      manager: { life: { activities: [], revision:'1',current:null,recent:[],future:[],nextCheckAt:null,waitReason:''},
         conversationContext: null,
         lifecycleStatus: 'active', executionState: 'idle', statusText: 'ready', currentEmotion: 'calm',
         source: null, context: null,

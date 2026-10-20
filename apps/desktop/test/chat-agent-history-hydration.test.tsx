@@ -35,7 +35,7 @@ test('partner history reports loading, then a retryable failure, then the read h
         releaseSnapshot = (outcome) => (outcome === 'fail'
           ? reject(new Error('conversation read failed'))
           : resolve({ conversationAnchorId: 'anchor-1', throughSequence: '0', truncatedBefore: false,
-            state: { textTurnId: null, followUpEnabled: false, followUpPolicyRevision: '0', maxFollowUpTurns: 8, pendingFollowUp: null },
+            state: { textTurnId: null, freeContactEnabled: false, maxFollowUpTurns: 8, pendingFollowUp: null },
             turns: [], messages: [{ messageId: 'image-1', turnId: 'turn-1', role: 'assistant', partial: false,
               parts: [{ kind: 'artifact-ref', artifactId: 'saved-image', mediaKind: 'image', mimeType: 'image/png', displayName: null }] }], actions: [], voices: [] }));
       });

@@ -88,20 +88,20 @@ RUNTIME_METHODS = [
     "response_type": "ApplySharedLocalAgentAIProfileResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-    "service": "RuntimeAgentService",
-    "method": "CancelHook",
-    "kind": "unary",
-    "request_type": "CancelHookRequest",
-    "response_type": "CancelHookResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
     "service": "RuntimeAgentService",
     "method": "CancelLocalAppAgentWork",
     "kind": "unary",
     "request_type": "CancelLocalAppAgentWorkRequest",
     "response_type": "CancelLocalAppAgentWorkResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
+    "service": "RuntimeAgentService",
+    "method": "CancelLocalAppConversationFollowUp",
+    "kind": "unary",
+    "request_type": "CancelLocalAppConversationFollowUpRequest",
+    "response_type": "CancelLocalAppConversationFollowUpResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
@@ -384,14 +384,6 @@ RUNTIME_METHODS = [
     "response_type": "ListDelegatedProviderProfilesResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentPendingHooks",
-    "service": "RuntimeAgentService",
-    "method": "ListLocalAppAgentPendingHooks",
-    "kind": "unary",
-    "request_type": "ListLocalAppAgentPendingHooksRequest",
-    "response_type": "ListLocalAppAgentPendingHooksResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
     "service": "RuntimeAgentService",
     "method": "ListLocalAppAgentReferences",
@@ -422,14 +414,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
     "response_type": "ListLocalAppSharedLocalAgentAIConfigOptionsResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
-    "service": "RuntimeAgentService",
-    "method": "ListPendingHooks",
-    "kind": "unary",
-    "request_type": "ListPendingHooksRequest",
-    "response_type": "ListPendingHooksResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
@@ -670,30 +654,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpdateLocalAppAgentConversationContextRequest",
     "response_type": "UpdateLocalAppAgentConversationContextResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentPendingHook",
-    "service": "RuntimeAgentService",
-    "method": "UpdateLocalAppAgentPendingHook",
-    "kind": "unary",
-    "request_type": "UpdateLocalAppAgentPendingHookRequest",
-    "response_type": "UpdateLocalAppAgentPendingHookResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUp",
-    "service": "RuntimeAgentService",
-    "method": "UpdateLocalAppConversationFollowUp",
-    "kind": "unary",
-    "request_type": "UpdateLocalAppConversationFollowUpRequest",
-    "response_type": "UpdateLocalAppConversationFollowUpResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppConversationFollowUpPolicy",
-    "service": "RuntimeAgentService",
-    "method": "UpdateLocalAppConversationFollowUpPolicy",
-    "kind": "unary",
-    "request_type": "UpdateLocalAppConversationFollowUpPolicyRequest",
-    "response_type": "UpdateLocalAppConversationFollowUpPolicyResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",

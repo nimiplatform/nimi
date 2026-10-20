@@ -165,36 +165,44 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
 
-func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T) {
+func TestPublicChatTurnKeepsPublicTextWithoutRepairOrInvalidEffects(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
 		raw          string
 		bodyComplete bool
 		cutAtLimit   bool
+		bodyOnly     bool
 	}{
 		{
-			name: "output limit", raw: `<message id="message-limit">partial reply`, cutAtLimit: true,
+			name: "output limit", raw: `<message intent="reply" id="message-limit">partial reply`, cutAtLimit: true,
 		},
 		{
 			name: "malformed", bodyComplete: true,
-			raw: `<message id="message-malformed"><activity>thinking</activity>Hello</message><action id="action-malformed" kind="image"><prompt-payload kind="image"><prompt-text>must not execute</prompt-text></prompt-payload>`,
+			raw: `<message intent="reply" id="message-malformed"><activity>thinking</activity>Hello</message><action id="action-malformed" kind="image"><prompt-payload kind="image"><prompt-text>must not execute</prompt-text></prompt-payload>`,
 		},
 		{
-			name: "message closed as activity",
-			raw:  `<message id="message-mismatch"><activity>listening</activity>Hello</activity></message>`,
+			name: "message closed as activity", bodyComplete: true, bodyOnly: true,
+			raw: `<message intent="reply" id="message-mismatch"><activity>listening</activity>Hello</activity></message>`,
 		},
 		{
 			name: "unknown tag", bodyComplete: true,
-			raw: `<message id="message-unknown">Hello</message><unknown/>`,
+			raw: `<message intent="reply" id="message-unknown">Hello</message><unknown/>`,
+		},
+		{
+			name: "invalid optional intention", bodyComplete: true, bodyOnly: true,
+			raw: `<message intent="reply">Hello</message><self-intention>{broken}</self-intention><intention-confirmation>Already done.</intention-confirmation>`,
+		},
+		{
+			name: "plain reply", bodyComplete: true, bodyOnly: true, raw: "Hello",
 		},
 		{
 			name: "wrapped",
-			raw:  `<response><message id="message-wrapped">Hello</message></response>`,
+			raw:  `<response><message intent="reply" id="message-wrapped">Hello</message></response>`,
 		},
 		{
 			name: "fenced",
-			raw:  "```xml\n<message id=\"message-fenced\">Hello</message>\n```",
+			raw:  "```xml\n<message intent=\"reply\" id=\"message-fenced\">Hello</message>\n```",
 		},
 	}
 	for _, tt := range cases {
@@ -281,6 +289,13 @@ func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T)
 					}
 				}
 				snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "control-rejection")
+				if tt.bodyOnly {
+					entry, _ := svc.agentByID(testRuntimeAgentLocalRef("agent-alpha"))
+					if len(entry.Life.Activities) != 0 || providerCalls != 1 {
+						t.Fatal("invalid optional intention changed state or added an inference round")
+					}
+					return
+				}
 				if publicChatLastTurnSnapshot(t, snapshot)["reason_code"] != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
 					t.Fatal("control rejection was hidden")
 				}
@@ -362,7 +377,7 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
 					Delta: runtimeAgentTextStreamDelta(
 
-						"plain text without apml"),
+						"<private-output>not a reply</private-output>"),
 				},
 			}); err != nil {
 				return err
@@ -429,7 +444,7 @@ func TestPublicChatTurnRequestUsesOnlyCompleteRuntimeCommittedTranscript(t *test
 	svc.chatSurfaceMu.Unlock()
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	beforeSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-fold-previous-committed")
 	beforeDetail := publicChatSessionSnapshotDetail(t, beforeSnapshot)
 	beforeTranscript := beforeDetail["transcript"].([]any)
@@ -540,7 +555,7 @@ func TestPublicChatTurnRequestCommitsBodyWithUnknownEmotion(t *testing.T) {
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
 					Delta: runtimeAgentTextStreamDelta(
 
-						`<message id="m1"><emotion>curious</emotion>hello</message>`),
+						`<message intent="reply" id="m1"><emotion>curious</emotion>hello</message>`),
 				},
 			}); err != nil {
 				return err
@@ -595,7 +610,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 	anchorID := openEnabledPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	var mu sync.Mutex
 	callCount := 0
 	executor := stubPublicChatTurnExecutor{
@@ -624,7 +639,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 				if got := strings.TrimSpace(req.SystemPrompt); got != "" {
 					t.Fatalf("follow-up must not use a parallel system prompt path, got=%q", got)
 				}
-				if len(req.Messages) < 4 || req.Messages[len(req.Messages)-2].GetRole() != "user" || req.Messages[len(req.Messages)-2].GetContent() != "Runtime-admitted follow-up instruction: continue naturally" || !strings.Contains(req.Messages[len(req.Messages)-1].GetContent(), "Runtime APML contract") {
+				if len(req.Messages) < 4 || req.Messages[len(req.Messages)-1].GetRole() != "user" || req.Messages[len(req.Messages)-1].GetContent() != "Runtime-admitted follow-up instruction: "+publicChatContinuationInstruction || !strings.Contains(req.Messages[0].GetContent(), "Runtime APML contract") {
 					t.Fatalf("expected follow-up context to end with the Runtime-admitted instruction, got=%v", req.Messages)
 				}
 				priorAssistantObserved := false

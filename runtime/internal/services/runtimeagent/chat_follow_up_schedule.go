@@ -100,7 +100,6 @@ func (s *Service) schedulePublicChatFollowUp(
 		CallerAppID:          session.CallerAppID,
 		SubjectUserID:        session.SubjectUserID,
 		ThreadID:             session.ThreadID,
-		Instruction:          strings.TrimSpace(action.PromptPayload.PromptText),
 		ScheduledFor:         scheduledFor,
 		ChainID:              chainID,
 		FollowUpDepth:        nextDepth,
@@ -112,10 +111,13 @@ func (s *Service) schedulePublicChatFollowUp(
 		HookIntent:           pendingIntent,
 	}
 
+	s.mu.RLock()
 	s.chatSurfaceMu.Lock()
+	allowed := lifeContactAllowed(s.agents[session.LocalAgentRef], time.Now().UTC())
+	s.mu.RUnlock()
 	current := s.chatAnchors[session.ConversationAnchorID]
 	live := s.chatTurns[turn.TurnID]
-	if current == nil || !current.FollowUpEnabled || current.ActiveTurnID != turn.TurnID || live == nil || live.Interrupted || s.agentTerminationFencedLocked(session.LocalAgentRef) {
+	if current == nil || !allowed || !followUpSourceSelected(current, turn.TurnID) || current.ActiveTurnID != turn.TurnID || live == nil || live.Interrupted || s.agentTerminationFencedLocked(session.LocalAgentRef) {
 		s.chatSurfaceMu.Unlock()
 		cancel()
 		return publicChatFollowUpOutcome{Status: "rejected", SourceTurnID: turn.TurnID, SourceActionID: action.ActionID, ReasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, Message: "Follow-up conversation is disabled or the originating turn is no longer active."}

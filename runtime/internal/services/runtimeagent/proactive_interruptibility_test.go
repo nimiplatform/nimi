@@ -174,7 +174,7 @@ func TestProactiveInterruptibilityQuietHoursAndFrequencyCapSuppressDelivery(t *t
 	}
 }
 
-func TestProactiveInterruptibilityDeliversInAppWithAuditRefs(t *testing.T) {
+func TestProactiveInterruptibilityAdmissionDoesNotFabricateDelivery(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -197,26 +197,10 @@ func TestProactiveInterruptibilityDeliversInAppWithAuditRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("commitProactiveInterruptibilityDecision: %v", err)
 	}
-	delivered := projection.GetLastDeliveredEvent()
-	if delivered == nil {
-		t.Fatalf("expected delivered event, got %#v", projection)
+	if projection.GetLastDeliveredEvent() != nil || projection.GetLastSuppressedEvent() != nil {
+		t.Fatal("admission fabricated delivery or suppression")
 	}
-	if projection.GetLastSuppressedEvent() != nil {
-		t.Fatalf("delivered projection must not carry last suppressed event: %#v", projection.GetLastSuppressedEvent())
-	}
-	if delivered.GetOwnerDomain() != "runtime" {
-		t.Fatalf("owner_domain = %q", delivered.GetOwnerDomain())
-	}
-	if delivered.GetDeliveryChannel() != runtimev1.AgentProactiveDeliveryChannel_AGENT_PROACTIVE_DELIVERY_CHANNEL_IN_APP_SURFACE {
-		t.Fatalf("delivery_channel = %s", delivered.GetDeliveryChannel())
-	}
-	if delivered.GetAuditRef() != "runtime.audit.proactive/deliver" || !stringSliceContains(projection.GetAuditRefs(), delivered.GetAuditRef()) {
-		t.Fatalf("delivered audit refs mismatch: projection=%#v delivered=%#v", projection.GetAuditRefs(), delivered)
-	}
-	requireProactiveEventFamilies(t, events,
-		runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED,
-		runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED,
-	)
+	requireProactiveEventFamilies(t, events, runtimev1.AgentProactiveEventFamily_AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED)
 }
 
 func TestProactiveInterruptibilityRejectsAppOwnedDeliveryTruth(t *testing.T) {

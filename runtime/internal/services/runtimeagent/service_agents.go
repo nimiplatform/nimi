@@ -109,20 +109,6 @@ func (s *Service) SetAutonomyConfig(ctx context.Context, req *runtimev1.SetAuton
 	return &runtimev1.SetAutonomyConfigResponse{Autonomy: autonomy}, nil
 }
 
-func (s *Service) ListPendingHooks(ctx context.Context, req *runtimev1.ListPendingHooksRequest) (*runtimev1.ListPendingHooksResponse, error) {
-	if _, err := s.authorizeProtectedAccountAgent(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.read"); err != nil {
-		return nil, err
-	}
-	return s.agentAdminRuntime().listPendingHooks(req)
-}
-
-func (s *Service) CancelHook(ctx context.Context, req *runtimev1.CancelHookRequest) (*runtimev1.CancelHookResponse, error) {
-	if _, err := s.authorizeProtectedAccountAgent(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.write"); err != nil {
-		return nil, err
-	}
-	return s.agentAdminRuntime().cancelHook(req)
-}
-
 func buildInitialAutonomyState(cfg *runtimev1.AgentAutonomyConfig, now time.Time) *runtimev1.AgentAutonomyState {
 	config := normalizeAutonomyConfig(cfg)
 	state := &runtimev1.AgentAutonomyState{

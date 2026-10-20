@@ -278,7 +278,7 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
-	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			for _, event := range []*runtimev1.StreamScenarioEvent{

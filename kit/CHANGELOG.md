@@ -4,7 +4,13 @@
 
 ## Unreleased
 
-Expose shared LocalAgent life projection types for the Agent Center.
+Breaking unreleased 0.x change: Runtime LocalAgent no longer exposes user
+commitment CRUD, generic control outcomes, task timezones or per-activity task
+management. Use the matching Runtime, SDK and native carrier builds. User task
+fulfillment belongs to Personal Agent products. Agent Center projects current
+interaction with unknown end/progress, retained intentions and simulated history;
+solitary simulation and extra contact have independent controls. This does not
+introduce a compatibility path or automatically clean existing data.
 
 Transcript bottom-follow survives scroll events caused by late content/voice
 measurement, while upward reading releases follow. LocalAgent media consumers can

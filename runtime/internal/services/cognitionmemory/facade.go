@@ -44,6 +44,31 @@ type RecallOutcome struct {
 	Outcome     memoryv1.Outcome
 	OperationID string
 	Hits        []memoryv1.Memory
+	ReadSet     MemoryReadSet
+}
+
+type MemoryReadSet struct {
+	BindingRef   string   `json:"bindingRef"`
+	BankRef      string   `json:"bankRef"`
+	LifecycleRef string   `json:"lifecycleRef"`
+	Refs         []string `json:"refs"`
+}
+
+func (f *Facade) QualifyReadSet(ctx context.Context, localAgentRef string, read MemoryReadSet) (map[string]bool, error) {
+	if len(read.Refs) == 0 {
+		return map[string]bool{}, nil
+	}
+	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	if !binding.Enabled || binding.AdoptionRequired || binding.BindingRef != read.BindingRef || binding.BankRef != read.BankRef || binding.LifecycleRef != read.LifecycleRef {
+		return map[string]bool{}, nil
+	}
+	if err := f.authorize(ctx, binding); err != nil {
+		return nil, err
+	}
+	return f.owner.QualifyMemoryRefs(ctx, read.BindingRef, read.BankRef, read.LifecycleRef, read.Refs)
 }
 
 type Projection struct {
@@ -163,7 +188,11 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 		}
 		mapped = append(mapped, item)
 	}
-	return RecallOutcome{Outcome: outcome, OperationID: operationID, Hits: mapped}, err
+	read := MemoryReadSet{BindingRef: binding.BindingRef, BankRef: binding.BankRef, LifecycleRef: binding.LifecycleRef}
+	for _, hit := range mapped {
+		read.Refs = append(read.Refs, hit.MemoryRef)
+	}
+	return RecallOutcome{Outcome: outcome, OperationID: operationID, Hits: mapped, ReadSet: read}, err
 }
 
 // ResumeLifecycle restores required owner barriers without starting Remember
@@ -627,11 +656,4 @@ func (f *Facade) pendingCutoff(ctx context.Context, localAgentRef string) (cutof
 	}
 	row.DeleteAll, row.PreviousEnabled, row.DesiredEnabled = deleteAll == 1, previousEnabled == 1, desiredEnabled == 1
 	return row, true, nil
-}
-
-type MemoryReadSet struct {
-	BindingRef   string   `json:"bindingRef"`
-	BankRef      string   `json:"bankRef"`
-	LifecycleRef string   `json:"lifecycleRef"`
-	Refs         []string `json:"refs"`
 }

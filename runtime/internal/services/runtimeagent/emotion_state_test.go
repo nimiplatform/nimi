@@ -80,7 +80,7 @@ func TestRuntimeAgentCurrentEmotionOntologyMatchesActivityEmotionCategory(t *tes
 		if category, ok := admittedActivityCategory(emotionID); !ok || category != "emotion" {
 			t.Fatalf("current emotion %q does not belong to Runtime activity emotion category", emotionID)
 		}
-		if _, err := parsePublicChatStructuredEnvelope(`<message id="ontology"><emotion>` + emotionID + `</emotion>ok</message>`); err != nil {
+		if _, err := parsePublicChatStructuredEnvelope(`<message intent="reply" id="ontology"><emotion>` + emotionID + `</emotion>ok</message>`); err != nil {
 			t.Fatalf("APML rejected admitted current emotion %q: %v", emotionID, err)
 		}
 	}

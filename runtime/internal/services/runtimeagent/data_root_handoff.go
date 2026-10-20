@@ -61,7 +61,7 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 			followUp.Cancel()
 		}
 	}
-	if err := s.stopLifeTrackLoopForDataRoot(ctx); err != nil {
+	if err := s.stopLifeFrameLoopForDataRoot(ctx); err != nil {
 		return err
 	}
 	if err := s.shutdownAgentRealtimeContext(ctx); err != nil {
@@ -82,7 +82,7 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 	}
 }
 
-func (s *Service) stopLifeTrackLoopForDataRoot(ctx context.Context) error {
+func (s *Service) stopLifeFrameLoopForDataRoot(ctx context.Context) error {
 	s.lifeLoopMu.Lock()
 	cancel := s.lifeLoopCancel
 	done := s.lifeLoopDone
@@ -99,7 +99,7 @@ func (s *Service) stopLifeTrackLoopForDataRoot(ctx context.Context) error {
 	case <-done:
 		return nil
 	case <-ctx.Done():
-		return fmt.Errorf("stop Runtime Agent LifeTrack loop: %w", ctx.Err())
+		return fmt.Errorf("stop Runtime Agent Life Frame loop: %w", ctx.Err())
 	}
 }
 
@@ -120,5 +120,5 @@ func (s *Service) ResumeDataRootAfterAbort() {
 	s.chatAsyncLifecycleCtx, s.chatAsyncLifecycleCancel = context.WithCancel(context.Background())
 	s.chatSurfaceMu.Unlock()
 	s.dataRootHandoffClosed.Store(false)
-	_ = s.StartLifeTrackLoop(context.Background())
+	_ = s.StartLifeFrameLoop(context.Background())
 }
