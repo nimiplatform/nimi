@@ -1,4 +1,5 @@
 {
+  "managePartners": "管理伙伴",
   "positionUnavailable": "暂时无法读取此会话。你可以重试或切换到其他会话，当前入口仍会保留原会话引用。",
   "openAiCapabilities": "打开 AI 能力",
   "localConfigurationRequired": "当前任务所需的本地模型尚未就绪。请前往「AI 能力」完成相应配置后重试。",

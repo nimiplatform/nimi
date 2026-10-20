@@ -1,4 +1,5 @@
 {
+  "managePartners": "Manage partners",
   "positionUnavailable": "This conversation is currently unavailable. You can try again or switch to another conversation—its reference is kept here.",
   "openAiCapabilities": "Open AI Capabilities",
   "localConfigurationRequired": "No local model is ready for this task. Finish setting one up in AI Capabilities, then try again.",
