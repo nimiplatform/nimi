@@ -761,13 +761,13 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       const result = await runtime.closeVideoSession({ videoSessionId: requiredText(record.videoSessionId), generation: requiredText(record.generation) });
       return { closed: result.closed };
     },
-    aiRealtimeAppendInput: (record) => aiRealtime.appendInput(record as never) as Promise<NimiElectronLocalAppRecord>,
+    aiRealtimeAppendInput: (record) => aiRealtime.appendInput(realtimeSdkAppend(record) as never) as Promise<NimiElectronLocalAppRecord>,
     aiRealtimeSubmitOwnerControl: (record) => aiRealtime.submitOwnerControl(record as never) as Promise<NimiElectronLocalAppRecord>,
     aiRealtimeSubscribe: async (record) => openPullStream(await aiRealtime.subscribe(record as never)),
     aiRealtimeInterruptOutput: (record) => aiRealtime.interruptOutput(record as never) as Promise<NimiElectronLocalAppRecord>,
     aiRealtimeClose: (record) => aiRealtime.close(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentRealtimeOpen: (record) => agentRealtime.open(record as never) as Promise<NimiElectronLocalAppRecord>,
-    agentRealtimeAppendInput: (record) => agentRealtime.appendInput(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentRealtimeAppendInput: (record) => agentRealtime.appendInput(realtimeSdkAppend(record) as never) as Promise<NimiElectronLocalAppRecord>,
     agentRealtimeSubscribe: async (record) => openPullStream(await agentRealtime.subscribe(record as never)),
     agentRealtimeStatus: (record) => agentRealtime.status(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentRealtimeInterruptOutput: (record) => agentRealtime.interruptOutput(record as never) as Promise<NimiElectronLocalAppRecord>,
@@ -1173,8 +1173,9 @@ function createFormalAppResourceScope(
         'realtimeSessionId',
         ['generation', 'agentHandle'],
       );
+      const result = await host.agentRealtimeClose(record);
       agentRealtimeSessions.delete(sessionId);
-      return host.agentRealtimeClose(record);
+      return result;
     },
   });
 
@@ -1725,6 +1726,22 @@ function mediaByteProjection(value: unknown): NimiElectronLocalAppRecord[string]
     );
   }
   return jsonProjection(value);
+}
+
+function realtimeSdkAppend(record: NimiElectronLocalAppRecord) {
+  const value = record.input;
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value instanceof Uint8Array) {
+    throw new NimiElectronLocalAppHostError('contract-invalid', false);
+  }
+  const input = value as NimiElectronLocalAppRecord;
+  if (input.type !== 'audio-frame') return record;
+  const frame = input.frame;
+  if (!Array.isArray(frame) || frame.length === 0 || frame.length > 64 * 1024
+    || frame.some((byte) => !Number.isInteger(byte) || Number(byte) < 0 || Number(byte) > 255)) {
+    throw new NimiElectronLocalAppHostError('contract-invalid', false);
+  }
+  // Shell JSON is decoded once before entering the typed SDK API.
+  return { ...record, input: { ...input, frame: Uint8Array.from(frame as number[]) } };
 }
 
 function jsonProjection(value: unknown): NimiElectronLocalAppRecord[string] {

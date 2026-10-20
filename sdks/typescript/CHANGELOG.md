@@ -18,6 +18,12 @@ intention may be remembered separately. Recall can include a bounded recent-life
 selection under the same bank and Forget controls. This unreleased 0.x hard cut
 has no compatibility path or automatic migration.
 
+Realtime consumers must capture the returned negotiated input format. Runtime
+selects the captured Driver's native PCM rate and matching frame-byte bound before
+accepting audio; the proposed Open format is not a promise to echo that rate. Explicit Agent
+Realtime close interrupts its unfinished turn, including before an output track
+exists, while preserving committed self-intentions.
+
 ## Unreleased — LocalAgent Conversation recovery and controls
 
 Background output limits use `maxBackgroundOutputTokens` as described above;

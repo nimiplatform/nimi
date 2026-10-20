@@ -10,6 +10,8 @@ import {
   GetAgentPresentationAssetRequest,
   GetAgentPresentationAssetResponse,
   OpenLocalAppConversationResponse,
+  AppendLocalAppAgentRealtimeInputRequest,
+  AppendLocalAppAgentRealtimeInputResponse,
   RenderLocalAppConversationVoiceRequest,
   RenderLocalAppConversationVoiceResponse,
   LocalAppConversationVoiceState,
@@ -22,6 +24,7 @@ import {
   UploadLocalAppConversationAttachmentRequest,
   UploadLocalAppConversationAttachmentResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import { AppendRealtimeInputRequest, AppendRealtimeInputResponse } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/ai_realtime.js';
 import {
   ExecuteLocalAppScenarioRequest,
   ExecuteLocalAppScenarioResponse,
@@ -86,6 +89,26 @@ function control(profile: 'desktop' | 'avatar') {
 }
 
 describe('Electron formal App local host', () => {
+  it.each(['agent', 'ai'] as const)('decodes %s microphone frame JSON before the typed SDK call', async (kind) => {
+    const frame = Array.from({ length: 4_800 }, (_, i) => i % 256);
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      const decoded = kind === 'agent' ? AppendLocalAppAgentRealtimeInputRequest.fromBinary(input.requestBytes) : AppendRealtimeInputRequest.fromBinary(input.requestBytes);
+      expect(decoded.input.oneofKind).toBe('audioFrame');
+      if (decoded.input.oneofKind === 'audioFrame') expect(Array.from(decoded.input.audioFrame.frame)).toEqual(frame);
+      const control = RealtimeControlStatus.create({ realtimeSessionId:'session', channelId:'channel', adapterKind:RealtimeAdapterKind.AI, lifecycle:RealtimeLifecycle.READY, generation:'1', sequence:'1', backpressure:RealtimeBackpressureState.NORMAL, bufferCapacity:128, occurredAt:{seconds:'1',nanos:0} });
+      return kind === 'agent' ? AppendLocalAppAgentRealtimeInputResponse.toBinary(AppendLocalAppAgentRealtimeInputResponse.create({ack:{ok:true},control})) : AppendRealtimeInputResponse.toBinary(AppendRealtimeInputResponse.create({ack:{ok:true},control}));
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({profile:'desktop',appId:'nimi.desktop',control:{accountProductUnary:unary} as unknown as NimiElectronDesktopControlHost});
+    const input = { realtimeSessionId:'session',generation:'1', ...(kind==='agent'?{agentHandle:'agent_ref_'+ 'a'.repeat(43)}:{}), input:{type:'audio-frame',inputTrackId:'input',utteranceId:'utterance',frameSequence:'1',frame} };
+    try {
+      const result = await (kind==='agent'?owner.host.agentRealtimeAppendInput(input):owner.host.aiRealtimeAppendInput(input));
+      expect(result.ack).toMatchObject({ok:true});
+      expect(unary).toHaveBeenCalledOnce();
+      const invalid = {...input,input:{...input.input,frame:[256]}};
+      await expect(kind==='agent'?owner.host.agentRealtimeAppendInput(invalid):owner.host.aiRealtimeAppendInput(invalid)).rejects.toMatchObject({reasonCode:'contract-invalid'});
+      expect(unary).toHaveBeenCalledOnce();
+    } finally { await owner.dispose(); }
+  });
   it.each(['desktop', 'avatar'] as const)('recovers account change on %s without replaying the old business read', async (profile) => {
     const calls: string[] = [];
     const unary = vi.fn(async (input: { methodId: string }) => {

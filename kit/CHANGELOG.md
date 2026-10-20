@@ -12,6 +12,10 @@ interaction with unknown end/progress, retained intentions and simulated history
 solitary simulation and extra contact have independent controls. Optional same-turn
 self-intentions are confirmed only after the owner accepts them. This does not
 introduce a compatibility path or automatically clean existing data.
+Realtime capture uses the Runtime-returned PCM tuple; the formal Electron Host
+decodes shell audio-frame byte arrays before calling the typed SDK. Explicit
+Realtime close interrupts pending owner turns after stopping their captured
+resources; capture discarded during close is never submitted as a new turn.
 
 Transcript bottom-follow survives scroll events caused by late content/voice
 measurement, while upward reading releases follow. LocalAgent media consumers can

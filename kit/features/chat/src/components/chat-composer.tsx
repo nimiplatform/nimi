@@ -451,6 +451,10 @@ function VoiceButton({
   const isTranscribing = status === 'transcribing';
   const isPlaying = status === 'playing';
   const isFailed = status === 'failed';
+  const voiceLabel = isRecording ? 'Send recording'
+    : isPlaying ? 'Playing voice reply'
+      : isTranscribing ? 'Transcribing recording…'
+        : 'Record a voice message';
 
   return (
     <div className="flex shrink-0 items-center gap-1.5" data-chat-composer-voice="true">
@@ -471,7 +475,8 @@ function VoiceButton({
                   ? 'border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
                   : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
         )}
-        title={isRecording ? 'Stop recording' : isPlaying ? 'Playing response; microphone is listening for interruption' : isTranscribing ? 'Transcribing…' : 'Voice input'}
+        title={voiceLabel}
+        aria-label={voiceLabel}
       >
         {isTranscribing || isPlaying ? ICON_SPINNER : ICON_MIC}
       </button>

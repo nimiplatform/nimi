@@ -52,6 +52,11 @@ func (s *Service) finishRealtimeNativeStop(ctx context.Context, record *realtime
 		record.mu.Unlock()
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
 	}
+	result.Usage = mergeRealtimeIntentionUsage(record.selfUsage, result.Usage)
+	record.selfUsage = nil
+	if record.selfUsageObserver != nil && result.Usage != nil {
+		record.selfUsageObserver(track.requestID, result.Usage)
+	}
 	track.interrupting = false
 	if result.Status == capabilitydriver.CloudRealtimeResponseStatusCompleted {
 		record.mu.Unlock()
@@ -65,6 +70,9 @@ func (s *Service) finishRealtimeNativeStop(ctx context.Context, record *realtime
 	}
 	track.terminal, track.interrupted, track.requestTerminal = true, true, true
 	delete(record.requestsByResponse, key)
+	if record.pendingRequestID == track.requestID {
+		record.pendingRequestID = ""
+	}
 	err = s.publishRealtimeEventLocked(record, realtimeOutputTrackEvent(track, runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED, runtimev1.ReasonCode_ACTION_EXECUTED))
 	record.mu.Unlock()
 	s.handleRealtimePublishError(record, err)

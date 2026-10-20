@@ -29,6 +29,7 @@ func (t CloudRealtimeTarget) RemoteModelCatalogID() string { return t.remoteMode
 func (t CloudRealtimeTarget) Region() string               { return t.region }
 
 type CloudRealtimeOpen struct {
+	SelfIntention      bool
 	InputAudio         *runtimev1.AiRealtimeAudioFormat
 	AudioOutput        bool
 	TurnDetection      runtimev1.AiRealtimeTurnDetectionMode
@@ -58,6 +59,7 @@ const (
 	CloudRealtimeEventTextFinal
 	CloudRealtimeEventAudioDelta
 	CloudRealtimeEventAudioDone
+	CloudRealtimeEventSelfIntention
 	CloudRealtimeEventResponseDone
 	CloudRealtimeEventFailed
 )
@@ -71,6 +73,7 @@ const (
 )
 
 type CloudRealtimeEvent struct {
+	CallID              string
 	Kind                CloudRealtimeEventKind
 	ProviderResponseID  string
 	ProviderItemID      string
@@ -85,6 +88,7 @@ type CloudRealtimeEvent struct {
 
 type CloudRealtimeDriver interface {
 	ValidateTarget(Identity, *structpb.Struct) (CloudRealtimeTarget, error)
+	NegotiateInputAudio(*runtimev1.AiRealtimeAudioFormat) (*runtimev1.AiRealtimeAudioFormat, error)
 	NewSession(CloudRealtimeTarget, CloudRealtimeOpen) (CloudRealtimeProtocol, error)
 }
 
@@ -171,6 +175,7 @@ func (dashScopeRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarge
 		modalities = []string{"text", "audio"}
 	}
 	session := map[string]any{
+		"tools":                     (dashScopeRealtimeDriver{}).SelfIntentionTools(input.SelfIntention),
 		"modalities":                modalities,
 		"input_audio_format":        "pcm",
 		"output_audio_format":       "pcm",
@@ -254,6 +259,9 @@ func (dashScopeRealtimeDriver) MapInterrupt(eventID string, providerResponseID s
 }
 
 type cloudRealtimeServerEvent struct {
+	Name       string `json:"name"`
+	CallID     string `json:"call_id"`
+	Arguments  string `json:"arguments"`
 	Type       string `json:"type"`
 	ResponseID string `json:"response_id"`
 	ItemID     string `json:"item_id"`
@@ -274,7 +282,7 @@ type cloudRealtimeServerEvent struct {
 	} `json:"error"`
 }
 
-func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte, _ CloudRealtimeOpen) ([]CloudRealtimeEvent, error) {
+func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtimeOpen) ([]CloudRealtimeEvent, error) {
 	var event cloudRealtimeServerEvent
 	if len(raw) == 0 || json.Unmarshal(raw, &event) != nil || strings.TrimSpace(event.Type) == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("DashScope Realtime event is invalid"))
@@ -316,6 +324,15 @@ func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte, _ CloudRealtimeOpen) (
 		normalized.Kind, normalized.Audio = CloudRealtimeEventAudioDelta, audio
 	case "response.audio.done":
 		normalized.Kind = CloudRealtimeEventAudioDone
+	case "response.function_call_arguments.done":
+		call, err := normalizeSelfIntention(event, expected.SelfIntention)
+		if err != nil {
+			if expected.SelfIntention {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return []CloudRealtimeEvent{call}, nil
 	case "response.done":
 		normalized.Kind = CloudRealtimeEventResponseDone
 		switch strings.TrimSpace(event.Response.Status) {

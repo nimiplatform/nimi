@@ -319,7 +319,7 @@ describe('ChatComposer', () => {
     });
 
     const transcribingVoice = container.querySelector('[data-chat-composer-voice="true"]');
-    const transcribingPrimary = transcribingVoice?.querySelector('button[title="Transcribing…"]');
+    const transcribingPrimary = transcribingVoice?.querySelector('button[aria-label="Transcribing recording…"]');
     const transcribingCancel = Array.from(transcribingVoice?.querySelectorAll('button') || [])
       .find((button) => button.textContent === 'Cancel');
     expect(transcribingPrimary?.hasAttribute('disabled')).toBe(true);
@@ -341,7 +341,7 @@ describe('ChatComposer', () => {
       await flush();
     });
     const recordingPrimary = container.querySelector(
-      '[data-chat-composer-voice="true"] button[title="Stop recording"]',
+      '[data-chat-composer-voice="true"] button[aria-label="Send recording"]',
     );
     await act(async () => {
       recordingPrimary?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

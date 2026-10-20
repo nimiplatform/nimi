@@ -7,7 +7,7 @@ const INPUT_SAMPLE_RATE = 16_000;
 const OUTPUT_SAMPLE_RATE = 24_000;
 // The protected Electron carrier is unary per frame. A negotiated 100 ms PCM
 // frame keeps capture at 10 bounded operations/second while preserving the
-// provider's exact 16 kHz mono contract and server-VAD continuity.
+// returned mono PCM tuple and server-VAD continuity.
 const FRAME_SAMPLES = 1_600;
 const FRAME_BYTES = FRAME_SAMPLES * 2;
 const MAX_QUEUED_FRAMES = 32;
@@ -287,7 +287,11 @@ export async function startDesktopAgentRealtimeVoice(input: {
 	  turnDetection: 'manual',
     });
     if (!opened.realtimeSessionId || !opened.generation
-      || opened.negotiatedInputAudio?.sampleRateHz !== INPUT_SAMPLE_RATE
+      || ![16_000, 24_000].includes(opened.negotiatedInputAudio?.sampleRateHz || 0)
+      || opened.negotiatedInputAudio?.codec !== 'pcm-s16le'
+      || opened.negotiatedInputAudio?.channelCount !== 1
+      || opened.negotiatedInputAudio?.frameDurationMs !== 100
+      || opened.negotiatedInputAudio?.maximumFrameBytes !== opened.negotiatedInputAudio.sampleRateHz / 10 * 2
       || opened.negotiatedOutputAudio?.sampleRateHz !== OUTPUT_SAMPLE_RATE) {
       throw new Error('Runtime negotiated an unsupported Realtime audio contract.');
     }
@@ -311,7 +315,7 @@ export async function startDesktopAgentRealtimeVoice(input: {
     silentGain.connect(audioContext.destination);
     microphone.connect(processor);
 
-	primaryResampler = createPcm16Resampler(audioContext.sampleRate, INPUT_SAMPLE_RATE);
+	primaryResampler = createPcm16Resampler(audioContext.sampleRate, opened.negotiatedInputAudio.sampleRateHz);
     processor.onaudioprocess = (event) => {
       if (closed || !opened) return;
       const samples = event.inputBuffer.getChannelData(0);
@@ -497,13 +501,14 @@ export function isEchoAwareBargeSpeech(samples: Float32Array, playbackReferenceR
 
 export function createPcm16Resampler(sourceRate: number, targetRate: number) {
   const ratio = sourceRate / targetRate;
+  const frameSamplesPerChannel = targetRate / 10;
   let source: number[] = [];
   let offset = 0;
   let output: number[] = [];
   const takeFrames = (includeTail: boolean): Uint8Array[] => {
 	const frames: Uint8Array[] = [];
-	while (output.length >= FRAME_SAMPLES || (includeTail && output.length > 0)) {
-		const sampleCount = Math.min(FRAME_SAMPLES, output.length);
+	while (output.length >= frameSamplesPerChannel || (includeTail && output.length > 0)) {
+		const sampleCount = Math.min(frameSamplesPerChannel, output.length);
 		const frameSamples = output.slice(0, sampleCount);
 		output = output.slice(sampleCount);
 		const frame = new Uint8Array(sampleCount * 2);

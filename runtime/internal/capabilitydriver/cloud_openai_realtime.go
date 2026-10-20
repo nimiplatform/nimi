@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -62,7 +63,7 @@ func (openAIRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarget, 
 	}
 	session := map[string]any{
 		"type": "realtime", "model": target.providerModelID, "output_modalities": modalities,
-		"tools": []any{}, "truncation": "disabled",
+		"tools": agentintent.NativeTools(input.SelfIntention), "truncation": "disabled",
 		"audio": map[string]any{
 			"input": map[string]any{
 				"format":         map[string]any{"type": "audio/pcm", "rate": 24000},
@@ -168,6 +169,15 @@ func (openAIRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtimeOpe
 		out.Kind, out.Audio = CloudRealtimeEventAudioDelta, audio
 	case "response.output_audio.done":
 		out.Kind = CloudRealtimeEventAudioDone
+	case "response.function_call_arguments.done":
+		call, err := normalizeSelfIntention(event, expected.SelfIntention)
+		if err != nil {
+			if expected.SelfIntention {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return []CloudRealtimeEvent{call}, nil
 	case "response.done":
 		out.Kind = CloudRealtimeEventResponseDone
 		switch event.Response.Status {
@@ -238,8 +248,16 @@ func validOpenAIRealtimeReady(raw []byte, expected CloudRealtimeOpen) bool {
 		return false
 	}
 	var tools []json.RawMessage
-	if len(s.Tools) == 0 || json.Unmarshal(s.Tools, &tools) != nil || tools == nil || len(tools) != 0 {
+	if len(s.Tools) == 0 || json.Unmarshal(s.Tools, &tools) != nil || tools == nil || len(tools) != len(agentintent.NativeTools(expected.SelfIntention)) {
 		return false
+	}
+	if expected.SelfIntention {
+		var tool struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(tools[0], &tool) != nil || tool.Name != agentintent.FunctionName {
+			return false
+		}
 	}
 	if expected.InputAudio == nil || expected.InputAudio.GetCodec() != runtimev1.AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_PCM_S16LE || expected.InputAudio.GetSampleRateHz() != 24000 || expected.InputAudio.GetChannelCount() != 1 {
 		return false

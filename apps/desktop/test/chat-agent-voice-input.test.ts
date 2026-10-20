@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createNimiError } from '@nimiplatform/sdk/types';
 import {
   isAgentVoiceInputCancellationError,
-  readableRealtimeVoiceError,
+  readableAgentVoiceError,
   transcribeAndSubmitCapturedAgentVoiceInput,
 } from '../src/shell/renderer/features/chat/chat-agent-voice-input.js';
 import { createAgentRealtimeTerminalError } from '../src/shell/renderer/features/chat/chat-agent-realtime-voice.js';
@@ -115,7 +115,7 @@ test('Desktop Agent voice input cancellation ignores failure message text', () =
 });
 
 test('Desktop Agent Realtime voice keeps voice-input rejection readable and recoverable', () => {
-  const error = readableRealtimeVoiceError(
+  const error = readableAgentVoiceError(
     createAgentRealtimeTerminalError('AI_VOICE_INPUT_INVALID'),
     'Voice input failed.',
   );
@@ -127,15 +127,26 @@ test('Desktop Agent Realtime voice keeps voice-input rejection readable and reco
   );
 });
 
+test('Realtime session failure does not blame a successfully captured microphone input', () => {
+  const error = readableAgentVoiceError(
+    createAgentRealtimeTerminalError('AI_REALTIME_SESSION_CLOSED'),
+    'Voice input failed. Check microphone access.',
+  );
+  assert.equal(error.reasonCode, 'AI_REALTIME_SESSION_CLOSED');
+  assert.equal(error.actionHint, 'reopen_realtime_session');
+  assert.match(error.message, /session ended/);
+  assert.doesNotMatch(error.message, /microphone|configuration/i);
+});
+
 test('Desktop Agent Realtime voice explains microphone denial and missing configuration', () => {
-  const denied = readableRealtimeVoiceError(
+  const denied = readableAgentVoiceError(
     new DOMException('Permission denied', 'NotAllowedError'),
     'Voice input failed.',
   );
   assert.equal(denied.actionHint, 'allow_microphone_access');
   assert.match(denied.message, /Microphone access was denied/);
 
-  const unconfigured = readableRealtimeVoiceError(
+  const unconfigured = readableAgentVoiceError(
     createNimiError({
       message: 'AI_CONFIG_INVALID',
       reasonCode: 'AI_CONFIG_INVALID',
@@ -147,4 +158,16 @@ test('Desktop Agent Realtime voice explains microphone denial and missing config
   assert.equal(unconfigured.reasonCode, 'AI_CONFIG_INVALID');
   assert.equal(unconfigured.actionHint, 'configure_realtime_interact_route');
   assert.match(unconfigured.message, /Realtime voice is not configured/);
+});
+
+
+test('Recorded voice explains its own missing model without changing to Realtime', () => {
+  const error = readableAgentVoiceError(createNimiError({
+    message: 'AGENT_AI_CONFIG_CAPABILITY_MISMATCH', reasonCode: 'AGENT_AI_CONFIG_CAPABILITY_MISMATCH',
+    actionHint: 'inspect_runtime', source: 'runtime',
+  }), 'Voice input failed.', 'recorded');
+  assert.equal(error.reasonCode, 'AGENT_AI_CONFIG_CAPABILITY_MISMATCH');
+  assert.equal(error.actionHint, 'configure_audio_transcribe_route');
+  assert.match(error.message, /Audio transcription in Agent Center/);
+  assert.doesNotMatch(error.message, /CAPABILITY_MISMATCH/);
 });

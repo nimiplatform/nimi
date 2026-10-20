@@ -40,6 +40,72 @@ func TestAiRealtimePublicWireIsNeutralAndClosed(t *testing.T) {
 	}
 }
 
+func TestAgentRealtimeHistoryDoesNotFillItsOwnEventQueue(t *testing.T) {
+	for _, route := range []string{"openai", "dashscope"} {
+		t.Run(route, func(t *testing.T) {
+			driver, target := realtimeTestDashScopeDriver(t)
+			if route == "openai" {
+				driver, target = realtimeTestOpenAIDriver(t)
+			}
+			stream, err := realtimecore.NewStream[*runtimev1.AiRealtimeEvent](realtimecore.Config{
+				RealtimeSessionID: "session", ChannelID: "channel", AdapterKind: "ai", Generation: 1,
+				Capacity: aiRealtimeEventCapacity,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			provider := newRealtimeTestProvider()
+			record := &realtimeSessionRecord{
+				sessionID: "session", channelID: "channel", generation: 1,
+				appID: runtimeAgentRealtimePrivateAppID, subjectUserID: "account",
+				ctx: context.Background(), stream: stream, provider: provider,
+				driver: realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}),
+			}
+			svc := &Service{realtimeSessions: newRealtimeSessionStore()}
+			svc.realtimeSessions.create(record)
+			// Final-transcript handling is the stream reader. While it composes
+			// history, there is intentionally no concurrent reader to drain echoes.
+			input := &runtimev1.AppendRealtimeInputRequest{
+				RealtimeSessionId: "session", Generation: 1,
+				Input: &runtimev1.AppendRealtimeInputRequest_OwnerContext{OwnerContext: &runtimev1.AiRealtimeOwnerContextInput{
+					Kind: runtimev1.AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT,
+					Text: "A canonical history entry.",
+				}},
+			}
+			count := aiRealtimeEventCapacity + 16
+			for index := 0; index < count; index++ {
+				input.GetOwnerContext().RequestId = fmt.Sprintf("context-%d", index)
+				result, err := svc.AppendRuntimeAgentRealtimeInput(context.Background(), "account", input)
+				if err != nil || !result.GetAck().GetOk() {
+					t.Fatalf("history entry %d: result=%v err=%v", index, result, err)
+				}
+			}
+			if record.closed || stream.Snapshot().BufferedItems != 0 || len(provider.sent) != count {
+				t.Fatalf("private history was dropped or echoed: closed=%v queued=%d sent=%d",
+					record.closed, stream.Snapshot().BufferedItems, len(provider.sent))
+			}
+			// The neutral public operation still publishes its acceptance.
+			input.GetOwnerContext().RequestId = "public-context"
+			if _, err := svc.AppendRealtimeInput(runtimeAgentRealtimeOwnerContext(context.Background(), "account"), input); err != nil {
+				t.Fatal(err)
+			}
+			events, release, err := stream.ClaimReader()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer release()
+			select {
+			case event := <-events:
+				if event.GetInputAccepted().GetRequestId() != "public-context" {
+					t.Fatalf("public acceptance changed: %+v", event)
+				}
+			default:
+				t.Fatal("public acceptance missing")
+			}
+		})
+	}
+}
+
 func TestValidateRealtimeOpenNegotiatesExactPCMFormats(t *testing.T) {
 	input, output, turn, err := validateRealtimeOpen(&runtimev1.OpenRealtimeSessionRequest{
 		InputAudio: &runtimev1.AiRealtimeAudioFormat{

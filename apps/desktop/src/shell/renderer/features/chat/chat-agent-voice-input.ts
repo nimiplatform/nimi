@@ -44,17 +44,18 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function isRealtimeVoiceConfigurationFailure(reasonCode: string): boolean {
+function isAgentVoiceConfigurationFailure(reasonCode: string): boolean {
   return [
     'AI_CONFIG_INVALID',
     'AI_CONFIG_NOT_FOUND',
+    'AGENT_AI_CONFIG_CAPABILITY_MISMATCH',
     'AI_LOCAL_SELECTION_NOT_FOUND',
     'AI_LOCAL_DRIVER_UNAVAILABLE',
     'AI_ROUTE_UNSUPPORTED',
   ].includes(reasonCode);
 }
 
-function realtimeVoiceRecovery(error: unknown, reasonCode: string): {
+function agentVoiceRecovery(error: unknown, reasonCode: string, kind: 'recorded' | 'realtime'): {
   readonly message: string | null;
   readonly actionHint: string | null;
 } {
@@ -84,29 +85,37 @@ function realtimeVoiceRecovery(error: unknown, reasonCode: string): {
       actionHint: 'retry_voice_input',
     };
   }
+  if (reasonCode === 'AI_REALTIME_SESSION_CLOSED') {
+    return {
+      message: 'The realtime voice session ended before the reply finished. Start realtime voice again.',
+      actionHint: 'reopen_realtime_session',
+    };
+  }
   if (reasonCode === 'AI_MODALITY_NOT_SUPPORTED') {
     return {
       message: 'The selected Realtime route does not support this microphone audio format.',
       actionHint: 'configure_realtime_interact_route',
     };
   }
-  if (isRealtimeVoiceConfigurationFailure(reasonCode)) {
+  if (isAgentVoiceConfigurationFailure(reasonCode)) {
     return {
-      message: 'Realtime voice is not configured. Configure the Agent Realtime model, then try again.',
-      actionHint: 'configure_realtime_interact_route',
+      message: kind === 'recorded'
+        ? 'Voice messages need a speech-to-text model. Choose Audio transcription in Agent Center > Models, then record again.'
+        : 'Realtime voice is not configured. Configure the Agent Realtime model, then try again.',
+      actionHint: kind === 'recorded' ? 'configure_audio_transcribe_route' : 'configure_realtime_interact_route',
     };
   }
   return { message: null, actionHint: null };
 }
 
-export function readableRealtimeVoiceError(error: unknown, fallbackMessage: string) {
+export function readableAgentVoiceError(error: unknown, fallbackMessage: string, kind: 'recorded' | 'realtime' = 'realtime') {
   const normalized = asNimiError(error, {
     reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
     actionHint: 'inspect_agent_realtime_voice',
     source: 'runtime',
   });
-  const configurationFailure = isRealtimeVoiceConfigurationFailure(normalized.reasonCode);
-  const recovery = realtimeVoiceRecovery(error, normalized.reasonCode);
+  const configurationFailure = isAgentVoiceConfigurationFailure(normalized.reasonCode);
+  const recovery = agentVoiceRecovery(error, normalized.reasonCode, kind);
   return createNimiError({
     message: recovery.message || fallbackMessage,
     reasonCode: normalized.reasonCode,
@@ -194,7 +203,7 @@ export function useAgentConversationVoiceInput(input: {
       resetToIdle();
       return;
     }
-    input.reportError(readableRealtimeVoiceError(error, input.failureMessage), {
+    input.reportError(readableAgentVoiceError(error, input.failureMessage), {
       action: 'agent-realtime-voice',
     });
     if (mountedRef.current) {
@@ -363,8 +372,9 @@ export function useAgentConversationVoiceInput(input: {
       if (isAgentVoiceInputCancellationError(error)) {
         resetToIdle();
       } else {
-        latestInputRef.current.reportError(error, { action: 'agent-recorded-voice' });
-        commitState({ status: 'failed', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId, message: latestInputRef.current.failureMessage });
+        const readable = readableAgentVoiceError(error, latestInputRef.current.failureMessage, 'recorded');
+        latestInputRef.current.reportError(readable, { action: 'agent-recorded-voice' });
+        commitState({ status: 'failed', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId, message: readable.message });
       }
     } finally {
       if (recordedRef.current === operation) recordedRef.current = null;
@@ -415,8 +425,9 @@ export function useAgentConversationVoiceInput(input: {
         recordedRef.current = null;
         if (isAgentVoiceInputCancellationError(error)) resetToIdle();
         else {
-          input.reportError(error, { action: 'agent-recorded-voice' });
-          commitState({ status: 'failed', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId || null, message: input.failureMessage });
+          const readable = readableAgentVoiceError(error, input.failureMessage, 'recorded');
+          input.reportError(readable, { action: 'agent-recorded-voice' });
+          commitState({ status: 'failed', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId || null, message: readable.message });
         }
       } finally {
         actionPendingRef.current = false;

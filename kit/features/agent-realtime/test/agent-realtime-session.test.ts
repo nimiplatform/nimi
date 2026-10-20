@@ -22,6 +22,18 @@ const AUDIO_FORMAT = Object.freeze({
 });
 
 describe('canonical Agent Realtime session', () => {
+  it('discards microphone input when closing instead of submitting a new turn', async () => {
+    const client = createClient({stream:createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>()});
+    const stop = vi.fn(async()=>undefined);
+    const host = createHost({beginCapture:async()=>({status:'ready',capture:{inputTrackId:'input',utteranceId:'utterance',stop}})});
+    const session = createSession(client,host);
+    await session.open();
+    await session.requestCapture();
+    await session.close();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(client.appendInput).not.toHaveBeenCalled();
+    expect(client.close).toHaveBeenCalledOnce();
+  });
   it.each([false, true])('preserves explicit Agent turn interruption=%s after generation completed', async (interruptAgentTurn) => {
     const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
     const client = createClient({ stream });

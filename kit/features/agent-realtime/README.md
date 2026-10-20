@@ -16,7 +16,7 @@ Canonical Kit entry and headless session behavior for the formal App client's ty
 - One formal App client narrowed to `agents` and `agentRealtime`
 - An optional Host-supplied current `initialAgentHandle`
 - An optional Runtime-issued conversation anchor
-- The requested input format
+- A proposed input format; capture uses the Runtime-returned negotiated tuple
 - One Host media-mechanics port
 
 Kit lists only the canonical minimal Agent references, requires an explicit choice when no current handle is supplied, and binds the selected handle to the same headless session. Apps do not copy reference state, selector copy, or session helpers. The shared session owns lifecycle, pressure, error, output-track, and local session-epoch reduction without opening a second SDK client or Runtime session family.
@@ -34,7 +34,8 @@ Kit lists only the canonical minimal Agent references, requires an explicit choi
 Runtime output completion can precede physical playback. A Host media adapter's `finishOutputTrack` promise settles after the queued audio drains (or when interruption or close releases it). Kit keeps the output interruptible until then without blocking Runtime event consumption.
 
 - `interruptOutput` returns `null` when only this remaining local playback is stopped; otherwise, it returns the actual Runtime operation result.
-- Explicit Agent-turn interruption still goes to Runtime.
+- Explicit Agent-turn interruption still goes to Runtime and is bound to the original output request. A completed native response may be only the private intention response; the original user turn remains active through its result continuation.
+- Closing explicitly interrupts an unfinished owned turn, including before an output track exists, and retains committed intentions. Capture stopped solely for close is discarded, not submitted.
 
 ## Ownership Boundary
 

@@ -162,24 +162,17 @@ function AgentComposerToolbarControls(props: {
       </div>
       <span aria-hidden="true" data-agent-composer-toolbar-divider="true" className="mx-0.5 h-4 w-px bg-[var(--nimi-border-subtle)]" />
       <div data-agent-composer-utility-group="true" className="flex items-center gap-1">
-      {props.realtimeVoiceAction ? (
+      {props.realtimeVoiceAction && !props.realtimeVoiceAction.active ? (
         <button
           type="button"
           data-agent-composer-realtime-voice="true"
-          aria-label={props.realtimeVoiceAction.active
-            ? t('Chat.realtimeVoiceEnd', { defaultValue: 'End realtime voice' })
-            : t('Chat.realtimeVoiceStart', { defaultValue: 'Start realtime voice' })}
-          title={props.realtimeVoiceAction.active
-            ? t('Chat.realtimeVoiceEnd', { defaultValue: 'End realtime voice' })
-            : t('Chat.realtimeVoiceStart', { defaultValue: 'Start realtime voice' })}
-          aria-pressed={props.realtimeVoiceAction.active}
+          aria-label={t('Chat.realtimeVoiceStart', { defaultValue: 'Start realtime voice' })}
+          title={t('Chat.realtimeVoiceStart', { defaultValue: 'Start realtime voice' })}
           disabled={props.realtimeVoiceAction.disabled}
           onClick={props.realtimeVoiceAction.onToggle}
           className={cn(
             AGENT_COMPOSER_TOOL_BUTTON_CLASS,
-            props.realtimeVoiceAction.active
-              ? 'border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-primary-bg)]/20'
-              : 'border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]',
+            'border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]',
             'disabled:cursor-not-allowed disabled:opacity-40',
           )}
         >

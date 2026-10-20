@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"errors"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"strings"
 	"time"
 
@@ -80,10 +81,14 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if err != nil {
 		return nil, realtimeDriverError(err)
 	}
+	inputFormat, err = driver.NegotiateInputAudio(inputFormat)
+	if err != nil {
+		return nil, realtimeDriverError(err)
+	}
 	// This immutable expectation belongs to this Open, never the shared registry Driver.
 	openExpectation := capabilitydriver.CloudRealtimeOpen{
 		InputAudio: cloneRealtimeAudioFormat(inputFormat), AudioOutput: req.GetAudioOutputEnabled(), TurnDetection: turnDetection,
-		InitialInstruction: req.GetInitialInstruction(),
+		InitialInstruction: req.GetInitialInstruction(), SelfIntention: agentintent.FromContext(ctx) != nil,
 	}
 	protocol, err := driver.NewSession(target, openExpectation)
 	if err != nil {
@@ -116,7 +121,9 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	_ = coreStream.Transition(1, realtimecore.LifecycleReady)
 	sessionCtx, cancel := context.WithCancel(context.Background())
 	realtime := &realtimeSessionRecord{
-		sessionID: sessionID, channelID: channelID, generation: 1,
+		selfHandler:       agentintent.FromContext(ctx),
+		selfUsageObserver: agentintent.UsageFromContext(ctx),
+		sessionID:         sessionID, channelID: channelID, generation: 1,
 		appID: caller.appID, subjectUserID: caller.accountNamespace, correlationID: correlationID,
 		inputAudio: cloneRealtimeAudioFormat(inputFormat), outputAudio: cloneRealtimeAudioFormat(outputFormat), turnDetection: turnDetection,
 		stream: coreStream, driver: protocol, provider: providerSession, ctx: sessionCtx, cancel: cancel, openExpectation: openExpectation,
@@ -225,6 +232,10 @@ func waitRealtimeProviderReady(ctx context.Context, session interface {
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r115
 func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.AppendRealtimeInputRequest) (*runtimev1.AppendRealtimeInputResponse, error) {
+	return s.appendRealtimeInput(ctx, req, true)
+}
+
+func (s *Service) appendRealtimeInput(ctx context.Context, req *runtimev1.AppendRealtimeInputRequest, publishOwnerContextAcceptance bool) (*runtimev1.AppendRealtimeInputResponse, error) {
 	record, err := s.authorizedRealtimeRecord(ctx, req.GetRealtimeSessionId(), req.GetGeneration())
 	if err != nil {
 		return nil, err
@@ -274,6 +285,10 @@ func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.Append
 		accepted.RequestId = input.Text.GetRequestId()
 	case *runtimev1.AppendRealtimeInputRequest_OwnerContext:
 		accepted.RequestId = input.OwnerContext.GetRequestId()
+		// The private Agent owner composes context while handling the final
+		// transcript on this same stream. Its unary Ack is sufficient; echoing
+		// every history entry here would fill the queue before it can be read.
+		publishAccepted = publishOwnerContextAcceptance
 	}
 	if publishAccepted {
 		if err := s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_InputAccepted{InputAccepted: accepted}}); err != nil {
@@ -391,6 +406,10 @@ func (s *Service) SubmitRealtimeOwnerControl(ctx context.Context, req *runtimev1
 	if req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE ||
 		req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE {
 		record.pendingRequestID = req.GetRequestId()
+		record.selfPending = nil
+		record.selfUsed = false
+		record.selfWaiting = false
+		record.selfUsage = nil
 		if effect.ResponseKey != "" {
 			if record.requestsByResponse == nil {
 				record.requestsByResponse = make(map[string]string)
@@ -470,6 +489,15 @@ func (s *Service) InterruptRealtimeOutput(ctx context.Context, req *runtimev1.In
 	defer record.operationMu.Unlock()
 	record.mu.Lock()
 	track := record.tracksByRuntime[req.GetOutputTrackId()]
+	if record.selfWaiting && track != nil {
+		cancel := record.selfCancel
+		record.mu.Unlock()
+		if cancel != nil {
+			cancel()
+		}
+		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_ACTION_EXECUTED, realtimecore.TerminalCancelled)
+		return &runtimev1.InterruptRealtimeOutputResponse{Ack: &runtimev1.Ack{Ok: true}, Control: record.terminalControl}, nil
+	}
 	if track == nil || track.terminal || track.interrupting || track.requestTerminal {
 		record.mu.Unlock()
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
@@ -669,7 +697,18 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_Failure{Failure: &runtimev1.AiRealtimeFailure{ReasonCode: runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID}}})
 		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID, realtimecore.TerminalOwnerFailed)
 		return true
+	case capabilitydriver.CloudRealtimeEventSelfIntention:
+		if s.logger != nil {
+			s.logger.Info("AI Realtime self-intention proposed", "response_id", source.ProviderResponseID, "call_id", source.CallID)
+		}
+		s.collectRealtimeSelfIntention(record, source)
 	case capabilitydriver.CloudRealtimeEventOutputStarted:
+		if s.logger != nil {
+			s.logger.Info("AI Realtime response started", "response_id", source.ProviderResponseID)
+		}
+		record.mu.Lock()
+		record.selfWaiting = false
+		record.mu.Unlock()
 		track := ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 		_ = s.publishRealtimeEvent(record, realtimeOutputTrackEvent(track, runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE, 0))
 	case capabilitydriver.CloudRealtimeEventTextDelta, capabilitydriver.CloudRealtimeEventTextFinal:
@@ -693,6 +732,20 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		// single output-track/request decision so cancellation can still win.
 		_ = ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 	case capabilitydriver.CloudRealtimeEventResponseDone:
+		if s.logger != nil {
+			s.logger.Info("AI Realtime response finished", "response_id", source.ProviderResponseID, "status", source.ResponseStatus)
+		}
+		if handled, terminal := s.completeRealtimeSelfIntention(record, source); handled {
+			return terminal
+		}
+		record.mu.Lock()
+		if track := record.tracksByProvider[source.ProviderResponseID]; track != nil && track.requestTerminal {
+			record.mu.Unlock()
+			return false
+		}
+		source.Usage = mergeRealtimeIntentionUsage(record.selfUsage, source.Usage)
+		record.selfUsage = nil
+		record.mu.Unlock()
 		if source.NoOutput {
 			record.mu.Lock()
 			requestID := record.requestsByResponse[source.ProviderResponseID]
@@ -1046,7 +1099,13 @@ func (s *Service) completeRealtimeResponse(record *realtimeSessionRecord, track 
 		record.mu.Unlock()
 		return
 	}
+	if record.selfUsageObserver != nil && usage != nil {
+		record.selfUsageObserver(track.requestID, usage)
+	}
 	delete(record.requestsByResponse, track.providerResponseID)
+	if record.pendingRequestID == track.requestID {
+		record.pendingRequestID = ""
+	}
 	var publishErr error
 	publish := func(event *runtimev1.AiRealtimeEvent) {
 		if publishErr == nil {

@@ -2,6 +2,7 @@ package capabilitydriver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -43,6 +44,8 @@ type CloudRealtimeProtocol interface {
 }
 
 type realtimeWireMapper interface {
+	SelfIntentionTools(bool) []any
+	SelfIntentionToolsUpdate(string, bool) ([]byte, error)
 	Endpoint(CloudRealtimeTarget) string
 	MapOpen(string, CloudRealtimeTarget, CloudRealtimeOpen) ([]byte, error)
 	MapInput(string, *runtimev1.AppendRealtimeInputRequest) ([]byte, error)
@@ -52,13 +55,14 @@ type realtimeWireMapper interface {
 }
 
 type realtimeWireSession struct {
-	mapper      realtimeWireMapper
-	target      CloudRealtimeTarget
-	open        CloudRealtimeOpen
-	mu          sync.Mutex
-	responseKey string
-	stop        *realtimeWireStop
-	closed      bool
+	toolsDisabled bool
+	mapper        realtimeWireMapper
+	target        CloudRealtimeTarget
+	open          CloudRealtimeOpen
+	mu            sync.Mutex
+	responseKey   string
+	stop          *realtimeWireStop
+	closed        bool
 }
 
 type realtimeWireStop struct {
@@ -107,7 +111,22 @@ func (s *realtimeWireSession) OwnerControl(id string, req *runtimev1.SubmitRealt
 	if closed || stopping {
 		return CloudRealtimeEffect{}, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Realtime Session is closed or stopping"))
 	}
-	return realtimeWireEffect(s.mapper.MapOwnerControl(id, req))
+	effect, err := realtimeWireEffect(s.mapper.MapOwnerControl(id, req))
+	if err != nil {
+		return effect, err
+	}
+	s.mu.Lock()
+	restore := s.toolsDisabled && s.open.SelfIntention
+	s.toolsDisabled = false
+	s.mu.Unlock()
+	if restore {
+		wire, err := s.mapper.SelfIntentionToolsUpdate(id+"_tools", true)
+		if err != nil {
+			return CloudRealtimeEffect{}, err
+		}
+		effect.Wires = append([][]byte{wire}, effect.Wires...)
+	}
+	return effect, nil
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r116
@@ -126,7 +145,19 @@ func (s *realtimeWireSession) Interrupt(id, key string) (CloudRealtimeEffect, er
 	return effect, nil
 }
 func (s *realtimeWireSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error) {
-	events, err := s.mapper.NormalizeEvent(raw, s.open)
+	s.mu.Lock()
+	expected := s.open
+	expected.SelfIntention = expected.SelfIntention && !s.toolsDisabled
+	s.mu.Unlock()
+	// Late repeated native calls still reach the Agent identity fence after
+	// tools have been disabled for the sole result response.
+	var header struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(raw, &header); err == nil && header.Type == "response.function_call_arguments.done" {
+		expected.SelfIntention = s.open.SelfIntention
+	}
+	events, err := s.mapper.NormalizeEvent(raw, expected)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +179,7 @@ func (s *realtimeWireSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error
 		}
 		if event.Kind == CloudRealtimeEventOutputStarted {
 			if s.responseKey != "" && s.responseKey != event.ProviderResponseID {
-				return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("Realtime response overlaps an active output"))
+				return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("Realtime response overlaps an active output: active=%s incoming=%s", s.responseKey, event.ProviderResponseID))
 			}
 			s.responseKey = event.ProviderResponseID
 		}

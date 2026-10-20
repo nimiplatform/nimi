@@ -48,7 +48,7 @@ export function createNimiAgentRealtimeSession(
   let activeSubscription: NimiRealtimeSubscription<NimiAgentRealtimeEvent> | null = null;
   let frameInFlight = false;
   const playbackInterruptedTracks = new Set<string>();
-  const runtimeCompletedTracks = new Set<string>();
+  const runtimeCompletedTracks = new Map<string, boolean>();
 
   const dispatch = (action: NimiAgentRealtimeSessionAction): void => {
     const next = reduceNimiAgentRealtimeSessionState(state, action);
@@ -275,7 +275,7 @@ export function createNimiAgentRealtimeSession(
     async interruptOutput(interruptInput) {
       const scope = requireActiveSession('interrupt Agent Realtime output');
       const playbackOnly = runtimeCompletedTracks.has(interruptInput.outputTrackId)
-        && !interruptInput.interruptAgentTurn;
+        && (!interruptInput.interruptAgentTurn || runtimeCompletedTracks.get(interruptInput.outputTrackId) === true);
       playbackInterruptedTracks.add(interruptInput.outputTrackId);
       try {
         await input.host.playback.interruptOutputTrack({ outputTrackId: interruptInput.outputTrackId });
@@ -407,6 +407,7 @@ export function createNimiAgentRealtimeSession(
         await projectHostPlayback(scope, envelope.event);
         await enforceBlockedPressure(scope);
         if (envelope.event.type === 'terminal') {
+          for (const track of runtimeCompletedTracks.keys()) runtimeCompletedTracks.set(track, true);
           // A completed Agent turn does not close its still-active media session.
           if (envelope.event.reasonCode === 'ACTION_EXECUTED'
             && ['ready', 'degraded', 'reconnecting'].includes(envelope.control.lifecycle)) continue;
@@ -615,7 +616,7 @@ export function createNimiAgentRealtimeSession(
     }
     if (event.type === 'output-track' && event.lifecycle !== 'active') {
       if (event.lifecycle === 'completed') {
-        runtimeCompletedTracks.add(event.outputTrackId);
+        runtimeCompletedTracks.set(event.outputTrackId, false);
         // A slow speaker must not block further Runtime control/terminal
         // events. The Host promise owns the physical playback completion.
         void Promise.resolve().then(() => {
@@ -708,14 +709,7 @@ export function createNimiAgentRealtimeSession(
     if (!capture || capture.epoch !== scope.epoch) return;
     activeCapture = null;
     await capture.handle.stop();
-    await input.agentRealtime.appendInput({
-      ...scopeInput(scope),
-      input: {
-        type: 'capture-stopped',
-        inputTrackId: capture.handle.inputTrackId,
-        utteranceId: capture.handle.utteranceId,
-      },
-    });
+    // Closing discards the capture. Only an explicit stopCapture submits it.
   }
 
   function requireActiveSession(operation: string): ActiveSessionScope {

@@ -287,7 +287,7 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
               if (!outputTrackId) return;
               void session.interruptOutput({
                 outputTrackId,
-                interruptAgentTurn: false,
+                interruptAgentTurn: true,
               }).catch(() => undefined);
             }}
           >

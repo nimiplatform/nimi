@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"strings"
 	"sync"
@@ -34,6 +35,13 @@ type realtimeInputIdentity struct {
 }
 
 type realtimeSessionRecord struct {
+	selfUsageObserver    agentintent.UsageObserver
+	selfHandler          agentintent.Handler
+	selfPending          *capabilitydriver.CloudRealtimeEvent
+	selfUsed             bool
+	selfWaiting          bool
+	selfCancel           context.CancelFunc
+	selfUsage            *runtimev1.UsageStats
 	operationMu          sync.Mutex
 	mu                   sync.Mutex
 	sessionID            string

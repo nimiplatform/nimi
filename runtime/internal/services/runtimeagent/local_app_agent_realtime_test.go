@@ -11,12 +11,55 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestRealtimeResultReplyPreservesEarlierSpeech(t *testing.T) {
+	turn := &localAppAgentRealtimeTurn{}
+	streamed := ""
+	for _, output := range []*runtimev1.AiRealtimeTextOutput{
+		{OutputTrackId: "first", Text: "I have an idea."},
+		{OutputTrackId: "first", Text: "I have an idea.", Final: true},
+		{OutputTrackId: "result", Text: "I chose "},
+		{OutputTrackId: "result", Text: "a sketchbook."},
+		{OutputTrackId: "result", Text: "I chose a sketchbook.", Final: true},
+	} {
+		streamed += turn.appendText(output)
+	}
+	want := "I have an idea.\n\nI chose a sketchbook."
+	if turn.text != want || streamed != want {
+		t.Fatalf("speech replaced or repeated: saved=%q streamed=%q", turn.text, streamed)
+	}
+}
+
+func TestAgentRealtimeInitialAndTurnContractsAllowOnlyThePrivateIntention(t *testing.T) {
+	input := agentTurnContextTestInput(t, "personaCharacter")
+	input.OutputContract = agentTurnOutputContractInput{ContractID: agentRealtimeOutputContractID, Version: agentRealtimeOutputContractV1, Instruction: agentRealtimeOutputInstruction}
+	compiled, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := compiled.ProviderPrompt.Messages[len(compiled.ProviderPrompt.Messages)-1]
+	if last.Role != "system" || last.Content != agentRealtimeOutputInstruction {
+		t.Fatal("Realtime output policy became caller context")
+	}
+	svc := newRuntimeAgentTestService(t)
+	ref := "realtime-initial-policy"
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(ref)}); err != nil {
+		t.Fatal(err)
+	}
+	var resolved localAppAgentIdentity
+	resolved.identity.LocalAgentRef = testRuntimeAgentLocalRef(ref)
+	initial, err := svc.agentRealtimeInitialInstruction(context.Background(), resolved)
+	if err != nil || !strings.Contains(initial, agentRealtimeOutputInstruction) {
+		t.Fatalf("Open and per-turn intention contracts disagree: %v", err)
+	}
+}
+
 type agentRealtimeExecutorStub struct {
-	onInterrupt    func()
-	onClose        func()
-	onCloseRequest func(*runtimev1.CloseRealtimeSessionRequest)
-	onControl      func(*runtimev1.SubmitRealtimeOwnerControlRequest)
-	onAppend       func(*runtimev1.AppendRealtimeInputRequest) error
+	outputRequestID string
+	onInterrupt     func()
+	onClose         func()
+	onCloseRequest  func(*runtimev1.CloseRealtimeSessionRequest)
+	onControl       func(*runtimev1.SubmitRealtimeOwnerControlRequest)
+	onAppend        func(*runtimev1.AppendRealtimeInputRequest) error
 }
 
 func (s agentRealtimeExecutorStub) OpenRuntimeAgentRealtime(context.Context, string, *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
@@ -39,7 +82,11 @@ func (s agentRealtimeExecutorStub) SubmitRuntimeAgentRealtimeControl(_ context.C
 	return &runtimev1.SubmitRealtimeOwnerControlResponse{}, nil
 }
 
-func (s agentRealtimeExecutorStub) InterruptRuntimeAgentRealtimeOutput(context.Context, string, *runtimev1.InterruptRealtimeOutputRequest) (*runtimev1.InterruptRealtimeOutputResponse, error) {
+func (s agentRealtimeExecutorStub) RuntimeAgentRealtimeOutputRequestID(context.Context, string, string, uint64, string) (string, error) {
+	return s.outputRequestID, nil
+}
+
+func (s agentRealtimeExecutorStub) InterruptRuntimeAgentRealtimeOutput(context.Context, string, *runtimev1.InterruptRealtimeOutputRequest, string) (*runtimev1.InterruptRealtimeOutputResponse, error) {
 	if s.onInterrupt != nil {
 		s.onInterrupt()
 	}
@@ -60,15 +107,15 @@ func (agentRealtimeExecutorStub) ClaimRuntimeAgentRealtimeEvents(context.Context
 	return nil, func() {}, nil
 }
 
-func TestAgentRealtimeOutputInterruptFencesAndReleasesCanonicalTurnBeforeDriver(t *testing.T) {
+func TestAgentRealtimeOutputInterruptRetainsReservationUntilDriverRelease(t *testing.T) {
 	svc, session, decision, handle := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeOutputInterrupt)
 	observedReleased := false
-	svc.SetAgentRealtimeAIExecutor(agentRealtimeExecutorStub{onInterrupt: func() {
+	svc.SetAgentRealtimeAIExecutor(agentRealtimeExecutorStub{outputRequestID: session.turn.turn.TurnID, onInterrupt: func() {
 		_, active, _, _, err := svc.snapshotPublicChatAnchorForCaller(decision.AppID, session.conversationAnchorID)
 		if err != nil {
 			t.Fatalf("snapshot during interrupt: %v", err)
 		}
-		observedReleased = active == nil
+		observedReleased = active != nil
 	}})
 
 	_, err := svc.InterruptLocalAppAgentRealtimeOutput(
@@ -82,33 +129,44 @@ func TestAgentRealtimeOutputInterruptFencesAndReleasesCanonicalTurnBeforeDriver(
 		t.Fatalf("InterruptLocalAppAgentRealtimeOutput: %v", err)
 	}
 	if !observedReleased {
-		t.Fatal("neutral Driver interrupt observed an active canonical Agent turn")
+		t.Fatal("canonical reservation released before the neutral Driver completed interruption")
 	}
 	assertAgentRealtimeTurnReleased(t, svc, session, decision.AppID)
 }
 
-func TestAgentRealtimeCloseDoesNotMutateCanonicalTurn(t *testing.T) {
+func TestAgentRealtimeStaleOutputCannotInterruptTheCurrentTurn(t *testing.T) {
+	svc, session, decision, handle := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeOutputInterrupt)
+	called := false
+	svc.SetAgentRealtimeAIExecutor(agentRealtimeExecutorStub{outputRequestID: "older-turn", onInterrupt: func() { called = true }})
+	_, err := svc.InterruptLocalAppAgentRealtimeOutput(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision), &runtimev1.InterruptLocalAppAgentRealtimeOutputRequest{AgentHandle: handle, RealtimeSessionId: session.realtimeSessionID, Generation: session.generation, OutputTrackId: "older-track", InterruptAgentTurn: true})
+	if err == nil || called {
+		t.Fatal("stale output reached the Driver")
+	}
+	svc.chatSurfaceMu.Lock()
+	interrupted := svc.chatTurns[session.turn.turn.TurnID].Interrupted
+	svc.chatSurfaceMu.Unlock()
+	if interrupted {
+		t.Fatal("stale output fenced a replacement turn")
+	}
+}
+
+func TestAgentRealtimeCloseCancelsPendingTurnAfterDriverRelease(t *testing.T) {
 	svc, session, decision, handle := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeClose)
 	closeCalled := false
 	svc.SetAgentRealtimeAIExecutor(agentRealtimeExecutorStub{onClose: func() {
 		closeCalled = true
+		_, active, _, _, err := svc.snapshotPublicChatAnchorForCaller(decision.AppID, session.conversationAnchorID)
+		if err != nil || active == nil {
+			t.Fatal("close released the reservation before the Driver")
+		}
 	}})
-
-	_, err := svc.CloseLocalAppAgentRealtime(
-		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
-		&runtimev1.CloseLocalAppAgentRealtimeRequest{
-			AgentHandle: handle, RealtimeSessionId: session.realtimeSessionID, Generation: session.generation,
-		},
-	)
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("CloseLocalAppAgentRealtime code=%s err=%v", status.Code(err), err)
+	_, err := svc.CloseLocalAppAgentRealtime(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision), &runtimev1.CloseLocalAppAgentRealtimeRequest{AgentHandle: handle, RealtimeSessionId: session.realtimeSessionID, Generation: session.generation})
+	if err != nil || !closeCalled {
+		t.Fatalf("explicit close: %v", err)
 	}
-	if closeCalled {
-		t.Fatal("media Driver close ran before explicit Agent-turn interruption")
-	}
-	_, active, _, _, snapshotErr := svc.snapshotPublicChatAnchorForCaller(decision.AppID, session.conversationAnchorID)
-	if snapshotErr != nil || active == nil {
-		t.Fatalf("media close mutated canonical turn: active=%+v err=%v", active, snapshotErr)
+	assertAgentRealtimeTurnReleased(t, svc, session, decision.AppID)
+	if !session.closed {
+		t.Fatal("closed session still accepts input")
 	}
 }
 
@@ -135,6 +193,14 @@ func TestAgentRealtimeFirstAudioFrameDoesNotCreateCanonicalTurn(t *testing.T) {
 	if err != nil || active != nil || session.turn != nil {
 		t.Fatalf("first audio created canonical turn: snapshot=%+v session=%+v err=%v", active, session.turn, err)
 	}
+	entry, _ := svc.agentByID(session.agentID)
+	if entry.Life.Interaction == nil || !session.speechActive {
+		t.Fatal("accepted manual microphone input did not occupy current life")
+	}
+	svc.removeAgentRealtimeSession(session.realtimeSessionID)
+	if session.speechActive {
+		t.Fatal("closed microphone retained live participation")
+	}
 }
 
 func TestAgentRealtimeRejectsOverlappingUtteranceBeforeProviderMutation(t *testing.T) {
@@ -155,18 +221,6 @@ func TestAgentRealtimeRejectsOverlappingUtteranceBeforeProviderMutation(t *testi
 	)
 	if err == nil || appends != 0 {
 		t.Fatalf("overlapping utterance reached provider: appends=%d err=%v", appends, err)
-	}
-}
-
-func TestAgentRealtimePrivateOwnerInputAcceptanceIsNotProjected(t *testing.T) {
-	svc, session, _, _ := prepareAgentRealtimeSessionForTest(t, accountservice.LocalAppOperationAgentRealtimeEventsSubscribe, false)
-	requestID := "agent_context_private"
-	session.registerPrivateInputRequest(requestID)
-	projected, err := svc.projectAgentRealtimeEvent(context.Background(), session, agentRealtimeExecutorStub{}, &runtimev1.AiRealtimeEvent{
-		Event: &runtimev1.AiRealtimeEvent_InputAccepted{InputAccepted: &runtimev1.AiRealtimeInputAccepted{RequestId: requestID}},
-	})
-	if err != nil || projected != nil {
-		t.Fatalf("private owner input projection=%+v err=%v", projected, err)
 	}
 }
 
@@ -309,7 +363,6 @@ func prepareAgentRealtimeSessionForTest(
 		realtimeSessionID: "realtime-session-1", channelID: "channel-1", generation: 1,
 		accountID: decision.AccountID, appID: decision.AppID, registeredAppSubject: decision.RegisteredAppSubject,
 		agentID: agentID, agentHandle: handle, conversationAnchorID: anchorID,
-		privateInputRequests: make(map[string]struct{}),
 	}
 	if withActiveTurn {
 		ownerCtx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)

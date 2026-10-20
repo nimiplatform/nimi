@@ -23,6 +23,14 @@ test('Realtime Voice flushes the bounded partial PCM tail before capture complet
   assert.equal(tail[0]!.byteLength % 2, 0);
 });
 
+test('Realtime Voice honors a negotiated 24 kHz frame and preserves the tail', () => {
+  const resampler = createPcm16Resampler(48_000, 24_000);
+  const frames = resampler.push(sine(0.3, 48, 9_600));
+  const tail = resampler.flush();
+  assert.equal(frames[0]?.byteLength, 4_800);
+  assert.equal([...frames, ...tail].reduce((n, frame) => n + frame.byteLength, 0), 9_600);
+});
+
 test('Realtime Voice barge-in requires speech-like energy above the playback reference', () => {
   assert.equal(isEchoAwareBargeSpeech(sine(0.08, 20), 0.5), false);
   assert.equal(isEchoAwareBargeSpeech(sine(0.5, 20), 0.2), true);
