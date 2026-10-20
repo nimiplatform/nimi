@@ -7,6 +7,7 @@
     "proto/runtime/v1/agent_common.proto",
     "proto/runtime/v1/agent_configure.proto",
     "proto/runtime/v1/agent_embodiment.proto",
+    "proto/runtime/v1/agent_life.proto",
     "proto/runtime/v1/agent_presentation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/agent_source_materialization.proto",
@@ -8247,6 +8248,9 @@
       "LocalAppAgentConversationContextProjection",
       "LocalAppAgentIntroduction",
       "LocalAppAgentIntroductionTopic",
+      "LocalAppAgentLifeActivity",
+      "LocalAppAgentLifeFrame",
+      "LocalAppAgentLifeProjection",
       "LocalAppAgentManagerActionAvailability",
       "LocalAppAgentManagerContextProjection",
       "LocalAppAgentManagerSnapshot",
@@ -8891,6 +8895,7 @@
       "LocalAgentCapabilityParticipationRole",
       "LocalAppAgentAutonomyMode",
       "LocalAppAgentIntroductionTopicKind",
+      "LocalAppAgentLifePhase",
       "LocalAppAgentManagerActionAvailabilityState",
       "LocalAppAgentManagerActionUnavailableReason",
       "LocalAppAgentManagerProductAction",
@@ -26160,6 +26165,164 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "LocalAppAgentLifeActivity",
+        "fields": [
+          {
+            "name": "activity_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "phase",
+            "type": "LocalAppAgentLifePhase",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "progress",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_life.proto"
+      },
+      {
+        "name": "LocalAppAgentLifeFrame",
+        "fields": [
+          {
+            "name": "frame_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "activity_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "phase",
+            "type": "LocalAppAgentLifePhase",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "starts_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "ends_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "progress",
+            "type": "uint32",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "interaction",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_life.proto"
+      },
+      {
+        "name": "LocalAppAgentLifeProjection",
+        "fields": [
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "current",
+            "type": "LocalAppAgentLifeFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "recent",
+            "type": "LocalAppAgentLifeFrame",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "future",
+            "type": "LocalAppAgentLifeFrame",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "next_check_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "wait_reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "activities",
+            "type": "LocalAppAgentLifeActivity",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_life.proto"
+      },
+      {
         "name": "LocalAppAgentManagerActionAvailability",
         "fields": [
           {
@@ -26369,6 +26532,13 @@
             "repeated": false,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "life",
+            "type": "LocalAppAgentLifeProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -46645,6 +46815,19 @@
           "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentLifePhase",
+        "values": [
+          "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED",
+          "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED",
+          "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE",
+          "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED",
+          "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED",
+          "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED",
+          "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED"
+        ],
+        "source_file": "proto/runtime/v1/agent_life.proto"
       },
       {
         "name": "LocalAppAgentManagerActionAvailabilityState",

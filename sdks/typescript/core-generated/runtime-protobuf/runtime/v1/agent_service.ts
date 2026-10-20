@@ -88,6 +88,7 @@ import { AIConfigCapabilityIntent } from "./capability_configuration";
 import { LocalAgentCapabilityParticipation } from "./agent_configure";
 import { AIConfigEffectiveSelection } from "./capability_configuration";
 import { AIConfig } from "./capability_configuration";
+import { LocalAppAgentLifeProjection } from "./agent_life";
 import { LocalAppAgentConversationContextProjection } from "./agent_configure";
 import { AgentConversationSummaryStatus } from "./agent_source_materialization";
 import { AgentSourceCognitionStatus } from "./agent_source_materialization";
@@ -1898,6 +1899,10 @@ export interface LocalAppAgentManagerSnapshot {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentConversationContextProjection conversation_context = 8
      */
     conversationContext?: LocalAppAgentConversationContextProjection;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentLifeProjection life = 9
+     */
+    life?: LocalAppAgentLifeProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
@@ -9971,7 +9976,8 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
             { no: 5, name: "source", kind: "message", T: () => LocalAppAgentManagerSourceProjection },
             { no: 6, name: "context", kind: "message", T: () => LocalAppAgentManagerContextProjection },
             { no: 7, name: "action_availability", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentManagerActionAvailability },
-            { no: 8, name: "conversation_context", kind: "message", T: () => LocalAppAgentConversationContextProjection }
+            { no: 8, name: "conversation_context", kind: "message", T: () => LocalAppAgentConversationContextProjection },
+            { no: 9, name: "life", kind: "message", T: () => LocalAppAgentLifeProjection }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentManagerSnapshot>): LocalAppAgentManagerSnapshot {
@@ -10014,6 +10020,9 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
                 case /* nimi.runtime.v1.LocalAppAgentConversationContextProjection conversation_context */ 8:
                     message.conversationContext = LocalAppAgentConversationContextProjection.internalBinaryRead(reader, reader.uint32(), options, message.conversationContext);
                     break;
+                case /* nimi.runtime.v1.LocalAppAgentLifeProjection life */ 9:
+                    message.life = LocalAppAgentLifeProjection.internalBinaryRead(reader, reader.uint32(), options, message.life);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10050,6 +10059,9 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
         /* nimi.runtime.v1.LocalAppAgentConversationContextProjection conversation_context = 8; */
         if (message.conversationContext)
             LocalAppAgentConversationContextProjection.internalBinaryWrite(message.conversationContext, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentLifeProjection life = 9; */
+        if (message.life)
+            LocalAppAgentLifeProjection.internalBinaryWrite(message.life, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

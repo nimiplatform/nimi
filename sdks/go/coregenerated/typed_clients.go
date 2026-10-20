@@ -1054,6 +1054,18 @@ const (
 	LOCALAPPAGENTINTRODUCTIONTOPICKINDTOPIC        LocalAppAgentIntroductionTopicKind = "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC"
 )
 
+type LocalAppAgentLifePhase string
+
+const (
+	LOCALAPPAGENTLIFEPHASEUNSPECIFIED LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED"
+	LOCALAPPAGENTLIFEPHASEPLANNED     LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED"
+	LOCALAPPAGENTLIFEPHASEACTIVE      LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE"
+	LOCALAPPAGENTLIFEPHASEPAUSED      LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED"
+	LOCALAPPAGENTLIFEPHASECOMPLETED   LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED"
+	LOCALAPPAGENTLIFEPHASEINTERRUPTED LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED"
+	LOCALAPPAGENTLIFEPHASECANCELED    LocalAppAgentLifePhase = "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED"
+)
+
 type LocalAppAgentManagerActionAvailabilityState string
 
 const (
@@ -5916,6 +5928,35 @@ type LocalAppAgentIntroductionTopic struct {
 	Text string                             `json:"text,omitempty"`
 }
 
+type LocalAppAgentLifeActivity struct {
+	ActivityRef string                 `json:"activity_ref,omitempty"`
+	Title       string                 `json:"title,omitempty"`
+	Kind        string                 `json:"kind,omitempty"`
+	Phase       LocalAppAgentLifePhase `json:"phase,omitempty"`
+	Progress    uint32                 `json:"progress,omitempty"`
+}
+
+type LocalAppAgentLifeFrame struct {
+	FrameId     string                 `json:"frame_id,omitempty"`
+	ActivityRef string                 `json:"activity_ref,omitempty"`
+	Title       string                 `json:"title,omitempty"`
+	Phase       LocalAppAgentLifePhase `json:"phase,omitempty"`
+	StartsAt    string                 `json:"starts_at,omitempty"`
+	EndsAt      string                 `json:"ends_at,omitempty"`
+	Progress    *uint32                `json:"progress,omitempty"`
+	Interaction bool                   `json:"interaction,omitempty"`
+}
+
+type LocalAppAgentLifeProjection struct {
+	Revision    uint64                      `json:"revision,omitempty"`
+	Current     *LocalAppAgentLifeFrame     `json:"current,omitempty"`
+	Recent      []LocalAppAgentLifeFrame    `json:"recent,omitempty"`
+	Future      []LocalAppAgentLifeFrame    `json:"future,omitempty"`
+	NextCheckAt string                      `json:"next_check_at,omitempty"`
+	WaitReason  string                      `json:"wait_reason,omitempty"`
+	Activities  []LocalAppAgentLifeActivity `json:"activities,omitempty"`
+}
+
 type LocalAppAgentManagerActionAvailability struct {
 	Action LocalAppAgentManagerProductAction           `json:"action,omitempty"`
 	State  LocalAppAgentManagerActionAvailabilityState `json:"state,omitempty"`
@@ -5951,6 +5992,7 @@ type LocalAppAgentManagerSnapshot struct {
 	Context             *LocalAppAgentManagerContextProjection      `json:"context,omitempty"`
 	ActionAvailability  []LocalAppAgentManagerActionAvailability    `json:"action_availability,omitempty"`
 	ConversationContext *LocalAppAgentConversationContextProjection `json:"conversation_context,omitempty"`
+	Life                *LocalAppAgentLifeProjection                `json:"life,omitempty"`
 }
 
 type LocalAppAgentManagerSourceProjection struct {

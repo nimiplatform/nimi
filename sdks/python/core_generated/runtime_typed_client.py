@@ -150,6 +150,7 @@ LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOU
 LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
 LocalAppAgentIntroductionTopicKind = Literal["LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_UNSPECIFIED", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_ROLE", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_WORK", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_RELATIONSHIP", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC"]
+LocalAppAgentLifePhase = Literal["LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED", "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED", "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE", "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED", "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED", "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED", "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED"]
 LocalAppAgentManagerActionAvailabilityState = Literal["LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE"]
 LocalAppAgentManagerActionUnavailableReason = Literal["LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE"]
 LocalAppAgentManagerProductAction = Literal["LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE"]
@@ -3890,6 +3891,35 @@ class LocalAppAgentIntroductionTopic:
     text: str | None = None
 
 @dataclass(frozen=True)
+class LocalAppAgentLifeActivity:
+    activity_ref: str | None = None
+    title: str | None = None
+    kind: str | None = None
+    phase: LocalAppAgentLifePhase | None = None
+    progress: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentLifeFrame:
+    frame_id: str | None = None
+    activity_ref: str | None = None
+    title: str | None = None
+    phase: LocalAppAgentLifePhase | None = None
+    starts_at: str | None = None
+    ends_at: str | None = None
+    progress: int | None = None
+    interaction: bool | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentLifeProjection:
+    revision: int | None = None
+    current: LocalAppAgentLifeFrame | None = None
+    recent: tuple[LocalAppAgentLifeFrame, ...] = field(default_factory=tuple)
+    future: tuple[LocalAppAgentLifeFrame, ...] = field(default_factory=tuple)
+    next_check_at: str | None = None
+    wait_reason: str | None = None
+    activities: tuple[LocalAppAgentLifeActivity, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class LocalAppAgentManagerActionAvailability:
     action: LocalAppAgentManagerProductAction | None = None
     state: LocalAppAgentManagerActionAvailabilityState | None = None
@@ -3925,6 +3955,7 @@ class LocalAppAgentManagerSnapshot:
     context: LocalAppAgentManagerContextProjection | None = None
     action_availability: tuple[LocalAppAgentManagerActionAvailability, ...] = field(default_factory=tuple)
     conversation_context: LocalAppAgentConversationContextProjection | None = None
+    life: LocalAppAgentLifeProjection | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentManagerSourceProjection:

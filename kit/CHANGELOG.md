@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+Expose shared LocalAgent life projection types for the Agent Center.
+
 Transcript bottom-follow survives scroll events caused by late content/voice
 measurement, while upward reading releases follow. LocalAgent media consumers can
 explicitly reread failed stored artifacts with `retryFailed()` and show the read

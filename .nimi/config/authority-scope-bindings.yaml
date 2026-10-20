@@ -236,6 +236,10 @@ scopes:
         value: "runtime/internal/services/delegation/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/runtimeagent/delegated_*.go"
+  - scope: runtime.agent-life
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/**/*.go"
   - scope: runtime.agent-participation
     bindings:
       - kind: path_glob

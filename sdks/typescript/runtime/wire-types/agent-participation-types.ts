@@ -100,6 +100,18 @@ export type {
 };
 
 import type {
+  LocalAppAgentLifeActivity,
+  LocalAppAgentLifeFrame,
+  LocalAppAgentLifeProjection,
+} from "../../core-generated/runtime-protobuf/runtime/v1/agent_life";
+
+export type {
+  LocalAppAgentLifeActivity,
+  LocalAppAgentLifeFrame,
+  LocalAppAgentLifeProjection,
+};
+
+import type {
   AgentPresentationAssetMaterial,
   AgentPresentationEventDetail,
   AgentPresentationProfile,

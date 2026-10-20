@@ -5,6 +5,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
+import "runtime/v1/agent_life.proto";
 import "runtime/v1/agent_configure.proto";
 import "runtime/v1/agent_embodiment.proto";
 import "runtime/v1/agent_presentation.proto";
@@ -645,6 +646,7 @@ message LocalAppAgentManagerSnapshot {
   LocalAppAgentManagerContextProjection context = 6;
   repeated LocalAppAgentManagerActionAvailability action_availability = 7;
   LocalAppAgentConversationContextProjection conversation_context = 8;
+  LocalAppAgentLifeProjection life = 9;
 }
 message GetLocalAppAgentManagerSnapshotRequest {
   string agent_handle = 1;

@@ -430,3 +430,5 @@ export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic,
 export type { NimiLocalAppAgentPendingHooks, NimiLocalAppAgentPendingHook, NimiLocalAppScheduledTaskEdit, NimiLocalAppConversationPolicyInput, NimiLocalAppConversationFollowUpInput, NimiLocalAppAgentPendingHookInput } from '@nimiplatform/sdk/app';
 
 export type { NimiLocalAppConversationState, NimiLocalAppConversationAction, NimiLocalAppConversationLiveAction, NimiLocalAppConversationLiveTool, NimiLocalAppConversationTurn, NimiLocalAppConversationVoice } from '@nimiplatform/sdk/app';
+
+export type { NimiLocalAppAgentLife, NimiLocalAppAgentLifeFrame } from '@nimiplatform/sdk/app';

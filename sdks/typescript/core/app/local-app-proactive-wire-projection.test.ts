@@ -71,3 +71,11 @@ test('optional purpose cannot break activity controls or admit private fields', 
  assert.throws(() => projectPendingHook({...activity, publicPurpose:'public',reason:'private'}));
  assert.throws(() => projectPendingHook({...activity,publicPurpose:'allowed',systemCadence:true}));
 });
+
+import { LocalAppAgentLifeProjection, LocalAppAgentLifePhase } from '../../core-generated/runtime-protobuf/runtime/v1/agent_life.js';
+import { projectRuntimeLife, projectLife } from './local-app-runtime-platform-life.js';
+
+test('binary life frames preserve typed time and activity identity',()=>{
+ const wire=LocalAppAgentLifeProjection.fromBinary(LocalAppAgentLifeProjection.toBinary(LocalAppAgentLifeProjection.create({revision:'2',current:{frameId:'frame',activityRef:'activity',title:'Painting',phase:LocalAppAgentLifePhase.ACTIVE,startsAt:{seconds:'1792205941',nanos:123},endsAt:{seconds:'1792209541',nanos:456},progress:30}})));
+ const life=projectRuntimeLife(wire);assert.deepEqual(life.current?.startsAt,{seconds:'1792205941',nanos:123});assert.equal(life.current?.activityRef,'activity');assert.throws(()=>projectLife({...life,privateReason:'hidden'}));
+});

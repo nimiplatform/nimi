@@ -18799,6 +18799,96 @@ impl AgentConversationSummaryStatus {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentLifeFrame {
+    #[prost(string, tag = "1")]
+    pub frame_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub activity_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentLifePhase", tag = "4")]
+    pub phase: i32,
+    #[prost(message, optional, tag = "5")]
+    pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint32, optional, tag = "7")]
+    pub progress: ::core::option::Option<u32>,
+    #[prost(bool, tag = "8")]
+    pub interaction: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentLifeProjection {
+    #[prost(uint64, tag = "1")]
+    pub revision: u64,
+    #[prost(message, optional, tag = "2")]
+    pub current: ::core::option::Option<LocalAppAgentLifeFrame>,
+    #[prost(message, repeated, tag = "3")]
+    pub recent: ::prost::alloc::vec::Vec<LocalAppAgentLifeFrame>,
+    #[prost(message, repeated, tag = "4")]
+    pub future: ::prost::alloc::vec::Vec<LocalAppAgentLifeFrame>,
+    #[prost(message, optional, tag = "5")]
+    pub next_check_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "6")]
+    pub wait_reason: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "7")]
+    pub activities: ::prost::alloc::vec::Vec<LocalAppAgentLifeActivity>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentLifeActivity {
+    #[prost(string, tag = "1")]
+    pub activity_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentLifePhase", tag = "4")]
+    pub phase: i32,
+    #[prost(uint32, tag = "6")]
+    pub progress: u32,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentLifePhase {
+    Unspecified = 0,
+    Planned = 1,
+    Active = 2,
+    Paused = 3,
+    Completed = 4,
+    Interrupted = 5,
+    Canceled = 6,
+}
+impl LocalAppAgentLifePhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED",
+            Self::Planned => "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED",
+            Self::Active => "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE",
+            Self::Paused => "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED",
+            Self::Completed => "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED",
+            Self::Interrupted => "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED",
+            Self::Canceled => "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_AGENT_LIFE_PHASE_PLANNED" => Some(Self::Planned),
+            "LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE" => Some(Self::Active),
+            "LOCAL_APP_AGENT_LIFE_PHASE_PAUSED" => Some(Self::Paused),
+            "LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED" => Some(Self::Completed),
+            "LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED" => Some(Self::Interrupted),
+            "LOCAL_APP_AGENT_LIFE_PHASE_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAgentCapabilityParticipation {
     #[prost(enumeration = "LocalAgentCapabilityParticipationRole", tag = "1")]
     pub role: i32,
@@ -22431,6 +22521,8 @@ pub struct LocalAppAgentManagerSnapshot {
     pub conversation_context: ::core::option::Option<
         LocalAppAgentConversationContextProjection,
     >,
+    #[prost(message, optional, tag = "9")]
+    pub life: ::core::option::Option<LocalAppAgentLifeProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppAgentManagerSnapshotRequest {

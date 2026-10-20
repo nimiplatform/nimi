@@ -33,6 +33,16 @@ export enum LocalAppAgentIntroductionTopicKind {
   TOPIC = 4,
 }
 
+export enum LocalAppAgentLifePhase {
+  UNSPECIFIED = 0,
+  PLANNED = 1,
+  ACTIVE = 2,
+  PAUSED = 3,
+  COMPLETED = 4,
+  INTERRUPTED = 5,
+  CANCELED = 6,
+}
+
 export enum LocalAppAgentManagerActionAvailabilityState {
   UNSPECIFIED = 0,
   AVAILABLE = 1,

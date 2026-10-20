@@ -509,3 +509,5 @@ export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic,
 export { projectLocalAppSpeechAlignment as validateNimiLocalAppSpeechAlignment } from './local-app-runtime-platform-validation.js';
 
 export type { NimiLocalAppConversationState, NimiLocalAppConversationPolicyInput, NimiLocalAppConversationFollowUpInput, NimiLocalAppAgentPendingHookInput, NimiLocalAppAgentPendingHook, NimiLocalAppAgentPendingHooks, NimiLocalAppScheduledTime, NimiLocalAppScheduledTaskEdit } from './local-app-runtime-platform-proactive.js';
+
+export type { NimiLocalAppAgentLifePhase, NimiLocalAppAgentLifeFrame, NimiLocalAppAgentLifeActivity, NimiLocalAppAgentLife } from './local-app-runtime-platform-life.js';

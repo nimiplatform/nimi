@@ -628,3 +628,10 @@ func (f *Facade) pendingCutoff(ctx context.Context, localAgentRef string) (cutof
 	row.DeleteAll, row.PreviousEnabled, row.DesiredEnabled = deleteAll == 1, previousEnabled == 1, desiredEnabled == 1
 	return row, true, nil
 }
+
+type MemoryReadSet struct {
+	BindingRef   string   `json:"bindingRef"`
+	BankRef      string   `json:"bankRef"`
+	LifecycleRef string   `json:"lifecycleRef"`
+	Refs         []string `json:"refs"`
+}

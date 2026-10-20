@@ -1856,6 +1856,23 @@ impl Default for LocalAppAgentIntroductionTopicKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentLifePhase {
+    LOCALAPPAGENTLIFEPHASEUNSPECIFIED,
+    LOCALAPPAGENTLIFEPHASEPLANNED,
+    LOCALAPPAGENTLIFEPHASEACTIVE,
+    LOCALAPPAGENTLIFEPHASEPAUSED,
+    LOCALAPPAGENTLIFEPHASECOMPLETED,
+    LOCALAPPAGENTLIFEPHASEINTERRUPTED,
+    LOCALAPPAGENTLIFEPHASECANCELED,
+}
+
+impl Default for LocalAppAgentLifePhase {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTLIFEPHASEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppAgentManagerActionAvailabilityState {
     LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNSPECIFIED,
     LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEAVAILABLE,
@@ -10198,6 +10215,38 @@ pub struct LocalAppAgentIntroductionTopic {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentLifeActivity {
+    pub activity_ref: Option<String>,
+    pub title: Option<String>,
+    pub kind: Option<String>,
+    pub phase: Option<LocalAppAgentLifePhase>,
+    pub progress: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentLifeFrame {
+    pub frame_id: Option<String>,
+    pub activity_ref: Option<String>,
+    pub title: Option<String>,
+    pub phase: Option<LocalAppAgentLifePhase>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub progress: Option<u32>,
+    pub interaction: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentLifeProjection {
+    pub revision: Option<u64>,
+    pub current: Option<Box<LocalAppAgentLifeFrame>>,
+    pub recent: Vec<Box<LocalAppAgentLifeFrame>>,
+    pub future: Vec<Box<LocalAppAgentLifeFrame>>,
+    pub next_check_at: Option<String>,
+    pub wait_reason: Option<String>,
+    pub activities: Vec<Box<LocalAppAgentLifeActivity>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentManagerActionAvailability {
     pub action: Option<LocalAppAgentManagerProductAction>,
     pub state: Option<LocalAppAgentManagerActionAvailabilityState>,
@@ -10235,6 +10284,7 @@ pub struct LocalAppAgentManagerSnapshot {
     pub context: Option<Box<LocalAppAgentManagerContextProjection>>,
     pub action_availability: Vec<Box<LocalAppAgentManagerActionAvailability>>,
     pub conversation_context: Option<Box<LocalAppAgentConversationContextProjection>>,
+    pub life: Option<Box<LocalAppAgentLifeProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

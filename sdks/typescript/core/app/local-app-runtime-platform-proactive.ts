@@ -232,3 +232,17 @@ export function createPendingHooksClient(
     update: async (input) => projectPendingHook(await shell.update(validateProactiveInput(input))),
   });
 }
+
+export function projectLifeRevision(value: unknown): string {
+  if (typeof value !== 'string' || !/^[1-9]\d*$/u.test(value) || BigInt(value) > 18446744073709551615n) return localAppProjectionError('owner revision');
+  return value;
+}
+export function projectLifeSelector(value: unknown): string {
+  if (typeof value !== 'string' || !value || value.length > 256 || value.trim() !== value || /[\u0000-\u001f\u007f]/u.test(value)) return localAppProjectionError('owner reference');
+  return value;
+}
+export function projectScheduledTime(value: unknown): NimiLocalAppScheduledTime {
+  const projected = projectTimestamp(value, 'scheduled time');
+  if (!projected || BigInt(projected.seconds) < -62135596800n || BigInt(projected.seconds) > 253402300799n) return localAppProjectionError('scheduled time');
+  return Object.freeze(projected);
+}

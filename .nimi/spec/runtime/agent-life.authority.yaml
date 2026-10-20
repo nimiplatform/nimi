@@ -1,0 +1,8 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.agent-life
+units:
+  - id: definition.nimi.runtime.agent-life.frame-timeline
+    kind: definition
+    title: Bounded LocalAgent life timeline
+    meaning: "Runtime owns one revisioned bounded life state per LocalAgent: immutable established history, at most one current simulated or actual interaction frame, tentative future frames and stable self-intentions across segments. Interaction is life, independent of one model turn. Accepted identity, timing and progress are distinct from qualified explanations. Simulated life never establishes external effects."

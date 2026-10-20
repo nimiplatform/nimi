@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+enum LocalAppAgentLifePhase {
+  LOCAL_APP_AGENT_LIFE_PHASE_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_LIFE_PHASE_PLANNED = 1;
+  LOCAL_APP_AGENT_LIFE_PHASE_ACTIVE = 2;
+  LOCAL_APP_AGENT_LIFE_PHASE_PAUSED = 3;
+  LOCAL_APP_AGENT_LIFE_PHASE_COMPLETED = 4;
+  LOCAL_APP_AGENT_LIFE_PHASE_INTERRUPTED = 5;
+  LOCAL_APP_AGENT_LIFE_PHASE_CANCELED = 6;
+}
+
+message LocalAppAgentLifeFrame {
+  string frame_id = 1;
+  string activity_ref = 2;
+  string title = 3;
+  LocalAppAgentLifePhase phase = 4;
+  google.protobuf.Timestamp starts_at = 5;
+  google.protobuf.Timestamp ends_at = 6;
+  optional uint32 progress = 7;
+  bool interaction = 8;
+}
+
+message LocalAppAgentLifeProjection {
+  uint64 revision = 1;
+  LocalAppAgentLifeFrame current = 2;
+  repeated LocalAppAgentLifeFrame recent = 3;
+  repeated LocalAppAgentLifeFrame future = 4;
+  google.protobuf.Timestamp next_check_at = 5;
+  string wait_reason = 6;
+  repeated LocalAppAgentLifeActivity activities = 7;
+}
+
+message LocalAppAgentLifeActivity {
+  string activity_ref = 1;
+  string title = 2;
+  string kind = 3;
+  LocalAppAgentLifePhase phase = 4;
+  reserved 5;
+  reserved "user_paused";
+  uint32 progress = 6;
+}
