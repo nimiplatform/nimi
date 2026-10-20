@@ -10,8 +10,9 @@ control outcomes. Existing conversations and Memory are preserved; obsolete
 local controls are retired only through explicitly reviewed one-time tools.
 
 Life projections distinguish current interaction from simulated activities,
-with unknown interaction end/progress left absent. This unreleased 0.x hard cut
-has no compatibility path or automatic migration.
+with unknown interaction end/progress left absent. Optional self-intentions
+commit before confirmation. This unreleased 0.x hard cut has no compatibility
+path or automatic migration.
 
 ## Unreleased — LocalAgent Conversation recovery and controls
 

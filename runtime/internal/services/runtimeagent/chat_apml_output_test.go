@@ -165,7 +165,7 @@ func TestMalformedReplyDecorationKeepsOnlyStreamedPublicText(t *testing.T) {
 	} {
 		body, err := parsePublicChatStructuredEnvelope(raw)
 		if err != nil || body.Message.Text != "hello" || body.StatusCue != nil ||
-			len(body.Actions) != 0 {
+			len(body.Actions) != 0 || body.IntentionSuggested || body.SelfIntentionRaw != "" || body.IntentionConfirmation != "" {
 			t.Fatalf("malformed decoration discarded public text or retained effects: %+v %v", body, err)
 		}
 		streamed, visible := publicChatStreamingMessageText(raw)
@@ -178,7 +178,7 @@ func TestMalformedReplyDecorationKeepsOnlyStreamedPublicText(t *testing.T) {
 func TestPlainConversationReplyDoesNotNeedAnEffectEnvelope(t *testing.T) {
 	raw := "暮色里留一点空白就好。"
 	body, err := parsePublicChatStructuredEnvelope(raw)
-	if err != nil || body.Message.Text != raw || len(body.Actions) != 0 {
+	if err != nil || body.Message.Text != raw || len(body.Actions) != 0 || body.IntentionSuggested {
 		t.Fatalf("plain reply rejected or became an effect: %+v %v", body, err)
 	}
 	for split := 1; split <= len([]rune(raw)); split++ {

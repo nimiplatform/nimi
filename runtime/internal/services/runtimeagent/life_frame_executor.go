@@ -81,7 +81,11 @@ func compileLifeFrameContext(input lifeFrameExecutionInput) (*agentTurnContextCo
 	}
 	format, schemaBytes, err := lifeFrameResponseFormat(input.Context)
 	instruction := lifeFrameOutputContract
-
+	if input.ContactOnly {
+		format = &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}
+		schemaBytes = 0
+		instruction = `Return a JSON object with contact (the exact short public message you want to say, in the conversation's language, or an empty string when there is nothing worth saying) and next_check_minutes:360. Write the message itself, not an intention or instructions for another writer. This is one contact generation, not simulation or a user task. Do not include past, future or explanation. You may use eligible context and Memory but must not invent an event, progress, urgency or delivery. No recipient, tool or configuration operation.`
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +205,12 @@ func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecuti
 		return nil, usage, err
 	}
 	result, err := decodeLifeFrameResult(response.GetOutput().GetTextGenerate().GetText())
-
+	if err == nil && input.ContactOnly {
+		// This purpose only consumes contact. Unused model fields never become
+		// simulation and do not turn a valid contact judgment into a failure.
+		result.Past, result.Future, result.Explanation = nil, nil, ""
+		result.Contact, _ = publicChatPlainReplyText(result.Contact)
+	}
 	return result, usage, err
 }
 

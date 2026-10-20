@@ -9,7 +9,8 @@ commitment CRUD, generic control outcomes, task timezones or per-activity task
 management. Use the matching Runtime, SDK and native carrier builds. User task
 fulfillment belongs to Personal Agent products. Agent Center projects current
 interaction with unknown end/progress, retained intentions and simulated history;
-solitary simulation and extra contact have independent controls. This does not
+solitary simulation and extra contact have independent controls. Optional same-turn
+self-intentions are confirmed only after the owner accepts them. This does not
 introduce a compatibility path or automatically clean existing data.
 
 Transcript bottom-follow survives scroll events caused by late content/voice

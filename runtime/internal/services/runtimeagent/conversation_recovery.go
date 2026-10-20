@@ -17,6 +17,7 @@ import (
 // Recovery is owned by the original turn. It contains no successful assistant
 // result, raw provider stream or independent receipt/index lifecycle.
 type publicChatTurnRecovery struct {
+	SelfIntention        *selfIntentionResult     `json:"selfIntention,omitempty"`
 	TurnID               string                   `json:"turnId"`
 	RegisteredAppSubject string                   `json:"registeredAppSubject,omitempty"`
 	RequestID            string                   `json:"requestId,omitempty"`
@@ -53,7 +54,10 @@ func clonePublicChatRecoveries(input map[string]*publicChatTurnRecovery) map[str
 			continue
 		}
 		copied := *item
-
+		if item.SelfIntention != nil {
+			result := *item.SelfIntention
+			copied.SelfIntention = &result
+		}
 		copied.Input = clonePublicChatRecoveryInput(item.Input)
 		out[id] = &copied
 	}

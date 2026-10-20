@@ -10,11 +10,14 @@ const (
 )
 
 type publicChatStructuredEnvelope struct {
-	ControlError string                         `json:"controlError,omitempty"`
-	SchemaID     string                         `json:"schemaId"`
-	Message      publicChatStructuredMessage    `json:"message"`
-	StatusCue    *publicChatStructuredStatusCue `json:"statusCue,omitempty"`
-	Actions      []publicChatStructuredAction   `json:"actions"`
+	SelfIntentionRaw      string                         `json:"-"`
+	IntentionConfirmation string                         `json:"-"`
+	IntentionSuggested    bool                           `json:"-"`
+	ControlError          string                         `json:"controlError,omitempty"`
+	SchemaID              string                         `json:"schemaId"`
+	Message               publicChatStructuredMessage    `json:"message"`
+	StatusCue             *publicChatStructuredStatusCue `json:"statusCue,omitempty"`
+	Actions               []publicChatStructuredAction   `json:"actions"`
 }
 
 type publicChatStructuredMessage struct {

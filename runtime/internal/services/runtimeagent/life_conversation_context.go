@@ -28,6 +28,24 @@ func (s *Service) lifeConversationSelection(ref string) *lifeConversationRead {
 	return nil
 }
 
+func (s *Service) contactConversationInput(ref string) ([]agentTurnTranscriptPairInput, *lifeConversationRead, bool, error) {
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	for _, anchor := range s.chatAnchors {
+		if anchor.LocalAgentRef != ref || !conversationAnchorIsResumable(anchor.Status) {
+			continue
+		}
+		transcript, err := selectedCommittedTranscript(anchor)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		transcript = transcript[max(0, len(transcript)-publicChatRecentVerbatimTurnLimit):]
+		read := &lifeConversationRead{AnchorID: anchor.ConversationAnchorID, Revision: conversationContextRevision(anchor.ConversationContext), FirstSequence: anchor.ConversationContext.FirstTurnSequence}
+		return transcript, read, anchor.ConversationContext.OmitSupplementalContext, nil
+	}
+	return nil, nil, false, nil
+}
+
 func sourceConversationAllowed(source, selection *lifeConversationRead) bool {
 	return source == nil || selection != nil && source.AnchorID == selection.AnchorID && source.FirstSequence >= selection.FirstSequence
 }

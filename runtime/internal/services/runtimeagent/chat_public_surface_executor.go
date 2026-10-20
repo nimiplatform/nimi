@@ -105,6 +105,9 @@ func publicChatAPMLOutputContractPromptForRound(actions publicChatAvailableActio
 		imagePrompt,
 		followUpPrompt,
 	)
+	if !actions.TextOnly {
+		prompt += "\n" + selfIntentionPrompt
+	}
 	return prompt
 }
 

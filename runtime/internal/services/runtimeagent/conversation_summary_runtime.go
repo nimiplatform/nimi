@@ -542,7 +542,7 @@ func parsePublicChatConversationSummaryOutput(raw string) (string, error) {
 		return "", fmt.Errorf("conversation summary output invalid: message id must equal conversation-summary")
 	}
 	structured := interpreted.Envelope
-	if interpreted.CuePresent || len(structured.Actions) != 0 {
+	if interpreted.CuePresent || structured.IntentionSuggested || len(structured.Actions) != 0 {
 		return "", fmt.Errorf("conversation summary output invalid: status cues and actions are not admitted")
 	}
 	text := strings.TrimSpace(structured.Message.Text)

@@ -67,7 +67,10 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 ) (*agentTurnContextCompilation, error) {
 
 	instruction := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
-
+	if saved := r.svc.savedSelfIntention(session.ConversationAnchorID, turn.TurnID); saved != nil {
+		raw, _ := json.Marshal(saved)
+		instruction += "\nOriginal Runtime self-intention result: " + string(raw) + ". Restate this result truthfully without proposing or replaying a change."
+	}
 	if privateRecall != nil || session.ConversationContext.OmitSupplementalContext {
 		instruction = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
 	}

@@ -116,7 +116,7 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 	cueCount := map[string]int{}
 	cueInvalid := map[string]bool{}
 	cueValue := map[string]string{}
-	var messageClosed, hookSeen bool
+	var messageClosed, hookSeen, intentionSeen, confirmationSeen bool
 	var action *publicChatAPMLActionDraft
 	var hook *publicChatAPMLHookDraft
 	defer func() {
@@ -162,7 +162,10 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 		switch item := token.(type) {
 		case xml.StartElement:
 			name := item.Name.Local
-
+			if len(path) >= 2 && path[0] == "message" && (path[1] == "self-intention" || path[1] == "intention-confirmation") {
+				path = append(path, name)
+				continue
+			}
 			inCue := len(path) >= 2 && path[0] == "message" && (path[1] == "emotion" || path[1] == "activity")
 			if inCue {
 				cueInvalid[path[1]] = true
@@ -212,7 +215,9 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 						cueInvalid[name] = true
 					}
 					capture.Reset()
-
+				case name == "self-intention" || name == "intention-confirmation":
+					result.Envelope.IntentionSuggested = true
+					result.Envelope.ControlError = "self-intention must follow the closed message"
 				case name == "query":
 					if result.ResponseKind != "recall" {
 						result.QuerySeen = true
@@ -231,7 +236,17 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 				return fail(fmt.Errorf("APML private query must not have trailing controls"))
 			case parent == "":
 				switch name {
-
+				case "self-intention", "intention-confirmation":
+					result.Envelope.IntentionSuggested = true
+					if requirePublicChatAPMLAttrs(item, name) != nil || name == "self-intention" && intentionSeen || name == "intention-confirmation" && confirmationSeen {
+						return fail(fmt.Errorf("duplicate or malformed self-intention"))
+					}
+					if name == "self-intention" {
+						intentionSeen = true
+					} else {
+						confirmationSeen = true
+					}
+					capture.Reset()
 				case "action":
 					if requirePublicChatAPMLAttrs(item, name, "id", "kind") != nil || xmlAttr(item, "kind") != "image" {
 						return fail(fmt.Errorf("APML action must be an admitted image action"))
@@ -277,7 +292,9 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 			path = append(path, name)
 		case xml.CharData:
 			value := string(item)
-
+			if len(path) >= 2 && path[0] == "message" && (path[1] == "self-intention" || path[1] == "intention-confirmation") {
+				continue
+			}
 			switch parent {
 			case "message":
 				if result.ResponseKind != "reply" && strings.TrimSpace(value) != "" {
@@ -287,7 +304,7 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 					text.WriteString(value)
 				}
 			case "message/emotion", "message/activity", "message/query",
-				"action/prompt-payload/prompt-text", "time-hook/delay-ms":
+				"action/prompt-payload/prompt-text", "time-hook/delay-ms", "self-intention", "intention-confirmation":
 				capture.WriteString(value)
 			default:
 				if len(path) >= 2 && path[0] == "message" && (path[1] == "emotion" || path[1] == "activity") {
@@ -299,7 +316,10 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 			}
 		case xml.EndElement:
 			switch parent {
-
+			case "self-intention":
+				result.Envelope.SelfIntentionRaw = strings.TrimSpace(capture.String())
+			case "intention-confirmation":
+				result.Envelope.IntentionConfirmation = strings.TrimSpace(capture.String())
 			case "message":
 				messageClosed = true
 				result.BodyComplete = result.ResponseKind == "reply"

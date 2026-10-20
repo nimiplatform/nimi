@@ -466,7 +466,24 @@ func (r publicChatRuntime) runTurn(
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "The reply could not be completed. You can retry or send another message.", "")
 		return
 	}
-
+	if structured.IntentionSuggested && req.RetryOfTurnID == "" {
+		suggestion, invalid := decodeSelfIntention(structured.SelfIntentionRaw)
+		if structured.ControlError != "" || len([]rune(structured.IntentionConfirmation)) > 600 {
+			invalid = errors.New("invalid optional self-intention output")
+		}
+		outcome, intentionErr := r.svc.applySelfIntention(ctx, session, turn, req, suggestion, structured.IntentionConfirmation, invalid)
+		if intentionErr != nil && ctx.Err() != nil {
+			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(p *publicChatTurnProjectionState) {
+				p.Status = publicChatTurnStatusInterrupted
+				p.Message = "user_cancel"
+			})
+			r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, "user_cancel")
+			return
+		}
+		if outcome != nil && outcome.Accepted && outcome.Confirmation != "" {
+			structured.Message.Text += "\n\n" + outcome.Confirmation
+		}
+	}
 	assignPublicChatOutputIdentities(structured, turn.TurnID)
 	if turn.RetryOfTurnID != "" && len(structured.Actions) != 0 {
 		structured.Actions = nil
