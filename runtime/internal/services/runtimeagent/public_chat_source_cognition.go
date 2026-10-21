@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strings"
 	"unicode/utf8"
@@ -66,7 +67,7 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 		cognitionservice.AgentSourceQuery{Text: query, PartitionIdentity: source.Partition.PartitionHash, UnitCount: source.Partition.UnitCount, OmissionCount: source.Partition.OmissionCount, ExactSourceRefs: selections, Limit: publicChatSourceCognitionCandidateLimit},
 	)
 	if err != nil {
-		if ctx.Err() != nil {
+		if ctx.Err() != nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 			return agentTurnCognitionInput{AdapterStatus: "unavailable", SelectionStatus: "unavailable"}
 		}
 		r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, true)

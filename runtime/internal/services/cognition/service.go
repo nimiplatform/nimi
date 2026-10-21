@@ -223,53 +223,6 @@ func projectAgentSourceOutcome(out nimicognition.RuntimeSourceOutcome) AgentSour
 	}
 }
 
-func (s *Service) searchAgentSourceSemantics(ctx context.Context, accountID, localAgentRef, scopeID, snapshotIdentity, query string, limit int) (AgentSourceOutcome, error) {
-	if s == nil || s.sourceBridge == nil {
-		return AgentSourceOutcome{Status: "unavailable", ScopeID: scopeID, SnapshotIdentity: snapshotIdentity}, nil
-	}
-	auth := agentSourceAuthorization(accountID, scopeID, nimicognition.RuntimeAuthorizationActionSearchAgentSource, nimicognition.RuntimeBridgeOperationSearchAgentSource)
-	state, err := s.sourceBridge.InspectAgentSource(ctx, auth, scopeID, snapshotIdentity)
-	if err != nil {
-		return AgentSourceOutcome{}, err
-	}
-	if state.Status != "ready" {
-		return projectAgentSourceOutcome(state), nil
-	}
-	executor := s.agentSourceExecutor()
-	if executor == nil {
-		out := projectAgentSourceOutcome(state)
-		out.Status = "unconfigured"
-		return out, nil
-	}
-	execution, executionErr := executor(ctx, accountID, localAgentRef, []string{query}, "retrieval-query")
-	execution.Status = normalizeAgentSourceEmbeddingStatus(execution.Status)
-	if executionErr != nil && execution.Status == "ready" {
-		execution.Status = "failure"
-	}
-	if execution.Status == "ready" && len(execution.Vectors) != 1 {
-		execution.Status = "failure"
-	}
-	if executionErr != nil || execution.Status != "ready" || len(execution.Vectors) != 1 {
-		if s.logger != nil {
-			s.logger.Warn("source Cognition query embedding did not reach ready", "status", execution.Status, "error", executionErr)
-		}
-		out := projectAgentSourceOutcome(state)
-		out.Status = execution.Status
-		return out, nil
-	}
-	auth = agentSourceAuthorization(accountID, scopeID, nimicognition.RuntimeAuthorizationActionSearchAgentSource, nimicognition.RuntimeBridgeOperationSearchAgentSource)
-	out, err := s.sourceBridge.SearchAgentSource(ctx, auth, scopeID, snapshotIdentity, execution.Identity, query, execution.Vectors[0], limit)
-	if err != nil {
-		return AgentSourceOutcome{}, err
-	}
-	result := projectAgentSourceOutcome(out)
-	result.Units = make([]AgentSourceUnit, 0, len(out.Units))
-	for _, unit := range out.Units {
-		result.Units = append(result.Units, projectAgentSourceUnit(unit))
-	}
-	return result, nil
-}
-
 func (s *Service) InspectAgentSource(ctx context.Context, accountID, scopeID, snapshotIdentity string) (AgentSourceOutcome, error) {
 	if s == nil || s.sourceBridge == nil {
 		return AgentSourceOutcome{Status: "unavailable"}, nil

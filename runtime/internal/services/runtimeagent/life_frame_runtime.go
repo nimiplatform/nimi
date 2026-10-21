@@ -256,9 +256,10 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	if s.cognitionMemoryFacade != nil && !omitSupplemental {
 		query := entry.Agent.GetDisplayName() + " ongoing activities interests"
 		query += " " + input.Context.RecallQuery
-		optional, cancel := context.WithTimeout(ctx, publicChatOptionalContextBudget)
-		recalled, recallErr := s.cognitionMemoryFacade.Recall(optional, cognitionmemory.RecallIntent{IncludeRecentLife: true, LocalAgentRef: ref, Query: query, Limit: 8})
-		cancel()
+		// Solitary work already has one cancelable 90s owner budget, including
+		// model loading. Do not apply the foreground's index-only wait window
+		// to embedding execution and repeatedly abort a cold model.
+		recalled, recallErr := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{IncludeRecentLife: true, LocalAgentRef: ref, Query: query, Limit: 8})
 		if recallErr == nil {
 			input.Memory, err = publicChatCognitionMemoryInputs(recalled.Hits)
 			if err != nil {

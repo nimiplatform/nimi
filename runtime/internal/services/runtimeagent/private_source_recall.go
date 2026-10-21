@@ -20,7 +20,8 @@ import (
 
 const publicChatPrivateSourceRecallMaxQueryRunes = 512
 
-// One shared wait budget per optional context phase; never the model timeout.
+// Optional Memory index work; source Cognition separately budgets index reads
+// around its captured embedding Job. Neither budget is a model-load timeout.
 const publicChatOptionalContextBudget = 750 * time.Millisecond
 
 type publicChatPrivateSourceRecallRequest struct {
@@ -153,8 +154,6 @@ func agentTurnPrivateRecallMemoryCount(input *agentTurnPrivateRecallInput) int {
 }
 
 func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Context, session publicChatAnchorState, query string) *agentTurnPrivateRecallInput {
-	ctx, cancel := context.WithTimeout(ctx, publicChatOptionalContextBudget)
-	defer cancel()
 	result := &agentTurnPrivateRecallInput{Query: strings.TrimSpace(query), Status: "unavailable"}
 	if r.svc == nil {
 		return result
@@ -195,7 +194,9 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 	}
 	memoryStatus := "unavailable"
 	if r.svc.cognitionMemoryFacade != nil {
-		memoryResult, err := r.svc.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: session.LocalAgentRef, Query: result.Query, Limit: 4})
+		memoryCtx, cancelMemory := context.WithTimeout(ctx, publicChatOptionalContextBudget)
+		memoryResult, err := r.svc.cognitionMemoryFacade.Recall(memoryCtx, cognitionmemory.RecallIntent{NoModelWork: true, LocalAgentRef: session.LocalAgentRef, Query: result.Query, Limit: 4})
+		cancelMemory()
 		if err == nil {
 			memoryStatus = string(memoryResult.Outcome)
 			if memoryResult.Outcome == memoryv1.OutcomeReady {

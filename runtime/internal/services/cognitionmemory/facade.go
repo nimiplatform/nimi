@@ -28,6 +28,9 @@ type Facade struct {
 }
 
 type RecallIntent struct {
+	// NoModelWork admits only local indexes for a latency-bounded optional
+	// phase. Cognition still selects and binds its pipeline before execution.
+	NoModelWork       bool
 	IncludeRecentLife bool
 	LocalAgentRef     string
 	OperationID       string
@@ -158,9 +161,13 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 	if err := f.authorize(ctx, binding); err != nil {
 		return RecallOutcome{Outcome: memoryv1.OutcomeInvalid}, err
 	}
-	snapshot, port, err := f.capabilities(ctx, binding)
-	if err != nil {
-		return RecallOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+	snapshot := memoryv1.CapabilitySnapshot{Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}
+	var port memoryv1.EmbeddingPort
+	if !intent.NoModelWork {
+		snapshot, port, err = f.capabilities(ctx, binding)
+		if err != nil {
+			return RecallOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+		}
 	}
 	operationID := intent.OperationID
 	if operationID == "" {

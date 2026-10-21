@@ -522,6 +522,13 @@ func TestSourceCognitionSearchFailureSchedulesSnapshotOnlyReplay(t *testing.T) {
 	if bridge.ingestedSnapshot != snapshot.SnapshotHash || bridge.ingestedPartition != snapshot.Partition.PartitionHash {
 		t.Fatalf("query recovery replay binding = %#v", bridge)
 	}
+	bridge.searchErr = fmt.Errorf("index read budget: %w", context.DeadlineExceeded)
+	before := bridge.ingestCalls
+	result = runtime.retrievePublicChatSourceCognition(context.Background(), publicChatAnchorState{OwnerUserID: "owner-1", LocalAgentRef: snapshot.LocalAgentRef}, source, agentTurnCurrentUserInput{Text: "bounded lookup"}, nil, nil, nil, publicChatAvailableActions{})
+	svc.sourceCognitionWG.Wait()
+	if result.AdapterStatus != "unavailable" || bridge.ingestCalls != before {
+		t.Fatalf("query budget expiry rebuilt a valid source generation: %+v calls=%d", result, bridge.ingestCalls)
+	}
 }
 
 func TestSourceCognitionGenerationCountMismatchForcesSnapshotReplay(t *testing.T) {

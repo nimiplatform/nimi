@@ -176,7 +176,7 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 	}
 	cognition := agentTurnCognitionInput{AdapterStatus: "not_requested", SelectionStatus: "not_requested"}
 	if !session.ConversationContext.OmitSupplementalContext {
-		cognition = r.retrievePublicChatSourceCognition(optionalCtx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
+		cognition = r.retrievePublicChatSourceCognition(ctx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
 	}
 	catalogDigest, err := hashSourceMaterializationDomainJCS(publicChatCatalogRevisionHashDomain, struct {
 		CatalogRevision string `json:"catalogRevision"`
