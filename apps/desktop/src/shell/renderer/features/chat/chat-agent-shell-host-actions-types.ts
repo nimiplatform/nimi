@@ -24,6 +24,8 @@ export type UseAgentConversationHostActionsInput = {
   submissionPersistence?: Pick<ReturnType<typeof import('@nimiplatform/kit/features/chat/headless').useAgentComposerPersistence>, 'prepare' | 'acknowledge'>;
   currentComposerTextRef: { current: string; readonly revision?: number };
   pendingAttachments?: readonly PendingAttachment[];
+  bindAttachments?: (requestId: string, submitted: readonly PendingAttachment[]) => void;
+  acknowledgeAttachments?: (requestId: string) => void;
   queryClient: QueryClient;
   reportHostError: import('./chat-agent-shell-adapter-host-feedback').ReportAgentConversationHostError;
   selectedAgentHandle: string | null;

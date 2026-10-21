@@ -157,7 +157,7 @@ export function materializeCanonicalConversationBundle(input: {
     const transient = input.projection.transientByTurn[turn.turnId];
     if (turn.origin !== 'user' && turn.origin !== 'app' && !transient?.text?.trim()) continue;
     if (messages.some(message => message.role === 'assistant' && message.kind === 'text' && message.metadataJson?.canonicalTurnId === turn.turnId)) continue;
-    if (!transient && !turn.inputTurnId && input.projection.state.textTurnId !== turn.turnId) continue;
+    if (!transient && !turn.inputTurnId && input.projection.state.textTurnId !== turn.turnId && turn.origin !== 'app') continue;
     if (turn.status === 'completed') continue;
     const placeholder = {
       ...baseMessage({

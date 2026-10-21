@@ -107,3 +107,10 @@ Pass the current reference name/avatar, locale, and controlled-draft prefill cal
 pnpm --filter @nimiplatform/kit test
 pnpm check:nimi-kit
 ```
+
+
+`LocalAppConversationSubmissionRecovery` exposes optional `onAdmitted(submission)`
+for an App's draft owner to consume attachments associated with the original
+request. It runs only after admission is confirmed, before `acknowledge` removes
+the saved submission. `onResolved` remains a view refresh callback. Neither
+callback authorizes clearing unrelated or newly selected attachments.

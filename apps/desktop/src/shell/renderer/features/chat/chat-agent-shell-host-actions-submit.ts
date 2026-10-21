@@ -54,6 +54,7 @@ export async function submitAgentConversationTurn(input: {
     };
     await host.submissionPersistence.prepare(submission);
     preparedRequestId = requestId;
+    host.bindAttachments?.(requestId, input.payload.attachments);
     if (input.payload.canUpdateDraft?.() !== false) host.currentComposerTextRef.current = '';
     const admitted = await reconcileAgentSubmission({
       conversation, submission,
@@ -62,6 +63,7 @@ export async function submitAgentConversationTurn(input: {
       isCurrent: () => input.submittingLockTokenRef.current === token,
     });
     if (!admitted) return;
+    host.acknowledgeAttachments?.(requestId);
     void host.submissionPersistence.acknowledge(requestId);
     host.setFooterHostState(context.thread.id, null);
   } catch (error) {

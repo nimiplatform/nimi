@@ -23,6 +23,8 @@ type UiSlice = Pick<AppStoreState,
   | 'pendingAgentComposerPrefill'
   | 'agentComposerPrefillSerial'
   | 'agentComposerDrafts'
+  | 'agentComposerAttachments'
+  | 'setAgentComposerAttachments'
   | 'pendingNimiComposerPrefill'
   | 'chatSetupState'
   | 'profileDetailOverlayOpen'
@@ -66,6 +68,7 @@ export function createUiSlice(
     pendingNimiComposerPrefill: null,
     agentComposerPrefillSerial: 0,
     agentComposerDrafts: {},
+    agentComposerAttachments: {},
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     profileDetailOverlayOpen: false,
     primaryRailVisible: true,
@@ -151,6 +154,16 @@ export function createUiSlice(
         const { [key]: _previous, ...rest } = state.agentComposerDrafts;
         return { agentComposerDrafts: text ? { ...rest, [key]: text } : rest };
       }),
+    setAgentComposerAttachments: (accountId, threadId, attachments) => set(state => {
+      const key = agentComposerDraftKey(accountId, threadId);
+      if (!key) return {};
+      const nextUrls = new Set(attachments.map(item => item.previewUrl));
+      for (const item of state.agentComposerAttachments[key] ?? []) {
+        if (!nextUrls.has(item.previewUrl)) URL.revokeObjectURL(item.previewUrl);
+      }
+      const { [key]: _previous, ...rest } = state.agentComposerAttachments;
+      return { agentComposerAttachments: attachments.length ? { ...rest, [key]: [...attachments] } : rest };
+    }),
     setPendingNimiComposerPrefill: (input) =>
       set((state) => {
         const text = String(input || '').trim();

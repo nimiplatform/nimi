@@ -80,6 +80,16 @@ test('unsent proactive failures do not create empty error bubbles; App replies r
   }
 });
 
+test('an empty terminal App failure remains visible after the active turn is released', () => {
+  const value: NimiLocalAppConversationSnapshot = {
+    ...snapshot(), messages: [], actions: [], voices: [],
+    turns: [{ ...snapshot().turns[0]!, origin: 'app', status: 'failed', phase: null, terminalReason: 'error', reasonCode: 'AI_STREAM_BROKEN' }],
+  };
+  const result = materializeCanonicalConversationBundle({ thread: thread(), projection: seedCanonicalConversationProjection(value), nowMs: 1 });
+  assert.equal(result.messages.length, 1);
+  assert.equal(result.messages[0]?.metadataJson?.canonicalFailureReasonCode, 'AI_STREAM_BROKEN');
+});
+
 test('canonical projection uses snapshot sequence as a monotonic barrier', () => {
   const seeded = seedCanonicalConversationProjection(snapshot());
   const stale = reduceCanonicalConversationEvent(seeded, {

@@ -1,53 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
+import { useCallback } from 'react';
+import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store.js';
+import { agentComposerDraftKey, bindAgentComposerAttachments, acknowledgeAgentComposerAttachments } from './chat-agent-composer-draft.js';
+import type { PendingAttachment } from '../turns/turn-input-attachments.js';
 
-export function useAgentConversationPendingAttachments(activeThreadId: string | null) {
-  const [pendingAttachmentsByThreadId, setPendingAttachmentsByThreadId] = useState<Record<string, readonly PendingAttachment[]>>({});
-  const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
-
-  useEffect(() => {
-    pendingAttachmentsByThreadRef.current = pendingAttachmentsByThreadId;
-  }, [pendingAttachmentsByThreadId]);
-
-  useEffect(() => () => {
-    for (const attachments of Object.values(pendingAttachmentsByThreadRef.current)) {
-      clearPendingAttachments([...attachments], (url) => URL.revokeObjectURL(url));
-    }
-  }, []);
-
-  const activePendingAttachments = activeThreadId
-    ? (pendingAttachmentsByThreadId[activeThreadId] || [])
-    : [];
-
-  const setPendingAttachmentsForThread = useCallback((threadId: string | null, nextAttachments: readonly PendingAttachment[]) => {
-    const normalizedThreadId = typeof threadId === 'string' ? threadId.trim() : '';
-    if (!normalizedThreadId) {
-      return;
-    }
-    setPendingAttachmentsByThreadId((current) => {
-      const existing = current[normalizedThreadId] || [];
-      const nextUrlSet = new Set(nextAttachments.map((attachment) => attachment.previewUrl));
-      for (const attachment of existing) {
-        if (!nextUrlSet.has(attachment.previewUrl)) {
-          URL.revokeObjectURL(attachment.previewUrl);
-        }
-      }
-      if (nextAttachments.length === 0) {
-        if (!(normalizedThreadId in current)) {
-          return current;
-        }
-        const { [normalizedThreadId]: _removed, ...rest } = current;
-        return rest;
-      }
-      return {
-        ...current,
-        [normalizedThreadId]: [...nextAttachments],
-      };
-    });
-  }, []);
-
-  return {
-    activePendingAttachments,
-    setPendingAttachmentsForThread,
-  };
+// Pending Files stay in the existing shell store across management navigation.
+// They are account/Conversation scoped and never persisted to disk.
+export function useAgentConversationPendingAttachments(accountId: string, activeThreadId: string | null) {
+  const store = useAppStoreApi();
+  const drafts = useAppStore(state => state.agentComposerAttachments);
+  const setAttachments = useAppStore(state => state.setAgentComposerAttachments);
+  const key = agentComposerDraftKey(accountId, activeThreadId ?? '');
+  const setPendingAttachmentsForThread = useCallback((threadId: string | null, next: readonly PendingAttachment[]) => {
+    if (threadId) setAttachments(accountId, threadId, next);
+  }, [accountId, setAttachments]);
+  const bindAttachments = useCallback((requestId: string, submitted: readonly PendingAttachment[]) => {
+    if (activeThreadId) bindAgentComposerAttachments(store, accountId, activeThreadId, requestId, submitted);
+  }, [store, accountId, activeThreadId]);
+  const acknowledgeAttachments = useCallback((requestId: string) => {
+    if (activeThreadId) acknowledgeAgentComposerAttachments(store, accountId, activeThreadId, requestId);
+  }, [store, accountId, activeThreadId]);
+  return { activePendingAttachments: key ? drafts[key] ?? [] : [], setPendingAttachmentsForThread, bindAttachments, acknowledgeAttachments };
 }

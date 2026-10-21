@@ -469,7 +469,7 @@ export function useAgentConversationModeHost(
     }
   ), [activeTarget, activeConversationAnchorId, bindings.sdk, reportRuntimeProductError, developerModeEnabled, input.onOpenAgentCenter, submittingThreadId, t]);
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
-  const { activePendingAttachments, setPendingAttachmentsForThread } = useAgentConversationPendingAttachments(activeThreadId);
+  const { activePendingAttachments, setPendingAttachmentsForThread, bindAttachments, acknowledgeAttachments } = useAgentConversationPendingAttachments(accountId, activeThreadId);
   const textMaxOutputTokensRequested = behaviorSettings.maxOutputTokensOverride;
   const { ensureConversationAnchor, handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
     now: bindings.clock.now,
@@ -481,6 +481,8 @@ export function useAgentConversationModeHost(
     bundle,
     currentComposerTextRef,
     pendingAttachments: activePendingAttachments,
+    bindAttachments,
+    acknowledgeAttachments,
     queryClient,
     reportHostError: reportRuntimeProductError,
     submissionPersistence: draftPersistence,
@@ -631,6 +633,7 @@ export function useAgentConversationModeHost(
         agentHandle={draftAgentHandle}
         conversation={() => bindings.sdk.conversation()}
         acknowledge={draftPersistence.acknowledge}
+        onAdmitted={submission => acknowledgeAttachments(submission.requestId)}
         onResolved={history.retry}
         onOpenAgentCenter={input.onOpenAgentCenter}
         onRestore={text => {
@@ -654,5 +657,5 @@ export function useAgentConversationModeHost(
       </div>
       </div>
     </div>,
-  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
+  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, acknowledgeAttachments, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
 }

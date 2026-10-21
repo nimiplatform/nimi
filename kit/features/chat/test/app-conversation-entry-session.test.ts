@@ -250,6 +250,20 @@ describe('App Conversation entry session', () => {
     expect(testHarness.calls.filter(call => call.method === 'send')).toHaveLength(2);
     await testHarness.session.dispose();
   });
+
+  it('keeps the last user recovery when a later empty background attempt fails', async () => {
+    const testHarness = harness();
+    await readySession(testHarness);
+    const accepted = await testHarness.session.send({ requestId: 'user-failed', parts: [{ kind: 'text', text: 'my draft' }] });
+    testHarness.queue.push({ type: 'turn-accepted', requestId: null, origin: 'user', conversationAnchorId: 'anchor-a', sequence: '3', turnId: accepted.turnId });
+    testHarness.queue.push({ type: 'turn-failed', conversationAnchorId: 'anchor-a', sequence: '4', turnId: accepted.turnId, reasonCode: 'AI_STREAM_BROKEN', message: null });
+    await vi.waitFor(() => expect(testHarness.session.getState().lastTurnFailure?.turnId).toBe(accepted.turnId));
+    testHarness.queue.push({ type: 'turn-accepted', requestId: null, origin: 'contact', conversationAnchorId: 'anchor-a', sequence: '5', turnId: 'background' });
+    testHarness.queue.push({ type: 'turn-failed', conversationAnchorId: 'anchor-a', sequence: '6', turnId: 'background', reasonCode: 'AGENT_DAILY_BUDGET_EXCEEDED', message: null });
+    await vi.waitFor(() => expect(testHarness.session.getState().throughSequence).toBe('6'));
+    expect(testHarness.session.getState().lastTurnFailure?.turnId).toBe(accepted.turnId);
+    await testHarness.session.dispose();
+  });
   it('requires an explicit handle selection and fences buffered events against a subscribe-before-snapshot high-water', async () => {
     const snapshotGate = deferred<NimiLocalAppConversationSnapshot>();
     const testHarness = harness({ snapshot: () => snapshotGate.promise });

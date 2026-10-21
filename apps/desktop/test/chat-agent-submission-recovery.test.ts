@@ -30,10 +30,19 @@ test('recovery highlights one continuation and keeps read-only inspection separa
   await initI18n(); await changeLocale('en');
   const node=dom.window.document.createElement('div') as HTMLDivElement;dom.window.document.body.append(node);const root=createRoot(node);
   const sent:unknown[]=[];const acknowledged:string[]=[];let snapshots=0;let resolved=0;
-  const submission={requestId:'same-send',conversationAnchorId:'anchor',text:'Question kept here',artifactIds:[]};
-  const conversation={snapshot:async()=>{snapshots++;return {turns:[]};},send:async(value:unknown)=>{sent.push(value);return {turnId:'accepted'};}};
+  const submission={requestId:'same-send',conversationAnchorId:'anchor',text:'Question kept here',artifactIds:['original-image']};
+  const conversation={snapshot:async()=>{snapshots++;return {turns:[]};},send:async(value:unknown)=>{sent.push(value);if(sent.length===1)throw new Error('receipt unknown');return {turnId:'accepted'};}};
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const { bindAgentComposerAttachments, acknowledgeAgentComposerAttachments } = await import('../src/shell/renderer/features/chat/chat-agent-composer-draft.js');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  const image = (name:string) => { const file=new File(['image'],name,{type:'image/png'}); return {file,name,kind:'image' as const,previewUrl:URL.createObjectURL(file)}; };
+  const original=image('original.png'), later=image('later.png');
+  const key='account\u0000thread';
+  store.getState().setAgentComposerAttachments('account','thread',[original]);
+  bindAgentComposerAttachments(store,'account','thread',submission.requestId,[original]);
+  let admissions=0;
   try {
-    await React.act(async()=>root.render(React.createElement(AgentSubmissionRecovery,{submission,agentHandle:'handle',conversation:()=>conversation as never,acknowledge:async id=>{acknowledged.push(id);},onResolved:()=>{resolved++;},onRestore:()=>{throw new Error('must not turn recovery into a new message');}})));
+    await React.act(async()=>root.render(React.createElement(AgentSubmissionRecovery,{submission,agentHandle:'handle',conversation:()=>conversation as never,acknowledge:async id=>{assert.equal(admissions,1);acknowledged.push(id);},onAdmitted:admitted=>{admissions++;acknowledgeAgentComposerAttachments(store,'account','thread',admitted.requestId);},onResolved:()=>{resolved++;},onRestore:()=>{throw new Error('must not turn recovery into a new message');}})));
     assert.equal(sent.length,0);assert.equal(snapshots,0);
     const button=(label:string)=>Array.from(node.querySelectorAll('button')).find(el=>el.textContent===label)!;
     const primary=button('Continue last send');assert.ok(primary);assert.equal(primary.closest('details'),null);
@@ -41,12 +50,15 @@ test('recovery highlights one continuation and keeps read-only inspection separa
     assert.doesNotMatch(node.textContent||'',/request ID|submission copy/);
     alternatives.open=true;
     await React.act(async()=>{button('View conversation only').click();await new Promise(r=>setImmediate(r));});
-    assert.equal(snapshots,1);assert.equal(sent.length,0);
+    assert.equal(snapshots,1);assert.equal(sent.length,0);assert.equal(admissions,0);
+    store.getState().setAgentComposerAttachments('account','thread',[...store.getState().agentComposerAttachments[key]!,later]);
     await React.act(async()=>{primary.click();await new Promise(r=>setImmediate(r));});
-    assert.equal(sent.length,1);assert.equal((sent[0] as {requestId:string}).requestId,submission.requestId);
-    assert.equal(snapshots,1);assert.deepEqual(acknowledged,[submission.requestId]);assert.equal(resolved,1);
+    assert.equal(sent.length,1);assert.equal(admissions,0);assert.equal(store.getState().agentComposerAttachments[key]?.length,2);
+    await React.act(async()=>{primary.click();await new Promise(r=>setImmediate(r));});
+    assert.equal(sent.length,2);assert.equal((sent[0] as {requestId:string}).requestId,submission.requestId);
+    assert.equal(snapshots,1);assert.deepEqual(acknowledged,[submission.requestId]);assert.equal(resolved,1);assert.equal(admissions,1);assert.deepEqual(store.getState().agentComposerAttachments[key]?.map(item=>item.name),['later.png']);
   } finally {
-    await React.act(async()=>root.unmount());dom.window.close();
+    store.getState().clearAuthSession();await React.act(async()=>root.unmount());dom.window.close();
     for(const [key,descriptor] of Object.entries(previous)){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else Reflect.deleteProperty(globalThis,key);}
   }
 });

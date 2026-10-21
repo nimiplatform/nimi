@@ -229,3 +229,42 @@ test('regeneration reaches Runtime with the same recoverable ID despite Home wri
   assert.equal(h.pending()?.requestId,(h.sent[0] as {requestId:string}).requestId);
   assert.equal(h.pending()?.retryOfTurnId,'failed-attempt');
 });
+
+
+test('image admission clears its original attachment after navigation, but rejection keeps it', async () => {
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const { bindAgentComposerAttachments, acknowledgeAgentComposerAttachments } = await import('../src/shell/renderer/features/chat/chat-agent-composer-draft.js');
+  const { readFileSync } = await import('node:fs');
+  for (const rejected of [false, true]) {
+    const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+    const file = new File([readFileSync(new URL('../src/shell/renderer/assets/logo.png', import.meta.url))], 'logo.png', { type: 'image/png' });
+    const attachment = { kind: 'image' as const, file, name: file.name, previewUrl: URL.createObjectURL(file) };
+    store.getState().setAgentComposerAttachments('account', 'thread-a', [attachment]);
+    const entered = deferred(), receipt = deferred();
+    const queryClient = new QueryClient();
+    const conversation = {
+      open: async () => ({ conversationAnchorId: 'anchor-1' }),
+      uploadAttachment: async () => ({ artifactId: 'uploaded-image' }),
+      send: async () => { entered.resolve(); await receipt.promise; if (rejected) throw new Error('rejected'); return { turnId: 'accepted' }; },
+    };
+    let mounted = true;
+    const sending = submitAgentConversationTurn({
+      hostInput: { now: Date.now, sdk: { conversation: () => conversation }, activeTarget: TARGET,
+        activeThreadId: 'thread-a', selectedThreadRecord: null, currentComposerTextRef: { current: 'image' },
+        queryClient, syncSelectionToThread() {}, setSubmittingThreadId() {}, setFooterHostState() {}, reportHostError() {},
+        submissionPersistence: { prepare: async () => {}, acknowledge: async () => {} }, t: (key: string) => key,
+        bindAttachments: (requestId: string, items: readonly typeof attachment[]) => bindAgentComposerAttachments(store, 'account', 'thread-a', requestId, items),
+        acknowledgeAttachments: (requestId: string) => acknowledgeAgentComposerAttachments(store, 'account', 'thread-a', requestId),
+      } as never,
+      payload: { text: 'image', attachments: [attachment], canUpdateDraft: () => mounted },
+      submittingLockTokenRef: { current: 0 },
+    });
+    const outcome = sending.then(() => null, error => error);
+    await entered.promise;
+    mounted = false; // The actual asynchronous receipt outlives its composer.
+    receipt.resolve();
+    assert.equal(Boolean(await outcome), rejected);
+    assert.equal(store.getState().agentComposerAttachments['account\u0000thread-a']?.length ?? 0, rejected ? 1 : 0);
+    store.getState().clearAuthSession(); queryClient.clear();
+  }
+});

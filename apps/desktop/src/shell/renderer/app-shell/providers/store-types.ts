@@ -102,6 +102,8 @@ export type AppStoreState = {
    * changes and a temporary Runtime/account outage; ending the session clears it.
    */
   agentComposerDrafts: Readonly<Record<string, string>>;
+  agentComposerAttachments: Readonly<Record<string, readonly import('../../features/turns/turn-input-attachments.js').PendingAttachment[]>>;
+  setAgentComposerAttachments: (accountId: string, threadId: string, attachments: readonly import('../../features/turns/turn-input-attachments.js').PendingAttachment[]) => void;
   /** Text typed on Home that Nimi Chat opens a new conversation with. */
   pendingNimiComposerPrefill: { text: string; requestId: number } | null;
   chatSetupState: ChatSetupStateByMode;

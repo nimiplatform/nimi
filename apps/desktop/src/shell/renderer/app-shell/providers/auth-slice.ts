@@ -17,6 +17,13 @@ function accountIdOf(user: Record<string, unknown> | null): string {
   return typeof user?.id === 'string' ? user.id : '';
 }
 
+function releaseAttachmentDrafts(state: AppStoreState) {
+  for (const items of Object.values(state.agentComposerAttachments)) {
+    for (const item of items) URL.revokeObjectURL(item.previewUrl);
+  }
+  return { agentComposerAttachments: {} };
+}
+
 export function createAuthSlice(set: AppStoreSet): AuthSlice {
   return {
     suspendedAgentSelection: null,
@@ -67,7 +74,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         }
         const suspended = state.suspendedAgentSelection;
         if (projection.status === 'authenticated' && suspended) {
-          if (suspended.accountId !== accountIdOf(projection.user)) return { auth, suspendedAgentSelection: null };
+          if (suspended.accountId !== accountIdOf(projection.user)) return { auth, suspendedAgentSelection: null, ...releaseAttachmentDrafts(state) };
           return {
             auth,
             suspendedAgentSelection: null,
@@ -75,10 +82,10 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           };
         }
         if (projection.status === 'anonymous' || projection.status === 'switching') {
-          return { auth, suspendedAgentSelection: null, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null };
+          return { auth, suspendedAgentSelection: null, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null, ...releaseAttachmentDrafts(state) };
         }
         if (projection.status === 'authenticated' && accountIdOf(state.auth.user) && accountIdOf(state.auth.user) !== accountIdOf(projection.user)) {
-          return { auth, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null };
+          return { auth, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null, ...releaseAttachmentDrafts(state) };
         }
         return { auth };
       }),
@@ -113,6 +120,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         },
         agentConversationTargetByHandle: {},
         agentComposerDrafts: {},
+        ...releaseAttachmentDrafts(state),
         chatSetupState: {
           ...state.chatSetupState,
           human: null,

@@ -8,6 +8,7 @@ import { Button } from '@nimiplatform/kit/ui';
 import { extractNimiErrorFields } from '@nimiplatform/kit/core/sdk-contract';
 import type { AgentPendingSubmission } from '@nimiplatform/kit/features/chat/headless';
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-061
 export function LocalAppConversationSubmissionRecovery(props: {
   translate: (key: string, values?: Record<string, string | number>) => string;
   describeError?: (reasonCode: string) => string | null;
@@ -16,6 +17,8 @@ export function LocalAppConversationSubmissionRecovery(props: {
   agentHandle: string;
   conversation: () => NimiLocalAppConversationClient;
   acknowledge: (requestId: string) => Promise<void>;
+  /** Owner cleanup for confirmed admission, before the saved copy disappears. */
+  onAdmitted?: (submission: AgentPendingSubmission) => void;
   onResolved: () => void;
   onRestore: (text: string) => void;
   onOpenAgentCenter?: () => void;
@@ -49,6 +52,7 @@ export function LocalAppConversationSubmissionRecovery(props: {
       });
       if (!current()) return;
       if (resolved) {
+        props.onAdmitted?.(props.submission);
         await props.acknowledge(props.submission.requestId);
         if (current()) props.onResolved();
       } else setState('unknown');

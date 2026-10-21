@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
-import { createAgentComposerDraftRef } from '../src/shell/renderer/features/chat/chat-agent-composer-draft.js';
+import { createAgentComposerDraftRef, bindAgentComposerAttachments, acknowledgeAgentComposerAttachments } from '../src/shell/renderer/features/chat/chat-agent-composer-draft.js';
 import {
   isAgentTurnAdmitted,
   streamChatAgentRuntimeAgentTurn,
@@ -11,6 +11,22 @@ import {
 function createStore() {
   return createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
 }
+
+test('pending attachments survive management navigation and are cleared at account logout', () => {
+  const store = createStore();
+  project(store, 'authenticated', 'account-1');
+  const file = new File(['draft'], 'draft.png', { type: 'image/png' });
+  const attachment = { file, kind: 'image' as const, previewUrl: URL.createObjectURL(file), name: file.name, mimeType: file.type, size: file.size };
+  store.getState().setAgentComposerAttachments('account-1', 'thread-a', [attachment]);
+  store.getState().setAgentComposerAttachments('account-1', 'thread-b', []);
+  assert.equal(store.getState().agentComposerAttachments['account-1\u0000thread-a']?.[0]?.file, file);
+  assert.equal(store.getState().agentComposerAttachments['account-2\u0000thread-a'], undefined);
+  project(store, 'unavailable', null);
+  project(store, 'authenticated', 'account-1');
+  assert.equal(store.getState().agentComposerAttachments['account-1\u0000thread-a']?.[0]?.file, file);
+  store.getState().clearAuthSession();
+  assert.deepEqual(store.getState().agentComposerAttachments, {});
+});
 
 function project(store: ReturnType<typeof createStore>, status: 'authenticated' | 'unavailable', accountId: string | null) {
   store.getState().applyRuntimeAccountProjection({
@@ -105,4 +121,28 @@ test('a turn counts as sent only once Runtime accepted it', async () => {
   assert.equal(isAgentTurnAdmitted(running.signal), true);
   running.abort();
   await pending;
+});
+
+
+test('a late receipt consumes only its submitted attachment and never newer drafts', () => {
+  const store = createStore();
+  const make = (name: string) => {
+    const file = new File(['draft'], name, { type: 'image/png' });
+    return { file, kind: 'image' as const, previewUrl: URL.createObjectURL(file), name };
+  };
+  const sent = make('sent.png'), later = make('later.png');
+  const acknowledge = () => acknowledgeAgentComposerAttachments(store, 'account-1', 'thread-a', 'sent-request');
+  store.getState().setAgentComposerAttachments('account-1', 'thread-a', [sent]);
+  bindAgentComposerAttachments(store, 'account-1', 'thread-a', 'sent-request', [sent]);
+  // The original route has left; its callback still addresses the same owner.
+  store.getState().setAgentComposerAttachments('account-1', 'thread-b', [later]);
+  acknowledge();
+  assert.equal(store.getState().agentComposerAttachments['account-1\u0000thread-a'], undefined);
+  assert.equal(store.getState().agentComposerAttachments['account-1\u0000thread-b']?.[0], later);
+  store.getState().setAgentComposerAttachments('account-1', 'thread-a', [later]);
+  acknowledge();
+  assert.equal(store.getState().agentComposerAttachments['account-1\u0000thread-a']?.[0], later);
+  store.getState().clearAuthSession();
+  acknowledge();
+  assert.deepEqual(store.getState().agentComposerAttachments, {});
 });
