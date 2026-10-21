@@ -1,6 +1,7 @@
 package memoryv1
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -108,6 +109,14 @@ func (c *Core) validateExistingStore() error {
 func (c *Core) Close() error {
 	if c == nil || c.db == nil {
 		return nil
+	}
+	// Callers stop owner work before closing. database/sql may still be rolling
+	// back a cancelled transaction after its caller has returned. Acquire the
+	// single connection to wait for that rollback before releasing this store.
+	conn, err := c.db.Conn(context.Background())
+	if err == nil {
+		closeErr := c.db.Close()
+		return errors.Join(closeErr, conn.Close())
 	}
 	return c.db.Close()
 }
