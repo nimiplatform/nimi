@@ -8,6 +8,28 @@ import {fileURLToPath} from 'node:url';
 const testRoot=fileURLToPath(new URL('../.nimi/local/retire-local-agent-controls-tests/',import.meta.url));
 mkdirSync(testRoot,{recursive:true});
 
+test('redacted retirement requires exact eligible refs and preserves other intentions and history',()=>{
+  const root=mkdtempSync(path.join(testRoot,'redacted-test-'));
+  const file=path.join(root,'source.db'),backup=path.join(root,'backup.db');
+  const db=new DatabaseSync(file);
+  db.exec('CREATE TABLE runtime_local_agent_life(local_agent_ref TEXT,life_json TEXT);CREATE TABLE runtime_conversation_recovery(anchor_id TEXT,turn_id TEXT,recovery_json TEXT);');
+  const recent=[{id:'established',activityRef:'old',title:'Established past'}];
+  db.prepare('INSERT INTO runtime_local_agent_life VALUES(?,?)').run('agent',JSON.stringify({activities:{old:{ref:'old',title:'Activity',phase:'paused',redactedNameKey:'redacted-old'},other:{ref:'other',title:'Activity',phase:'paused',redactedNameKey:'redacted-other'},own:{ref:'own',title:'Own intention',phase:'paused'}},recent,future:[],intents:[]}));
+  db.close();
+  const tool=fileURLToPath(new URL('./retire-local-agent-controls.mjs',import.meta.url));
+  assert.equal(JSON.parse(execFileSync(process.execPath,[tool,'--db',file],{encoding:'utf8'})).changes.length,0);
+  const invalid=spawnSync(process.execPath,[tool,'--db',file,'--retire-redacted-intentions','own'],{encoding:'utf8'});
+  assert.notEqual(invalid.status,0);
+  const preview=JSON.parse(execFileSync(process.execPath,[tool,'--db',file,'--retire-redacted-intentions','old'],{encoding:'utf8'}));
+  assert.deepEqual(preview.changes[0].controlledActivities.map(a=>a.id),['old']);
+  execFileSync(process.execPath,[tool,'--db',file,'--retire-redacted-intentions','old','--apply','--confirm-runtime-stopped','--backup',backup]);
+  const after=new DatabaseSync(file,{readOnly:true});
+  const life=JSON.parse(after.prepare('SELECT life_json FROM runtime_local_agent_life').get().life_json);
+  assert.equal(life.activities.old.phase,'canceled');
+  assert.equal(life.activities.other.phase,'paused');assert.equal(life.activities.own.phase,'paused');
+  assert.deepEqual(life.recent,recent);after.close();
+});
+
 test('one-time cut preserves transcript, Memory, established frames and unrelated future',()=>{
   const root=mkdtempSync(path.join(testRoot,'cleanup-test-'));
   const file=path.join(root,'source.db'),backup=path.join(root,'backup.db');

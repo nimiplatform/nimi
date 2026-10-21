@@ -5,10 +5,13 @@ import path from 'node:path';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
+  console.log('Optional explicit retirement: --retire-redacted-intentions <ref,ref>. Only named unfinished historical Activity placeholders qualify; current frames still require review. No automatic eviction or Memory deletion.');
   console.log('One-time cut for the known pre-release life-frame control format.\nPreview: pnpm runtime:retire-local-agent-controls --db <absolute memory.db>\nApply after reviewing the listed objects: add --apply --confirm-runtime-stopped --backup <new absolute backup.db>\nAdd --include-historical-contact only to reclassify the retired origin metadata. Chat text, Memory and established history are preserved.\nThis tool does not initialize older databases that have no life-frame storage.');
   process.exit(0);
 }
 const option = name => { const i=args.indexOf(name); return i<0?null:args[i+1]; };
+const requestedRedacted = new Set((option('--retire-redacted-intentions') ?? '').split(',').filter(Boolean));
+const foundRedacted = new Set();
 const file=option('--db'), apply=args.includes('--apply');
 if (!file || !path.isAbsolute(file) || !existsSync(file)) throw new Error('An existing absolute --db path is required.');
 const backup=option('--backup');
@@ -20,7 +23,12 @@ for (const row of db.prepare('SELECT local_agent_ref,life_json FROM runtime_loca
   const commitments=Object.values(life.commitments??{}).map(c=>({id:c.id,state:c.state}));
   const controlled=[];
   for (const activity of Object.values(life.activities??{})) {
-    if (activity.userPaused || activity.independentControlSource) {
+    const retireRedacted = requestedRedacted.has(activity.ref);
+    if (retireRedacted) {
+      if (!activity.redactedNameKey || activity.title !== 'Activity' || ['completed','canceled'].includes(activity.phase)) throw new Error('Explicit redacted target is not an unfinished historical placeholder: '+activity.ref);
+      foundRedacted.add(activity.ref);
+    }
+    if (activity.userPaused || activity.independentControlSource || retireRedacted) {
       controlled.push({id:activity.ref,title:activity.title,phase:activity.phase});
       if (!['completed','canceled'].includes(activity.phase)) activity.phase='canceled';
     }
@@ -38,6 +46,7 @@ for (const row of db.prepare('SELECT local_agent_ref,life_json FROM runtime_loca
   delete life.commitments;
   if (JSON.stringify(life)!==original) changes.push({table:'runtime_local_agent_life',key:row.local_agent_ref,before:row.life_json,after:JSON.stringify(life),summary:{agent:row.local_agent_ref,commitments,controlledActivities:controlled,unoccurredFuture:future,current}});
 }
+for (const ref of requestedRedacted) if (!foundRedacted.has(ref)) throw new Error('Explicit redacted target was not found: '+ref);
 for (const row of db.prepare('SELECT anchor_id,turn_id,recovery_json FROM runtime_conversation_recovery').all()) {
   const recovery=JSON.parse(row.recovery_json);
   if (!Object.hasOwn(recovery,'controlOutcome')) continue;
