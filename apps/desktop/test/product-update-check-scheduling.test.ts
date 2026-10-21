@@ -48,7 +48,8 @@ test('active installation cannot clear a handoff or start another checker', asyn
       handoff: async () => { throw new Error('must not install'); }, quit: () => { throw new Error('must not quit'); } },
   });
   try {
-    await host.check(); const installing = host.install(fixture.candidate.releaseId, true); await entered;
+    await host.check(); const installing = host.install(fixture.candidate.releaseId, true);
+    await Promise.race([entered, installing.then(() => assert.fail('installation ended before shutdown started'))]);
     await assert.rejects(host.checkAfterFailedHandoffCleared(() => true, async () => { clears++; return true; }), /UPDATE_CHECK_UNAVAILABLE/);
     assert.equal(clears, 0); release(); await installing;
   } finally { release(); await host.stop(); await rm(directory, { recursive: true, force: true }); }

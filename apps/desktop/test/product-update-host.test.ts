@@ -61,7 +61,9 @@ test('cancel interrupts network work, removes partial bytes, and retry is suppor
     }, verifyInstaller: async () => undefined,
   });
   try {
-    const pending = host.check(); await downloading; host.cancel(); await pending;
+    const pending = host.check();
+    await Promise.race([downloading, pending.then(() => assert.fail('check ended before the download started'))]);
+    host.cancel(); await pending;
     assert.equal(host.status().phase, 'canceled'); assert.deepEqual(await readdir(path.join(root, 'cache')), []);
     await host.check(); assert.equal(host.status().phase, 'prepared');
   } finally { await host.stop(); await rm(root, { recursive: true, force: true }); }
