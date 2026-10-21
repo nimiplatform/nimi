@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+Generation's `RuntimeAIConsumeInput` adds optional embedding `purpose`
+(`retrieval-document` or `retrieval-query`), passed unchanged to the SDK.
+This compatible input widening belongs to the next 0.x minor; omission keeps
+the existing unspecified purpose. No migration or model selection is added.
+
 Conversation submission recovery adds optional `onAdmitted(submission)` for
 owner cleanup after confirmed admission, before the persisted copy is removed.
 It is a compatible prop addition for the next 0.x minor. It does not run for

@@ -1,4 +1,4 @@
-import { Button, TextareaField } from '@nimiplatform/kit/ui';
+import { Button, SelectField, TextareaField } from '@nimiplatform/kit/ui';
 import { Plus, Trash2 } from 'lucide-react';
 
 import {
@@ -124,6 +124,29 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
           {t('Studio.parameters.addInput')}
         </Button>
       </div>
+    ),
+  }, {
+    field: 'purpose',
+    label: t('Studio.parameters.fields.embeddingPurpose'),
+    render: (routeDisabled) => (
+      <StudioParameterField label={t('Studio.parameters.fields.embeddingPurpose')}>
+        <SelectField
+          value={parameters.purpose ?? 'unspecified'}
+          disabled={props.disabled || routeDisabled}
+          onValueChange={(value) => {
+            const next = { ...parameters };
+            if (value === 'retrieval-document' || value === 'retrieval-query') next.purpose = value;
+            else delete next.purpose;
+            props.onChange(next);
+          }}
+          options={[
+            { value: 'unspecified', label: t('Studio.parameters.embeddingPurposeDefault') },
+            { value: 'retrieval-document', label: t('Studio.parameters.embeddingPurposeDocument') },
+            { value: 'retrieval-query', label: t('Studio.parameters.embeddingPurposeQuery') },
+          ]}
+        />
+        <small>{t('Studio.parameters.embeddingPurposeHint')}</small>
+      </StudioParameterField>
     ),
   }, {
     field: 'dimensions',

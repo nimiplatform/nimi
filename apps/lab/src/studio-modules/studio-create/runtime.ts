@@ -195,6 +195,7 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
     type: 'text-embed',
     inputs: embeddingInputs.length > 0 ? embeddingInputs : [context.prompt],
     ...(parameters?.dimensions !== undefined ? { dimensions: parameters.dimensions } : {}),
+    ...(parameters?.purpose !== undefined ? { purpose: parameters.purpose } : {}),
   });
   if (result.output.type !== 'text-embed') {
     return context.host.nonSuccess(

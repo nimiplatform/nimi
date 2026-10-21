@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ScenarioType, isNimiError } from '@nimiplatform/kit/core/sdk-contract';
+import { TextEmbedPurpose } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   runRuntimeAIConsumeCapability,
   type RuntimeAIConsumeCapabilityId,
@@ -206,7 +207,11 @@ describe('runtime AI consume contract', () => {
     expect(result).toMatchObject({ ok: false, reason: 'operation-aborted' });
   });
 
-  it('executes text.embed with batch inputs and projects the embedding summary', async () => {
+  it.each([
+    [undefined, TextEmbedPurpose.UNSPECIFIED],
+    ['retrieval-document', TextEmbedPurpose.RETRIEVAL_DOCUMENT],
+    ['retrieval-query', TextEmbedPurpose.RETRIEVAL_QUERY],
+  ] as const)('preserves embedding purpose %s through the SDK and projects the summary', async (purpose, wirePurpose) => {
     const executeScenario = vi.fn<RuntimeAIConsumeRuntime['ai']['executeScenario']>(async () => ({
       output: { output: { oneofKind: 'textEmbed', textEmbed: {
         vectors: [{ values: [0.1, 0.2, 0.3] }, { values: [0.4, 0.5, 0.6] }],
@@ -228,6 +233,7 @@ describe('runtime AI consume contract', () => {
       prompt: '',
       inputs: [' first ', 'second'],
       dimensions: 3,
+      purpose,
     }));
 
     expect(executeScenario).toHaveBeenCalledTimes(1);
@@ -238,6 +244,7 @@ describe('runtime AI consume contract', () => {
     if (spec?.oneofKind !== 'textEmbed') throw new Error('expected textEmbed spec');
     expect(spec.textEmbed.inputs).toEqual(['first', 'second']);
     expect(spec.textEmbed.dimensions).toBe(3);
+    expect(spec.textEmbed.purpose).toBe(wirePurpose);
     expect(result).toMatchObject({
       ok: true,
       capabilityId: 'text.embed',

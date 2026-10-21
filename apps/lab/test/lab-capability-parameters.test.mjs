@@ -41,6 +41,17 @@ test('video generation does not send an audio control before the user chooses on
   });
 });
 
+test('embedding purpose remains optional and survives the existing parameter projection', () => {
+  const contract = labStudioComposition.getCapability('text.embed').parameters;
+  assert.deepEqual(contract.initial(), {});
+  for (const source of ['local', 'cloud']) {
+    for (const purpose of ['retrieval-document', 'retrieval-query']) {
+      assert.deepEqual(contract.project(source, { purpose }), { purpose });
+    }
+    assert.deepEqual(contract.project(source, {}), {});
+  }
+});
+
 test('stored canonical audio restores the recorded source without retaining a recovery action', () => {
   const registration = labStudioComposition.getCapability('audio.separate');
   const saved = { sourceRelativePath:'imports/original-A.wav', sourceMimeType:'audio/wav', startSeconds:2, endSeconds:9, includeInstrumentParts:false, recoverySubmissionId:'completed-recovery' };

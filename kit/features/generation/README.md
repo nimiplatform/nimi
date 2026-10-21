@@ -47,7 +47,8 @@ SDK 0.14.0 and Kit 0.10.0 preserve an optional `transcription` payload in speech
 
 ### Embeddings
 
-- **Execution**: `runRuntimeAIConsumeCapability` accepts batch `inputs` and an optional positive integer `dimensions` for `text.embed`. A protected App submits the same fields through `client.ai.scenario.execute({ type: 'text-embed', inputs, dimensions })`.
+- **Execution**: `runRuntimeAIConsumeCapability` accepts batch `inputs`, optional positive integer `dimensions`, and optional `purpose` for `text.embed`. A protected App submits the same fields through `client.ai.scenario.execute({ type: 'text-embed', inputs, dimensions, purpose })`.
+- **Retrieval purpose**: Use `retrieval-document` for indexed content and `retrieval-query` for a search query. Omission stays unspecified; Kit never guesses from the selected model. Runtime applies the selected implementation's representation and rejects unsupported combinations.
 - **Dimensions**: Omit `dimensions` to keep the selected implementation's native default. Runtime allows shortening only for supported exact targets and rejects the option for unsupported compositions.
 - **Output**: The result summary retains actual width, `spaceId`, and at most eight sample values. Compare vectors only within the same `spaceId`. Missing usage is unspecified.
 

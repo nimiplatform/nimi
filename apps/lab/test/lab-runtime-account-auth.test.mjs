@@ -1159,9 +1159,9 @@ test('Lab text.embed executes the closed Local App scenario face and keeps the e
   const result = await runLabCapability({
     capabilityId: 'text.embed',
     prompt: 'embed me',
-    parameters: { inputs: ['first', ' second '], dimensions: 3 },
+    parameters: { inputs: ['first', ' second '], dimensions: 3, purpose: 'retrieval-query' },
   }, readyRuntimeDependencies(client));
-  assert.deepEqual(calls, [{ type: 'text-embed', inputs: ['first', 'second'], dimensions: 3 }]);
+  assert.deepEqual(calls, [{ type: 'text-embed', inputs: ['first', 'second'], dimensions: 3, purpose: 'retrieval-query' }]);
   assert.deepEqual(result.output, { kind: 'embedding', vectorCount: 2, dimensions: 3, spaceId: 'local:embed-space-a', sample: [0.1, 0.2, 0.3], totalTokens: 7 });
 });
 

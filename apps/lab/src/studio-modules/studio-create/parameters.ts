@@ -20,6 +20,7 @@ export type StudioTextTurnParameters = StudioTextCandidateParameters & {
 export type StudioEmbeddingParameters = {
   inputs?: string[];
   dimensions?: number;
+  purpose?: 'retrieval-document' | 'retrieval-query';
 };
 
 const TEXT_CANDIDATE_ROUTE_MATRIX = {
@@ -61,7 +62,7 @@ export const studioChatStreamParameters = defineStudioParameters<StudioTextTurnP
 
 export const studioTextEmbedParameters = defineStudioParameters<StudioEmbeddingParameters>({
   initial: () => ({}),
-  routeMatrix: { inputs: LOCAL_AND_CLOUD_STUDIO_PARAMETER, dimensions: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
+  routeMatrix: { inputs: LOCAL_AND_CLOUD_STUDIO_PARAMETER, dimensions: LOCAL_AND_CLOUD_STUDIO_PARAMETER, purpose: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
   hasAlternativeInput: (parameters) => nonEmptyEmbeddingInputs(parameters).length > 0,
 });
 
