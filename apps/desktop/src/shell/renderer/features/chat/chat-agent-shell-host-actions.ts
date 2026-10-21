@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   normalizeText,
 } from './chat-agent-shell-core';
-import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
 import { ensureThreadAnchorBindingForTarget } from './chat-agent-shell-host-actions-helpers';
 import type {

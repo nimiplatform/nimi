@@ -66,9 +66,9 @@ func TestQwenVLScenarioMaterializesOwnedImageAndKeepsSystemOrder(t *testing.T) {
 		}
 		if body.Stream {
 			w.Header().Set("Content-Type", "text/event-stream")
-			fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<message>blue</message>\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
+			_, _ = fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<message>blue</message>\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
 		} else {
-			fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"<message>blue</message>"},"finish_reason":"stop"}]}`)
+			_, _ = fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"<message>blue</message>"},"finish_reason":"stop"}]}`)
 		}
 	}))
 	defer server.Close()

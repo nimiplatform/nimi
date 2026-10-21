@@ -90,7 +90,11 @@ func TestJobRegistrationCommitFenceOrdersActualMutation(t *testing.T) {
 
 func TestRegistrationPublicationFenceUsesCanonicalDomainsWithoutWideningJobs(t *testing.T) {
 	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "publication", 0x33)
-	defer kernel.Close()
+	defer func() {
+		if err := kernel.Close(); err != nil {
+			t.Errorf("close kernel: %v", err)
+		}
+	}()
 	ctx := context.Background()
 	input := developmentInput()
 	input.RawDeclaration = []string{"agent.local", "integration.manage"}

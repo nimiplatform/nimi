@@ -242,7 +242,7 @@ func readPublicChatRecoveries(db *sql.DB, snapshot *persistedPublicChatSurfaceSt
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var anchorID, turnID, raw string
 		if err := rows.Scan(&anchorID, &turnID, &raw); err != nil {

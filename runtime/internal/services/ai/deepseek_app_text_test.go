@@ -246,12 +246,12 @@ func TestCloudTextStreamFailureRetainsReportedUsageWithoutCompletion(t *testing.
 				if mode == "broken-body" {
 					w.Header().Set("Content-Length", "100000")
 				}
-				fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<message>Retain this received text.\"},\"finish_reason\":\"length\"}]}\n\n")
+				_, _ = fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<message>Retain this received text.\"},\"finish_reason\":\"length\"}]}\n\n")
 				if mode != "unknown-usage" {
-					fmt.Fprint(w, "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9}}\n\n")
+					_, _ = fmt.Fprint(w, "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9}}\n\n")
 				}
 				if mode == "invalid-tail" {
-					fmt.Fprint(w, "data: {invalid-json}\n\n")
+					_, _ = fmt.Fprint(w, "data: {invalid-json}\n\n")
 				}
 			})
 			const appID = "app.deepseek"

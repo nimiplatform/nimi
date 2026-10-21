@@ -296,6 +296,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   conversation: {
     async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null }; },
     async send() { return { turnId: 'turn-1' }; },
+    cancelFollowUp: unavailableCarrier,
     uploadAttachment: unavailableCarrier,
     readArtifact: unavailableCarrier,
     transcribeVoice: unavailableCarrier,

@@ -212,7 +212,11 @@ func TestLocalAppCommitRegistrationWithdrawalWaitsForActualSQLCommit(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close backend: %v", err)
+		}
+	}()
 	audit, err := auditlog.Open(backend, nil, 128, 128)
 	if err != nil {
 		t.Fatal(err)

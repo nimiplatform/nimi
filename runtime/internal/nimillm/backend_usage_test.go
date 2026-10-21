@@ -206,7 +206,7 @@ func TestPrimitiveTextStreamKeepsUsageAndRequiresARealTerminal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/event-stream")
-				io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"kept text\"}}],\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9}}\n\n"+tc.tail)
+				_, _ = io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"kept text\"}}],\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9}}\n\n"+tc.tail)
 			}))
 			defer server.Close()
 			var content strings.Builder

@@ -98,7 +98,6 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 		return nil, err
 	}
 	now := time.Now().UTC()
-	reason = firstNonEmpty(strings.TrimSpace(reason), "agent terminated")
 	executionCancels, summaryJobs := r.svc.fenceAgentChatExecutionForTerminationLocked(localAgentRef)
 	for _, cancel := range executionCancels {
 		cancel()

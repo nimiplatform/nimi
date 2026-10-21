@@ -10,6 +10,7 @@ test('setAuthSession keeps renderer auth projection token-free', () => {
       user: null,
     },
     selectedChatId: null,
+    agentComposerAttachments: {},
   };
   const set = (partial: unknown) => {
     const next = typeof partial === 'function'

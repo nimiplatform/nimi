@@ -58,7 +58,6 @@ import {
 } from './chat-agent-thread-model';
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
 import { useAgentRuntimeSessionSnapshotHydration } from './chat-agent-shell-adapter-session-snapshot';
-import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 import { useStreamController } from '../turns/stream-controller-context.js';
@@ -98,7 +97,7 @@ export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
 ): DesktopConversationModeHost {
   const homeChat = useHomeChatPosition();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const streamController = useStreamController();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
@@ -176,7 +175,6 @@ export function useAgentConversationModeHost(
     bundle,
     messages,
     selectedThreadRecord,
-    streamState,
     targetByAgentHandle,
     targets,
     targetsPending,

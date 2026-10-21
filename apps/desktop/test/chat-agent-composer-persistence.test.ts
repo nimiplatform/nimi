@@ -241,7 +241,7 @@ test('late storage restoration cannot replace or resurrect a regeneration reques
 test('submission persists original text once and preserves a separate next draft', async () => {
   const text = '【保存前置验收样本】\n' + '<p>x</p>\n'.repeat(6000);
   const draft = localDraft(text);
-  let saved: any = { version:1, draft:text, submission:null };
+  let saved: Awaited<ReturnType<Storage['readJson']>>['value'] = { version:1, draft:text, submission:null };
   const storage: Storage = {
     readJson: async()=>({value:saved,sizeBytes:0}),
     writeJson: async(_path,value)=>{

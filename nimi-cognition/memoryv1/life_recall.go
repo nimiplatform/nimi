@@ -12,7 +12,7 @@ func (c *Core) includeRecentLife(ctx context.Context, request RecallRequest, res
 	if err != nil {
 		return result, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err := validateRecallSnapshotTx(ctx, tx, request); err != nil {
 		return result, err
 	}

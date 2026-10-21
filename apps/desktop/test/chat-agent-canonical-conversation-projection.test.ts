@@ -146,9 +146,6 @@ test('canonical projection keeps stable turn, action, voice, and message identit
 });
 
 test('canonical materialization preserves snapshot recovery metadata and typed child terminals', async () => {
-  const conversation = {
-    readArtifact: async () => { throw new Error('not used'); },
-  } as unknown as NimiLocalAppConversationClient;
   const bundle = await materializeCanonicalConversationBundle({
     thread: thread(),
     projection: seedCanonicalConversationProjection(snapshot()),
@@ -221,7 +218,6 @@ test('repeated model action IDs preserve both turns and their Retry prompts acro
   const value: NimiLocalAppConversationSnapshot = { ...base, voices: [],
     turns: ['turn-1', 'turn-2'].map(turnId => ({ ...base.turns[0]!, turnId, status: 'completed' as const })),
     messages: ['turn-1', 'turn-2'].map(turnId => ({ ...base.messages[0]!, turnId, messageId: `user-${turnId}`, parts: [{ kind: 'text' as const, text: `Image for ${turnId}` }] })), actions };
-  const conversation = { readArtifact: async () => ({ bytes: new Uint8Array([1]), mimeType: 'image/png' }) } as unknown as NimiLocalAppConversationClient;
   const materialize = (projection: ReturnType<typeof seedCanonicalConversationProjection>) => materializeCanonicalConversationBundle({ thread: thread(), projection, nowMs: 100 });
   const hydrated = await materialize(seedCanonicalConversationProjection({ ...value, throughSequence: '5' }));
   let live = reduceCanonicalConversationEvent(seedCanonicalConversationProjection({ ...value, actions: actions.slice(0, 1) }), {
