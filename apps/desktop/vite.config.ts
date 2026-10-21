@@ -23,7 +23,15 @@ export function desktopRendererModuleCache(sdkDist: string): Plugin {
           }
         }
       };
-      server.watcher.add(sdkDist);
+      // Watch the stable parent: an atomic publish retires the old dist
+      // directory and its watch, but subsequent replacements still need events.
+      server.watcher.add(path.dirname(sdkDist));
+      // Windows can report the parent rename without expanding child events
+      // for the replacement directory. Invalidate the same graph in that case.
+      server.watcher.on('raw', (_event, file, details: { watchedPath?: string }) => {
+        if (details.watchedPath && path.resolve(details.watchedPath) === path.dirname(sdkDist)
+          && file === path.basename(sdkDist)) invalidateDirectory(sdkDist);
+      });
       server.watcher.on('unlink', invalidate);
       server.watcher.on('add', invalidate);
       server.watcher.on('unlinkDir', invalidateDirectory);
