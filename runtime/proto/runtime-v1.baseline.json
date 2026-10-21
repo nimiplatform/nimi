@@ -70,7 +70,7 @@
       "rule": "FIELD_NO_DELETE",
       "path": "runtime/v1/agent_configure.proto",
       "message": "Previously present field \"2\" with name \"max_tokens_per_hook\" on message \"LocalAppAgentAutonomyConfig\" was deleted.",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -80,7 +80,7 @@
       "rule": "FIELD_NO_DELETE",
       "path": "runtime/v1/agent_configure.proto",
       "message": "Previously present field \"3\" with name \"min_hook_interval\" on message \"LocalAppAgentAutonomyConfig\" was deleted.",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -90,7 +90,7 @@
       "rule": "PACKAGE_MESSAGE_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present message \"CancelHookRequest\" was deleted from package \"nimi.runtime.v1\".",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -100,7 +100,7 @@
       "rule": "PACKAGE_MESSAGE_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present message \"CancelHookResponse\" was deleted from package \"nimi.runtime.v1\".",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -110,7 +110,7 @@
       "rule": "PACKAGE_MESSAGE_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present message \"ListPendingHooksRequest\" was deleted from package \"nimi.runtime.v1\".",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -120,7 +120,7 @@
       "rule": "PACKAGE_MESSAGE_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present message \"ListPendingHooksResponse\" was deleted from package \"nimi.runtime.v1\".",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -130,7 +130,7 @@
       "rule": "PACKAGE_MESSAGE_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present message \"PendingHook\" was deleted from package \"nimi.runtime.v1\".",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -140,7 +140,7 @@
       "rule": "FIELD_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present field \"2\" with name \"max_tokens_per_hook\" on message \"AgentAutonomyConfig\" was deleted.",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -150,7 +150,7 @@
       "rule": "FIELD_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present field \"3\" with name \"min_hook_interval\" on message \"AgentAutonomyConfig\" was deleted.",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -160,7 +160,7 @@
       "rule": "RPC_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present RPC \"CancelHook\" on service \"RuntimeAgentService\" was deleted.",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
@@ -170,7 +170,7 @@
       "rule": "RPC_NO_DELETE",
       "path": "runtime/v1/agent_service.proto",
       "message": "Previously present RPC \"ListPendingHooks\" on service \"RuntimeAgentService\" was deleted.",
-      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use commitments, unified free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
+      "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "SDK 0.22.0 — LocalAgent life frames (development)"

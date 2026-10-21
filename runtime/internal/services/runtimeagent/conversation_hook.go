@@ -69,10 +69,3 @@ func cloneHookIntent(input *runtimev1.HookIntent) *runtimev1.HookIntent {
 	}
 	return proto.Clone(input).(*runtimev1.HookIntent)
 }
-
-func cloneHookTriggerDetail(input *runtimev1.HookTriggerDetail) *runtimev1.HookTriggerDetail {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.HookTriggerDetail)
-}

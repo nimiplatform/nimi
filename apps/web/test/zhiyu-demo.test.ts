@@ -185,10 +185,17 @@ test('mutations write back to the mock client and re-project', async () => {
     enabled: true,
     mode: 'high',
     dailyTokenBudget: 12000,
-    maxTokensPerHook: 900,
+    maxBackgroundOutputTokens: 900,
+    freeContactEnabled: true,
+    maxFreeContactsPerDay: 2,
+    quietHours: { timezone: 'Asia/Shanghai', startMinute: 1320, endMinute: 420 },
   });
   assert.equal(current.getSnapshot().state.autonomy.mode, 'high');
   assert.equal(current.getSnapshot().state.autonomy.dailyTokenBudget, 12000);
+  assert.equal(current.getSnapshot().state.autonomy.maxBackgroundOutputTokens, 900);
+  assert.equal(current.getSnapshot().state.autonomy.freeContactEnabled, true);
+  assert.equal(current.getSnapshot().state.autonomy.maxFreeContactsPerDay, 2);
+  assert.deepEqual(current.getSnapshot().state.autonomy.quietHours, { timezone: 'Asia/Shanghai', startMinute: 1320, endMinute: 420 });
 
   const memoryId = before.state.cognition.memory?.items[0]?.memoryId;
   assert.ok(memoryId);

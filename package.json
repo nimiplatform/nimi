@@ -28,6 +28,7 @@
     "runtime:cmd": "cd runtime && go run ./cmd/nimi",
     "runtime:convert-chat-storage": "cd runtime && go run ./tools/convert-chat-storage",
     "runtime:repair-local-agent-chat": "cd runtime && go run ./tools/repair-local-agent-chat",
+    "runtime:retire-local-agent-controls": "node scripts/retire-local-agent-controls.mjs",
     "runtime:repair-app-source-schema": "node scripts/repair-app-source-schema.mjs",
     "test:runtime:go": "cd runtime && go test -count=1 -timeout=5m ./...",
     "test:runtime:live": "cd runtime && go test -tags=live -count=1 ./internal/services/ai -run ^TestLive",

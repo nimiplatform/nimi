@@ -532,7 +532,13 @@ export function createDemoZhiyuAgentClient(
 
   let aiConfigRevision = '1';
   let intents = seedIntents(partner);
-  let autonomy = { ...partner.autonomy, revision: '1' };
+  let autonomy = {
+    ...partner.autonomy,
+    revision: '1',
+    freeContactEnabled: false,
+    maxFreeContactsPerDay: 3,
+    quietHours: null as NonNullable<AutonomyProjection['config']>['quietHours'],
+  };
   let presentationRevision = '1';
   let profile = seedProfile(partner, presentationRevision);
   let previousProfile: PresentationProfile | null = null;
@@ -624,7 +630,10 @@ export function createDemoZhiyuAgentClient(
           config: {
             mode: autonomy.mode,
             dailyTokenBudget: autonomy.dailyTokenBudget,
-            maxTokensPerHook: autonomy.maxTokensPerHook,
+            maxBackgroundOutputTokens: autonomy.maxBackgroundOutputTokens,
+            freeContactEnabled: autonomy.freeContactEnabled,
+            maxFreeContactsPerDay: autonomy.maxFreeContactsPerDay,
+            quietHours: autonomy.quietHours,
           },
           usedTokensInWindow: autonomy.usedTokensInWindow,
           windowStartedAt: protoTimestamp(now() - 5 * 3_600_000),
@@ -642,7 +651,10 @@ export function createDemoZhiyuAgentClient(
           enabled: input.intent.enabled ?? autonomy.enabled,
           mode: input.intent.config?.mode ?? autonomy.mode,
           dailyTokenBudget: input.intent.config?.dailyTokenBudget ?? autonomy.dailyTokenBudget,
-          maxTokensPerHook: input.intent.config?.maxTokensPerHook ?? autonomy.maxTokensPerHook,
+          maxBackgroundOutputTokens: input.intent.config?.maxBackgroundOutputTokens ?? autonomy.maxBackgroundOutputTokens,
+          freeContactEnabled: input.intent.config?.freeContactEnabled ?? autonomy.freeContactEnabled,
+          maxFreeContactsPerDay: input.intent.config?.maxFreeContactsPerDay ?? autonomy.maxFreeContactsPerDay,
+          quietHours: input.intent.config ? input.intent.config.quietHours : autonomy.quietHours,
         };
         return this.snapshot({ agentHandle: input.agentHandle });
       },
@@ -784,6 +796,11 @@ export function createDemoZhiyuAgentClient(
           },
         };
         return {
+          // This browser preview does not execute a Runtime life timeline.
+          life: {
+            revision: '1', current: null, recent: [], future: [], activities: [],
+            nextCheckAt: null, waitReason: autonomy.enabled ? '' : 'disabled',
+          },
           lifecycleStatus: partner.manager.lifecycleStatus,
           executionState: partner.manager.executionState,
           statusText: partner.manager.statusText,

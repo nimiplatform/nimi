@@ -187,7 +187,7 @@ export const createZhiyuPreviewContent = (t: PreviewTranslate): HeroDemoZhiyuPre
         enabled: true,
         mode: 'medium',
         dailyTokenBudget: 20000,
-        maxTokensPerHook: 1200,
+        maxBackgroundOutputTokens: 1200,
         usedTokensInWindow: 5200,
       },
       appearance: {
@@ -285,7 +285,7 @@ export const createZhiyuPreviewContent = (t: PreviewTranslate): HeroDemoZhiyuPre
         enabled: true,
         mode: 'low',
         dailyTokenBudget: 8000,
-        maxTokensPerHook: 800,
+        maxBackgroundOutputTokens: 800,
         usedTokensInWindow: 900,
       },
       appearance: {
@@ -390,7 +390,7 @@ export const createZhiyuPreviewContent = (t: PreviewTranslate): HeroDemoZhiyuPre
         enabled: true,
         mode: 'high',
         dailyTokenBudget: 30000,
-        maxTokensPerHook: 1500,
+        maxBackgroundOutputTokens: 1500,
         usedTokensInWindow: 12400,
       },
       appearance: {
@@ -483,7 +483,7 @@ export const createZhiyuPreviewContent = (t: PreviewTranslate): HeroDemoZhiyuPre
         enabled: true,
         mode: 'medium',
         dailyTokenBudget: 16000,
-        maxTokensPerHook: 1000,
+        maxBackgroundOutputTokens: 1000,
         usedTokensInWindow: 2800,
       },
       appearance: {

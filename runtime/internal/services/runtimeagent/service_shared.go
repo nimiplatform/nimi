@@ -299,6 +299,14 @@ func cloneAgentEvent(input *runtimev1.AgentEvent) *runtimev1.AgentEvent {
 	return proto.Clone(input).(*runtimev1.AgentEvent)
 }
 
+func cloneAgentEvents(input []*runtimev1.AgentEvent) []*runtimev1.AgentEvent {
+	out := make([]*runtimev1.AgentEvent, 0, len(input))
+	for _, event := range input {
+		out = append(out, cloneAgentEvent(event))
+	}
+	return out
+}
+
 func cloneAgentEntry(input *agentEntry) *agentEntry {
 	if input == nil {
 		return nil

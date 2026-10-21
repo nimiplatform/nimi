@@ -96,7 +96,7 @@ export type HeroDemoZhiyuPartner = {
     enabled: boolean;
     mode: 'off' | 'low' | 'medium' | 'high';
     dailyTokenBudget: number;
-    maxTokensPerHook: number;
+    maxBackgroundOutputTokens: number;
     usedTokensInWindow: number;
   };
   appearance: {

@@ -7,14 +7,6 @@ import (
 	"time"
 )
 
-func hookEvent(agentID string, outcome *runtimev1.HookExecutionOutcome) *runtimev1.AgentEvent {
-	observedAt := time.Now().UTC()
-	if outcome != nil && outcome.GetObservedAt() != nil {
-		observedAt = outcome.GetObservedAt().AsTime().UTC()
-	}
-	return hookEventAt(agentID, outcome, observedAt)
-}
-
 // hookEventAt emits a `runtime.agent.hook.*` projection event through the
 // AgentEvent stream. Per K-AGCORE-042 / hook_envelope the envelope requires
 // `agent_id`; origin linkage (conversation_anchor_id / originating_turn_id /

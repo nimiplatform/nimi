@@ -39,11 +39,11 @@ media completes. `send({ retryOfTurnId, requestId, ...scope })` references retai
 input and excludes `parts`; it regenerates text without replaying old actions.
 Retain an uncertain submission's original request ID and do not auto-resubmit.
 
-Custom LocalAgent carriers implement `conversation.cancelFollowUp` and
-`agentConfigure.commitments.create/update/remove` with the matching capabilities.
-Autonomous continuation and life expression share the Agent free-contact policy;
-user commitments keep their own controls. AI Consume-only consumers do not gain
-these requirements.
+Custom LocalAgent carriers implement `conversation.cancelFollowUp` with its
+matching capability. Autonomous continuation and life expression share the
+Agent free-contact policy, independently of life simulation. User commitment
+CRUD and deterministic fulfillment are retired. AI Consume-only consumers do
+not gain LocalAgent management requirements.
 No package release, automatic migration or old/new protocol fallback is included.
 
 For the next 0.x minor (not a patch of the published 0.21.0),
