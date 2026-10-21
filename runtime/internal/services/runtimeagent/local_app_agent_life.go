@@ -41,7 +41,7 @@ func projectAgentLife(l *agentLifeState) *runtimev1.LocalAppAgentLifeProjection 
 	result := &runtimev1.LocalAppAgentLifeProjection{Revision: l.Revision, WaitReason: l.WaitReason}
 	activityRefs := []string{}
 	for ref, a := range l.Activities {
-		if a.Phase != lifeCompleted && a.Phase != lifeCanceled {
+		if a.Phase != lifeCompleted && a.Phase != lifeCanceled && a.RedactedNameKey == "" {
 			activityRefs = append(activityRefs, ref)
 		}
 	}
@@ -57,6 +57,9 @@ func projectAgentLife(l *agentLifeState) *runtimev1.LocalAppAgentLifeProjection 
 		result.Current = project(*l.Current)
 	}
 	for _, f := range l.Recent {
+		if a := l.Activities[f.ActivityRef]; a != nil && a.RedactedNameKey != "" {
+			continue
+		}
 		result.Recent = append(result.Recent, project(f))
 	}
 	for _, f := range l.Future {

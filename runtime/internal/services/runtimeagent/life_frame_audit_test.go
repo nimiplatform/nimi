@@ -102,7 +102,7 @@ func TestLifePlanningOnlyOffersResumableActivityReferences(t *testing.T) {
 	l.Future = []lifeFrame{{ID: "reserved", ActivityRef: "reserved-ref", Title: "Tomorrow", StartsAt: now.Add(time.Hour), EndsAt: now.Add(2 * time.Hour), Phase: lifePlanned}}
 	l.Recent = []lifeFrame{{ID: "past", ActivityRef: "retired-ref", Title: "Finished painting", Phase: lifeCompleted, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(-time.Minute)}}
 	view := projectLifeContext(l, true, false, nil, now, 1)
-	if strings.Contains(view.Core, "retired-ref") || !strings.Contains(view.Core, "paused-ref") || strings.Contains(view.Core, "reserved-ref") || !strings.Contains(view.Core, "continue-ref") || !strings.Contains(view.Core, "Finished painting") || !strings.Contains(view.Core, "Paused poem") {
+	if strings.Contains(view.Core, "retired-ref") || !strings.Contains(view.Core, "paused-ref") || !strings.Contains(view.Core, "reserved-ref") || !strings.Contains(view.Core, "continue-ref") || !strings.Contains(view.Core, "Finished painting") || !strings.Contains(view.Core, "Paused poem") {
 		t.Fatalf("planning confused history with resumable handles: %s", view.Core)
 	}
 }

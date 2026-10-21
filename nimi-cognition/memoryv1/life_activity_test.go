@@ -129,6 +129,12 @@ func TestLifeChangesRecallThroughFTSAndDoNotReviveAfterForget(t *testing.T) {
 	if _, err := core.ForgetExact(ctx, ForgetRequest{OperationID: "forget-life", BindingRef: bank.BindingRef, BankRef: bank.BankRef, LifecycleRef: bank.LifecycleRef, TargetMemoryRefs: memories, Confirmed: true}); err != nil {
 		t.Fatal(err)
 	}
+	// Forget can commit between the topic Recall snapshot and recent-life
+	// composition. The merge must not return those earlier topic hits.
+	merged, err := core.includeRecentLife(ctx, req, result)
+	if err != nil || len(merged.Hits) != 0 || merged.Outcome != OutcomeNoHits {
+		t.Fatalf("recent-life merge retained forgotten topic hits: %+v %v", merged, err)
+	}
 	req.OperationID = "life-recall-after-forget"
 	result, err = core.Recall(ctx, req, nil)
 	if err != nil || len(result.Hits) != 0 {

@@ -43,6 +43,7 @@ func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Tim
 		plannedProgress[ref] = a.Progress
 	}
 	for _, p := range proposals {
+		p.Description = normalizeLifeSelfDescription(p.Description)
 		if err := validateLifeSelfDescription(p.Description); err != nil {
 			p.Description = nil
 		}
@@ -64,7 +65,7 @@ func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Tim
 		}
 		if a == nil {
 			ref := "activity_" + ulid.Make().String()
-			a = &lifeActivity{Ref: ref, Title: strings.TrimSpace(p.Title), Kind: p.Kind, Phase: lifePlanned, MemoryRefs: append([]string(nil), memoryRefs...)}
+			a = &lifeActivity{Ref: ref, Title: strings.TrimSpace(p.Title), Kind: p.Kind, Phase: lifePlanned}
 
 			next.Activities[ref] = a
 		} else if a.Phase == lifeCompleted || a.Phase == lifeCanceled || plannedComplete[a.Ref] || p.EndProgress < plannedProgress[a.Ref] {

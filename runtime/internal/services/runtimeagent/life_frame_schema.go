@@ -55,6 +55,17 @@ func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.Respon
 		futureSlots = min(3, max(0, *core.FutureSlots))
 	}
 	schema := object(map[string]any{
+		"self_intention": map[string]any{"anyOf": []any{map[string]any{"type": "null"}, object(map[string]any{
+			"action":       map[string]any{"type": "string", "enum": []any{"change", "abandon"}},
+			"activity_ref": map[string]any{"type": "string", "minLength": 1, "maxLength": 160},
+			"title":        map[string]any{"type": "string", "maxLength": 160},
+			"experience": object(map[string]any{
+				"action":  map[string]any{"type": "string", "enum": []any{"create", "practice", "explore", "reflect"}},
+				"object":  map[string]any{"type": "string", "minLength": 1, "maxLength": 80},
+				"result":  map[string]any{"type": "string", "enum": []any{"direction_changed", "abandoned"}},
+				"outcome": map[string]any{"type": "string", "maxLength": 160},
+			}),
+		})}},
 		"past":               map[string]any{"type": "array", "maxItems": pastSlots, "items": segment(true)},
 		"future":             map[string]any{"type": "array", "maxItems": futureSlots, "items": segment(false)},
 		"explanation":        map[string]any{"type": "string", "maxLength": 600},

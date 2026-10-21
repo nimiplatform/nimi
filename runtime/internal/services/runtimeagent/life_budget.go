@@ -1,11 +1,40 @@
 package runtimeagent
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func backgroundAllowance(entry *agentEntry, estimate uint64, unaccounted int64) error {
+	limit := entry.Agent.GetAutonomy().GetConfig().GetDailyTokenBudget()
+	used := addNonNegativeUsage(entry.Agent.GetAutonomy().GetUsedTokensInWindow(), unaccounted)
+	if limit > 0 && (estimate > uint64(limit) || estimate > uint64(max(0, limit-used))) {
+		return &lifeBudgetUnavailable{minimum: estimate > uint64(limit)}
+	}
+	return nil
+}
+
+func (s *Service) admitProactiveCall(ctx context.Context, turn publicChatTurnState, compiled *agentTurnContextCompilation, priorUsage *runtimev1.UsageStats) error {
+	if !isProactiveOrigin(turn.Origin) {
+		return nil
+	}
+	estimate, err := lifeCallEstimate(compiled)
+	if err != nil {
+		return err
+	}
+	return s.mutateAgent(turn.AgentID, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, err
+		}
+		advanceAutonomyWindow(e, time.Now().UTC())
+		// Earlier responses in this turn are charged once on turn exit. They
+		// already consume allowance before a possible Recall result response.
+		return nil, nil, backgroundAllowance(e, estimate, addNonNegativeUsage(priorUsage.GetInputTokens(), priorUsage.GetOutputTokens()))
+	})
+}
 
 type lifeBudgetUnavailable struct {
 	minimum bool
@@ -40,9 +69,8 @@ func (s *Service) admitLifeCall(input *lifeFrameExecutionInput, estimate uint64)
 	return s.mutateAgent(input.Entry.Agent.GetLocalAgentRef(), func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
 		now := time.Now().UTC()
 		advanceAutonomyWindow(e, now)
-		limit := e.Agent.GetAutonomy().GetConfig().GetDailyTokenBudget()
-		if limit > 0 && (estimate > uint64(limit) || estimate > uint64(max(0, limit-e.Agent.GetAutonomy().GetUsedTokensInWindow()))) {
-			return nil, nil, &lifeBudgetUnavailable{minimum: estimate > uint64(limit)}
+		if err := backgroundAllowance(e, estimate, 0); err != nil {
+			return nil, nil, err
 		}
 		if input.Work == nil || input.Work.ctx.Err() != nil {
 			return nil, nil, fmt.Errorf("background call lost execution")

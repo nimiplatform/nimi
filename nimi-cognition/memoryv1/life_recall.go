@@ -27,12 +27,26 @@ func (c *Core) includeRecentLife(ctx context.Context, request RecallRequest, res
 	if err := populateLineageTx(ctx, tx, recent); err != nil {
 		return result, err
 	}
+	refs := make([]string, 0, len(result.Hits))
+	for _, hit := range result.Hits {
+		refs = append(refs, hit.MemoryRef)
+	}
+	qualified, err := qualifyMemoryRefsTx(ctx, tx, request.BankRef, refs)
+	if err != nil {
+		return result, err
+	}
+	current := make([]Memory, 0, len(result.Hits))
+	for _, hit := range result.Hits {
+		if qualified[hit.MemoryRef] {
+			current = append(current, hit)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return result, err
 	}
 	seen := map[string]bool{}
 	hits := make([]Memory, 0, request.Limit)
-	for _, m := range append(recent, result.Hits...) {
+	for _, m := range append(recent, current...) {
 		if !seen[m.MemoryRef] && len(hits) < request.Limit {
 			seen[m.MemoryRef] = true
 			hits = append(hits, m)
@@ -41,6 +55,8 @@ func (c *Core) includeRecentLife(ctx context.Context, request RecallRequest, res
 	result.Hits = hits
 	if len(hits) > 0 {
 		result.Outcome = OutcomeReady
+	} else {
+		result.Outcome = OutcomeNoHits
 	}
 	return result, nil
 }

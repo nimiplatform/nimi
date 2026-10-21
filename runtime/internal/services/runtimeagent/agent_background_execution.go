@@ -7,6 +7,7 @@ import (
 )
 
 type agentBackgroundExecution struct {
+	memoryRefs       []string // actual selected input; protected by chatSurfaceMu
 	source           string
 	conversationRead *lifeConversationRead
 	ctx              context.Context

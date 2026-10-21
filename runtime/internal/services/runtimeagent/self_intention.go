@@ -29,7 +29,7 @@ type selfIntentionResult struct {
 	Confirmation string `json:"confirmation,omitempty"`
 }
 
-const selfIntentionPrompt = `Optional own intention, after the ordinary reply: <self-intention>{"action":"adopt","title":"own direction","kind":"project"}</self-intention><intention-confirmation>confirmation</intention-confirmation>. Runtime shows that confirmation only if accepted; keep it separate from the reply. Without a suggestion, omit both tags. JSON fields: action, activity_ref, title, kind, experience. Adopt needs title and kind (project/routine); omit experience. Change/pause/resume/abandon uses an existing activity_ref; change also needs title. Change/abandon needs experience:{"action":"create","object":"own work","result":"direction_changed"}; abandonment uses abandoned. Own actions: create/practice/explore/reflect. No user task, schedule, recipient, external tool or settings.`
+const selfIntentionPrompt = `Optional own direction after the reply: <self-intention>{"action":"adopt","title":"Cloud study","kind":"project"}</self-intention><intention-confirmation>I've decided to explore cloud studies.</intention-confirmation>. Write the actual confirmation in the user's language; it is shown only after acceptance. Without a suggestion omit both tags. Top-level action: adopt/change/pause/resume/abandon only. Adopt: title, kind (project/routine). Others: existing activity_ref; change also title. Change/abandon: experience with action=create/practice/explore/reflect, object=your specific work or subject, result=direction_changed/abandoned respectively, optional outcome. These experience actions are never top-level actions. No other fields, user tasks, schedules, recipients, tools or settings.`
 
 func decodeSelfIntention(raw string) (*selfIntentionProposal, error) {
 	if len(raw) > 2048 {
@@ -48,7 +48,7 @@ func decodeSelfIntention(raw string) (*selfIntentionProposal, error) {
 		return nil, fmt.Errorf("unsupported self-intention")
 	}
 	if p.Action == "adopt" || p.Action == "change" {
-		if !validLocalAppConversationText(p.Title, 160, false) {
+		if len([]rune(p.Title)) > 160 || !validLocalAppConversationText(p.Title, 160*4, false) {
 			return nil, fmt.Errorf("bounded own direction required")
 		}
 	} else if p.Title != "" || p.Kind != "" {
@@ -61,6 +61,7 @@ func decodeSelfIntention(raw string) (*selfIntentionProposal, error) {
 	} else if p.Kind != "" || !validLocalAppConversationText(p.ActivityRef, 256, false) {
 		return nil, fmt.Errorf("existing intention required")
 	}
+	p.Description = normalizeLifeSelfDescription(p.Description)
 	if (p.Action == "change" || p.Action == "abandon") && (p.Description == nil || p.Action == "change" && p.Description.Result != "direction_changed" || p.Action == "abandon" && p.Description.Result != "abandoned") {
 		return nil, fmt.Errorf("concrete own direction change description required")
 	}
@@ -91,6 +92,8 @@ func acceptSelfIntention(l *agentLifeState, p *selfIntentionProposal, now time.T
 			}
 			a.Title = strings.TrimSpace(p.Title)
 			a.RedactedNameKey = ""
+			a.MemoryRefs = nil
+			a.ConversationRead = nil
 		}
 		if p.Action != "resume" {
 			if l.Current != nil && l.Current.ActivityRef == a.Ref {
@@ -123,6 +126,10 @@ func acceptSelfIntention(l *agentLifeState, p *selfIntentionProposal, now time.T
 		return nil, err
 	}
 	l.NextCheckAt = now
+	l.Explanation = nil
+	if l.Interaction != nil {
+		l.Interaction.IntentionChanged = true
+	}
 	if err := l.changed(); err != nil {
 		return nil, err
 	}

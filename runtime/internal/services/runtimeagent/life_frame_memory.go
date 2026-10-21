@@ -11,7 +11,7 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.memory-world.r021
 func independentLifeFrameFact(l *agentLifeState, f lifeFrame, now time.Time) *runtimev1.CognitionMemoryActivityTerminal {
-	d := f.Description
+	d := normalizeLifeSelfDescription(f.Description)
 	if f.Phase != lifeCompleted || f.Invalidated || d == nil || validateLifeSelfDescription(d) != nil || f.StartsAt.IsZero() || f.EndsAt.Before(f.StartsAt) || f.EndsAt.After(now) {
 		return nil
 	}
@@ -73,7 +73,10 @@ func (s *Service) selfIntentionMemoryTxHook(entry *agentEntry, p *selfIntentionP
 	if p == nil || p.Description == nil || !result.Accepted || (p.Action != "change" && p.Action != "abandon") {
 		return nil, nil
 	}
-	d := p.Description
+	d := normalizeLifeSelfDescription(p.Description)
+	if validateLifeSelfDescription(d) != nil {
+		return nil, nil
+	}
 	if p.Action == "abandon" && d.Result != "abandoned" || p.Action == "change" && d.Result != "direction_changed" {
 		return nil, nil
 	}

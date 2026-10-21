@@ -29,14 +29,16 @@ func responseTokensUsed(response *runtimev1.ExecuteScenarioResponse) int64 {
 	return addNonNegativeUsage(response.GetUsage().GetInputTokens(), response.GetUsage().GetOutputTokens())
 }
 
-const lifeFrameOutputContract = `Return one JSON object only, with fields past, future, explanation, contact, next_check_minutes. Begin with { and end with }; no Markdown, code fences, commentary or APML.
+const lifeFrameOutputContract = `Return one JSON object only, with fields past, future, explanation, contact, self_intention, next_check_minutes. Begin with { and end with }; no Markdown, code fences, commentary or APML.
+You may revise your own direction while alone. Optional self_intention is null, or {"action":"change","activity_ref":"an existing intention reference","title":"new own direction","experience":{"action":"create","object":"your specific work","result":"direction_changed","outcome":"what changed"}}. To abandon use action=abandon, title="", result=abandoned. Experience actions are create/practice/explore/reflect. Runtime retires directly affected unoccurred future atomically; unrelated arrangements remain. Only future may depend on this change; past describes what was already known and happened.
 past and future are arrays of at most three activity segments each. Shared fields: activity_ref (an available existing reference to continue, or empty for a new activity), title (short public description, no private reasons), kind (routine or project), end_progress (0..100), completes_activity (boolean). Use stable existing references for unfinished work; a known unfinished name is not a new activity. COMPLETED and CANCELED activities are history only: never reuse their references or repeat them as catch-up. A new occurrence of a completed routine needs an empty activity_ref. A project is a concrete enduring goal, not ordinary rest, walking or reading. Do not declare real tools, messages, artifacts, other people or shared-world changes completed.
 Timing fields differ. A past segment has start_fraction and end_fraction only, with 0 <= start_fraction < end_fraction <= 1. These are relative positions across the entire past_window; Runtime assigns exact occurrence times. For example 0.8 to 1 describes the last fifth of the gap. NEVER include duration_minutes in past. List past segments in time order without overlap. Gaps are ordinary omitted time. past is optional and must be empty when past_window is absent. Do not manufacture life before first enable or during disabled time. A future segment instead has duration_minutes (1..1440 world elapsed minutes), with no fraction fields.
-future starts at future_window.start and must finish by future_window.end when present: its summed duration_minutes cannot exceed future_window.world_minutes. Preserve all tentative_future arrangements; do not repeat or bring their activities forward into this gap. Only unfinished activities with an activity_ref are available to continue. Activities without a reference are protected history or future arrangements; do not recreate them under new identities. Fill the available gap with other ordinary life. Use at most future_slots segments and active_activity_slots new unfinished activities. Simulated completion is allowed only for the activity itself, never for external effects.
+future starts at future_window.start and must finish by future_window.end when present: its summed duration_minutes cannot exceed future_window.world_minutes. Preserve tentative_future except the single intention you explicitly change or abandon. Do not repeat or bring forward unrelated reserved activities. Only unfinished activities with an activity_ref are available to continue. Activities without a reference are protected history or future arrangements; do not recreate them under new identities. Fill the available gap with other ordinary life. Use at most future_slots segments and active_activity_slots new unfinished activities. Simulated completion is allowed only for the activity itself, never for external effects.
 explanation is a concise private continuity summary of at most 600 characters, not a Memory candidate. Preserve unfinished direction without copying raw Recall or source passages. contact is an optional short intent to share this life, not a scheduled user request or a message already sent. next_check_minutes is 15..1440 real minutes; Runtime may defer it based on coverage, frequency and budget.
 Describe important project completions and key results using description:{"action":"create|practice|explore|reflect","object":"short name of your own work or subject","result":"completed|key_result","outcome":"concrete own result; never empty or a generic success label"}. A key_result needs what was actually achieved in your own work, not a generic success label. This is a narrow simulated self-description, not an external assertion: never include user preferences, recipients, delivery or reasons in the object. Keep motivations and recalled claims only in explanation. A future description is only a proposed action; Runtime records an experience only after actual lawful settlement. No user commitment, behavior configuration, tool or arbitrary task can be created in this output. Do not turn user notification requests into contact. Do not output IDs, timestamps or provenance assertions for new objects. Use the Character and World context; a static world has no calendar. The real_now field is scheduler time, never the fictional world's date.`
 
 type lifeFrameResult struct {
+	SelfIntention    json.RawMessage     `json:"self_intention,omitempty"`
 	Past             []lifePastProposal  `json:"past"`
 	Future           []lifeFrameProposal `json:"future"`
 	Explanation      string              `json:"explanation"`
@@ -45,19 +47,21 @@ type lifeFrameResult struct {
 }
 
 type lifeFrameExecutionInput struct {
-	Transcript       []agentTurnTranscriptPairInput
-	PastFrom         time.Time
-	ContactOnly      bool
-	Work             *agentBackgroundExecution
-	Context          *agentTurnLifeContextInput
-	ConversationRead *lifeConversationRead
-	Entry            *agentEntry
-	Source           localAgentTurnSourceViewV1
-	Binding          publicChatExecutionBinding
-	Now              time.Time
-	RequestID        string
-	Memory           []agentTurnMemoryInput
-	ReadSet          cognitionmemory.MemoryReadSet
+	TranscriptRead    *lifeConversationRead
+	TranscriptKnownAt time.Time
+	Transcript        []agentTurnTranscriptPairInput
+	PastFrom          time.Time
+	ContactOnly       bool
+	Work              *agentBackgroundExecution
+	Context           *agentTurnLifeContextInput
+	ConversationRead  *lifeConversationRead
+	Entry             *agentEntry
+	Source            localAgentTurnSourceViewV1
+	Binding           publicChatExecutionBinding
+	Now               time.Time
+	RequestID         string
+	Memory            []agentTurnMemoryInput
+	ReadSet           cognitionmemory.MemoryReadSet
 }
 
 func compileLifeFrameContext(input lifeFrameExecutionInput) (*agentTurnContextCompilation, error) {
@@ -142,6 +146,17 @@ func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecuti
 	}
 	input.ConversationRead = input.Context.CoreConversationRead
 	for _, lane := range compiled.PrivateLanes {
+		if lane.LaneID == agentTurnContextLaneConversationHistory {
+			for _, item := range lane.Items {
+				if item.Included {
+					input.ConversationRead, err = combineConversationReads(input.ConversationRead, input.TranscriptRead)
+					if err != nil {
+						return nil, 0, err
+					}
+					break
+				}
+			}
+		}
 		if lane.LaneID == agentTurnContextLaneCanonicalMemory {
 			for _, item := range lane.Items {
 				if item.Included {
@@ -168,13 +183,31 @@ func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecuti
 	}
 	input.ReadSet.Refs = refs
 	if input.Work != nil {
+		s.cognitionMemoryOwnerLifecycleMu.Lock()
+		if len(input.ReadSet.Refs) > 0 {
+			if s.cognitionMemoryFacade == nil {
+				s.cognitionMemoryOwnerLifecycleMu.Unlock()
+				return nil, 0, fmt.Errorf("life Memory qualification unavailable")
+			}
+			qualified, err := s.cognitionMemoryFacade.QualifyReadSet(ctx, input.Entry.Agent.GetLocalAgentRef(), input.ReadSet)
+			if err != nil {
+				s.cognitionMemoryOwnerLifecycleMu.Unlock()
+				return nil, 0, fmt.Errorf("qualify life Memory before execution: %w", err)
+			}
+			if len(qualified) != len(input.ReadSet.Refs) {
+				s.cognitionMemoryOwnerLifecycleMu.Unlock()
+				return nil, 0, fmt.Errorf("life Memory selection changed before execution")
+			}
+		}
 		s.chatSurfaceMu.Lock()
 		valid := s.lifeConversationReadCurrentLocked(input.ConversationRead)
 		input.Work.conversationRead = input.ConversationRead
+		input.Work.memoryRefs = append([]string(nil), input.ReadSet.Refs...)
 		if !valid {
 			input.Work.invalidated = true
 		}
 		s.chatSurfaceMu.Unlock()
+		s.cognitionMemoryOwnerLifecycleMu.Unlock()
 		if !valid {
 			return nil, 0, fmt.Errorf("life Conversation selection changed before execution")
 		}
@@ -209,6 +242,7 @@ func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecuti
 		// This purpose only consumes contact. Unused model fields never become
 		// simulation and do not turn a valid contact judgment into a failure.
 		result.Past, result.Future, result.Explanation = nil, nil, ""
+		result.SelfIntention = nil
 		result.Contact, _ = publicChatPlainReplyText(result.Contact)
 	}
 	return result, usage, err

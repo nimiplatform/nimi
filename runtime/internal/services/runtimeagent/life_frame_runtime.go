@@ -62,9 +62,10 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 	}
 	s.mu.RUnlock()
 	sort.Strings(refs)
+	var sweepErrors []error
 	for _, ref := range refs {
 		if err := ctx.Err(); err != nil {
-			return err
+			return errors.Join(append(sweepErrors, err)...)
 		}
 		source, found := s.turnSourceView(ref)
 		if !found {
@@ -145,7 +146,8 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 		})
 		s.cognitionMemoryOwnerLifecycleMu.Unlock()
 		if err != nil {
-			return err
+			sweepErrors = append(sweepErrors, fmt.Errorf("maintain life for %s: %w", ref, err))
+			continue
 		}
 		if delivered {
 			s.triggerCognitionMemory(ref)
@@ -178,7 +180,7 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 			s.runLifeFramePlanning(work, ref, source, now)
 		}()
 	}
-	return nil
+	return errors.Join(sweepErrors...)
 }
 
 func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref string, source localAgentTurnSourceViewV1, now time.Time) {
@@ -240,24 +242,17 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 		defer release()
 	}
 	input := lifeFrameExecutionInput{Entry: entry, Source: source, Binding: binding, Now: now, RequestID: "life_" + ulid.Make().String(), Work: work, ContactOnly: work.source == "contact_judgment", Context: projectLifeContext(entry.Life, true, false, s.lifeConversationSelection(ref), now, source.LifeFlowRatio)}
-	omitSupplemental := false
-	if input.ContactOnly {
-		var selection *lifeConversationRead
-		input.Transcript, selection, omitSupplemental, err = s.contactConversationInput(ref)
-		if err != nil {
-			s.recordLifePlanningFailure(work, entry, err, 0)
-			return
-		}
-		// Read the same life facts without supplying simulation windows. The
-		// compiler still treats this as an independent background execution.
-		input.Context = projectLifeContext(entry.Life, false, omitSupplemental, selection, now, source.LifeFlowRatio)
-		input.Context.Planning = true
-		input.Context.CoreConversationRead, err = combineConversationReads(input.Context.CoreConversationRead, selection)
-		if err != nil {
-			s.recordLifePlanningFailure(work, entry, err, 0)
-			return
-		}
+	var omitSupplemental bool
+	input.Transcript, input.TranscriptRead, input.TranscriptKnownAt, omitSupplemental, err = s.lifeConversationInput(ref)
+	if err != nil {
+		s.recordLifePlanningFailure(work, entry, err, 0)
+		return
 	}
+	// Conversation selection bounds the chat we actually consume. Its
+	// supplemental-omission switch does not disable solitary life's own Memory.
+	omitSupplemental = input.ContactOnly && omitSupplemental
+	input.Context = projectLifeContext(entry.Life, !input.ContactOnly, omitSupplemental, input.TranscriptRead, now, source.LifeFlowRatio)
+	input.Context.Planning = true
 	if s.cognitionMemoryFacade != nil && !omitSupplemental {
 		query := entry.Agent.GetDisplayName() + " ongoing activities interests"
 		query += " " + input.Context.RecallQuery
@@ -357,6 +352,30 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 		if err != nil {
 			return nil, nil, err
 		}
+		var intentionHook runtimeAgentStateTxHook
+		intentionAccepted := false
+		if raw := strings.TrimSpace(string(result.SelfIntention)); raw != "" && raw != "null" {
+			proposal, invalid := decodeSelfIntention(raw)
+			if invalid == nil && (proposal.Action == "change" || proposal.Action == "abandon") {
+				next := cloneAgentLifeState(l)
+				accepted, acceptErr := acceptSelfIntention(next, proposal, now)
+				if acceptErr == nil {
+					current.Life, l = next, next
+					intentionAccepted = true
+					intentionHook, err = s.selfIntentionMemoryTxHook(current, proposal, accepted, input.RequestID, now)
+					if err != nil {
+						return nil, nil, err
+					}
+				}
+			}
+			if !intentionAccepted {
+				// New dependent proposals cannot assume a rejected mutation.
+				// Previously accepted unrelated future stays untouched.
+				copy := *result
+				copy.Future, copy.Explanation, copy.Contact = nil, "", ""
+				result = &copy
+			}
+		}
 		if len(result.Future) > 0 {
 			if err := l.acceptFuture(result.Future, now, input.Source.LifeFlowRatio, input.ReadSet.Refs, input.ConversationRead != nil); err != nil {
 				return nil, nil, err
@@ -364,11 +383,6 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 		}
 		if _, err := l.advance(now, false); err != nil {
 			return nil, nil, err
-		}
-		for ref, a := range l.Activities {
-			if input.Entry.Life.Activities[ref] == nil {
-				a.ConversationRead = input.ConversationRead
-			}
 		}
 		oldFrames := map[string]bool{}
 		for _, f := range input.Entry.Life.frames() {
@@ -389,6 +403,9 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			l.Explanation = &lifeExplanation{Text: text, MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead}
 		}
 		l.NextCheckAt = now.Add(max(pacedLifePlanningInterval(current, now), time.Duration(result.NextCheckMinutes)*time.Minute))
+		if intentionAccepted && l.Current == nil {
+			l.NextCheckAt = now
+		}
 		l.WaitReason = ""
 		if result.Contact != "" && current.Life.ContactEpoch == input.Entry.Life.ContactEpoch && lifeContactAllowed(current, now) {
 			activityRef := ""
@@ -419,7 +436,12 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 				return fmt.Errorf("life planning yielded to foreground")
 			}
 			if hook != nil {
-				return hook(tx)
+				if err := hook(tx); err != nil {
+					return err
+				}
+			}
+			if intentionHook != nil {
+				return intentionHook(tx)
 			}
 			return nil
 		}, nil

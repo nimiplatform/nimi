@@ -20,10 +20,11 @@ const lifeInteractionSilence = 120 * time.Second
 // The interaction interval outlives an individual execution slot. The source
 // identity fences a late release from an earlier turn; no timer owns state.
 type lifeInteraction struct {
-	ID             string    `json:"id"`
-	SourceID       string    `json:"sourceId"`
-	StartedAt      time.Time `json:"startedAt"`
-	LastActivityAt time.Time `json:"lastActivityAt"`
+	IntentionChanged bool      `json:"intentionChanged,omitempty"`
+	ID               string    `json:"id"`
+	SourceID         string    `json:"sourceId"`
+	StartedAt        time.Time `json:"startedAt"`
+	LastActivityAt   time.Time `json:"lastActivityAt"`
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-life.timeline
@@ -86,6 +87,9 @@ func (l *agentLifeState) finishInteraction(now time.Time) error {
 	}
 	l.Interaction = nil
 	l.reviewFuture(now)
+	if i.IntentionChanged {
+		l.NextCheckAt = now
+	}
 	if now.After(l.SettledAt) {
 		l.SettledAt = now
 	}

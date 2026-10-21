@@ -27,7 +27,7 @@ func TestLifeContextSelectionIsAViewAndMemoryLineageSurvivesCompression(t *testi
 	l.Explanation = &lifeExplanation{Text: "Compressed preference for blue", ConversationRead: read, MemoryRefs: []string{"blue"}}
 	before := cloneAgentLifeState(l)
 	excluded := projectLifeContext(l, false, false, &lifeConversationRead{AnchorID: "anchor", Revision: 2, FirstSequence: 3}, now, 1)
-	if strings.Contains(excluded.Core, "Blue") || excluded.Explanation != "" || !lifeStateEqual(l, before) {
+	if !strings.Contains(excluded.Core, "Blue painting") || strings.Contains(excluded.Core, `"step":"Blue painting"`) || excluded.Explanation != "" || !lifeStateEqual(l, before) {
 		t.Fatal("selection erased life or leaked excluded source")
 	}
 	restored := projectLifeContext(l, false, false, &lifeConversationRead{AnchorID: "anchor", Revision: 3, FirstSequence: 0}, now, 1)
@@ -36,7 +36,7 @@ func TestLifeContextSelectionIsAViewAndMemoryLineageSurvivesCompression(t *testi
 	}
 	l.Explanation = &lifeExplanation{Text: "Second compressed explanation", MemoryRefs: append([]string(nil), restored.CoreMemoryReadSet.Refs...)}
 	l.invalidateMemory(map[string]bool{"blue": true}, false)
-	if l.Explanation != nil || l.Current == nil || l.Current.ActivityRef != "a" || l.Current.Title == "Blue painting" {
+	if l.Explanation != nil || l.Current == nil || l.Current.ActivityRef != "a" || !l.Current.Invalidated || l.Activities["a"].Title != "Blue painting" {
 		t.Fatal("secondary compression washed source or deleted accepted activity")
 	}
 }

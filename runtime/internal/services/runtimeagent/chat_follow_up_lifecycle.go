@@ -148,7 +148,15 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	if !ok || projection.GetAccountId() != session.SubjectUserID {
 		return
 	}
-	req := publicChatTurnRequestPayload{LocalAgentRef: session.LocalAgentRef, OwnerUserID: session.OwnerUserID, RuntimeSourceRef: session.RuntimeSourceRef, ConversationAnchorID: session.ConversationAnchorID, ThreadID: session.ThreadID, RequestID: followUp.FollowUpID, MaxOutputTokens: session.MaxTokens, Messages: publicChatFollowUpInstructionInput(publicChatContinuationInstruction), Reasoning: publicChatReasoningPayloadFromConfig(session.Reasoning), followUpClaim: &followUp}
+	entry, err := s.agentByID(session.LocalAgentRef)
+	if err != nil {
+		return
+	}
+	cap := entry.Agent.GetAutonomy().GetConfig().GetMaxBackgroundOutputTokens()
+	if cap == 0 {
+		cap = lifeFrameDefaultOutputTokens
+	}
+	req := publicChatTurnRequestPayload{LocalAgentRef: session.LocalAgentRef, OwnerUserID: session.OwnerUserID, RuntimeSourceRef: session.RuntimeSourceRef, ConversationAnchorID: session.ConversationAnchorID, ThreadID: session.ThreadID, RequestID: followUp.FollowUpID, MaxOutputTokens: int32(cap), Messages: publicChatFollowUpInstructionInput(publicChatContinuationInstruction), Reasoning: publicChatReasoningPayloadFromConfig(session.Reasoning), followUpClaim: &followUp}
 	req.backgroundAdmission = work
 	ownerCtx := executionintent.WithRuntimeAccountSubject(work.ctx, projection.GetAccountId())
 	turnID, err := s.publicChatRuntime().handleTurnRequestWithID(ownerCtx, &runtimev1.AppMessageEvent{SubjectUserId: followUp.SubjectUserID, MessageId: followUp.FollowUpID}, req)

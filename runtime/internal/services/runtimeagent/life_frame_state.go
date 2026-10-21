@@ -265,6 +265,9 @@ func (l *agentLifeState) advance(now time.Time, paused bool) ([]string, error) {
 		changed = true
 	}
 	if changed {
+		if l.Current == nil && len(l.Future) == 0 {
+			l.NextCheckAt = now
+		}
 		if err := l.changed(); err != nil {
 			return nil, err
 		}
@@ -415,8 +418,10 @@ func (l *agentLifeState) invalidateMemory(refs map[string]bool, all bool) bool {
 			if f.Phase != lifeCompleted {
 				f.Invalidated = true
 				f.Description = nil
+				if a := l.Activities[f.ActivityRef]; a != nil {
+					f.Title = a.Title
+				}
 			}
-			f.Title = "Activity"
 			f.MemoryRefs = nil
 			changed = true
 		}
@@ -427,11 +432,7 @@ func (l *agentLifeState) invalidateMemory(refs map[string]bool, all bool) bool {
 	}
 	for _, a := range l.Activities {
 		if invalid(a.MemoryRefs) {
-			if a.RedactedNameKey == "" {
-				a.RedactedNameKey = lifeActivityNameKey(a.Title)
-			}
 			a.MemoryRefs = nil
-			a.Title = "Activity"
 			changed = true
 		}
 	}

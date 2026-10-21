@@ -77,6 +77,10 @@ func (r publicChatRuntime) runTurn(
 	r.svc.mutatePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		projection.ContextSummary = cloneAgentTurnContextSummary(contextCompilation.Summary)
 	})
+	if err := r.svc.admitProactiveCall(ctx, turn, contextCompilation, nil); err != nil {
+		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, nil, usage, finish, runtimev1.ReasonCode_AI_INPUT_INVALID, err.Error())
+		return
+	}
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID:                session.CallerAppID,
 		SubjectUserID:        session.SubjectUserID,
@@ -360,6 +364,10 @@ func (r publicChatRuntime) runTurn(
 		r.svc.mutatePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.ContextSummary = cloneAgentTurnContextSummary(roundTwoCompilation.Summary)
 		})
+		if err := r.svc.admitProactiveCall(ctx, turn, roundTwoCompilation, usage); err != nil {
+			r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, nil, usage, finish, runtimev1.ReasonCode_AI_INPUT_INVALID, err.Error())
+			return
+		}
 		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation, req.MaxOutputTokens, func(delta string) error {
 			if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": delta}); err != nil {
 				return err

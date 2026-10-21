@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -86,6 +87,10 @@ func TestLifeMemoryBuilderSeparatesOwnDescriptionFromReadSet(t *testing.T) {
 	if independentLifeFrameFact(l, f, now) == nil {
 		t.Fatal("a keyword or punctuation rejected an own work description")
 	}
+	f.Description.Object = "在云影与风声之间，练习以更轻的线条保存留白的天空速写"
+	if independentLifeFrameFact(l, f, now) == nil {
+		t.Fatal("UTF-8 byte count rejected an object within the schema's character limit")
+	}
 	f.Description = &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed"}
 	f.Phase = lifeInterrupted
 	if independentLifeFrameFact(l, f, now) != nil {
@@ -132,5 +137,109 @@ func TestInvalidExperienceDoesNotDiscardAnOtherwiseValidLifeFrame(t *testing.T) 
 		if len(l.Future) != 1 || l.Future[0].Description != nil {
 			t.Fatal("invalid optional description affected the life frame or entered Memory input")
 		}
+	}
+}
+
+func TestLifeExperienceWhitespaceDoesNotPoisonSettlement(t *testing.T) {
+	for _, persisted := range []bool{false, true} {
+		name := "new-proposal"
+		if persisted {
+			name = "already-persisted-description"
+		}
+		t.Run(name, func(t *testing.T) {
+			svc := newRuntimeAgentTestService(t)
+			ctx := context.Background()
+			source := "experience-whitespace"
+			if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(source)}); err != nil {
+				t.Fatal(err)
+			}
+			ref := testRuntimeAgentLocalRef(source)
+			now := time.Now().UTC()
+			if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+				description := &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed", Outcome: "Finished the cloud postcard\n"}
+				if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: description}}, now.Add(-2*time.Minute), 1, nil, false); err != nil {
+					return nil, nil, err
+				}
+				if persisted {
+					// Represent a frame accepted by the previous version. The
+					// settlement must handle it without a database migration.
+					e.Life.Future[0].Description = description
+				}
+				return nil, nil, nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+				changes, err := e.Life.advance(now, false)
+				if err != nil {
+					return nil, nil, err
+				}
+				hook, err := svc.lifeActivityMemoryTxHook(e, changes, now)
+				return nil, hook, err
+			}); err != nil {
+				t.Fatal(err)
+			}
+			svc.triggerCognitionMemory(ref)
+			svc.cognitionMemoryWG.Wait()
+			recalled, err := svc.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: ref, Query: "Cloud postcard", IncludeRecentLife: true, Limit: 4})
+			if err != nil || len(recalled.Hits) != 1 || !strings.Contains(recalled.Hits[0].Content, "Finished the cloud postcard") {
+				t.Fatalf("settled experience not admitted and recalled: %+v %v", recalled, err)
+			}
+		})
+	}
+}
+
+func TestLifeSweepIsolatesOutboxFailureWithoutLosingAtomicity(t *testing.T) {
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	var refs []string
+	for _, source := range []string{"sweep-one", "sweep-two"} {
+		if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(source)}); err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, testRuntimeAgentLocalRef(source))
+	}
+	sort.Strings(refs)
+	now := time.Now().UTC()
+	var frames []string
+	for _, ref := range refs {
+		if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+			e.Agent.Autonomy.Enabled = true
+			e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
+			e.Life.StartedAt, e.Life.SettledAt = now.Add(-2*time.Minute), now.Add(-2*time.Minute)
+			e.Life.NextCheckAt = now.Add(time.Hour)
+			if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed"}}}, e.Life.StartedAt, 1, nil, false); err != nil {
+				return nil, nil, err
+			}
+			frames = append(frames, e.Life.Future[0].ID)
+			return nil, nil, nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := svc.backend.DB().Exec(`CREATE TRIGGER life_outbox_failure BEFORE INSERT ON runtime_cognition_memory_outbox WHEN NEW.event_ref='cmevt_life_` + frames[0] + `' BEGIN SELECT RAISE(FAIL, 'life outbox write failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	err := svc.runLifeFrameSweep(ctx, now)
+	if err == nil || !strings.Contains(err.Error(), "life outbox write failure") {
+		t.Fatalf("outbox storage failure was swallowed: %v", err)
+	}
+	failed, _ := svc.agentByID(refs[0])
+	other, _ := svc.agentByID(refs[1])
+	if len(failed.Life.Future) != 1 || len(failed.Life.Recent) != 0 {
+		t.Fatal("failed outbox transaction committed life without its experience")
+	}
+	if len(other.Life.Future) != 0 || len(other.Life.Recent) != 1 || other.Life.Recent[0].ID != frames[1] {
+		t.Fatal("one Agent's failure blocked the following Agent")
+	}
+	if _, err := svc.backend.DB().Exec(`DROP TRIGGER life_outbox_failure`); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.runLifeFrameSweep(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+	recovered, _ := svc.agentByID(refs[0])
+	if len(recovered.Life.Future) != 0 || len(recovered.Life.Recent) != 1 || recovered.Life.Recent[0].ID != frames[0] {
+		t.Fatal("original frame did not settle after storage recovered")
 	}
 }

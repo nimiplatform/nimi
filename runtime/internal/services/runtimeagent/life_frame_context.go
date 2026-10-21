@@ -170,12 +170,14 @@ func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, sele
 		}
 		sort.Strings(refs)
 	}
-	if !planning && l.Current == nil {
-		if len(l.Recent) > 0 {
-			core.Recent = append(core.Recent, project(l.Recent[len(l.Recent)-1]))
+	if !planning {
+		for i := len(l.Recent) - 1; i >= 0 && len(core.Recent) < 3; i-- {
+			if !l.Recent[i].Interaction {
+				core.Recent = append(core.Recent, project(l.Recent[i]))
+			}
 		}
-		if len(l.Future) > 0 {
-			core.Future = append(core.Future, project(l.Future[0]))
+		for _, f := range l.Future[:min(3, len(l.Future))] {
+			core.Future = append(core.Future, project(f))
 		}
 	}
 	var titles []string
@@ -185,15 +187,8 @@ func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, sele
 			continue
 		}
 		title := a.Title
-		if !includeSource(a.MemoryRefs, a.ConversationRead) {
-			title = "Activity"
-		} else {
-			titles = append(titles, title)
-		}
+		titles = append(titles, title)
 		activityRef := a.Ref
-		if planning && (reservedActivities[a.Ref]) {
-			activityRef = ""
-		}
 		core.Activities = append(core.Activities, activity{activityRef, title, a.Kind, a.Phase, a.Progress})
 	}
 	if e := l.Explanation; e != nil && !omitSupplemental && sourceConversationAllowed(e.ConversationRead, selection) {

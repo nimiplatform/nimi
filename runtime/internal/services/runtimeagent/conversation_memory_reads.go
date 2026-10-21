@@ -164,6 +164,15 @@ func (s *Service) qualifyConversationMemoryReads(ctx context.Context, ref, turnI
 func (s *Service) invalidateConversationMemoryReads(ref string, refs map[string]bool, all bool) {
 	s.chatSurfaceMu.Lock()
 	var cancels []context.CancelFunc
+	if work := s.backgroundByAgent[ref]; work != nil {
+		for _, memoryRef := range work.memoryRefs {
+			if all || refs[memoryRef] {
+				work.invalidated = true
+				cancels = append(cancels, work.cancel)
+				break
+			}
+		}
+	}
 	for _, turn := range s.chatTurns {
 		if turn.AgentID != ref {
 			continue

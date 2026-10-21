@@ -59,7 +59,7 @@ func TestLifePausePreservesIntentionsAndIndependentContact(t *testing.T) {
 	}
 
 	l.Explanation = &lifeExplanation{Text: "because blue is preferred", MemoryRefs: []string{"memory-blue"}}
-	if !l.invalidateMemory(map[string]bool{"memory-blue": true}, false) || l.Explanation != nil || l.Activities[ref].Title == "Painting" || l.Activities[ref].Ref != ref {
+	if !l.invalidateMemory(map[string]bool{"memory-blue": true}, false) || l.Explanation != nil || l.Activities[ref].Title != "Painting" || l.Activities[ref].Ref != ref {
 		t.Fatal("Memory invalidation lost activity identity or retained explanation")
 	}
 }

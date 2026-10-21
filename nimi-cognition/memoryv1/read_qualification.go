@@ -26,6 +26,17 @@ func (c *Core) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifec
 	if err := validateRecallSnapshotTx(ctx, tx, RecallRequest{BindingRef: bindingRef, BankRef: bankRef, LifecycleRef: lifecycleRef}); err != nil {
 		return nil, err
 	}
+	result, err := qualifyMemoryRefsTx(ctx, tx, bankRef, refs)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func qualifyMemoryRefsTx(ctx context.Context, tx *sql.Tx, bankRef string, refs []string) (map[string]bool, error) {
 	raw, err := json.Marshal(refs)
 	if err != nil {
 		return nil, err
@@ -48,9 +59,6 @@ func (c *Core) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifec
 		return nil, err
 	}
 	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return result, nil
