@@ -1,8 +1,10 @@
 package runtimeagent
 
 import (
+	"encoding/xml"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -54,31 +56,91 @@ type publicChatStructuredPromptPayload struct {
 }
 
 func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelope, error) {
-	trimmed := strings.TrimSpace(raw)
+	trimmed := publicChatCarrierContent(raw)
 	if trimmed == "" {
 		return nil, fmt.Errorf("structured chat output is required")
 	}
-	if text, ok := publicChatPlainReplyText(trimmed); ok {
-		return &publicChatStructuredEnvelope{
-			SchemaID: publicChatStructuredSchemaID,
-			Message:  publicChatStructuredMessage{MessageID: "message", Text: text},
-			Actions:  []publicChatStructuredAction{},
-		}, nil
+	if startsWithAPMLRoot(trimmed, "message") {
+		return parsePublicChatAPMLOutput(trimmed)
 	}
-	if !startsWithAPMLRoot(trimmed, "message") {
-		return nil, fmt.Errorf("structured chat output must be APML beginning with <message>")
+	text, tail := publicChatPlainReplyParts(trimmed)
+	if text == "" {
+		return nil, fmt.Errorf("public reply text is required")
 	}
-	return parsePublicChatAPMLOutput(trimmed)
+	if tail == "" {
+		return &publicChatStructuredEnvelope{SchemaID: publicChatStructuredSchemaID, Message: publicChatStructuredMessage{MessageID: "message", Text: text}}, nil
+	}
+	if startsWithAPMLRoot(tail, "message") {
+		if reply, err := parsePublicChatAPMLOutput(tail); err == nil {
+			reply.Message.Text = text + "\n\n" + reply.Message.Text
+			return reply, nil
+		}
+	}
+	// Reuse the same optional-effect parser after an independently readable
+	// body. Escaping preserves ordinary comparisons, Markdown and code.
+	var framed strings.Builder
+	framed.WriteString(`<message intent="reply">`)
+	_ = xml.EscapeText(&framed, []byte(text))
+	framed.WriteString("</message>")
+	framed.WriteString(tail)
+	return parsePublicChatAPMLOutput(framed.String())
 }
 
-// Plain conversation needs no effect-bearing envelope. Protocol-looking output
-// stays with its parser so private fields cannot become visible reply text.
-func publicChatPlainReplyText(raw string) (string, bool) {
+// Strip a Markdown fence only when it frames the known APML message carrier.
+// Other Markdown/code remains public text, rather than a new output protocol.
+func publicChatCarrierContent(raw string) string {
 	text := strings.TrimSpace(raw)
-	if text == "" || strings.ContainsAny(text, "<>") || strings.ContainsAny(text[:1], "{[`") {
-		return "", false
+	if strings.HasPrefix(text, "```") {
+		line := strings.IndexByte(text, '\n')
+		if line < 0 {
+			return ""
+		}
+		body := strings.TrimSpace(text[line+1:])
+		if strings.HasPrefix("<message", body) || startsWithAPMLRoot(body, "message") {
+			return strings.TrimSpace(strings.TrimSuffix(body, "```"))
+		}
 	}
-	return text, true
+	return text
+}
+
+// Only reserved wire markers delimit private output. Incomplete marker prefixes
+// are held locally; an ordinary '<', comparison or Markdown is not a contract.
+func publicChatPlainReplyParts(raw string) (string, string) {
+	text := strings.TrimSpace(raw)
+	if strings.HasPrefix(text, "<") && len(text) > 1 {
+		next := []rune(text[1:])[0]
+		if unicode.IsLetter(next) || strings.ContainsRune("/!?", next) {
+			return "", text
+		}
+	}
+	if strings.HasPrefix(text, "{") {
+		key := strings.TrimSpace(text[1:])
+		if strings.HasPrefix(`"schemaId"`, key) || strings.HasPrefix(key, `"schemaId"`) {
+			return "", text
+		}
+	}
+	for offset := 0; offset < len(text); {
+		index := strings.IndexByte(text[offset:], '<')
+		if index < 0 {
+			break
+		}
+		index += offset
+		tail := text[index:]
+		for _, name := range []string{"message", "apml:message", "life-turn", "self-intention", "intention-confirmation", "time-hook", "action", "query", "emotion", "activity"} {
+			for _, prefix := range []string{"<" + name, "</" + name} {
+				if strings.HasPrefix(prefix, tail) || strings.HasPrefix(tail, prefix) && len(tail) > len(prefix) && strings.ContainsRune(" \t\r\n/>", rune(tail[len(prefix)])) {
+					return strings.TrimSpace(text[:index]), tail
+				}
+			}
+		}
+		offset = index + 1
+	}
+	return text, ""
+}
+
+func publicChatPlainReplyText(raw string) (string, bool) {
+	text, tail := publicChatPlainReplyParts(raw)
+	return text, text != "" && tail == ""
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-participation.r012

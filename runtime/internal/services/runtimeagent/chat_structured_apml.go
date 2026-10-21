@@ -96,8 +96,16 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 // Streaming and final interpretation use the same lexical prefix, including
 // when a malformed entity and readable text arrive in one network fragment.
 func publicChatStreamingMessageText(raw string) (string, bool) {
-	if text, ok := publicChatPlainReplyText(raw); ok {
-		return text, true
+	raw = publicChatCarrierContent(raw)
+	if !startsWithAPMLRoot(raw, "message") {
+		text, tail := publicChatPlainReplyParts(raw)
+		if text != "" && startsWithAPMLRoot(tail, "message") {
+			result := interpretPublicChatAPML(tail)
+			if !result.QuerySeen && result.Envelope.Message.Text != "" {
+				text += "\n\n" + result.Envelope.Message.Text
+			}
+		}
+		return text, text != ""
 	}
 	result := interpretPublicChatAPML(raw)
 	return result.Envelope.Message.Text, result.MessageSeen

@@ -7,6 +7,24 @@ import (
 	"time"
 )
 
+func TestPlainRepliesKeepComparisonsMarkdownAndOptionalIntentions(t *testing.T) {
+	for _, body := range []string{"风速 2 > 1，不代表风更自由。", "2 < 3，而 3 > 2。", "[云](https://example.com)\n\n```text\na < b\n```"} {
+		for _, tail := range []string{"", `<self-intention>{"action":"adopt","title":"Cloud study","kind":"project"}</self-intention><intention-confirmation>PRIVATE_RESULT</intention-confirmation>`, `<self-intention>{broken`, `<intention-confirmation>PRIVATE_RESULT</intention-confirmation>`} {
+			raw := body + tail
+			reply, err := parsePublicChatStructuredEnvelope(raw)
+			if err != nil || reply.Message.Text != body {
+				t.Fatalf("plain body lost: %+v %v", reply, err)
+			}
+			for index := range raw {
+				visible, _ := publicChatStreamingMessageText(raw[:index])
+				if !strings.HasPrefix(body, visible) {
+					t.Fatalf("private or unstable streaming prefix: %q", visible)
+				}
+			}
+		}
+	}
+}
+
 func TestOptionalSelfIntentionKeepsOrdinaryStreamingBody(t *testing.T) {
 	for _, tail := range []string{"", `<self-intention>{broken}</self-intention><intention-confirmation>Already done.</intention-confirmation>`, `<self-intention>{"action":"adopt","tool":"weather"}</self-intention>`, `<intention-confirmation>Already done.</intention-confirmation>`, `<self-intention>{`} {
 		raw := `<message intent="reply">A normal answer.</message>` + tail

@@ -361,13 +361,17 @@ export function createAppConversationEntrySession(input: Readonly<{
     });
     for (const turn of projection.turns) {
       const transient = projection.transientByTurn[turn.turnId];
+      if (turn.origin !== 'user' && turn.origin !== 'app' && !transient?.text.trim()) continue;
       if (!transient || projection.messages.some(message => message.turnId === turn.turnId && message.role === 'assistant' && message.parts.some(part => part.kind === 'text'))) continue;
       messages.push({ id: `canonical-turn:${turn.turnId}`, sessionId: session.conversationAnchorId, targetId: session.reference.agentHandle,
         source: 'agent', role: 'assistant', text: transient.text, createdAt: '', kind: 'text',
         status: turn.status === 'active' ? 'streaming' : 'error', metadata: { canonicalPartial: true, canonicalMediaRunning: false, } });
     }
     const latest = projection.turns.at(-1);
-    const failed = latest?.status === 'failed' ? latest : undefined;
+    const failed = latest?.status === 'failed'
+      && (latest.origin === 'user' || latest.origin === 'app' || projection.transientByTurn[latest.turnId]?.text.trim()
+        || projection.messages.some(message => message.turnId === latest.turnId && message.role === 'assistant'))
+      ? latest : undefined;
     publish({ ...state, status: 'ready', conversationAnchorId: projection.conversationAnchorId,
       throughSequence: projection.throughSequence, activeTurnId: projection.state.textTurnId,
       messages, truncatedBefore: projection.truncatedBefore, error: null,

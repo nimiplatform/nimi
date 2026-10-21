@@ -226,6 +226,17 @@ async function readySession(testHarness: ReturnType<typeof harness>): Promise<vo
 }
 
 describe('App Conversation entry session', () => {
+  it.each(['contact', 'life', 'follow_up', 'app'] as const)('keeps empty %s failures out of unsolicited chat, but retains App results', async (origin) => {
+    const testHarness = harness();
+    await readySession(testHarness);
+    const before = testHarness.session.getState().messages;
+    testHarness.queue.push({ type: 'turn-accepted', requestId: null, origin, conversationAnchorId: 'anchor-a', sequence: '3', turnId: 'attempt' });
+    testHarness.queue.push({ type: 'turn-failed', conversationAnchorId: 'anchor-a', sequence: '4', turnId: 'attempt', reasonCode: 'AGENT_DAILY_BUDGET_EXCEEDED', message: null });
+    await vi.waitFor(() => expect(testHarness.session.getState().throughSequence).toBe('4'));
+    expect(testHarness.session.getState().lastTurnFailure?.turnId ?? null).toBe(origin === 'app' ? 'attempt' : null);
+    if (origin !== 'app') expect(testHarness.session.getState().messages).toEqual(before);
+    await testHarness.session.dispose();
+  });
   it('keeps a refused turn separate from the healthy session and admits another explicit send', async () => {
     const testHarness = harness();
     await readySession(testHarness);

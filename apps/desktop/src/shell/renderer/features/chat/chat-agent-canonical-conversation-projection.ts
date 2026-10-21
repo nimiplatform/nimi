@@ -155,6 +155,7 @@ export function materializeCanonicalConversationBundle(input: {
   const turnOrder = new Map(input.projection.turns.map((turn, index) => [turn.turnId, index]));
   for (const turn of input.projection.turns) {
     const transient = input.projection.transientByTurn[turn.turnId];
+    if (turn.origin !== 'user' && turn.origin !== 'app' && !transient?.text?.trim()) continue;
     if (messages.some(message => message.role === 'assistant' && message.kind === 'text' && message.metadataJson?.canonicalTurnId === turn.turnId)) continue;
     if (!transient && !turn.inputTurnId && input.projection.state.textTurnId !== turn.turnId) continue;
     if (turn.status === 'completed') continue;
@@ -172,6 +173,7 @@ export function materializeCanonicalConversationBundle(input: {
           canonicalTurnId: turn.turnId,
           canonicalTurnPhase: turn.phase,
           canonicalTerminalReason: turn.terminalReason,
+          canonicalFailureReasonCode: turn.reasonCode,
           canonicalCanRegenerate: turn.canRegenerate,
           canonicalInputTurnId: turn.inputTurnId,
           canonicalPartial: true,

@@ -45,7 +45,7 @@ const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
 %s
 - No top-level emotion/activity. Close all tags. Choose one admitted response type; private query must never mix with public text or actions.`
 
-const publicChatFollowUpOutputPrompt = `- Autonomous continuation only: <time-hook><delay-ms>600000</delay-ms></time-hook>, delay 1..3600000 ms. Runtime continues the same conversation; no task prompt is accepted. User tasks and deterministic notifications belong to Personal Agent products and must never use this hook.`
+const publicChatFollowUpOutputPrompt = `- If you want to add one separate thought after this reply, optionally use <time-hook><delay-ms>30000</delay-ms></time-hook>, delay 1..3600000 ms. Otherwise omit it. Runtime continues this conversation once, then waits for the user. No task prompt, user reminder or deterministic notification.`
 
 const publicChatContinuationInstruction = "Continue the current conversation naturally. This is autonomous continuation, not a user reminder or a delayed task."
 

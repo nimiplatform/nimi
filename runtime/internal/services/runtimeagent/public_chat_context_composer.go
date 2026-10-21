@@ -67,15 +67,15 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 ) (*agentTurnContextCompilation, error) {
 
 	instruction := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
-	if saved := r.svc.savedSelfIntention(session.ConversationAnchorID, turn.TurnID); saved != nil {
-		raw, _ := json.Marshal(saved)
-		instruction += "\nOriginal Runtime self-intention result: " + string(raw) + ". Restate this result truthfully without proposing or replaying a change."
-	}
 	if privateRecall != nil || session.ConversationContext.OmitSupplementalContext {
 		instruction = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
 	}
 	if session.ConversationContext.OmitSupplementalContext {
 		instruction = strings.Replace(instruction, publicChatRoundTwoFinalOnlyPrompt, "- Supplemental recall is disabled for this Conversation. Answer from the provided context; do not emit a query or claim a lookup occurred.", 1)
+	}
+	if saved := r.svc.savedSelfIntention(session.ConversationAnchorID, turn.TurnID); saved != nil {
+		raw, _ := json.Marshal(saved)
+		instruction += "\nOriginal Runtime self-intention result: " + string(raw) + ". Restate this result truthfully without proposing or replaying a change."
 	}
 
 	if req.proactiveClaim != nil {

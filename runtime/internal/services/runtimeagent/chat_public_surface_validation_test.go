@@ -201,8 +201,8 @@ func TestPublicChatTurnKeepsPublicTextWithoutRepairOrInvalidEffects(t *testing.T
 			raw:  `<response><message intent="reply" id="message-wrapped">Hello</message></response>`,
 		},
 		{
-			name: "fenced",
-			raw:  "```xml\n<message intent=\"reply\" id=\"message-fenced\">Hello</message>\n```",
+			name: "fenced", bodyComplete: true, bodyOnly: true,
+			raw: "```xml\n<message intent=\"reply\" id=\"message-fenced\">Hello</message>\n```",
 		},
 	}
 	for _, tt := range cases {

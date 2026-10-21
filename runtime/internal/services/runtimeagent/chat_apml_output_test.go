@@ -140,12 +140,15 @@ func TestParsePublicChatAPMLOutputRejectsUnrecognizedBody(t *testing.T) {
 		`<action kind="image"><prompt-text>clip</prompt-text></action><message intent="reply">hello</message>`,
 		`<life-turn><summary>private only</summary></life-turn>`,
 		`<message intent="recall"><query>private query</query></message>`,
-		`{"message":{"text":"hello"}}`,
-		"Here is the response: <message intent=\"reply\">hello</message>",
 	} {
 		if _, err := parsePublicChatStructuredEnvelope(raw); err == nil {
 			t.Fatalf("unrecognized/incomplete body accepted: %q", raw)
 		}
+	}
+	// Unmarked JSON is ordinary text, never a former structured effect carrier.
+	reply, err := parsePublicChatStructuredEnvelope(`{"message":{"text":"hello"}}`)
+	if err != nil || reply.Message.Text != `{"message":{"text":"hello"}}` || len(reply.Actions) != 0 {
+		t.Fatalf("plain JSON became an effect or lost its body: %+v %v", reply, err)
 	}
 	for _, attrs := range []string{"", ` id="m1"`, ` id="m1" id="m2"`, ` schema="unused"`} {
 		envelope, err := parsePublicChatStructuredEnvelope("<message intent=\"reply\"" + attrs + ">hello</message>")

@@ -67,6 +67,19 @@ function thread(): AgentLocalThreadRecord {
   };
 }
 
+test('unsent proactive failures do not create empty error bubbles; App replies remain visible', () => {
+  for (const origin of ['contact', 'life', 'follow_up', 'app'] as const) {
+    const base = snapshot();
+    const value: NimiLocalAppConversationSnapshot = {
+      ...base, messages: [], actions: [], voices: [],
+      turns: [{ ...base.turns[0]!, origin, status: 'failed', reasonCode: 'AGENT_DAILY_BUDGET_EXCEEDED' }],
+      state: { ...base.state, textTurnId: 'turn-1' },
+    };
+    const bundle = materializeCanonicalConversationBundle({ thread: thread(), projection: seedCanonicalConversationProjection(value), nowMs: 1 });
+    assert.equal(bundle.messages.length, origin === 'app' ? 1 : 0);
+  }
+});
+
 test('canonical projection uses snapshot sequence as a monotonic barrier', () => {
   const seeded = seedCanonicalConversationProjection(snapshot());
   const stale = reduceCanonicalConversationEvent(seeded, {
