@@ -243,7 +243,7 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	}
 	input := lifeFrameExecutionInput{Entry: entry, Source: source, Binding: binding, Now: now, RequestID: "life_" + ulid.Make().String(), Work: work, ContactOnly: work.source == "contact_judgment", Context: projectLifeContext(entry.Life, true, false, s.lifeConversationSelection(ref), now, source.LifeFlowRatio)}
 	var omitSupplemental bool
-	input.Transcript, input.TranscriptRead, input.TranscriptKnownAt, omitSupplemental, err = s.lifeConversationInput(ref)
+	input.Transcript, input.TranscriptRead, omitSupplemental, err = s.lifeConversationInput(ref)
 	if err != nil {
 		s.recordLifePlanningFailure(work, entry, err, 0)
 		return
@@ -305,7 +305,7 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input lifeFrameExecutionInput, result *lifeFrameResult, usage int64) error {
 	ref := input.Entry.Agent.GetLocalAgentRef()
 	now := time.Now().UTC()
-	return s.mutateAgent(ref, func(current *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+	return s.mutateAgentWithPersistence(ref, func(current *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
 		if !proto.Equal(current.Agent.GetCreatedAt(), input.Entry.Agent.GetCreatedAt()) {
 			return nil, nil, nil
 		}
@@ -339,6 +339,9 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 				return nil, nil, err
 			}
 			return budgetEvents, func(tx *sql.Tx) error {
+				if err := work.ctx.Err(); err != nil {
+					return err
+				}
 				if work.invalidated || s.backgroundByAgent[ref] != work || !s.lifeConversationReadCurrentLocked(input.ConversationRead) {
 					return fmt.Errorf("contact source invalidated")
 				}
@@ -403,6 +406,13 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			l.Explanation = &lifeExplanation{Text: text, MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead}
 		}
 		l.NextCheckAt = now.Add(max(pacedLifePlanningInterval(current, now), time.Duration(result.NextCheckMinutes)*time.Minute))
+		if current.Life.ContactEpoch == input.Entry.Life.ContactEpoch && lifeContactPermitted(current, now) && lifeContactAllowed(input.Entry, input.Now) &&
+			!input.Entry.Life.ContactNextAt.IsZero() && !input.Entry.Life.ContactNextAt.After(input.Now) {
+			// A due contact opportunity was already considered by this joint
+			// generation, including no-send. Do not immediately ask again.
+			l.ContactConsideredAt = input.Now
+			l.ContactNextAt = now.Add(6 * time.Hour)
+		}
 		if intentionAccepted && l.Current == nil {
 			l.NextCheckAt = now
 		}
@@ -431,6 +441,9 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			return nil, nil, err
 		}
 		return append(budgetEvents, optionalEvents(s.syncLifePresentation(current, false, now))...), func(tx *sql.Tx) error {
+			if err := work.ctx.Err(); err != nil {
+				return err
+			}
 			// mutateAgent holds chatSurfaceMu through commit, ordered with yield.
 			if work.invalidated || s.backgroundByAgent[ref] != work || !s.lifeConversationReadCurrentLocked(input.ConversationRead) {
 				return fmt.Errorf("life planning yielded to foreground")
@@ -445,6 +458,13 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			}
 			return nil
 		}, nil
+	}, func(entry *agentEntry, events []*runtimev1.AgentEvent, sequence uint64, hook runtimeAgentStateTxHook) error {
+		if hook == nil {
+			// Actual usage remains accountable after cancellation. This branch
+			// carries no new life or contact effects.
+			return s.stateRepo.persistAgentDelta(entry, events, sequence, nil)
+		}
+		return s.stateRepo.persistAgentDeltaContext(work.ctx, entry, events, sequence, hook)
 	})
 }
 

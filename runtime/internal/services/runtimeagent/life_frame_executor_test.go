@@ -106,6 +106,54 @@ func TestLifeFrameJSONRejectsUnreadableAndUnboundedOutput(t *testing.T) {
 	}
 }
 
+func TestLifeBudgetPruningDoesNotSealPastWithOmittedConversation(t *testing.T) {
+	input := lifeExecutorTestInput(t, 73)
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	ref := testRuntimeAgentLocalRef("agent-alpha")
+	from := input.Now.Add(-time.Hour)
+	if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		e.Agent.Autonomy.Enabled = true
+		e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
+		e.Agent.Autonomy.Config.MaxBackgroundOutputTokens = 73
+		e.Life.StartedAt, e.Life.SettledAt = from, from
+		return nil, nil, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	input.Entry, _ = svc.agentByID(ref)
+	input.Source, _ = svc.turnSourceView(ref)
+	input.Source.KnownAt = from.Add(-time.Hour)
+	input.Source.LifeFlowRatio = 1
+	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now, 1)
+	base, err := compileLifeFrameContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	minimum, err := lifeCallEstimate(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		e.Agent.Autonomy.Config.DailyTokenBudget = int64(minimum) + 200
+		return nil, nil, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	input.Entry, _ = svc.agentByID(ref)
+	input.Transcript = []agentTurnTranscriptPairInput{{TurnID: "recent-turn", Sequence: 1, UserText: strings.Repeat("A quiet conversation. ", 100), AssistantText: "I understand."}}
+	input.Transcript[0].KnownAt = input.Now
+	ai := &fakeLifeTurnAI{response: &runtimev1.ExecuteScenarioResponse{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{TextGenerate: &runtimev1.TextGenerateOutput{Text: `{"past":[],"future":[],"contact":"","next_check_minutes":60}`}}}}}
+	svc.aiBridge.lifeFrameAI = ai
+	input.Work = svc.claimAgentBackground(context.Background(), ref)
+	defer svc.releaseAgentBackground(ref, input.Work)
+	if _, _, err := svc.executeLifeFrames(context.Background(), &input); err != nil {
+		t.Fatal(err)
+	}
+	if len(input.Transcript) != 0 || !input.PastFrom.Equal(from) || !strings.Contains(input.Context.Core, "past_window") || len(ai.requests) != 1 {
+		t.Fatalf("omitted conversation still narrowed past: transcript=%d from=%v context=%s", len(input.Transcript), input.PastFrom, input.Context.Core)
+	}
+}
+
 func TestLifeFrameLoopPlansWithoutConversationAndPersistsAcceptedCoverage(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	ref := testRuntimeAgentLocalRef("agent-alpha")

@@ -40,8 +40,8 @@ func validateLifeSelfDescription(d *lifeSelfDescription) error {
 	default:
 		return fmt.Errorf("invalid own result")
 	}
-	if len([]rune(d.Outcome)) > 160 || (d.Outcome != "" && !validLocalAppConversationText(d.Outcome, 160*4, false)) || (d.Result == "key_result" && d.Outcome == "") {
-		return fmt.Errorf("key result requires a concrete bounded own outcome")
+	if len([]rune(d.Outcome)) > 160 || !validLocalAppConversationText(d.Outcome, 160*4, false) {
+		return fmt.Errorf("experience requires a concrete bounded own outcome")
 	}
 	if len([]rune(d.Object)) > 80 || !validLocalAppConversationText(d.Object, 80*4, false) {
 		return fmt.Errorf("bounded own object required")

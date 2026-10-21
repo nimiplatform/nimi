@@ -390,7 +390,7 @@ func baselineLongTermCue(text string) bool {
 
 // @nimi-authority: rule.nimi.cognition.memory.simulated-life-activity
 func baselineMeaningfulActivity(fact *ActivityTerminalFact) bool {
-	if !validLifeExperience(fact) {
+	if !validLifeExperience(fact) || strings.TrimSpace(fact.BoundedOutcome) == "" {
 		return false
 	}
 	switch fact.Change {

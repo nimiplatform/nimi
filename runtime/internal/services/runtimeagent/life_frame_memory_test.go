@@ -27,7 +27,7 @@ func TestLifeActivityCommitsIndependentFactAndOccurrenceWithOwnerState(t *testin
 		a := &lifeActivity{Ref: "activity-painting", Title: "Landscape painting", Kind: "project", Phase: lifeCompleted, Progress: 100, StartedAt: start, CompletedAt: end}
 		e.Life.Activities[a.Ref] = a
 		e.Life.Explanation = &lifeExplanation{Text: "The user likes blue", MemoryRefs: []string{"old-blue"}}
-		f := lifeFrame{ID: "painting-complete", ActivityRef: a.Ref, Title: "Mixed external reason stays out", Phase: lifeCompleted, ActivityState: lifeCompleted, StartsAt: start, EndsAt: end, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Landscape painting", Result: "completed"}, Retrospective: true}
+		f := lifeFrame{ID: "painting-complete", ActivityRef: a.Ref, Title: "Mixed external reason stays out", Phase: lifeCompleted, ActivityState: lifeCompleted, StartsAt: start, EndsAt: end, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Landscape painting", Result: "completed", Outcome: "Finished the river composition with three cloud layers"}, Retrospective: true}
 		e.Life.Recent = append(e.Life.Recent, f)
 		hook, err := svc.lifeActivityMemoryTxHook(e, []string{f.ID}, now)
 		return nil, hook, err
@@ -78,12 +78,12 @@ func TestLifeMemoryBuilderSeparatesOwnDescriptionFromReadSet(t *testing.T) {
 	if independentLifeFrameFact(l, f, now) != nil {
 		t.Fatal("mixed display title became Memory")
 	}
-	f.Description = &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed"}
+	f.Description = &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed", Outcome: "Painted a pale border around the cloud silhouette"}
 	fact := independentLifeFrameFact(l, f, now)
 	if fact == nil || fact.SelfObject != "Cloud postcard" {
 		t.Fatal("eligible independent experience was rejected merely because Recall was read")
 	}
-	f.Description = &lifeSelfDescription{Action: "create", Object: "《我喜欢的云》：线条练习", Result: "completed"}
+	f.Description = &lifeSelfDescription{Action: "create", Object: "《我喜欢的云》：线条练习", Result: "completed", Outcome: "完成了三组云边线条，并选定留白最多的一组"}
 	if independentLifeFrameFact(l, f, now) == nil {
 		t.Fatal("a keyword or punctuation rejected an own work description")
 	}
@@ -208,7 +208,7 @@ func TestLifeSweepIsolatesOutboxFailureWithoutLosingAtomicity(t *testing.T) {
 			e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
 			e.Life.StartedAt, e.Life.SettledAt = now.Add(-2*time.Minute), now.Add(-2*time.Minute)
 			e.Life.NextCheckAt = now.Add(time.Hour)
-			if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed"}}}, e.Life.StartedAt, 1, nil, false); err != nil {
+			if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed", Outcome: "Finished the postcard with a pale cloud border"}}}, e.Life.StartedAt, 1, nil, false); err != nil {
 				return nil, nil, err
 			}
 			frames = append(frames, e.Life.Future[0].ID)

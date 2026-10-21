@@ -128,7 +128,7 @@ func TestLifeSparseCatchUpSpansWholeGapAndSettlesOmittedTime(t *testing.T) {
 	from := now.Add(-7 * 24 * time.Hour)
 	l := newAgentLifeState()
 	l.StartedAt, l.SettledAt = from, from
-	result, err := decodeLifeFrameResult(`{"past":[{"start_fraction":0.1,"end_fraction":0.2,"title":"A walk","kind":"routine","end_progress":100,"completes_activity":true},{"start_fraction":0.9,"end_fraction":1,"title":"Finish the landscape","kind":"project","description":{"action":"create","object":"Landscape painting","result":"completed"},"end_progress":100,"completes_activity":true}],"future":[],"next_check_minutes":60}`)
+	result, err := decodeLifeFrameResult(`{"past":[{"start_fraction":0.1,"end_fraction":0.2,"title":"A walk","kind":"routine","end_progress":100,"completes_activity":true},{"start_fraction":0.9,"end_fraction":1,"title":"Finish the landscape","kind":"project","description":{"action":"create","object":"Landscape painting","result":"completed","outcome":"Finished the river scene with three cloud layers"},"end_progress":100,"completes_activity":true}],"future":[],"next_check_minutes":60}`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestLifeDisableSettlesDueFramesCommitmentsAndMemory(t *testing.T) {
 		e.Agent.Autonomy.Enabled = true
 		e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM
 		e.Life.StartedAt, e.Life.SettledAt = start, start
-		if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Finish sketch", Description: &lifeSelfDescription{Action: "create", Object: "Cloud sketch", Result: "completed"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}, {Title: "Finish poem", Description: &lifeSelfDescription{Action: "create", Object: "Cloud poem", Result: "completed"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, start, 1, nil, false); err != nil {
+		if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Finish sketch", Description: &lifeSelfDescription{Action: "create", Object: "Cloud sketch", Result: "completed", Outcome: "Completed the charcoal cloud outline"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}, {Title: "Finish poem", Description: &lifeSelfDescription{Action: "create", Object: "Cloud poem", Result: "completed", Outcome: "Finished the final stanza about the river wind"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, start, 1, nil, false); err != nil {
 			return nil, nil, err
 		}
 		for _, f := range e.Life.Future {

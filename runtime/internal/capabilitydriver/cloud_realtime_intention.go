@@ -51,7 +51,7 @@ func (dashScopeRealtimeDriver) SelfIntentionTools(enabled bool) []any {
 		// and description but drops its nested property definitions. Keep the
 		// same private object contract readable at that supported field level.
 		properties := tool["parameters"].(map[string]any)["properties"].(map[string]any)
-		properties["experience"].(map[string]any)["description"] = "Required for change/abandon; omit for adopt. JSON object with required action (create, practice, explore, reflect), object (specific own work or subject, at most 80 characters), and result (direction_changed for change; abandoned for abandon). Optional outcome describes the concrete change, at most 160 characters. No other fields."
+		properties["experience"].(map[string]any)["description"] = "Required for change/abandon; omit for adopt. JSON object with required action (create, practice, explore, reflect), object (specific own work or subject, at most 80 characters), result (direction_changed for change; abandoned for abandon), and outcome (nonempty description of the concrete change, at most 160 characters). No other fields."
 		tools[i] = map[string]any{"type": "function", "function": map[string]any{"name": tool["name"], "description": tool["description"], "parameters": tool["parameters"]}}
 	}
 	return tools

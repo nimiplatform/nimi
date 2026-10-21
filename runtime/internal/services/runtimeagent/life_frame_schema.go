@@ -63,7 +63,7 @@ func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.Respon
 				"action":  map[string]any{"type": "string", "enum": []any{"create", "practice", "explore", "reflect"}},
 				"object":  map[string]any{"type": "string", "minLength": 1, "maxLength": 80},
 				"result":  map[string]any{"type": "string", "enum": []any{"direction_changed", "abandoned"}},
-				"outcome": map[string]any{"type": "string", "maxLength": 160},
+				"outcome": map[string]any{"type": "string", "minLength": 1, "maxLength": 160},
 			}),
 		})}},
 		"past":               map[string]any{"type": "array", "maxItems": pastSlots, "items": segment(true)},

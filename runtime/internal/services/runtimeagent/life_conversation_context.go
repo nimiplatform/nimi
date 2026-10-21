@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"fmt"
-	"time"
 )
 
 func combineConversationReads(a, b *lifeConversationRead) (*lifeConversationRead, error) {
@@ -31,7 +30,7 @@ func (s *Service) lifeConversationSelection(ref string) *lifeConversationRead {
 	return nil
 }
 
-func (s *Service) lifeConversationInput(ref string) ([]agentTurnTranscriptPairInput, *lifeConversationRead, time.Time, bool, error) {
+func (s *Service) lifeConversationInput(ref string) ([]agentTurnTranscriptPairInput, *lifeConversationRead, bool, error) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
 	for _, anchor := range s.chatAnchors {
@@ -40,15 +39,23 @@ func (s *Service) lifeConversationInput(ref string) ([]agentTurnTranscriptPairIn
 		}
 		transcript, err := selectedCommittedTranscript(anchor)
 		if err != nil {
-			return nil, nil, time.Time{}, false, err
+			return nil, nil, false, err
 		}
 		transcript = transcript[max(0, len(transcript)-publicChatRecentVerbatimTurnLimit):]
 		read := &lifeConversationRead{AnchorID: anchor.ConversationAnchorID, Revision: conversationContextRevision(anchor.ConversationContext), FirstSequence: anchor.ConversationContext.FirstTurnSequence}
-		// UpdatedAt is an owner-held conservative bound for this snapshot,
-		// including the completed assistant text. It is never model supplied.
-		return transcript, read, anchor.UpdatedAt, anchor.ConversationContext.OmitSupplementalContext, nil
+		known := make(map[string]publicChatCommittedTranscriptTurn, len(anchor.CommittedTranscript))
+		for _, turn := range anchor.CommittedTranscript {
+			known[turn.TurnID] = turn
+		}
+		for i := range transcript {
+			// This content time is immutable; late usage and UI projection
+			// updates cannot turn old dialogue into newly learned content.
+			// Missing historical times stay unknown, never inferred.
+			transcript[i].KnownAt = known[transcript[i].TurnID].CommittedAt
+		}
+		return transcript, read, anchor.ConversationContext.OmitSupplementalContext, nil
 	}
-	return nil, nil, time.Time{}, false, nil
+	return nil, nil, false, nil
 }
 
 func sourceConversationAllowed(source, selection *lifeConversationRead) bool {

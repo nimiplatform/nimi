@@ -113,12 +113,13 @@ type publicChatAvailableActions struct {
 // follow-up turns share this one ordered transcript; app-facing ChatMessage
 // history is derived from user-origin records and is never stored separately.
 type publicChatCommittedTranscriptTurn struct {
-	InputTurnID   string `json:"inputTurnId,omitempty"`
-	TurnID        string `json:"turnId"`
-	Sequence      uint64 `json:"sequence"`
-	Origin        string `json:"origin"`
-	InputText     string `json:"inputText"`
-	AssistantText string `json:"assistantText"`
+	CommittedAt   time.Time `json:"committedAt,omitempty"`
+	InputTurnID   string    `json:"inputTurnId,omitempty"`
+	TurnID        string    `json:"turnId"`
+	Sequence      uint64    `json:"sequence"`
+	Origin        string    `json:"origin"`
+	InputText     string    `json:"inputText"`
+	AssistantText string    `json:"assistantText"`
 	// InputAttachment carries the Runtime-validated user attachment of this
 	// turn (artifact reference + store-trusted mime). Nil for text-only turns.
 	InputAttachment *publicChatCommittedTranscriptAttachment `json:"inputAttachment,omitempty"`

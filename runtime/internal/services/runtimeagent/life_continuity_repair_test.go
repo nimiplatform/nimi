@@ -95,11 +95,11 @@ func TestLifeExhaustionRechecksOnceAndChatBoundsPast(t *testing.T) {
 	}
 	input := lifeExecutorTestInput(t, 128)
 	input.Transcript = []agentTurnTranscriptPairInput{{TurnID: "turn", Sequence: 1, UserText: "New direction", AssistantText: "I will consider it"}}
-	input.TranscriptKnownAt = input.Now.Add(-time.Minute)
+	input.Transcript[0].KnownAt = input.Now.Add(-time.Minute)
 	if err := constrainLifePastKnowledge(&input); err != nil {
 		t.Fatal(err)
 	}
-	if input.PastFrom.Before(input.TranscriptKnownAt) {
+	if input.PastFrom.Before(input.Transcript[0].KnownAt) {
 		t.Fatal("new conversation could rewrite earlier unknown life")
 	}
 }

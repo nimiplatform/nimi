@@ -155,10 +155,11 @@ type agentTurnMemoryInput struct {
 }
 
 type agentTurnTranscriptPairInput struct {
-	TurnID        string `json:"turnId"`
-	Sequence      uint64 `json:"sequence"`
-	UserText      string `json:"userText"`
-	AssistantText string `json:"assistantText"`
+	KnownAt       time.Time `json:"-"`
+	TurnID        string    `json:"turnId"`
+	Sequence      uint64    `json:"sequence"`
+	UserText      string    `json:"userText"`
+	AssistantText string    `json:"assistantText"`
 }
 
 type agentTurnConversationSummaryInput struct {

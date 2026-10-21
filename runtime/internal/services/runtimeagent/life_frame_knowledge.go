@@ -13,11 +13,11 @@ func constrainLifePastKnowledge(input *lifeFrameExecutionInput) error {
 		return nil
 	}
 	from := maxTime(input.Entry.Life.SettledAt, input.Source.KnownAt)
-	if len(input.Transcript) > 0 {
-		if input.TranscriptKnownAt.IsZero() {
+	for _, turn := range input.Transcript {
+		if turn.KnownAt.IsZero() {
 			from = input.Now
 		} else {
-			from = maxTime(from, input.TranscriptKnownAt)
+			from = maxTime(from, turn.KnownAt)
 		}
 	}
 	for _, m := range input.Memory {

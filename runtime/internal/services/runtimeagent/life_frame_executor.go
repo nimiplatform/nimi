@@ -47,21 +47,20 @@ type lifeFrameResult struct {
 }
 
 type lifeFrameExecutionInput struct {
-	TranscriptRead    *lifeConversationRead
-	TranscriptKnownAt time.Time
-	Transcript        []agentTurnTranscriptPairInput
-	PastFrom          time.Time
-	ContactOnly       bool
-	Work              *agentBackgroundExecution
-	Context           *agentTurnLifeContextInput
-	ConversationRead  *lifeConversationRead
-	Entry             *agentEntry
-	Source            localAgentTurnSourceViewV1
-	Binding           publicChatExecutionBinding
-	Now               time.Time
-	RequestID         string
-	Memory            []agentTurnMemoryInput
-	ReadSet           cognitionmemory.MemoryReadSet
+	TranscriptRead   *lifeConversationRead
+	Transcript       []agentTurnTranscriptPairInput
+	PastFrom         time.Time
+	ContactOnly      bool
+	Work             *agentBackgroundExecution
+	Context          *agentTurnLifeContextInput
+	ConversationRead *lifeConversationRead
+	Entry            *agentEntry
+	Source           localAgentTurnSourceViewV1
+	Binding          publicChatExecutionBinding
+	Now              time.Time
+	RequestID        string
+	Memory           []agentTurnMemoryInput
+	ReadSet          cognitionmemory.MemoryReadSet
 }
 
 func compileLifeFrameContext(input lifeFrameExecutionInput) (*agentTurnContextCompilation, error) {
@@ -107,14 +106,59 @@ func compileLifeFrameContext(input lifeFrameExecutionInput) (*agentTurnContextCo
 	return compiled, err
 }
 
+// Optional items can be omitted by the shared capacity compiler. Narrow the
+// past only with the subset it actually admits, then recompile its schema and
+// cost. Every repeat removes at least one candidate; it never calls a model.
+func compileSelectedLifeFrameContext(input *lifeFrameExecutionInput, core string) (*agentTurnContextCompilation, error) {
+	for {
+		copy := *input.Context
+		copy.Core = core
+		input.Context = &copy
+		if err := constrainLifePastKnowledge(input); err != nil {
+			return nil, err
+		}
+		compiled, err := compileLifeFrameContext(*input)
+		if err != nil {
+			return nil, err
+		}
+		selected := map[string]bool{}
+		for _, lane := range compiled.PrivateLanes {
+			for _, item := range lane.Items {
+				if item.Included {
+					selected[item.StableID] = true
+					selected[item.SourceRef.RefID] = true
+				}
+			}
+		}
+		memory := input.Memory[:0]
+		history := input.Transcript[:0]
+		oldCount := len(input.Memory) + len(input.Transcript)
+		for _, item := range input.Memory {
+			if selected[item.MemoryID] {
+				memory = append(memory, item)
+			}
+		}
+		for _, item := range input.Transcript {
+			if selected[fmt.Sprintf("runtime.transcript.sequence.%020d", item.Sequence)] {
+				history = append(history, item)
+			}
+		}
+		input.Memory, input.Transcript = memory, history
+		if len(memory)+len(history) == oldCount {
+			return compiled, nil
+		}
+	}
+}
+
 func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecutionInput) (*lifeFrameResult, int64, error) {
 	if err := validateRuntimePrivateExecutorBinding("life frame", input.Binding); err != nil {
 		return nil, 0, err
 	}
-	if err := constrainLifePastKnowledge(input); err != nil {
-		return nil, 0, err
+	if input.Context == nil {
+		return nil, 0, fmt.Errorf("life planning context is required")
 	}
-	compiled, err := compileLifeFrameContext(*input)
+	unconstrained := *input.Context
+	compiled, err := compileSelectedLifeFrameContext(input, unconstrained.Core)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -126,12 +170,12 @@ func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecuti
 	if limit > 0 && estimate > uint64(max(0, limit-input.Entry.Agent.GetAutonomy().GetUsedTokensInWindow())) {
 		input.Memory = nil
 		input.Transcript = nil
-		contextCopy := *input.Context
+		contextCopy := unconstrained
 		contextCopy.Explanation = ""
 		contextCopy.MemoryReadSet = cognitionmemory.MemoryReadSet{}
 		contextCopy.ExplanationConversationRead = nil
 		input.Context = &contextCopy
-		compiled, err = compileLifeFrameContext(*input)
+		compiled, err = compileSelectedLifeFrameContext(input, unconstrained.Core)
 		if err != nil {
 			return nil, 0, err
 		}

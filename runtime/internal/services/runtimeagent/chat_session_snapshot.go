@@ -312,6 +312,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		}
 		if !replayed {
 			session.CommittedTranscript = append(session.CommittedTranscript, publicChatCommittedTranscriptTurn{
+				CommittedAt:     time.Now().UTC(),
 				TurnID:          committedTurnID,
 				InputTurnID:     inputTurnID,
 				Sequence:        sequence,
