@@ -203,9 +203,12 @@ func (b *Backend) WriteTx(ctx context.Context, fn func(*sql.Tx) error) error {
 		}
 		return b.executeWrite(ctx, fn)
 	}
-	return b.runSerialized(ctx, func(ctx context.Context) error {
+	// Once queued, report the transaction's actual outcome. Cancellation still
+	// reaches BeginTx/Commit, but must not make a successful commit look like a
+	// rollback to an owner that restores its in-memory state on error.
+	return b.runSerializedWait(ctx, func(ctx context.Context) error {
 		return b.executeWrite(ctx, fn)
-	})
+	}, true)
 }
 
 func (b *Backend) Flush(ctx context.Context) error {
