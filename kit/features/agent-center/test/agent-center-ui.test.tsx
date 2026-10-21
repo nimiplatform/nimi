@@ -81,6 +81,22 @@ async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: st
 }
 
 describe('AgentCenter UI session contract', () => {
+  it('allows discarding a local edit when another window saved the same value', async () => {
+    const session = await sessionFor({ autonomy: { freeContactEnabled:false, quietHours:null, maxFreeContactsPerDay:3,
+      revision:'a1', enabled:true, mode:'low', budgetExhausted:false, usedTokensInWindow:0, dailyTokenBudget:100,
+      maxBackgroundOutputTokens:10, windowStartedAt:null, suspendedUntil:null } });
+    const snapshot = session.getSnapshot();
+    const node = render(<AgentCenterBehaviorSection session={session} snapshot={snapshot} />);
+    const input = node.querySelector('input[type="number"]') as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+    act(() => { setter.call(input, '4'); input.dispatchEvent(new Event('input', { bubbles:true })); });
+    act(() => { root!.render(<AgentCenterBehaviorSection session={session} snapshot={{ ...snapshot, state: { ...snapshot.state,
+      autonomy: { ...snapshot.state.autonomy, revision:'a2', maxFreeContactsPerDay:4 } } }} />); });
+    const discard = Array.from(node.querySelectorAll('button')).find(button => button.textContent?.includes('Discard changes'))!;
+    expect(discard.disabled).toBe(false);
+    act(() => discard.click());
+    expect(node.textContent).not.toContain('Settings changed elsewhere');
+  });
   it('renders from the Manager Session and exposes only UI composition props', async () => {
     const intent = {
       capabilityContract: 'text.generate',

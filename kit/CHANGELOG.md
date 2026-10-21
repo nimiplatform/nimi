@@ -9,6 +9,11 @@ owner cleanup after confirmed admission, before the persisted copy is removed.
 It is a compatible prop addition for the next 0.x minor. It does not run for
 unknown/rejected receipts or "keep as draft"; existing callers need no migration.
 
+Agent Center adds optional per-Agent Resource Pack placement and selected-Agent
+callbacks for host navigation. These are compatible public prop additions for
+the next 0.x minor; existing callers need no migration. Hosts retain navigation
+ownership and must resolve placement for the selected Agent.
+
 Breaking unreleased 0.x change: Runtime LocalAgent no longer exposes user
 commitment CRUD, generic control outcomes, task timezones or per-activity task
 management. Use the matching Runtime, SDK and native carrier builds. User task

@@ -26,7 +26,7 @@ import { SavedConfigsView } from './runtime-config-page-loadouts.js';
 import { CONVERSATION_CAPABILITY, type RuntimeProfileQuickStartConversation } from './runtime-profile-quick-start.js';
 import { RuntimeProfileTaskView } from './runtime-profile-task-view.js';
 import { RuntimeSetupFailureMessage, runtimeSetupFailureText, type RuntimeSetupFailureNotice } from './runtime-setup-failure-message.js';
-import { resolveRuntimeSetupReturnTarget } from './runtime-setup-task-open.js';
+import { resolveRuntimeSetupReturnTarget, resolveRuntimeSetupAgentDestination, returnFromRuntimeSetup } from './runtime-setup-task-open.js';
 import { createRuntimeSetupTaskRunnerPorts, currentDesktopAccountIdForSetup } from './runtime-setup-task-ports.js';
 import { createRuntimeSetupCandidate, resolveRuntimeSetupPreparation, runRuntimeSetupPreparation } from './runtime-setup-task-runner.js';
 import { getRuntimeSetupTaskStore, type RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
@@ -359,7 +359,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const onReturnToSource = () => {
     const target = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
     setError(null);
-    if (target?.kind === 'tab' && target.tab === 'apps' && focusedTask?.source.ownerAppId) {
+    if (target?.kind === 'destination') {
+      const client = sdk.appProduct();
+      const entryKey = navigation.getSnapshot().current.key;
+      void resolveRuntimeSetupAgentDestination(target.destination, { agents: client.agents, conversation: client.conversation })
+        .then(destination => navigation.getSnapshot().current.key === entryKey ? returnFromRuntimeSetup(navigation, destination) : undefined)
+        .catch(error => setError({ message: error instanceof Error ? error.message : String(error) }));
+    } else if (target?.kind === 'tab' && target.tab === 'apps' && focusedTask?.source.ownerAppId) {
       void navigation.push({ id: 'apps', appId: focusedTask.source.ownerAppId });
     } else if (target?.kind === 'tab') void navigation.push({ id: target.tab });
     else void navigation.push(homeRuntimeDestination('aiSettings'));

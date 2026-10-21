@@ -73,7 +73,7 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
       <form onSubmit={event => { event.preventDefault(); void save(); }}>
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4">
           <Button type="submit" tone="primary" size="sm" disabled={!dirty || saving || !available || remoteChanged}>{saving ? text('saving') : text('save')}</Button>
-          <Button type="button" tone="ghost" size="sm" disabled={!dirty || saving} onClick={reset}>{text('reset')}</Button>
+          <Button type="button" tone="ghost" size="sm" disabled={(!dirty && !remoteChanged) || saving} onClick={reset}>{text('reset')}</Button>
           <span role="status" className="text-sm text-[var(--nimi-text-secondary)]">{remoteChanged ? text('remoteChanged') : dirty ? text('unsaved') : notice === 'saved' ? text('saved') : ''}</span>
         </div>
         <fieldset disabled={!available || saving} className="m-0 grid min-w-0 gap-5 border-0 p-4">

@@ -46,6 +46,8 @@ export type HomeChatPosition = {
   readonly targetId?: string;
   readonly threadId?: string;
   readonly agentHandle?: string;
+  /** Durable management return hint; resolved against fresh references. */
+  readonly agentBinding?: string;
   readonly conversationAnchorId?: string;
   /** Pending management navigation only; never an admitted Agent selector. */
   readonly managerAnchorId?: string;
@@ -134,11 +136,11 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
     if (id === 'agent-center' && fields.mode !== 'agent') throw new Error('Partner management requires Agent mode.');
-    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId'] : ['mode', 'targetId', 'threadId'];
+    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId', ...(id === 'agent-center' ? ['agentBinding'] : [])] : ['mode', 'targetId', 'threadId'];
     if (!['ai', 'human', 'agent'].includes(fields.mode as string) || Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
     for (const key of keys) if (key !== 'mode' && fields[key] !== undefined) normalized[key] = stringRef(fields[key]);
-    if (fields.mode === 'agent' && (Boolean(normalized.agentHandle) !== Boolean(normalized.conversationAnchorId))) throw new Error('Agent position requires its proven handle and Conversation anchor together.');
+    if (fields.mode === 'agent' && (id === 'chat' && Boolean(normalized.agentHandle) !== Boolean(normalized.conversationAnchorId) || normalized.conversationAnchorId && !normalized.agentHandle && !(id === 'agent-center' && normalized.agentBinding))) throw new Error('Agent conversation position requires its proven handle and Conversation anchor together.');
     result.chat = normalized;
   }
   return result as HomeDestination;

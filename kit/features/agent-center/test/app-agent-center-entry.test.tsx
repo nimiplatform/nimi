@@ -98,6 +98,24 @@ async function renderEntry(
 }
 
 describe('App Agent Center entry', () => {
+  it('restores the supplied anchor on A -> B -> A and binds placement to each selected handle', async () => {
+    const managerCalls: unknown[] = [];
+    const client = entryClient({ managerCalls, references: async () => [
+      { agentHandle: HANDLE_A, agentBinding: 'binding-a', activityAgentRef: 'agr_A', displayName: 'A', avatarUrl: null },
+      { agentHandle: HANDLE_B, agentBinding: 'binding-b', activityAgentRef: 'agr_B', displayName: 'B', avatarUrl: null },
+    ] });
+    const placement = vi.fn((_handle: NimiLocalAppAgentHandle) => null);
+    const selected = vi.fn();
+    const node = await renderEntry({ client, initialAgentHandle: HANDLE_A, conversationAnchorId: 'anchor-a', resourcePackPlacementForAgent: placement, onSelectedAgentChange: selected });
+    for (const handle of [HANDLE_B, HANDLE_A]) {
+      await act(async () => { (node.querySelector(`[data-nimi-app-agent-center-agent-handle="${handle}"]`) as HTMLButtonElement).click(); });
+      await flush();
+    }
+    expect(managerCalls.at(-1)).toEqual({ agentHandle: HANDLE_A, conversationAnchorId: 'anchor-a' });
+    expect(managerCalls).toContainEqual({ agentHandle: HANDLE_B });
+    expect(placement.mock.calls.map(call => call[0])).toEqual([HANDLE_A, HANDLE_B, HANDLE_A]);
+    expect(selected.mock.calls.map(call => call[0])).toEqual([HANDLE_B, HANDLE_A]);
+  });
   it('uses one formal client and carries an exact supplied Conversation anchor into its single Manager Session', async () => {
     const managerCalls: unknown[] = [];
     const client = entryClient({

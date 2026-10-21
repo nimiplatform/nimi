@@ -18,6 +18,10 @@ Runtime truth enters through a nominal `AgentCenterSession` created by the canon
 - A Host may supply the current non-authorizing Manager handle directly; otherwise, the entry lists minimal current-session Agent references and requires an exact handle choice.
 - It creates and disposes exactly one canonical Manager Session, uses an optional Conversation anchor only with the matching supplied handle, and never associates by display name, ordering, raw identity, or App-owned state.
 - Its selector, loading, and failure copy is Kit-owned in English and Chinese.
+- Hosts can retain the selected handle in their own navigation using
+  `onSelectedAgentChange`. `resourcePackPlacementForAgent` binds an optional
+  placement action to that exact handle; it must not reuse another partner's
+  Conversation anchor. Listing or selecting a Manager does not open a chat.
 
 ### Appearance Replacement
 

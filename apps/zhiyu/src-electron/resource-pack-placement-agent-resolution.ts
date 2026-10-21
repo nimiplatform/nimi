@@ -37,7 +37,11 @@ export async function resolveZhiyuResourcePackPlacementAgentHandle(
 function isAgentSelectorMismatch(error: unknown): boolean {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   const reason = String(record.reasonCode ?? record.code ?? '');
-  return reason === 'LOCAL_APP_ACCESS_DENIED'
+  // Runtime deliberately returns not-found for an anchor owned by another
+  // candidate. It is a non-match, not a broken destination session.
+  return reason === 'runtime-access-denied'
+    || reason === 'LOCAL_APP_RECORD_NOT_FOUND'
+    || reason === 'LOCAL_APP_ACCESS_DENIED'
     || reason === 'SDK_LOCAL_APP_AGENT_SELECTOR_MISMATCH'
     || reason === 'local-app-agent-selector-mismatch';
 }

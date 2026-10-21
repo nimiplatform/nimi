@@ -28,6 +28,8 @@ export type AppAgentCenterEntryProps = Readonly<{
   readonly conversationAnchorId?: string | null;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
   readonly resourcePackPlacement?: AgentCenterResourcePackPlacementAdapter | null;
+  readonly resourcePackPlacementForAgent?: (handle: NimiLocalAppAgentHandle) => AgentCenterResourcePackPlacementAdapter | null;
+  readonly onSelectedAgentChange?: (handle: NimiLocalAppAgentHandle) => void;
   readonly placementActions?: AgentCenterPlacementActions;
   readonly language?: string | null;
   readonly className?: string;
@@ -87,7 +89,6 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
   const [selectedHandle, setSelectedHandle] = useState<NimiLocalAppAgentHandle | null>(
     initialHandle,
   );
-  const [selectedExplicitly, setSelectedExplicitly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failure, setFailure] = useState('');
   const [session, setSession] = useState<AgentCenterSession | null>(null);
@@ -127,7 +128,6 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
   }, [copy.loadFailed, initialHandle, props.client, props.initialAgentReference]);
 
   useEffect(() => {
-    setSelectedExplicitly(false);
     void loadReferences();
     return () => { loadEpochRef.current += 1; };
   }, [copy.loadFailed, loadReferences]);
@@ -144,11 +144,10 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
         } : {}),
         ...(props.conversationAnchorId
           && initialHandle === selectedHandle
-          && !selectedExplicitly
           ? { conversationAnchorId: props.conversationAnchorId }
           : {}),
         hostMechanics: props.hostMechanics ?? null,
-        resourcePackPlacement: props.resourcePackPlacement ?? null,
+        resourcePackPlacement: props.resourcePackPlacementForAgent?.(selectedHandle) ?? props.resourcePackPlacement ?? null,
       })
       : null;
     sessionRef.current = next;
@@ -163,8 +162,8 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
     props.conversationAnchorId,
     props.hostMechanics,
     props.resourcePackPlacement,
+    props.resourcePackPlacementForAgent,
     initialHandle,
-    selectedExplicitly,
     selectedHandle,
   ]);
 
@@ -196,8 +195,8 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
                 className="max-w-full justify-start"
                 onClick={() => {
                   if (reference.agentHandle === selectedHandle) return;
-                  setSelectedExplicitly(true);
                   setSelectedHandle(reference.agentHandle);
+                  props.onSelectedAgentChange?.(reference.agentHandle);
                 }}
                 data-nimi-app-agent-center-agent-handle={reference.agentHandle}
               >

@@ -12,7 +12,7 @@ test('Zhiyu main resolves exactly one destination-session handle from the redeem
     async conversationSnapshot(input) {
       calls.push(input);
       if (input.agentHandle === 'agent_ref_a') {
-        throw Object.assign(new Error('selector mismatch'), { reasonCode: 'LOCAL_APP_ACCESS_DENIED' });
+        throw Object.assign(new Error('anchor belongs to another candidate'), { reasonCode: 'runtime-access-denied' });
       }
       return { conversationAnchorId: input.conversationAnchorId };
     },
