@@ -45,7 +45,7 @@ func TestEveryBuiltInRemoteTextModelHasCatalogContextCapacity(t *testing.T) {
 		}
 		for _, model := range models {
 			if !modelHasCapability(model, "text.generate") {
-				if model.ContextWindowTokens != 0 {
+				if model.ContextWindowTokens != 0 && !modelHasCapability(model, "realtime.interact") {
 					t.Fatalf("non-text model %s/%s carries context_window_tokens=%d", provider.Provider, model.ModelID, model.ContextWindowTokens)
 				}
 				continue
@@ -68,6 +68,24 @@ func TestEveryBuiltInRemoteTextModelHasCatalogContextCapacity(t *testing.T) {
 	}
 }
 
+func TestRealtimeContextUsesItsOwnReviewedModelFloor(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		provider, model string
+		floor           uint64
+	}{{"openai", "gpt-realtime-2.1", 96000}, {"dashscope", "qwen3.5-omni-flash-realtime", 196608}} {
+		metadata, err := resolver.ResolveRealtimeContextMetadataForSubject("", tc.provider, tc.model)
+		if err != nil || metadata.ContextWindowTokens != tc.floor || metadata.ModelID != tc.model {
+			t.Fatalf("Realtime capacity not captured from its model: %+v %v", metadata, err)
+		}
+		if _, err := resolver.ResolveTextContextMetadataForSubject("", tc.provider, tc.model); err == nil {
+			t.Fatal("Realtime model admitted as a text.generate route")
+		}
+	}
+}
 func TestResolveTextContextMetadataUsesRealCloudCatalogCapacity(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

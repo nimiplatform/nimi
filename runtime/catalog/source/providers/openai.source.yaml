@@ -27,8 +27,8 @@ defaults:
 sources:
   - source_id: openai_realtime_2_1_doc
     url: https://developers.openai.com/api/docs/models/gpt-realtime-2.1
-    retrieved_at: 2026-10-01
-    note: Exact GA Realtime speech-to-speech target; text/audio input and output. Tools and image input are outside Nimi's current Session contract.
+    retrieved_at: 2026-10-21
+    note: Exact model card supplies 128000 total context and 32000 maximum output; the reviewed request-capacity floor leaves room for the maximum output. Session Open still confirms account access.
   - source_id: openai_realtime_conversations_doc
     url: https://developers.openai.com/api/docs/guides/realtime-conversations
     retrieved_at: 2026-10-01
@@ -230,8 +230,10 @@ voice_sets:
 models:
   - model_id: gpt-realtime-2.1
     model_type: chat
-    updated_at: 2026-10-01
+    updated_at: 2026-10-21
     capabilities: [realtime.interact]
+    # Reviewed request-capacity floor: 128000 total less 32000 maximum output.
+    context_window_tokens: 96000
     source_ids: [openai_realtime_2_1_doc, openai_realtime_conversations_doc]
     pricing:
       unit: request

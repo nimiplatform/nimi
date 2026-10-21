@@ -177,6 +177,14 @@ func (r *Resolver) ResolveModelEntryForSubject(subjectUserID string, providerTyp
 // missing capacity or catalog identity fails closed; callers must not replace
 // it with an app or Runtime constant.
 func (r *Resolver) ResolveTextContextMetadataForSubject(subjectUserID string, providerType string, modelID string) (TextContextMetadata, error) {
+	return r.resolveContextMetadataForSubject(subjectUserID, providerType, modelID, aicapabilities.TextGenerate)
+}
+
+func (r *Resolver) ResolveRealtimeContextMetadataForSubject(subjectUserID string, providerType string, modelID string) (TextContextMetadata, error) {
+	return r.resolveContextMetadataForSubject(subjectUserID, providerType, modelID, aicapabilities.RealtimeInteract)
+}
+
+func (r *Resolver) resolveContextMetadataForSubject(subjectUserID string, providerType string, modelID, requiredCapability string) (TextContextMetadata, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
 	if provider == "" || normalizedModel == "" {
@@ -190,7 +198,7 @@ func (r *Resolver) ResolveTextContextMetadataForSubject(subjectUserID string, pr
 	textCapable := false
 	for _, capability := range detail.Model.Capabilities {
 		normalized, normalizeErr := aicapabilities.NormalizeCatalogCapability(capability)
-		if normalizeErr == nil && normalized == aicapabilities.TextGenerate {
+		if normalizeErr == nil && normalized == requiredCapability {
 			textCapable = true
 			break
 		}

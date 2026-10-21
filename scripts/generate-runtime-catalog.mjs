@@ -387,9 +387,10 @@ export function generateProviderCatalog(doc) {
       }
     }
     const textGenerateCapable = normalizedCapabilities.includes('text.generate');
+    const realtimeCapable = normalizedCapabilities.includes('realtime.interact');
     const declaresContextWindow = model?.context_window_tokens !== undefined;
-    if (declaresContextWindow && !textGenerateCapable) {
-      throw new Error(`${provider} model ${canonicalModelID} declares context_window_tokens without text.generate support`);
+    if (declaresContextWindow && !textGenerateCapable && !realtimeCapable) {
+      throw new Error(`${provider} model ${canonicalModelID} declares context_window_tokens without text.generate or realtime.interact support`);
     }
     const contextWindowTokens = declaresContextWindow
       ? requirePositiveSafeInteger(model.context_window_tokens, `${provider} model ${canonicalModelID} context_window_tokens`)
@@ -509,7 +510,7 @@ export function generateProviderCatalog(doc) {
       if (family) {
         modelEntry.family = family;
       }
-      if (runtime.runtime_plane !== 'local' && textGenerateCapable) {
+      if (runtime.runtime_plane !== 'local' && (textGenerateCapable || realtimeCapable && declaresContextWindow)) {
         modelEntry.context_window_tokens = contextWindowTokens;
       }
       if (resolvedVoiceSetID) {

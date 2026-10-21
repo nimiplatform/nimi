@@ -183,6 +183,13 @@ const explicitSourceFixture = {
   note: 'Exact model documentation.',
 };
 
+test('Realtime context capacity uses only an explicit reviewed row, never the text provider floor', () => {
+  const doc = staticTextProviderWithSource(explicitSourceFixture);
+  doc.models[0].capabilities = ['realtime.interact'];
+  assert.equal(generateProviderCatalog(doc).models[0].context_window_tokens, undefined);
+  doc.models[0].context_window_tokens = 96000;
+  assert.equal(generateProviderCatalog(doc).models[0].context_window_tokens, 96000);
+});
 test('catalog generation rejects missing source references instead of crediting the first source', () => {
   for (const sourceIDs of [undefined, [], [' ']]) {
     const doc = staticTextProviderWithSource(explicitSourceFixture);
