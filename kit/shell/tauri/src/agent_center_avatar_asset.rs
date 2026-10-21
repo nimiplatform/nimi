@@ -314,7 +314,10 @@ fn materialize_avatar_files(
         let Some(enclosed) = entry.enclosed_name() else {
             return Err("Live2D package contains an unsafe path.".to_string());
         };
-        if enclosed.as_os_str().is_empty() || enclosed.to_string_lossy().contains('\\') {
+        let entry_name = entry
+            .name()
+            .map_err(|error| format!("failed to decode Live2D ZIP entry name: {error}"))?;
+        if enclosed.as_os_str().is_empty() || entry_name.contains('\\') {
             return Err("Live2D package contains an unsafe path.".to_string());
         }
         let collision_key = enclosed.to_string_lossy().to_ascii_lowercase();
