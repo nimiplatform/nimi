@@ -2,16 +2,16 @@ package ai
 
 import (
 	"context"
-	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"strings"
 	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -35,6 +35,7 @@ type realtimeInputIdentity struct {
 }
 
 type realtimeSessionRecord struct {
+	contextMetadata      agentintent.RealtimeContext
 	selfUsageObserver    agentintent.UsageObserver
 	selfHandler          agentintent.Handler
 	selfPending          *capabilitydriver.CloudRealtimeEvent

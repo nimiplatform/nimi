@@ -3,19 +3,49 @@ package ai
 import (
 	"context"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 )
 
 const runtimeAgentRealtimePrivateAppID = "runtime.agent"
+
+func (s *Service) ResetRuntimeAgentRealtimeContext(ctx context.Context, accountID, sessionID string, generation uint64) error {
+	record, err := s.authorizedRealtimeRecord(runtimeAgentRealtimeOwnerContext(ctx, accountID), sessionID, generation)
+	if err != nil {
+		return err
+	}
+	if !record.operationMu.TryLock() {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	defer record.operationMu.Unlock()
+	record.mu.Lock()
+	idle := !record.closed && record.pendingRequestID == "" && !record.selfWaiting
+	record.mu.Unlock()
+	if !idle {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	driver, ok := record.driver.(interface {
+		ResetAgentContext(string) (capabilitydriver.CloudRealtimeEffect, error)
+	})
+	if !ok {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	effect, err := driver.ResetAgentContext(ulid.Make().String())
+	if err != nil {
+		return realtimeDriverError(err)
+	}
+	return s.sendRealtimeEffect(record, effect)
+}
 
 // OpenRuntimeAgentRealtime is the private Runtime Agent owner composition seam.
 // It resolves only the account-scoped shared LocalAgent AIConfig, then invokes
@@ -36,6 +66,16 @@ func (s *Service) AppendRuntimeAgentRealtimeInput(ctx context.Context, accountID
 	return s.appendRealtimeInput(runtimeAgentRealtimeOwnerContext(ctx, accountID), req, false)
 }
 
+func (s *Service) RuntimeAgentRealtimeContext(ctx context.Context, accountID, sessionID string, generation uint64) (agentintent.RealtimeContext, error) {
+	record, err := s.authorizedRealtimeRecord(runtimeAgentRealtimeOwnerContext(ctx, accountID), sessionID, generation)
+	if err != nil {
+		return agentintent.RealtimeContext{}, err
+	}
+	if record.contextMetadata.ContextWindowTokens == 0 {
+		return agentintent.RealtimeContext{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	return record.contextMetadata, nil
+}
 func (s *Service) SubmitRuntimeAgentRealtimeControl(ctx context.Context, accountID string, req *runtimev1.SubmitRealtimeOwnerControlRequest) (*runtimev1.SubmitRealtimeOwnerControlResponse, error) {
 	return s.SubmitRealtimeOwnerControl(runtimeAgentRealtimeOwnerContext(ctx, accountID), req)
 }

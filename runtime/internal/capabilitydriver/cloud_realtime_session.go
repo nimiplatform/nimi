@@ -45,7 +45,7 @@ type CloudRealtimeProtocol interface {
 
 type realtimeWireMapper interface {
 	SelfIntentionTools(bool) []any
-	SelfIntentionToolsUpdate(string, bool) ([]byte, error)
+	SelfIntentionToolsUpdate(string, bool, runtimev1.AiRealtimeTurnDetectionMode) ([]byte, error)
 	Endpoint(CloudRealtimeTarget) string
 	MapOpen(string, CloudRealtimeTarget, CloudRealtimeOpen) ([]byte, error)
 	MapInput(string, *runtimev1.AppendRealtimeInputRequest) ([]byte, error)
@@ -55,6 +55,9 @@ type realtimeWireMapper interface {
 }
 
 type realtimeWireSession struct {
+	contextItems  []string
+	pendingAudio  string
+	contextCursor string
 	toolsDisabled bool
 	mapper        realtimeWireMapper
 	target        CloudRealtimeTarget
@@ -99,7 +102,29 @@ func realtimeWireEffect(wire []byte, err error) (CloudRealtimeEffect, error) {
 	return CloudRealtimeEffect{Wires: [][]byte{wire}}, nil
 }
 func (s *realtimeWireSession) Input(id string, req *runtimev1.AppendRealtimeInputRequest) (CloudRealtimeEffect, error) {
-	return realtimeWireEffect(s.mapper.MapInput(id, req))
+	wire, err := s.mapper.MapInput(id, req)
+	if err != nil {
+		return CloudRealtimeEffect{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.open.SelfIntention && req.GetOwnerContext() != nil && s.contextCursor != "" {
+		// Insert the freshly compiled prefix before an already committed audio
+		// item, preserving the same context-before-user order as typed input.
+		var event map[string]any
+		if err := json.Unmarshal(wire, &event); err != nil {
+			return CloudRealtimeEffect{}, err
+		}
+		item := event["item"].(map[string]any)
+		item["id"] = id
+		event["previous_item_id"] = s.contextCursor
+		wire, err = json.Marshal(event)
+		if err != nil {
+			return CloudRealtimeEffect{}, err
+		}
+		s.contextCursor = id
+	}
+	return realtimeWireEffect(wire, nil)
 }
 func (s *realtimeWireSession) OwnerControl(id string, req *runtimev1.SubmitRealtimeOwnerControlRequest) (CloudRealtimeEffect, error) {
 	if req != nil && (req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE || req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE) {
@@ -120,7 +145,7 @@ func (s *realtimeWireSession) OwnerControl(id string, req *runtimev1.SubmitRealt
 	s.toolsDisabled = false
 	s.mu.Unlock()
 	if restore {
-		wire, err := s.mapper.SelfIntentionToolsUpdate(id+"_tools", true)
+		wire, err := s.mapper.SelfIntentionToolsUpdate(id+"_tools", true, s.open.TurnDetection)
 		if err != nil {
 			return CloudRealtimeEffect{}, err
 		}
@@ -152,10 +177,38 @@ func (s *realtimeWireSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error
 	// Late repeated native calls still reach the Agent identity fence after
 	// tools have been disabled for the sole result response.
 	var header struct {
-		Type string `json:"type"`
+		Type   string `json:"type"`
+		ItemID string `json:"item_id"`
+		Item   struct {
+			ID string `json:"id"`
+		} `json:"item"`
 	}
-	if err := json.Unmarshal(raw, &header); err == nil && header.Type == "response.function_call_arguments.done" {
-		expected.SelfIntention = s.open.SelfIntention
+	if err := json.Unmarshal(raw, &header); err == nil {
+		s.mu.Lock()
+		if s.open.SelfIntention && (header.Type == "conversation.item.created" || header.Type == "conversation.item.added" || header.Type == "response.output_item.added") {
+			if header.Item.ID != "" {
+				found := false
+				for _, id := range s.contextItems {
+					if id == header.Item.ID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					s.contextItems = append(s.contextItems, header.Item.ID)
+				}
+			}
+		}
+		if s.open.SelfIntention && header.Type == "input_audio_buffer.committed" {
+			s.pendingAudio = header.ItemID
+		}
+		if header.Type == "response.created" {
+			s.pendingAudio = ""
+		}
+		s.mu.Unlock()
+		if header.Type == "response.function_call_arguments.done" {
+			expected.SelfIntention = s.open.SelfIntention
+		}
 	}
 	events, err := s.mapper.NormalizeEvent(raw, expected)
 	if err != nil {
@@ -189,6 +242,32 @@ func (s *realtimeWireSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error
 		output = append(output, event)
 	}
 	return output, nil
+}
+
+// Replace the execution copy between Agent turns. The new, unanswered audio
+// item remains native; canonical history is composed by the Agent owner.
+func (s *realtimeWireSession) ResetAgentContext(id string) (CloudRealtimeEffect, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.open.SelfIntention || s.closed || s.stop != nil || s.responseKey != "" {
+		return CloudRealtimeEffect{}, fmt.Errorf("Agent context is not idle")
+	}
+	effect := CloudRealtimeEffect{}
+	keep := []string{}
+	for index, itemID := range s.contextItems {
+		if itemID == s.pendingAudio {
+			keep = append(keep, itemID)
+			continue
+		}
+		wire, err := json.Marshal(map[string]any{"event_id": fmt.Sprintf("%s_%d", id, index), "type": "conversation.item.delete", "item_id": itemID})
+		if err != nil {
+			return CloudRealtimeEffect{}, err
+		}
+		effect.Wires = append(effect.Wires, wire)
+	}
+	s.contextItems = keep
+	s.contextCursor = "root"
+	return effect, nil
 }
 
 func (s *realtimeWireSession) WaitNativeStop(ctx context.Context, key string) (CloudRealtimeStopResult, error) {

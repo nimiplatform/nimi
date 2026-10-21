@@ -205,6 +205,10 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
   ]);
   const [state, setState] = useState(() => session.getState());
   const [text, setText] = useState('');
+  const [reply, setReply] = useState<{
+    requestId: string;
+    tracks: readonly { id: string; text: string }[];
+  }>({ requestId: '', tracks: [] });
   const copy = resolveNimiAgentRealtimeCopy(props.locale);
 
   useEffect(() => {
@@ -223,6 +227,24 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
     if (!props.onEvent) return undefined;
     return session.subscribeEvents(props.onEvent);
   }, [props.onEvent, session]);
+
+  useEffect(() => {
+    setReply({ requestId: '', tracks: [] });
+    return session.subscribeEvents((event) => {
+      if (event.type !== 'text-output') return;
+      setReply((previous) => {
+        const tracks = previous.requestId === event.requestId ? [...previous.tracks] : [];
+        const index = tracks.findIndex((track) => track.id === event.outputTrackId);
+        const prior = index < 0 ? '' : tracks[index]!.text;
+        const track = { id: event.outputTrackId, text: event.final ? event.text : prior + event.text };
+        if (index < 0) tracks.push(track);
+        else tracks[index] = track;
+        return { requestId: event.requestId, tracks };
+      });
+    });
+  }, [session]);
+
+  const replyText = reply.tracks.map((track) => track.text).join('\n\n');
 
   const openPending = state.lifecycle === 'opening';
   const closePending = state.lifecycle === 'closing';
@@ -304,6 +326,12 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             {copy.close}
           </Button>
         </div>
+
+        {replyText ? (
+          <NimiText role="body" className="whitespace-pre-wrap break-words" data-nimi-agent-realtime-reply="true">
+            {replyText}
+          </NimiText>
+        ) : null}
 
         <div className="space-y-2">
           <TextareaField

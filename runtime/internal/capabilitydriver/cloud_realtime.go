@@ -83,6 +83,7 @@ type CloudRealtimeEvent struct {
 	Usage               *runtimev1.UsageStats
 	ErrorCode           string
 	ResponseStatus      CloudRealtimeResponseStatus
+	OutputTypes         []string // diagnostic metadata; nil when the provider omits output
 	NoOutput            bool
 }
 
@@ -162,13 +163,9 @@ func (dashScopeRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarge
 		input.InputAudio.GetSampleRateHz() != 16000 || input.InputAudio.GetChannelCount() != 1 {
 		return nil, &RealtimeInputFormatError{ExpectedSampleRateHz: 16000}
 	}
-	turnDetection := any(nil)
-	if input.TurnDetection == runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD {
-		turnDetection = map[string]any{
-			"type": "server_vad", "threshold": 0.5, "silence_duration_ms": 800, "create_response": false,
-		}
-	} else if input.TurnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_MANUAL {
-		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("DashScope Realtime turn detection mode is unsupported"))
+	turnDetection, err := dashScopeRealtimeTurnDetection(input.TurnDetection)
+	if err != nil {
+		return nil, err
 	}
 	modalities := []string{"text"}
 	if input.AudioOutput {
@@ -186,6 +183,19 @@ func (dashScopeRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarge
 		session["instructions"] = instruction
 	}
 	return json.Marshal(map[string]any{"event_id": eventID, "type": "session.update", "session": session})
+}
+
+// Both Open and tool toggles must preserve the captured owner-control mode.
+// DashScope enables default VAD when a session.update omits this field.
+func dashScopeRealtimeTurnDetection(mode runtimev1.AiRealtimeTurnDetectionMode) (any, error) {
+	switch mode {
+	case runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_MANUAL:
+		return nil, nil
+	case runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD:
+		return map[string]any{"type": "server_vad", "threshold": 0.5, "silence_duration_ms": 800, "create_response": false}, nil
+	default:
+		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("DashScope Realtime turn detection mode is unsupported"))
+	}
 }
 
 func (dashScopeRealtimeDriver) MapInput(eventID string, req *runtimev1.AppendRealtimeInputRequest) ([]byte, error) {
@@ -270,8 +280,9 @@ type cloudRealtimeServerEvent struct {
 	Stash      string `json:"stash"`
 	Transcript string `json:"transcript"`
 	Response   struct {
-		ID     string `json:"id"`
-		Status string `json:"status"`
+		ID     string                    `json:"id"`
+		Status string                    `json:"status"`
+		Output []cloudRealtimeOutputItem `json:"output"`
 		Usage  *struct {
 			InputTokens  *int64 `json:"input_tokens"`
 			OutputTokens *int64 `json:"output_tokens"`
@@ -280,6 +291,21 @@ type cloudRealtimeServerEvent struct {
 	Error struct {
 		Code string `json:"code"`
 	} `json:"error"`
+}
+
+type cloudRealtimeOutputItem struct {
+	Type string `json:"type"`
+}
+
+func realtimeOutputTypes(items []cloudRealtimeOutputItem) []string {
+	if items == nil {
+		return nil
+	}
+	types := make([]string, len(items))
+	for i, item := range items {
+		types[i] = item.Type
+	}
+	return types
 }
 
 func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtimeOpen) ([]CloudRealtimeEvent, error) {
@@ -335,6 +361,7 @@ func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtime
 		return []CloudRealtimeEvent{call}, nil
 	case "response.done":
 		normalized.Kind = CloudRealtimeEventResponseDone
+		normalized.OutputTypes = realtimeOutputTypes(event.Response.Output)
 		switch strings.TrimSpace(event.Response.Status) {
 		case "completed":
 			normalized.ResponseStatus = CloudRealtimeResponseStatusCompleted

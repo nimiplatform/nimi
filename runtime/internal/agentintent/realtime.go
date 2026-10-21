@@ -4,10 +4,17 @@ package agentintent
 
 import (
 	"context"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 const FunctionName = "nimi_self_intention"
+
+// Captured by the AI Realtime owner at Open; never supplied by an App.
+type RealtimeContext struct {
+	ModelID, ProviderID, CatalogRevision, ModelRevision, ConnectorID string
+	ContextWindowTokens                                              uint64
+}
 
 type Handler func(context.Context, string) (string, error)
 type contextKey struct{}
@@ -33,11 +40,11 @@ func NativeTools(enabled bool) []any {
 	}
 	return []any{map[string]any{
 		"type": "function", "name": FunctionName,
-		"description": `Optionally propose one persistent intention for your own life, never a user task, reminder, schedule, tool, recipient or configuration change. Change/abandon requires an experience with your own action, object and result; adopt omits it. Use exact existing activity_ref values. Wait for the actual result before confirming a change, and do not propose another change in the result reply.`,
+		"description": `Save one chosen persistent change to your own life: adopt, change, pause, resume or abandon. Choosing a change is optional; saying it aloud does not save it. Use this native function when you choose a change, including one discussed with the user. Mere wishes and ordinary replies need no call. Change/abandon includes your own experience; adopt omits it. Existing intentions use activity_ref from current accepted life, not a remembered title. Confirm only the returned accepted result, without another change in the result reply. No user task, reminder, recipient, external business tool or settings change.`,
 		"parameters": map[string]any{"type": "object", "properties": map[string]any{
 			"action":       map[string]any{"type": "string", "enum": []string{"adopt", "change", "pause", "resume", "abandon"}},
 			"experience":   map[string]any{"type": "object", "properties": map[string]any{"action": map[string]any{"type": "string", "enum": []string{"create", "practice", "explore", "reflect"}}, "object": map[string]any{"type": "string", "maxLength": 80}, "result": map[string]any{"type": "string", "enum": []string{"direction_changed", "abandoned"}}, "outcome": map[string]any{"type": "string", "maxLength": 160}}, "required": []string{"action", "object", "result"}, "additionalProperties": false},
-			"activity_ref": map[string]any{"type": "string", "description": "Exact existing activity_ref for change/pause/resume/abandon; omit for adopt."}, "title": map[string]any{"type": "string", "description": "Own direction name, required for adopt/change; omit otherwise."}, "kind": map[string]any{"type": "string", "description": "Required only for adopt; omit for existing intentions.", "enum": []string{"project", "routine"}},
+			"activity_ref": map[string]any{"type": "string", "description": "Exact existing activity_ref for change/pause/resume/abandon; omit for adopt."}, "title": map[string]any{"type": "string", "maxLength": 160, "description": "Own direction name, required for adopt/change; omit otherwise."}, "kind": map[string]any{"type": "string", "description": "Required only for adopt; omit for existing intentions.", "enum": []string{"project", "routine"}},
 		}, "required": []string{"action"}, "additionalProperties": false},
 	}}
 }

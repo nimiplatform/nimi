@@ -33,6 +33,8 @@ Kit lists only the canonical minimal Agent references, requires an explicit choi
 
 Runtime output completion can precede physical playback. A Host media adapter's `finishOutputTrack` promise settles after the queued audio drains (or when interruption or close releases it). Kit keeps the output interruptible until then without blocking Runtime event consumption.
 
+The shared entry displays the latest Runtime-projected reply text as it streams, including when audio is unavailable or suppressed by the Runtime presentation owner. Final text replaces that track's deltas; a result continuation remains beside the earlier reply. Kit does not parse private tool syntax or infer that an intention was accepted.
+
 - `interruptOutput` returns `null` when only this remaining local playback is stopped; otherwise, it returns the actual Runtime operation result.
 - Explicit Agent-turn interruption still goes to Runtime and is bound to the original output request. A completed native response may be only the private intention response; the original user turn remains active through its result continuation.
 - Closing explicitly interrupts an unfinished owned turn, including before an output track exists, and retains committed intentions. Capture stopped solely for close is discarded, not submitted.

@@ -131,6 +131,10 @@ func (s *Service) CorrectLocalAppAgentMemory(ctx context.Context, req *runtimev1
 		err = s.invalidateLifeMemorySources(resolved.identity.LocalAgentRef, map[string]bool{req.GetMemoryId(): true}, false)
 		s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	}
+	if result.Outcome == memoryv1.OutcomeAdmitted {
+		executor, fenced := s.fenceAgentRealtimeSessions(resolved.identity.LocalAgentRef)
+		s.closeFencedAgentRealtimeSessions(executor, fenced)
+	}
 	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
 		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
 	}
@@ -159,6 +163,13 @@ func (s *Service) ForgetLocalAppAgentMemory(ctx context.Context, req *runtimev1.
 	}
 	s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
+		// Native sessions retain execution copies beyond one canonical turn.
+		// Retire them before reporting the Memory change; never hold the Memory
+		// lifecycle mutex while waiting for media/event release.
+		executor, fenced := s.fenceAgentRealtimeSessions(resolved.identity.LocalAgentRef)
+		s.closeFencedAgentRealtimeSessions(executor, fenced)
+	}
+	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
 		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
 	}
 	if err != nil {
@@ -181,6 +192,10 @@ func (s *Service) SetLocalAppAgentMemoryEnabled(ctx context.Context, req *runtim
 		err = s.invalidateLifeMemorySources(resolved.identity.LocalAgentRef, nil, true)
 	}
 	s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if !req.GetEnabled() && (err == nil || result.Outcome == memoryv1.OutcomeUnavailable) {
+		executor, fenced := s.fenceAgentRealtimeSessions(resolved.identity.LocalAgentRef)
+		s.closeFencedAgentRealtimeSessions(executor, fenced)
+	}
 	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
 		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
 	}
@@ -204,6 +219,10 @@ func (s *Service) DeleteAllLocalAppAgentMemory(ctx context.Context, req *runtime
 		err = s.invalidateLifeMemorySources(resolved.identity.LocalAgentRef, nil, true)
 	}
 	s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
+		executor, fenced := s.fenceAgentRealtimeSessions(resolved.identity.LocalAgentRef)
+		s.closeFencedAgentRealtimeSessions(executor, fenced)
+	}
 	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
 		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
 	}

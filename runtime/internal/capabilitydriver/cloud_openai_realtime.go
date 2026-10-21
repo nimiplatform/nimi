@@ -180,6 +180,7 @@ func (openAIRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtimeOpe
 		return []CloudRealtimeEvent{call}, nil
 	case "response.done":
 		out.Kind = CloudRealtimeEventResponseDone
+		out.OutputTypes = realtimeOutputTypes(event.Response.Output)
 		switch event.Response.Status {
 		case "completed":
 			out.ResponseStatus = CloudRealtimeResponseStatusCompleted

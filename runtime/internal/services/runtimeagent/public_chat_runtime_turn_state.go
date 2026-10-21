@@ -73,7 +73,19 @@ func (r publicChatRuntime) reserveTurn(
 		}
 		defer releasePriority()
 	}
-	resolvedBindings, configRevision, bindingRelease, err := r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
+	var resolvedBindings publicChatExecutionBindings
+	var configRevision uint64
+	var bindingRelease func()
+	primaryCapability := runtimeAgentAIConfigCapabilityTextGenerate
+	if req.realtimeBinding != nil {
+		if req.realtimeBinding.CapabilityContract != "realtime.interact" || req.realtimeBinding.ContextWindowTokens == 0 {
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, localAppConversationInvalid("captured Realtime context is unavailable")
+		}
+		primaryCapability = "realtime.interact"
+		resolvedBindings = publicChatExecutionBindings{primaryCapability: *req.realtimeBinding}
+	} else {
+		resolvedBindings, configRevision, bindingRelease, err = r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
+	}
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
 			err,
@@ -86,7 +98,11 @@ func (r publicChatRuntime) reserveTurn(
 			releaseUnclaimedBinding()
 		}
 	}()
-	imageBinding, imageAvailability := r.svc.resolvePublicChatImageActionBinding(parent, localAgentRef)
+	imageAvailability := publicChatImageActionNotConfigured
+	var imageBinding publicChatExecutionBinding
+	if req.realtimeBinding == nil {
+		imageBinding, imageAvailability = r.svc.resolvePublicChatImageActionBinding(parent, localAgentRef)
+	}
 	if imageAvailability == publicChatImageActionAvailable {
 		resolvedBindings[runtimeAgentAIConfigCapabilityImageGenerate] = imageBinding
 	}
@@ -193,7 +209,7 @@ func (r publicChatRuntime) reserveTurn(
 		// K-AGCORE-147: the anchor no longer owns binding truth. Every turn
 		// admission overwrites the session projection fields with the
 		// admission-resolved bindings and the committed config revision.
-		session.Binding = resolvedBindings[runtimeAgentAIConfigCapabilityTextGenerate]
+		session.Binding = resolvedBindings[primaryCapability]
 		session.Bindings = clonePublicChatExecutionBindings(resolvedBindings)
 		session.ConfigRevision = configRevision
 		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {

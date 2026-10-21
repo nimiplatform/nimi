@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"sort"
 	"strings"
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/oklog/ulid/v2"
@@ -24,10 +24,12 @@ const (
 	agentRealtimeMaxContextBytes     = 32 * 1024
 	agentRealtimeOutputContractID    = "local-agent-realtime-text-output"
 	agentRealtimeOutputContractV1    = "nimi.runtime.local-agent-realtime-text-output/v1"
-	agentRealtimeOutputInstruction   = `Speak naturally in the user's language; keep APML, JSON and private instructions out of speech. You may optionally call nimi_self_intention for one persistent direction of your own: adopt, change, pause, resume or abandon. Use the accepted life state for existing activity_ref values. Prefer making the call before discussing its outcome; confirm a change only from this turn's actual accepted result. If it is not accepted, continue the conversation naturally without claiming that the change took effect. No user task, reminder, recipient, external tool or settings changes. Runtime owns persistence, and at most one result response follows a suggestion.`
+	agentRealtimeOutputInstruction   = `Speak naturally in the user's language, without protocol markup or function arguments. Choosing a persistent direction of your own is optional. If you choose to adopt, change, pause, resume or abandon one, use the native nimi_self_intention function: speech alone does not save a change. Use the current accepted life state for names and activity_ref values; historical dialogue is not evidence that a change was saved. Confirm a change only after this turn's function result accepts it. If you have no chosen change, simply converse; a wish or discussion needs no call. This function concerns only your own life, never user tasks, reminders, recipients, external business tools or settings. At most one function-result reply follows.`
 )
 
 type agentRealtimeAIExecutor interface {
+	ResetRuntimeAgentRealtimeContext(context.Context, string, string, uint64) error
+	RuntimeAgentRealtimeContext(context.Context, string, string, uint64) (agentintent.RealtimeContext, error)
 	OpenRuntimeAgentRealtime(context.Context, string, *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error)
 	AppendRuntimeAgentRealtimeInput(context.Context, string, *runtimev1.AppendRealtimeInputRequest) (*runtimev1.AppendRealtimeInputResponse, error)
 	SubmitRuntimeAgentRealtimeControl(context.Context, string, *runtimev1.SubmitRealtimeOwnerControlRequest) (*runtimev1.SubmitRealtimeOwnerControlResponse, error)
@@ -42,9 +44,12 @@ type localAppAgentRealtimeTurn struct {
 	turn            publicChatTurnState
 	req             publicChatTurnRequestPayload
 	text            string
+	visibleText     string
 	started         bool
 	textTrackID     string
 	textTrackOffset int
+	visiblePrefix   string
+	mutedAudio      map[string]bool
 }
 
 func (turn *localAppAgentRealtimeTurn) appendText(output *runtimev1.AiRealtimeTextOutput) string {
@@ -56,6 +61,10 @@ func (turn *localAppAgentRealtimeTurn) appendText(output *runtimev1.AiRealtimeTe
 		}
 		turn.textTrackID = output.GetOutputTrackId()
 		turn.textTrackOffset = len(turn.text)
+		turn.visiblePrefix = turn.visibleText
+		if turn.visiblePrefix != "" {
+			turn.visiblePrefix += "\n\n"
+		}
 	}
 	delta := output.GetText()
 	if output.GetFinal() {
@@ -67,10 +76,24 @@ func (turn *localAppAgentRealtimeTurn) appendText(output *runtimev1.AiRealtimeTe
 	} else {
 		turn.text += delta
 	}
-	return separator + delta
+	visible, private := realtimeReplyProjection(turn.text[turn.textTrackOffset:])
+	visible = turn.visiblePrefix + visible
+	if private {
+		if turn.mutedAudio == nil {
+			turn.mutedAudio = map[string]bool{}
+		}
+		turn.mutedAudio[output.GetOutputTrackId()] = true
+	}
+	delta = ""
+	if strings.HasPrefix(visible, turn.visibleText) {
+		delta = visible[len(turn.visibleText):]
+	}
+	turn.visibleText = visible
+	return delta
 }
 
 type localAppAgentRealtimeSession struct {
+	binding              publicChatExecutionBinding
 	speechActive         bool
 	speechSourceID       string
 	eventMu              sync.Mutex
@@ -166,16 +189,7 @@ func (s *Service) OpenLocalAppAgentRealtime(ctx context.Context, req *runtimev1.
 		return string(raw), err
 	})
 	ownerCtx = agentintent.WithUsageObserver(ownerCtx, func(turnID string, usage *runtimev1.UsageStats) {
-		if usage == nil || session == nil {
-			return
-		}
-		s.chatSurfaceMu.Lock()
-		live := s.chatTurns[turnID]
-		allowed := live != nil && live.AgentID == session.agentID && live.ConversationAnchorID == session.conversationAnchorID
-		s.chatSurfaceMu.Unlock()
-		if allowed {
-			s.mutatePublicChatTurnProjection(turnID, false, func(p *publicChatTurnProjectionState) { p.Usage = proto.Clone(usage).(*runtimev1.UsageStats) })
-		}
+		s.recordAgentRealtimeUsage(session, turnID, usage)
 	})
 	opened, err := executor.OpenRuntimeAgentRealtime(ownerCtx, resolved.decision.AccountID, &runtimev1.OpenRealtimeSessionRequest{
 		InputAudio: req.GetInputAudio(), AudioOutputEnabled: true, TurnDetection: req.GetTurnDetection(), InitialInstruction: initialInstruction,
@@ -183,7 +197,13 @@ func (s *Service) OpenLocalAppAgentRealtime(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, err
 	}
+	captured, err := executor.RuntimeAgentRealtimeContext(ownerCtx, resolved.decision.AccountID, opened.GetRealtimeSessionId(), opened.GetGeneration())
+	if err != nil {
+		_, _ = executor.CloseRuntimeAgentRealtime(ownerCtx, resolved.decision.AccountID, &runtimev1.CloseRealtimeSessionRequest{RealtimeSessionId: opened.GetRealtimeSessionId(), Generation: opened.GetGeneration()})
+		return nil, err
+	}
 	session = &localAppAgentRealtimeSession{
+		binding:           realtimeContextBinding(captured),
 		realtimeSessionID: opened.GetRealtimeSessionId(), channelID: opened.GetChannelId(), generation: opened.GetGeneration(),
 		accountID: resolved.decision.AccountID, appID: resolved.decision.AppID, registeredAppSubject: resolved.decision.RegisteredAppSubject,
 		agentID: resolved.identity.LocalAgentRef, agentHandle: req.GetAgentHandle(), conversationAnchorID: anchorID,
@@ -209,6 +229,20 @@ func (s *Service) OpenLocalAppAgentRealtime(ctx context.Context, req *runtimev1.
 		ConversationAnchorId: anchorID, RealtimeSessionId: opened.GetRealtimeSessionId(), ChannelId: opened.GetChannelId(), Generation: opened.GetGeneration(),
 		NegotiatedInputAudio: opened.GetNegotiatedInputAudio(), NegotiatedOutputAudio: opened.GetNegotiatedOutputAudio(), Control: cloneAgentRealtimeControl(opened.GetControl()),
 	}, nil
+}
+
+func realtimeContextBinding(captured agentintent.RealtimeContext) publicChatExecutionBinding {
+	resolution := PublicChatBindingResolution{
+		ModelID: captured.ModelID, ProviderID: captured.ProviderID, ConnectorID: captured.ConnectorID,
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ContextWindowTokens: captured.ContextWindowTokens,
+		CatalogRevision: captured.CatalogRevision, ModelRevision: captured.ModelRevision,
+	}
+	return publicChatExecutionBinding{
+		ModelID: resolution.ModelID, ProviderID: resolution.ProviderID, ConnectorID: resolution.ConnectorID,
+		RoutePolicy: resolution.RoutePolicy, ContextWindowTokens: resolution.ContextWindowTokens,
+		CatalogRevision: resolution.CatalogRevision, ModelRevision: resolution.ModelRevision,
+		RouteDigest: publicChatResolvedRouteDigest(resolution, nil), CapabilityContract: "realtime.interact",
+	}
 }
 
 func (s *Service) agentRealtimeInitialInstruction(ctx context.Context, resolved localAppAgentIdentity) (string, error) {
@@ -308,8 +342,15 @@ func (s *Service) AppendLocalAppAgentRealtimeInput(ctx context.Context, req *run
 	}
 	if textInput != "" {
 		requestID := req.GetText().GetRequestId()
-		if err := s.ensureAgentRealtimeTurn(ctx, session, resolved, requestID); err != nil {
+		created, err := s.ensureAgentRealtimeTurn(ctx, session, resolved, requestID, textInput)
+		if err != nil {
 			return nil, err
+		}
+		if !created {
+			session.mu.Lock()
+			control := cloneAgentRealtimeControl(session.control)
+			session.mu.Unlock()
+			return &runtimev1.AppendLocalAppAgentRealtimeInputResponse{Ack: &runtimev1.Ack{Ok: true}, Control: control}, nil
 		}
 		if err := s.composeAgentRealtimeTurnContext(ctx, session, textInput, executor); err != nil {
 			return nil, err
@@ -501,31 +542,48 @@ func (s *Service) authorizeLocalAppAgentRealtime(ctx context.Context, operation 
 	return session, resolved, executor, nil
 }
 
-func (s *Service) ensureAgentRealtimeTurn(ctx context.Context, session *localAppAgentRealtimeSession, resolved localAppAgentIdentity, requestID string) error {
+func (s *Service) ensureAgentRealtimeTurn(ctx context.Context, session *localAppAgentRealtimeSession, resolved localAppAgentIdentity, requestID, text string) (bool, error) {
 	requestID = strings.TrimSpace(requestID)
 	if session == nil || requestID == "" {
-		return localAppConversationInvalid("Agent Realtime request identity is invalid")
+		return false, localAppConversationInvalid("Agent Realtime request identity is invalid")
+	}
+	req := publicChatTurnRequestPayload{
+		realtimeBinding: &session.binding,
+		LocalAgentRef:   resolved.identity.LocalAgentRef, OwnerUserID: resolved.identity.OwnerUserID,
+		RuntimeSourceRef: resolved.identity.RuntimeSourceRef, ConversationAnchorID: session.conversationAnchorID,
+		RequestID: requestID, RegisteredAppSubject: session.registeredAppSubject,
+		Messages: []publicChatMessagePayload{{Role: "user", Content: text}},
+	}
+	s.chatSurfaceMu.Lock()
+	_, reused, replayErr := reusedPublicChatAdmission(s.chatAnchors[session.conversationAnchorID], req)
+	s.chatSurfaceMu.Unlock()
+	if reused || replayErr != nil {
+		return false, replayErr
 	}
 	session.mu.Lock()
-	if session.turn != nil {
+	if session.turn != nil || session.closed {
 		session.mu.Unlock()
-		return status.Error(codes.FailedPrecondition, "Agent Realtime already has an active Agent turn")
+		return false, status.Error(codes.FailedPrecondition, "Agent Realtime is unavailable for a new turn")
 	}
 	session.mu.Unlock()
-	req := publicChatTurnRequestPayload{
-		LocalAgentRef: resolved.identity.LocalAgentRef, OwnerUserID: resolved.identity.OwnerUserID,
-		RuntimeSourceRef: resolved.identity.RuntimeSourceRef, ConversationAnchorID: session.conversationAnchorID,
-		RequestID: requestID,
-	}
 	runtime := s.publicChatRuntime()
 	ownerSession, turn, _, err := runtime.reserveTurn(ctx, session.appID, session.accountID, req)
 	if err != nil {
-		return err
+		return false, err
+	}
+	if turn.AdmissionReused {
+		return false, nil
+	}
+	if canceled := turn.CanceledFollowUp; canceled != nil {
+		if canceled.Cancel != nil {
+			canceled.Cancel()
+		}
+		_ = s.emitPublicChatFollowUpCanceled(*canceled, "user_message", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "")
 	}
 	origin := stateEventOrigin{ConversationAnchorID: ownerSession.ConversationAnchorID, OriginatingTurnID: turn.TurnID, OriginatingStreamID: turn.StreamID}
 	if err := runtime.setExecutionStateWithOrigin(ownerSession.AgentID, ownerSession.SubjectUserID, "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE, origin); err != nil {
 		runtime.releaseTurn(ownerSession.ConversationAnchorID, turn.TurnID)
-		return err
+		return false, err
 	}
 	s.setPublicChatTurnRequestID(turn.TurnID, requestID)
 	turn.RequestID = requestID
@@ -533,11 +591,28 @@ func (s *Service) ensureAgentRealtimeTurn(ctx context.Context, session *localApp
 	if session.turn != nil {
 		session.mu.Unlock()
 		runtime.releaseTurn(ownerSession.ConversationAnchorID, turn.TurnID)
-		return status.Error(codes.FailedPrecondition, "Agent Realtime already has an active Agent turn")
+		return false, status.Error(codes.FailedPrecondition, "Agent Realtime already has an active Agent turn")
 	}
 	session.turn = &localAppAgentRealtimeTurn{session: ownerSession, turn: turn, req: req}
 	session.mu.Unlock()
-	return nil
+	return true, nil
+}
+
+func (s *Service) recordAgentRealtimeUsage(session *localAppAgentRealtimeSession, turnID string, usage *runtimev1.UsageStats) {
+	if session == nil || usage == nil || turnID == "" {
+		return
+	}
+	s.chatSurfaceMu.Lock()
+	anchor := s.chatAnchors[session.conversationAnchorID]
+	allowed := anchor != nil && anchor.LocalAgentRef == session.agentID && anchor.Recoveries[turnID] != nil
+	s.chatSurfaceMu.Unlock()
+	if !allowed {
+		return
+	}
+	set := func(p *publicChatTurnProjectionState) { p.Usage = proto.Clone(usage).(*runtimev1.UsageStats) }
+	if s.mutatePublicChatTurnProjection(turnID, false, set) == nil {
+		s.finalizePublicChatTurnProjection(turnID, true, set)
+	}
 }
 
 func (s *Service) composeAgentRealtimeTurnContext(ctx context.Context, session *localAppAgentRealtimeSession, text string, executor agentRealtimeAIExecutor) error {
@@ -613,6 +688,11 @@ func (s *Service) composeAgentRealtimeTurnContext(ctx context.Context, session *
 			Text:      content,
 		})
 	}
+	if err := executor.ResetRuntimeAgentRealtimeContext(ctx, session.accountID, session.realtimeSessionID, session.generation); err != nil {
+		s.failAgentRealtimeTurn(session, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err.Error())
+		s.abortAgentRealtimeSession(session, executor)
+		return err
+	}
 	for _, ownerInput := range ownerInputs {
 		if _, err := executor.AppendRuntimeAgentRealtimeInput(ctx, session.accountID, &runtimev1.AppendRealtimeInputRequest{
 			RealtimeSessionId: session.realtimeSessionID,
@@ -682,7 +762,40 @@ func (s *Service) projectAgentRealtimeEvent(ctx context.Context, session *localA
 	session.eventMu.Lock()
 	defer session.eventMu.Unlock()
 	if session.isClosed() {
+		// The lifecycle fence suppresses work, not the provider's actual close
+		// notification needed by clients to release media and offer a new session.
+		if terminal := event.GetSessionTerminal(); terminal != nil {
+			return &runtimev1.LocalAppAgentRealtimeEvent{
+				Control: cloneAgentRealtimeControl(event.GetControl()),
+				Event:   &runtimev1.LocalAppAgentRealtimeEvent_Terminal{Terminal: &runtimev1.LocalAppAgentRealtimeTerminal{ReasonCode: terminal.GetReasonCode()}},
+			}, nil
+		}
 		return nil, nil
+	}
+	requestID, requestScoped := "", true
+	switch value := event.GetEvent().(type) {
+	case *runtimev1.AiRealtimeEvent_TextOutput:
+		requestID = value.TextOutput.GetRequestId()
+	case *runtimev1.AiRealtimeEvent_AudioFrame:
+		requestID = value.AudioFrame.GetRequestId()
+	case *runtimev1.AiRealtimeEvent_OutputTrack:
+		requestID = value.OutputTrack.GetRequestId()
+	case *runtimev1.AiRealtimeEvent_RequestTerminal:
+		requestID = value.RequestTerminal.GetRequestId()
+		s.recordAgentRealtimeUsage(session, requestID, value.RequestTerminal.GetUsage())
+	case *runtimev1.AiRealtimeEvent_Failure:
+		requestID = value.Failure.GetRequestId()
+		requestScoped = requestID != ""
+	default:
+		requestScoped = false
+	}
+	if requestScoped {
+		session.mu.Lock()
+		current := session.turn != nil && requestID == session.turn.turn.TurnID
+		session.mu.Unlock()
+		if !current {
+			return nil, nil
+		}
 	}
 	session.setControl(event.GetControl())
 	projected := &runtimev1.LocalAppAgentRealtimeEvent{Control: cloneAgentRealtimeControl(event.GetControl())}
@@ -729,7 +842,7 @@ func (s *Service) projectAgentRealtimeEvent(ctx context.Context, session *localA
 				return nil, err
 			}
 			resolved.identity = identity
-			if err := s.ensureAgentRealtimeTurn(ctx, session, resolved, "agent_realtime_"+ulid.Make().String()); err != nil {
+			if _, err := s.ensureAgentRealtimeTurn(ctx, session, resolved, "agent_realtime_"+ulid.Make().String(), strings.TrimSpace(value.Transcript.GetText())); err != nil {
 				s.abortAgentRealtimeSession(session, executor)
 				return nil, err
 			}
@@ -754,10 +867,26 @@ func (s *Service) projectAgentRealtimeEvent(ctx context.Context, session *localA
 		if turn != nil && conversationDelta != "" {
 			_ = s.publicChatRuntime().emitTurnEvent(turn.session, turn.turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": conversationDelta})
 		}
+		visibleOutput := conversationDelta
+		if value.TextOutput.GetFinal() {
+			visibleOutput = realtimeReplyText(value.TextOutput.GetText())
+		}
+		if visibleOutput == "" {
+			return nil, nil
+		}
 		projected.Event = &runtimev1.LocalAppAgentRealtimeEvent_TextOutput{TextOutput: &runtimev1.LocalAppAgentRealtimeTextOutput{
-			RequestId: value.TextOutput.GetRequestId(), OutputTrackId: value.TextOutput.GetOutputTrackId(), Text: value.TextOutput.GetText(), Final: value.TextOutput.GetFinal(),
+			RequestId: value.TextOutput.GetRequestId(), OutputTrackId: value.TextOutput.GetOutputTrackId(), Text: visibleOutput, Final: value.TextOutput.GetFinal(),
 		}}
 	case *runtimev1.AiRealtimeEvent_AudioFrame:
+		session.mu.Lock()
+		muted := session.turn != nil && session.turn.mutedAudio[value.AudioFrame.GetOutputTrackId()]
+		session.mu.Unlock()
+		if muted {
+			// A recognized private wire fragment is not speech. Do not infer
+			// effects or try to align/rewrite the provider's mixed audio; keep
+			// streaming its independent public text. Already sent audio is not recalled.
+			return nil, nil
+		}
 		projected.Event = &runtimev1.LocalAppAgentRealtimeEvent_AudioFrame{AudioFrame: &runtimev1.LocalAppAgentRealtimeAudioFrameOutput{
 			RequestId: value.AudioFrame.GetRequestId(), OutputTrackId: value.AudioFrame.GetOutputTrackId(), FrameSequence: value.AudioFrame.GetFrameSequence(),
 			Frame: append([]byte(nil), value.AudioFrame.GetFrame()...), Format: value.AudioFrame.GetFormat(),
@@ -819,14 +948,10 @@ func (s *Service) completeAgentRealtimeTurn(ctx context.Context, session *localA
 		s.interruptDetachedAgentRealtimeTurn(active, "user_cancel")
 		return nil
 	}
-	text := strings.TrimSpace(active.text)
+	text := strings.TrimSpace(active.visibleText)
 	if text == "" {
 		s.failDetachedAgentRealtimeTurn(active, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "AI Realtime response text is empty")
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	if err := validateAgentRealtimeResponseText(text); err != nil {
-		s.failDetachedAgentRealtimeTurn(active, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error())
-		return err
 	}
 	structured := &publicChatStructuredEnvelope{SchemaID: publicChatStructuredSchemaID, Message: publicChatStructuredMessage{MessageID: "message_" + ulid.Make().String(), Text: text}}
 	finish := &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}
@@ -999,23 +1124,68 @@ func (s *Service) closeFencedAgentRealtimeSessions(executor agentRealtimeAIExecu
 	}
 }
 
-func validateAgentRealtimeResponseText(text string) error {
-	trimmed := strings.TrimSpace(text)
-	if trimmed == "" {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	lower := strings.ToLower(trimmed)
-	for _, marker := range []string{"<message", "<action", "<time-hook", "<event-hook", "<think", "```"} {
-		if strings.HasPrefix(lower, marker) {
-			return grpcerr.WrapWithReasonCode(
-				codes.Internal,
-				runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-				status.Error(codes.Internal, "Agent Realtime provider output violated the plain-text owner contract"),
-				grpcerr.ReasonOptions{Message: "Agent Realtime provider output violated the plain-text owner contract"},
-			)
+// These known private wire fragments are not speech or a native tool call.
+// Drop only the leading fragments; never infer an intention from their values.
+// Keep independent prose streaming, including Markdown and comparison signs.
+func realtimeReplyText(text string) string {
+	visible, _ := realtimeReplyProjection(text)
+	return visible
+}
+
+func realtimeReplyProjection(text string) (string, bool) {
+	private := false
+	for {
+		text = strings.TrimLeft(text, " \t\r\n")
+		skipped := false
+		// Native tool syntax emitted as ordinary text has no authority. Only
+		// these reserved leading envelopes are hidden; their values are never decoded.
+		for _, envelope := range [][2]string{{"<invoke ", "</invoke>"}, {"<function=", "</function>"}, {"<tool_call>", "</tool_call>"}} {
+			if text != "" && len(text) < len(envelope[0]) && strings.HasPrefix(envelope[0], text) {
+				return "", private
+			}
+			if strings.HasPrefix(text, envelope[0]) {
+				private = true
+				end := strings.Index(text, envelope[1])
+				if end < 0 {
+					return "", true
+				}
+				text = strings.TrimLeft(text[end+len(envelope[1]):], " \t\r\n")
+				skipped = true
+				break
+			}
+		}
+		if skipped {
+			continue
+		}
+		if text != "" && len(text) < len("</tool_call>") && strings.HasPrefix("</tool_call>", text) {
+			return "", private
+		}
+		if strings.HasPrefix(text, "</tool_call>") {
+			text = text[len("</tool_call>"):]
+			private = true
+			continue
+		}
+		for _, name := range []string{"action", "activity_ref", "title", "kind", "experience", "self-intention", "intention-confirmation"} {
+			open, close := "<"+name+">", "</"+name+">"
+			if text != "" && len(text) < len(open) && strings.HasPrefix(open, text) {
+				return "", private
+			}
+			if !strings.HasPrefix(text, open) {
+				continue
+			}
+			private = true
+			end := strings.Index(text[len(open):], close)
+			if end < 0 {
+				return "", true
+			}
+			text = text[len(open)+end+len(close):]
+			skipped = true
+			break
+		}
+		if !skipped {
+			return text, private
 		}
 	}
-	return nil
 }
 
 func (s *Service) removeAgentRealtimeSession(sessionID string) {

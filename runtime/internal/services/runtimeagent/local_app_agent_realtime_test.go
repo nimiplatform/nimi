@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -62,8 +63,120 @@ type agentRealtimeExecutorStub struct {
 	onAppend        func(*runtimev1.AppendRealtimeInputRequest) error
 }
 
+func (s agentRealtimeExecutorStub) ResetRuntimeAgentRealtimeContext(context.Context, string, string, uint64) error {
+	return nil
+}
+
+func TestAgentRealtimePrivateTextFragmentsDoNotRejectIndependentReply(t *testing.T) {
+	svc, session, decision, _ := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeInputAppend)
+	raw := "<action>change</action>\n<activity_ref>not-a-native-call</activity_ref>\n<title>晨风留白小样</title>\n\n风从纸边经过。"
+	var streamed strings.Builder
+	for _, ch := range raw {
+		streamed.WriteString(session.turn.appendText(&runtimev1.AiRealtimeTextOutput{OutputTrackId: "reply", Text: string(ch)}))
+	}
+	session.turn.appendText(&runtimev1.AiRealtimeTextOutput{OutputTrackId: "reply", Text: raw, Final: true})
+	if got := streamed.String(); got != "风从纸边经过。" {
+		t.Fatalf("private fragment leaked or prose buffered: %q", got)
+	}
+	if err := svc.completeAgentRealtimeTurn(context.Background(), session, nil); err != nil {
+		t.Fatal(err)
+	}
+	_, active, last, _, err := svc.snapshotPublicChatAnchorForCaller(decision.AppID, session.conversationAnchorID)
+	if err != nil || active != nil || last == nil || last.Status != publicChatTurnStatusCompleted {
+		t.Fatalf("ordinary reply did not complete and release its reservation: %+v %v", last, err)
+	}
+	svc.chatSurfaceMu.Lock()
+	defer svc.chatSurfaceMu.Unlock()
+	anchor := svc.chatAnchors[session.conversationAnchorID]
+	if got := anchor.CommittedTranscript[len(anchor.CommittedTranscript)-1].AssistantText; got != "风从纸边经过。" {
+		t.Fatalf("independent reply was not committed: %q", got)
+	}
+	for _, recovery := range anchor.Recoveries {
+		if recovery.SelfIntention != nil {
+			t.Fatal("text was parsed as an intention effect")
+		}
+	}
+}
+
+func TestAgentRealtimeOrdinaryTextDoesNotRequireStructuredFormatting(t *testing.T) {
+	for _, text := range []string{"2 > 1，但风不必比较。", "```text\nhello\n```", "普通一句话"} {
+		if got := realtimeReplyText(text); got != text {
+			t.Fatalf("%q became %q", text, got)
+		}
+	}
+}
+
+func TestAgentRealtimeToolMarkupStopsOnlyItsAudioAndKeepsProse(t *testing.T) {
+	for _, markup := range []string{
+		`<invoke name="nimi_self_intention"><parameter name="action">change</parameter></invoke>`,
+		`<function=nimi_self_intention><parameter=action>change</parameter></function></tool_call>`,
+	} {
+		svc, session, _, _ := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeInputAppend)
+		request := session.turn.turn.TurnID
+		textEvent := func(track, text string) {
+			t.Helper()
+			_, err := svc.projectAgentRealtimeEvent(context.Background(), session, agentRealtimeExecutorStub{}, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_TextOutput{TextOutput: &runtimev1.AiRealtimeTextOutput{RequestId: request, OutputTrackId: track, Text: text}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		audioEvent := func(track string) *runtimev1.LocalAppAgentRealtimeEvent {
+			t.Helper()
+			out, err := svc.projectAgentRealtimeEvent(context.Background(), session, agentRealtimeExecutorStub{}, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_AudioFrame{AudioFrame: &runtimev1.AiRealtimeAudioFrameOutput{RequestId: request, OutputTrackId: track, FrameSequence: 1, Frame: []byte{1, 2}}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			return out
+		}
+		for _, ch := range markup {
+			textEvent("private-reply", string(ch))
+		}
+		if got := audioEvent("private-reply"); got != nil {
+			t.Fatal("recognized private output still reaches speaker")
+		}
+		textEvent("private-reply", "\n风从纸边经过。")
+		if got := audioEvent("private-reply"); got != nil {
+			t.Fatal("mixed audio resumed without a speech boundary")
+		}
+		if session.turn.visibleText != "风从纸边经过。" {
+			t.Fatalf("ordinary text lost: %q", session.turn.visibleText)
+		}
+		textEvent("next-response", "2 < 3，云仍自由。")
+		if got := audioEvent("next-response"); got == nil {
+			t.Fatal("independent ordinary response audio was suppressed")
+		}
+		if err := svc.completeAgentRealtimeTurn(context.Background(), session, nil); err != nil {
+			t.Fatal(err)
+		}
+		svc.chatSurfaceMu.Lock()
+		anchor := svc.chatAnchors[session.conversationAnchorID]
+		got := anchor.CommittedTranscript[len(anchor.CommittedTranscript)-1].AssistantText
+		changed := false
+		for _, recovery := range anchor.Recoveries {
+			if recovery.SelfIntention != nil {
+				changed = true
+			}
+		}
+		svc.chatSurfaceMu.Unlock()
+		if got != "风从纸边经过。\n\n2 < 3，云仍自由。" {
+			t.Fatalf("canonical prose: %q", got)
+		}
+		if changed {
+			t.Fatal("markup established an intention")
+		}
+	}
+}
+
 func (s agentRealtimeExecutorStub) OpenRuntimeAgentRealtime(context.Context, string, *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
 	return &runtimev1.OpenRealtimeSessionResponse{}, nil
+}
+
+func (s agentRealtimeExecutorStub) RuntimeAgentRealtimeContext(context.Context, string, string, uint64) (agentintent.RealtimeContext, error) {
+	return agentRealtimeTestContext(), nil
+}
+
+func agentRealtimeTestContext() agentintent.RealtimeContext {
+	return agentintent.RealtimeContext{ModelID: "test-realtime", ProviderID: "test-provider", CatalogRevision: "test-catalog", ModelRevision: "test-model", ContextWindowTokens: 32768}
 }
 
 func (s agentRealtimeExecutorStub) AppendRuntimeAgentRealtimeInput(_ context.Context, _ string, req *runtimev1.AppendRealtimeInputRequest) (*runtimev1.AppendRealtimeInputResponse, error) {
@@ -360,6 +473,7 @@ func prepareAgentRealtimeSessionForTest(
 	handle := mintLocalAppAgentHandle(decision, agentID)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", decision.AppID, decision.AccountID)
 	session := &localAppAgentRealtimeSession{
+		binding:           realtimeContextBinding(agentRealtimeTestContext()),
 		realtimeSessionID: "realtime-session-1", channelID: "channel-1", generation: 1,
 		accountID: decision.AccountID, appID: decision.AppID, registeredAppSubject: decision.RegisteredAppSubject,
 		agentID: agentID, agentHandle: handle, conversationAnchorID: anchorID,
@@ -370,7 +484,7 @@ func prepareAgentRealtimeSessionForTest(
 		if err != nil {
 			t.Fatalf("resolve Agent Realtime test owner: %v", err)
 		}
-		if err := svc.ensureAgentRealtimeTurn(ownerCtx, session, resolved, "agent-realtime-request-1"); err != nil {
+		if _, err := svc.ensureAgentRealtimeTurn(ownerCtx, session, resolved, "agent-realtime-request-1", "hello"); err != nil {
 			t.Fatalf("reserve Agent Realtime turn: %v", err)
 		}
 	}

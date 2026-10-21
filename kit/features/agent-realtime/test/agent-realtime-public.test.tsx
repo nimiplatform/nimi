@@ -40,6 +40,33 @@ afterEach(() => {
 });
 
 describe('Agent Realtime public entry', () => {
+  it('shows streamed text without audio and replaces final chunks without duplicating them', async () => {
+    const client = formalClient(async () => [
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },
+    ]);
+    let next!: (event: IteratorResult<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>) => void;
+    vi.mocked(client.agentRealtime.subscribe).mockResolvedValue({
+      [Symbol.asyncIterator]: () => ({ next: () => new Promise((resolve) => { next = resolve; }) }),
+      cancel: async () => { next?.({ done: true, value: undefined }); },
+    });
+    const onEvent = vi.fn();
+    const node = await renderEntry({ client, initialAgentHandle: HANDLE_A, inputAudio: AUDIO_FORMAT,
+      turnDetection: 'manual', host: testHost(), locale: 'en', onEvent });
+    await act(async () => { Array.from(node.querySelectorAll('button')).find(b => b.textContent === 'Open live conversation')!.click(); });
+    const emit = async (requestId: string, outputTrackId: string, text: string, final = false) => {
+      await act(async () => { next({ done: false, value: { control: control(), event: { type: 'text-output', requestId, outputTrackId, text, final } } }); });
+    };
+    await emit('r1', 'first', '风从');
+    expect(node.querySelector('[data-nimi-agent-realtime-reply]')?.textContent).toBe('风从');
+    await emit('r1', 'first', '纸边经过。');
+    await emit('r1', 'first', '风从纸边经过。', true);
+    await emit('r1', 'result', '我决定继续画。', true);
+    expect(node.querySelector('[data-nimi-agent-realtime-reply]')?.textContent).toBe('风从纸边经过。\n\n我决定继续画。');
+    await emit('r2', 'next', '新的回复。', true);
+    expect(node.querySelector('[data-nimi-agent-realtime-reply]')?.textContent).toBe('新的回复。');
+    expect(onEvent).toHaveBeenCalledTimes(5);
+  });
+
   it.each(['interrupt', 'drain'] as const)('keeps the real Interrupt button usable until queued audio ends by %s', async (ending) => {
     const fixture = playbackFixture();
     const client = formalClient(async () => [

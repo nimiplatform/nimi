@@ -328,6 +328,7 @@ type publicChatReasoningPayload struct {
 // `GetConversationAnchorSnapshot` before turn request. Runtime rejects
 // requests that reference a non-existent anchor (no implicit creation).
 type publicChatTurnRequestPayload struct {
+	realtimeBinding     *publicChatExecutionBinding
 	backgroundAdmission *agentBackgroundExecution
 	// Only the formal App owner sets this; Runtime-owned follow-ups retain
 	// their own claim authorization rather than an expired App RPC lifetime.

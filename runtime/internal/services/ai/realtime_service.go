@@ -3,11 +3,11 @@ package ai
 import (
 	"context"
 	"errors"
-	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -59,7 +59,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if !intent.IsCloud() || s == nil || s.cloudRealtimeDrivers == nil || s.remoteRealtimeHost == nil || s.connStore == nil || s.speechCatalog == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	record, _, err := connector.ValidateAIConfigCloudSelection(
+	record, catalogBinding, err := connector.ValidateAIConfigCloudSelection(
 		s.connStore, s.speechCatalog, caller.accountNamespace, capabilitydriver.RealtimeInteractCapabilityContract,
 		intent.CloudImplementation,
 		connector.RemoteModelCatalogRef{
@@ -71,6 +71,17 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	)
 	if err != nil {
 		return nil, err
+	}
+	var contextMetadata agentintent.RealtimeContext
+	if agentintent.FromContext(ctx) != nil {
+		metadata, err := s.speechCatalog.ResolveRealtimeContextMetadataForSubject(caller.accountNamespace, catalogBinding.Provider, catalogBinding.ProviderModelID)
+		if err != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID, err, grpcerr.ReasonOptions{Message: "Realtime context metadata is unavailable"})
+		}
+		contextMetadata = agentintent.RealtimeContext{
+			ModelID: metadata.ModelID, ProviderID: metadata.Provider, CatalogRevision: metadata.CatalogVersion,
+			ModelRevision: metadata.ModelRevision, ConnectorID: record.ConnectorID, ContextWindowTokens: metadata.ContextWindowTokens,
+		}
 	}
 	capturedRecord, credentialPayload, err := s.connStore.CaptureRealtimeCredential(record.ConnectorID)
 	if err != nil || capturedRecord.ConnectorID != record.ConnectorID || capturedRecord.OwnerID != record.OwnerID ||
@@ -121,6 +132,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	_ = coreStream.Transition(1, realtimecore.LifecycleReady)
 	sessionCtx, cancel := context.WithCancel(context.Background())
 	realtime := &realtimeSessionRecord{
+		contextMetadata:   contextMetadata,
 		selfHandler:       agentintent.FromContext(ctx),
 		selfUsageObserver: agentintent.UsageFromContext(ctx),
 		sessionID:         sessionID, channelID: channelID, generation: 1,
@@ -733,7 +745,7 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		_ = ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 	case capabilitydriver.CloudRealtimeEventResponseDone:
 		if s.logger != nil {
-			s.logger.Info("AI Realtime response finished", "response_id", source.ProviderResponseID, "status", source.ResponseStatus)
+			s.logger.Info("AI Realtime response finished", "response_id", source.ProviderResponseID, "status", source.ResponseStatus, "output_types", source.OutputTypes)
 		}
 		if handled, terminal := s.completeRealtimeSelfIntention(record, source); handled {
 			return terminal
