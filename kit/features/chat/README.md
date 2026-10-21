@@ -108,7 +108,6 @@ pnpm --filter @nimiplatform/kit test
 pnpm check:nimi-kit
 ```
 
-
 `LocalAppConversationSubmissionRecovery` exposes optional `onAdmitted(submission)`
 for an App's draft owner to consume attachments associated with the original
 request. It runs only after admission is confirmed, before `acknowledge` removes
