@@ -37,6 +37,7 @@ test('agent.local journey uses one listed session handle and cancels', async () 
         calls.push(['subscribe', input]);
         return {
           async *[Symbol.asyncIterator]() {
+            yield { type: 'state-changed', conversationAnchorId: 'anchor-1', sequence: '0', state: { freeContactEnabled: false, maxFollowUpTurns: 1, textTurnId: null, pendingFollowUp: null } };
             yield event('turn-accepted');
             yield event('message-committed', {
               sequence: '4',
@@ -86,8 +87,10 @@ test('typed interrupt journey waits for acceptance and observes the owner termin
         calls.push(['subscribe', input]);
         return {
           async *[Symbol.asyncIterator]() {
+            yield { type: 'state-changed', conversationAnchorId: 'anchor-1', sequence: '0', state: { freeContactEnabled: false, maxFollowUpTurns: 1, textTurnId: null, pendingFollowUp: null } };
             yield event('turn-accepted');
             yield event('turn-started', { sequence: '2' });
+            yield { type: 'state-changed', conversationAnchorId: 'anchor-1', sequence: '2', state: { freeContactEnabled: false, maxFollowUpTurns: 1, textTurnId: null, pendingFollowUp: null } };
             yield event('turn-interrupted', { sequence: '3', reason: 'user_cancel' });
           },
           async cancel() { calls.push(['cancel']); },

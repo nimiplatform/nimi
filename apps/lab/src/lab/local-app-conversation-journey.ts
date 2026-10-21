@@ -150,7 +150,7 @@ async function waitForAcceptedTurn(input: {
       );
     }
     const event = next.value;
-    if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
+    if (event.type === 'state-changed' || event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
       continue;
     }
     if (event.type === 'turn-accepted') return;
@@ -183,7 +183,7 @@ async function waitForInterruptedTurn(input: {
       );
     }
     const event = next.value;
-    if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
+    if (event.type === 'state-changed' || event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
       continue;
     }
     if (event.type === 'turn-interrupted') return event.reason;
@@ -211,7 +211,7 @@ async function waitForTerminalTurn(input: {
   let accepted = false;
   let assistantText = '';
   for await (const event of input.subscription) {
-    if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
+    if (event.type === 'state-changed' || event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
       continue;
     }
     switch (event.type) {
