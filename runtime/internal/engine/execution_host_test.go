@@ -35,6 +35,7 @@ type fakeLlamaExecutionManager struct {
 	startedConfigs []EngineConfig
 	startBlock     chan struct{}
 	started        chan struct{}
+	cancelCleanup  chan struct{}
 }
 
 func (m *fakeLlamaExecutionManager) EngineStatus(EngineKind) (SupervisorInfo, error) {
@@ -57,6 +58,7 @@ func (m *fakeLlamaExecutionManager) StartEngine(ctx context.Context, config Engi
 	m.startedConfigs = append(m.startedConfigs, config)
 	started := m.started
 	block := m.startBlock
+	cleanup := m.cancelCleanup
 	m.mu.Unlock()
 	if started != nil {
 		select {
@@ -69,6 +71,9 @@ func (m *fakeLlamaExecutionManager) StartEngine(ctx context.Context, config Engi
 		select {
 		case <-block:
 		case <-ctx.Done():
+			if cleanup != nil {
+				<-cleanup
+			}
 			return ctx.Err()
 		}
 	}
@@ -276,6 +281,90 @@ func TestManagerInvocationSubstrateLastWaiterCancellationStopsInFlightLoad(t *te
 	manager.mu.Unlock()
 	if starts != 2 || stops != 0 {
 		t.Fatalf("canceled/retried load lifecycle starts=%d stops=%d", starts, stops)
+	}
+}
+
+func TestManagerInvocationSubstrateNewCallerWaitsForCanceledLoadCleanup(t *testing.T) {
+	for _, cancelNew := range []bool{false, true} {
+		t.Run(fmt.Sprintf("cancel_new=%t", cancelNew), func(t *testing.T) {
+			cleanup := make(chan struct{})
+			var releaseOnce sync.Once
+			releaseCleanup := func() { releaseOnce.Do(func() { close(cleanup) }) }
+			defer releaseCleanup()
+			manager := &fakeLlamaExecutionManager{status: StatusStopped, endpoint: "http://127.0.0.1:1234", startBlock: make(chan struct{}), started: make(chan struct{}), cancelCleanup: cleanup}
+			substrate := newManagerLlamaInvocationSubstrate(nil)
+			substrate.manager = manager
+			oldCtx, cancelOld := context.WithCancel(context.Background())
+			defer cancelOld()
+			oldResult := make(chan error, 1)
+			go func() {
+				_, _, err := substrate.Ensure(oldCtx, "plan-a", []string{"--model", "/exact/main.gguf"}, nil, nil)
+				oldResult <- err
+			}()
+			select {
+			case <-manager.started:
+			case <-time.After(2 * time.Second):
+				t.Fatal("old load did not start")
+			}
+			cancelOld()
+			if err := <-oldResult; !errors.Is(err, context.Canceled) {
+				t.Fatalf("old caller: %v", err)
+			}
+			newCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			waiting := make(chan struct{}, 1)
+			newResult := make(chan error, 1)
+			go func() {
+				_, _, err := substrate.Ensure(newCtx, "plan-a", []string{"--model", "/exact/main.gguf"}, nil, func(stage localexecution.TextExecutionProgress) {
+					if stage == localexecution.TextExecutionProgressLoading {
+						select {
+						case waiting <- struct{}{}:
+						default:
+						}
+					}
+				})
+				newResult <- err
+			}()
+			select {
+			case <-waiting:
+			case <-newCtx.Done():
+				t.Fatal("new caller did not enter loading")
+			}
+			select {
+			case err := <-newResult:
+				t.Fatalf("new caller bypassed cleanup: %v", err)
+			default:
+			}
+			manager.mu.Lock()
+			starts := manager.starts
+			manager.startBlock = nil
+			manager.mu.Unlock()
+			if starts != 1 {
+				t.Fatal("replacement started before old cleanup")
+			}
+			if cancelNew {
+				cancel()
+				if err := <-newResult; !errors.Is(err, context.Canceled) {
+					t.Fatalf("new cancellation: %v", err)
+				}
+				releaseCleanup()
+			} else {
+				releaseCleanup()
+				if err := <-newResult; err != nil {
+					t.Fatalf("new caller inherited retired load failure: %v", err)
+				}
+			}
+			manager.mu.Lock()
+			starts = manager.starts
+			manager.mu.Unlock()
+			want := 2
+			if cancelNew {
+				want = 1
+			}
+			if starts != want {
+				t.Fatalf("loads=%d want=%d", starts, want)
+			}
+		})
 	}
 }
 

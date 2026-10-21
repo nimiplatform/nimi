@@ -847,6 +847,20 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 			s.currentKey = ""
 		}
 		load := s.loading
+		if load != nil && load.ctx.Err() != nil {
+			// The last prior waiter canceled this load. It still owns process
+			// cleanup, but a new caller must not inherit its canceled result.
+			s.mu.Unlock()
+			if progress != nil {
+				progress(localexecution.TextExecutionProgressLoading)
+			}
+			select {
+			case <-ctx.Done():
+				return "", false, ctx.Err()
+			case <-load.done:
+				continue
+			}
+		}
 		if load == nil {
 			loadCtx, cancelLoad := context.WithCancel(s.lifetime)
 			load = &managerLlamaInvocationLoad{
