@@ -389,6 +389,9 @@ export function generateProviderCatalog(doc) {
     const textGenerateCapable = normalizedCapabilities.includes('text.generate');
     const realtimeCapable = normalizedCapabilities.includes('realtime.interact');
     const declaresContextWindow = model?.context_window_tokens !== undefined;
+    if (runtime.runtime_plane !== 'local' && realtimeCapable && textGenerateCapable && !declaresContextWindow) {
+      throw new Error(`${provider} model ${canonicalModelID} with realtime.interact must declare its own context_window_tokens; the text provider default is not a Realtime capacity`);
+    }
     if (declaresContextWindow && !textGenerateCapable && !realtimeCapable) {
       throw new Error(`${provider} model ${canonicalModelID} declares context_window_tokens without text.generate or realtime.interact support`);
     }

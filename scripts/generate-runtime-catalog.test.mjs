@@ -189,6 +189,11 @@ test('Realtime context capacity uses only an explicit reviewed row, never the te
   assert.equal(generateProviderCatalog(doc).models[0].context_window_tokens, undefined);
   doc.models[0].context_window_tokens = 96000;
   assert.equal(generateProviderCatalog(doc).models[0].context_window_tokens, 96000);
+  doc.models[0].capabilities = ['text.generate', 'realtime.interact'];
+  delete doc.models[0].context_window_tokens;
+  assert.throws(() => generateProviderCatalog(doc), /must declare its own context_window_tokens/u);
+  doc.models[0].context_window_tokens = 96000;
+  assert.equal(generateProviderCatalog(doc).models[0].context_window_tokens, 96000);
 });
 test('catalog generation rejects missing source references instead of crediting the first source', () => {
   for (const sourceIDs of [undefined, [], [' ']]) {
