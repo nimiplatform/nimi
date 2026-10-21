@@ -53,17 +53,17 @@ const ENTRY_COPY = Object.freeze({
     retry: 'Retry',
     empty: 'No current Agent is available for this App session.',
     select: 'Open Agent Center',
-    selected: 'Current Agent',
+    selected: 'Managing',
   }),
   zh: Object.freeze({
-    title: 'Agent Center',
+    title: '伙伴中心',
     description: "选择当前 Agent，统一管理在所有支持的 App 中通用的设定。",
     loading: '正在加载当前 Agent…',
     loadFailed: '无法加载当前 Agent。',
     retry: '重试',
     empty: '当前 App session 没有可用 Agent。',
-    select: '打开 Agent Center',
-    selected: '当前 Agent',
+    select: '管理此伙伴',
+    selected: '正在管理',
   }),
 });
 
@@ -95,7 +95,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
   const loadEpochRef = useRef(0);
 
   const loadReferences = useCallback(async () => {
-    if (initialHandle) {
+    if (initialHandle && !props.client.agents) {
       loadEpochRef.current += 1;
       setReferences(props.initialAgentReference ? [props.initialAgentReference] : null);
       setSelectedHandle(initialHandle);
@@ -169,6 +169,8 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
   ]);
 
   const selected = references?.find((entry) => entry.agentHandle === selectedHandle) ?? null;
+  const label = (reference: NimiLocalAppAgentReference) => references && references.filter(entry => entry.displayName === reference.displayName).length > 1
+    ? `${reference.displayName} · ${reference.agentBinding.slice(-6)}` : reference.displayName;
   return (
     <div className={props.className} data-nimi-app-agent-center-entry="true">
       <Surface tone="panel" className="space-y-3 p-4">
@@ -185,13 +187,15 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
         ) : null}
         {!loading && !failure && references?.length === 0 ? <InlineAlert tone="warning">{copy.empty}</InlineAlert> : null}
         {!loading && !failure && references && references.length > 1 ? (
-          <div className="grid gap-2" data-nimi-app-agent-center-selector="true">
+          <div className="flex flex-wrap gap-2" data-nimi-app-agent-center-selector="true">
             {references.map((reference) => (
               <Button
                 key={reference.agentHandle}
                 tone={reference.agentHandle === selectedHandle ? 'primary' : 'secondary'}
-                disabled={reference.agentHandle === selectedHandle}
+                aria-pressed={reference.agentHandle === selectedHandle}
+                className="max-w-full justify-start"
                 onClick={() => {
+                  if (reference.agentHandle === selectedHandle) return;
                   setSelectedExplicitly(true);
                   setSelectedHandle(reference.agentHandle);
                 }}
@@ -203,7 +207,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
                   alt={reference.displayName}
                   fallback={reference.displayName.slice(0, 1)}
                 />
-                <span>{reference.displayName}</span>
+                <span>{label(reference)}</span>
                 <span className="text-xs opacity-70">
                   {reference.agentHandle === selectedHandle ? copy.selected : copy.select}
                 </span>
@@ -213,6 +217,8 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
         ) : null}
       </Surface>
       {session ? (
+        <section className="min-w-0">
+        {selected ? <p className="sticky top-0 z-10 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm font-medium" role="status">{copy.selected}: {label(selected)}</p> : null}
         <AgentCenter
           session={session}
           i18n={i18n}
@@ -220,6 +226,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
           chrome="embedded"
           placementActions={props.placementActions}
         />
+        </section>
       ) : null}
     </div>
   );

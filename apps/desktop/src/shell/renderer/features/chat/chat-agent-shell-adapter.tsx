@@ -1,4 +1,3 @@
-import type { } from '@nimiplatform/kit/core/sdk-contract';
 import { LocalAppConversationMediaStopButton, } from '@nimiplatform/kit/features/chat/ui';
 import { localAgentReplyFailureMessage } from './chat-agent-runtime';
 import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
@@ -432,8 +431,8 @@ export function useAgentConversationModeHost(
           onError={reportRuntimeProductError} /> : null}
         {incomplete && message.text?.trim() ? <p role="status" className="text-xs text-neutral-500">{metadata.canonicalTerminalReason === 'user_cancel' ? t('Chat.agentReplyStoppedWithContent') : <>{t('Chat.agentPartialReplyKept')} {localAgentReplyFailureMessage(reasonCode, normalizeText(metadata.canonicalTerminalReason), t)}</>}</p> : null}
         {incomplete && reasonCode ? <details className="text-xs text-neutral-500"><summary>{t('Feedback.technicalDetails')}</summary><code>{reasonCode}</code></details> : null}
+        {incomplete && reasonCode.startsWith('AI_REALTIME_') ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{t('Chat.agentRealtimeRestartHint')}</p> : null}
         {incomplete && localAgentConfigurationFailure(reasonCode) && input.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={input.onOpenAgentCenter}>{t('Chat.agentOpenConfiguration')}</Button> : null}
-        {metadata.canonicalControlRejected === true ? <p role="status" className="text-xs text-neutral-500">{t('Chat.agentOptionalOperationNotExecuted')}</p> : null}
         {metadata.canonicalCanRegenerate === true && !submittingThreadId ? <Button tone="ghost" size="sm" onClick={() => regenerateTurnRef.current(String(metadata.canonicalTurnId || ''), String(metadata.canonicalInputTurnId || ''))}>{t('Chat.agentRegenerateText')}</Button> : null}
         <AgentManualVoicePlaybackButton
           message={message}

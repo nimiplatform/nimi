@@ -1,4 +1,3 @@
-import type { } from '@nimiplatform/kit/core/sdk-contract';
 import { createAgentReferenceVoiceController, type AgentReferenceVoiceController } from './reference-voice.js';
 import {
   asNimiError,
@@ -195,6 +194,7 @@ interface SessionTransport {
   readonly resourcePackTargetController: AgentCenterResourcePackTargetController | null;
   readonly resourcePackPlacement: AgentCenterResourcePackPlacementAdapter | null;
   read(): Promise<SessionReadResult>;
+  readManager(): Promise<AgentCenterAppManagerSnapshot>;
   readSharedAIConfig(): Promise<SharedAIConfigRead>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
@@ -659,6 +659,29 @@ class ManagerSession {
       },
       error: null,
     });
+    const lifetime = this.#lifecycleEpoch;
+    const refreshToken = ++this.#refreshToken;
+    const stateVersion = this.#stateVersion;
+    try {
+      const manager = await this.transport.readManager();
+      if (!this.#isCurrentRefresh(lifetime, refreshToken, stateVersion)) return;
+      const projection = buildAgentCenterState({ manager });
+      this.#set({ ...this.#snapshot, state: { ...this.#snapshot.state,
+        life: projection.life, sourceContext: projection.sourceContext,
+        cognition: { ...this.#snapshot.state.cognition,
+          lifecycleStatus: projection.cognition.lifecycleStatus,
+          executionState: projection.cognition.executionState,
+          statusText: projection.cognition.statusText,
+          currentEmotion: projection.cognition.currentEmotion,
+        },
+      } });
+    } catch {
+      // The settings acknowledgement remains true; do not replace it with an
+      // unrelated configuration read failure or present a stale life snapshot.
+      if (this.#isCurrentRefresh(lifetime, refreshToken, stateVersion)) {
+        this.#set({ ...this.#snapshot, state: { ...this.#snapshot.state, life: null } });
+      }
+    }
   }
 
   async correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<AgentCenterMemoryMutationResult> {
@@ -1674,6 +1697,10 @@ export function createAppAgentCenterSession(
     resourcePackTargetController,
     resourcePackPlacement: input.resourcePackPlacement ?? null,
     read,
+    readManager: () => input.client.manager.snapshot({
+      agentHandle: handle,
+      ...(input.conversationAnchorId ? { conversationAnchorId: input.conversationAnchorId } : {}),
+    }),
     readSharedAIConfig,
     async overwriteSharedAIConfig(mutation) {
       return input.client.sharedAIConfig.overwrite({

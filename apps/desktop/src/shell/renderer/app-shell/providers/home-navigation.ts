@@ -51,7 +51,7 @@ export type HomeChatPosition = {
   readonly managerAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
-  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
+  home: ['homeSection'], chat: ['chat'], 'agent-center': ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   activity: ['postId'], settings: ['settingsSection'], support: [], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
@@ -129,10 +129,11 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     }
     result.runtime = normalized;
   }
-  if (id === 'chat') {
-    const chat = result.chat ?? { mode: 'ai', targetId: 'ai:assistant' };
+  if (id === 'chat' || id === 'agent-center') {
+    const chat = result.chat ?? (id === 'agent-center' ? { mode: 'agent' } : { mode: 'ai', targetId: 'ai:assistant' });
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
+    if (id === 'agent-center' && fields.mode !== 'agent') throw new Error('Partner management requires Agent mode.');
     const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId'] : ['mode', 'targetId', 'threadId'];
     if (!['ai', 'human', 'agent'].includes(fields.mode as string) || Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
@@ -149,6 +150,7 @@ export function homeRuntimeDestination(page: RuntimePageIdV11, position: HomeRun
 }
 export function homeNavigationColumn(destination: HomeDestination): AppTab {
   switch (destination.id) {
+    case 'agent-center': return 'chat';
     case 'source-detail':
     case 'world-detail': return 'explore';
     case 'diagnostics': return 'runtime';

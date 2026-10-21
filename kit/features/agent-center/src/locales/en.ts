@@ -1,4 +1,9 @@
 export const agentCenterEnCatalog = {
+  "AgentCenter.lifeSettings.unsaved": "Changes are not saved yet.",
+  "AgentCenter.lifeSettings.remoteChanged": "Settings changed elsewhere. Discard these edits to load the current values.",
+  "AgentCenter.lifeSettings.windowResets": "Next allowance window:",
+  "AgentCenter.lifeSettings.contactLimitHelp": "This is a ceiling, not a schedule. Independent check-ins are considered infrequently; a conversation may have one extra continuation.",
+  "AgentCenter.overview.sourceReadyNoContextDescription": "Character settings are ready. Conversation context is composed when you talk.",
   "AgentCenter.life.retained": "Continuing intentions",
   "AgentCenter.lifeSettings.title": "Life and contact",
   "AgentCenter.lifeSettings.description": "Let your companion have a life of their own, and choose how they contact you.",
@@ -404,7 +409,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.overview.appearancePendingDescription": "Set up the agent's avatar.",
   "AgentCenter.overview.appearanceReadyDescription": "The Avatar appearance is configured. Launch Avatar to view it.",
   "AgentCenter.overview.attentionTitle": "Finish setting up this agent",
-  "AgentCenter.overview.behaviorOffDescription": "Proactive behavior is off. Turn it on under Proactive behavior.",
+  "AgentCenter.overview.behaviorOffDescription": "Life and proactive contact are paused. Ordinary conversation remains available.",
   "AgentCenter.overview.behaviorReadyDescriptionPrefix": "Proactive behavior is on.",
   "AgentCenter.overview.behaviorReadyEnabledFallback": "enabled",
   "AgentCenter.overview.checklistTitle": "Setup checklist",

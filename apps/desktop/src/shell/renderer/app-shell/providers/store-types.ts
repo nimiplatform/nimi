@@ -34,6 +34,7 @@ export type RuntimeAccountAuthProjection = {
 export type AppTab =
   | 'home'
   | 'chat'
+  | 'agent-center'
   | 'explore'
   | 'apps'
   | 'runtime'

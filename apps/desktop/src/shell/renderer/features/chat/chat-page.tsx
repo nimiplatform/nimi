@@ -8,7 +8,6 @@ import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../rendere
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
-import { LocalAgentManagementDialog } from '../agents/local-agent-management-dialog.js';
 import { DESKTOP_NIMI_APP_ID } from './chat-nimi-app-ai-config';
 import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
 import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
@@ -131,7 +130,6 @@ export function ChatPage() {
   const agentConversationTargetByHandle = useAppStore((state) => state.agentConversationTargetByHandle);
 
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
-  const [agentManagementOpen,setAgentManagementOpen]=useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
 
   const allTargets = useChatTargetsForSidebar(authStatus);
@@ -365,10 +363,16 @@ export function ChatPage() {
           onToggleSettings={toggleChatSettings}
           nimiThreadListOpen={nimiThreadListOpen}
           onToggleNimiThreadList={toggleNimiThreadList}
-          onManageAgents={()=>setAgentManagementOpen(true)}
+          onManageAgents={() => {
+            closeTransientSheets();
+            const selection = homeChat.agentSelection;
+            navigation.push({ id: 'agent-center', chat: {
+              mode: 'agent',
+              ...(selection?.agentHandle && selection.conversationAnchorId ? { agentHandle: selection.agentHandle, conversationAnchorId: selection.conversationAnchorId } : {}),
+            } });
+          }}
         />
       ) : null}
-      {authStatus==='authenticated'&&agentManagementOpen?<LocalAgentManagementDialog open onOpenChange={setAgentManagementOpen}/>:null}
     </div>
   );
 }

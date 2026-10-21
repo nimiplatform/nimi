@@ -1,5 +1,3 @@
-import { } from '@nimiplatform/kit/features/chat/ui';
-import type { } from '@nimiplatform/kit/core/sdk-contract';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from '../app/navigation.js';
 import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
@@ -376,7 +374,6 @@ export function ZhiyuAgentChatSurface({
         submission={pendingSubmission} agentHandle={evidence.conversation.agentHandle} conversation={conversation}
         acknowledge={onAcknowledgeSubmission} onRestore={onRestoreSubmission} onResolved={onSubmissionResolved} translate={submissionCopy} /> : null}
       {evidence.chat.regenerateTurnId && !pendingSubmission ? <button type="button" disabled={submitting} onClick={onRegenerate}>重新回答原问题</button> : null}
-      {evidence.chat.state === 'failed' && [...evidence.chat.messages].reverse().find(message => message.metadata?.runtimeTurnId === evidence.chat.runtimeTurnId)?.metadata?.canonicalControlCommitted === true ? <p role="status">操作已保存，回复生成失败。重新回答只补充说明，不会重复执行操作。</p> : null}
       {evidence.chat.state === 'failed' ? (
         <RuntimeChatFailureNotice chat={evidence.chat} onOpenSettings={onDesktopOpenRuntimeSettings}
           onReopen={evidence.localAgent.agentHandle ? () => onSelectLocalAgent(evidence.localAgent.agentHandle!) : undefined} />
@@ -685,8 +682,8 @@ async function browserAttachmentPayload(
 
 function followUpCopy(key: string, values?: Record<string, string | number>): string {
   const copy: Record<string, string> = {
-    'Chat.followUpTitle': '主动联系与续聊', 'Chat.followUpDescription': '续聊和生活分享使用同一个自发联系开关。明确的时间或活动完成通知请保存为约定。',
-    'Chat.freeContactOn': '自发联系已开启', 'Chat.freeContactOff': '自发联系已关闭', 'Chat.followUpManage': '管理生活与约定', 'Chat.followUpLimit': `最多连续 ${values?.count ?? ''} 轮，仍受统一频率和额度限制`,
+    'Chat.followUpTitle': '主动联系与续聊', 'Chat.followUpDescription': '允许伙伴在确有想法时额外补一句，然后等待你的回应。生活模拟和主动联系可分别设置。',
+    'Chat.freeContactOn': '自发联系已开启', 'Chat.freeContactOff': '自发联系已关闭', 'Chat.followUpManage': '管理生活与联系', 'Chat.followUpLimit': '最多额外补一句，仍受勿扰和后台额度限制',
     'Chat.followUpPending': `已安排在 ${values?.time ?? ''} 回复`, 'Chat.followUpCancel': '取消这次续聊',
     'Chat.followUpNone': '没有等待中的续聊。',
     'Chat.followUpStartedNotice': '已经开始的回复请使用停止回复。', 'Chat.followUpUnavailable': '续聊状态暂不可用。',

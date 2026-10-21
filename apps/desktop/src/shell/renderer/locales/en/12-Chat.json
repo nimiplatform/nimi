@@ -1,4 +1,5 @@
 {
+  "agentRealtimeRestartHint": "This realtime session ended. Start realtime voice again from the composer, or continue by typing. Any accepted decisions are kept.",
   "managePartners": "Manage partners",
   "positionUnavailable": "This conversation is currently unavailable. You can try again or switch to another conversation—its reference is kept here.",
   "openAiCapabilities": "Open AI Capabilities",

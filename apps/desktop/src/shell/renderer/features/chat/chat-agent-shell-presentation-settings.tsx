@@ -58,12 +58,11 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
         });
       });
     },
-    openMachineLoadout: () => {
-      // The shared LocalAgent owner opens its own setup task; the exact
-      // conversation-primary capability is the agent's text route.
+    openMachineLoadout: (capabilityContract) => {
+      // Preserve the capability requested by the shared Manager.
       void currentDesktopAccountIdForSetup().then((accountId) => {
         openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
-          capabilityContract: 'text.generate',
+          capabilityContract,
           source: {
             kind: 'local-agent',
             accountId,

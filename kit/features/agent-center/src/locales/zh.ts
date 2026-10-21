@@ -1,6 +1,11 @@
 import type { AgentCenterCatalog } from './en.js';
 
 export const agentCenterZhCatalog = {
+  "AgentCenter.lifeSettings.unsaved": "修改尚未保存。",
+  "AgentCenter.lifeSettings.remoteChanged": "设置已在其他入口变更。放弃本页修改可载入当前值。",
+  "AgentCenter.lifeSettings.windowResets": "下个额度窗口：",
+  "AgentCenter.lifeSettings.contactLimitHelp": "这是次数上限，不是发送计划。独立关心只会偶尔判断；一段交流可额外续聊一次。",
+  "AgentCenter.overview.sourceReadyNoContextDescription": "角色设定已就绪，对话上下文会在交流时生成。",
   "AgentCenter.life.retained": "持续的意向",
   "AgentCenter.lifeSettings.title": "生活与联系",
   "AgentCenter.lifeSettings.description": "让伙伴拥有自己的生活，并决定他如何主动联系你。",
@@ -405,7 +410,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.overview.appearancePendingDescription": "请设置伙伴形象。",
   "AgentCenter.overview.appearanceReadyDescription": "伙伴形象已配置，启动伙伴形象即可查看。",
   "AgentCenter.overview.attentionTitle": "还有设置待完成",
-  "AgentCenter.overview.behaviorOffDescription": "主动陪伴已关闭，可在“主动陪伴”中开启。",
+  "AgentCenter.overview.behaviorOffDescription": "生活模拟和主动联系均已暂停，仍可正常交流。",
   "AgentCenter.overview.behaviorReadyDescriptionPrefix": "主动陪伴已开启。",
   "AgentCenter.overview.behaviorReadyEnabledFallback": "已开启",
   "AgentCenter.overview.checklistTitle": "设置清单",

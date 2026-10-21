@@ -66,8 +66,8 @@ function agentCenterSetupProgress(state: AgentCenterState) {
   const checklistDone = [
     isAgentCenterAppearanceConfigured(state.appearance),
     requiredCapabilitiesConfigured,
-    state.autonomy.enabled === true,
-    state.cognition.memoryState !== 'unavailable',
+    state.autonomy.revision !== null,
+    state.cognition.memory?.enabled === false || ['ready', 'empty', 'building'].includes(state.cognition.memoryState),
     state.runtimeStatus === 'ready',
   ].filter(Boolean).length;
   const total = 5;
@@ -108,6 +108,9 @@ function sourceContextOverviewStatus(
     case 'failed':
       return { description: copy.sourceContextFailedDescription, label: copy.sourceContextFailedPill, tone: 'err' as const };
     default:
+      if (state.sourceContext.source?.ready) {
+        return { description: copy.sourceReadyNoContextDescription, label: copy.sourceContextReadyPill, tone: 'ready' as const };
+      }
       return { description: copy.sourceContextUnknownDescription, label: copy.sourceContextUnknownPill, tone: 'muted' as const };
   }
 }
@@ -158,8 +161,8 @@ function AgentCenterOverview({
 }) {
   const setup = agentCenterSetupProgress(state);
   const appearanceReady = isAgentCenterAppearanceConfigured(state.appearance);
-  const behaviorReady = state.autonomy.enabled === true;
-  const cognitionReady = state.cognition.memoryState !== 'unavailable';
+  const behaviorReady = state.autonomy.enabled === true || state.autonomy.freeContactEnabled === true;
+  const cognitionReady = state.cognition.memory?.enabled === false || ['ready', 'empty', 'building'].includes(state.cognition.memoryState);
   const sourceContext = sourceContextOverviewStatus(state, copy);
   const checklist = [
     {
@@ -182,7 +185,7 @@ function AgentCenterOverview({
     },
     {
       section: 'behavior' as const,
-      done: behaviorReady,
+      done: state.autonomy.revision !== null,
       attention: false,
       title: sectionLabels.behavior,
       description: behaviorReady ? copy.behaviorReadyDescriptionPrefix : copy.behaviorOffDescription,
@@ -629,8 +632,8 @@ export function AgentCenter(props: AgentCenterProps) {
                 selected
                   ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-3 text-[var(--nimi-action-primary-bg)] max-[420px]:w-9 max-[420px]:justify-center max-[420px]:px-0'
                   : badge
-                    ? 'w-[48px] justify-center px-0 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'
-                    : 'w-9 justify-center px-0 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
+                    ? 'justify-center px-3 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'
+                    : 'justify-center px-3 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
               )}
               data-testid={`chat-agent-center-section:${section}`}
               id={`agent-center-tab-${section}`}
@@ -644,7 +647,7 @@ export function AgentCenter(props: AgentCenterProps) {
               <span
                 className={cnAgentCenter(
                   'overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-emphasized)] max-[420px]:hidden',
-                  selected ? 'ml-2 max-w-[160px] opacity-100 max-[420px]:ml-0 max-[420px]:max-w-0 max-[420px]:opacity-0' : 'ml-0 max-w-0 opacity-0',
+                  'ml-2 max-w-[160px] opacity-100 max-[420px]:ml-0 max-[420px]:max-w-0 max-[420px]:opacity-0',
                 )}
               >
                 {sectionLabels[section]}
