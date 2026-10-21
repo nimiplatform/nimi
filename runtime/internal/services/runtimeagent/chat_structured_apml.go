@@ -64,7 +64,10 @@ type publicChatAPMLInterpretation struct {
 }
 
 func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error) {
-	result := interpretPublicChatAPML(raw)
+	return publicChatAPMLReply(interpretPublicChatAPML(raw))
+}
+
+func publicChatAPMLReply(result *publicChatAPMLInterpretation) (*publicChatStructuredEnvelope, error) {
 	if result.QuerySeen || strings.TrimSpace(result.Envelope.Message.Text) == "" {
 		if result.Err != nil {
 			return nil, result.Err
@@ -98,20 +101,27 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 func publicChatStreamingMessageText(raw string) (string, bool) {
 	raw = publicChatCarrierContent(raw)
 	if !startsWithAPMLRoot(raw, "message") {
-		text, tail := publicChatPlainReplyParts(raw)
-		if text != "" && startsWithAPMLRoot(tail, "message") {
-			result := interpretPublicChatAPML(tail)
+		text, tail := publicChatPlainReplyPartsMode(raw, false)
+		if startsWithAPMLRoot(tail, "message") {
+			result := interpretPublicChatXML(prepareAPMLReplyBody(tail, false))
 			if !result.QuerySeen && result.Envelope.Message.Text != "" {
-				text += "\n\n" + result.Envelope.Message.Text
+				if text != "" {
+					text += "\n\n"
+				}
+				text += result.Envelope.Message.Text
 			}
 		}
 		return text, text != ""
 	}
-	result := interpretPublicChatAPML(raw)
+	result := interpretPublicChatXML(prepareAPMLReplyBody(raw, false))
 	return result.Envelope.Message.Text, result.MessageSeen
 }
 
-func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) {
+func interpretPublicChatAPML(raw string) *publicChatAPMLInterpretation {
+	return interpretPublicChatXML(prepareAPMLReplyBody(raw, true))
+}
+
+func interpretPublicChatXML(raw string) (result *publicChatAPMLInterpretation) {
 	result = &publicChatAPMLInterpretation{Envelope: &publicChatStructuredEnvelope{
 		SchemaID: publicChatStructuredSchemaID,
 		Message:  publicChatStructuredMessage{MessageID: "message"},
@@ -365,6 +375,167 @@ func interpretPublicChatAPML(raw string) (result *publicChatAPMLInterpretation) 
 	}
 }
 
+// Normalize only the public reply body. The closing carrier and its effect
+// tail remain byte-for-byte input to the strict interpreter. Markdown literal
+// regions may contain angle brackets; they never define executable effects.
+func prepareAPMLReplyBody(raw string, final bool) string {
+	header := xml.NewDecoder(strings.NewReader(raw))
+	token, err := header.Token()
+	root, ok := token.(xml.StartElement)
+	if err != nil || !ok || root.Name.Local != "message" || root.Name.Space != "" || xmlAttr(root, "intent") != "reply" {
+		return raw
+	}
+	start := int(header.InputOffset())
+	end := replyMessageBodyEnd(raw, start)
+	bodyClosed := end < len(raw)
+	// Body boundaries are structural. Never use an effect-tail delimiter to
+	// close a Markdown span that began in the public message.
+	if !final {
+		if index, _, _, _, pending := nextReplyWireMarkerMode(raw[start:end], privateReplyWireNames, false); index >= 0 && pending {
+			raw = raw[:start+index]
+			end = len(raw)
+		}
+	}
+	var out strings.Builder
+	out.WriteString(raw[:start])
+	for i := start; i < end; {
+		if raw[i] == '\\' && i+1 < end {
+			out.WriteString(raw[i : i+2])
+			i += 2
+			continue
+		}
+		if next, code := replyCodeEnd(raw[:end], i); code {
+			out.WriteString(escapeReplyLiteralXML(raw[i:next]))
+			i = next
+			continue
+		}
+		if raw[i] == '<' {
+			if next := replyAutolinkEnd(raw[:end], i); next > i {
+				out.WriteString(escapeReplyLiteralXML(raw[i:next]))
+				i = next
+				continue
+			}
+			// A protocol element is interpreted as a whole. In particular, never
+			// clean nested text inside a cue, query or private intention payload.
+			decoder := xml.NewDecoder(strings.NewReader(raw[i:end]))
+			token, err := decoder.Token()
+			if err == nil {
+				next := i + int(decoder.InputOffset())
+				if tag, ok := token.(xml.StartElement); ok && !strings.HasSuffix(raw[i:next], "/>") {
+					close := "</" + tag.Name.Local + ">"
+					if last := strings.Index(raw[next:end], close); last >= 0 {
+						next += last + len(close)
+					} else {
+						next = end
+					}
+					if tag.Name.Space == "" && strings.Contains(" "+invalidReplyWireNames+" ", " "+tag.Name.Local+" ") {
+						i = next
+						continue
+					}
+				}
+				out.WriteString(raw[i:next])
+				i = next
+				continue
+			}
+		}
+		// Bare ampersands in prose/code are literal; entity candidates keep the
+		// interpreter's existing single-decoding and incomplete-prefix behavior.
+		if raw[i] == '&' {
+			j := i + 1
+			for j < end && strings.ContainsRune("#ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", rune(raw[j])) {
+				j++
+			}
+			if j == end && !final && !bodyClosed {
+				out.WriteString(raw[i:end])
+				break
+			}
+			if j == end || raw[j] != ';' {
+				out.WriteString("&amp;")
+				i++
+				continue
+			}
+		}
+		out.WriteByte(raw[i])
+		i++
+	}
+	out.WriteString(raw[end:])
+	return out.String()
+}
+
+// Partition the carrier before interpreting Markdown. Closing-tag literals may
+// occur in the body, but the first protocol tail fixes the last message close
+// before it. Neither Markdown nor malformed tail text can extend public code
+// into that tail. Private payload bytes are never examined as public text.
+func replyMessageBodyEnd(raw string, start int) int {
+	last := -1
+	names := "message apml:message " + privateReplyWireNames
+	for at := start; at < len(raw); {
+		next := strings.IndexByte(raw[at:], '<')
+		if next < 0 {
+			break
+		}
+		index := at + next
+		at = index + 1
+		found, end, name, closing, partial := replyWireMarkerAt(raw, names, index)
+		if found < 0 {
+			continue
+		}
+		if !partial && closing && name == "message" && raw[end-1] == '>' {
+			last = index
+		} else if last >= 0 {
+			return last
+		}
+		at = end
+	}
+	if last >= 0 {
+		return last
+	}
+	return len(raw)
+}
+
+func replyAutolinkEnd(raw string, start int) int {
+	last := strings.IndexByte(raw[start:], '>')
+	if last < 0 {
+		return start
+	}
+	value := raw[start+1 : start+last]
+	if strings.ContainsAny(value, "<> \t\r\n") {
+		return start
+	}
+	if strings.IndexByte(value, ':') > 1 || strings.IndexByte(value, '@') > 0 {
+		return start + last + 1
+	}
+	return start
+}
+
+func escapeReplyLiteralXML(raw string) string {
+	var out strings.Builder
+	for len(raw) > 0 {
+		if raw[0] == '&' {
+			if last := strings.IndexByte(raw, ';'); last >= 0 {
+				token, err := xml.NewDecoder(strings.NewReader(raw[:last+1])).Token()
+				if _, ok := token.(xml.CharData); err == nil && ok {
+					out.WriteString(raw[:last+1])
+					raw = raw[last+1:]
+					continue
+				}
+			}
+		}
+		switch raw[0] {
+		case '<':
+			out.WriteString("&lt;")
+		case '>':
+			out.WriteString("&gt;")
+		case '&':
+			out.WriteString("&amp;")
+		default:
+			out.WriteByte(raw[0])
+		}
+		raw = raw[1:]
+	}
+	return out.String()
+}
+
 // Token can reject a whole CharData token for a bad/incomplete entity or
 // character. Recover only the syntactically determined prefix of that exact
 // direct-text region, never markup, a cue, query or control content.
@@ -372,7 +543,11 @@ func publicChatAPMLCharacterPrefix(raw string) string {
 	var out strings.Builder
 	for len(raw) > 0 {
 		if raw[0] == '<' {
-			break
+			// An unescaped ordinary comparison is readable public text. Do not
+			// recover through a tag or a private effect when the carrier is bad.
+			if len(raw) < 2 || !strings.ContainsRune(" \t\r\n0123456789=", rune(raw[1])) {
+				break
+			}
 		}
 		if raw[0] == '&' {
 			end := strings.IndexByte(raw, ';')

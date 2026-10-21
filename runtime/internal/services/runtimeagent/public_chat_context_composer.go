@@ -74,7 +74,11 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 		instruction = strings.Replace(instruction, publicChatRoundTwoFinalOnlyPrompt, "- Supplemental recall is disabled for this Conversation. Answer from the provided context; do not emit a query or claim a lookup occurred.", 1)
 	}
 	if saved := r.svc.savedSelfIntention(session.ConversationAnchorID, turn.TurnID); saved != nil {
-		raw, _ := json.Marshal(saved)
+		// Replay the established owner result, not a source-derived explanation
+		// captured before Memory or Conversation selection changed.
+		result := *saved
+		result.Confirmation = ""
+		raw, _ := json.Marshal(&result)
 		instruction += "\nOriginal Runtime self-intention result: " + string(raw) + ". Restate this result truthfully without proposing or replaying a change."
 	}
 

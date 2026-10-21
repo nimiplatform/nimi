@@ -76,7 +76,8 @@ func (turn *localAppAgentRealtimeTurn) appendText(output *runtimev1.AiRealtimeTe
 	} else {
 		turn.text += delta
 	}
-	visible, private := realtimeReplyProjection(turn.text[turn.textTrackOffset:])
+	visible, private := projectReplyWireFragmentsMode(turn.text[turn.textTrackOffset:], "message apml:message "+privateReplyWireNames, output.GetFinal())
+	visible = strings.TrimLeft(visible, " \t\r\n")
 	visible = turn.visiblePrefix + visible
 	if private {
 		if turn.mutedAudio == nil {
@@ -859,6 +860,7 @@ func (s *Service) projectAgentRealtimeEvent(ctx context.Context, session *localA
 	case *runtimev1.AiRealtimeEvent_TextOutput:
 		session.mu.Lock()
 		conversationDelta := value.TextOutput.GetText()
+		newTrack := session.turn != nil && session.turn.textTrackID != value.TextOutput.GetOutputTrackId()
 		if session.turn != nil {
 			conversationDelta = session.turn.appendText(value.TextOutput)
 		}
@@ -868,6 +870,11 @@ func (s *Service) projectAgentRealtimeEvent(ctx context.Context, session *localA
 			_ = s.publicChatRuntime().emitTurnEvent(turn.session, turn.turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": conversationDelta})
 		}
 		visibleOutput := conversationDelta
+		if newTrack {
+			// Conversation joins tracks once; the public per-track event does
+			// not carry that separator for consumers to join a second time.
+			visibleOutput = strings.TrimPrefix(visibleOutput, "\n\n")
+		}
 		if value.TextOutput.GetFinal() {
 			visibleOutput = realtimeReplyText(value.TextOutput.GetText())
 		}
@@ -1133,59 +1140,8 @@ func realtimeReplyText(text string) string {
 }
 
 func realtimeReplyProjection(text string) (string, bool) {
-	private := false
-	for {
-		text = strings.TrimLeft(text, " \t\r\n")
-		skipped := false
-		// Native tool syntax emitted as ordinary text has no authority. Only
-		// these reserved leading envelopes are hidden; their values are never decoded.
-		for _, envelope := range [][2]string{{"<invoke ", "</invoke>"}, {"<function=", "</function>"}, {"<tool_call>", "</tool_call>"}} {
-			if text != "" && len(text) < len(envelope[0]) && strings.HasPrefix(envelope[0], text) {
-				return "", private
-			}
-			if strings.HasPrefix(text, envelope[0]) {
-				private = true
-				end := strings.Index(text, envelope[1])
-				if end < 0 {
-					return "", true
-				}
-				text = strings.TrimLeft(text[end+len(envelope[1]):], " \t\r\n")
-				skipped = true
-				break
-			}
-		}
-		if skipped {
-			continue
-		}
-		if text != "" && len(text) < len("</tool_call>") && strings.HasPrefix("</tool_call>", text) {
-			return "", private
-		}
-		if strings.HasPrefix(text, "</tool_call>") {
-			text = text[len("</tool_call>"):]
-			private = true
-			continue
-		}
-		for _, name := range []string{"action", "activity_ref", "title", "kind", "experience", "self-intention", "intention-confirmation"} {
-			open, close := "<"+name+">", "</"+name+">"
-			if text != "" && len(text) < len(open) && strings.HasPrefix(open, text) {
-				return "", private
-			}
-			if !strings.HasPrefix(text, open) {
-				continue
-			}
-			private = true
-			end := strings.Index(text[len(open):], close)
-			if end < 0 {
-				return "", true
-			}
-			text = text[len(open)+end+len(close):]
-			skipped = true
-			break
-		}
-		if !skipped {
-			return text, private
-		}
-	}
+	visible, private := projectReplyWireFragments(text, "message apml:message "+privateReplyWireNames)
+	return strings.TrimLeft(visible, " \t\r\n"), private
 }
 
 func (s *Service) removeAgentRealtimeSession(sessionID string) {

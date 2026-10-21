@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -64,17 +63,19 @@ func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelop
 		return parsePublicChatAPMLOutput(trimmed)
 	}
 	text, tail := publicChatPlainReplyParts(trimmed)
+	if startsWithAPMLRoot(tail, "message") {
+		if reply, err := parsePublicChatAPMLOutput(tail); err == nil {
+			if text != "" {
+				reply.Message.Text = text + "\n\n" + reply.Message.Text
+			}
+			return reply, nil
+		}
+	}
 	if text == "" {
 		return nil, fmt.Errorf("public reply text is required")
 	}
 	if tail == "" {
 		return &publicChatStructuredEnvelope{SchemaID: publicChatStructuredSchemaID, Message: publicChatStructuredMessage{MessageID: "message", Text: text}}, nil
-	}
-	if startsWithAPMLRoot(tail, "message") {
-		if reply, err := parsePublicChatAPMLOutput(tail); err == nil {
-			reply.Message.Text = text + "\n\n" + reply.Message.Text
-			return reply, nil
-		}
 	}
 	// Reuse the same optional-effect parser after an independently readable
 	// body. Escaping preserves ordinary comparisons, Markdown and code.
@@ -83,7 +84,7 @@ func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelop
 	_ = xml.EscapeText(&framed, []byte(text))
 	framed.WriteString("</message>")
 	framed.WriteString(tail)
-	return parsePublicChatAPMLOutput(framed.String())
+	return publicChatAPMLReply(interpretPublicChatXML(framed.String()))
 }
 
 // Strip a Markdown fence only when it frames the known APML message carrier.
@@ -106,36 +107,42 @@ func publicChatCarrierContent(raw string) string {
 // Only reserved wire markers delimit private output. Incomplete marker prefixes
 // are held locally; an ordinary '<', comparison or Markdown is not a contract.
 func publicChatPlainReplyParts(raw string) (string, string) {
+	return publicChatPlainReplyPartsMode(raw, true)
+}
+
+func publicChatPlainReplyPartsMode(raw string, final bool) (string, string) {
 	text := strings.TrimSpace(raw)
-	if strings.HasPrefix(text, "<") && len(text) > 1 {
-		next := []rune(text[1:])[0]
-		if unicode.IsLetter(next) || strings.ContainsRune("/!?", next) {
-			return "", text
-		}
-	}
 	if strings.HasPrefix(text, "{") {
 		key := strings.TrimSpace(text[1:])
 		if strings.HasPrefix(`"schemaId"`, key) || strings.HasPrefix(key, `"schemaId"`) {
 			return "", text
 		}
 	}
-	for offset := 0; offset < len(text); {
-		index := strings.IndexByte(text[offset:], '<')
+	var body strings.Builder
+	for text != "" {
+		index, end, name, closing, partial := nextReplyWireMarkerMode(text, "message apml:message "+privateReplyWireNames, final)
 		if index < 0 {
+			body.WriteString(text)
 			break
 		}
-		index += offset
-		tail := text[index:]
-		for _, name := range []string{"message", "apml:message", "life-turn", "self-intention", "intention-confirmation", "time-hook", "action", "query", "emotion", "activity"} {
-			for _, prefix := range []string{"<" + name, "</" + name} {
-				if strings.HasPrefix(prefix, tail) || strings.HasPrefix(tail, prefix) && len(tail) > len(prefix) && strings.ContainsRune(" \t\r\n/>", rune(tail[len(prefix)])) {
-					return strings.TrimSpace(text[:index]), tail
-				}
-			}
+		body.WriteString(text[:index])
+		// Only discard invalid wire fragments in the public prefix. The first
+		// actual carrier/effect boundary and everything after it stay original.
+		if partial || !strings.Contains(" "+invalidReplyWireNames+" ", " "+name+" ") {
+			return strings.TrimSpace(body.String()), text[index:]
 		}
-		offset = index + 1
+		if closing || strings.HasSuffix(text[index:end], "/>") {
+			text = text[end:]
+			continue
+		}
+		close := "</" + name + ">"
+		last := strings.Index(text[end:], close)
+		if last < 0 {
+			break
+		}
+		text = text[end+last+len(close):]
 	}
-	return text, ""
+	return strings.TrimSpace(body.String()), ""
 }
 
 func publicChatPlainReplyText(raw string) (string, bool) {
