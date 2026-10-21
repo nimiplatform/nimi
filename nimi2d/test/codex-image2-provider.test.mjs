@@ -60,7 +60,9 @@ async function runCliExpectReject(args) {
   }
 }
 
-async function runCliExpectRejectWithin(args, timeout = 2000) {
+// This watchdog includes CLI startup and filesystem work on a busy CI host.
+// The provider deadline is supplied by --timeout-ms and asserted in the result.
+async function runCliExpectRejectWithin(args, timeout = 10000) {
   try {
     await execFileAsync(process.execPath, [cliPath, ...args], {
       cwd: packageRoot,
