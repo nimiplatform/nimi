@@ -18,7 +18,7 @@ func nextReplyWireMarkerMode(raw, names string, final bool) (start, end int, nam
 			i++
 			continue
 		}
-		if next, ok := replyCodeEnd(raw, i); ok {
+		if next, ok := replyCodeEnd(raw, i, final); ok {
 			i = next - 1
 			continue
 		}
@@ -84,12 +84,61 @@ func replyCodeDelimiterWidth(raw string, start int) int {
 	return width
 }
 
-func replyCodeEnd(raw string, start int) (int, bool) {
+func replyCodeEnd(raw string, start int, final bool) (int, bool) {
 	width := replyCodeDelimiterWidth(raw, start)
 	if width == 0 {
 		return start, false
 	}
 	mark := raw[start]
+	lineStart := strings.LastIndexByte(raw[:start], '\n') + 1
+	if width >= 3 && start-lineStart <= 3 && strings.Trim(raw[lineStart:start], " ") == "" {
+		lineEnd := strings.IndexByte(raw[start+width:], '\n')
+		if lineEnd < 0 {
+			if final && (mark != '`' || !strings.ContainsRune(raw[start+width:], '`')) {
+				return len(raw), true
+			}
+			return start, false
+		}
+		lineEnd += start + width
+		if mark != '`' || !strings.ContainsRune(raw[start+width:lineEnd], '`') {
+			for line := lineEnd + 1; line < len(raw); {
+				next := strings.IndexByte(raw[line:], '\n')
+				if next < 0 {
+					next = len(raw)
+				} else {
+					next += line
+				}
+				at := line
+				for at < next && raw[at] == ' ' && at-line < 4 {
+					at++
+				}
+				if at < next && at-line <= 3 && raw[at] == mark {
+					run := replyCodeDelimiterWidth(raw, at)
+					if run >= width {
+						if strings.TrimSpace(raw[at+run:next]) == "" {
+							return next, true
+						}
+						// The reply carrier permits an optional wire tail directly
+						// after the public body, including its closing code fence.
+						tail := at + run
+						for tail < next && (raw[tail] == ' ' || raw[tail] == '\t') {
+							tail++
+						}
+						if found, _, _, _, _ := replyWireMarkerAt(raw, "message apml:message "+privateReplyWireNames, tail); found >= 0 {
+							return at + run, true
+						}
+					}
+				}
+				line = next + 1
+			}
+			// Once the opening line establishes a fenced block, its contents
+			// remain literal through the end of the body/document (including EOF).
+			return len(raw), true
+		}
+	}
+	if mark != '`' {
+		return start, false
+	}
 	for i := start + width; i < len(raw); i++ {
 		if raw[i] != mark {
 			continue
@@ -98,7 +147,7 @@ func replyCodeEnd(raw string, start int) (int, bool) {
 		for i+run < len(raw) && raw[i+run] == mark {
 			run++
 		}
-		if run == width || width >= 3 && run >= width {
+		if run == width {
 			return i + run, true
 		}
 		i += run - 1
@@ -107,6 +156,37 @@ func replyCodeEnd(raw string, start int) (int, bool) {
 	// streaming, reserved markers inside it remain withheld until a closing
 	// delimiter establishes that they really are a public code example.
 	return start, false
+}
+
+// Skip one complete wire element, including nested instances of its own tag.
+// The private payload is never interpreted as Markdown or rewritten as text.
+func replyWireElementEnd(raw string, afterOpen int, name string) int {
+	depth := 1
+	for at := afterOpen; at < len(raw); {
+		next := strings.IndexByte(raw[at:], '<')
+		if next < 0 {
+			break
+		}
+		at += next
+		start, end, _, closing, partial := replyWireMarkerAt(raw, name, at)
+		if start < 0 {
+			at++
+			continue
+		}
+		if partial {
+			break
+		}
+		if closing {
+			depth--
+			if depth == 0 {
+				return end
+			}
+		} else if !strings.HasSuffix(raw[start:end], "/>") {
+			depth++
+		}
+		at = end
+	}
+	return len(raw)
 }
 
 func projectReplyWireFragments(raw, names string) (string, bool) {
@@ -131,12 +211,7 @@ func projectReplyWireFragmentsMode(raw, names string, final bool) (string, bool)
 			raw = raw[end:]
 			continue
 		}
-		close := "</" + name + ">"
-		last := strings.Index(raw[end:], close)
-		if last < 0 {
-			break
-		}
-		raw = raw[end+last+len(close):]
+		raw = raw[replyWireElementEnd(raw, end, name):]
 	}
 	return text.String(), private
 }

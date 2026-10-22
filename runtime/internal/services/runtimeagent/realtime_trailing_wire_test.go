@@ -67,7 +67,11 @@ func TestAgentRealtimeTrackDeltasDoNotRepeatConversationSeparators(t *testing.T)
 }
 
 func TestAgentRealtimeLegitimateCodeChunkBoundary(t *testing.T) {
-	for _, raw := range []string{"Example `<action>literal</action>` and continue normally.", "Example `a && b` and continue normally."} {
+	for _, raw := range []string{
+		"Example `<action>literal</action>` and continue normally.", "Example `a && b` and continue normally.",
+		"Example:\n```xml\n<action>literal</action>",
+		"Example:\n   ~~~xml\n<action>literal</action>",
+	} {
 		for _, mode := range []string{"one_fragment", "per_character"} {
 			t.Run(mode+raw, func(t *testing.T) {
 				svc, session, _, _ := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeInputAppend)

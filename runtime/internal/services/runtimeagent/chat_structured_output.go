@@ -135,12 +135,7 @@ func publicChatPlainReplyPartsMode(raw string, final bool) (string, string) {
 			text = text[end:]
 			continue
 		}
-		close := "</" + name + ">"
-		last := strings.Index(text[end:], close)
-		if last < 0 {
-			break
-		}
-		text = text[end+last+len(close):]
+		text = text[replyWireElementEnd(text, end, name):]
 	}
 	return strings.TrimSpace(body.String()), ""
 }

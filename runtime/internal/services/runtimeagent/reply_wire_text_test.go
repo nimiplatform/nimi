@@ -6,6 +6,59 @@ import (
 	"time"
 )
 
+func TestNestedPrivateReplyElementsKeepTheirOuterBoundary(t *testing.T) {
+	for _, hidden := range []string{
+		"<think>PRIVATE_OUTER <think>PRIVATE_INNER</think> PRIVATE_REMAINDER</think>",
+		"<think>PRIVATE_OUTER <think/> PRIVATE_REMAINDER</think>",
+		"<think><response>PRIVATE_INNER</response> PRIVATE_REMAINDER</think>",
+	} {
+		body := "Before " + hidden + " after."
+		for _, raw := range []string{body, `<message intent="reply">` + body + `</message>`} {
+			reply, err := parsePublicChatStructuredEnvelope(raw)
+			if err != nil || reply.Message.Text != "Before  after." || len(reply.Actions) != 0 || reply.SelfIntentionRaw != "" {
+				t.Fatalf("nested private content changed public reply: %+v %v", reply, err)
+			}
+			for i := 1; i <= len(raw); i++ {
+				visible, _ := publicChatStreamingMessageText(raw[:i])
+				if strings.Contains(visible, "PRIVATE") {
+					t.Fatalf("nested private stream leaked at %d: %q", i, visible)
+				}
+			}
+		}
+		visible, private := realtimeReplyProjection(body)
+		if visible != "Before  after." || !private {
+			t.Fatalf("nested realtime projection: %q private=%v", visible, private)
+		}
+	}
+}
+
+func TestEOFFencedReplyRemainsInsideThePublicBody(t *testing.T) {
+	for _, body := range []string{
+		"Example:\n```xml\n<action>literal</action>",
+		"Example:\n   ~~~xml\n<self-intention>literal</self-intention>",
+	} {
+		for _, raw := range []string{body, `<message intent="reply">` + body + `</message>`} {
+			reply, err := parsePublicChatStructuredEnvelope(raw)
+			if err != nil || reply.Message.Text != body || len(reply.Actions) != 0 || reply.IntentionSuggested {
+				t.Fatalf("EOF code changed or became an effect: %+v %v", reply, err)
+			}
+			for i := 1; i <= len(raw); i++ {
+				visible, _ := publicChatStreamingMessageText(raw[:i])
+				if !strings.HasPrefix(body, visible) {
+					t.Fatalf("EOF code stream changed at %d: %q", i, visible)
+				}
+			}
+		}
+		// An APML body end still wins over a code fence: tail payloads never
+		// become public code, and the optional suggestion remains unmodified.
+		tail := `<self-intention>{"action":"adopt","title":"PRIVATE_DIRECTION","kind":"project"}</self-intention><intention-confirmation>PRIVATE_CONFIRMATION</intention-confirmation>`
+		reply, err := parsePublicChatStructuredEnvelope(`<message intent="reply">` + body + `</message>` + tail)
+		if err != nil || reply.Message.Text != body || !reply.IntentionSuggested || reply.IntentionConfirmation != "PRIVATE_CONFIRMATION" {
+			t.Fatalf("fence crossed the body/effect boundary: %+v %v", reply, err)
+		}
+	}
+}
+
 func TestPlainReplyAutolinksAndLiteralCodeStayPublic(t *testing.T) {
 	for _, raw := range []string{"<https://example.com>\nA page.", "<reader@example.com>", "Use `<self-intention>` as literal code.", "Example:\n```xml\n<action>literal</action>\n```"} {
 		reply, err := parsePublicChatStructuredEnvelope(raw)

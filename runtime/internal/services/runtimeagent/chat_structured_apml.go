@@ -386,7 +386,7 @@ func prepareAPMLReplyBody(raw string, final bool) string {
 		return raw
 	}
 	start := int(header.InputOffset())
-	end := replyMessageBodyEnd(raw, start)
+	end := replyMessageBodyEnd(raw, start, final)
 	bodyClosed := end < len(raw)
 	// Body boundaries are structural. Never use an effect-tail delimiter to
 	// close a Markdown span that began in the public message.
@@ -404,7 +404,8 @@ func prepareAPMLReplyBody(raw string, final bool) string {
 			i += 2
 			continue
 		}
-		if next, code := replyCodeEnd(raw[:end], i); code {
+		if next, code := replyCodeEnd(raw[start:end], i-start, final); code {
+			next += start
 			out.WriteString(escapeReplyLiteralXML(raw[i:next]))
 			i = next
 			continue
@@ -422,12 +423,7 @@ func prepareAPMLReplyBody(raw string, final bool) string {
 			if err == nil {
 				next := i + int(decoder.InputOffset())
 				if tag, ok := token.(xml.StartElement); ok && !strings.HasSuffix(raw[i:next], "/>") {
-					close := "</" + tag.Name.Local + ">"
-					if last := strings.Index(raw[next:end], close); last >= 0 {
-						next += last + len(close)
-					} else {
-						next = end
-					}
+					next = replyWireElementEnd(raw[:end], next, tag.Name.Local)
 					if tag.Name.Space == "" && strings.Contains(" "+invalidReplyWireNames+" ", " "+tag.Name.Local+" ") {
 						i = next
 						continue
@@ -466,7 +462,7 @@ func prepareAPMLReplyBody(raw string, final bool) string {
 // occur in the body, but the first protocol tail fixes the last message close
 // before it. Neither Markdown nor malformed tail text can extend public code
 // into that tail. Private payload bytes are never examined as public text.
-func replyMessageBodyEnd(raw string, start int) int {
+func replyMessageBodyEnd(raw string, start int, final bool) int {
 	last := -1
 	names := "message apml:message " + privateReplyWireNames
 	for at := start; at < len(raw); {
@@ -479,6 +475,11 @@ func replyMessageBodyEnd(raw string, start int) int {
 		found, end, name, closing, partial := replyWireMarkerAt(raw, names, index)
 		if found < 0 {
 			continue
+		}
+		// An unfinished carrier delimiter belongs to the structural reader,
+		// even when the public body currently ends in an EOF-closed code fence.
+		if !final && name == "message" && (partial || closing && raw[end-1] != '>') {
+			return index
 		}
 		if !partial && closing && name == "message" && raw[end-1] == '>' {
 			last = index
