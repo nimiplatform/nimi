@@ -16,12 +16,9 @@ Runtime truth enters through a nominal `AgentCenterSession` created by the canon
 `AppAgentCenterEntry` is the canonical formal-App bootstrap composition:
 
 - A Host may supply the current non-authorizing Manager handle directly; otherwise, the entry lists minimal current-session Agent references and requires an exact handle choice.
-- It creates and disposes exactly one canonical Manager Session, uses an optional Conversation anchor only with the matching supplied handle, and never associates by display name, ordering, raw identity, or App-owned state.
+- Each `LocalAgent` has a single persistent Conversation whose anchor (`conversationAnchorId`) provides continuity across Apps. `AppAgentCenterEntry` creates and disposes exactly one canonical Manager Session, pairs an optional `conversationAnchorId` only with the matching supplied handle, and never associates by display name, ordering, raw identity, or App-owned state.
 - Its selector, loading, and failure copy is Kit-owned in English and Chinese.
-- Hosts can retain the selected handle in their own navigation using
-  `onSelectedAgentChange`. `resourcePackPlacementForAgent` binds an optional
-  placement action to that exact handle; it must not reuse another partner's
-  Conversation anchor. Listing or selecting a Manager does not open a chat.
+- Hosts can retain the selected handle in their own navigation using `onSelectedAgentChange`. `resourcePackPlacementForAgent` binds an optional placement action to that exact handle; it must not reuse another partner's Conversation anchor. Listing or selecting a Manager does not open a chat.
 
 ### Appearance Replacement
 
@@ -54,17 +51,38 @@ Hosts can import the mechanics evidence types and `isAvatarControlledPreviewSurf
 
 Committed-preview evidence no longer carries `visiblePixels`, `nonPlaceholder`, or `renderVisiblePixels`. There is no compatibility layer. Consumers must use the controlled `previewImageRef`, typed preview state, and the exact `backendKind`, `avatarAssetRef`, and `previewMaterialRef` binding.
 
-## Bounded Source and Context Status
+## Bounded Source, Context, and Behavior
 
 Agent Center accepts only the SDK-decoded, identity-free Manager snapshot. The headless mapper reduces its source and context projections to five product states: `ready`, `blocked`, `truncated`, `failed`, and `unknown`.
 
 - Missing context before the first composed turn remains `unknown`; it does not become a false success and does not block the first turn.
-- The optional `conversationAnchorId` selects the Manager context summary to read and grants no context assembly or mutation authority.
+- Passing `conversationAnchorId` selects the Manager context summary to read for that Agent's persistent Conversation without granting raw context-assembly or transcript-mutation authority to the host.
 - **Overview** shows a human-readable, read-only status.
 - **Advanced** shows only the canonical Manager snapshot's lifecycle/execution/status/emotion, source coverage and lorebook counts, and context lane/budget/truncation/count/status summaries.
-- **Behavior** presents current interaction, simulated history, retained intentions and tentative future frames. Autonomous life and extra contact are independent settings. Activity titles never imply external effects or user-task fulfillment; current interaction has no invented end or progress.
+- **Behavior** presents the current interaction, simulated history, retained intentions, and tentative future frames. Activity titles never imply external effects or user-task fulfillment, and current interaction has no invented end time or progress.
 
-Raw Agent/account/source identity, source references, hashes, prompt or reasoning material, internal generations, source or world content, transcript/private memory, provider/model/storage detail, and tool arguments/results are not Agent Center props or state.
+These read-only Manager source/context summaries do not expose raw Agent/account/source identity, source references, hashes, prompts or reasoning, internal generations, source/world content, transcripts, private Memory, provider/model/storage details, or tool arguments/results. Explicit Memory inspection and editing use their separate admitted management surface.
+
+### Conversation Context Selection (State & Memory)
+
+In **State & memory**, user-confirmed Conversation context selection adjusts where future history references begin and can optionally omit supplemental Memory and retrieval for that Conversation:
+
+- **Scope and continuity:** Because each `LocalAgent` has one persistent Conversation, the selection affects subsequent turns with that Agent across all App surfaces while keeping existing messages readable on the same anchor. It preserves required character/App instructions and permissions.
+- **Non-destructive boundaries:** It does not delete the original Conversation or stored Memory, turn Memory off, or send the current draft. It also does not cancel already accepted simulated life activities or control life planning's own Memory retrieval.
+- **Guards:** Requires `agent.configure` access and must be rejected when the Agent is busy or the revision is stale.
+
+### Autonomy, Extra Contact, and Token Budgets
+
+Autonomous life (simulated lifecycle activity) and extra contact are controlled by independent switches:
+
+- Ordinary replies and same-turn self-intentions remain available even when both switches are off.
+- When extra contact is enabled, the Agent sends at most one unanswered follow-up message and then waits for the user's reply.
+
+Background token limits distinguish between per-execution output caps and 24-hour total usage windows:
+
+- **Per-execution output cap (`maxBackgroundOutputTokens`):** Caps the output tokens of each background generation. `0` uses the finite Runtime default; positive values set an explicit execution limit. An unsupported explicit limit fails that background execution without disabling user Conversation.
+- **24-hour daily usage window:** Life planning, autonomous continuation, and new contact judgments share consecutive, fixed 24-hour usage windows anchored at `windowStartedAt`. Daily usage counts actual input plus output tokens (distinct from the single-call output cap and not a monetary cap). Setting an explicit `0` removes the daily limit.
+- **Accounting and exhaustion:** Runtime refreshes usage before admission/accounting and during maintenance. Late results count when recorded, including canceled work, and configuration edits never reset usage. When the daily window is exhausted, Runtime prevents new background inference while already accepted simulated frames can still advance.
 
 ## Manager Session
 
@@ -104,7 +122,3 @@ Agent Center ships its typed `en` and `zh` catalogs through the headless surface
 ## Before Building Locally
 
 Read `DESIGN.md`, `kit/DESIGN.md`, and the nearest owner contract before changing this feature. Runtime SDK consumption must stay behind `@nimiplatform/kit/core/sdk-contract`; app-specific surfaces belong in the host app placement outside Kit Agent Center.
-
-Autonomy `maxBackgroundOutputTokens` caps each background generation. Zero uses the finite Runtime default; positive values are explicit execution limits. Daily usage counts actual input plus output tokens and is not a monetary cap. An unsupported explicit limit fails that execution; it does not disable user Conversation.
-
-Life planning, autonomous continuation and new contact judgments share consecutive fixed 24-hour usage windows anchored at `windowStartedAt`. Runtime refreshes usage before admission/accounting and in maintenance. Late results count when recorded, including canceled work; config edits never reset usage. Explicit zero removes the daily limit. Exhaustion prevents new background inference while already accepted simulated frames can still advance. Ordinary replies and same-turn self-intentions remain available with both switches off; extra contact stops after one unanswered message.

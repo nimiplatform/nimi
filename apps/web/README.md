@@ -18,22 +18,20 @@ Nimi Home itself runs within the Desktop client; web pages provide product infor
 - **Token Protection:** The web client never exposes or persists access/refresh tokens in URLs, `localStorage`, or client-side storage.
 - **OAuth Delegation:** During Desktop login handoffs, the web portal validates origin integrity and delegates authentication securely without exposing authorization secrets to untrusted client code.
 
-Development uses the same-origin Vite proxy when `NIMI_REALM_URL` is configured:
+## Development
+
+When `NIMI_REALM_URL` is configured, the development server proxies Realm requests through the same-origin Vite server:
 
 ```bash
 pnpm --filter @nimiplatform/web dev
 ```
 
-From the repository root, `pnpm dev:web` uses the same startup check. If this
-workspace's Web development server is already listening on the configured port
-(normally `3000`) in the same mode, the command prints its address and exits
-successfully. Reuse does not take ownership of the original server: stop or
-restart it in the terminal that launched it. Source edits continue to hot reload.
-An unrelated service or another checkout on the port produces an explicit error;
-the command never kills it or silently switches ports. Existing servers launched
-before this check was added need one restart through the updated command.
+From the repository root, `pnpm dev:web` runs the same startup check:
 
-Verification:
+- **Same-workspace reuse:** If this workspace's Web dev server is already listening on the configured port (default `3000`) in the same mode, the command prints the active address and exits successfully. Reusing the server does not transfer process ownership—stop or restart it from the terminal that originally launched it. Source edits continue to hot-reload.
+- **Port conflicts:** If an unrelated service or another checkout occupies the port, the command fails with an explicit error rather than killing the existing process or silently switching ports. (Any server started before this startup check existed must be restarted once with the updated command.)
+
+## Verification
 
 ```bash
 pnpm --filter @nimiplatform/web test

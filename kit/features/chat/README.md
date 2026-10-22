@@ -4,7 +4,7 @@ Reusable chat capability module for unified conversation shells, target-first ch
 
 ## Canonical Parity Matrix
 
-Kit owns the common rendering and interaction of its named chat primitives. Apps may compose those primitives into their own pages, navigation, partner selection and admitted layout; sharing Conversation consumption does not require identical App screens.
+Kit owns the common rendering and interaction of its named chat primitives. Apps may compose those primitives into their own pages, navigation, partner selection, and admitted layout; sharing Conversation consumption does not require identical App screens.
 
 | Surface | Canonical contract | Canonical kit requirement |
 | --- | --- | --- |
@@ -24,9 +24,8 @@ Regression fixtures live in `kit/features/chat/test/conversation-shell-ui.test.t
 ## Public Surfaces
 
 - **`@nimiplatform/kit/features/chat`**: Root feature entry (stays adapter-driven).
-- **`@nimiplatform/kit/features/chat/headless`**: Unified `AI / Human / Agent` conversation contracts, target-first shell adapters, and shared composer helpers.
-- **`@nimiplatform/kit/features/chat/ui`**: Shared UI components and shells.
-  - `AppConversationEntry`: An optional composition for an ordinary formal App client, used by Lab's registered `agent-conversation` workspace. It requires explicit bounded Agent-reference selection, opens one canonical Conversation, hydrates with subscribe-before-snapshot high-water fencing, reads committed image/voice artifacts through Conversation, and delegates only preview, picker, recorder, and playback mechanics to an identity-free Host port. Its internal observation delegates to the same LocalAgent consumer used by Desktop and Zhiyu; adopting the component is not required to share lifecycle behavior.
+- **`@nimiplatform/kit/features/chat/headless`**: Unified `AI / Human / Agent` conversation contracts, target-first shell adapters, LocalAgent conversation observers/persistence helpers, `createBrowserAppConversationHostPort()`, and shared composer helpers.
+- **`@nimiplatform/kit/features/chat/ui`**: Shared UI components and shells, including `AppConversationEntry` and LocalAgent playback/stop/follow-up controls.
 - **`@nimiplatform/kit/features/chat/runtime`**: Runtime-client-backed app-AI composer/session adapters and orchestration provider integration (`simple-ai`, provider registry wiring, history budgeting, and stream normalization). Ordinary app-AI text generate/stream helpers consume vNext `@nimiplatform/sdk/ai` model surfaces; Runtime Agent Chat remains part of the Runtime Agent lifecycle, not this Kit surface.
 - **`@nimiplatform/kit/features/chat/realm`**: Generated typed human chat send/list/read/sync-window integration, confirmed-message cache helpers, and timeline composition/display modeling. SDK-backed default realm bindings live only under `src/realm/**`. Realtime protocol, session, replay, token, and socket ownership remain outside Kit until Runtime authority admits them.
 
@@ -41,9 +40,19 @@ Regression fixtures live in `kit/features/chat/test/conversation-shell-ui.test.t
   - `ChatThreadHeader` and `ChatPanelState` for chat headers, loading, error, and unselected-thread shells.
   - `ChatStreamStatus` for shared streaming or interrupted message status blocks while keeping cancel wiring app-local.
 
-### 2. Protected App Conversation Entry
-- **`AppConversationEntry`**: An optional composition for an eligible protected App that wants the full Agent-reference-to-Conversation entry. Desktop and Zhiyu reuse the headless observer and controls without adopting this component. Supply one formal App client plus Host media mechanics. Attachment upload, recorded transcription, artifact reads, send, and interrupt remain canonical Conversation operations—do not add another Runtime client, identity lookup, optimistic transcript, or App-local session owner.
-- **`createBrowserAppConversationHostPort()`**: Reuse for browser-backed protected Apps. It performs no work at construction time; picker and microphone access begin only on explicit UI actions, while Blob preview URLs, recorded media tracks, and Audio playback URLs remain Host-owned and are released by the port.
+### 2. Protected App Conversation Entry & LocalAgent Controls
+- **`AppConversationEntry`**: An optional UI composition for a formal protected App client (used by Lab's registered `agent-conversation` workspace). It requires explicit bounded Agent-reference selection, opens one canonical Conversation, hydrates with subscribe-before-snapshot high-water fencing, and runs attachment upload, recorded transcription, committed image/voice artifact reads, send, and interrupt through canonical Conversation operations. It delegates only preview, picker, recorder, and playback mechanics to an identity-free Host port—do not add a second Runtime client, identity lookup, optimistic transcript, or App-local session owner. Internally it delegates to the same LocalAgent observer used by Desktop and Zhiyu; adopting `AppConversationEntry` is not required to share LocalAgent lifecycle behavior.
+- **`createBrowserAppConversationHostPort()`**: Browser Host port factory for protected Apps. It performs no work at construction time; file picker and microphone access start only on explicit UI actions, while Blob preview URLs, recorded media tracks, and Audio playback URLs remain Host-owned and are released by the port.
+- **Observation (`observeLocalAppConversation`)**: Binds to one explicit handle/anchor, subscribes before taking the snapshot, accepts increasing public sequence gaps, retains owner partial state, and replaces a retryable failed observation without sending anything. `state.textTurnId` governs text occupancy independently of active media tails. Close the observer when its scope changes.
+- **Artifact preview cache (`createCanonicalConversationMediaReader`)**: Scoped nonblocking preview cache. A failed artifact read does not alter the Conversation result. `getReadError()` exposes failed or retrying reads, while explicit `retryFailed()` rereads only those stored artifacts, coalescing pending reads and keeping ready previews. It never generates an image or sends a turn.
+- **Draft persistence & submission recovery**:
+  - `useAgentComposerPersistence` receives protected App storage and caller draft mechanics; `reconcileAgentSubmission` acts on an explicit user choice: with `sendIfMissing: false`, it only reads the snapshot (absence in a bounded snapshot does not prove non-admission); with `sendIfMissing: true`, it sends the saved request ID so Runtime can return the admitted turn or accept that original request once. The latter may start model work and incur costs. Neither helper owns Runtime recovery or execution.
+  - `LocalAppConversationSubmissionRecovery` exposes an optional `onAdmitted(submission)` callback for an App's draft owner to consume attachments tied to the original request. It runs only after admission is confirmed and before `acknowledge` removes the saved submission. `onResolved` remains a view-refresh callback. Neither callback authorizes clearing unrelated or newly selected attachments.
+- **Turn & playback controls**:
+  - `LocalAppConversationVoiceButton` uses browser playback mechanics, existing ready artifacts, and explicit render retry; selecting another reply stops current local playback in that conversation.
+  - `LocalAppConversationMediaStopButton` interrupts the named media turn and waits for owner state without disabling a newer text turn.
+  - `LocalAppConversationFollowUpControl` accepts localized text and placement while preserving owner policy and revisions.
+  - None of these controls enable capabilities implicitly.
 
 ### 3. App-AI Orchestration & Model Replay
 - **Text generation & orchestration**: Bind ordinary app-AI text generation through vNext `@nimiplatform/sdk/ai` model surfaces. Use `chat/headless` orchestration contracts/registry before writing app-local mode-specific submit loops, and use `chat/runtime` when you need reusable Kit composer/session adapters or the `simple-ai` conversation provider.
@@ -79,11 +88,8 @@ Pass the current reference name/avatar, locale, and controlled-draft prefill cal
 
 ## Before Building Locally
 
-- Check `chat/ui` before creating a new composer shell, app AI chat panel, human chat timeline, or shared stream status block.
-- LocalAgent consumers use `observeLocalAppConversation` with one explicit handle/anchor. It subscribes before the snapshot, accepts increasing public sequence gaps, retains owner partial state, and replaces a retryable failed observation without sending anything. `state.textTurnId` governs text occupancy independently of active media tails. Close the observer when its scope changes.
-- `createCanonicalConversationMediaReader` is a scoped nonblocking preview cache. A failed artifact read does not change the Conversation result. `getReadError()` exposes failed/retrying reads; explicit `retryFailed()` rereads only those stored artifacts, coalesces pending reads and keeps ready previews. It never generates an image or sends a turn. `useAgentComposerPersistence` receives protected App storage and caller draft mechanics; `reconcileAgentSubmission` confirms only the same saved request after an explicit user action. Neither owns Runtime recovery or execution.
-- `LocalAppConversationVoiceButton` uses browser playback mechanics, existing ready artifacts, and explicit render retry; selecting another reply stops the current local playback in that conversation. `LocalAppConversationMediaStopButton` interrupts the named media turn and waits for owner state, without disabling a newer text turn. `LocalAppConversationFollowUpControl` accepts localized text and placement while preserving owner policy and revisions. None enables capabilities implicitly.
-- Check `chat/headless` before writing local input-state orchestration, submit wiring, cancel handling, or shared session state.
+- Check `chat/ui` before creating a new composer shell, app AI chat panel, human chat timeline, LocalAgent conversation control, or shared stream status block.
+- Check `chat/headless` before writing local input-state orchestration, submit wiring, cancel handling, LocalAgent observation/draft recovery, or shared session state.
 - Check vNext `@nimiplatform/sdk/ai` model surfaces for ordinary app-AI generate/stream helpers, then check `chat/runtime` for reusable composer/session adapters and orchestration providers before wrapping runtime text APIs directly in app code.
 - Check `chat/realm` for generated human chat send/list/read/sync-window and timeline helpers before rebuilding HTTP chat composition.
 
@@ -97,9 +103,9 @@ Pass the current reference name/avatar, locale, and controlled-draft prefill cal
 
 ## Current Consumers
 
-- **`desktop` and `zhiyu` LocalAgent Chat**: Use the same `observeLocalAppConversation`, canonical reducer, scoped draft/pending-request persistence, explicit same-request reconciliation, voice playback/retry and follow-up controls. Runtime remains the only durable Conversation owner; App view mapping, navigation, partner selection and host mechanics remain local.
+- **`desktop` and `zhiyu` LocalAgent Chat**: Use the shared `observeLocalAppConversation`, canonical reducer, scoped draft/pending-request persistence, explicit same-request reconciliation, voice playback/retry, and follow-up controls. Runtime remains the only durable Conversation owner; App view mapping, navigation, partner selection, and host mechanics remain local.
 - **`desktop`**: Uses `chat/headless`, `chat/realm`, and `chat/ui` for human chat composer wiring, confirmed-message cache projection, timeline rendering, stream status, and thread shell.
-- **`lab`**: Uses `AppConversationEntry` in its registered `agent-conversation` workspace, plus `chat/headless` composer and attachment helpers and `chat/realm`; its `chat.stream` capability page runs through Lab's own SDK capability host rather than `chat/runtime`. Lab's real product path is **NOT-VERIFIED** for the current Desktop/Zhiyu shared-consumption iteration; recognizing this existing consumer does not add Lab adaptation to that iteration.
+- **`lab`**: Uses `AppConversationEntry` in its registered `agent-conversation` workspace, along with `chat/headless` composer and attachment helpers and `chat/realm`. Its `chat.stream` capability page runs through Lab's own SDK capability host rather than `chat/runtime`.
 
 ## Verification
 
@@ -107,9 +113,3 @@ Pass the current reference name/avatar, locale, and controlled-draft prefill cal
 pnpm --filter @nimiplatform/kit test
 pnpm check:nimi-kit
 ```
-
-`LocalAppConversationSubmissionRecovery` exposes optional `onAdmitted(submission)`
-for an App's draft owner to consume attachments associated with the original
-request. It runs only after admission is confirmed, before `acknowledge` removes
-the saved submission. `onResolved` remains a view refresh callback. Neither
-callback authorizes clearing unrelated or newly selected attachments.

@@ -1,6 +1,6 @@
 {
   "execution": {
-    "unconfirmed": "Current execution conditions for this run cannot be confirmed.",
+    "unconfirmed": "Cannot confirm whether execution conditions for this run are met.",
     "unavailable": "App interruption records are temporarily unavailable",
     "title": "App execution interruption notifications",
     "description": "Send a notification on this device when a supervised App stops or loses its execution conditions. In-app execution notices remain available.",
@@ -10,7 +10,7 @@
     "notices": "App interruption records",
     "summaryCount_one": "App interruption records · {{count}} record",
     "summaryCount_other": "App interruption records · {{count}} records",
-    "summaryDescription": "These records describe app stops, connection interruptions, or expired execution sessions. They do not mean that an app task failed. Reconnecting does not automatically resume earlier work; check progress in the source app. Removing a record does not change app or task state.",
+    "summaryDescription": "These records log app stops, connection drops, or expired execution sessions. They do not mean a task failed. Reconnecting will not automatically resume earlier work—check actual progress in the source app. Removing a record does not affect the app or its tasks.",
     "viewAll": "View records",
     "dismiss": "Remove record",
     "stopped": "execution stopped",

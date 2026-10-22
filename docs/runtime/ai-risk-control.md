@@ -5,7 +5,7 @@ Nimi runs content checks directly in the Runtime on the user's device. Every app
 Suppose a research app reads a file containing a private key and includes it in the next prompt, or a tool returns a token that gets fed back into the conversation. If that content matches one of the rules below, Runtime rejects the request before it reaches the model. Model output is checked too. Apps keep their own workflows without each maintaining a separate scanner.
 
 ::: info Developer preview
-Content checks are available in current Runtime source builds. For prebuilt downloads, check the release notes for your version. Apps do not need new request fields, registration steps, or configuration to use them.
+Content checks are available in current Runtime source builds, and the companion shell notice and conversation context controls require matching source builds of Runtime, SDK, Kit/native, and Home. These companion controls are a developer preview; check the release notes for your version when using prebuilt downloads. Apps do not need new request fields, registration steps, or configuration to use content checks.
 :::
 
 ## How local inspection works
@@ -52,7 +52,7 @@ For `github-classic-pat`, ASCII letters, digits, underscores (`_`), and non-ASCI
 
 Other token formats, encrypted or OpenSSH private keys, and arbitrary encodings are not covered. Placeholders and ordinary technical text—such as `token: string`, `password: <redacted>`, empty values, hashes, standalone PEM headers, public keys, certificates, generic `Bearer` wording, sensitive field names, high-entropy strings, or prompt-injection phrases—do not trigger refusal on their own.
 
-Local and cloud routes apply the same rules. A local request containing a private key in one of the covered formats is refused even for legitimate analysis. You can supply a redacted copy through your App’s existing input controls; Runtime never silently rewrites your input.
+Local and cloud routes apply the same rules. A local request containing a private key in one of the covered formats is refused even for legitimate analysis. You can supply a redacted copy through your App's existing input controls; Runtime never silently rewrites your input.
 
 ## Handle a refusal in your App
 
@@ -66,23 +66,35 @@ A clear user-facing message is:
 
 > This request or response did not pass the content check. Review the input and selected context, then remove or redact restricted content before submitting again.
 
-Cancellation, timeouts, permission errors, Runtime shutdown, and transport failures keep their own error codes and priority. Content-check diagnostics record the rule, stage, and related information without storing the matched secret. Known usage may remain in the existing Job record; missing usage does not mean a failed call was free.
+### Shell notices and diagnostics
 
-Matching source builds of Home and the standard Kit Shell add one nonmodal content-check notice while preserving the App's original failure result. Safe diagnostics contain only the reason and available fixed rule/stage values. A format match means the input may contain a credential; it does not establish validity, malicious model behavior, or a leak. Users can edit their input and continue other tasks without submitting a report or disabling checks. A RuntimeAgent rejection in a later model round does not mean the entire user operation stayed on the device.
+Cancellation, timeouts, permission errors, Runtime shutdown, and transport failures keep their own error codes and priority. When a content check blocks a call, the diagnostics available in the shell include only the failure reason and available fixed rule and stage values—never the matched secret. A format match only indicates that text matched a credential pattern; it does not prove that a key is active, that the model behaved maliciously, or that data leaked.
+
+Keep two execution details in mind when presenting results:
+
+- **Usage and billing:** Known usage may remain in the existing Job record, and missing usage data on a failed call does not mean the provider call was free.
+- **Multi-turn boundaries:** If a `RuntimeAgent` operation is refused during a later model round, earlier turns or tool steps may have already run—do not tell the user that the entire operation stayed on the device.
+
+In matching source builds of Home and the standard Kit Shell, the shell shows a single non-modal notice when a check blocks a request while preserving the App's original failure result. Users can immediately edit their draft or continue other tasks without submitting a report or toggling checks off.
 
 ## History and conversation recovery
 
-Runtime never globally rewrites or scrubs stored App history, and a diagnostic event does not mean earlier records were cleaned. Old turns remain readable, but any history or summary selected into a new request is checked again. If matched material stays in the selected context, even a harmless follow-up question will be refused.
+Runtime never globally rewrites or scrubs stored App history, and a diagnostic event does not mean earlier records were cleaned. Old turns remain readable, but any history or summary included in a new request is checked again. If matched material stays in the selected context, even a harmless follow-up question will be refused.
 
-Apps that own their context use their existing input and context editors. Reopening a `RuntimeAgent` conversation reuses its anchor and does not clear it.
+Apps that manage their own context can let users edit or trim history through their existing input and context controls.
 
-Current source builds add a Conversation context control in Agent Center's State & memory section. After reviewing its scope, the user can select where future history starts and optionally stop referencing supplemental Memory and retrieval in that Conversation. Existing messages stay readable, and new messages use the same anchor. This choice affects the same Agent in every App and remains in effect after reopening or restarting until the user changes it again. It does not delete Memory, turn Memory off, or send the current draft.
+### Recovering a `RuntimeAgent` (`LocalAgent`) conversation
 
-The operation requires existing `agent.configure` access. A chat-only App can hand the known anchor to Home with `open-agent-center`; Home resolves the target under its own current management access. A busy Agent or stale revision prevents the change. Restoring the full range also restores normal checking of earlier material, so it can cause refusal again. Required character or App instructions must be corrected by their source owner; changing history cannot remove them.
+Each `LocalAgent` has a single persistent conversation identified by an anchor, which allows users to continue the same thread across different Apps. Simply reopening a conversation reuses that anchor and does not clear prior turns.
 
-The new notice and context controls require matching source-built SDK, Kit/native, Home and Runtime. The Windows Home → Desktop-supervised Lab journey has been verified with DeepSeek `deepseek-v4-pro`, including normal streaming, a tool round trip, stopping, input refusal, and continuing the same RuntimeAgent conversation after an explicit context change and a full restart. This is an unreleased developer preview; it does not establish coverage for older packages, other operating systems, or arbitrary App hosts. Check the release notes for a prebuilt installation.
+In matching source builds of Runtime, SDK, Kit/native, and Home, **Agent Center → State & memory** provides a conversation context control so users can adjust future history references while keeping their thread:
 
-Memory keeps its existing rules for accepting stored content. If it rejects a proposed correction, the original memory stays unchanged and the proposed text remains editable. Choosing not to reference supplemental context does not disable those rules or grant an exception to content checks.
+- **What it changes:** After reviewing the scope, the user can choose a new starting point for future history references and optionally omit supplemental Memory and retrieval in that conversation.
+- **Cross-App continuity:** Earlier messages stay readable in the thread, and new turns continue on the same anchor. Because the Agent has a single persistent conversation, this selection applies to subsequent turns with that Agent across every App surface and persists across reopens and restarts until the user changes it again. Restoring the full history range brings earlier turns back into context—and back into content checks, which can trigger refusal again if restricted text is still present.
+- **What remains untouched:** Changing context selection does not delete the conversation or stored Memory, turn Memory off, or send the user's current draft. It preserves required character and App instructions and permissions (if required instructions contain restricted text, their source owner must update them). It also does not cancel already accepted autonomous life activities or control how life planning performs its own Memory retrieval.
+- **Access and state requirements:** Updating conversation context requires existing `agent.configure` access and is rejected if the Agent is busy or the state revision is stale. A chat-only App can pass the known conversation anchor to Home via `open-agent-center`, where Home resolves the target Agent under its own management permissions.
+
+Memory keeps its existing validation rules when saving or editing entries. If a proposed correction is rejected, the stored memory stays unchanged and the draft remains editable. Omitting supplemental Memory from conversation context does not disable Memory validation or exempt any turn from content checks.
 
 ## Continue building
 

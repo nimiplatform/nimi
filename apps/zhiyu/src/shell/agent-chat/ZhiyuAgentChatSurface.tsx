@@ -695,12 +695,12 @@ function followUpCopy(key: string, values?: Record<string, string | number>): st
 function submissionCopy(key: string, values?: Record<string, string | number>): string {
   const copy: Record<string, string> = {
     'Chat.agentSubmissionRetryPending': '重新回答的受理结果尚未确认。', 'Chat.agentSubmissionPending': '上一条消息的受理结果尚未确认。',
-    'Chat.agentSubmissionRecoverNotice': '原内容已保留。继续会确认同一条消息，不会自动重新生成。',
-    'Chat.agentSubmissionAttachments': `已保留 ${values?.count ?? ''} 个附件。`, 'Chat.agentSubmissionUnknown': '目前还无法确认是否受理，可继续确认同一条消息。',
+    'Chat.agentSubmissionRecoverNotice': '原内容已保留。继续会用原请求查回进展；若尚未收到则会继续发送，可能产生模型费用。',
+    'Chat.agentSubmissionAttachments': `已保留 ${values?.count ?? ''} 个附件。`, 'Chat.agentSubmissionUnknown': '目前还无法确认是否已受理，可按原请求继续查回或发送。',
     'Chat.agentSubmissionCheckFailed': '暂时无法确认，请稍后重试。', 'Feedback.technicalDetails': '技术详情',
     'Chat.agentSubmissionWorking': '正在确认…', 'Chat.agentSubmissionRetryRecover': '继续这次重新回答', 'Chat.agentSubmissionRecover': '继续这条消息',
     'Chat.agentSubmissionOtherOptions': '其他选项', 'Chat.agentSubmissionCheck': '只查看对话', 'Chat.agentSubmissionKeepAsDraft': '取回文字作为草稿',
-    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会停止可能已受理的回复。再次发送会成为一条新消息。',
+    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会撤回可能已受理的回复，也不会自动重新添加旧图片。再次发送会成为一条新消息。',
   };
   return copy[key] ?? key;
 }

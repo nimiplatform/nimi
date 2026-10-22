@@ -4,68 +4,31 @@
 
 ## SDK 0.22.0 — LocalAgent life frames (development)
 
-Use matching Runtime, SDK, Kit and native builds. LocalAgent no longer owns
-user commitments, generic natural-language task controls, task timezones or
-control outcomes. Existing conversations and Memory are preserved; obsolete
-local controls are retired only through explicitly reviewed one-time tools.
+Use matching source-built Runtime, SDK, Kit, and native builds. This unreleased 0.x hard cut has no compatibility path or automatic migration. LocalAgent no longer owns user commitments, generic natural-language task controls, task timezones, or control outcomes. Existing conversations and Memory are preserved; obsolete local controls are retired only through explicitly reviewed one-time tools.
 
-Life projections distinguish current interaction from simulated activities,
-with unknown interaction end/progress left absent. Optional self-intentions
-commit before confirmation. Cognition activity facts now carry actual activity
-state, a stable change reference and a separate self-action/object description;
-the old terminal-only state field is reserved. Different real changes in one
-intention may be remembered separately. Recall can include a bounded recent-life
-selection under the same bank and Forget controls. This unreleased 0.x hard cut
-has no compatibility path or automatic migration.
+Life projections distinguish current interaction from simulated activities, leaving unknown interaction end and progress absent. Optional self-intentions commit before confirmation. Cognition activity facts now carry actual activity state, a stable change reference, and a separate self-action/object description; the old terminal-only state field is reserved. Different real changes within one intention may be remembered separately. Recall can include a bounded recent-life selection under the same bank and Forget controls.
 
-Realtime consumers must capture the returned negotiated input format. Runtime
-selects the captured Driver's native PCM rate and matching frame-byte bound before
-accepting audio; the proposed Open format is not a promise to echo that rate. Explicit Agent
-Realtime close interrupts its unfinished turn, including before an output track
-exists, while preserving committed self-intentions.
+Realtime consumers must capture the negotiated input format returned by Runtime. Runtime selects the captured Driver's native PCM rate and matching frame-byte bound before accepting audio; the proposed Open format does not promise to echo that rate. Explicit Agent Realtime close interrupts its unfinished turn—including before an output track exists—while preserving committed self-intentions.
 
 ## Unreleased — LocalAgent Conversation recovery and controls
 
-Background output limits use `maxBackgroundOutputTokens` as described above;
-positive limits fit the text execution int32 range. Daily usage remains actual
-reported input plus output; it is not a monetary cost cap.
+This source-only 0.x minor hard cut requires matching Runtime, native carrier, SDK, and Kit builds. No package release, automatic migration, or old/new protocol fallback is included. AI Consume-only consumers do not gain LocalAgent management requirements.
 
-This source-only 0.x minor hard cut requires matching Runtime, native carrier,
-SDK and Kit. LocalAgent Conversation snapshots now include partial messages,
-request/retry/input associations, regeneration eligibility and shared follow-up
-state; events include `state-changed` and authoritative text activity. Keep an
-ongoing Conversation subscription after Send admission, including while older
-media completes. `send({ retryOfTurnId, requestId, ...scope })` references retained
-input and excludes `parts`; it regenerates text without replaying old actions.
-Retain an uncertain submission's original request ID and do not auto-resubmit.
+LocalAgent Conversation snapshots now include partial messages, request/retry/input associations, regeneration eligibility, and shared follow-up state; events include `state-changed` and authoritative text activity. Keep an ongoing Conversation subscription after Send admission, including while older media completes. `send({ retryOfTurnId, requestId, ...scope })` references retained input and excludes `parts`, regenerating text without replaying prior actions. Retain an uncertain submission's original request ID and do not auto-resubmit.
 
-Custom LocalAgent carriers implement `conversation.cancelFollowUp` with its
-matching capability. Autonomous continuation and life expression share the
-Agent free-contact policy, independently of life simulation. User commitment
-CRUD and deterministic fulfillment are retired. AI Consume-only consumers do
-not gain LocalAgent management requirements.
-No package release, automatic migration or old/new protocol fallback is included.
+For the next 0.x minor (not a patch of the published 0.21.0), `LocalAppConversationTurnAccepted` restores the formerly reserved `request_id` name at optional field 3; field 2 remains reserved. `request_id` correlates the admitted turn with the originating submission for recovery, never grants authority, and may be absent for Runtime-initiated turns. Regenerate custom carriers from the matching proto; do not reuse field 2 or mix this source set with older carriers. The published wire baseline remains unchanged.
 
-For the next 0.x minor (not a patch of the published 0.21.0),
-`LocalAppConversationTurnAccepted` restores the formerly reserved `request_id`
-name at optional field 3; field 2 remains reserved. It correlates the admitted
-turn with the originating submission for recovery, never grants authority, and
-may be absent for Runtime-initiated turns. Regenerate custom carriers from the
-matching proto; do not reuse field 2 or mix this source set with older carriers.
-The published wire baseline remains unchanged.
+Custom LocalAgent carriers must implement `conversation.cancelFollowUp` with its matching capability. Autonomous continuation and life expression share the Agent free-contact policy, independent of solitary life simulation. User commitment CRUD and deterministic fulfillment are retired.
+
+Background activity output limits use `maxBackgroundOutputTokens`, where positive limits fit the text execution `int32` range. Daily token usage tracks actual reported input plus output over a fixed 24-hour window; it is not a monetary cost cap.
 
 ## Unreleased — Conversation context management
 
-The covered `agentConfigure.conversationContext.update` client adds an explicit
-revision-checked selection on the existing Conversation. Manager snapshots can
-carry a nullable `conversationContext` projection; the existing Manager action
-set is unchanged. `open-agent-center` accepts only a Conversation anchor and Home
-resolves it under its own current management access.
+Use matching source-built Runtime and Kit/native contracts for this unreleased 0.x minor surface change (not a package publication).
 
-Use matching source-built Runtime and Kit/native contracts. Custom standard
-Shell implementations add `agentConfigure.conversationContext.update`; ordinary
-App requests do not gain required fields or management permission. This is an
-unreleased 0.x minor surface change, not a package publication.
+The `agentConfigure.conversationContext.update` client applies an explicit, revision-checked context selection to the Agent's persistent Conversation (requiring `agent.configure` and rejecting busy or stale-revision updates). Manager snapshots can carry a nullable `conversationContext` projection while keeping the existing Manager action set unchanged. `open-agent-center` accepts only a Conversation anchor, which Home resolves under its own current management access.
+
+Custom standard Shell implementations must add `agentConfigure.conversationContext.update`; ordinary App requests do not gain required fields or management permission.
 
 ## 0.21.0 — 2026-10-11
 

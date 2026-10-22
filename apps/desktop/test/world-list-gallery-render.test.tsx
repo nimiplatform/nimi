@@ -170,7 +170,7 @@ test('favorites show the saved world grid without discovery shelves and keep the
 test('favorites distinguish empty, signed-out, and partially unavailable collections', () => {
   for (const [props, message] of [
     [{}, '还没有收藏的世界'],
-    [{ favoritesUnavailable: 'World.favorites.signIn' }, '登录后查看我的收藏'],
+    [{ favoritesUnavailable: 'World.favorites.signIn' }, '登录后查看你在本机的收藏'],
     [{ favoritesPartialError: true, worlds: [world] }, '部分收藏的世界暂时无法加载。'],
   ] as const) {
     const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent

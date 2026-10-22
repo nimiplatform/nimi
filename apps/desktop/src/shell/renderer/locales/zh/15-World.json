@@ -2,10 +2,10 @@
   "title": "世界",
   "favorites": {
     "title": "我的收藏",
-    "localOnly": "仅本机保存",
+    "localOnly": "仅保存在本机",
     "empty": "还没有收藏的世界",
-    "emptyBody": "在世界详情页点击收藏按钮，喜欢的世界就会出现在这里。",
-    "signIn": "登录后查看我的收藏",
+    "emptyBody": "在世界详情页点击“收藏世界”，喜欢的世界就会留在这里。",
+    "signIn": "登录后查看你在本机的收藏",
     "readError": "无法读取本机收藏列表。",
     "partialError": "部分收藏的世界暂时无法加载。"
   },

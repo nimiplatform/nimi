@@ -1,6 +1,6 @@
 {
   "positionUnavailable": "This item is unavailable. Your navigation position has been kept.",
-  "setupTaskUnavailable": "This setup task no longer exists. Return to AI Capabilities to view your configuration profiles.",
+  "setupTaskUnavailable": "This setup task no longer exists. Return to AI Capabilities to view your AI setups.",
   "reasonMessages": {
     "AI_PROVIDER_TIMEOUT": "AI provider request timed out.",
     "AI_PROVIDER_UNAVAILABLE": "AI provider is unavailable.",

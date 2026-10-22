@@ -25,7 +25,7 @@ it('keeps rejected correction text editable and preserves the original Memory wi
       draft.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await act(async () => button('Save correction').click());
-    expect(container.textContent).toContain('This correction was not accepted. Your existing memory is unchanged.');
+    expect(container.textContent).toContain('This memory edit was not accepted. The original memory is unchanged, and your proposed text remains editable.');
     expect(draft.value).toBe('Proposed text'); expect(container.textContent).toContain('Original preference');
     expect(reject).toHaveBeenCalledTimes(1);
   } finally { await act(async () => root.unmount()); container.remove(); }

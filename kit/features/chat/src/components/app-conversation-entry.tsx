@@ -108,7 +108,7 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     reuseInput: '取回失败输入并编辑',
     preserveDraft: '已保留新草稿。如需取回之前的输入，请先清空当前草稿。',
     conversationSettings: '在 Nimi 中查看对话设置',
-    conversationSettingsUnavailable: '未能打开 Nimi。请确认 Home 正在运行，上下文未被修改。',
+    conversationSettingsUnavailable: '未能打开 Nimi。请确认 Home 正在运行。当前上下文未做修改。',
     controlNotSaved:'没有保存更改。',
     regenerateExplanation: '重新生成说明',
     chatCopy: {

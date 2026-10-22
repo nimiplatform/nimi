@@ -341,7 +341,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         }
         await persistence.acknowledge(submission.requestId);
         throw new Error('伙伴正在处理另一条消息，输入已保留，请稍后再发送。', { cause: error });
-      } else setSubmissionError('暂未确认消息是否已受理。原内容已保留，可继续确认同一条消息。');
+      } else setSubmissionError('暂未确认消息是否已受理。原内容已保留，可按原请求继续查回或发送。');
     } finally {
       if (submissionBusy.current === scope) submissionBusy.current = null;
       if (scope === currentScope.current) setSubmitting(false);

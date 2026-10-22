@@ -54,7 +54,7 @@ test('ready state renders the recent-chats header, compact strip, and one merged
   assert.match(html, /data-testid="home-recent-chat-time">t:1760614440000/);
   // Reply composer targets the selected partner and submits via a single-line input (Enter).
   assert.match(html, /<label[^>]*for="home-agent-composer-input"/);
-  assert.match(html, /<input[^>]*placeholder="回复Lumi…"/);
+  assert.match(html, /<input[^>]*placeholder="回复 Lumi…"/);
   assert.match(html, /data-testid="home-agent-send"/);
   // The send button lives inside the composer capsule, right after the input.
   assert.match(html, /id="home-agent-composer-input"[^>]*>[\s\S]*?data-testid="home-agent-send"/);

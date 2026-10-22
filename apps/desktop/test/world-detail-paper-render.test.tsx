@@ -510,7 +510,7 @@ test('world following remains a single secondary action and disappears when unav
   const followed = render(() => {});
   const button = followed.querySelector('[data-testid="world-detail-follow-world"]');
   assert.equal(button?.getAttribute('aria-pressed'), 'true');
-  assert.equal(button?.getAttribute('aria-label'), 'Remove bookmark');
+  assert.equal(button?.getAttribute('aria-label'), 'Remove from favorites');
   assert.equal(button?.textContent?.trim(), '', 'the follow action is icon-only');
   assert.equal(followed.querySelectorAll('[data-testid="world-detail-follow-world"]').length, 1);
   assert.equal(render().querySelector('[data-testid="world-detail-follow-world"]'), null);

@@ -56,6 +56,6 @@ export function resolveModelConfigCurrentMachineLocalActionCopy(
     ? CHINESE_CURRENT_MACHINE_LOCAL_ACTION_COPY
     : ENGLISH_CURRENT_MACHINE_LOCAL_ACTION_COPY;
   return ownerKey === 'shared-local-agent-ai-config'
-    ? { ...copy, hint: chinese ? '将本机已选模型应用到当前账号的共享 LocalAgent 配置，影响使用它的所有伙伴和 App。' : 'Apply this device’s selected models to this account’s shared LocalAgent configuration, used by all partners and Apps that use it.' }
+    ? { ...copy, hint: chinese ? '将本机已选模型应用到当前账号的共享 LocalAgent 配置，这会影响所有使用该配置的伙伴和 App。' : 'Apply this device’s selected models to this account’s shared LocalAgent configuration, affecting all partners and Apps that use it.' }
     : copy;
 }

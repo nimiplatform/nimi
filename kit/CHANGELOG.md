@@ -4,103 +4,27 @@
 
 ## Unreleased
 
-Generation's `RuntimeAIConsumeInput` adds optional embedding `purpose`
-(`retrieval-document` or `retrieval-query`), passed unchanged to the SDK.
-This compatible input widening belongs to the next 0.x minor; omission keeps
-the existing unspecified purpose. No migration or model selection is added.
+### LocalAgent, Agent Center & Carrier Contracts (0.x Minor)
 
-Conversation submission recovery adds optional `onAdmitted(submission)` for
-owner cleanup after confirmed admission, before the persisted copy is removed.
-It is a compatible prop addition for the next 0.x minor. It does not run for
-unknown/rejected receipts or "keep as draft"; existing callers need no migration.
+These contract updates require matching source-built Runtime, SDK, native carrier, and Kit packages under the 0.x minor policy. They do not provide a legacy compatibility fallback or automatic data migration/cleanup, do not add new permissions, and do not imply a package release. Apps that only use AI Consume keep their existing contracts.
 
-Agent Center adds optional per-Agent Resource Pack placement and selected-Agent
-callbacks for host navigation. These are compatible public prop additions for
-the next 0.x minor; existing callers need no migration. Hosts retain navigation
-ownership and must resolve placement for the selected Agent.
+- **LocalAgent scope & Agent Center autonomy**: Runtime LocalAgent no longer handles user commitment fulfillment or exposes user commitment CRUD, generic control outcomes, task timezones, or user todo/task management interfaces. True user task fulfillment belongs to Personal Agent products, while ordinary chat and optional same-turn self-intentions (confirmed only after the owner accepts them) remain available. Agent Center projects current interaction, retained intentions, and simulated history without inventing an interaction end time or progress. Unified proactive contact settings are managed through Agent Center / `agent.configure` independently from the solitary life-simulation toggle rather than being enabled or rescheduled per anchor.
+- **Background output-token accounting**: Agent autonomy enforces a positive `maxBackgroundOutputTokens` (proto `max_background_output_tokens`) as the per-activity output-token limit, while `0` retains the Runtime default. Daily accounting uses execution-reported input plus output token usage rather than a model-provided estimate. An unsupported explicit limit rejects only that activity without falling back to a weaker limit, and Agent Center labels this behavior directly.
+- **LocalAgent Conversation state, regeneration & follow-up**: Conversation snapshots now carry `state.textTurnId` and message `partial` alongside request-correlation fields to separate text and media activity states and project incomplete answers. Consumers must handle `state-changed` and the new snapshot fields; active text occupancy is no longer inferred from whole-turn activity, and optional image reads do not block the transcript. Explicit regeneration regenerates text from the prior turn reference without re-sending attachment parts or repeating tool side effects. To stop upcoming or active replies, Conversation exposes `conversation.cancelFollowUp` only for follow-ups that have not started yet, while in-flight replies use the existing `interrupt` control.
+- **Shared LocalAgent Chat owners**: `features/chat/headless` provides shared canonical observation and pending-request helpers, and `features/chat/ui` provides reusable voice playback/retry, media stop, and follow-up controls. Desktop and Zhiyu consume these shared owners while keeping App pages, navigation, and view mapping App-owned. `AppConversationEntry` (used by Lab's registered `agent-conversation` workspace) delegates observation to the same owner; Desktop and Zhiyu do not need to adopt that full composition.
+- **Content refusal notice & Conversation context control**: AI content refusal now surfaces through a single nonmodal notice in standard App chrome with bounded safe diagnostics, while ordinary Conversation controls keep a separate Home handoff for a known Conversation. Agent Center can explicitly configure the future history range and supplemental-context mode for that Conversation without altering existing messages or App workflows. Custom standard Shell carriers must implement `agentConfigure.conversationContext.update`; ordinary App AI requests and access declarations are unchanged.
+- **Realtime capture & close handling**: Realtime capture uses the Runtime-returned PCM tuple, and the formal Electron Host decodes shell audio-frame byte arrays before calling the typed SDK. Explicitly closing a Realtime session stops captured resources before interrupting pending owner turns, and any capture discarded during close is never submitted as a new turn.
 
-Breaking unreleased 0.x change: Runtime LocalAgent no longer exposes user
-commitment CRUD, generic control outcomes, task timezones or per-activity task
-management. Use the matching Runtime, SDK and native carrier builds. User task
-fulfillment belongs to Personal Agent products. Agent Center projects current
-interaction with unknown end/progress, retained intentions and simulated history;
-solitary simulation and extra contact have independent controls. Optional same-turn
-self-intentions are confirmed only after the owner accepts them. This does not
-introduce a compatibility path or automatically clean existing data.
-Realtime capture uses the Runtime-returned PCM tuple; the formal Electron Host
-decodes shell audio-frame byte arrays before calling the typed SDK. Explicit
-Realtime close interrupts pending owner turns after stopping their captured
-resources; capture discarded during close is never submitted as a new turn.
+### Compatible 0.x Minor Additions & Behavior Fixes
 
-Transcript bottom-follow survives scroll events caused by late content/voice
-measurement, while upward reading releases follow. LocalAgent media consumers can
-explicitly reread failed stored artifacts with `retryFailed()` and show the read
-state through `getReadError()`; ready previews remain cached and no generation is
-started. These additive reader methods join the pending 0.x minor additions below.
+Existing callers can adopt the following additions incrementally without migration:
 
-LocalAgent Chat now has shared canonical observation and pending-request helpers
-in `features/chat/headless`, plus reusable voice playback/retry, media stop and follow-up
-controls in `features/chat/ui`. Desktop and Zhiyu consume these owners; App pages,
-navigation and view mapping remain App-owned. `AppConversationEntry`, used by Lab's
-registered `agent-conversation` workspace, delegates observation to the same owner;
-Desktop and Zhiyu do not need to adopt that full composition. Lab's real product
-path is NOT-VERIFIED in this Desktop/Zhiyu iteration, which adds no Lab adaptation.
-Public additions are a minor
-change under the 0.x policy. Existing snapshots must carry `state.textTurnId` and
-message `partial`; active text occupancy is no longer inferred from whole-turn
-activity, and optional image reads do not block the transcript. No runtime
-protocol, data migration, release or new permission is introduced.
-
-Agent Center activity rows display the optional public purpose provided by Runtime.
-This additive optional SDK field does not change task controls or require historical
-task backfill; matching Runtime/native/SDK projections carry it in the existing list.
-No new export or permission is introduced.
-
-Agent autonomy now enforces a positive `maxTokensPerHook` as the per-activity
-output-token limit; zero retains the Runtime default. The existing wire field
-name is unchanged. Daily accounting uses execution-reported input plus output
-usage, not a model-provided estimate. An unsupported explicit limit rejects only
-that activity without a weaker-limit fallback. Agent Center labels this meaning.
-
-LocalAgent Conversation adds durable request correlation, incomplete-answer
-projection, explicit text regeneration, and separate text/media activity state.
-Matching source-built Runtime, SDK, native carrier, and Kit are required for this
-0.x minor hard cut. Custom carriers that expose LocalAgent controls must implement
-`conversation.setFollowUpPolicy`, `conversation.updateFollowUp`,
-`agentConfigure.pendingHooks.list`, and `agentConfigure.pendingHooks.update`.
-Conversation consumers must handle `state-changed` and the new snapshot fields;
-regeneration sends the prior turn reference without re-sending attachment parts.
-AI Consume-only Apps keep their existing contracts. Agent Center pending tasks
-remain separate from Conversation follow-up. No release or data migration is implied.
-
-`CanonicalTranscriptView` also accepts optional `contentBottomInsetPx` so a host
-with a variable-height floating composer can keep the last reply and its actions
-reachable. Hosts that omit it retain their current spacing.
-
-Minor API addition: `DatePicker` accepts an inclusive `minDate` (`YYYY-MM-DD`),
-and `DatePickerPanel` accepts the corresponding `Date`. Selection wheels and
-confirmation respect the lower bound without rewriting an existing field
-value when the panel opens. Omitted bounds preserve existing behavior.
-
-Minor API addition: `DatePicker` and `DatePickerPanel` accept an optional
-`contentLayer` prop (`'popover'` default, or `'dialog'`) that raises the
-portalled panel above a containing dialog, matching `SelectField`'s existing
-layering contract. The panel now also contains `pointerdown` and closes on a
-capture-phase `Escape`, so using it inside a modal dialog no longer closes
-that dialog. An empty or invalid `value` opens the panel on today (clamped to
-the allowed range) instead of on `maxDate`, which matters for future-bounded
-pickers; default past-bounded behavior is unchanged. Existing consumers need
-no changes.
-
-AI content refusal now has one nonmodal notice in standard App chrome, with
-bounded safe diagnostics. Ordinary Conversation controls retain a Home handoff
-for a known Conversation, separate from the notice. Agent
-Center can explicitly select the future history range and supplemental-context
-mode for the same Conversation. Existing messages and App workflows stay intact.
-This is a minor API change under the 0.x policy: use matching source-built SDK,
-Kit/native and Runtime contracts. Custom standard Shell carriers must implement
-the new `agentConfigure.conversationContext.update` method; ordinary App AI
-requests and access declarations do not change. No package release is implied.
+- **Embedding `purpose`**: Generation's `RuntimeAIConsumeInput` accepts an optional embedding `purpose` (`retrieval-document` or `retrieval-query`), passed unchanged to the SDK. Omitting it preserves the existing unspecified behavior without affecting model selection.
+- **Conversation submission recovery**: Adds an optional `onAdmitted(submission)` callback so owners can run cleanup after confirmed admission and before the persisted copy is removed. It does not fire for unknown/rejected receipts or `"keep as draft"`.
+- **LocalAgent media reader recovery**: Media consumers can explicitly re-read failed stored artifacts via `retryFailed()` and inspect read failures with `getReadError()`. Ready previews remain cached and no new generation is started.
+- **Agent Center navigation & Resource Pack binding**: Agent Center adds optional per-Agent Resource Pack placement and selected-Agent callbacks. Hosts retain navigation ownership and resolve the exact Resource Pack binding for the selected Agent.
+- **Transcript bottom inset & scroll follow**: `CanonicalTranscriptView` accepts an optional `contentBottomInsetPx` prop so hosts with a variable-height floating composer can keep the latest reply and its actions reachable; omitting it preserves current spacing. As a behavior fix, transcript bottom-follow now survives scroll events caused by late content or voice measurement, while scrolling upward to read still releases follow.
+- **`DatePicker` & `DatePickerPanel` bounds, layering & modal fixes**: `DatePicker` accepts an inclusive `minDate` (`YYYY-MM-DD`) and `DatePickerPanel` accepts the corresponding `Date`, enforcing the lower bound in selection wheels and confirmation without rewriting an existing field value when opened. Both components also accept an optional `contentLayer` prop (`'popover'` by default, or `'dialog'`) to raise the portalled panel above a containing dialog, matching `SelectField`. In addition, the panel now contains `pointerdown` and closes on capture-phase `Escape` so using it inside a modal dialog no longer closes the outer dialog, and an empty or invalid `value` opens on today (clamped to the allowed range) instead of `maxDate`.
 
 Minor API addition: `NimiAppCommand` and `NimiMenubarCommand` accept optional
 `order` and `group` presentation hints. Lower order values appear first within

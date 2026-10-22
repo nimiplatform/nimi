@@ -249,7 +249,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Partner added. You can start chatting now.',
+          defaultValue: 'Partner added.',
         }),
       });
       logRendererEvent({

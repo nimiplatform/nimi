@@ -179,7 +179,7 @@ export function SourceDetailPanel({
       if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Partner added. You can start chatting now.' }),
+        message: i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Partner added.' }),
       });
     } catch (error) {
       if (!isCurrent()) return;

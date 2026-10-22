@@ -64,7 +64,7 @@
       "embeddingPurposeDefault": "未指定",
       "embeddingPurposeDocument": "待检索内容",
       "embeddingPurposeQuery": "检索问题",
-      "embeddingPurposeHint": "为文档建立索引时选择待检索内容，搜索文档时选择检索问题。部分模型需要明确指定用途。",
+      "embeddingPurposeHint": "为文档建立索引时选择「待检索内容」，搜索文档时选择「检索问题」。部分模型需要明确指定用途。",
       "addInput": "添加输入",
       "removeInput": "移除输入 {{index}}",
       "fields": {

@@ -63,7 +63,7 @@ test('interruption drawer preserves failed removals, retries, updates counts, an
     await click(trigger);
     assert.equal(rows().length, 3);
     assert.match(dom.window.document.body.textContent ?? '', /have been restored/);
-    assert.match(dom.window.document.body.textContent ?? '', /cannot be confirmed/);
+    assert.match(dom.window.document.body.textContent ?? '', /Cannot confirm whether execution conditions/);
     assert.match(dom.window.document.body.textContent ?? '', /remain unavailable/);
     assert.equal(dom.window.document.querySelector('details')?.open, false);
     await click(button('Remove record'));
