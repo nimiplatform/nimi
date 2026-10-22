@@ -31,6 +31,8 @@ Kit lists only the canonical minimal Agent references, requires an explicit sele
 
 ## Output Playback and Interruption
 
+The updated LocalAgent life and close behavior requires matching Runtime, SDK, and Kit/native source builds for the next 0.x minor release.
+
 Runtime can finish generating an output track before local audio finishes playing. The Host media adapter's `finishOutputTrack` promise settles only after queued audio drains (or when interruption or session close releases it). Until then, Kit keeps the output track interruptible without blocking incoming Runtime events.
 
 The shared entry streams the latest Runtime-projected reply text as it arrives, including when audio is unavailable or suppressed by the Runtime presentation owner. Final text replaces streaming deltas for that track, while any result continuation stays beside the earlier reply. Kit never parses private tool syntax or infers whether an intention was accepted.

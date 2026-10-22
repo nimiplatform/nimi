@@ -65,6 +65,8 @@ These read-only Manager source/context summaries do not expose raw Agent/account
 
 ### Conversation Context Selection (State & Memory)
 
+These context controls and the updated life/contact contract below require matching Runtime, SDK, Kit/native, and Home source builds for the next 0.x minor release.
+
 In **State & memory**, user-confirmed Conversation context selection adjusts where future history references begin and can optionally omit supplemental Memory and retrieval for that Conversation:
 
 - **Scope and continuity:** Because each `LocalAgent` has one persistent Conversation, the selection affects subsequent turns with that Agent across all App surfaces while keeping existing messages readable on the same anchor. It preserves required character/App instructions and permissions.

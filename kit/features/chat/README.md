@@ -41,6 +41,9 @@ Regression fixtures live in `kit/features/chat/test/conversation-shell-ui.test.t
   - `ChatStreamStatus` for shared streaming or interrupted message status blocks while keeping cancel wiring app-local.
 
 ### 2. Protected App Conversation Entry & LocalAgent Controls
+
+The new shared LocalAgent observation and recovery APIs require matching Runtime, SDK, native carrier, and Kit source builds for the next 0.x minor release.
+
 - **`AppConversationEntry`**: An optional UI composition for a formal protected App client (used by Lab's registered `agent-conversation` workspace). It requires explicit bounded Agent-reference selection, opens one canonical Conversation, hydrates with subscribe-before-snapshot high-water fencing, and runs attachment upload, recorded transcription, committed image/voice artifact reads, send, and interrupt through canonical Conversation operations. It delegates only preview, picker, recorder, and playback mechanics to an identity-free Host port—do not add a second Runtime client, identity lookup, optimistic transcript, or App-local session owner. Internally it delegates to the same LocalAgent observer used by Desktop and Zhiyu; adopting `AppConversationEntry` is not required to share LocalAgent lifecycle behavior.
 - **`createBrowserAppConversationHostPort()`**: Browser Host port factory for protected Apps. It performs no work at construction time; file picker and microphone access start only on explicit UI actions, while Blob preview URLs, recorded media tracks, and Audio playback URLs remain Host-owned and are released by the port.
 - **Observation (`observeLocalAppConversation`)**: Binds to one explicit handle/anchor, subscribes before taking the snapshot, accepts increasing public sequence gaps, retains owner partial state, and replaces a retryable failed observation without sending anything. `state.textTurnId` governs text occupancy independently of active media tails. Close the observer when its scope changes.
