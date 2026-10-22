@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -140,9 +141,9 @@ func (b *SQLiteBackend) ReplaceRuntimeSourceCorpus(
 	return RuntimeSourceState{ScopeID: scopeID, SnapshotIdentity: snapshotIdentity, PartitionIdentity: partitionIdentity, Status: status, Generation: generation, EmbeddingIdentity: embeddingIdentity, EmbeddingDimension: embeddingDimension, UnitCount: len(units), OmissionCount: len(omissions)}, nil
 }
 
-func (b *SQLiteBackend) GetRuntimeSourceState(scopeID string) (RuntimeSourceState, error) {
+func (b *SQLiteBackend) GetRuntimeSourceState(ctx context.Context, scopeID string) (RuntimeSourceState, error) {
 	var state RuntimeSourceState
-	err := b.db.QueryRow(`SELECT scope_id,snapshot_identity,partition_identity,status,generation,embedding_identity,embedding_dimension,(SELECT COUNT(*) FROM runtime_source_unit u WHERE u.scope_id=s.scope_id),(SELECT COUNT(*) FROM runtime_source_omission o WHERE o.scope_id=s.scope_id) FROM runtime_source_scope s WHERE scope_id=?`, scopeID).Scan(&state.ScopeID, &state.SnapshotIdentity, &state.PartitionIdentity, &state.Status, &state.Generation, &state.EmbeddingIdentity, &state.EmbeddingDimension, &state.UnitCount, &state.OmissionCount)
+	err := b.db.QueryRowContext(ctx, `SELECT scope_id,snapshot_identity,partition_identity,status,generation,embedding_identity,embedding_dimension,(SELECT COUNT(*) FROM runtime_source_unit u WHERE u.scope_id=s.scope_id),(SELECT COUNT(*) FROM runtime_source_omission o WHERE o.scope_id=s.scope_id) FROM runtime_source_scope s WHERE scope_id=?`, scopeID).Scan(&state.ScopeID, &state.SnapshotIdentity, &state.PartitionIdentity, &state.Status, &state.Generation, &state.EmbeddingIdentity, &state.EmbeddingDimension, &state.UnitCount, &state.OmissionCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return RuntimeSourceState{}, ErrRuntimeSourceScopeNotFound
 	}
@@ -152,25 +153,25 @@ func (b *SQLiteBackend) GetRuntimeSourceState(scopeID string) (RuntimeSourceStat
 	return state, nil
 }
 
-func (b *SQLiteBackend) InspectRuntimeSourceState(scopeID string) (RuntimeSourceState, error) {
-	state, err := b.GetRuntimeSourceState(scopeID)
+func (b *SQLiteBackend) InspectRuntimeSourceState(ctx context.Context, scopeID string) (RuntimeSourceState, error) {
+	state, err := b.GetRuntimeSourceState(ctx, scopeID)
 	if err != nil {
 		return RuntimeSourceState{}, err
 	}
 	if state.Generation == 0 {
 		return RuntimeSourceState{}, errors.New("storage: runtime source generation is corrupt")
 	}
-	if err := b.validateStoredRuntimeSourceUnits(scopeID, state, true); err != nil {
+	if err := b.validateStoredRuntimeSourceUnits(ctx, scopeID, state, true); err != nil {
 		return RuntimeSourceState{}, err
 	}
-	if err := b.validateStoredRuntimeSourceOmissions(scopeID, state.OmissionCount); err != nil {
+	if err := b.validateStoredRuntimeSourceOmissions(ctx, scopeID, state.OmissionCount); err != nil {
 		return RuntimeSourceState{}, err
 	}
 	return state, nil
 }
 
-func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state RuntimeSourceState, validateEmbeddings bool) error {
-	rows, err := b.db.Query(`SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
+func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(ctx context.Context, scopeID string, state RuntimeSourceState, validateEmbeddings bool) error {
+	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source units: %w", err)
 	}
@@ -210,8 +211,8 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state R
 	return nil
 }
 
-func (b *SQLiteBackend) SearchRuntimeSource(scopeID, snapshotIdentity, embeddingIdentity, query string, queryEmbedding []float64, limit int) ([]RuntimeSourceUnit, RuntimeSourceState, error) {
-	state, err := b.InspectRuntimeSourceState(scopeID)
+func (b *SQLiteBackend) SearchRuntimeSource(ctx context.Context, scopeID, snapshotIdentity, embeddingIdentity, query string, queryEmbedding []float64, limit int) ([]RuntimeSourceUnit, RuntimeSourceState, error) {
+	state, err := b.InspectRuntimeSourceState(ctx, scopeID)
 	if err != nil {
 		return nil, RuntimeSourceState{}, err
 	}
@@ -227,7 +228,7 @@ func (b *SQLiteBackend) SearchRuntimeSource(scopeID, snapshotIdentity, embedding
 	if limit <= 0 {
 		limit = 8
 	}
-	rows, err := b.db.Query(`SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
+	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return nil, state, fmt.Errorf("storage: search runtime source: %w", err)
 	}
@@ -303,8 +304,8 @@ func validStoredRuntimeSourceUnit(unit RuntimeSourceUnit) bool {
 	return true
 }
 
-func (b *SQLiteBackend) validateStoredRuntimeSourceOmissions(scopeID string, expectedCount int) error {
-	rows, err := b.db.Query(`SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,omission_reason,provenance_refs_json FROM runtime_source_omission WHERE scope_id=?`, scopeID)
+func (b *SQLiteBackend) validateStoredRuntimeSourceOmissions(ctx context.Context, scopeID string, expectedCount int) error {
+	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,omission_reason,provenance_refs_json FROM runtime_source_omission WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source omissions: %w", err)
 	}
@@ -415,7 +416,7 @@ func storedRuntimeSourceCategoryMatchesRefKind(category, refKind string) bool {
 }
 
 func (b *SQLiteBackend) DeleteRuntimeSourceScope(scopeID, snapshotIdentity string) (bool, error) {
-	state, err := b.GetRuntimeSourceState(scopeID)
+	state, err := b.GetRuntimeSourceState(context.Background(), scopeID)
 	if errors.Is(err, ErrRuntimeSourceScopeNotFound) {
 		return false, nil
 	}

@@ -252,11 +252,11 @@ func (s *RuntimeSourceBridge) IngestAgentSource(_ context.Context, auth RuntimeA
 }
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r014
-func (s *RuntimeSourceBridge) SearchAgentSource(_ context.Context, auth RuntimeAuthorization, scopeID, snapshotIdentity, embeddingIdentity, query string, queryEmbedding []float64, limit int) (RuntimeSourceOutcome, error) {
+func (s *RuntimeSourceBridge) SearchAgentSource(ctx context.Context, auth RuntimeAuthorization, scopeID, snapshotIdentity, embeddingIdentity, query string, queryEmbedding []float64, limit int) (RuntimeSourceOutcome, error) {
 	if err := s.validateRuntimeAuthorization(auth, RuntimeBridgeOperationSearchAgentSource, scopeID, RuntimeAuthorizationActionSearchAgentSource); err != nil {
 		return RuntimeSourceOutcome{}, err
 	}
-	units, state, err := s.store.SearchRuntimeSource(scopeID, snapshotIdentity, embeddingIdentity, query, queryEmbedding, limit)
+	units, state, err := s.store.SearchRuntimeSource(ctx, scopeID, snapshotIdentity, embeddingIdentity, query, queryEmbedding, limit)
 	if err != nil {
 		return RuntimeSourceOutcome{}, fmt.Errorf("runtime source bridge: search agent source: %w", err)
 	}
@@ -281,11 +281,11 @@ func (s *RuntimeSourceBridge) SearchAgentSource(_ context.Context, auth RuntimeA
 	return outcome, nil
 }
 
-func (s *RuntimeSourceBridge) InspectAgentSource(_ context.Context, auth RuntimeAuthorization, scopeID, snapshotIdentity string) (RuntimeSourceOutcome, error) {
+func (s *RuntimeSourceBridge) InspectAgentSource(ctx context.Context, auth RuntimeAuthorization, scopeID, snapshotIdentity string) (RuntimeSourceOutcome, error) {
 	if err := s.validateRuntimeAuthorization(auth, RuntimeBridgeOperationSearchAgentSource, scopeID, RuntimeAuthorizationActionSearchAgentSource); err != nil {
 		return RuntimeSourceOutcome{}, err
 	}
-	state, err := s.store.InspectRuntimeSourceState(scopeID)
+	state, err := s.store.InspectRuntimeSourceState(ctx, scopeID)
 	if err != nil {
 		return RuntimeSourceOutcome{}, fmt.Errorf("runtime source bridge: inspect agent source: %w", err)
 	}

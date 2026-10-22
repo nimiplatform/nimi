@@ -3,6 +3,7 @@ package cognition
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -152,5 +153,32 @@ func TestRuntimeSourceExactReadKeepsBodyBeforeDescriptors(t *testing.T) {
 	}
 	if out.Units[1].Priority != 10 || out.Units[2].Priority != 1000 || out.Units[1].Score != 0 {
 		t.Fatal("exact ordering changed source priority or manufactured similarity")
+	}
+}
+
+func TestRuntimeSourceReadsRespectCancelledContext(t *testing.T) {
+	bridge, auth, request, _, _ := runtimeSourceExactReadFixture(t, "ready")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	reads := []struct {
+		name string
+		run  func() (RuntimeSourceOutcome, error)
+	}{
+		{"inspect", func() (RuntimeSourceOutcome, error) {
+			return bridge.InspectAgentSource(ctx, auth, request.ScopeID, request.SnapshotIdentity)
+		}},
+		{"search", func() (RuntimeSourceOutcome, error) {
+			return bridge.SearchAgentSource(ctx, auth, request.ScopeID, request.SnapshotIdentity, "embed", "固定", []float64{1, 0}, 12)
+		}},
+		{"exact", func() (RuntimeSourceOutcome, error) { return bridge.ReadAgentSourceReferences(ctx, auth, request) }},
+	}
+	for _, read := range reads {
+		t.Run(read.name, func(t *testing.T) {
+			out, err := read.run()
+			t.Logf("cancelled=%v status=%s exact=%s units=%d error=%v", ctx.Err(), out.Status, out.ExactStatus, len(out.Units), err)
+			if !errors.Is(err, context.Canceled) {
+				t.Error("read ignored caller cancellation")
+			}
+		})
 	}
 }

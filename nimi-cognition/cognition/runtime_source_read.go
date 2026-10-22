@@ -55,7 +55,7 @@ func RuntimeSourceUnitContentHash(unit RuntimeSourceUnit) string {
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r013
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r014
-func (s *RuntimeSourceBridge) ReadAgentSourceReferences(_ context.Context, auth RuntimeAuthorization, request RuntimeSourceReferenceRead) (RuntimeSourceOutcome, error) {
+func (s *RuntimeSourceBridge) ReadAgentSourceReferences(ctx context.Context, auth RuntimeAuthorization, request RuntimeSourceReferenceRead) (RuntimeSourceOutcome, error) {
 	if err := s.validateRuntimeAuthorization(auth, RuntimeBridgeOperationSearchAgentSource, request.ScopeID, RuntimeAuthorizationActionSearchAgentSource); err != nil {
 		return RuntimeSourceOutcome{}, err
 	}
@@ -87,7 +87,7 @@ func (s *RuntimeSourceBridge) ReadAgentSourceReferences(_ context.Context, auth 
 			expectedRefs[binding.UnitID] = selection.SourceRef
 		}
 	}
-	stored, state, err := s.store.ReadRuntimeSourceReferences(request.ScopeID, request.SnapshotIdentity, request.PartitionIdentity, refs)
+	stored, state, err := s.store.ReadRuntimeSourceReferences(ctx, request.ScopeID, request.SnapshotIdentity, request.PartitionIdentity, refs)
 	if err != nil {
 		return RuntimeSourceOutcome{}, fmt.Errorf("runtime source bridge: read exact source: %w", err)
 	}

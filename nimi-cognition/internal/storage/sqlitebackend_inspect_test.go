@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func TestInspectRuntimeSourceStateRejectsCorruptCurrentScopeUnits(t *testing.T) 
 	if _, err := backend.db.Exec(`UPDATE runtime_source_unit SET provenance_refs_json = 'not-json' WHERE scope_id = ?`, scopeID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := backend.InspectRuntimeSourceState(scopeID); err == nil {
+	if _, err := backend.InspectRuntimeSourceState(context.Background(), scopeID); err == nil {
 		t.Fatal("corrupt current owner source unit passed structural inspection")
 	}
 }

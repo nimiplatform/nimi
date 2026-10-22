@@ -1,14 +1,15 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 )
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r014
-func (b *SQLiteBackend) ReadRuntimeSourceReferences(scopeID, snapshotIdentity, partitionIdentity string, refs []RuntimeSourceRef) ([]RuntimeSourceUnit, RuntimeSourceState, error) {
-	state, err := b.GetRuntimeSourceState(scopeID)
+func (b *SQLiteBackend) ReadRuntimeSourceReferences(ctx context.Context, scopeID, snapshotIdentity, partitionIdentity string, refs []RuntimeSourceRef) ([]RuntimeSourceUnit, RuntimeSourceState, error) {
+	state, err := b.GetRuntimeSourceState(ctx, scopeID)
 	if err != nil {
 		return nil, RuntimeSourceState{}, err
 	}
@@ -18,17 +19,17 @@ func (b *SQLiteBackend) ReadRuntimeSourceReferences(scopeID, snapshotIdentity, p
 	if state.Generation == 0 || !storedRuntimeSourceSHA256(state.SnapshotIdentity) || !storedRuntimeSourceSHA256(state.PartitionIdentity) {
 		return nil, state, errors.New("storage: runtime source text binding is corrupt")
 	}
-	if err := b.validateStoredRuntimeSourceUnits(scopeID, state, false); err != nil {
+	if err := b.validateStoredRuntimeSourceUnits(ctx, scopeID, state, false); err != nil {
 		return nil, state, err
 	}
-	if err := b.validateStoredRuntimeSourceOmissions(scopeID, state.OmissionCount); err != nil {
+	if err := b.validateStoredRuntimeSourceOmissions(ctx, scopeID, state.OmissionCount); err != nil {
 		return nil, state, err
 	}
 	selectedRefs := make(map[RuntimeSourceRef]struct{}, len(refs))
 	for _, ref := range refs {
 		selectedRefs[ref] = struct{}{}
 	}
-	rows, err := b.db.Query(`SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority FROM runtime_source_unit WHERE scope_id=?`, scopeID)
+	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority FROM runtime_source_unit WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return nil, state, fmt.Errorf("storage: read runtime source references: %w", err)
 	}
