@@ -12,8 +12,15 @@ import (
 
 type commitResultDriver struct {
 	base        driver.Driver
+	path        string
 	afterCommit func()
 }
+
+func (d *commitResultDriver) Connect(context.Context) (driver.Conn, error) {
+	return d.Open(d.path)
+}
+
+func (d *commitResultDriver) Driver() driver.Driver { return d }
 
 func (d *commitResultDriver) Open(name string) (driver.Conn, error) {
 	conn, err := d.base.Open(name)
@@ -25,8 +32,8 @@ type commitResultConn struct {
 	afterCommit func()
 }
 
-func (c *commitResultConn) Begin() (driver.Tx, error) {
-	tx, err := c.Conn.Begin()
+func (c *commitResultConn) BeginTx(ctx context.Context, options driver.TxOptions) (driver.Tx, error) {
+	tx, err := c.Conn.(driver.ConnBeginTx).BeginTx(ctx, options)
 	return &commitResultTx{Tx: tx, afterCommit: c.afterCommit}, err
 }
 
@@ -46,11 +53,7 @@ func (t *commitResultTx) Commit() error {
 func TestWriteTxReturnsActualCommitOutcomeAfterCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	sql.Register("commit_result_driver", &commitResultDriver{base: &sqlite.Driver{}, afterCommit: cancel})
-	db, err := sql.Open("commit_result_driver", filepath.Join(t.TempDir(), "memory.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := sql.OpenDB(&commitResultDriver{base: &sqlite.Driver{}, path: filepath.Join(t.TempDir(), "memory.db"), afterCommit: cancel})
 	backend := &Backend{writeDB: db, writeCh: make(chan writeRequest), writeDone: make(chan struct{})}
 	go backend.runWriteLoop()
 	defer func() { _ = backend.Close() }()
@@ -59,6 +62,9 @@ func TestWriteTxReturnsActualCommitOutcomeAfterCancellation(t *testing.T) {
 		return err
 	}); err != nil {
 		t.Fatalf("committed transaction reported an error: %v", err)
+	}
+	if ctx.Err() != context.Canceled {
+		t.Fatal("the current attempt was not cancelled after its commit")
 	}
 	var count int
 	if err := backend.writeDB.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='table' AND name='commit_result_proof'`).Scan(&count); err != nil || count != 1 {
