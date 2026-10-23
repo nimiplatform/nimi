@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { OfflineCoordinator, type OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
-import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { CalendarHeart, LoaderCircle, RefreshCw, ShieldAlert, Unplug } from 'lucide-react';
+import { Button, Surface } from '@nimiplatform/kit/ui';
+import type { Copy } from '../nimiday/i18n/index.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 
@@ -8,124 +9,120 @@ export type RuntimeGateProjection =
   | { readonly status: 'ready' }
   | {
       readonly status: 'unavailable';
-      readonly body: string;
-      readonly signInRequired: boolean;
-      readonly nextAction?: string;
+      readonly reasonCode: string;
+      readonly message: string;
+      readonly actionHint?: string;
+      readonly retryable?: boolean;
     };
 
-export type RuntimeGateCopy = {
-  readonly checking: string;
-  readonly setupRequired: string;
-  readonly signInRequired: string;
-  readonly connectionRequired: string;
-  readonly retry: string;
-  readonly offlineTier: (tier: OfflineTier) => string;
-  readonly nextAction: (action: string) => string;
-};
+type Unavailable = Extract<RuntimeGateProjection, { status: 'unavailable' }>;
+export type RuntimeGateCopy = Copy['runtimeGate'];
+
+export function runtimeGateIssue(reasonCode: string): keyof RuntimeGateCopy['issues'] {
+  switch (reasonCode) {
+    case 'runtime-service-untrusted': return 'untrusted';
+    case 'runtime-service-repair-required': return 'repair';
+    case 'runtime-service-unavailable':
+    case 'RUNTIME_UNAVAILABLE': return 'unavailable';
+    case 'protected-carrier-required': return 'carrier';
+    case 'local-development-registration-required': return 'registration';
+    case 'local-development-project-changed':
+    case 'project-changed': return 'project';
+    case 'runtime-access-denied':
+    case 'runtime-permission-denied':
+    case 'access-denied':
+    case 'local-app-access-denied': return 'access';
+    case 'local-development-session-revoked':
+    case 'runtime-unauthenticated':
+    case 'account-changed':
+    case 'process-replaced':
+    case 'runtime-restarted':
+    case 'revoked':
+    case 'presence-expired':
+    case 'session-invalid':
+    case 'local-app-snapshot-unavailable': return 'session';
+    default: return 'unknown';
+  }
+}
 
 export type RuntimeGateProps = {
   readonly appTitle: string;
   readonly copy: RuntimeGateCopy;
   readonly resolve: () => Promise<RuntimeGateProjection>;
   readonly clear: () => void;
-  readonly toErrorMessage: (error: unknown) => string;
+  readonly toError: (error: unknown) => Unavailable;
   readonly children: ReactNode;
 };
 
-type RuntimeGateState =
-  | { readonly kind: 'checking' }
-  | { readonly kind: 'ready' }
-  | {
-      readonly kind: 'blocked';
-      readonly projection: Extract<RuntimeGateProjection, { readonly status: 'unavailable' }>;
-      readonly offlineTier: OfflineTier;
-    };
-
-export function RuntimeGate({
-  appTitle,
-  copy,
-  resolve,
-  clear,
-  toErrorMessage,
-  children,
-}: RuntimeGateProps) {
-  const [offlineCoordinator] = useState(() => new OfflineCoordinator());
-  const [state, setState] = useState<RuntimeGateState>({ kind: 'checking' });
-  const [reloadKey, setReloadKey] = useState(0);
-
-  const retry = useCallback(() => {
-    clear();
-    setReloadKey((value) => value + 1);
-  }, [clear]);
+export function RuntimeGate({ appTitle, copy, resolve, clear, toError, children }: RuntimeGateProps) {
+  const [state, setState] = useState<RuntimeGateProjection | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [attempt, setAttempt] = useState(0);
+  const pending = useRef(true);
 
   useEffect(() => {
     let active = true;
-    // A re-run triggered by a changed resolve/toErrorMessage identity (for
-    // example a locale switch) must not tear down the ready subtree: keep the
-    // current state while re-checking, and only surface the checking screen
-    // when no successful check has completed yet.
-    setState((current) => (current.kind === 'ready' ? current : { kind: 'checking' }));
-    void resolve().then((projection) => {
-      if (!active) return;
-      if (projection.status === 'ready') {
-        offlineCoordinator.markRuntimeReachability('reachable');
-        setState({ kind: 'ready' });
-        return;
+    pending.current = true;
+    setChecking(true);
+    void (async () => {
+      try {
+        // Each attempt asks the real carrier again, including after a refused check.
+        clear();
+        const result = await resolve();
+        if (active) setState(result);
+      } catch (error) {
+        if (active) setState(toError(error));
+      } finally {
+        if (active) {
+          pending.current = false;
+          setChecking(false);
+        }
       }
-      offlineCoordinator.markRuntimeReachability('unreachable');
-      setState({
-        kind: 'blocked',
-        projection,
-        offlineTier: offlineCoordinator.getTier(),
-      });
-    }).catch((error) => {
-      if (!active) return;
-      offlineCoordinator.markRuntimeReachability('unreachable');
-      setState({
-        kind: 'blocked',
-        projection: {
-          status: 'unavailable',
-          body: toErrorMessage(error),
-          signInRequired: false,
-        },
-        offlineTier: offlineCoordinator.getTier(),
-      });
-    });
-    return () => {
-      active = false;
-    };
-  }, [offlineCoordinator, reloadKey, resolve, toErrorMessage]);
+    })();
+    return () => { active = false; };
+  }, [attempt, clear, resolve, toError]);
 
-  if (state.kind === 'checking') {
-    return (
-      <main className="runtime-check-screen">
-        <StatusBadge tone="neutral" shape="dot">{copy.checking}</StatusBadge>
-      </main>
-    );
-  }
+  if (state?.status === 'ready') return <>{children}</>;
+  const failure = state?.status === 'unavailable' ? state : null;
+  const issue = runtimeGateIssue(failure?.reasonCode ?? '');
+  const guidance = copy.issues[issue];
+  const Icon = checking ? LoaderCircle : issue === 'untrusted' || issue === 'access' ? ShieldAlert : Unplug;
 
-  if (state.kind === 'blocked') {
-    const { projection } = state;
-    return (
-      <main className="runtime-unavailable-screen" aria-live="polite">
-        <Surface className="runtime-unavailable-panel" material="glass-thick" tone="panel" elevation="floating">
-          <div className="runtime-unavailable-heading">
-            <StatusBadge tone="warning" shape="dot">{copy.setupRequired}</StatusBadge>
-            <h1>{appTitle}</h1>
-          </div>
-          <InlineAlert tone="warning">
-            <div className="runtime-alert-copy">
-              <strong>{projection.signInRequired ? copy.signInRequired : copy.connectionRequired}</strong>
-              <span>{projection.body}</span>
-            </div>
-          </InlineAlert>
-          <p className="runtime-action-hint">{copy.offlineTier(state.offlineTier)}</p>
-          {projection.nextAction ? <p className="runtime-action-hint">{copy.nextAction(projection.nextAction)}</p> : null}
-          <Button type="button" tone="primary" onClick={retry}>{copy.retry}</Button>
-        </Surface>
-      </main>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <main className="runtime-unavailable-screen" aria-labelledby="runtime-title">
+      <Surface className="runtime-unavailable-panel" material="glass-thick" tone="panel" elevation="floating">
+        <div className="runtime-brand">
+          <span className="nd-brand-mark"><CalendarHeart size={18} aria-hidden="true" /></span>
+          <span>{appTitle}</span>
+        </div>
+        <div className="runtime-status" aria-live="polite" aria-atomic="true" aria-busy={checking}>
+          <span className="runtime-status-icon" data-checking={checking}>
+            <Icon size={28} aria-hidden="true" />
+          </span>
+          <h1 id="runtime-title">{checking ? copy.checking : guidance.title}</h1>
+          <p>{checking ? copy.checkingBody : guidance.body}</p>
+          {!checking && attempt > 0 ? <p className="runtime-retry-result">{copy.retryFailed}</p> : null}
+        </div>
+        <Button type="button" tone="primary" disabled={checking} onClick={() => {
+          if (pending.current) return;
+          pending.current = true;
+          setChecking(true);
+          setAttempt(value => value + 1);
+        }}>
+          <RefreshCw size={16} aria-hidden="true" />
+          {checking ? copy.checking : issue === 'untrusted' || issue === 'repair' || failure?.retryable === false ? copy.checkAgain : copy.retry}
+        </Button>
+        {failure ? (
+          <details className="runtime-diagnostics">
+            <summary>{copy.diagnostics}</summary>
+            <dl>
+              <div><dt>{copy.reasonCode}</dt><dd>{failure.reasonCode}</dd></div>
+              {failure.message && failure.message !== failure.reasonCode ? <div><dt>{copy.message}</dt><dd>{failure.message}</dd></div> : null}
+              {failure.actionHint ? <div><dt>{copy.actionHint}</dt><dd>{failure.actionHint}</dd></div> : null}
+            </dl>
+          </details>
+        ) : null}
+      </Surface>
+    </main>
+  );
 }

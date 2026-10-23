@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
+import { MessagesSquare } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
@@ -280,8 +281,23 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
           </>
         ) : !props.selectedTarget ? (
           props.hideTargetPane ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
-              {props.noSelectionLabel ?? 'Select a conversation from the sidebar'}
+            <div
+              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center"
+              data-conversation-empty-selection="true"
+            >
+              <div
+                aria-hidden="true"
+                className="flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--nimi-text-muted)]"
+                style={{
+                  background: 'color-mix(in srgb, var(--nimi-text-muted) 8%, transparent)',
+                  boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--nimi-text-muted) 14%, transparent)',
+                }}
+              >
+                <MessagesSquare className="h-7 w-7" strokeWidth={1.5} />
+              </div>
+              <p className="max-w-xs text-sm leading-6 text-[var(--nimi-text-muted)]">
+                {props.noSelectionLabel ?? 'Select a conversation from the sidebar'}
+              </p>
             </div>
           ) : (
             <CanonicalTargetPane

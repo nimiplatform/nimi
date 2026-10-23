@@ -42,6 +42,8 @@ export type CanonicalComposerProps<TAttachment = never> = {
   widthClassName?: string;
   widthPositionClassName?: string;
   leadingSlot?: ReactNode;
+  /** When true, the composer shell keeps its resting border while focused. */
+  disableFocusBorder?: boolean;
 };
 
 export function CanonicalComposer<TAttachment = never>({
@@ -71,6 +73,7 @@ export function CanonicalComposer<TAttachment = never>({
   widthClassName = CANONICAL_COMPOSER_SURFACE_WIDTH_CLASS,
   widthPositionClassName = 'mx-auto',
   leadingSlot,
+  disableFocusBorder = false,
 }: CanonicalComposerProps<TAttachment>) {
   return (
     <div className={cn('shrink-0 px-5 pb-5', mode === 'stage' ? 'pt-1' : 'pt-2', className)} data-canonical-composer-root="true">
@@ -86,7 +89,10 @@ export function CanonicalComposer<TAttachment = never>({
         ) : null}
 
         <div>
-          <ConversationComposerShell className={cn(mode === 'chat' ? 'rounded-[var(--nimi-radius-xl)] transition-[box-shadow,border-color] duration-[var(--nimi-motion-base)] focus-within:border-[var(--nimi-field-focus)]' : '')}>
+          <ConversationComposerShell className={cn(
+            mode === 'chat' ? 'rounded-[var(--nimi-radius-xl)] transition-[box-shadow,border-color] duration-[var(--nimi-motion-base)]' : '',
+            mode === 'chat' && !disableFocusBorder ? 'focus-within:border-[var(--nimi-field-focus)]' : '',
+          )}>
             <ChatComposer
               adapter={adapter}
               initialText={initialText}

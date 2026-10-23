@@ -655,7 +655,7 @@
   "mediaUnavailable": "Media is unavailable through the current authorization path.",
   "today": "Today",
   "yesterday": "Yesterday",
-  "selectConversationPrompt": "Select a conversation from the list",
+  "selectConversationPrompt": "Select a conversation to start chatting",
   "loadingTargets": "Loading targets…",
   "noTargetsTitle": "No targets available",
   "noTargetsDescription": "Change the source filter or wait until a compatible conversation target appears.",

@@ -1,4 +1,5 @@
 import { Button, InlineAlert, StatusBadge } from '@nimiplatform/kit/ui';
+import { useState } from 'react';
 import '../ui/nimiday.css';
 import { NimiDayProvider, useDayStore, useNimiDay } from './context.js';
 import { Onboarding } from '../ui/onboarding.js';
@@ -37,9 +38,15 @@ function Gate() {
       </div>
     );
   }
+  return <ReadyGate />;
+}
+
+function ReadyGate() {
+  const snapshot = useDayStore();
+  const [onboarded, setOnboarded] = useState(snapshot.state.profile.onboarded);
   return (
     <UiHost>
-      {snapshot.state.profile.onboarded ? <Shell /> : <Onboarding />}
+      {onboarded ? <Shell /> : <Onboarding onFinished={() => setOnboarded(true)} />}
     </UiHost>
   );
 }

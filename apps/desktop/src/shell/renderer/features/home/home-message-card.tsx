@@ -401,7 +401,7 @@ function HomeMessageCardCompact({ message, context }: {
       </div>
       <MediaThumb message={message} />
       {actions.length ? (
-        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1">
+        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100">
           {actions}
         </div>
       ) : null}

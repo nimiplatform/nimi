@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, SegmentedControl, SelectField, Toggle } from '@nimiplatform/kit/ui';
-import { sourceGroupFor, sourcePreferenceFor } from '../domain/sources.js';
+import { PARENTOS_APP_ID, sourceGroupFor, sourcePreferenceFor } from '../domain/sources.js';
 import { toLocalDate } from '../domain/time.js';
 import type { LanguagePreference, ThemePreference } from '../domain/types.js';
 import { formatInstant } from '../i18n/index.js';
@@ -17,7 +17,7 @@ export function SettingsPage() {
   const { copy, actions, desk: deskApi } = useNimiDay();
   const { state } = useDayStore();
   const desk = useDesk();
-  const { now, sourceApps, activityStatus } = useEngine();
+  const { now, sourceApps, activityStatus, directoryStatus } = useEngine();
   const ui = useUi();
   const [permission, setPermission] = useState<SystemPermission>(systemPermission);
   const profile = state.profile;
@@ -28,6 +28,11 @@ export function SettingsPage() {
     ...state.circles.filter((circle) => circle.status !== 'ended').map((circle) => ({ value: circle.id, label: circle.name })),
   ];
   const groupOptions = [{ value: 'auto', label: copy.settings.sourceGroupFollow }, ...circleOptions.slice(1)];
+  const childOptions = [
+    { value: 'auto', label: copy.sources.unassociated },
+    ...state.circles.filter(circle => circle.kind === 'child' && circle.status !== 'ended')
+      .map(circle => ({ value: circle.id, label: circle.name })),
+  ];
 
   return (
     <div className="nd-page nd-page--narrow" data-testid="nd-settings">
@@ -118,6 +123,7 @@ export function SettingsPage() {
             </>
           ) : sourceApps.length === 0 ? <Hint>{copy.settings.sourcesEmpty}</Hint> : sourceApps.map((app) => {
             const preference = sourcePreferenceFor(profile, app.appId);
+            const parentos = app.appId === PARENTOS_APP_ID;
             return (
               <div key={app.appId} className="nd-setting" data-testid="nd-source-setting">
                 <div className="nd-setting-text">
@@ -125,37 +131,50 @@ export function SettingsPage() {
                   <span className="nd-setting-hint">{copy.settings.sourceMeta(app.count, formatInstant(copy, app.latestAt, today))}</span>
                 </div>
                 <div className="nd-inline-actions">
-                  <span className="nd-faint">{copy.settings.sourceCircle}</span>
+                  {parentos ? <Button tone="secondary" size="sm" onClick={() => ui.editCircle(null)}>{copy.childSources.title}</Button> : null}
+                  {!parentos ? <><span className="nd-faint">{copy.settings.sourceCircle}</span>
                   <SelectField
                     aria-label={copy.settings.sourceCircle}
                     value={preference.circleId ?? 'auto'}
                     options={circleOptions}
                     onValueChange={(value) => actions.setSourcePreference({ ...preference, circleId: value === 'auto' ? null : value })}
-                  />
+                  /></> : null}
                   <span className="nd-inline-actions" style={{ gap: 8 }}>
                     <span className="nd-faint">{copy.settings.sourceFollow}</span>
                     <Toggle checked={preference.enabled} ariaLabel={`${copy.settings.sourceFollow} · ${app.appName}`} onValueChange={(value) => actions.setSourcePreference({ ...preference, enabled: value })} />
                   </span>
                 </div>
-                {app.groups.length >= 2 || (app.groups.length >= 1 && app.ungrouped.count > 0) ? (
+                {parentos || app.groups.length >= 2 || (app.groups.length >= 1 && app.ungrouped.count > 0) ? (
                   <div className="nd-source-groups" data-testid="nd-source-groups">
-                    <p className="nd-faint" style={{ margin: 0 }}>{copy.settings.sourceGroupsHint(app.appName)}</p>
-                    {app.groups.map((group, index) => (
+                    <p className="nd-faint" style={{ margin: 0 }}>{parentos ? copy.settings.childSourcesHint : copy.settings.sourceGroupsHint(app.appName)}</p>
+                    {app.groups.map((group, index) => {
+                      const association = sourceGroupFor(profile, group.key);
+                      const selected = parentos && (association?.appId !== app.appId
+                        || !childOptions.some(option => option.value === association.circleId))
+                        ? 'auto' : association?.circleId ?? 'auto';
+                      return (
                       <div key={group.key} className="nd-setting" data-testid="nd-source-group">
                         <div className="nd-setting-text">
-                          <span className="nd-setting-title">{copy.settings.sourceGroup(index + 1)}</span>
+                          <span className="nd-setting-title">{group.child?.childName ?? copy.settings.sourceGroup(index + 1)}</span>
                           <span className="nd-setting-hint">{group.examples.join('、')}</span>
+                          {group.child ? <details className="nd-faint">
+                            <summary>{copy.settings.sourceIdentity}</summary>
+                            <div style={{ overflowWrap: 'anywhere' }}>{copy.settings.childSourceIdentity(group.child.childId, group.child.sourceRef)}</div>
+                          </details> : null}
+                          {!group.available ? <span className="nd-setting-hint">{copy.sources.sourceUnavailable}</span> : null}
                         </div>
                         <SelectField
-                          aria-label={copy.settings.sourceGroup(index + 1)}
-                          value={sourceGroupFor(profile, group.key)?.circleId ?? 'auto'}
-                          options={groupOptions}
+                          aria-label={group.child ? copy.settings.associateChild(group.child.childName) : copy.settings.sourceGroup(index + 1)}
+                          value={selected}
+                          options={parentos ? childOptions : groupOptions}
+                          disabled={parentos && (!group.available || directoryStatus !== 'ready')}
                           onValueChange={(value) => actions.setSourceGroup({ key: group.key, appId: app.appId, circleId: value === 'auto' ? null : value })}
                         />
                       </div>
-                    ))}
-                    {app.groups.length > 0 && app.ungrouped.count > 0 ? (
-                      <p className="nd-faint" style={{ margin: '4px 0 0' }}>{copy.settings.sourceUngrouped(app.ungrouped.examples.join('、'))}</p>
+                      );
+                    })}
+                    {app.ungrouped.count > 0 ? (
+                      <p className="nd-faint" style={{ margin: '4px 0 0' }}>{parentos ? copy.settings.childSourceUnknown(app.ungrouped.count) : copy.settings.sourceUngrouped(app.ungrouped.examples.join('、'))}</p>
                     ) : null}
                   </div>
                 ) : null}

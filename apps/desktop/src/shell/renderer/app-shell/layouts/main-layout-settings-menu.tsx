@@ -128,7 +128,7 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
               transition={interactiveMotion.transition}
               className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]`}
             >
-              <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]" aria-hidden="true">⇄</span>
+              <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]">{renderShellNavIcon('switch-account')}</span>
               <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.switchAccount', 'Switch account')}</span>
               <MenuChevron />
             </motion.button>

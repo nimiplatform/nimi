@@ -87,7 +87,7 @@ export function itemLine(item: LifeItem, circles: readonly CareCircle[], languag
   if (circle) parts.push(circle);
   if (item.repeat) parts.push(language === 'zh' ? '重复' : 'repeats');
   if (item.importance === 'important') parts.push(language === 'zh' ? '重要' : 'important');
-  if (isOverdue(item, now)) parts.push(language === 'zh' ? '已过期' : 'overdue');
+  if (isOverdue(item, now)) parts.push(language === 'zh' ? '已逾期' : 'overdue');
   if (item.state === 'waiting') parts.push(language === 'zh' ? '等用户决定' : 'waiting for user');
   const when = item.date ? `${item.date}${item.time ? ` ${item.time}` : ''}` : (language === 'zh' ? '未定时间' : 'no date');
   const place = item.place ? ` @${item.place}` : '';
@@ -136,7 +136,7 @@ function buildSource(kind: MaterialKind, input: WorkInput): WorkSource | null {
       if (!items.length) return null;
       return {
         sourceId: 'nimiday.overdue',
-        title: zh ? '已过期未处理' : 'Overdue',
+        title: zh ? '已逾期未处理' : 'Overdue',
         content: fitLines(lines(items), SOURCE_BUDGET, language),
       };
     }

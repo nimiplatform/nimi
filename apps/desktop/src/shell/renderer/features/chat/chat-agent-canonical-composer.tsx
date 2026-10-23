@@ -482,6 +482,7 @@ export function AgentCanonicalComposer(props: {
         layout="stacked"
         widthClassName={props.widthClassName}
         widthPositionClassName={props.widthPositionClassName}
+        disableFocusBorder
         toolbarSlot={(
           <AgentComposerToolbarControls
             avatarAction={props.avatarAction}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_PROFILE, createCircle } from '../src/nimiday/domain/defaults.js';
 import { createItem } from '../src/nimiday/domain/items.js';
-import { followedChanges, linkedSource, sourceApps, sourceLinkFor, type ActivityRecordLike, sourceGroupKey } from '../src/nimiday/domain/sources.js';
+import { followedChanges, linkedSource, sourceApps, sourceLinkFor, type ActivityRecordLike } from '../src/nimiday/domain/sources.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
 import { createDayStore } from '../src/nimiday/store/day-store.js';
 import { chunkRecords, readCollection, writeCollection, type JsonDocumentStore } from '../src/nimiday/store/persistence.js';
@@ -151,7 +151,9 @@ describe('day store', () => {
 describe('sources', () => {
   const record = (overrides: Partial<ActivityRecordLike>): ActivityRecordLike => ({
     activityId: 'act_1',
-    source: { kind: 'app', appId: 'nimi.parentos', displayName: 'ParentOS', available: true },
+    source: { kind: 'app', appId: 'nimi.parentos', sourceRef: 'src_parentos_1', displayName: 'ParentOS', available: true },
+    key: 'growth-record:c1:PO-REM-GRO-001:2',
+    data: { childId: 'c1', childName: '小米', ruleId: 'PO-REM-GRO-001', repeatIndex: 2, windowStart: '2026-09-20', windowEnd: '2026-10-20' },
     revision: 1,
     kind: 'todo',
     todoState: 'open',
@@ -206,7 +208,7 @@ describe('sources', () => {
     ], DEFAULT_PROFILE, [child, self]);
     expect(changes.map((change) => change.id)).toEqual(['act_2', 'act_1']);
     expect(changes[0]).toMatchObject({ nature: 'interpretation', circleId: self.id, openable: false, known: 'shijing-daily-mirror' });
-    expect(changes[1]).toMatchObject({ nature: 'reminder', circleId: child.id, openable: true, known: 'parentos-growth-record' });
+    expect(changes[1]).toMatchObject({ nature: 'reminder', circleId: null, openable: true, known: 'parentos-growth-record' });
   });
 
   it('files ParentOS care reminders under the child as something to arrange', () => {
@@ -218,32 +220,12 @@ describe('sources', () => {
         type: 'nimi.parentos.care-reminder.v1',
         title: '流感疫苗接种',
         summary: '建议近期到社区医院接种',
-        objectRef: 'care:c1:PO-REM-VAC-012:1',
+        objectRef: 'reminder:c1:PO-REM-VAC-012:1',
+        key: 'care-reminder:c1:PO-REM-VAC-012:1',
+        data: { childId: 'c1', childName: '小米', ruleId: 'PO-REM-VAC-012', repeatIndex: 1, windowStart: '2026-09-20', windowEnd: '2026-10-20' },
       }),
-    ], DEFAULT_PROFILE, [child]);
+    ], { ...DEFAULT_PROFILE, sourceGroups: [{ key: 'src_parentos_1\u0000child:c1', appId: 'nimi.parentos', circleId: child.id }] }, [child]);
     expect(change).toMatchObject({ nature: 'reminder', circleId: child.id, openable: true, known: 'parentos-care-reminder' });
-  });
-
-  it('files each publisher group under the person the user chose, and falls back otherwise', () => {
-    const now = new Date('2026-09-24T08:00:00+08:00');
-    const mia = createCircle({ kind: 'child', name: '小米' }, now);
-    const leo = createCircle({ kind: 'child', name: '哥哥' }, now);
-    const source = { kind: 'app' as const, sourceRef: 'src_parentos_1', appId: 'nimi.parentos', displayName: 'ParentOS', available: true };
-    const younger = record({ activityId: 'a1', source, groupRef: 'parentos-group-aaa', title: '18 月龄体检', type: 'nimi.parentos.care-reminder.v1', objectRef: 'c:1' });
-    const older = record({ activityId: 'a2', source, groupRef: 'parentos-group-bbb', title: '视力定期检查（学龄期）', type: 'nimi.parentos.care-reminder.v1', objectRef: 'c:2' });
-    const profile = {
-      ...DEFAULT_PROFILE,
-      sourceGroups: [{ key: 'src_parentos_1\u0000parentos-group-bbb', appId: 'nimi.parentos', circleId: leo.id }],
-    };
-    const changes = followedChanges([younger, older], profile, [mia, leo]);
-    expect(changes.find((change) => change.id === 'a2')).toMatchObject({ circleId: leo.id, groupKey: 'src_parentos_1\u0000parentos-group-bbb' });
-    // An unmapped group follows the App's choice, then the default (the first child).
-    expect(changes.find((change) => change.id === 'a1')).toMatchObject({ circleId: mia.id });
-    const [app] = sourceApps([younger, older, record({ activityId: 'a3', source, title: '甲肝减毒活疫苗' })]);
-    expect(app!.groups.map((group) => group.examples[0])).toEqual(['18 月龄体检', '视力定期检查（学龄期）']);
-    expect(app!.ungrouped).toEqual({ count: 1, examples: ['甲肝减毒活疫苗'] });
-    // The same group value from another registration is a different group.
-    expect(sourceGroupKey({ ...younger, source: { ...source, sourceRef: 'src_parentos_2' } })).not.toBe(changes.find((change) => change.id === 'a1')!.groupKey);
   });
 
   it('respects the user following an extra app and hiding records', () => {

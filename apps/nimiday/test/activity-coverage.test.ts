@@ -10,7 +10,7 @@ function record(index: number, overrides: Partial<NimiAppActivityRecord> = {}): 
     source: { kind: 'app', appId: 'nimi.shijing', displayName: '时镜', sourceRef: 'src_shijing', available: true },
     key: `key_${index}`,
     revision: 1,
-    kind: 'record',
+    kind: 'activity',
     todoState: null,
     attention: false,
     title: `日镜 ${index}`,
@@ -60,6 +60,40 @@ async function until(check: () => boolean) {
 }
 
 describe('shared activity coverage', () => {
+  it('automatically completes the child-directory listing beyond the recent record limit', async () => {
+    const records = Array.from({ length: 950 }, (_, index) => record(index));
+    records.push(record(951, {
+      key: 'child-directory', type: 'nimi.parentos.child-directory.v1',
+      source: { kind: 'app', appId: 'nimi.parentos', displayName: 'ParentOS', sourceRef: 'parentos', available: true },
+      data: { children: [{ childId: 'no-reminder', childName: 'No reminder' }] },
+    }));
+    const { client } = fakeActivity(records);
+    const bridge = createActivityBridge(client as never);
+    bridge.start();
+    await until(() => bridge.getState().directoryStatus === 'ready');
+    expect(bridge.getState().directoryRecords).toHaveLength(951);
+    expect(bridge.getState().records).toHaveLength(400);
+    await bridge.stop();
+    expect(bridge.getState().directoryStatus).toBe('unavailable');
+    expect(bridge.getState().directoryRecords).toEqual([]);
+  });
+  it('keeps failed directory paging unavailable without retrying in a tight loop', async () => {
+    const { client, calls } = fakeActivity(Array.from({ length: 950 }, (_, index) => record(index)));
+    const list = client.list;
+    client.list = async input => {
+      if (input.filter?.kind === 'activity' && input.pageToken === '400') {
+        calls.push(input);
+        throw Object.assign(new Error('No access'), { reasonCode: 'permission-denied', retryable: false });
+      }
+      return list(input);
+    };
+    const bridge = createActivityBridge(client as never);
+    bridge.start();
+    await until(() => bridge.getState().directoryStatus === 'no-access');
+    expect(bridge.getState().directoryStatus).toBe('no-access');
+    expect(calls.filter(call => call.filter?.kind === 'activity' && call.pageToken === '400')).toHaveLength(1);
+    await bridge.stop();
+  });
   // 450 newer records sit in front of a ParentOS reminder that is old but still open.
   const oldOpenReminder = record(900, {
     activityId: 'activity_old_open',

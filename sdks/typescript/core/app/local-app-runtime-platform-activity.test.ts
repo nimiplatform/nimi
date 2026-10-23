@@ -182,6 +182,45 @@ test('onOpenRequest confirms only what the App handler reports and never on hand
   ]);
 });
 
+test('a synchronously disposed open handler cannot consume the cold-start request of its replacement', async () => {
+  const { shell } = fakeShell([]);
+  const request = { deliveryId: 'aod_1', activityId: ID(1), objectRef: 'draft:1', type: 'com.example.studio.review-requested.v1' };
+  let pending: typeof request | undefined = request;
+  let subscriptions = 0;
+  const completions: unknown[] = [];
+  const client = createNimiLocalAppActivityClient({
+    ...shell,
+    openRequests: {
+      subscribe: async () => {
+        subscriptions++;
+        // Runtime assigns an outstanding open to the first ready subscriber.
+        // Canceling that subscriber cancels the request; it is never replayed.
+        const assigned = pending;
+        pending = undefined;
+        let canceled = false;
+        let finish!: () => void;
+        const ended = new Promise<void>((resolve) => { finish = resolve; });
+        return {
+          events: (async function* () {
+            if (assigned && !canceled) yield assigned;
+            await ended;
+          })(),
+          cancel: async () => { canceled = true; finish(); },
+        };
+      },
+      complete: async (input) => { completions.push(input); return { accepted: true }; },
+    },
+  });
+  const discarded = client.onOpenRequest(() => { assert.fail('disposed handler ran'); });
+  const stopped = discarded.stop();
+  const active = client.onOpenRequest(async () => 'opened');
+  await stopped;
+  await tick();
+  await active.stop();
+  assert.equal(subscriptions, 1);
+  assert.deepEqual(completions, [{ deliveryId: 'aod_1', completion: 'opened' }]);
+});
+
 async function projected(n: number, overrides: Record<string, unknown> = {}): Promise<NimiAppActivityRecord> {
   const { shell } = fakeShell([() => ({ records: [recordJson(n, overrides)], nextPageToken: null, baselineChangeSeq: String(n) })]);
   return (await createNimiLocalAppActivityClient(shell).list()).records[0]!;

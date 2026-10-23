@@ -36,6 +36,8 @@ export function TodayPage() {
   const ui = useUi();
   const now = engineState.now;
   const model = useMemo(() => buildToday(state, engineState.changes, now), [state, engineState.changes, now]);
+  const sourceMessages = [...model.reminders, ...model.changes];
+  const sourceMessagesTotal = model.remindersTotal + model.changesTotal;
   const agentName = desk.agent?.displayName ?? state.profile.appointment?.displayName ?? null;
   const morningSkill = useMemo(() => resolveSkills(language, state.skillOverrides, state.customSkills)
     .find((skill) => skill.id === MORNING_CARE_SKILL)!, [language, state.skillOverrides, state.customSkills]);
@@ -62,17 +64,13 @@ export function TodayPage() {
                 <h1 className="nd-page-title">{greeting(copy, now)}</h1>
                 <p className="nd-hero-sub">{copy.today.welcome}</p>
               </div>
-              <span className="nd-today-sun"><Sunrise size={38} strokeWidth={1.4} aria-hidden="true" /></span>
-            </div>
-            <QuickCapture />
-            <div className="nd-today-welcome-footer">
-              <span>{copy.today.counts(model.counts.today, model.counts.week)}</span>
               {agentName ? <button type="button" className="nd-today-companion" onClick={() => navigate({ view: 'assistant' })}>
                 <AgentAvatar name={agentName} url={desk.agent?.avatarUrl ?? state.profile.appointment?.avatarUrl ?? null} size="sm" />
                 <span>{desk.phase === 'ready' ? copy.agent.onDuty(agentName) : agentName}</span>
                 <ArrowUpRight size={14} aria-hidden="true" />
               </button> : null}
             </div>
+            <QuickCapture />
           </Card>
 
           {/* A question the user has to answer holds up whatever comes after it. */}
@@ -167,24 +165,10 @@ export function TodayPage() {
         </div>
 
         <aside className="nd-stack nd-today-rail" aria-label={copy.today.fromApps}>
-          {engineState.activityStatus === 'ready' && model.remindersTotal > 0 ? (
-            <TodaySection
-              title={copy.today.fromApps}
-              hint={copy.today.remindersHint}
-              action={model.remindersTotal > model.reminders.length ? <button type="button" className="nd-link" onClick={() => navigate({ view: 'care' })}>{copy.today.seeAll}</button> : undefined}
-              testId="nd-source-reminders"
-            >
-              <div className="nd-list">
-                {model.reminders.map((change) => <SourceRow key={change.id} change={change} />)}
-              </div>
-              <SourceCoverageNote />
-            </TodaySection>
-          ) : null}
-
           <TodaySection
-            title={copy.today.changes}
-            action={model.changesTotal > model.changes.length ? <button type="button" className="nd-link" onClick={() => navigate({ view: 'care' })}>{copy.today.seeAll}</button> : undefined}
-            testId="nd-changes"
+            title={copy.today.fromApps}
+            action={engineState.activityStatus === 'ready' && sourceMessagesTotal > sourceMessages.length ? <button type="button" className="nd-link" onClick={() => navigate({ view: 'care' })}>{copy.today.seeAll}</button> : undefined}
+            testId="nd-source-messages"
           >
             {engineState.activityStatus === 'no-access' ? (
               <>
@@ -193,19 +177,13 @@ export function TodayPage() {
               </>
             ) : engineState.activityStatus === 'unavailable' ? (
               <Hint>{copy.today.sourcesUnavailable}</Hint>
-            ) : model.changes.length === 0 ? <Hint>{copy.today.changesEmpty}</Hint> : (
+            ) : sourceMessages.length === 0 ? <Hint>{copy.today.sourcesEmpty}</Hint> : (
               <div className="nd-list">
-                {model.changes.map((change) => <SourceRow key={change.id} change={change} />)}
+                {sourceMessages.map((change) => <SourceRow key={change.id} change={change} />)}
               </div>
             )}
-            {model.remindersTotal === 0 ? <SourceCoverageNote /> : null}
+            <SourceCoverageNote />
           </TodaySection>
-
-          {model.counts.overdue > 0 && model.attention.length === 0 ? (
-            <Button tone="secondary" size="sm" onClick={() => navigate({ view: 'items' })}>
-              {copy.today.viewOverdue(model.counts.overdue)}
-            </Button>
-          ) : null}
         </aside>
       </div>
     </div>

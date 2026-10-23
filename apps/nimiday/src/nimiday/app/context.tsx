@@ -3,6 +3,7 @@ import { invoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useNimiTheme } from '@nimiplatform/kit/ui';
 import type { Language } from '../domain/types.js';
 import { copyFor, resolveLanguage, type Copy } from '../i18n/index.js';
+import { readLanguagePreference, rememberLanguagePreference, useAppLanguage } from '../i18n/language-preference.js';
 import { createActivityBridge } from '../platform/activity-bridge.js';
 import { createAgentDesk, type DeskState } from '../platform/agent-desk.js';
 import { createDayEngine, type EngineState, type NavTarget } from '../platform/engine.js';
@@ -12,38 +13,21 @@ import { createDayStore, type StoreSnapshot } from '../store/day-store.js';
 import { runtimeDocumentStore } from '../store/persistence.js';
 import { getNimiLocalAppClient } from '../../shell/auth/local-app-client.js';
 
-const NAV_STORAGE_KEY = 'nimiday.view.v1';
-
-function initialNav(): NavTarget {
-  try {
-    const stored = globalThis.localStorage?.getItem(NAV_STORAGE_KEY);
-    if (stored === 'care' || stored === 'items' || stored === 'routines' || stored === 'assistant' || stored === 'settings' || stored === 'followups') return { view: stored };
-  } catch {
-    // Remembering the last page is a convenience only.
-  }
-  return { view: 'today' };
-}
-
 function prefersDark(): boolean {
   return globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
 }
 
 export function NimiDayProvider({ children }: { readonly children: ReactNode }) {
-  const [nav, setNav] = useState<NavTarget>(initialNav);
+  const [nav, setNav] = useState<NavTarget>({ view: 'today' });
   const navigate = useCallback((target: NavTarget) => {
     setNav(target);
-    try {
-      globalThis.localStorage?.setItem(NAV_STORAGE_KEY, target.view);
-    } catch {
-      // Ignore: the page choice is not business state.
-    }
   }, []);
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
 
   const services = useMemo<Services>(() => {
     const client = getNimiLocalAppClient();
-    let languageRef: Language = resolveLanguage('auto');
+    let languageRef: Language = resolveLanguage(readLanguagePreference());
     const store = createDayStore(runtimeDocumentStore(client.storage), { language: () => languageRef });
     const actions = dayActions(store);
     const desk = createAgentDesk(client, {
@@ -73,8 +57,12 @@ export function NimiDayProvider({ children }: { readonly children: ReactNode }) 
   }, []);
 
   const snapshot = useSyncExternalStore(services.store.subscribe, services.store.getSnapshot);
-  const language = resolveLanguage(snapshot.state.profile.language);
+  const language = useAppLanguage(snapshot.status === 'loading' || snapshot.status === 'failed' ? undefined : snapshot.state.profile.language);
   const copy = copyFor(language);
+
+  useEffect(() => {
+    if (snapshot.status === 'ready') rememberLanguagePreference(snapshot.state.profile.language);
+  }, [snapshot.status, snapshot.state.profile.language]);
 
   useEffect(() => {
     globalThis.document?.documentElement.setAttribute('lang', language === 'zh' ? 'zh-CN' : 'en');

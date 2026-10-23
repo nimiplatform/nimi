@@ -21,6 +21,8 @@ export type ActivityStatus = 'idle' | 'loading' | 'ready' | 'no-access' | 'unava
 
 
 export type ActivityState = {
+  readonly directoryStatus: ActivityStatus;
+  readonly directoryRecords: readonly NimiAppActivityRecord[];
   readonly status: ActivityStatus;
   readonly records: readonly NimiAppActivityRecord[];
   /** Some listing paused with older records left; `loadMore` continues it. */
@@ -87,11 +89,12 @@ export type ActivityBridge = {
 };
 
 export function createActivityBridge(activity: ActivityClient): ActivityBridge {
-  let state: ActivityState = { status: 'idle', records: [], hasMore: false, coverage: NO_COVERAGE, error: null };
+  let state: ActivityState = { status: 'idle', directoryStatus: 'idle', directoryRecords: [], records: [], hasMore: false, coverage: NO_COVERAGE, error: null };
   // Recent activity is listed newest first and pauses after each step; open
   // to-dos get a listing of their own, so an old reminder that is still open
   // is never lost behind a long tail of newer activity.
-  let views: { recent: NimiAppActivityView; openTodos: NimiAppActivityView } | null = null;
+  let views: { recent: NimiAppActivityView; openTodos: NimiAppActivityView; directory: NimiAppActivityView } | null = null;
+  let directory: NimiAppActivityViewSnapshot | null = null;
   let recent: NimiAppActivityViewSnapshot | null = null;
   let openTodos: NimiAppActivityViewSnapshot | null = null;
   const listeners = new Set<() => void>();
@@ -110,6 +113,10 @@ export function createActivityBridge(activity: ActivityClient): ActivityBridge {
         : recent?.status === 'ready' ? 'ready' : 'loading';
     publish({
       status,
+      directoryStatus: (directory?.status === 'unavailable' || directory?.error)
+        ? isActivityAccessDenied(directory.error) ? 'no-access' : 'unavailable'
+        : directory?.complete && directory.status === 'ready' ? 'ready' : 'loading',
+      directoryRecords: directory?.records ?? [],
       records: mergeRecords(recent?.records ?? [], openTodos?.records ?? []),
       hasMore: Boolean(recent?.hasMore || openTodos?.hasMore),
       coverage: { openTodos: coverageOf(openTodos), recent: coverageOf(recent), recentCount: recent?.records.length ?? 0 },
@@ -119,8 +126,23 @@ export function createActivityBridge(activity: ActivityClient): ActivityBridge {
 
   const start = () => {
     if (views) return;
-    publish({ ...state, status: 'loading', error: null });
+    publish({ ...state, status: 'loading', directoryStatus: 'loading', error: null });
     views = {
+      directory: createNimiAppActivityView({
+        activity,
+        filter: { kind: 'activity' },
+        pageSize: PAGE_SIZE,
+        maxRecords: LISTING_STEP,
+        onUpdate: snapshot => {
+          directory = snapshot;
+          combine();
+          // Complete the independent listing; recent reminder coverage cannot
+          // determine whether a family child exists.
+          if (snapshot.hasMore && !snapshot.error) queueMicrotask(() => {
+            if (directory === snapshot) views?.directory.loadMore();
+          });
+        },
+      }),
       recent: createNimiAppActivityView({
         activity,
         pageSize: PAGE_SIZE,
@@ -137,6 +159,7 @@ export function createActivityBridge(activity: ActivityClient): ActivityBridge {
     };
     views.recent.start();
     views.openTodos.start();
+    views.directory.start();
   };
 
   return {
@@ -151,7 +174,9 @@ export function createActivityBridge(activity: ActivityClient): ActivityBridge {
       views = null;
       recent = null;
       openTodos = null;
-      await Promise.all([current?.recent.stop(), current?.openTodos.stop()]);
+      directory = null;
+      publish({ ...state, directoryStatus: 'unavailable', directoryRecords: [] });
+      await Promise.all([current?.recent.stop(), current?.openTodos.stop(), current?.directory.stop()]);
     },
     retry: () => {
       if (!views) {
@@ -160,6 +185,7 @@ export function createActivityBridge(activity: ActivityClient): ActivityBridge {
       }
       views.recent.relist();
       views.openTodos.relist();
+      views.directory.relist();
     },
     // Only listings that paused with more left continue; nothing scans history on its own.
     loadMore: () => {

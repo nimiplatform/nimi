@@ -62,6 +62,9 @@ export function RunCard({ run, children }: { readonly run: SkillRun; readonly ch
       : null;
   const liveTools = desk.liveTools.filter((tool) => tool.turnId === run.turnId && tool.lifecycle === 'started');
   const setupRequired = run.state === 'failed' && needsAiSetup(run.error?.code);
+  // A stop the user asked for (or an app restart) is expected, not a warning;
+  // the diagnostic error detail only helps when something genuinely failed.
+  const unexpectedStop = run.state === 'failed' || run.error?.code === 'outcome-unknown' || run.error?.code === 'agent-changed';
   const requestLine = run.requestText.split('\n')[0] || '—';
 
   const start = async () => {
@@ -126,7 +129,7 @@ export function RunCard({ run, children }: { readonly run: SkillRun; readonly ch
       ) : null}
 
       {run.state === 'failed' || run.state === 'interrupted' ? (
-        <InlineAlert tone="warning" className="nd-run-alert">
+        <InlineAlert tone={unexpectedStop ? 'warning' : 'neutral'} className="nd-run-alert">
           {run.state === 'interrupted'
             ? run.error?.code === 'outcome-unknown'
               ? copy.run.outcomeUnknown
@@ -134,7 +137,7 @@ export function RunCard({ run, children }: { readonly run: SkillRun; readonly ch
                 ? copy.run.agentChanged(run.agentName ?? agent, run.changes.length > 0)
                 : (run.changes.length > 0 ? copy.run.interruptedReason : copy.run.interruptedClean)
             : setupRequired ? copy.assistant.needsAiSetup(agent) : copy.run.failedFriendly(agent)}
-          {run.error ? <details className="nd-run-tech"><summary>{copy.assistant.technical}</summary>{run.error.code}{run.error.message && run.error.message !== run.error.code ? ` · ${run.error.message}` : ''}</details> : null}
+          {unexpectedStop && run.error ? <details className="nd-run-tech"><summary>{copy.assistant.technical}</summary>{run.error.code}{run.error.message && run.error.message !== run.error.code ? ` · ${run.error.message}` : ''}</details> : null}
         </InlineAlert>
       ) : null}
 
@@ -158,7 +161,7 @@ export function RunCard({ run, children }: { readonly run: SkillRun; readonly ch
               <h3 className="nd-field-label">{copy.run.changes}</h3>
               <RunChanges run={run} />
             </section>
-          ) : null}
+          ) : run.state === 'done' ? <RunChanges run={run} /> : null}
           <div className="nd-inline-actions nd-run-actions">
             {setupRequired ? <Button tone="secondary" size="sm" onClick={() => { void openNimiAiCapabilities().then(opened => { if (!opened) nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed }); }).catch(() => nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed })); }}>{copy.assistant.openAiSetup}</Button> : null}
             {run.changes.length > 0 && !run.undone ? <Button tone="ghost" size="sm" onClick={undo}>{copy.run.undoAll}</Button> : null}

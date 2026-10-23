@@ -19,6 +19,8 @@ These contract updates require matching source-built Runtime, SDK, native carrie
 
 Existing callers can adopt the following additions incrementally without migration:
 
+- **Composer focus border**: `CanonicalComposer` accepts an optional `disableFocusBorder` flag that keeps the composer shell border in its resting color while the field is focused. This additive optional prop is a minor change under the 0.x policy; existing consumers keep the governed focus border by default.
+
 - **Embedding `purpose`**: Generation's `RuntimeAIConsumeInput` accepts an optional embedding `purpose` (`retrieval-document` or `retrieval-query`), passed unchanged to the SDK. Omitting it preserves the existing unspecified behavior without affecting model selection.
 - **Conversation submission recovery**: Adds an optional `onAdmitted(submission)` callback so owners can run cleanup after confirmed admission and before the persisted copy is removed. It does not fire for unknown/rejected receipts or `"keep as draft"`.
 - **LocalAgent media reader recovery**: Media consumers can explicitly re-read failed stored artifacts via `retryFailed()` and inspect read failures with `getReadError()`. Ready previews remain cached and no new generation is started.

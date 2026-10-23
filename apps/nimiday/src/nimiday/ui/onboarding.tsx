@@ -1,22 +1,30 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button, Surface, TextField, Toggle } from '@nimiplatform/kit/ui';
 import { BellRing, CalendarHeart, HeartHandshake, Sparkles } from 'lucide-react';
 import { CIRCLE_TEMPLATES } from '../domain/defaults.js';
 import type { CircleKind } from '../domain/types.js';
 import { describeSchedule } from '../i18n/index.js';
-import { useDayStore, useDesk, useNimiDay } from '../app/context.js';
+import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
+import { PARENTOS_APP_ID } from '../domain/sources.js';
 import { requestSystemPermission, systemPermission, type SystemPermission } from '../platform/notifier.js';
 import { AppointPanel } from './appoint-panel.js';
 import { CIRCLE_ICONS } from './common.js';
 import { onboardingSteps, type CircleDraft } from './onboarding-steps.js';
+import { ParentOSChildren } from './parentos-children.js';
 
 
-export function Onboarding() {
-  const { copy, actions } = useNimiDay();
+export function Onboarding({ onFinished }: { readonly onFinished: () => void }) {
+  const { copy, actions, store } = useNimiDay();
   const { state } = useDayStore();
   const desk = useDesk();
   const [step, setStep] = useState(0);
   const [drafts, setDrafts] = useState<CircleDraft[]>([]);
+  const [choosingChild, setChoosingChild] = useState(false);
+  const [sourceError, setSourceError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const prepared = useRef(false);
+  const { sourceApps, directoryStatus } = useEngine();
   const steps = onboardingSteps(actions);
   const [permission, setPermission] = useState<SystemPermission>(systemPermission);
   const total = 4;
@@ -28,7 +36,22 @@ export function Onboarding() {
 
   const saveCircles = () => setStep(steps.continueFromCircles(drafts));
 
-  const finish = () => steps.finish(drafts);
+  const finish = async () => {
+    if (saving) return;
+    const groups = directoryStatus === 'ready' ? sourceApps.find(app => app.appId === PARENTOS_APP_ID)?.groups ?? [] : [];
+    if (!prepared.current) {
+      if (!steps.finish(drafts, groups)) { setSourceError(true); setStep(2); return; }
+      prepared.current = true;
+    }
+    setSaving(true);
+    setSaveError(false);
+    try {
+      const result = await store.persist();
+      if (result.ok) onFinished();
+      else setSaveError(true);
+    } catch { setSaveError(true); }
+    finally { setSaving(false); }
+  };
 
   return (
     <div className="nd-onboarding" data-testid="nd-onboarding">
@@ -68,7 +91,7 @@ export function Onboarding() {
             </div>
             <div className="nd-split" style={{ marginTop: 18 }}>
               <Button tone="ghost" size="sm" onClick={() => setStep(0)}>{copy.common.back}</Button>
-              <Button tone="ghost" size="sm" onClick={() => setStep(2)}>{desk.phase === 'ready' ? copy.common.next : copy.onboarding.skipAgent}</Button>
+              <Button tone="ghost" size="sm" disabled={prepared.current} onClick={() => setStep(2)}>{desk.phase === 'ready' ? copy.common.next : copy.onboarding.skipAgent}</Button>
             </div>
           </>
         ) : null}
@@ -81,13 +104,26 @@ export function Onboarding() {
               {CIRCLE_TEMPLATES.map((template) => {
                 const Icon = CIRCLE_ICONS[template.kind];
                 return (
-                  <button key={template.kind} type="button" className="nd-kind-option" onClick={() => addDraft(template.kind)} data-testid={`nd-kind-${template.kind}`}>
+                  <button key={template.kind} type="button" className="nd-kind-option" onClick={() => {
+                    if (template.kind === 'child') setChoosingChild(true);
+                    else addDraft(template.kind);
+                  }} data-testid={`nd-kind-${template.kind}`}>
                     <Icon size={14} aria-hidden="true" />
                     {copy.kinds.circle[template.kind]}
                   </button>
                 );
               })}
             </div>
+            {choosingChild ? <div className="nd-stack" style={{ marginBottom: 16 }}>
+              <ParentOSChildren selectedKeys={drafts.flatMap(draft => draft.sourceKey ? [draft.sourceKey] : [])}
+                onSelect={group => {
+                  setSourceError(false);
+                  setDrafts(current => current.some(draft => draft.sourceKey === group.key) ? current
+                    : [...current, { key: group.key, kind: 'child', name: group.child!.childName, sourceKey: group.key }]);
+                }} />
+              <Button tone="ghost" size="sm" onClick={() => { addDraft('child'); setChoosingChild(false); }}>{copy.childSources.manual}</Button>
+            </div> : null}
+            {sourceError ? <p role="alert">{copy.childSources.stale}</p> : null}
             <div className="nd-form">
               {drafts.map((draft, index) => {
                 const Icon = CIRCLE_ICONS[draft.kind];
@@ -96,6 +132,7 @@ export function Onboarding() {
                     <Icon size={16} aria-hidden="true" style={{ flex: 'none' }} />
                     <TextField
                       value={draft.name}
+                      readOnly={Boolean(draft.sourceKey)}
                       autoFocus={draft.name === ''}
                       placeholder={copy.kinds.circlePlaceholder[draft.kind]}
                       aria-label={copy.onboarding.circleNamePlaceholder}
@@ -127,7 +164,7 @@ export function Onboarding() {
                     <span className="nd-setting-title">{rhythm.name}</span>
                     <span className="nd-setting-hint">{describeSchedule(copy, rhythm.schedule)}</span>
                   </div>
-                  <Toggle checked={rhythm.enabled} ariaLabel={rhythm.name} onValueChange={(value) => actions.setRhythmEnabled(rhythm.id, value)} />
+                  <Toggle disabled={saving} checked={rhythm.enabled} ariaLabel={rhythm.name} onValueChange={(value) => actions.setRhythmEnabled(rhythm.id, value)} />
                 </div>
               ))}
               <div className="nd-setting">
@@ -146,11 +183,12 @@ export function Onboarding() {
               <p className="nd-faint">{copy.onboarding.quietBody(state.profile.quiet.start, state.profile.quiet.end)}</p>
             </div>
             <div className="nd-split">
-              <Button tone="ghost" size="sm" onClick={() => setStep(2)}>{copy.common.back}</Button>
-              <Button tone="primary" size="md" onClick={finish} data-testid="nd-onboarding-finish">{copy.onboarding.finish}</Button>
+              <Button tone="ghost" size="sm" disabled={prepared.current} onClick={() => setStep(2)}>{copy.common.back}</Button>
+              <Button tone="primary" size="md" disabled={saving} loading={saving} onClick={() => { void finish(); }} data-testid="nd-onboarding-finish">{saving ? copy.common.saving : copy.onboarding.finish}</Button>
             </div>
           </>
         ) : null}
+        {saveError ? <p role="alert">{copy.childSources.failed}</p> : null}
       </Surface>
     </div>
   );

@@ -17,7 +17,6 @@ import {
 import type { ItemDraft } from '../domain/items.js';
 import { addDays, toLocalDate, toLocalTime, weekdayOf } from '../domain/time.js';
 import type { Importance, ItemKind, LifeItem, RemindRule, RepeatFreq } from '../domain/types.js';
-import { formatInstant } from '../i18n/index.js';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { TimeField, timeFieldLabels } from './time-field.js';
 import { isEditorScheduleValid, nextScheduleMinute, updateEditorSchedule, type EditorSchedule } from './item-editor-schedule.js';
@@ -156,6 +155,8 @@ export function ItemEditor({
   };
 
   const quiet = state.profile.quiet;
+  const dropLabel = item?.repeat ? copy.item.stopRepeat : copy.item.drop;
+  const deleteHint = copy.item.deleteConfirm(item?.state === 'dropped' ? null : dropLabel);
 
   const dateShortcuts = [
     { key: 'today', label: copy.time.today, value: today },
@@ -342,19 +343,6 @@ export function ItemEditor({
                 <span className="nd-field-label">{copy.item.notes}</span>
                 <TextareaField value={form.notes} rows={3} maxLength={4000} onChange={(event) => set('notes', event.target.value)} />
               </label>
-              {item && item.history.length > 0 ? (
-                <details>
-                  <summary className="nd-field-label" style={{ cursor: 'pointer' }}>{copy.item.history}</summary>
-                  <ul className="nd-changes-list">
-                    {[...item.history].reverse().slice(0, 12).map((event, index) => (
-                      <li key={`${event.at}-${index}`}>
-                        {formatInstant(copy, event.at, today)} · {copy.item.by[event.by]} · {copy.item.events[event.kind]}
-                        {event.note && event.kind === 'decided' ? ` · ${event.note}` : ''}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
             </div>
           </div>
         </DialogBody>
@@ -362,11 +350,11 @@ export function ItemEditor({
           <div className="nd-split" style={{ width: '100%' }}>
             <div className="nd-inline-actions">
               {item && item.state !== 'dropped' ? (
-                <Button tone="ghost" size="sm" onClick={() => { actions.dropItem(item.id); onClose(); }}>{copy.item.drop}</Button>
+                <Button tone="ghost" size="sm" onClick={() => { actions.dropItem(item.id); onClose(); }}>{dropLabel}</Button>
               ) : null}
               {item ? (
                 confirmDelete ? (
-                  <Button tone="danger" size="sm" onClick={() => { actions.deleteItem(item.id); onClose(); }} title={copy.item.deleteConfirm}>{copy.item.delete}</Button>
+                  <Button tone="danger" size="sm" onClick={() => { actions.deleteItem(item.id); onClose(); }} title={deleteHint}>{copy.item.delete}</Button>
                 ) : (
                   <Button tone="ghost" size="sm" onClick={() => setConfirmDelete(true)}>{copy.common.delete}</Button>
                 )
@@ -377,7 +365,7 @@ export function ItemEditor({
               <Button tone="primary" size="sm" disabled={!canSave} onClick={save}>{item ? copy.common.save : copy.common.add}</Button>
             </div>
           </div>
-          {confirmDelete ? <p className="nd-faint" style={{ margin: '8px 0 0' }}>{copy.item.deleteConfirm}</p> : null}
+          {confirmDelete ? <p className="nd-faint" style={{ margin: '8px 0 0' }}>{deleteHint}</p> : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

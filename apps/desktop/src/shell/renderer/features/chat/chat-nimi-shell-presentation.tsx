@@ -12,7 +12,7 @@ import type {
   ChatAiThreadSummary,
 } from '../../bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
+import { CHAT_CENTER_COMPOSER_WIDTH_CLASS, CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
 import { toConversationThreadSummary } from './chat-nimi-thread-model';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -107,8 +107,9 @@ export function useAiConversationPresentation(
           placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
           layout="stacked"
           className={centerComposer ? 'px-0 pb-0' : undefined}
-          widthClassName={CHAT_CONTENT_WIDTH_CLASS}
+          widthClassName={centerComposer ? CHAT_CENTER_COMPOSER_WIDTH_CLASS : CHAT_CONTENT_WIDTH_CLASS}
           widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
+          disableFocusBorder
           onInputCaptureText={(text) => {
             input.currentDraftTextRef.current = text;
           }}

@@ -21,6 +21,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+.nd-items-group-title[data-tone="danger"] {
+  color: var(--nimi-status-danger);
+}
+
+.nd-items-group-title[data-tone="danger"] > span {
+  color: color-mix(in srgb, var(--nimi-status-danger) 65%, var(--nimi-text-muted));
+}
+
 .nd-page[data-testid="nd-items"] .nd-row[data-layout="title-first"] {
   min-height: 68px;
   padding: 12px 2px;

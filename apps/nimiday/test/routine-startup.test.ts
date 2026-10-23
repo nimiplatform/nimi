@@ -33,7 +33,7 @@ function memoryDocuments(): JsonDocumentStore {
 }
 
 function idleActivity(): ActivityBridge {
-  const state: ActivityState = { status: 'no-access', records: [], hasMore: false, coverage: { openTodos: 'loading', recent: 'loading', recentCount: 0 }, error: null };
+  const state: ActivityState = { status: 'no-access', directoryStatus: 'no-access', directoryRecords: [], records: [], hasMore: false, coverage: { openTodos: 'loading', recent: 'loading', recentCount: 0 }, error: null };
   return {
     getState: () => state,
     subscribe: () => () => undefined,

@@ -17,12 +17,13 @@ import { CIRCLE_TEMPLATES } from '../domain/defaults.js';
 import type { ItemDraft } from '../domain/items.js';
 import { toLocalDate } from '../domain/time.js';
 import type { CircleKind } from '../domain/types.js';
-import { formatInstant, formatWhen } from '../i18n/index.js';
+import { formatWhen } from '../i18n/index.js';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { AppointPanel } from './appoint-panel.js';
 import { CIRCLE_ICONS, RunStateChip, SkillIcon } from './common.js';
 import { ItemEditor } from './item-editor.js';
 import { ItemRow } from './item-row.js';
+import { ParentOSChildren } from './parentos-children.js';
 import { RunCard } from './run-card.js';
 import { UiContext, useUi, type NoteTarget, type UiApi } from './ui-context.js';
 
@@ -62,7 +63,7 @@ function AppointDialog({ onClose }: { readonly onClose: () => void }) {
   useEffect(() => { void desk.refreshReferences(); }, [desk]);
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent onClose={onClose} data-testid="nd-appoint-dialog">
+      <DialogContent onClose={onClose} data-testid="nd-appoint-dialog" className="nd-appoint-dialog">
         <DialogHeader><DialogTitle>{copy.onboarding.chooseTitle}</DialogTitle></DialogHeader>
         <DialogBody>
           <AppointPanel onDone={onClose} />
@@ -107,30 +108,6 @@ function RunDetail({ runId, onClose }: { readonly runId: string; readonly onClos
                   {decisions.map(item => <ItemRow key={item.id} item={item} />)}
                 </section> : null}
               </RunCard>
-              <details className="nd-task-record">
-                <summary>{copy.run.executionDetails}</summary>
-                <dl className="nd-detail-grid">
-                <dt>{copy.routines.rhythmSkill}</dt><dd>{skillRunName(run, language)} <RunStateChip state={run.state} /></dd>
-                <dt>{copy.run.agent}</dt><dd>{run.agentName ?? '—'}</dd>
-                <dt>{copy.run.request}</dt><dd>{run.requestText || '—'}</dd>
-                <dt>{copy.run.startedBy}</dt><dd>{copy.run.trigger[run.trigger]}</dd>
-                {run.state === 'done' && run.changes.length === 0 ? <><dt>{copy.run.changes}</dt><dd>{copy.run.noChanges}</dd></> : null}
-                <dt>{copy.run.startedAt}</dt><dd>{run.startedAt ? formatInstant(copy, run.startedAt, today) : '—'}</dd>
-                <dt>{copy.run.finishedAt}</dt><dd>{run.finishedAt ? formatInstant(copy, run.finishedAt, today) : '—'}</dd>
-              </dl>
-              {run.toolCalls.length > 0 ? (
-                <>
-                  <h3 className="nd-field-label" style={{ margin: '16px 0 0' }}>{copy.run.toolCalls}</h3>
-                  <ul className="nd-changes-list">
-                    {run.toolCalls.map((call) => (
-                      <li key={call.callId} style={{ color: call.ok ? undefined : 'var(--nimi-status-danger)' }}>
-                        {copy.skills.toolNames[call.name] ?? call.name} · {call.summary}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-              </details>
             </>
           )}
         </DialogBody>
@@ -148,6 +125,8 @@ function CircleEditor({ circleId, onClose }: { readonly circleId: string | null;
   const [name, setName] = useState(circle?.name ?? '');
   const [watch, setWatch] = useState(circle?.watch ?? '');
   const [focus, setFocus] = useState((circle?.focus ?? []).join(', '));
+  const [manualChild, setManualChild] = useState(false);
+  const choosingChild = !circle && kind === 'child' && !manualChild;
   const tags = focus.split(/[,，、]/u).map((tag) => tag.trim()).filter(Boolean);
 
   const save = () => {
@@ -179,6 +158,11 @@ function CircleEditor({ circleId, onClose }: { readonly circleId: string | null;
                 })}
               </div>
             </div>
+            {choosingChild ? <>
+              <ParentOSChildren contentLayer="dialog" onAdded={created => { navigate({ view: 'care', circleId: created.id }); onClose(); }} />
+              <Button tone="ghost" size="sm" onClick={() => setManualChild(true)}>{copy.childSources.manual}</Button>
+            </> : <>
+            {!circle && kind === 'child' ? <Button tone="ghost" size="sm" onClick={() => setManualChild(false)}>{copy.childSources.back}</Button> : null}
             <label className="nd-field">
               <span className="nd-field-label">{copy.care.name}</span>
               <TextField value={name} autoFocus placeholder={copy.kinds.circlePlaceholder[kind]} maxLength={60} onChange={(event) => setName(event.target.value)} />
@@ -191,11 +175,12 @@ function CircleEditor({ circleId, onClose }: { readonly circleId: string | null;
               <span className="nd-field-label">{copy.care.focus}</span>
               <TextField value={focus} maxLength={240} placeholder={copy.care.focusPlaceholder} onChange={(event) => setFocus(event.target.value)} />
             </label>
+            </>}
           </div>
         </DialogBody>
         <DialogFooter>
           <Button tone="secondary" size="sm" onClick={onClose}>{copy.common.cancel}</Button>
-          <Button tone="primary" size="sm" disabled={!name.trim()} onClick={save}>{copy.common.save}</Button>
+          {!choosingChild ? <Button tone="primary" size="sm" disabled={!name.trim()} onClick={save}>{copy.common.save}</Button> : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

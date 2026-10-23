@@ -67,9 +67,10 @@ export function QuickCapture({ circleId = null }: { readonly circleId?: string |
         />
         <Button tone="primary" size="md" disabled={!parsed?.title} onClick={submit}>{copy.capture.add}</Button>
       </div>
-      <div className="nd-capture-preview nd-split">
-        <span>{preview ?? copy.capture.hint}</span>
-        {parsed?.title ? (
+      {preview !== null || parsed?.title ? (
+        <div className="nd-capture-preview nd-split">
+          <span>{preview}</span>
+          {parsed?.title ? (
           <button
             type="button"
             className="nd-link"
@@ -87,8 +88,9 @@ export function QuickCapture({ circleId = null }: { readonly circleId?: string |
           >
             {copy.capture.more}
           </button>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { childDirectory, withChildDirectory, type ChildDirectory } from '../domain/child-directory.js';
 // NimiDay's running heart while the App is open: delivers reminders and
 // rhythms on time, runs skills through the on-duty agent, keeps Nimi Home in
 // step and turns shared activity into source changes. Nothing here runs when
@@ -52,6 +53,8 @@ export type EngineState = {
   readonly changes: readonly SourceChange[];
   readonly sourceApps: readonly SourceApp[];
   readonly activityStatus: ActivityStatus;
+  readonly directoryStatus: ActivityStatus;
+  readonly childDirectory: ChildDirectory;
   /** How much of the shared activity is in hand; drives "load more" and what the assistant is told. */
   readonly activityCoverage: ActivityCoverage;
   readonly activityHasMore: boolean;
@@ -138,6 +141,7 @@ function toActivityLike(record: NimiAppActivityRecord): ActivityRecordLike {
     agent: record.agent ? { displayName: record.agent.displayName } : null,
     userView: { unread: record.userView.unread, needsAttention: record.userView.needsAttention },
     groupRef: groupRefOf(record.data),
+    data: record.data,
   };
 }
 
@@ -162,6 +166,8 @@ export function createDayEngine(deps: EngineDeps) {
     changes: [],
     sourceApps: [],
     activityStatus: 'idle',
+    directoryStatus: 'idle',
+    childDirectory: childDirectory([]),
     activityCoverage: { openTodos: 'loading', recent: 'loading', recentCount: 0 },
     activityHasMore: false,
     activeRunId: null,
@@ -205,12 +211,15 @@ export function createDayEngine(deps: EngineDeps) {
   const recomputeChanges = () => {
     const activity = deps.activity.getState();
     const records = activity.records.map(toActivityLike);
+    const directory = childDirectory(activity.directoryRecords);
     publish({
+      directoryStatus: activity.directoryStatus === 'ready' && directory.invalid ? 'unavailable' : activity.directoryStatus,
+      childDirectory: directory,
       activityStatus: activity.status,
       activityCoverage: activity.coverage,
       activityHasMore: activity.hasMore,
       changes: followedChanges(records, data().profile, data().circles),
-      sourceApps: sourceApps(records),
+      sourceApps: withChildDirectory(sourceApps(records), directory),
     });
   };
 

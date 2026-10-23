@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, nimiToast } from '@nimiplatform/kit/ui';
-import { linkedSource, sourceLinkFor, type SourceChange } from '../domain/sources.js';
+import { linkedSource, PARENTOS_APP_ID, sourceLinkFor, type SourceChange } from '../domain/sources.js';
 import { isActive } from '../domain/reminders.js';
 import { toLocalDate } from '../domain/time.js';
 import { formatDay, timeAgo } from '../i18n/index.js';
@@ -28,7 +28,12 @@ export async function openSourceWithFeedback(
   }
 }
 
-export function SourceRow({ change, showCircle = true }: { readonly change: SourceChange; readonly showCircle?: boolean }) {
+export function SourceRow({ change, showCircle = true, presentation = 'default', associationInGroup = false }: {
+  readonly change: SourceChange;
+  readonly showCircle?: boolean;
+  readonly presentation?: 'default' | 'care';
+  readonly associationInGroup?: boolean;
+}) {
   const { engine, copy } = useNimiDay();
   const { now } = useEngine();
   const { state } = useDayStore();
@@ -55,16 +60,19 @@ export function SourceRow({ change, showCircle = true }: { readonly change: Sour
       : null;
 
   return (
-    <div className="nd-row nd-source-row" data-testid="nd-source-row">
+    <div className="nd-row nd-source-row" data-presentation={presentation} data-testid="nd-source-row" data-activity-id={change.id}>
       <span className="nd-status-dot" data-tone={change.unread ? 'busy' : 'off'} aria-hidden="true" style={{ marginTop: 7, visibility: change.unread ? 'visible' : 'hidden' }} />
       <div className="nd-row-body">
         <span className="nd-row-title">{change.title}</span>
+        {presentation === 'care' && change.unread ? <span className="nd-care-unread">{copy.care.unread}</span> : null}
         {change.summary ? <div className="nd-faint" style={{ marginTop: 2 }}>{change.summary}</div> : null}
         <div className="nd-row-meta">
-          <span>{change.appName}</span>
+          {!associationInGroup ? <span>{change.appName}</span> : null}
+          {change.child && !associationInGroup ? <span>{change.child.childName}</span> : null}
+          {change.appId === PARENTOS_APP_ID && !change.circleId && !associationInGroup ? <Chip tone="warning">{copy.sources.unassociated}</Chip> : null}
           <Chip tone={natureTone}>{copy.kinds.nature[change.nature]}</Chip>
           {circle ? <Chip tone="accent">{circle.name}</Chip> : null}
-          <span>{timeAgo(copy, change.occurredAt, now)}</span>
+          <span>{presentation === 'care' ? copy.care.sourceUpdated(timeAgo(copy, change.occurredAt, now)) : timeAgo(copy, change.occurredAt, now)}</span>
           {todoNote ? <Chip tone="success">{todoNote}</Chip> : null}
           {arranged ? (
             <Chip tone="accent">
@@ -75,8 +83,13 @@ export function SourceRow({ change, showCircle = true }: { readonly change: Sour
           ) : null}
         </div>
         {change.nature === 'interpretation' ? <div className="nd-faint" style={{ marginTop: 4 }}>{copy.sources.interpretationNote}</div> : null}
+        {change.appId === PARENTOS_APP_ID && !change.child ? <div className="nd-faint">{copy.sources.childUnknown}</div> : null}
+        {presentation === 'care' && !change.sourceAvailable ? <div className="nd-muted">{copy.sources.sourceUnavailable}</div> : null}
       </div>
       <div className="nd-row-actions">
+        {change.child && !change.circleId && change.sourceAvailable && !associationInGroup ? (
+          <Button size="sm" tone="ghost" onClick={() => ui.editCircle(null)}>{copy.sources.associateChild}</Button>
+        ) : null}
         {change.openable ? (
           <Button size="sm" tone="ghost" loading={busy} onClick={() => { void open(); }}>
             {change.known === 'parentos-growth-record' && change.todoState === 'open'

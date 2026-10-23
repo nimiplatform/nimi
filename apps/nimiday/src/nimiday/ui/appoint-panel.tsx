@@ -75,7 +75,7 @@ export function AppointPanel({ onDone, compact = false }: { readonly onDone?: ()
   }
 
   return (
-    <div data-testid="nd-appoint-panel">
+    <div className="nd-appoint-panel" data-testid="nd-appoint-panel">
       {desk.awaitingConfirmation ? (
         <div style={{ marginBottom: 8 }}>
           <strong style={{ fontSize: 14 }}>{copy.agent.confirmTitle(desk.awaitingConfirmation.displayName)}</strong>

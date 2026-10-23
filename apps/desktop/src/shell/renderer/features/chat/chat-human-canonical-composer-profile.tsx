@@ -303,6 +303,7 @@ export function HumanCanonicalComposer(props: {
         layout="stacked"
         widthClassName={CHAT_CONTENT_WIDTH_CLASS}
         widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
+        disableFocusBorder
         leadingSlot={props.leadingAvatar ? (
           <ChatComposerLeadingAvatar
             kind="human"

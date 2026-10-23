@@ -2,6 +2,26 @@ format: nimicoding.authority/v2
 owner: team.nimiday
 scope: nimiday.assistant
 units:
+  - id: rule.nimi.nimiday.assistant.child-source-addition
+    kind: rule
+    title: Add a shared child and its care association in one explicit action
+    modality: must
+    statement: In first-run setup and every add-child or child-linking entry point, Day obtains candidates only from the complete current ParentOS child-directory.v1 Activity snapshot, never from reminders. Day completes the independent activity listing before offering candidates, validates the app, publishing sourceRef, stable child-directory key, activity kind and every children entry, and distinguishes missing snapshot, valid empty family, loading, no access, malformed or unavailable snapshot and unavailable source. Each candidate uses sourceRef plus childId; equal names and different registrations never merge. Adding and associating a child is one explicit action that creates or reuses the local care circle and saves its sourceGroups mapping together, enables following ParentOS, and reports success only after persistence. Linking an existing child is supported in the same flow, and manual child creation remains a secondary entry without implicit source association. First-run drafts revalidate against the current complete directory before finishing. Directory rename preserves identity; deletion removes the candidate while preserving local care objects, mappings and arrangements. Reminders retain their independent identity validation. Unavailable permissions or sessions never permit new source additions; recovery refreshes and revalidates without duplicates.
+    condition: Whenever Day offers or completes child creation from ParentOS.
+    failure: Refuse unavailable or invalid source selections, preserve manual creation and existing care data, and keep unsaved results visibly retryable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
+  - id: rule.nimi.nimiday.assistant.child-source-association
+    kind: rule
+    title: ParentOS reminders require an explicit source and child association
+    modality: must
+    statement: For ParentOS growth-record-reminder.v1 and care-reminder.v1 Activity records, Day validates the Runtime source app and sourceRef and the published data.childId, childName, ruleId, repeatIndex, windowStart and windowEnd against the existing key and objectRef. Day associates a child only by the publishing sourceRef and childId through a user-selected non-ended child care circle, reusing its sourceGroups preferences with a child-specific key; opaque groupRef preferences, App-wide choices, equal names, current selection and first-child defaults never establish this association. Invalid, missing or unassociated identity remains visibly unassociated outside child detail pages; invalid identity is not openable or associable. Settings shows child names and distinguishable source and child identifiers, permits association even when only one child is published, and permits clearing an association without fallback. A rename changes display text while preserving association; distinct source registrations and distinct child IDs remain separate. Opening uses the original Activity ID through the public Activity open operation and does not complete the source reminder.
+    condition: Whenever Day projects, displays, associates or opens ParentOS reminders.
+    failure: Keep unknown or conflicting ownership unassociated and prevent attribution to another child; do not guess or silently migrate historical opaque groups.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
   - id: rule.nimi.nimiday.assistant.item-editor-scheduling
     kind: rule
     title: Item editing prevents new past schedules while preserving overdue items

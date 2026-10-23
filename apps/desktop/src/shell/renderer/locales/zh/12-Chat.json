@@ -655,7 +655,7 @@
   "mediaUnavailable": "当前授权路径无法访问此媒体。",
   "today": "今天",
   "yesterday": "昨天",
-  "selectConversationPrompt": "从列表中选择一个会话",
+  "selectConversationPrompt": "选择一个会话，开始聊天",
   "loadingTargets": "正在加载会话对象…",
   "noTargetsTitle": "暂无可用会话对象",
   "noTargetsDescription": "请切换来源筛选，或等待兼容的会话对象出现。",

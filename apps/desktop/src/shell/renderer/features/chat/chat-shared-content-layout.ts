@@ -3,6 +3,9 @@
 // layout, so this is a pure max-width ceiling with centering — no viewport math.
 export const CHAT_CONTENT_WIDTH_CLASS = 'max-w-[720px]';
 export const CHAT_CONTENT_POSITION_CLASS = 'mx-auto';
+// The centered empty-state composer sits alone under the greeting, so it uses
+// a narrower measure than the docked composer that aligns with the transcript.
+export const CHAT_CENTER_COMPOSER_WIDTH_CLASS = 'max-w-[560px]';
 // Scroll viewport spans to the pane edge (window edge), with the relationship
 // rail floating as an overlay; pr-[76px] keeps the centered content column in
 // the same place it had when the rail consumed layout width.

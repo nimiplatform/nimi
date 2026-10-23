@@ -53,7 +53,7 @@ const BUILT_IN_SKILLS: readonly BuiltInSkill[] = [
     request: { zh: '帮我看看今天有什么需要照看的。', en: 'Take a look at what needs looking after today.' },
     instructions: {
       zh: [
-        '1. 先看今天的安排、已经过期的事和等我决定的事；需要更完整的信息时用 day_list_items。',
+        '1. 先看今天的安排、已经逾期的事和等我决定的事；需要更完整的信息时用 day_list_items。',
         '2. 用 day_recent_changes 看看各照看对象的新变化。分清提醒、事实记录和 App 的解读，不要把解读当成结论。',
         '3. 挑出今天最需要注意的 1–3 件事，说明原因和建议的时间点。',
         '4. 发现明显缺少的准备或提醒，可以用 day_create_item / day_update_item 直接安排，并在回复里说清改了什么；拿不准我的意愿时用 day_ask_user 留个问题，不要替我决定。',

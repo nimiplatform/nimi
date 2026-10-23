@@ -377,7 +377,11 @@ function registerOpenHandler(shell: NimiLocalAppActivityShell, handler: NimiAppA
       backoff = Math.min(backoff * 2, 5_000);
     }
   };
-  void loop();
+  // Let synchronous setup/cleanup finish before claiming a pending navigation.
+  // A discarded registration (for example a React StrictMode effect probe)
+  // must not receive and then cancel the request intended for its replacement.
+  // Once subscribed, cancellation still retires delivered requests normally.
+  queueMicrotask(() => { void loop(); });
   return Object.freeze({
     stop: async () => {
       stopped = true;

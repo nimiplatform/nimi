@@ -76,7 +76,7 @@ export function ItemRow({
           }}
         />
       )}
-      {layout === 'timeline' ? <div className="nd-row-time" data-tone={overdue ? 'late' : undefined}>
+      {layout === 'timeline' ? <div className="nd-row-time">
         {dayLabel ? <div>{dayLabel}</div> : null}
         {timeLabel}
       </div> : null}
@@ -91,7 +91,7 @@ export function ItemRow({
           {circle ? <Chip tone="accent">{circle.status === 'ended' ? `${circle.name} · ${copy.care.endedTag}` : circle.name}</Chip> : null}
           {item.kind !== 'todo' ? <Chip>{copy.kinds.item[item.kind]}</Chip> : null}
           {overdue ? <Chip tone="danger">{copy.today.overdue}</Chip> : null}
-          {item.state === 'dropped' ? <Chip>{copy.item.events.dropped}</Chip> : null}
+          {item.state === 'dropped' ? <Chip>{item.repeat ? copy.item.repeatStopped : copy.item.events.dropped}</Chip> : null}
           {item.source ? (
             <Chip tone={linked?.todoState === 'completed' ? 'success' : undefined}>
               {linked?.todoState === 'completed' ? copy.item.sourceDone(item.source.appName)
@@ -179,7 +179,7 @@ export function ItemRow({
             items={[
               { id: 'edit', label: copy.common.edit, onSelect: () => ui.openItem(item.id) },
               !closed && item.repeat ? { id: 'skip', label: copy.item.skip, onSelect: () => actions.skipOccurrence(item.id) } : null,
-              !closed ? { id: 'drop', label: copy.item.drop, onSelect: () => actions.dropItem(item.id) } : null,
+              !closed ? { id: 'drop', label: item.repeat ? copy.item.stopRepeat : copy.item.drop, onSelect: () => actions.dropItem(item.id) } : null,
               closed ? { id: 'reopen', label: copy.item.reopen, onSelect: () => actions.reopenItem(item.id) } : null,
             ]}
           />

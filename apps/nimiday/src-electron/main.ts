@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, ipcMain, Menu, protocol, session, webContents } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol, screen, session, webContents } from 'electron';
 import { configureNimiElectronAppHostProfile } from '@nimiplatform/kit/shell/electron/host-profile';
 
 declare const __NIMI_ELECTRON_PRODUCTION__: boolean;
@@ -89,11 +89,13 @@ function resetAccountScopedRenderer(): void {
 }
 
 async function createMainWindow(): Promise<void> {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const window = new BrowserWindow({
-    width: 1180,
-    height: 780,
-    minWidth: 360,
-    minHeight: 560,
+    width: Math.min(1420, width),
+    height: Math.min(1030, height),
+    minWidth: Math.min(360, width),
+    minHeight: Math.min(560, height),
+    center: true,
     title: "NimiDay",
     autoHideMenuBar: true,
     webPreferences: {

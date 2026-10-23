@@ -1,4 +1,3 @@
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { appId } from './app-identity.js';
 import { getNimiLocalAppClient } from './local-app-client.js';
 
@@ -23,6 +22,7 @@ export type RuntimePlatformUnavailableProjection = {
   readonly reasonCode: string;
   readonly message: string;
   readonly actionHint?: string;
+  readonly retryable?: boolean;
 };
 
 export type RuntimePlatformProjection =
@@ -49,7 +49,8 @@ async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
         mode: 'local-app',
         reasonCode: status.reasonCode,
         actionHint: status.actionHint,
-        message: messageFor(status.reasonCode),
+        retryable: status.retryable,
+        message: '',
       };
     }
     return {
@@ -66,43 +67,19 @@ async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
   }
 }
 
-function unavailableFromError(error: unknown): RuntimePlatformUnavailableProjection {
-  const reasonCode = typeof error === 'object' && error !== null && 'reasonCode' in error
-    ? normalizeText((error as { reasonCode?: unknown }).reasonCode) || ReasonCode.RUNTIME_UNAVAILABLE
-    : ReasonCode.RUNTIME_UNAVAILABLE;
+export function unavailableFromError(error: unknown): RuntimePlatformUnavailableProjection {
+  const record = typeof error === 'object' && error !== null
+    ? error as { reasonCode?: unknown; code?: unknown; actionHint?: unknown; retryable?: unknown; message?: unknown }
+    : {};
+  const reasonCode = normalizeText(record.reasonCode) || normalizeText(record.code) || 'connection-check-failed';
   return {
     status: 'action-required',
     mode: 'local-app',
     reasonCode,
-    actionHint: actionHintFor(reasonCode),
-    message: error instanceof Error ? error.message : messageFor(reasonCode),
+    actionHint: normalizeText(record.actionHint) || undefined,
+    retryable: typeof record.retryable === 'boolean' ? record.retryable : undefined,
+    message: normalizeText(record.message) || (typeof error === 'string' ? error : ''),
   };
-}
-
-function messageFor(reasonCode: string): string {
-  switch (reasonCode) {
-    case 'local-development-registration-required':
-      return 'This development project must be registered through Nimi.';
-    case 'local-development-session-revoked':
-      return 'Nimi access for this running App is unavailable.';
-    case 'local-development-project-changed':
-      return 'The project identity no longer matches its current registration.';
-    default:
-      return 'The protected Nimi local-app carrier is unavailable.';
-  }
-}
-
-function actionHintFor(reasonCode: string): string {
-  switch (reasonCode) {
-    case 'local-development-registration-required':
-      return 'restart_official_nimi_app_dev_command';
-    case 'local-development-session-revoked':
-      return 'retry_when_nimi_access_is_available';
-    case 'local-development-project-changed':
-      return 'restore_registered_project_identity';
-    default:
-      return 'open_nimi_desktop_and_retry';
-  }
 }
 
 function normalizeText(value: unknown): string {

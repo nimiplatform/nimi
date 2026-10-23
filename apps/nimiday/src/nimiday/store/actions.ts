@@ -1,4 +1,5 @@
 import { createCircle } from '../domain/defaults.js';
+import { PARENTOS_APP_ID, sourceGroupFor, type SourceGroup } from '../domain/sources.js';
 import { newId } from '../domain/ids.js';
 import {
   completeItem,
@@ -66,6 +67,43 @@ export function dayActions(store: DayStore, now: () => Date = () => new Date()) 
     deleteItem: (id: string) => items((list) => list.filter((entry) => entry.id !== id)),
 
     // Care circles ----------------------------------------------------------
+    // @nimi-authority: rule.nimi.nimiday.assistant.child-source-addition
+    addSourceChild: (group: SourceGroup, existingId?: string): CareCircle | null => {
+      const child = group.child;
+      if (store.getSnapshot().status !== 'ready' || !group.available || !child
+        || !child.sourceRef.trim() || child.sourceRef.includes('\0')
+        || !/^[0-9A-Za-z_-]{1,64}$/u.test(child.childId) || !child.childName.trim()
+        || group.key !== `${child.sourceRef}\u0000child:${child.childId}`) return null;
+      let result: CareCircle | null = null;
+      store.update((state) => {
+        const selected = existingId ? state.circles.find(circle => circle.id === existingId && circle.kind === 'child' && circle.status !== 'ended') : undefined;
+        if (existingId && !selected) return state;
+        const association = sourceGroupFor(state.profile, group.key);
+        // Keep source identity in the created ID as well: if storage is
+        // interrupted between circles and profile, a resumed add repairs the
+        // mapping instead of creating a second child. No name matching.
+        const prefix = `circle_parentos:${encodeURIComponent(child.sourceRef)}:${child.childId}:`;
+        const sourced = state.circles.filter(circle => circle.id.startsWith(prefix));
+        const existing = selected ?? (association?.appId === PARENTOS_APP_ID
+          ? state.circles.find(circle => circle.id === association.circleId && circle.kind === 'child' && circle.status !== 'ended')
+          : undefined) ?? sourced.find(circle => circle.kind === 'child' && circle.status !== 'ended');
+        let index = 0;
+        while (state.circles.some(circle => circle.id === `${prefix}${index}`)) index += 1;
+        result = existing ?? { ...createCircle({ kind: 'child', name: child.childName }, now()), id: `${prefix}${index}` };
+        return {
+          ...state,
+          circles: existing ? state.circles : [...state.circles, result],
+          profile: {
+            ...state.profile,
+            sources: [...state.profile.sources.filter(source => source.appId !== PARENTOS_APP_ID),
+              { appId: PARENTOS_APP_ID, enabled: true, circleId: null }],
+            sourceGroups: [...state.profile.sourceGroups.filter(entry => entry.key !== group.key),
+              { key: group.key, appId: PARENTOS_APP_ID, circleId: result.id }],
+          },
+        };
+      }, ['circles', 'profile']);
+      return result;
+    },
     addCircle: (input: { kind: CircleKind; name: string; watch?: string; focus?: readonly string[] }): CareCircle => {
       const circle = createCircle(input, now());
       store.update((state) => ({ ...state, circles: [...state.circles, circle] }), ['circles']);

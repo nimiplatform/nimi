@@ -308,7 +308,9 @@ export type SourcePreference = {
 /**
  * Where one publisher-declared group of records goes (for example one child in
  * ParentOS). `key` joins the publishing registration's `sourceRef` with the
- * record's opaque `data.groupRef`; it is never an identity or a selector.
+ * record's opaque `data.groupRef` for generic publishers. ParentOS instead uses
+ * `${sourceRef}\0child:${childId}` after validating its reminder identity.
+ * Names and old opaque group preferences never establish child association.
  */
 export type SourceGroupPreference = {
   readonly key: string;

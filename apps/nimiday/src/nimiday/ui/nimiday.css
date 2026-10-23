@@ -396,12 +396,6 @@
 .nd-run-changes > .nd-field-label { margin: 0; }
 .nd-run-actions { flex-wrap: wrap; }
 
-/* The technical record stays available, but reads as a footnote. */
-.nd-task-record { margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--nimi-border-subtle); font-size: 12px; }
-.nd-task-record > summary { padding: 6px 0; cursor: pointer; color: var(--nimi-text-muted); }
-.nd-task-record[open] > summary { margin-bottom: 12px; }
-.nd-run-dialog .nd-detail-grid dd { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-
 .nd-run-preference {
   display: grid;
   gap: 10px;
@@ -451,10 +445,6 @@
   color: var(--nimi-text-secondary);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-}
-
-.nd-row-time[data-tone="late"] {
-  color: var(--nimi-status-danger);
 }
 
 .nd-row-body {
@@ -579,8 +569,8 @@
 
 .nd-circle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .nd-circle-card {
@@ -588,14 +578,13 @@
   flex-direction: column;
   gap: 9px;
   width: 100%;
-  min-height: 160px;
-  padding: 18px;
+  min-width: 0;
+  padding: 16px;
   border: 1px solid var(--nimi-border-subtle);
   border-radius: var(--nimi-radius-xl);
   background: var(--nimi-surface-card);
   color: inherit;
   text-align: left;
-  cursor: pointer;
   transition:
     border-color var(--nimi-motion-fast) var(--nimi-motion-ease-standard),
     box-shadow var(--nimi-motion-fast) var(--nimi-motion-ease-standard),
@@ -604,8 +593,6 @@
 
 .nd-circle-card:hover {
   border-color: var(--nimi-border-strong);
-  box-shadow: var(--nimi-elevation-raised);
-  transform: translateY(-1px);
 }
 
 .nd-circle-card:active {
@@ -614,7 +601,61 @@
 
 .nd-circle-card[data-status="paused"],
 .nd-circle-card[data-status="ended"] {
-  opacity: 0.7;
+  border-style: dashed;
+}
+
+.nd-circle-card-head, .nd-circle-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nd-circle-card-head .nd-circle-icon { flex: none; width: 32px; height: 32px; }
+.nd-circle-card .nd-circle-name { display: flex; flex: 1; flex-wrap: wrap; gap: 8px; min-width: 0; color: inherit; text-align: left; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.nd-circle-name .nd-muted { font-size: 12px; font-weight: 400; align-self: center; }
+.nd-care-label { color: var(--nimi-text-secondary); font-size: 12px; flex: none; }
+.nd-care-watch { display: flex; align-items: baseline; gap: 12px; font-size: 13px; }
+.nd-care-item-preview { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--nimi-border-subtle); font-size: 13px; }
+.nd-care-item-link { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; border: 0; padding: 0; background: transparent; color: var(--nimi-text-primary); text-align: left; cursor: pointer; }
+.nd-care-item-title { flex: 1; min-width: 100px; overflow-wrap: anywhere; font-size: 14px; }
+.nd-care-item-link:hover .nd-care-item-title { text-decoration: underline; }
+.nd-care-item-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--nimi-text-secondary); font-size: 12px; }
+.nd-care-item-link:focus-visible { outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color); outline-offset: var(--nimi-focus-ring-offset); }
+.nd-circle-card-foot { justify-content: space-between; margin-top: auto; }
+.nd-circle-card-foot > .nd-link { flex: none; }
+.nd-care-section-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; }
+.nd-care-section-hint { margin: 6px 0 14px; color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.6; }
+.nd-care-pending { padding: 16px; border-radius: var(--nimi-radius-md); background: color-mix(in srgb, var(--nimi-action-primary-bg) 4%, var(--nimi-surface-card)); }
+.nd-care-source-group + .nd-care-source-group { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--nimi-border-subtle); }
+.nd-care-source-group .nd-circle-group-head { flex-wrap: wrap; gap: 8px; }
+.nd-care-source-group .nd-circle-group-head > [role="combobox"] { margin-left: auto; width: auto; max-width: 100%; flex-shrink: 0; }
+.nd-care-source-group .nd-circle-icon { width: 32px; height: 32px; flex: none; }
+.nd-care-source-person { display: grid; gap: 3px; flex: 1; min-width: 100px; overflow-wrap: anywhere; }
+.nd-care-source-person > .nd-muted { font-size: 12px; }
+.nd-care-group-examples { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--nimi-text-secondary); overflow-wrap: anywhere; }
+.nd-care-source-identity { margin-top: 14px; font-size: 12px; color: var(--nimi-text-secondary); }
+.nd-care-source-identity p { overflow-wrap: anywhere; }
+.nd-care-change-disclosure { margin-top: 10px; }
+.nd-care-change-disclosure > summary { font-size: 13px; color: var(--nimi-action-primary-bg); }
+.nd-care-source-identity > summary, .nd-care-change-disclosure > summary { cursor: pointer; width: fit-content; }
+.nd-care-source-identity > summary:focus-visible, .nd-care-change-disclosure > summary:focus-visible { outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color); outline-offset: var(--nimi-focus-ring-offset); }
+.nd-care-unconfirmed { padding-top: 14px; border-top: 1px solid var(--nimi-border-subtle); }
+.nd-care-unconfirmed > summary { width: fit-content; cursor: pointer; color: var(--nimi-text-secondary); font-size: 13px; }
+.nd-care-unconfirmed > summary:focus-visible { outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color); outline-offset: var(--nimi-focus-ring-offset); }
+.nd-care-list-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; font-size: 12px; }
+.nd-care-list-footer > .nd-muted { margin-right: auto; }
+.nd-care-unread { margin-left: 8px; font-size: 11px; color: var(--nimi-action-primary-bg); }
+.nd-source-row[data-presentation="care"] { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-block: 14px; }
+.nd-source-row[data-presentation="care"] > .nd-status-dot { display: none; }
+.nd-source-row[data-presentation="care"] > .nd-row-actions { justify-content: flex-end; flex-wrap: wrap; }
+.nd-source-row[data-presentation="care"] .nd-row-title { overflow-wrap: anywhere; font-weight: 500; }
+.nd-source-row[data-presentation="care"] .nd-row-body > .nd-row-title { display: inline; }
+.nd-care-columns { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+@media (max-width: 1050px) {
+  .nd-care-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .nd-circle-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .nd-circle-icon {
@@ -1374,6 +1415,35 @@
   font-size: 12px;
 }
 
+/* The appoint dialog must stay inside the window: cap the panel to the
+ * viewport, widen it so the roster fills three columns instead of two, and
+ * let the roster scroll while the title, note and appoint button stay put. */
+.nimi-overlay-panel.nd-appoint-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: 620px;
+  max-height: calc(100vh - 48px);
+}
+
+.nd-appoint-dialog .nimi-overlay-content,
+.nd-appoint-dialog .nd-appoint-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.nd-appoint-dialog .nd-agent-options {
+  flex: 1;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Same edge compensation as .nd-dialog-scroll: focus rings stay visible. */
+  margin: 12px -6px 12px -4px;
+  padding: 4px 6px 4px 4px;
+}
+
 .nd-kind-picker {
   display: flex;
   flex-wrap: wrap;
@@ -1427,22 +1497,6 @@
 .nd-setting-hint {
   color: var(--nimi-text-muted);
   font-size: 12px;
-}
-
-.nd-detail-grid {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 8px 14px;
-  font-size: 13px;
-}
-
-.nd-detail-grid dt {
-  color: var(--nimi-text-secondary);
-}
-
-.nd-detail-grid dd {
-  margin: 0;
-  overflow-wrap: anywhere;
 }
 
 .nd-center {
@@ -1613,6 +1667,15 @@
 }
 
 /* A publisher's groups (e.g. children in ParentOS), nested under its row */
+.nd-child-source {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: 12px;
+}
 .nd-setting:has(> .nd-source-groups) {
   flex-wrap: wrap;
 }

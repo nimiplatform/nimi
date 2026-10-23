@@ -88,7 +88,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         <Card className="nd-items-list" testId="nd-items-list">
           {overdue.length > 0 ? (
             <section className="nd-items-group" aria-labelledby="nd-items-overdue">
-              <h2 id="nd-items-overdue" className="nd-items-group-title">{copy.today.overdue}<span>{overdue.length}</span></h2>
+              <h2 id="nd-items-overdue" className="nd-items-group-title" data-tone="danger">{copy.today.overdue}<span>{overdue.length}</span></h2>
               <div className="nd-list">{overdue.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay showSnooze />)}</div>
             </section>
           ) : null}

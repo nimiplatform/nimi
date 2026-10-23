@@ -1,40 +1,22 @@
-import type {
-  RuntimeGateCopy,
-  RuntimeGateProjection,
-} from './runtime-gate.js';
+import type { RuntimeGateProjection } from './runtime-gate.js';
 import {
-  appTitle,
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
+  unavailableFromError,
 } from './auth/runtime-platform.js';
 
-export { appTitle };
-
-export const targetRuntimeGateCopy: RuntimeGateCopy = Object.freeze({
-  checking: 'App-host check',
-  setupRequired: 'Action required',
-  signInRequired: 'Sign in to Nimi',
-  connectionRequired: 'Runtime session unavailable',
-  retry: 'Retry Runtime check',
-  offlineTier: (tier) => `Offline tier: ${tier}`,
-  nextAction: (action) => `Next action: ${action}`,
-});
+export { appTitle } from './auth/runtime-platform.js';
 
 export async function resolveTargetRuntimeGate(): Promise<RuntimeGateProjection> {
   const projection = await getRuntimePlatformProjection();
   if (projection.status === 'ready') return { status: 'ready' };
-  return {
-    status: 'unavailable',
-    body: projection.message || 'Runtime session projection is not ready.',
-    signInRequired: projection.reasonCode === 'runtime-unauthenticated',
-    nextAction: projection.actionHint,
-  };
+  return { ...projection, status: 'unavailable' };
 }
 
 export function clearTargetRuntimeGate(): void {
   clearRuntimePlatformProjection();
 }
 
-export function targetRuntimeGateErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || 'App-host check failed');
+export function targetRuntimeGateError(error: unknown): Extract<RuntimeGateProjection, { status: 'unavailable' }> {
+  return { ...unavailableFromError(error), status: 'unavailable' };
 }

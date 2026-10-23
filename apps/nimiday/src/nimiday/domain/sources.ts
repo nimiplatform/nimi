@@ -17,6 +17,7 @@ export type ActivityRecordLike = {
   };
   /** Publisher-declared grouping inside its own records (e.g. one child); opaque. */
   readonly groupRef?: string | null;
+  readonly data?: unknown;
   readonly revision: number;
   readonly kind: 'activity' | 'todo';
   readonly todoState: 'open' | 'completed' | 'cancelled' | null;
@@ -53,9 +54,42 @@ export type SourceChange = {
   readonly known: KnownSourceType | null;
   /** The publisher's group this record belongs to, when it declares one. */
   readonly groupKey: string | null;
+  readonly child?: ParentOSChildIdentity | null;
   /** Stable key of the business object across its revisions. */
   readonly objectKey?: string | null;
 };
+
+export type ParentOSChildIdentity = {
+  readonly sourceRef: string;
+  readonly childId: string;
+  readonly childName: string;
+};
+
+export const PARENTOS_APP_ID = 'nimi.parentos';
+
+// @nimi-authority: rule.nimi.nimiday.assistant.child-source-association
+export function parentOSChildIdentity(record: ActivityRecordLike): ParentOSChildIdentity | null {
+  if (record.source.kind !== 'app' || record.source.appId !== PARENTOS_APP_ID
+    || !record.source.sourceRef?.trim() || record.source.sourceRef.includes('\0') || record.kind !== 'todo') return null;
+  const growth = record.type === 'nimi.parentos.growth-record-reminder.v1';
+  if (!growth && record.type !== 'nimi.parentos.care-reminder.v1') return null;
+  if (!record.data || typeof record.data !== 'object' || Array.isArray(record.data)) return null;
+  const data = record.data as Record<string, unknown>;
+  if (typeof data.childId !== 'string' || !/^[0-9A-Za-z_-]{1,64}$/u.test(data.childId)
+    || typeof data.childName !== 'string' || !data.childName.trim()
+    || typeof data.ruleId !== 'string' || !(growth ? /^PO-REM-GRO-[0-9]{3}$/u : /^PO-REM-(?:VAC|CHK|VIS|DEN)-[0-9]{3}$/u).test(data.ruleId)
+    || typeof data.repeatIndex !== 'number' || !Number.isInteger(data.repeatIndex) || data.repeatIndex < 0 || data.repeatIndex > 9999
+    || !isDateKey(data.windowStart) || !isDateKey(data.windowEnd) || data.windowEnd < data.windowStart) return null;
+  const target = `${data.childId}:${data.ruleId}:${data.repeatIndex}`;
+  if (record.objectRef !== `reminder:${target}` || record.key !== `${growth ? 'growth-record' : 'care-reminder'}:${target}`) return null;
+  return { sourceRef: record.source.sourceRef, childId: data.childId, childName: data.childName.trim() };
+}
+
+function isDateKey(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
 
 export type KnownSourceType = 'parentos-growth-record' | 'parentos-care-reminder' | 'shijing-daily-mirror';
 
@@ -93,7 +127,11 @@ export function sourcePreferenceFor(profile: DayProfile, appId: string): SourceP
 }
 
 /** Groups are keyed per publishing registration, never by the bare publisher value. */
-export function sourceGroupKey(record: Pick<ActivityRecordLike, 'source' | 'groupRef'>): string | null {
+export function sourceGroupKey(record: ActivityRecordLike): string | null {
+  if (record.source.appId === PARENTOS_APP_ID) {
+    const child = parentOSChildIdentity(record);
+    return child ? `${child.sourceRef}\u0000child:${child.childId}` : null;
+  }
   const sourceRef = record.source.sourceRef;
   return sourceRef && record.groupRef ? `${sourceRef}\u0000${record.groupRef}` : null;
 }
@@ -115,15 +153,20 @@ export function toSourceChange(
   profile: DayProfile,
   circles: readonly CareCircle[],
 ): SourceChange | null {
+  if (record.type === 'nimi.parentos.child-directory.v1') return null;
   if (record.source.kind !== 'app' || !record.source.appId || record.source.appId === NIMIDAY_APP_ID) return null;
   const appId = record.source.appId;
   const known = KNOWN_TYPES[record.type] ?? null;
   const preference = sourcePreferenceFor(profile, appId);
   const groupKey = sourceGroupKey(record);
   const group = sourceGroupFor(profile, groupKey);
+  const child = parentOSChildIdentity(record);
+  const parentos = appId === PARENTOS_APP_ID;
   const usable = (id: string | null | undefined): id is string => Boolean(id) && circles.some((circle) => circle.id === id && circle.status !== 'ended');
-  // One group (say, one child) can go to its own circle; otherwise the App's choice, then a sensible default.
-  const mappedCircle = usable(group?.circleId)
+  const mappedCircle = parentos
+    ? child && group?.appId === appId && circles.some(circle => circle.id === group.circleId && circle.kind === 'child' && circle.status !== 'ended')
+      ? group.circleId : null
+    : usable(group?.circleId)
     ? group!.circleId!
     : usable(preference.circleId) ? preference.circleId : defaultCircle(circles, known?.circleKinds ?? []);
   return {
@@ -138,12 +181,13 @@ export function toSourceChange(
     todoState: record.todoState,
     unread: record.userView.unread,
     needsAttention: record.userView.needsAttention,
-    openable: record.objectRef !== null && record.source.available && (record.kind !== 'todo' || record.todoState === 'open'),
+    openable: (!parentos || child !== null) && record.objectRef !== null && record.source.available && (record.kind !== 'todo' || record.todoState === 'open'),
     sourceAvailable: record.source.available,
     revision: record.revision,
     circleId: mappedCircle,
     known: known?.known ?? null,
     groupKey,
+    child,
     objectKey: sameObjectKey(record),
   };
 }
@@ -154,6 +198,8 @@ export type SourceGroup = {
   /** A few distinct titles so the user can tell the groups apart. */
   readonly examples: readonly string[];
   readonly firstAt: Instant;
+  readonly child: ParentOSChildIdentity | null;
+  readonly available: boolean;
 };
 
 /** How much of a listing is in hand: all of it, or only part with more to load. */
@@ -192,16 +238,17 @@ export type SourceApp = {
   readonly latestAt: Instant;
   /** Publisher-declared groups, oldest first so their numbering stays stable. */
   readonly groups: readonly SourceGroup[];
-  /** Records the publisher did not group (yet); they follow the App-wide choice. */
+  /** Records without a usable group; ParentOS records remain unassociated. */
   readonly ungrouped: { readonly count: number; readonly examples: readonly string[] };
 };
 
 /** Publishers seen in the account, for the source settings list. */
 export function sourceApps(records: readonly ActivityRecordLike[]): SourceApp[] {
   const byApp = new Map<string, Omit<SourceApp, 'groups' | 'ungrouped'>>();
-  const groups = new Map<string, Map<string, { count: number; examples: string[]; firstAt: string }>>();
+  const groups = new Map<string, Map<string, { count: number; examples: string[]; firstAt: string; child: ParentOSChildIdentity | null; revision: number; available: boolean }>>();
   const ungrouped = new Map<string, { count: number; examples: string[] }>();
   for (const record of records) {
+    if (record.type === 'nimi.parentos.child-directory.v1') continue;
     const appId = record.source.appId;
     if (record.source.kind !== 'app' || !appId || appId === NIMIDAY_APP_ID) continue;
     const previous = byApp.get(appId);
@@ -221,7 +268,12 @@ export function sourceApps(records: readonly ActivityRecordLike[]): SourceApp[] 
       continue;
     }
     const appGroups = groups.get(appId) ?? new Map();
-    const group = appGroups.get(key) ?? { count: 0, examples: [], firstAt: record.occurredAt };
+    const group = appGroups.get(key) ?? { count: 0, examples: [], firstAt: record.occurredAt, child: parentOSChildIdentity(record), revision: record.revision, available: record.source.available };
+    if (record.revision > group.revision) {
+      group.child = parentOSChildIdentity(record);
+      group.revision = record.revision;
+    }
+    group.available = record.source.available;
     group.count += 1;
     if (group.examples.length < 3 && !group.examples.includes(record.title)) group.examples.push(record.title);
     if (record.occurredAt < group.firstAt) group.firstAt = record.occurredAt;
@@ -232,7 +284,7 @@ export function sourceApps(records: readonly ActivityRecordLike[]): SourceApp[] 
     .map((app) => ({
       ...app,
       groups: [...(groups.get(app.appId)?.entries() ?? [])]
-        .map(([key, group]) => ({ key, count: group.count, examples: group.examples, firstAt: group.firstAt }))
+        .map(([key, group]) => ({ key, count: group.count, examples: group.examples, firstAt: group.firstAt, child: group.child, available: group.available }))
         .sort((a, b) => (a.firstAt < b.firstAt ? -1 : a.firstAt > b.firstAt ? 1 : a.key < b.key ? -1 : 1)),
       ungrouped: ungrouped.get(app.appId) ?? { count: 0, examples: [] },
     }))

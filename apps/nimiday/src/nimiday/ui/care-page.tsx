@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Button, ConfirmDialog, nimiToast, StatusBadge } from '@nimiplatform/kit/ui';
 import { ArrowLeft, ArrowRight, NotebookText, Pin, Plus } from 'lucide-react';
-import { isActive } from '../domain/reminders.js';
+import { isActive, isOverdue } from '../domain/reminders.js';
 import { CARE_REVIEW_SKILL } from '../domain/skills.js';
 import { attentionOrder, type SourceChange } from '../domain/sources.js';
+import { toLocalDate } from '../domain/time.js';
+import { formatDate, formatWhen } from '../i18n/index.js';
 import type { CareCircle } from '../domain/types.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
 import { Card, Chip, CircleIcon, Hint, MenuButton, PageHead } from './common.js';
@@ -11,6 +13,9 @@ import { ItemRow } from './item-row.js';
 import { QuickCapture } from './quick-capture.js';
 import { SourceCoverageNote, SourceRow } from './source-row.js';
 import { useUi } from './ui-context.js';
+import { careChanges, careItems } from './care-summary.js';
+import { SourceChildAction } from './parentos-children.js';
+import { PARENTOS_APP_ID } from '../domain/sources.js';
 
 export function CarePage({ circleId }: { readonly circleId?: string }) {
   const { state } = useDayStore();
@@ -24,32 +29,14 @@ const CHANGE_PREVIEW_COUNT = 3;
 function CareOverview() {
   const { copy, navigate } = useNimiDay();
   const { state } = useDayStore();
-  const { changes, activityStatus } = useEngine();
+  const { changes, sourceApps, activityStatus, now } = useEngine();
   const ui = useUi();
-  const [showAllLoose, setShowAllLoose] = useState(false);
   const circles = useMemo(
     () => [...state.circles].sort((a, b) => Number(a.status === 'ended') - Number(b.status === 'ended')),
     [state.circles],
   );
-  const { grouped, loose } = useMemo(() => {
-    const byCircle = new Map<string, SourceChange[]>();
-    const ungrouped: SourceChange[] = [];
-    for (const change of attentionOrder(changes)) {
-      if (change.circleId) {
-        const list = byCircle.get(change.circleId) ?? [];
-        list.push(change);
-        byCircle.set(change.circleId, list);
-      } else {
-        ungrouped.push(change);
-      }
-    }
-    return {
-      grouped: circles
-        .filter((circle) => byCircle.has(circle.id))
-        .map((circle) => ({ circle, list: byCircle.get(circle.id)! })),
-      loose: ungrouped,
-    };
-  }, [changes, circles]);
+  const { grouped, pending, unknown, other } = useMemo(() => careChanges(changes, circles), [changes, circles]);
+  const sourceChildren = sourceApps.find(app => app.appId === PARENTOS_APP_ID)?.groups ?? [];
 
   return (
     <div className="nd-page" data-testid="nd-care">
@@ -66,41 +53,69 @@ function CareOverview() {
       ) : (
         <div className="nd-circle-grid">
           {circles.map((circle) => {
-            const open = state.items.filter((item) => item.circleId === circle.id && isActive(item)).length;
+            const items = careItems(state.items, circle.id);
+            const next = items[0];
             const fresh = changes.filter((change) => change.circleId === circle.id && change.unread).length;
             return (
-              <button key={circle.id} type="button" className="nd-circle-card" data-status={circle.status} onClick={() => navigate({ view: 'care', circleId: circle.id })}>
-                <div className="nd-split">
+              <article key={circle.id} className="nd-circle-card" data-status={circle.status}>
+                <div className="nd-circle-card-head">
                   <CircleIcon kind={circle.kind} size={20} />
+                  <button type="button" className="nd-link nd-circle-name" onClick={() => navigate({ view: 'care', circleId: circle.id })}>
+                    {circle.name}
+                    {circle.name !== copy.kinds.circle[circle.kind] ? <span className="nd-muted">{copy.kinds.circle[circle.kind]}</span> : null}
+                  </button>
                   {circle.status !== 'active' ? <StatusBadge tone="neutral">{copy.kinds.circleStatus[circle.status]}</StatusBadge> : null}
                 </div>
-                <strong style={{ fontSize: 15 }}>
-                  {circle.name}
-                  {circle.name !== copy.kinds.circle[circle.kind] ? <span className="nd-faint" style={{ fontWeight: 400, marginLeft: 8 }}>{copy.kinds.circle[circle.kind]}</span> : null}
-                </strong>
-                <p className="nd-circle-watch">
-                  {circle.watch || <span className="nd-faint">{copy.care.watchPrompt}</span>}
-                </p>
-                <div className="nd-row-meta" style={{ marginTop: 'auto' }}>
-                  {open > 0 ? <Chip>{copy.care.openItems(open)}</Chip> : null}
-                  {fresh > 0 ? <Chip tone="warning">{copy.care.newChanges(fresh)}</Chip> : null}
-                  {circle.focus.slice(0, 3).map((tag) => <Chip key={tag} tone="accent">{tag}</Chip>)}
+                <div className="nd-care-watch">
+                  <span className="nd-care-label">{copy.care.watchLabel}</span>
+                  {circle.watch ? <p className="nd-circle-watch" title={circle.watch}>{circle.watch}</p> : (
+                    <div className="nd-inline-actions">
+                      <span className="nd-muted">{copy.care.watchUnset}</span>
+                      <button type="button" className="nd-link" onClick={() => ui.editCircle(circle.id)}>{copy.care.addWatch}</button>
+                    </div>
+                  )}
                 </div>
-              </button>
+                <div className="nd-care-item-preview">
+                  <span className="nd-care-label">{items.length ? copy.care.openItems(items.length) : copy.care.items}</span>
+                  {next ? (
+                    <button type="button" className="nd-care-item-link" onClick={() => ui.openItem(next.id)}>
+                      <span className="nd-care-item-title">{next.title}</span>
+                      <span className="nd-care-item-meta">
+                        {isOverdue(next, now) ? <Chip tone="warning">{copy.care.overdue}</Chip> : null}
+                        {next.state === 'waiting' ? <Chip>{copy.care.waiting}</Chip> : null}
+                        {next.date && next.date.slice(0, 4) !== toLocalDate(now).slice(0, 4)
+                          ? `${formatDate(copy, next.date, toLocalDate(now))} · ${next.time ?? copy.time.allDay}`
+                          : formatWhen(copy, next, toLocalDate(now))}
+                      </span>
+                    </button>
+                  ) : <span className="nd-muted">{copy.care.noItems}</span>}
+                </div>
+                <div className="nd-circle-card-foot">
+                  <div className="nd-row-meta">
+                    {fresh > 0 ? <Chip tone="info">{copy.care.unreadChanges(fresh)}</Chip> : null}
+                    {circle.focus.slice(0, 3).map((tag) => <Chip key={tag} tone="accent">{tag}</Chip>)}
+                  </div>
+                  <button type="button" className="nd-link nd-link-icon" onClick={() => navigate({ view: 'care', circleId: circle.id })}>
+                    {copy.care.viewDetails}<ArrowRight size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              </article>
             );
           })}
         </div>
       )}
 
-      <div className="nd-columns" style={{ marginTop: 22 }}>
-        <Card title={copy.today.changes}>
+      <div className="nd-columns nd-care-columns" style={{ marginTop: 22 }}>
+        <Card title={copy.today.changes} hint={copy.care.changesHint} testId="nd-care-changes">
           {activityStatus === 'no-access' ? (
             <>
               <p className="nd-muted" style={{ margin: 0, fontSize: 13 }}>{copy.today.sourcesNoAccess}</p>
               <p className="nd-faint" style={{ margin: '6px 0 0' }}>{copy.today.sourcesNoAccessBody}</p>
             </>
-          ) : changes.length === 0 ? <Hint>{copy.today.changesEmpty}</Hint> : (
+          ) : activityStatus === 'unavailable' ? <Hint>{copy.care.changesUnavailable}</Hint>
+            : changes.length === 0 ? <Hint>{activityStatus === 'ready' ? copy.today.changesEmpty : copy.common.loading}</Hint> : (
             <div className="nd-circle-groups">
+              {grouped.length > 0 ? <h3 className="nd-care-section-title">{copy.care.linkedChanges}</h3> : null}
               {grouped.map(({ circle, list }) => {
                 const fresh = list.filter((change) => change.unread).length;
                 return (
@@ -108,7 +123,7 @@ function CareOverview() {
                     <div className="nd-circle-group-head">
                       <CircleIcon kind={circle.kind} size={14} />
                       <span className="nd-circle-group-name">{circle.name}</span>
-                      {fresh > 0 ? <Chip tone="warning">{copy.care.newChanges(fresh)}</Chip> : null}
+                      {fresh > 0 ? <Chip tone="info">{copy.care.unreadChanges(fresh)}</Chip> : null}
                       {list.length > CHANGE_PREVIEW_COUNT ? (
                         <button type="button" className="nd-link nd-link-icon" onClick={() => navigate({ view: 'care', circleId: circle.id })}>
                           {copy.care.seeAllChanges(list.length)}<ArrowRight size={12} aria-hidden="true" />
@@ -116,24 +131,50 @@ function CareOverview() {
                       ) : null}
                     </div>
                     <div className="nd-list">
-                      {list.slice(0, CHANGE_PREVIEW_COUNT).map((change) => <SourceRow key={change.id} change={change} showCircle={false} />)}
+                      {list.slice(0, CHANGE_PREVIEW_COUNT).map((change) => <SourceRow key={change.id} change={change} showCircle={false} presentation="care" />)}
                     </div>
                   </section>
                 );
               })}
-              {loose.length > 0 ? (
+              {pending.length > 0 ? (
+                <section aria-label={copy.care.pendingAssociation} className="nd-care-pending">
+                  <h3 className="nd-care-section-title">{copy.care.pendingAssociation}</h3>
+                  <p className="nd-care-section-hint">{copy.care.pendingHint}</p>
+                  {pending.map(({ key, list }) => (
+                    <section key={key} className="nd-care-source-group">
+                      <div className="nd-circle-group-head">
+                        <CircleIcon kind="child" size={16} />
+                        <div className="nd-care-source-person">
+                          <span className="nd-circle-group-name">{list[0]!.child!.childName}</span>
+                          <span className="nd-muted">{copy.care.updatesFrom(list[0]!.appName)}</span>
+                        </div>
+                      </div>
+                      <p className="nd-care-group-examples">{[...new Set(list.map((change) => change.title))].slice(0, 2).join(' · ')}</p>
+                      {!list.some((change) => change.sourceAvailable) ? <p className="nd-care-section-hint">{copy.sources.sourceUnavailable}</p> : null}
+                      {sourceChildren.find(group => group.key === key) ? <SourceChildAction group={sourceChildren.find(group => group.key === key)!} /> : null}
+                      <details className="nd-care-change-disclosure">
+                        <summary>{copy.care.browseChanges(list.length)}</summary>
+                        <ChangePreview changes={list} associationInGroup />
+                        <details className="nd-care-source-identity">
+                          <summary>{copy.care.recordDetails}</summary>
+                          <p>{copy.settings.childSourceIdentity(list[0]!.child!.childId, list[0]!.child!.sourceRef)}</p>
+                        </details>
+                      </details>
+                    </section>
+                  ))}
+                </section>
+              ) : null}
+              {unknown.length > 0 ? (
+                <details className="nd-care-unconfirmed">
+                  <summary>{copy.care.unconfirmedRecords(unknown.length)}</summary>
+                  <p className="nd-care-section-hint">{copy.care.unconfirmedHint}</p>
+                  <ChangePreview changes={unknown} />
+                </details>
+              ) : null}
+              {other.length > 0 ? (
                 <section className="nd-circle-group">
-                  <div className="nd-circle-group-head">
-                    <span className="nd-circle-group-name nd-muted">{copy.care.otherChanges}</span>
-                    {loose.length > CHANGE_PREVIEW_COUNT ? (
-                      <button type="button" className="nd-link" onClick={() => setShowAllLoose((value) => !value)}>
-                        {showAllLoose ? copy.care.showLessChanges : copy.care.showMoreChanges(loose.length - CHANGE_PREVIEW_COUNT)}
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="nd-list">
-                    {(showAllLoose ? loose : loose.slice(0, CHANGE_PREVIEW_COUNT)).map((change) => <SourceRow key={change.id} change={change} />)}
-                  </div>
+                  <h3 className="nd-care-section-title">{copy.care.otherChanges}</h3>
+                  <ChangePreview changes={other} />
                 </section>
               ) : null}
             </div>
@@ -143,6 +184,25 @@ function CareOverview() {
         <HandbookCard circleId={null} />
       </div>
     </div>
+  );
+}
+
+function ChangePreview({ changes, associationInGroup = false }: { readonly changes: readonly SourceChange[]; readonly associationInGroup?: boolean }) {
+  const { copy } = useNimiDay();
+  const [visible, setVisible] = useState(CHANGE_PREVIEW_COUNT);
+  return (
+    <>
+      <div className="nd-list">
+        {changes.slice(0, visible).map((change) => <SourceRow key={change.id} change={change} presentation="care" associationInGroup={associationInGroup} />)}
+      </div>
+      {changes.length > CHANGE_PREVIEW_COUNT ? (
+        <div className="nd-care-list-footer">
+          <span className="nd-muted">{copy.care.showingChanges(Math.min(visible, changes.length), changes.length)}</span>
+          {visible < changes.length ? <button type="button" className="nd-link" onClick={() => setVisible((count) => count + CHANGE_PREVIEW_COUNT)}>{copy.care.loadMoreChanges}</button> : null}
+          {visible > CHANGE_PREVIEW_COUNT ? <button type="button" className="nd-link" onClick={() => setVisible(CHANGE_PREVIEW_COUNT)}>{copy.care.showLessChanges}</button> : null}
+        </div>
+      ) : null}
+    </>
   );
 }
 
