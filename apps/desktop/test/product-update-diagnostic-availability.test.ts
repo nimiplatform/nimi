@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chmod, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { ProductUpdateFailureStore, readUpdateFailureDiagnostic } from '../src-electron/product-update-failure-store.js';
-import { DesktopProductUpdateHost } from '../src-electron/product-update-host.js';
+import { createProductUpdateTestHost, exposeUpdateTestFile, preparePrivateUpdateTestCache, verifyPrivateUpdateTestFile } from './helpers/product-update-test-cache.js';
 import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
 import { signedProductFixture } from '../../install-gateway/test/product-release-fixture.mjs';
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
 
 test('malformed, unsafe and unreadable diagnostics cannot fail the normal bootstrap or become trusted causes', async () => {
   const directory = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-diagnostic-')));
-  const store = new ProductUpdateFailureStore(directory), file = path.join(directory, 'preinstallation-failure.json');
+  await preparePrivateUpdateTestCache(directory);
+  const store = new ProductUpdateFailureStore(directory, verifyPrivateUpdateTestFile), file = path.join(directory, 'preinstallation-failure.json');
   let warnings = 0;
   try {
     await writeFile(file, '{', { mode: 0o600 });
@@ -19,7 +20,8 @@ test('malformed, unsafe and unreadable diagnostics cannot fail the normal bootst
     assert.equal(await readUpdateFailureDiagnostic(store, () => { warnings++; }), null);
     await writeFile(file, JSON.stringify({ schema: 'unknown', reason: 'UPDATE_AUTHORIZATION_CANCELED', releaseId: null, candidateVersion: null }));
     assert.equal(await readUpdateFailureDiagnostic(store, () => { warnings++; }), null);
-    await chmod(file, 0o644);
+    await writeFile(file, JSON.stringify({ schema: 'nimi-update-preinstallation-failure/v1', reason: 'UPDATE_AUTHORIZATION_CANCELED', releaseId: null, candidateVersion: null }));
+    await exposeUpdateTestFile(file);
     assert.equal(await readUpdateFailureDiagnostic(store, () => { warnings++; }), null);
     assert.equal(await readUpdateFailureDiagnostic({ take: async () => { throw Object.assign(new Error('unreadable'), { code: 'EACCES' }); } }, () => { warnings++; }), null);
     assert.equal(warnings, 4);
@@ -30,7 +32,7 @@ test('malformed, unsafe and unreadable diagnostics cannot fail the normal bootst
 test('ENOSPC diagnostics do not block safe current-version reopen; genuine safety failure still blocks and retains cause', async () => {
   const fixture = signedProductFixture(), directory = await mkdtemp(path.join(os.tmpdir(), 'nimi-diagnostic-save-'));
   let reopenCalls = 0, safelyReopened = 0, appCanStop = false, diagnosticWrites = 0;
-  const host = new DesktopProductUpdateHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
+  const host = createProductUpdateTestHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
     policy: { ...PRODUCT_UPDATE_POLICY, publicKey: fixture.key },
     fetchImpl: async (url) => String(url).endsWith('latest.json') ? new Response(fixture.manifestBytes.toString()) : new Response(Uint8Array.from(fixture.bytes).buffer),
     verifyInstaller: async () => undefined,

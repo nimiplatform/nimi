@@ -16,6 +16,12 @@ if (unsupportedArguments.length > 0 && !nonProductLayout) {
   throw new Error(`protected-local Windows package build accepts no arguments: ${unsupportedArguments.join(' ')}`);
 }
 
+for (const name of ['NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256', 'NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256']) {
+  if (Object.hasOwn(process.env, name)) {
+    throw new Error(`retired Windows signer input is not accepted: ${name}; use the Platform product public key`);
+  }
+}
+
 const productionPublicKey = nonProductLayout ? '' : PRODUCT_UPDATE_POLICY.publicKey;
 if (!nonProductLayout && (!productionPublicKey || Buffer.from(productionPublicKey, 'base64').length !== 32)) {
   throw new Error(
@@ -30,7 +36,6 @@ const cargoTargetRoot = path.join(
   'windows-production',
 );
 childEnv.CARGO_TARGET_DIR = cargoTargetRoot;
-delete childEnv.NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256;
 childEnv.NIMI_WINDOWS_PRODUCT_PUBLIC_KEY = productionPublicKey;
 const cargoArgs = [
   'build',

@@ -102,7 +102,7 @@ test('Windows development signer identity requires exact certificate and SPKI di
   );
 });
 
-test('Windows protected-local production build rejects retired and malformed SPKI inputs', {
+test('Windows protected-local production build rejects retired signer inputs before native build', {
   skip: process.platform !== 'win32',
 }, () => {
   const scriptPath = path.join(
@@ -137,7 +137,7 @@ test('Windows protected-local production build rejects retired and malformed SPK
     assert.notEqual(result.status, 0);
     assert.match(
       `${result.stderr}\n${result.stdout}`,
-      /NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256 must be an exact lowercase SHA-256 SubjectPublicKeyInfo identity/u,
+      /retired Windows signer input is not accepted: NIMI_WINDOWS_PRODUCTION_SIGNER_(?:CERT|SPKI)_SHA256/u,
     );
   }
 });

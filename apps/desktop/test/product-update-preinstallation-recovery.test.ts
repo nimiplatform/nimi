@@ -3,7 +3,8 @@ import test from 'node:test';
 import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { DesktopProductUpdateHost } from '../src-electron/product-update-host.js';
+import { createProductUpdateTestHost, verifyPrivateUpdateTestFile } from './helpers/product-update-test-cache.js';
+import type { DesktopProductUpdateHost } from '../src-electron/product-update-host.js';
 import { ProductUpdateFailureStore } from '../src-electron/product-update-failure-store.js';
 import { DesktopShutdownBlockedError, runDesktopShutdownSteps } from '../src-electron/product-update-shutdown.js';
 import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
@@ -14,7 +15,7 @@ import { signedProductFixture } from '../../install-gateway/test/product-release
 for (const fault of ['critical-app', 'critical-formal', 'fresh-file', 'handoff'] as const) {
   test(`real Host.stop composition recovers ${fault} only through safe current-version reinitialization`, async () => {
     const fixture = signedProductFixture(), directory = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-preinstall-recover-')));
-    const cache = path.join(directory, 'cache'), store = new ProductUpdateFailureStore(cache);
+    const cache = path.join(directory, 'cache'), store = new ProductUpdateFailureStore(cache, verifyPrivateUpdateTestFile);
     let requests = 0, ownersClosed = false, appCanStop = fault !== 'critical-app', quits = 0, handoffs = 0, reopened: DesktopProductUpdateHost | undefined;
     let candidateFile = '';
     const input = {
@@ -46,12 +47,12 @@ for (const fault of ['critical-app', 'critical-formal', 'fresh-file', 'handoff']
         await host.stop();
         // Mirrors the owner-supported relaunch boundary: a new Host and new
         // owners, not a stopped/blocked boolean flip on disposed instances.
-        reopened = new DesktopProductUpdateHost(input);
+        reopened = createProductUpdateTestHost(input);
         const failure = await store.take(); assert.ok(failure);
         reopened.restorePreinstallationFailure(failure); reopened.start(false);
       },
     };
-    const host = new DesktopProductUpdateHost({ ...input, installation: ports });
+    const host = createProductUpdateTestHost({ ...input, installation: ports });
     try {
       await host.check(); await host.install(fixture.candidate.releaseId, true);
       const reason = fault === 'fresh-file' ? 'UPDATE_ASSET_DIGEST_MISMATCH' : fault === 'handoff' ? 'UPDATE_HANDOFF_FAILED' : 'UPDATE_CRITICAL_CLEANUP_FAILED';
@@ -78,7 +79,7 @@ for (const fault of ['critical-app', 'critical-formal', 'fresh-file', 'handoff']
 test('preflight failure remains retryable without quiescing or closing owners', async () => {
   const fixture = signedProductFixture(), directory = await mkdtemp(path.join(os.tmpdir(), 'nimi-preflight-'));
   let requests = 0, shutdowns = 0;
-  const host = new DesktopProductUpdateHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
+  const host = createProductUpdateTestHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
     policy: { ...PRODUCT_UPDATE_POLICY, publicKey: fixture.key },
     fetchImpl: async (url) => String(url).endsWith('latest.json') ? (requests++, new Response(fixture.manifestBytes.toString())) : new Response(Uint8Array.from(fixture.bytes).buffer), verifyInstaller: async () => undefined,
     installation: { ready: async () => true, preflight: async () => { throw new ProductUpdateError('UPDATE_HANDOFF_INVALID'); },

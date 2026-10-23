@@ -3,7 +3,7 @@ import test from 'node:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { DesktopProductUpdateHost } from '../src-electron/product-update-host.js';
+import { createProductUpdateTestHost } from './helpers/product-update-test-cache.js';
 import { MacOSProductUpdateAdapter } from '../src-electron/macos-product-update-adapter.js';
 import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
@@ -13,7 +13,7 @@ test('consent, fresh identity and critical report gate the only installer handof
   const fixture = signedProductFixture(), directory = await mkdtemp(path.join(os.tmpdir(), 'nimi-install-controller-'));
   const order: string[] = [];
   let checks = 0;
-  const host = new DesktopProductUpdateHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
+  const host = createProductUpdateTestHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
     policy: { ...PRODUCT_UPDATE_POLICY, publicKey: fixture.key },
     fetchImpl: async (url) => { if (String(url).endsWith('latest.json')) { checks++; return new Response(fixture.manifestBytes.toString()); } return new Response(Uint8Array.from(fixture.bytes).buffer); },
     verifyInstaller: async () => { order.push('verify'); },
@@ -40,7 +40,7 @@ test('missing consent/readiness, changed candidate, critical failure and handoff
     const replacement = signedProductFixture({ version: '0.4.0' }, undefined, first.privateKey);
     const directory = await mkdtemp(path.join(os.tmpdir(), 'nimi-install-negative-'));
     let checks = 0, shutdowns = 0, handoffs = 0, quits = 0;
-    const host = new DesktopProductUpdateHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
+    const host = createProductUpdateTestHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
       policy: { ...PRODUCT_UPDATE_POLICY, publicKey: first.key },
       fetchImpl: async (url) => { if (String(url).endsWith('latest.json')) return new Response((++checks > 1 && fault === 'candidate' ? replacement : first).manifestBytes.toString()); return new Response(Uint8Array.from(first.bytes).buffer); },
       verifyInstaller: async () => undefined,
