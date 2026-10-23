@@ -1,10 +1,13 @@
 // One-time pre-release data cleanup. Never imported by the product.
 import { DatabaseSync } from 'node:sqlite';
-import { existsSync } from 'node:fs';
+import { closeSync, existsSync, openSync } from 'node:fs';
 import path from 'node:path';
+import { retireLocalAgentTurnSidecars, retireDisabledFollowUpPreferences } from './lib/retire-local-agent-turn-sidecars.mjs';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
+  console.log('Add --retire-turn-sidecars only for the known retired last/completed turn display projection. Canonical chat text, media and follow-up records stay unchanged; the full backup retains original metadata.');
+  console.log('Add --retire-disabled-follow-up-preferences only for obsolete per-anchor OFF controls. Agent contact permission is not changed; active/unknown old preferences are refused.');
   console.log('Optional explicit retirement: --retire-redacted-intentions <ref,ref>. Only named unfinished historical Activity placeholders qualify; current frames still require review. No automatic eviction or Memory deletion.');
   console.log('One-time cut for the known pre-release life-frame control format.\nPreview: pnpm runtime:retire-local-agent-controls --db <absolute memory.db>\nApply after reviewing the listed objects: add --apply --confirm-runtime-stopped --backup <new absolute backup.db>\nAdd --include-historical-contact only to reclassify the retired origin metadata. Chat text, Memory and established history are preserved.\nThis tool does not initialize older databases that have no life-frame storage.');
   process.exit(0);
@@ -61,9 +64,17 @@ if (args.includes('--include-historical-contact')) {
     changes.push({table:'runtime_conversation_turn',key:[row.anchor_id,row.sequence],before:row.turn_json,after:JSON.stringify(turn),summary:{anchor:row.anchor_id,turn:turn.turnId,sequence:row.sequence,change:'retired commitment origin → historical Runtime contact; every message field preserved'}});
   }
 }
+if (args.includes('--retire-turn-sidecars') || args.includes('--retire-disabled-follow-up-preferences')) {
+  for (const row of db.prepare('SELECT anchor_id,anchor_json FROM runtime_conversation_anchor WHERE anchor_json IS NOT NULL').all()) {
+    const result = args.includes('--retire-turn-sidecars') ? retireLocalAgentTurnSidecars(row.anchor_json) : { removed: 0, after: row.anchor_json };
+    const preferences = args.includes('--retire-disabled-follow-up-preferences') ? retireDisabledFollowUpPreferences(result.after) : { removed: false, after: result.after };
+    if (result.removed || preferences.removed) changes.push({ table: 'runtime_conversation_anchor', key: row.anchor_id, before: row.anchor_json, after: preferences.after, summary: { anchor: row.anchor_id, retiredTurnSidecars: result.removed, retiredDisabledFollowUpPreference: preferences.removed } });
+  }
+}
 console.log(JSON.stringify({database:file,mode:apply?'apply':'read-only',changes:changes.map(c=>c.summary),preserved:'Agent identity, established history, Conversation text and Memory/provenance'},null,2));
 if (apply && changes.length) {
   if (changes.some(change => change.summary.current)) throw new Error('A retired activity still owns a current frame. Review its established interval before applying this cut.');
+  closeSync(openSync(backup, 'wx', 0o600));
   db.prepare('VACUUM INTO ?').run(backup);
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -72,7 +83,9 @@ if (apply && changes.length) {
         ? db.prepare('UPDATE runtime_local_agent_life SET life_json=? WHERE local_agent_ref=? AND life_json=?').run(change.after,change.key,change.before)
         : change.table==='runtime_conversation_turn'
           ? db.prepare('UPDATE runtime_conversation_turn SET turn_json=? WHERE anchor_id=? AND sequence=? AND turn_json=?').run(change.after,...change.key,change.before)
-          : db.prepare('UPDATE runtime_conversation_recovery SET recovery_json=? WHERE anchor_id=? AND turn_id=? AND recovery_json=?').run(change.after,...change.key,change.before);
+          : change.table==='runtime_conversation_anchor'
+            ? db.prepare('UPDATE runtime_conversation_anchor SET anchor_json=? WHERE anchor_id=? AND anchor_json=?').run(change.after,change.key,change.before)
+            : db.prepare('UPDATE runtime_conversation_recovery SET recovery_json=? WHERE anchor_id=? AND turn_id=? AND recovery_json=?').run(change.after,...change.key,change.before);
       if (result.changes!==1) throw new Error('The reviewed object changed; no cleanup committed.');
     }
     db.exec('COMMIT');console.log('Cleanup committed; full database backup: '+backup);

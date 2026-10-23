@@ -62,7 +62,7 @@ func (r *runtimeAgentStateRepository) loadAgentLifeState(s *Service) error {
 	}
 	for ref, entry := range s.agents {
 		if entry.Life == nil {
-			return fmt.Errorf("persisted Agent %s has no life-frame state; run the explicit pre-release data cut", ref)
+			return fmt.Errorf("persisted Agent %s has no life-frame state; inspect the explicit pre-release tool with pnpm runtime:initialize-local-agent-life --help", ref)
 		}
 	}
 	return nil

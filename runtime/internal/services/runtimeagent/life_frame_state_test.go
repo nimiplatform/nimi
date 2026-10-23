@@ -3,11 +3,51 @@ package runtimeagent
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestLifeStateMissingRowFailsClosedUntilExplicitInitialization(t *testing.T) {
+	svc := newRuntimeAgentTestService(t)
+	sourceRef := "pre-life-offline-initialization"
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(sourceRef)}); err != nil {
+		t.Fatal(err)
+	}
+	ref := testRuntimeAgentLocalRef(sourceRef)
+	db := svc.stateRepo.backend.DB()
+	var original string
+	if err := db.QueryRow(`SELECT agent_json FROM runtime_local_agent WHERE local_agent_ref=?`, ref).Scan(&original); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM runtime_local_agent_life WHERE local_agent_ref=?`, ref); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.stateRepo.loadStateFromDB(svc); err == nil || !strings.Contains(err.Error(), "no life-frame state") {
+		t.Fatalf("missing persisted state must fail closed: %v", err)
+	}
+	var rows int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM runtime_local_agent_life`).Scan(&rows); err != nil || rows != 0 {
+		t.Fatalf("startup must not initialize missing life implicitly: count=%d error=%v", rows, err)
+	}
+	// Exact minimal row emitted by the explicit pre-release maintenance tool.
+	if _, err := db.Exec(`INSERT INTO runtime_local_agent_life(local_agent_ref,life_json) VALUES(?,?)`, ref, `{"revision":1}`); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.stateRepo.loadStateFromDB(svc); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := svc.agentByID(ref)
+	if err != nil || !lifeStateEqual(entry.Life, newAgentLifeState()) {
+		t.Fatalf("explicit initialization invented life history or failed: %v", err)
+	}
+	var retained string
+	if err := db.QueryRow(`SELECT agent_json FROM runtime_local_agent WHERE local_agent_ref=?`, ref).Scan(&retained); err != nil || retained != original {
+		t.Fatalf("Agent identity/presentation changed: %v", err)
+	}
+}
 
 func TestLifeFramesAdvanceWithoutInferenceAndNeverRewind(t *testing.T) {
 	start := time.Date(2026, 10, 19, 8, 0, 0, 0, time.UTC)
