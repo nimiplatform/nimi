@@ -90,14 +90,15 @@ func selectedLoadoutOptionForTest(selected *localexecution.SelectedLocalExecutio
 }
 
 type localTextHostStub struct {
-	started      chan struct{}
-	release      chan struct{}
-	canceled     chan struct{}
-	err          error
-	streamDeltas []localexecution.TextDelta
-	streamFn     func(context.Context, func(localexecution.TextDelta) error) (localexecution.TextResult, error)
-	result       localexecution.TextResult
-	embedResult  localexecution.EmbedResult
+	started       chan struct{}
+	release       chan struct{}
+	canceled      chan struct{}
+	err           error
+	streamDeltas  []localexecution.TextDelta
+	streamFn      func(context.Context, func(localexecution.TextDelta) error) (localexecution.TextResult, error)
+	prepareStream func(context.Context) error
+	result        localexecution.TextResult
+	embedResult   localexecution.EmbedResult
 
 	mu                sync.Mutex
 	executeCalls      int
@@ -173,6 +174,13 @@ func (h *localTextHostStub) StreamText(
 	h.mu.Unlock()
 	if progress != nil {
 		progress(localexecution.TextExecutionProgressLoading)
+	}
+	if h.prepareStream != nil {
+		if err := h.prepareStream(ctx); err != nil {
+			return localexecution.TextResult{}, err
+		}
+	}
+	if progress != nil {
 		progress(localexecution.TextExecutionProgressReady)
 	}
 	if h.started != nil {
@@ -816,6 +824,62 @@ func TestLocalTextStreamSendFailurePersistsFailedCause(t *testing.T) {
 				metadata := record.job.GetReasonMetadata().AsMap()
 				if metadata["action_hint"] != "retry_or_reopen_stream" || metadata["retryable"] != true {
 					t.Fatalf("stream Send terminal metadata=%v", metadata)
+				}
+			}
+		})
+	}
+}
+
+func TestLocalTextStreamLoadingKeepsAbsoluteCapWithoutSpendingFirstPacketBudget(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		totalTimeout  int32
+		loadDelay     time.Duration
+		wantCompleted bool
+	}{
+		{name: "cold model becomes ready", totalTimeout: 1000, loadDelay: 60 * time.Millisecond, wantCompleted: true},
+		{name: "loading exceeds absolute cap", totalTimeout: 80, loadDelay: time.Second},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			svc.streamFirstPacketTimeout = 10 * time.Millisecond
+			svc.streamIdleTimeout = time.Second
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "cold-stream", "cold-stream.gguf")})
+			svc.SetLocalTextExecutionHost(&localTextHostStub{
+				prepareStream: func(ctx context.Context) error {
+					timer := time.NewTimer(tc.loadDelay)
+					defer timer.Stop()
+					select {
+					case <-timer.C:
+						return nil
+					case <-ctx.Done():
+						return &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+					}
+				},
+				streamDeltas: []localexecution.TextDelta{{Text: "ready response"}},
+				result:       localexecution.TextResult{Text: "ready response", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
+			})
+			executeRequest := localTextExecuteRequestForTest()
+			executeRequest.Head.TimeoutMs = tc.totalTimeout
+			stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
+			started := time.Now()
+			if err := svc.StreamScenario(&runtimev1.StreamScenarioRequest{
+				Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
+				ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
+			}, stream); err != nil {
+				t.Fatal(err)
+			}
+			terminal := stream.events[len(stream.events)-1]
+			if tc.wantCompleted {
+				if terminal.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+					t.Fatalf("cold load consumed first-packet budget: %v", terminal)
+				}
+			} else {
+				if terminal.GetFailed().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+					t.Fatalf("absolute cap terminal = %v", terminal)
+				}
+				if elapsed := time.Since(started); elapsed < 60*time.Millisecond {
+					t.Fatalf("loading timed out after %s instead of reaching the absolute cap", elapsed)
 				}
 			}
 		})

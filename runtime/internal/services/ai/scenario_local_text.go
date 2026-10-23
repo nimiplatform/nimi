@@ -209,6 +209,9 @@ func streamLocalTextGenerateScenario(
 	firstPacketTimedOut := &atomic.Bool{}
 	idleTimedOut := &atomic.Bool{}
 	firstPacketSeen := &atomic.Bool{}
+	// @nimi-authority: rule.nimi.runtime.ai-provider.r089
+	// Loading is bounded by the absolute request cap. The provider's first-packet
+	// budget starts when the captured local model is actually ready to infer.
 	firstTimeout := s.streamFirstPacketTimeout
 	if totalTimeout > 0 && totalTimeout < firstTimeout {
 		firstTimeout = totalTimeout
@@ -287,10 +290,11 @@ func streamLocalTextGenerateScenario(
 	}); err != nil {
 		return err
 	}
-	startFirstPacketTimer()
-	if firstPacketTimer != nil {
-		defer firstPacketTimer.Stop()
-	}
+	defer func() {
+		if firstPacketTimer != nil {
+			firstPacketTimer.Stop()
+		}
+	}()
 
 	var textBuffer strings.Builder
 	textItemOpened := false
@@ -358,7 +362,11 @@ func streamLocalTextGenerateScenario(
 		})
 	} else {
 		var result localexecution.TextResult
-		result, err = s.localTextHost.StreamText(backendCtx, executionEffective.plan, onDelta, nil)
+		result, err = s.localTextHost.StreamText(backendCtx, executionEffective.plan, onDelta, func(progress localexecution.TextExecutionProgress) {
+			if progress == localexecution.TextExecutionProgressReady || progress == localexecution.TextExecutionProgressReused {
+				startFirstPacketTimer()
+			}
+		})
 		if err == nil {
 			observedUsage = localTextUsage(result, executionEffective.request)
 		}
