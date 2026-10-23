@@ -32,7 +32,6 @@ Core command groups:
 - `serve`
 - `start`
 - `doctor`
-- `init`
 - `version`
 - `status`
 - `stop`

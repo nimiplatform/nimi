@@ -35,19 +35,6 @@ func TestRunRuntimeVersionJSON(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeInitMovedToNimiAppCreate(t *testing.T) {
-	err := runRuntimeInit([]string{"--dir", t.TempDir(), "--template", "basic", "--json"})
-	if err == nil {
-		t.Fatalf("expected moved error")
-	}
-	if !strings.Contains(err.Error(), "AUTHOR_COMMAND_MOVED") {
-		t.Fatalf("missing moved reason code: %v", err)
-	}
-	if !strings.Contains(err.Error(), "use_nimi-app_create") {
-		t.Fatalf("missing nimi-app create action hint: %v", err)
-	}
-}
-
 func TestRunRuntimeDoctorJSON(t *testing.T) {
 	homeDir := t.TempDir()
 	configPath := filepath.Join(homeDir, ".nimi", "config.json")

@@ -2,18 +2,14 @@ package entrypoint
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/daemon"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeinstance"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -136,51 +132,6 @@ func runtimeInstanceLockPath() (string, error) {
 // RuntimeInstanceLockPath returns the singleton runtime lock file path.
 func RuntimeInstanceLockPath() (string, error) {
 	return runtimeInstanceLockPath()
-}
-
-// FetchHealth requests runtime health JSON from daemon HTTP endpoint.
-func FetchHealth(httpAddr string, timeout time.Duration) (map[string]any, error) {
-	if httpAddr == "" {
-		return nil, errors.New("http address is required")
-	}
-
-	client := &http.Client{Timeout: timeout}
-	url := fmt.Sprintf("http://%s/v1/runtime/health", httpAddr)
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("request %s: %w", url, err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		if readErr != nil {
-			return nil, fmt.Errorf("health endpoint returned HTTP %d and error body could not be read: %w", resp.StatusCode, readErr)
-		}
-		detail := strings.TrimSpace(string(body))
-		if detail == "" {
-			detail = http.StatusText(resp.StatusCode)
-		}
-		return nil, fmt.Errorf("health endpoint returned HTTP %d: %s", resp.StatusCode, detail)
-	}
-
-	var payload map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, fmt.Errorf("decode health response: %w", err)
-	}
-
-	payload["http_status"] = resp.StatusCode
-	return payload, nil
-}
-
-// ArtifactResult is a collected view from ArtifactChunk streaming RPCs.
-type ArtifactResult struct {
-	ArtifactID    string
-	MimeType      string
-	RouteDecision runtimev1.RoutePolicy
-	ModelResolved string
-	TraceID       string
-	Usage         *runtimev1.UsageStats
-	Payload       []byte
 }
 
 // AuditExportResult is a collected view from AuditExportChunk streaming RPC.

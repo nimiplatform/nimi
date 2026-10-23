@@ -8,7 +8,6 @@ import {
   transcribeAndSubmitCapturedAgentVoiceInput,
 } from '../src/shell/renderer/features/chat/chat-agent-voice-input.js';
 import { createAgentRealtimeTerminalError } from '../src/shell/renderer/features/chat/chat-agent-realtime-voice.js';
-import { AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES } from '../src/shell/renderer/features/chat/chat-agent-runtime-turn-types.js';
 
 test('Desktop Agent voice input transcribes the selected conversation and submits only typed text', async () => {
   const calls: Array<Record<string, unknown>> = [];
@@ -59,7 +58,6 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
   assert.equal(Object.hasOwn(calls[0] ?? {}, 'localAgentRef'), false);
   assert.equal(callOptions[0]?.signal, abortController.signal);
   assert.deepEqual(submitted, [{ text: 'spoken intent', attachments: [] }]);
-  assert.equal(AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES.voiceInput, true);
 });
 
 test('Desktop Agent voice input drops a transcript when the selected conversation changes', async () => {

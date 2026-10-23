@@ -176,62 +176,8 @@ func defaultClientMetadata() ClientMetadata {
 	}
 }
 
-type artifactChunkReceiver interface {
-	Recv() (*runtimev1.ArtifactChunk, error)
-}
-
 type auditExportChunkReceiver interface {
 	Recv() (*runtimev1.AuditExportChunk, error)
-}
-
-func collectArtifactStream(stream artifactChunkReceiver) (*ArtifactResult, error) {
-	result := &ArtifactResult{
-		Usage:   &runtimev1.UsageStats{},
-		Payload: make([]byte, 0, 1024),
-	}
-	seen := false
-	for {
-		chunk, err := stream.Recv()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, fmt.Errorf("recv artifact chunk: %w", err)
-		}
-		if chunk == nil {
-			continue
-		}
-		seen = true
-		if result.ArtifactID == "" {
-			result.ArtifactID = strings.TrimSpace(chunk.GetArtifactId())
-		}
-		if result.MimeType == "" {
-			result.MimeType = strings.TrimSpace(chunk.GetMimeType())
-		}
-		if result.RouteDecision == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-			result.RouteDecision = chunk.GetRouteDecision()
-		}
-		if result.ModelResolved == "" {
-			result.ModelResolved = strings.TrimSpace(chunk.GetModelResolved())
-		}
-		if result.TraceID == "" {
-			result.TraceID = strings.TrimSpace(chunk.GetTraceId())
-		}
-		if usage := chunk.GetUsage(); usage != nil {
-			result.Usage = &runtimev1.UsageStats{
-				InputTokens:  usage.GetInputTokens(),
-				OutputTokens: usage.GetOutputTokens(),
-				ComputeMs:    usage.GetComputeMs(),
-			}
-		}
-		if data := chunk.GetChunk(); len(data) > 0 {
-			result.Payload = append(result.Payload, data...)
-		}
-	}
-	if !seen {
-		return nil, errors.New("artifact stream returned no chunks")
-	}
-	return result, nil
 }
 
 func collectAuditExportStream(stream auditExportChunkReceiver) (*AuditExportResult, error) {

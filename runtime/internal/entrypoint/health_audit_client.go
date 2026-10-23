@@ -10,43 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
-
-func withAuditReadMetadata(ctx context.Context) context.Context {
-	return withNimiOutgoingMetadata(ctx, "nimi.desktop", &ClientMetadata{
-		Domain: "runtime.audit",
-	})
-}
-
-// FetchPublicGRPCHealth checks only the standard public gRPC serving state.
-func FetchPublicGRPCHealth(grpcAddr string, timeout time.Duration) (map[string]any, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, errors.New("grpc address is required")
-	}
-	if timeout <= 0 {
-		timeout = 3 * time.Second
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-	defer func() { _ = conn.Close() }()
-
-	client := healthpb.NewHealthClient(conn)
-	healthResp, err := client.Check(ctx, &healthpb.HealthCheckRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("check public grpc health: %w", err)
-	}
-
-	return map[string]any{
-		"status": healthResp.GetStatus().String(),
-	}, nil
-}
 
 // ListAuditEventsGRPC calls RuntimeAuditService.ListAuditEvents over gRPC.
 func ListAuditEventsGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.ListAuditEventsRequest, metadataOverride ...*ClientMetadata) (*runtimev1.ListAuditEventsResponse, error) {

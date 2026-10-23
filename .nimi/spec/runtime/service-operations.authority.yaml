@@ -835,7 +835,7 @@ units:
     modality: must_not
     statement: The nimi Runtime CLI owns app scaffolding, templates, build profiles, dev, author doctor, update, pack, publish, admission, generated auth helpers, or scaffold audit semantics.
     condition: Whenever an app-author command or template capability is proposed for nimi.
-    failure: Direct authors to the Platform-governed pnpm dlx @nimiplatform/app-tools nimi-app create, doctor, or update family without importing its authority into Runtime.
+    failure: Direct authors to the Platform-governed pnpm dlx @nimiplatform/app-tools nimi-app command family and reject Runtime-owned app-author execution or compatibility aliases.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -866,36 +866,6 @@ units:
     statement: Background management provides the stable nimi start, stop, status, logs, and health grammar, where an admitted background manager or production service controller owns execution, status reports its process or protected-service state plus its reachability classification, and health renders the same manager-owned facts as a bounded diagnostic; a build without an admitted background topology returns a bounded unsupported failure without spawning a fallback process or claiming service state, and neither status nor health queries or exposes the protected detailed Runtime health view.
     condition: Whenever the background Runtime CLI surface is built or invoked.
     failure: Reject a missing command, fallback or pseudo-success on an unavailable topology, a protected health lookup, an unsanitized private reason, or a status or health result presented as detailed Runtime health.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.service-operations.cli-plane
-  - id: rule.nimi.runtime.service-operations.r087
-    kind: rule
-    title: Background start waits for reachable health
-    modality: must
-    statement: nimi start returns success only after the child process starts and the Runtime health probe is reachable, with DEGRADED accepted as reachable success.
-    condition: Whenever nimi start launches a background Runtime.
-    failure: Return failure before reachability is proven and never report process creation alone as success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.service-operations.cli-plane
-  - id: rule.nimi.runtime.service-operations.r088
-    kind: rule
-    title: Status combines process life and Runtime reachability
-    modality: must
-    statement: nimi status checks both process liveness and Runtime reachability rather than only state files and uses distinct exit codes for stopped and live-but-probe-failed outcomes.
-    condition: Whenever nimi status evaluates a background Runtime.
-    failure: Reject state-file-only success or an exit code that conflates stopped with probe failure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.service-operations.cli-plane
-  - id: rule.nimi.runtime.service-operations.r089
-    kind: rule
-    title: Stale daemon state yields to live process truth
-    modality: must
-    statement: Background daemon pid, daemon metadata, and lock state are cleaned fail closed when stale, and live process truth takes precedence whenever stored state disagrees.
-    condition: Whenever background CLI reads or reconciles daemon state files.
-    failure: Remove stale state and reject any action or status based on a contradictory file.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane

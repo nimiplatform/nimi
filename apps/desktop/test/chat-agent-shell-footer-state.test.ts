@@ -4,7 +4,6 @@ import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createInitialAgentTurnLifecycleState,
-  reduceAgentTurnLifecycleState,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-lifecycle.js';
 import {
   isAgentStreamCancelReady,
@@ -66,18 +65,7 @@ test('agent footer state shows streaming but not pending first-beat once partial
 });
 
 test('agent footer state shows interrupted for canceled or failed interrupted terminal snapshots', () => {
-  let canceledLifecycle = createInitialAgentTurnLifecycleState();
-  canceledLifecycle = reduceAgentTurnLifecycleState(canceledLifecycle, {
-    type: 'turn-canceled',
-    turnId: 'turn-1',
-    scope: 'tail',
-    outputText: 'sealed first beat',
-    reasoningText: '',
-    trace: {
-      traceId: 'trace-cancel',
-      promptTraceId: 'prompt-cancel',
-    },
-  });
+  const canceledLifecycle = { ...createInitialAgentTurnLifecycleState(), terminal: 'canceled' as const };
 
   const canceledState = resolveAgentFooterViewState({
     streamState: streamState({
@@ -93,21 +81,7 @@ test('agent footer state shows interrupted for canceled or failed interrupted te
   });
   assert.equal(canceledState.displayState, 'interrupted');
 
-  let failedLifecycle = createInitialAgentTurnLifecycleState();
-  failedLifecycle = reduceAgentTurnLifecycleState(failedLifecycle, {
-    type: 'turn-failed',
-    turnId: 'turn-1',
-    outputText: 'partial answer',
-    reasoningText: '',
-    error: {
-      code: 'RUNTIME_CALL_FAILED',
-      message: 'runtime broke',
-    },
-    trace: {
-      traceId: 'trace-fail',
-      promptTraceId: 'prompt-fail',
-    },
-  });
+  const failedLifecycle = { ...createInitialAgentTurnLifecycleState(), terminal: 'failed' as const };
 
   const failedState = resolveAgentFooterViewState({
     streamState: streamState({
@@ -125,21 +99,7 @@ test('agent footer state shows interrupted for canceled or failed interrupted te
 });
 
 test('agent footer state hides completed terminals even when done snapshot remains', () => {
-  let lifecycle = createInitialAgentTurnLifecycleState();
-  lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
-    type: 'turn-completed',
-    turnId: 'turn-1',
-    outputText: 'final answer',
-    reasoningText: '',
-    usage: {
-      inputTokens: 10,
-      outputTokens: 20,
-    },
-    trace: {
-      traceId: 'trace-done',
-      promptTraceId: 'prompt-done',
-    },
-  });
+  const lifecycle = { ...createInitialAgentTurnLifecycleState(), terminal: 'completed' as const };
 
   const viewState = resolveAgentFooterViewState({
     streamState: streamState({
@@ -158,21 +118,7 @@ test('agent footer state hides completed terminals even when done snapshot remai
 });
 
 test('agent footer state does not regress to interrupted when completed turn leaves behind a stale interrupted snapshot', () => {
-  let lifecycle = createInitialAgentTurnLifecycleState();
-  lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
-    type: 'turn-completed',
-    turnId: 'turn-1',
-    outputText: 'final answer',
-    reasoningText: '',
-    usage: {
-      inputTokens: 10,
-      outputTokens: 20,
-    },
-    trace: {
-      traceId: 'trace-done',
-      promptTraceId: 'prompt-done',
-    },
-  });
+  const lifecycle = { ...createInitialAgentTurnLifecycleState(), terminal: 'completed' as const };
 
   const viewState = resolveAgentFooterViewState({
     streamState: streamState({
@@ -188,29 +134,6 @@ test('agent footer state does not regress to interrupted when completed turn lea
 
   assert.deepEqual(viewState, {
     displayState: 'hidden',
-    pendingFirstBeat: false,
-  });
-});
-
-test('agent footer state is unaffected by projection rebuild while terminal has not arrived', () => {
-  let lifecycle = createInitialAgentTurnLifecycleState();
-  lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
-    type: 'projection-rebuilt',
-    threadId: 'thread-1',
-  });
-
-  const viewState = resolveAgentFooterViewState({
-    streamState: streamState({
-      phase: 'streaming',
-      partialText: 'partial answer',
-    }),
-    lifecycle,
-    currentHostFooterState: 'hidden',
-    isSubmitting: false,
-  });
-
-  assert.deepEqual(viewState, {
-    displayState: 'streaming',
     pendingFirstBeat: false,
   });
 });

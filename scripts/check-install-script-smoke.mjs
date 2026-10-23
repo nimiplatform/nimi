@@ -145,14 +145,28 @@ if ((result.status ?? 1) !== 0) {
 for (const token of [
   `Installing Nimi ${runtimeTag}`,
   archiveName,
-  'Run: nimi start',
-  'Run: nimi doctor',
-  'Run: nimi status',
+  'Run: nimi version',
+  'This script installs the CLI binary only; it does not install a Runtime service.',
+  'Service control commands are unavailable on macOS/Linux builds.',
+  'For source development, run pnpm dev:runtime from a prepared Nimi source checkout.',
 ]) {
   if (!result.output.includes(token)) failSmoke(`missing ${JSON.stringify(token)}`, result);
 }
-if (result.output.includes('Run: nimi serve')) {
-  failSmoke('legacy serve next-step detected', result);
+for (const command of ['start', 'doctor', 'status', 'serve']) {
+  if (result.output.includes(`Run: nimi ${command}`)) {
+    failSmoke(`unsupported ${command} next-step detected`, result);
+  }
+}
+
+// The other admitted installer OS must give the same usable next step.
+const macos = await runInstall(['--dry-run', '--target', 'darwin-arm64', '--version', version]);
+if (macos.status !== 0 || !macos.output.includes('Run: nimi version')) {
+  failSmoke('macOS install does not provide the version check', macos);
+}
+for (const command of ['start', 'doctor', 'status', 'serve']) {
+  if (macos.output.includes(`Run: nimi ${command}`)) {
+    failSmoke(`unsupported macOS ${command} next-step detected`, macos);
+  }
 }
 
 // Another release owner's manifest is refused with a visible reason.

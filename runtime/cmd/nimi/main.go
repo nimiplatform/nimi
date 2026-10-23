@@ -29,8 +29,6 @@ func main() {
 		exitIfCommandError("start", runRuntimeStart(args[2:]))
 	case "doctor":
 		exitIfCommandError("doctor", runRuntimeDoctor(args[2:]))
-	case "init":
-		exitIfCommandError("init", runRuntimeInit(args[2:]))
 	case "version":
 		exitIfCommandError("version", runRuntimeVersion(args[2:]))
 	case "status":

@@ -6,16 +6,6 @@ import type {
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 
-export const AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES = {
-  reasoning: true,
-  continuity: true,
-  firstBeat: false,
-  voiceInput: true,
-  voiceOutput: false,
-  imageGeneration: false,
-  videoGeneration: false,
-} as const;
-
 export type AgentChatUserAttachment = {
   kind: 'image';
   artifactId: string;

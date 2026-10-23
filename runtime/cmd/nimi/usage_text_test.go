@@ -58,6 +58,9 @@ func TestPrintUsageOmitsPublicAppAuthCommand(t *testing.T) {
 	if regexp.MustCompile(`(?m)^\s+mod\s+`).MatchString(output) {
 		t.Fatalf("usage should not expose retired mod command group: %q", output)
 	}
+	if regexp.MustCompile(`(?m)^\s+init\s+`).MatchString(output) {
+		t.Fatalf("usage must not expose the retired Runtime init command: %q", output)
+	}
 	for _, protectedCommand := range []string{"model", "provider", "providers"} {
 		if regexp.MustCompile(`(?m)^\s+` + regexp.QuoteMeta(protectedCommand) + `\s+`).MatchString(output) {
 			t.Fatalf("usage must not expose protected %s command group: %q", protectedCommand, output)
