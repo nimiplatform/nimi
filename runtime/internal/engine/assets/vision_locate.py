@@ -14,6 +14,8 @@ import sys
 import time
 from typing import Any
 
+from model_loading_security import validate_model_directory
+
 PROTOCOL = "nimi-vision-locate/1"
 GROUNDING_DINO_PROTOCOL = "nimi-vision-grounding-dino/1"
 MAX_IMAGE_BYTES = 32 * 1024 * 1024
@@ -123,6 +125,10 @@ def locate_prompt(query: str, geometry: str) -> str:
 
 class TransformersLocator:
     def __init__(self, model_dir: pathlib.Path):
+        try:
+            validate_model_directory(model_dir)
+        except ValueError as error:
+            raise LocateError("AI_LOCAL_EXECUTION_LOAD_FAILED", str(error)) from error
         import torch
         from transformers import AutoTokenizer
         from locateanything_loader.configuration_locateanything import LocateAnythingConfig

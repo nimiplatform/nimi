@@ -11,6 +11,8 @@ import pathlib
 import sys
 from typing import Any
 
+from model_loading_security import validate_model_directory
+
 from speech_audio import normalized_audio_source
 
 
@@ -201,6 +203,7 @@ def cache_key(model_ref: str) -> tuple[str, str, str]:
 
 
 def load_model(model_ref: str) -> tuple[Any, Any]:
+    validate_model_directory(model_ref)
     ensure_transformers_importable()
     key = cache_key(model_ref)
     cached = _MODEL_CACHE.get(key)
@@ -209,12 +212,13 @@ def load_model(model_ref: str) -> tuple[Any, Any]:
     try:
         from transformers import AutoModelForMultimodalLM, AutoProcessor
 
-        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
+        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True, trust_remote_code=False)
         model, loading = AutoModelForMultimodalLM.from_pretrained(
             model_ref,
             device_map=transformers_device_map(),
             dtype=transformers_dtype(),
             local_files_only=True,
+            trust_remote_code=False,
             output_loading_info=True,
         )
         if loading.get("missing_keys") or loading.get("mismatched_keys"):
@@ -244,14 +248,15 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
 
 
 def load_aligner(model_ref: str) -> tuple[Any, Any]:
+    validate_model_directory(model_ref)
     key = cache_key(model_ref)
     if key not in _ALIGNER_CACHE:
         from transformers import AutoProcessor, AutoModelForTokenClassification
-        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
+        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True, trust_remote_code=False)
         config = read_json(str(pathlib.Path(model_ref) / "config.json"))
         if config.get("architectures") != ["Qwen3ASRForTokenClassification"]:
             fail("captured alignment model has the wrong architecture")
-        model, loading = AutoModelForTokenClassification.from_pretrained(model_ref, device_map=transformers_device_map(), dtype=transformers_dtype(), local_files_only=True, output_loading_info=True)
+        model, loading = AutoModelForTokenClassification.from_pretrained(model_ref, device_map=transformers_device_map(), dtype=transformers_dtype(), local_files_only=True, trust_remote_code=False, output_loading_info=True)
         if loading.get("missing_keys") or loading.get("mismatched_keys"):
             fail("captured alignment weights do not completely match the execution model")
         model.eval()

@@ -10,6 +10,7 @@ import sys
 from typing import Any
 
 from speech_audio import normalized_audio_source
+from model_loading_security import validate_model_directory
 
 
 DEFAULT_MAX_NEW_TOKENS = 256
@@ -210,6 +211,7 @@ def cache_key(model_ref: str, return_time_stamps: bool) -> tuple[str, bool, str,
 def load_qwen3_asr_model(model_ref: str, return_time_stamps: bool):
     if return_time_stamps:
         fail("qwen3_asr timestamps require an explicitly captured local aligner and are not admitted")
+    validate_model_directory(model_ref)
     ensure_qwen_asr_importable()
     key = cache_key(model_ref, return_time_stamps)
     cached = _MODEL_CACHE.get(key)
@@ -223,6 +225,8 @@ def load_qwen3_asr_model(model_ref: str, return_time_stamps: bool):
         "dtype": qwen3_asr_dtype(),
         "device_map": qwen3_asr_device_map(),
         "max_new_tokens": max_new_tokens(),
+        "local_files_only": True,
+        "trust_remote_code": False,
     }
     try:
         model = Qwen3ASRModel.from_pretrained(model_ref, **kwargs)

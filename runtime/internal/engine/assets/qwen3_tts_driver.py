@@ -12,6 +12,8 @@ import sys
 import uuid
 from typing import Any
 
+from model_loading_security import validate_model_directory
+
 
 VOICE_TEXT_DESCRIPTION_PREFIX = "qwen3_tts:text-description:"
 VOICE_REFERENCE_AUDIO_PREFIX = "qwen3_tts:reference-audio:"
@@ -291,6 +293,7 @@ def materialize_model_ref(model_ref: str) -> str:
 
 
 def load_qwen_tts_model(model_ref: str):
+    validate_model_directory(model_ref)
     ensure_qwen_tts_importable()
     cache_key = cached_model_key(model_ref)
     cached = _MODEL_CACHE.get(cache_key)
@@ -306,6 +309,8 @@ def load_qwen_tts_model(model_ref: str):
             resolved_model_ref,
             device_map=qwen3_tts_device_map(),
             dtype=qwen3_tts_dtype(),
+            local_files_only=True,
+            trust_remote_code=False,
         )
     except Exception as error:
         fail(f"qwen3_tts model load failed: {error}")

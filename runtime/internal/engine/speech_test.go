@@ -264,6 +264,9 @@ func runPythonDriverResolveModelRefCommand(t *testing.T, name string, script str
 	if err := os.WriteFile(driverPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("write driver script: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(driverPath), "model_loading_security.py"), []byte(modelLoadingSecurityScript), 0o644); err != nil {
+		t.Fatalf("write model code boundary: %v", err)
+	}
 	if name == "qwen3_asr_driver.py" {
 		if err := os.WriteFile(filepath.Join(filepath.Dir(driverPath), "speech_audio.py"), []byte(speechAudioScript), 0o644); err != nil {
 			t.Fatalf("write audio decoder module: %v", err)
@@ -306,6 +309,9 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 	driverPath := filepath.Join(tempDir, "qwen3_asr_driver.py")
 	if err := os.WriteFile(driverPath, []byte(speechQwen3ASRDriverScript), 0o755); err != nil {
 		t.Fatalf("write driver script: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "model_loading_security.py"), []byte(modelLoadingSecurityScript), 0o644); err != nil {
+		t.Fatalf("write model code boundary: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(tempDir, "speech_audio.py"), []byte(speechAudioScript), 0o644); err != nil {
 		t.Fatalf("write audio decoder module: %v", err)

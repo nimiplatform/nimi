@@ -2,6 +2,9 @@ package engine
 
 import _ "embed"
 
+//go:embed assets/model_loading_security.py
+var modelLoadingSecurityScript string
+
 //go:embed assets/speech_server.py
 var speechServerScript string
 

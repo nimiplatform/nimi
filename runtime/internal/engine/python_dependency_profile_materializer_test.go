@@ -49,6 +49,7 @@ func TestVerifyPythonDependencyProfileStaticContentRejectsLockAndDriverDrift(t *
 	}{
 		{name: "lock", relative: filepath.Join(pythonDependencyProfileInputDir, "uv.lock"), wantDetail: "static content drift"},
 		{name: "driver", relative: "qwen3_tts_driver.py", wantDetail: "static content drift"},
+		{name: "model code boundary", relative: "model_loading_security.py", wantDetail: "static content drift"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			root := t.TempDir()

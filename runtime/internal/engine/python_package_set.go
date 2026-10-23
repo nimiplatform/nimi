@@ -120,6 +120,11 @@ var speechAudioScriptFile = struct {
 	Script *string
 }{Name: "speech_audio.py", Script: &speechAudioScript}
 
+var modelLoadingSecurityScriptFile = struct {
+	Name   string
+	Script *string
+}{Name: "model_loading_security.py", Script: &modelLoadingSecurityScript}
+
 var speechQwen3ASRTransformersDriverScriptFile = struct {
 	Name   string
 	Script *string
@@ -161,21 +166,21 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 			Name   string
 			Script *string
 		}{}, speechServerScriptFiles...)
-		files = append(files, speechQwen3TTSDriverScriptFile)
+		files = append(files, speechQwen3TTSDriverScriptFile, modelLoadingSecurityScriptFile)
 		return files
 	case "speech.qwen3-asr.python":
 		files := append([]struct {
 			Name   string
 			Script *string
 		}{}, speechServerScriptFiles...)
-		files = append(files, speechQwen3ASRDriverScriptFile, speechAudioScriptFile)
+		files = append(files, speechQwen3ASRDriverScriptFile, speechAudioScriptFile, modelLoadingSecurityScriptFile)
 		return files
 	case "speech.qwen3-asr-transformers.python":
 		files := append([]struct {
 			Name   string
 			Script *string
 		}{}, speechServerScriptFiles...)
-		files = append(files, speechQwen3ASRTransformersDriverScriptFile, speechAudioScriptFile)
+		files = append(files, speechQwen3ASRTransformersDriverScriptFile, speechAudioScriptFile, modelLoadingSecurityScriptFile)
 		return files
 	case "speech.demucs.python":
 		files := append([]struct {
