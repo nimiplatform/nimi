@@ -126,7 +126,7 @@ export default defineConfig(({ mode }) => {
     envPrefix: [],
     define: createWebPublicEnvDefines(publicEnv),
     resolve: {
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'i18next', 'react-i18next'],
       alias: [
         { find: /^@nimiplatform\/kit\/auth\/styles\.css$/, replacement: path.resolve(import.meta.dirname, '../../kit/auth/src/styles.css') },
         { find: /^@nimiplatform\/kit\/auth$/, replacement: path.resolve(import.meta.dirname, '../../kit/auth/src/index.ts') },

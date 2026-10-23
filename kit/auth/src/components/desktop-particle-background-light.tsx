@@ -1,18 +1,12 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { createNoise3D } from 'simplex-noise';
+import { allowsParticleMotion, type ParticleMotionEnvironment } from './particle-background-policy.js';
+import { particleCellKey, visitParticleNeighbors } from './particle-background-neighbors.js';
 
 type ParticleBackgroundProfile = 'desktop' | 'web';
-type ParticleBackgroundEnvironment = {
+type ParticleBackgroundEnvironment = ParticleMotionEnvironment & {
   document: Pick<Document, 'createElement'>;
-  matchMedia?: (query: string) => { matches: boolean };
-  navigator?: {
-    hardwareConcurrency?: number;
-    deviceMemory?: number;
-    connection?: {
-      saveData?: boolean;
-    };
-  };
 };
 
 const BASE_PARTICLE_CONFIG = {
@@ -30,11 +24,6 @@ const BASE_PARTICLE_CONFIG = {
   centerStopRadius: 60,
   centerVortexForce: 1.2,
   hoverNoiseScale: 0.006,
-} as const;
-
-const lowCapabilityThresholds = {
-  hardwareConcurrency: 2,
-  deviceMemory: 2,
 } as const;
 
 function resolveParticleConfig(profile: ParticleBackgroundProfile) {
@@ -60,26 +49,7 @@ function readResolvedColorToken(element: HTMLElement, tokenName: string): string
 }
 
 export function shouldEnableDesktopParticleBackground(env: ParticleBackgroundEnvironment): boolean {
-  if (env.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-    return false;
-  }
-
-  const navigatorInfo = env.navigator;
-  if (navigatorInfo?.connection?.saveData) {
-    return false;
-  }
-  if (
-    typeof navigatorInfo?.hardwareConcurrency === 'number' &&
-    navigatorInfo.hardwareConcurrency <= lowCapabilityThresholds.hardwareConcurrency
-  ) {
-    return false;
-  }
-  if (
-    typeof navigatorInfo?.deviceMemory === 'number' &&
-    navigatorInfo.deviceMemory <= lowCapabilityThresholds.deviceMemory
-  ) {
-    return false;
-  }
+  if (!allowsParticleMotion(env)) return false;
 
   const canvas = env.document.createElement('canvas') as HTMLCanvasElement;
   return Boolean(
@@ -127,7 +97,7 @@ export function DesktopParticleBackgroundLight(
         return new THREE.WebGLRenderer({
           alpha: true,
           antialias: true,
-          powerPreference: 'high-performance',
+          powerPreference: 'low-power',
         });
       } catch {
         return null;
@@ -150,13 +120,6 @@ export function DesktopParticleBackgroundLight(
 
     const noise3D = createNoise3D();
     const connectDistanceSq = CONFIG.connectDistance * CONFIG.connectDistance;
-    const neighborOffsets = [
-      [0, 0],
-      [1, -1],
-      [1, 0],
-      [1, 1],
-      [0, 1],
-    ] as const;
     const spatialBuckets = new Map<number, number[]>();
     const cellCoords = new Int32Array(CONFIG.particleCount * 2);
     const bucketPool: number[][] = [];
@@ -172,10 +135,6 @@ export function DesktopParticleBackgroundLight(
       bucketPoolIndex++;
       return b;
     }
-    function hashCell(cx: number, cy: number): number {
-      return ((cx + 4096) << 13) | (cy + 4096);
-    }
-
     function computeCurl(x: number, y: number, z: number) {
       const eps = 0.1;
       const psiY = (noise3D(x, y + eps, z) - noise3D(x, y - eps, z)) / (2 * eps);
@@ -235,6 +194,7 @@ export function DesktopParticleBackgroundLight(
     const lineGeometry = new THREE.BufferGeometry();
     const linePositions = new Float32Array(MAX_LINES * 6);
     const lineOpacities = new Float32Array(MAX_LINES * 2);
+    const lineParticleIndices = new Int32Array(MAX_LINES * 2);
 
     lineGeometry.setAttribute(
       'position',
@@ -284,7 +244,10 @@ export function DesktopParticleBackgroundLight(
     const raycaster = new THREE.Raycaster();
     const mouse3D = new THREE.Vector3();
 
+    let lastInteraction = performance.now();
     const onMouseMove = (event: MouseEvent) => {
+      lastInteraction = performance.now();
+      if (isPaused()) return;
       const rect = container.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / height) * 2 + 1;
@@ -293,14 +256,22 @@ export function DesktopParticleBackgroundLight(
     };
     window.addEventListener('mousemove', onMouseMove);
 
-    let frameId: number;
-    const timer = new THREE.Timer();
+    let frameId: number | null = null;
+    let previousFrame = performance.now();
+    let elapsed = 0;
+    let disposed = false;
+    const isPaused = () => document.hidden || document.activeElement?.matches('input, textarea, [contenteditable="true"], [contenteditable=""]');
 
-    const animate = () => {
+    const animate = (now: number) => {
+      frameId = null;
+      if (disposed || isPaused()) return;
       frameId = requestAnimationFrame(animate);
-      timer.update();
-      const delta = Math.min(timer.getDelta(), 0.05);
-      const time = timer.getElapsed() * CONFIG.timeScale;
+      const interval = isHoveredRef.current || now - lastInteraction < 2000 ? 1000 / 30 : 100;
+      if (now - previousFrame < interval) return;
+      const delta = Math.min((now - previousFrame) / 1000, 0.1);
+      previousFrame = now;
+      elapsed += delta;
+      const time = elapsed * CONFIG.timeScale;
 
       lineMaterial.uniforms['uMouse']?.value.copy(mouse3D);
 
@@ -325,14 +296,9 @@ export function DesktopParticleBackgroundLight(
         const dist = Math.sqrt(distSq);
         if (lineIndex < MAX_LINES) {
           const alpha = 1.0 - dist / CONFIG.connectDistance;
-          const l6 = lineIndex * 6;
           const l2 = lineIndex * 2;
-          linePosArray[l6] = positions[i3]!;
-          linePosArray[l6 + 1] = positions[i3 + 1]!;
-          linePosArray[l6 + 2] = positions[i3 + 2]!;
-          linePosArray[l6 + 3] = positions[j3]!;
-          linePosArray[l6 + 4] = positions[j3 + 1]!;
-          linePosArray[l6 + 5] = positions[j3 + 2]!;
+          lineParticleIndices[l2] = i;
+          lineParticleIndices[l2 + 1] = j;
           lineOpArray[l2] = alpha * 0.25;
           lineOpArray[l2 + 1] = alpha * 0.25;
           lineIndex++;
@@ -372,7 +338,7 @@ export function DesktopParticleBackgroundLight(
         const cy = Math.floor(positions[i3 + 1]! / CONFIG.connectDistance);
         cellCoords[i * 2] = cx;
         cellCoords[i * 2 + 1] = cy;
-        const key = hashCell(cx, cy);
+        const key = particleCellKey(cx, cy);
         const bucket = spatialBuckets.get(key);
         if (bucket) {
           bucket.push(i);
@@ -383,41 +349,9 @@ export function DesktopParticleBackgroundLight(
         }
       }
 
-      for (const [, bucket] of spatialBuckets) {
-        const cellX = cellCoords[bucket[0]! * 2]!;
-        const cellY = cellCoords[bucket[0]! * 2 + 1]!;
-        for (const [offsetX, offsetY] of neighborOffsets) {
-          const neighborBucket = spatialBuckets.get(hashCell(cellX + offsetX, cellY + offsetY));
-          if (!neighborBucket) {
-            continue;
-          }
-
-          if (offsetX === 0 && offsetY === 0) {
-            for (let i = 0; i < bucket.length; i++) {
-              const left = bucket[i];
-              if (left === undefined) {
-                continue;
-              }
-              for (let j = i + 1; j < bucket.length; j++) {
-                const right = bucket[j];
-                if (right !== undefined) {
-                  registerPair(left, right);
-                }
-              }
-            }
-            continue;
-          }
-
-          for (const left of bucket) {
-            for (const right of neighborBucket) {
-              registerPair(left, right);
-            }
-          }
-        }
-      }
+      visitParticleNeighbors(spatialBuckets, cellCoords, CONFIG.particleCount, registerPair);
 
       lineGeometry.setDrawRange(0, lineIndex * 2);
-      lineGeometry.attributes['position']!.needsUpdate = true;
       lineGeometry.attributes['opacity']!.needsUpdate = true;
 
       const visibleHeightLocal = 2 * Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
@@ -489,11 +423,39 @@ export function DesktopParticleBackgroundLight(
         positions[i3 + 1] = py;
       }
 
+      // Edges and dots use the same integrated positions, including at the
+      // lower idle update rate; otherwise their endpoints lag by one update.
+      for (let line = 0; line < lineIndex; line++) {
+        const from = lineParticleIndices[line * 2]! * 3;
+        const to = lineParticleIndices[line * 2 + 1]! * 3;
+        const offset = line * 6;
+        linePosArray[offset] = positions[from]!;
+        linePosArray[offset + 1] = positions[from + 1]!;
+        linePosArray[offset + 2] = positions[from + 2]!;
+        linePosArray[offset + 3] = positions[to]!;
+        linePosArray[offset + 4] = positions[to + 1]!;
+        linePosArray[offset + 5] = positions[to + 2]!;
+      }
+      lineGeometry.attributes['position']!.needsUpdate = true;
       particles.geometry.attributes['position']!.needsUpdate = true;
       renderer.render(scene, camera);
     };
 
-    animate();
+    const syncAnimation = () => {
+      if (disposed) return;
+      if (isPaused()) {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+      } else if (frameId === null) {
+        previousFrame = performance.now();
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+    const onFocusChange = () => queueMicrotask(syncAnimation);
+    document.addEventListener('visibilitychange', syncAnimation);
+    document.addEventListener('focusin', onFocusChange);
+    document.addEventListener('focusout', onFocusChange);
+    syncAnimation();
 
     const onResize = () => {
       if (!containerRef.current) return;
@@ -502,13 +464,18 @@ export function DesktopParticleBackgroundLight(
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+      if (isPaused()) renderer.render(scene, camera);
     };
     window.addEventListener('resize', onResize);
 
     return () => {
+      disposed = true;
       window.removeEventListener('resize', onResize);
       window.removeEventListener('mousemove', onMouseMove);
-      cancelAnimationFrame(frameId);
+      document.removeEventListener('visibilitychange', syncAnimation);
+      document.removeEventListener('focusin', onFocusChange);
+      document.removeEventListener('focusout', onFocusChange);
+      if (frameId !== null) cancelAnimationFrame(frameId);
       container.removeChild(renderer.domElement);
       renderer.dispose();
       scene.clear();

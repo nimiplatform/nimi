@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { resolveInitialLocale } from '../landing/i18n/locale.js';
+import { loadWebLocaleFont } from '../fonts.js';
 
 const en = {
   Common: { back: 'Back' },
@@ -199,6 +200,7 @@ export async function initializeWebAccountI18n(): Promise<void> {
     navigatorLanguage: navigator.language,
   });
   document.documentElement.lang = language;
+  loadWebLocaleFont(language);
   await i18n.use(initReactI18next).init({
     lng: language,
     fallbackLng: 'en',

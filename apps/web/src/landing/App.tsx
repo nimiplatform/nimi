@@ -13,6 +13,7 @@ import { loadLandingContent, type LandingContent } from './content/landing-conte
 import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
 import { useSectionPaging } from './hooks/use-section-paging.js';
 import { useHeroAppsMorph } from './hooks/use-hero-apps-morph.js';
+import { loadWebLocaleFont } from '../fonts.js';
 import {
   applyLocaleToLocation,
   persistLocale,
@@ -137,6 +138,7 @@ export function App() {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = locale;
+      loadWebLocaleFont(locale);
       const isZh = locale === 'zh';
       const title = isZh ? 'Nimi｜你的 AI，由你定义。' : 'Nimi | Your AI, Your way.';
       const description = isZh

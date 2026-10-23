@@ -1,6 +1,7 @@
 import { PreviewMessageError } from '../i18n/preview-messages.js';
 import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
+import { loadOddBureauFont } from '../../fonts.js';
 import {
   useCallback,
   useEffect,
@@ -2400,6 +2401,7 @@ function Setup({ onBack }: { onBack: () => void }) {
 /* ------------------------------------------------------------------------ */
 
 export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPreview }) {
+  useEffect(loadOddBureauFont, []);
   const { t } = useAppPreviewLocale();
   const photo = content.photo;
   const [route, setRoute] = useState<'home' | 'round' | 'setup' | 'mystery'>('home');

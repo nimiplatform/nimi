@@ -56,7 +56,7 @@ function AppArtworkIcon({ item, size }: { item: HeroDemoAppItem; size: keyof typ
       }}
     >
       {item.iconSrc ? (
-        <img src={item.iconSrc} alt="" className="absolute inset-0 h-full w-full object-contain" />
+        <img src={item.iconSrc} alt="" loading="lazy" decoding="async" width={size === 'xs' ? 24 : 64} height={size === 'xs' ? 24 : 64} className="absolute inset-0 h-full w-full object-contain" />
       ) : deriveIconGlyph(item.name)}
     </span>
   );
