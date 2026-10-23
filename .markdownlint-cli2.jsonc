@@ -13,7 +13,6 @@
     "!**/.git/**",
     "!**/.cache/**",
     "!_external/**",
-    "!archive/**",
     "!.local/**",
     "!.nimi/local/**",
     "!**/dist/**",

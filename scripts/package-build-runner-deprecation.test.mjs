@@ -102,7 +102,7 @@ test('root build holds the workspace surface lock across consumer builds', () =>
   );
   assert.equal(
     packageJson.scripts['build:all'],
-    'node scripts/with-workspace-surfaces.mjs -- pnpm --recursive --filter=!@nimiplatform/sdk --filter=!@nimiplatform/kit build',
+    'node scripts/with-workspace-surfaces.mjs -- pnpm --recursive --filter=!@nimiplatform/sdk --filter=!@nimiplatform/kit --filter=!@nimi-prototype/os-field --filter=!@nimiplatform/runtime-ux build',
   );
 });
 

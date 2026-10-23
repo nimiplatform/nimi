@@ -331,7 +331,6 @@ Drift check commands:
 
 - `pnpm check:runtime-catalog-drift`
 - `pnpm check:runtime-selection-freshness`
-- `pnpm check:runtime-provider-yaml-first-hardcut`
 - `pnpm check:runtime-provider-endpoint-ssot`
 
 ## 9. Non-goals

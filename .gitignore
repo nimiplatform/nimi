@@ -46,7 +46,7 @@ coverage/
 _external/
 /$HOME/
 
-# legacy execution-doc roots are archive/local-only
+# retired execution-doc root remains local-only
 dev/
 
 # repo-tracked execution support inputs live under config/**
@@ -93,7 +93,3 @@ output/
 tmp/
 docs/superpowers
 design-qa.md
-
-# Preserve the archived Simulator build sources, not generated output.
-!/archive/simulator/apps/simulator/build/
-!/archive/simulator/apps/simulator/build/**

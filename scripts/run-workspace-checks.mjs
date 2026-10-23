@@ -33,6 +33,7 @@ await withWorkspaceSurfaces({ repoRoot, label: 'selected workspace tests and bui
   run('pnpm', [
     '--recursive', ...filterArgs,
     '--filter=!@nimiplatform/sdk', '--filter=!@nimiplatform/kit',
+    '--filter=!@nimi-prototype/os-field', '--filter=!@nimiplatform/runtime-ux',
     '--if-present', 'build',
   ]);
   if (process.env.SCRIPTS_CHANGED === 'true') run(process.execPath, ['scripts/run-script-tests.mjs']);

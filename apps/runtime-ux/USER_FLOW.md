@@ -6,9 +6,21 @@
 > (`rule.nimi.desktop.product-surfaces.r023`), so implementing this design in production requires
 > prior `.nimi/spec/**` alignment.
 
-## Problem statement
+This document preserves an earlier design proposal, not the current Desktop navigation
+or an active implementation plan. For the current surface ownership, see
+[Desktop guidance](../desktop/AGENTS.md#settings-like-surfaces-ia-ownership).
 
-The current Desktop Runtime panel has a 7-entry sidebar, and several entries hide a second level
+Root `build:all`, its pre-release checks, and CI workspace builds exclude this package.
+The study can still be run or built explicitly from the repository root:
+
+```bash
+pnpm --filter @nimiplatform/runtime-ux dev
+pnpm --filter @nimiplatform/runtime-ux build
+```
+
+## Original problem statement
+
+The Desktop Runtime panel at the time of this study had a 7-entry sidebar, and several entries hid a second level
 of `PillTabs`:
 
 - **Overview** — dashboard
@@ -19,7 +31,7 @@ of `PillTabs`:
 - **Cloud Connectors** — provider API keys/OAuth, test
 - **Environment** — 5 subtabs: Local AI, Health, Activity, Access (external-agent tokens), Data & Storage
 
-First-round problems (still valid):
+First-round observations:
 
 1. **Concept overlap.** "Model Market", "Local Assets", and "Loadouts" all talk about models.
    Users install a model and expect it to answer — but installation and selection live in

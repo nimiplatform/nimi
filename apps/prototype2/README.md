@@ -2,6 +2,9 @@
 
 Status: **product-layer aesthetic study, non-authoritative**. It is not admitted, wired to real App renderers, or connected to a State Engine.
 
+This design experiment remains available through the explicit commands below. Root
+`build:all`, its pre-release checks, and CI workspace builds exclude this package.
+
 Variant 2 explores an alternative shell language inspired by the Aurora spatial-OS concept (based on the reference video and `github.com/sxuff/aurora`, unlicensed — **design language re-implemented from scratch, no code copied**). Instead of a traditional desktop, it presents:
 
 - A luminous gradient *field*

@@ -9,7 +9,7 @@
   "scripts": {
     "build": "node scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:prepared": "pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/lab build",
-    "build:all": "node scripts/with-workspace-surfaces.mjs -- pnpm --recursive --filter=!@nimiplatform/sdk --filter=!@nimiplatform/kit build",
+    "build:all": "node scripts/with-workspace-surfaces.mjs -- pnpm --recursive --filter=!@nimiplatform/sdk --filter=!@nimiplatform/kit --filter=!@nimi-prototype/os-field --filter=!@nimiplatform/runtime-ux build",
     "build:avatar": "pnpm --filter @nimiplatform/avatar build",
     "smoke:avatar-live2d": "pnpm --filter @nimiplatform/avatar run smoke:agent-center-live2d",
     "build:install-gateway": "pnpm --filter @nimiplatform/install-gateway build",
