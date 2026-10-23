@@ -170,13 +170,18 @@ macOS Edit items use native roles with no renderer callbacks; other shortcuts
 have one declared owner. Every registered WebContents uses isolated zoom.
 
 ### Platform Runtime Carrier
-The public Windows native package targets the existing D2 Runtime. A
-Desktop-launched installed App loads that binding from its own package;
-workspace native-entry overrides remain limited to the default Electron
-development host. Both use the current non-elevated Runtime peer checks,
-Desktop parent supervision, and Runtime-owned registration/session/App Access.
-This carrier does not enable Catalog or installed launch by itself, and does
-not claim compatibility with the separately governed production Runtime service.
+The public Windows native package targets the formal Runtime service and its
+Platform-authenticated installed inventory. A Desktop-launched installed App
+loads the binding from its own package. Source D2 development uses an explicitly
+built source-development carrier; it does not fall back to the production
+profile or replace production Desktop control. Workspace native-entry overrides
+remain limited to the default Electron development host.
+
+Both paths retain their exact peer checks, Desktop supervision, and
+Runtime-owned registration/session/App Access. The carrier alone does not grant
+Catalog admission or installed launch. See the [native package guide](../protected-local-node/README.md)
+for platform profiles and match the Runtime, SDK, Kit, and native package to the
+contracts being consumed; source-only APIs are not implied by a package version.
 
 ### Architectural Invariants
 - Main process code owns app-scoped IPC command registration, origin

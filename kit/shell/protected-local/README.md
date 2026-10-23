@@ -50,7 +50,7 @@ development certificate carries no product identity. The Host-only updater query
 has no arguments and returns the fixed admitted helper and public-key projection;
 it never replaces code, selects a release, or controls the service.
 
-Its complete admitted Local App operation surface is session status, three
+Its admitted Local App operations include session status, three
 protected principal-partitioned JSON storage operations, exact WorldCore
 list/create, the selected RuntimeAgent conversation operations, bounded
 Runtime-selected foreground text candidates, owner-free whole-object App
@@ -60,7 +60,12 @@ Runtime derives both AIConfig owners from the protected Local App session. The
 shared Agent AIConfig surface carries no individual Agent handle; autonomy and
 presentation accept only an opaque session-scoped handle and independent
 revision CAS. Presentation commit projects the previous profile needed for
-restore. AI profile mutation and Artifact operations are not exposed.
+restore. Exact App-owned Artifact upload and read operations retain Runtime's
+ownership, size, and lifetime checks; they do not expose arbitrary local paths
+or unscoped Artifact access. AI profile mutation is not exposed. The
+[native package guide](../protected-local-node/README.md) describes the public
+carrier and its target profiles; consuming a source-only contract requires the
+matching Runtime, SDK, Kit, and native builds.
 
 Independent `agent.work` requests use business Agent references, execution IDs,
 ordered bounded events, and tool-result handoff. No work input or tool result is

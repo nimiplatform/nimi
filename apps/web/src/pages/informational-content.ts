@@ -231,8 +231,8 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       ],
       startTitle: '如何开始',
       startBody:
-        '准备兼容的 Nimi 开发实例后，打开 Nimi Home 并通过浏览器登录，再进入应用、角色和世界。角色互动需要相应访问权限和 AI 配置。',
-      availability: '当前没有已发布的正式安装包；下载页会说明各平台的真实状态。',
+        '从下载页选择适合你设备的测试安装包，打开 Nimi Home 并通过浏览器登录，再进入应用、角色和世界。角色互动需要相应访问权限和 AI 配置。',
+      availability: '当前提供 Beta 测试版本，尚无 Stable 正式版；可用平台、系统要求和版本限制以下载页为准。',
       downloadCta: '查看下载状态',
       appsCta: '浏览全部应用',
     },
@@ -294,8 +294,8 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       ],
       startTitle: 'How to start',
       startBody:
-        'With a compatible Nimi development installation, open Nimi Home, sign in through your browser, and enter apps, characters, and worlds. Character interaction requires the relevant access and AI configuration.',
-      availability: 'There is no stable public installer yet; the download page describes the real status for each platform.',
+        'Choose a test installer for your device from the download page, open Nimi Home, sign in through your browser, and enter apps, characters, and worlds. Character interaction requires the relevant access and AI configuration.',
+      availability: 'Beta test builds are available; there is no Stable release yet. See the download page for supported platforms, system requirements, and version limitations.',
       downloadCta: 'Check download status',
       appsCta: 'Browse all apps',
     },

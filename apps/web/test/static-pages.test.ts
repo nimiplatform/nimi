@@ -46,6 +46,8 @@ test('app detail renders capabilities, platforms, license, and public source', (
 test('home page exposes the worlds anchor and honest availability', () => {
   const html = renderRoute('/home', '/home', createElement(StaticPage, { kind: 'home' }));
   assert.match(html, /id="worlds"/);
-  assert.match(html, /no stable public installer|没有已发布的正式安装包/);
+  assert.match(html, /Beta/);
+  assert.match(html, /no Stable release|尚无 Stable 正式版/);
+  assert.doesNotMatch(html, /development installation|开发实例/);
   assert.match(html, /href="\/download\?lang=(en|zh)"/);
 });

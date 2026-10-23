@@ -39,9 +39,9 @@ Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：
 
 请先确保你的开发机器已安装以下工具：
 
-- **Node.js**：`>= 24`
-- **pnpm**：`>= 10`
-- **Go**：`>= 1.26.9`（编译和调试 Runtime 必备，具体版本以 `runtime/go.mod` 为准）
+- **Node.js**：`>= 24.22.1 < 25`（Node 24 LTS 分支）
+- **pnpm**：`10.34.7`（与根目录 `packageManager` 保持一致）
+- **Go**：`>= 1.26.10`（编译和调试 Runtime 必备，具体版本以 `runtime/go.mod` 为准）
 - **Git**
 
 *可选工具（按需安装）：*
@@ -59,22 +59,24 @@ pnpm -v
 
 ## 3. 首次配置与安装依赖
 
-在编译任何项目前，先在仓库根目录下创建环境配置文件：
+以下配置用于源码联调，不是使用测试安装包的前置条件。体验现有测试版本请从[下载页](https://nimi.ai/download)选择对应平台。
+
+源码联调的 `pnpm dev:runtime` 启动器固定连接 `http://127.0.0.1:3002` 的 Realm，需要预先具备允许当前开发客户端接入的本地联调服务。公开仓库不包含 Realm 服务端实现；安装本仓库依赖不会启动 Realm。缺少该服务时，账号全链路联调尚不可用，可先使用测试安装包体验产品。
 
 ### 步骤 1：创建 `.env`
-在仓库根目录新建 `.env`（可参考 `.env.example`）：
+在仓库根目录新建 `.env`（可参考 `.env.example`）。以下本地地址仅适用于相应服务已配置并运行的联调环境；修改环境变量不会改变源码 Runtime 启动器的固定 Realm 地址：
 
 ```bash
 # nimi/.env
 NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
-NIMI_REALM_URL=http://localhost:3002
+NIMI_REALM_URL=http://127.0.0.1:3002
 NIMI_CONTROL_PLANE_URL=http://localhost:46372
 NIMI_WEB_URL=http://localhost:3000
 ```
 
 > **参数说明**：
 > - `NIMI_RUNTIME_BRIDGE_MODE`：本地源码联调请固定使用 `RUNTIME`（发布测试使用 `RELEASE`）。
-> - `NIMI_REALM_URL`：Realm 服务地址。
+> - `NIMI_REALM_URL`：本地联调 Realm 地址；这里的 `127.0.0.1:3002` 不是本仓库提供或自动启动的服务。
 > - `NIMI_CONTROL_PLANE_URL`：本地 Runtime 控制面 HTTP 监听地址（默认端口 `46372`）。
 > - `NIMI_WEB_URL`：面向 Web 功能的基础地址（注：Desktop 登录 URL 与一次性回环回调由 Runtime 签发，不从此变量拼接）。
 > - *提示：请勿将包含私有配置或密钥的 `.env` 提交到 Git。*
