@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"os"
 	"path/filepath"
@@ -136,6 +137,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 			references = &nimillm.SpeechReferenceAudio{IdentityAudio: refs.IdentityAudio, PerformanceAudio: refs.PerformanceAudio, PerformanceText: request.GetPerformanceAudio().GetText()}
 		}
 	}
+	aitelemetry.Begin(ctx)
 	artifactBody, usage, err := backend.SynthesizeSpeechArtifactBody(ctx, plan.ModelAssetID(), request, nil, references)
 	if err != nil {
 		return localexecution.SpeechSynthesisResult{}, host.speechHostBackendError(ctx, err)
@@ -193,6 +195,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 		}
 		return localexecution.SpeechTranscriptionResult{}, err
 	}
+	aitelemetry.Begin(ctx)
 	transcript, usage, err := backend.Transcribe(ctx, plan.ModelAssetID(), plan.Request(), plan.AudioBytes(), plan.MIMEType(), nil)
 	if err != nil {
 		return localexecution.SpeechTranscriptionResult{}, host.speechHostBackendError(ctx, err)
@@ -253,6 +256,7 @@ func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *c
 	if err != nil {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, err)
 	}
+	aitelemetry.Begin(ctx)
 	result, err := backend.CreateLocalVoice(ctx, payload)
 	if err != nil {
 		return localexecution.VoiceCreateResult{}, host.speechHostBackendError(ctx, err)

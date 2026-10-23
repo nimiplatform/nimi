@@ -96,7 +96,7 @@ func (s *Service) prepareLocalScenarioJob(
 		cancel()
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return stored, jobCtx, nil
+	return stored, s.scenarioObservationContext(jobCtx, stored.GetJobId()), nil
 }
 
 func (s *Service) queueImmediateScenarioJob(jobID string) error {

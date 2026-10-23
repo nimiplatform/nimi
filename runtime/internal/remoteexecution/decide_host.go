@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"strings"
 	"time"
 
@@ -74,6 +75,7 @@ func (h *ProviderDecideHost) ExecuteDecide(
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
+	aitelemetry.Begin(ctx)
 	body, err := h.transport.DecideWithTarget(ctx, request.ProviderModelID(), request.Body(), remoteTarget)
 	if err != nil {
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, dispatchExit(ctx, "error"), err)

@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"log/slog"
 	"math"
@@ -143,7 +144,7 @@ func (h *ExecutionHost) ExecuteEmbed(
 	ctx context.Context,
 	plan *capabilitydriver.EmbedInvocationPlan,
 	progress localexecution.TextProgressFunc,
-) (localexecution.EmbedResult, error) {
+) (result localexecution.EmbedResult, executionErr error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -189,6 +190,14 @@ func (h *ExecutionHost) ExecuteEmbed(
 	}
 	request.Header.Set("Content-Type", "application/json")
 	authorizeLlamaRequest(request, h.substrate)
+	attempt := aitelemetry.Begin(ctx)
+	defer func() {
+		if result.InputTokens != 0 || result.ComputeMS != 0 {
+			attempt.Finish(&runtimev1.UsageStats{InputTokens: result.InputTokens, ComputeMs: result.ComputeMS})
+		} else {
+			attempt.Finish(nil)
+		}
+	}()
 	response, err := h.client.Do(request)
 	if err != nil {
 		return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, err)
@@ -247,7 +256,7 @@ func (h *ExecutionHost) execute(
 	plan *capabilitydriver.TextInvocationPlan,
 	onDelta func(localexecution.TextDelta) error,
 	progress localexecution.TextProgressFunc,
-) (localexecution.TextResult, error) {
+) (result localexecution.TextResult, executionErr error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -292,6 +301,8 @@ func (h *ExecutionHost) execute(
 	if plan.Stream() {
 		request.Header.Set("Accept", "text/event-stream")
 	}
+	attempt := aitelemetry.Begin(ctx)
+	defer func() { attempt.Finish(observedLocalTextUsage(result)) }()
 	response, err := h.client.Do(request)
 	if err != nil {
 		return localexecution.TextResult{}, h.inferenceFailure(ctx, err)

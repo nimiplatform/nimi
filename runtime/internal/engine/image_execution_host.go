@@ -4,6 +4,7 @@ import (
 	"context"
 	cryptorand "crypto/rand"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"log/slog"
 	"math"
 	"math/big"
@@ -355,7 +356,10 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
 			return result, executionFailure(localexecution.FailureInference, seedErr)
 		}
+		attempt := aitelemetry.Begin(request.ctx)
+		generationStarted := time.Now()
 		artifact, generateErr := h.substrate.GenerateImage(request.ctx, request.plan, index, resolvedSeed, request.progress)
+		attempt.Finish(observedLocalComputeUsage(time.Since(generationStarted).Milliseconds()))
 		if generateErr != nil {
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
 			if request.ctx.Err() != nil {

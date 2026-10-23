@@ -192,6 +192,7 @@ func (s *Service) OpenLocalAppAgentRealtime(ctx context.Context, req *runtimev1.
 	ownerCtx = agentintent.WithUsageObserver(ownerCtx, func(turnID string, usage *runtimev1.UsageStats) {
 		s.recordAgentRealtimeUsage(session, turnID, usage)
 	})
+	ownerCtx = withLocalAgentAIObservation(ownerCtx, resolved.identity.LocalAgentRef, "", "", false)
 	opened, err := executor.OpenRuntimeAgentRealtime(ownerCtx, resolved.decision.AccountID, &runtimev1.OpenRealtimeSessionRequest{
 		InputAudio: req.GetInputAudio(), AudioOutputEnabled: true, TurnDetection: req.GetTurnDetection(), InitialInstruction: initialInstruction,
 	})

@@ -133,6 +133,8 @@ DelegatedProviderTrustTier = Literal["DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED"
 DelegatedReplayOutcome = Literal["DELEGATED_REPLAY_OUTCOME_UNSPECIFIED", "DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED", "DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED", "DELEGATED_REPLAY_OUTCOME_PARTIAL_MISSING_EVIDENCE", "DELEGATED_REPLAY_OUTCOME_BLOCKED_BY_POLICY", "DELEGATED_REPLAY_OUTCOME_INVALID_LINEAGE"]
 DelegatedTraceStageKind = Literal["DELEGATED_TRACE_STAGE_KIND_UNSPECIFIED", "DELEGATED_TRACE_STAGE_KIND_REQUEST", "DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE", "DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT", "DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION", "DELEGATED_TRACE_STAGE_KIND_RUNTIME_DECISION", "DELEGATED_TRACE_STAGE_KIND_PROJECTION_DISPOSITION"]
 DelegatedTransportKind = Literal["DELEGATED_TRANSPORT_KIND_UNSPECIFIED"]
+DesktopAIExecutionRoute = Literal["DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED", "DESKTOP_AI_EXECUTION_ROUTE_LOCAL", "DESKTOP_AI_EXECUTION_ROUTE_CLOUD"]
+DesktopAIExecutionState = Literal["DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED", "DESKTOP_AI_EXECUTION_STATE_RUNNING", "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN"]
 DeveloperModeState = Literal["DEVELOPER_MODE_STATE_UNSPECIFIED", "DEVELOPER_MODE_STATE_DISABLED", "DEVELOPER_MODE_STATE_ENABLED", "DEVELOPER_MODE_STATE_UNAVAILABLE"]
 EffectClass = Literal["EFFECT_CLASS_UNSPECIFIED", "EFFECT_CLASS_READ_ONLY", "EFFECT_CLASS_LOCAL_SIDE_EFFECT", "EFFECT_CLASS_EXTERNAL_SIDE_EFFECT", "EFFECT_CLASS_SENSITIVE_READ", "EFFECT_CLASS_UNSUPPORTED_EFFECT"]
 ExecutionInterruptionCause = Literal["EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED", "EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART"]
@@ -2264,6 +2266,94 @@ class DeleteVoiceAssetResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
+class DesktopAIActivitySnapshot:
+    generation_id: str | None = None
+    revision: int | None = None
+    observed_at: str | None = None
+    executions: tuple[DesktopAIExecution, ...] = field(default_factory=tuple)
+    source_coverage: tuple[DesktopAISourceCoverage, ...] = field(default_factory=tuple)
+    records_complete: bool | None = None
+    known_active_attempt_count: int | None = None
+    work_count_known: bool | None = None
+    known_work_count: int | None = None
+    partial_reasons: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class DesktopAICostEstimate:
+    currency: str | None = None
+    estimated_amount: str | None = None
+    pricing_basis: str | None = None
+
+@dataclass(frozen=True)
+class DesktopAIExecution:
+    attempt_id: str | None = None
+    parent_work_id: str | None = None
+    parent_work_kind: str | None = None
+    source_kind: str | None = None
+    source_id: str | None = None
+    source_label: str | None = None
+    capability: str | None = None
+    models: tuple[DesktopAIExecutionModel, ...] = field(default_factory=tuple)
+    route: DesktopAIExecutionRoute | None = None
+    state: DesktopAIExecutionState | None = None
+    started_at: str | None = None
+    observed_at: str | None = None
+
+@dataclass(frozen=True)
+class DesktopAIExecutionModel:
+    model_id: str | None = None
+    display_name: str | None = None
+    role: str | None = None
+    provider_id: str | None = None
+
+@dataclass(frozen=True)
+class DesktopAISourceCoverage:
+    source: str | None = None
+    activity_complete: bool | None = None
+    usage_complete: bool | None = None
+
+@dataclass(frozen=True)
+class DesktopAIUsageGroup:
+    source_kind: str | None = None
+    capability: str | None = None
+    models: tuple[DesktopAIExecutionModel, ...] = field(default_factory=tuple)
+    route: DesktopAIExecutionRoute | None = None
+    totals: DesktopAIUsageTotals | None = None
+    estimates: tuple[DesktopAICostEstimate, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class DesktopAIUsageSummary:
+    generation_id: str | None = None
+    read_at: str | None = None
+    from_time: str | None = None
+    to_time: str | None = None
+    effective_to: str | None = None
+    totals: DesktopAIUsageTotals | None = None
+    groups: tuple[DesktopAIUsageGroup, ...] = field(default_factory=tuple)
+    groups_complete: bool | None = None
+    estimates: tuple[DesktopAICostEstimate, ...] = field(default_factory=tuple)
+    source_coverage: tuple[DesktopAISourceCoverage, ...] = field(default_factory=tuple)
+    source_complete: bool | None = None
+    time_complete: bool | None = None
+    quantity_complete: bool | None = None
+    coverage_from: str | None = None
+    coverage_to: str | None = None
+    partial_reasons: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class DesktopAIUsageTotals:
+    attempt_count: int | None = None
+    active_attempt_count: int | None = None
+    pending_usage_count: int | None = None
+    measured_attempt_count: int | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cached_input_tokens: int | None = None
+    reasoning_output_tokens: int | None = None
+    compute_ms: int | None = None
+    unpriced_attempt_count: int | None = None
+
+@dataclass(frozen=True)
 class DesktopAuditEventProjection:
     audit_id: str | None = None
     request_id: str | None = None
@@ -2628,6 +2718,23 @@ class GetDelegatedReplayTraceRequest:
 @dataclass(frozen=True)
 class GetDelegatedReplayTraceResponse:
     trace: DelegatedReplayTrace | None = None
+
+@dataclass(frozen=True)
+class GetDesktopAIActivitySnapshotRequest:
+    limit: int | None = None
+
+@dataclass(frozen=True)
+class GetDesktopAIActivitySnapshotResponse:
+    snapshot: DesktopAIActivitySnapshot | None = None
+
+@dataclass(frozen=True)
+class GetDesktopAIUsageSummaryRequest:
+    from_time: str | None = None
+    to_time: str | None = None
+
+@dataclass(frozen=True)
+class GetDesktopAIUsageSummaryResponse:
+    summary: DesktopAIUsageSummary | None = None
 
 @dataclass(frozen=True)
 class GetDeveloperModeStatusRequest:
@@ -6940,6 +7047,10 @@ class SubscribeAppMessagesRequest:
     conversation_anchor_id: str | None = None
 
 @dataclass(frozen=True)
+class SubscribeDesktopAIActivityRequest:
+    limit: int | None = None
+
+@dataclass(frozen=True)
 class SubscribeLocalAppAgentRealtimeEventsRequest:
     realtime_session_id: str | None = None
     generation: int | None = None
@@ -8428,6 +8539,14 @@ class RuntimeTypedClient:
     def export_audit_events(self, request: ExportAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AuditExportChunk]:
         return self._stream("/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents", _model_body(request), AuditExportChunk, metadata=metadata, timeout_ms=timeout_ms)
 
+    async def get_desktop_aiactivity_snapshot(self, request: GetDesktopAIActivitySnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetDesktopAIActivitySnapshotResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetDesktopAIActivitySnapshotResponse, raw)
+
+    async def get_desktop_aiusage_summary(self, request: GetDesktopAIUsageSummaryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetDesktopAIUsageSummaryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetDesktopAIUsageSummaryResponse, raw)
+
     async def get_runtime_health(self, request: GetRuntimeHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeHealthResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetRuntimeHealthResponse, raw)
@@ -8443,6 +8562,9 @@ class RuntimeTypedClient:
     async def list_usage_stats(self, request: ListUsageStatsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListUsageStatsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListUsageStatsResponse, raw)
+
+    def subscribe_desktop_aiactivity(self, request: SubscribeDesktopAIActivityRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[DesktopAIActivitySnapshot]:
+        return self._stream("/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity", _model_body(request), DesktopAIActivitySnapshot, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_runtime_health_events(self, request: SubscribeRuntimeHealthEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RuntimeHealthEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", _model_body(request), RuntimeHealthEvent, metadata=metadata, timeout_ms=timeout_ms)

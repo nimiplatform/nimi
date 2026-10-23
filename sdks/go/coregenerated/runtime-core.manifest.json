@@ -1660,6 +1660,33 @@
           "response_type": "RuntimeHealthEvent",
           "request_stream": false,
           "response_stream": true
+        },
+        {
+          "name": "GetDesktopAIActivitySnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+          "kind": "unary",
+          "request_type": "GetDesktopAIActivitySnapshotRequest",
+          "response_type": "GetDesktopAIActivitySnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeDesktopAIActivity",
+          "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+          "kind": "server_stream",
+          "request_type": "SubscribeDesktopAIActivityRequest",
+          "response_type": "DesktopAIActivitySnapshot",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "GetDesktopAIUsageSummary",
+          "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+          "kind": "unary",
+          "request_type": "GetDesktopAIUsageSummaryRequest",
+          "response_type": "GetDesktopAIUsageSummaryResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2844,10 +2871,13 @@
     "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact",
     "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
+    "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+    "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
     "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
+    "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
     "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
@@ -4303,6 +4333,22 @@
       "response_type": "AuditExportChunk"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+      "service": "RuntimeAuditService",
+      "method": "GetDesktopAIActivitySnapshot",
+      "kind": "unary",
+      "request_type": "GetDesktopAIActivitySnapshotRequest",
+      "response_type": "GetDesktopAIActivitySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+      "service": "RuntimeAuditService",
+      "method": "GetDesktopAIUsageSummary",
+      "kind": "unary",
+      "request_type": "GetDesktopAIUsageSummaryRequest",
+      "response_type": "GetDesktopAIUsageSummaryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
       "service": "RuntimeAuditService",
       "method": "GetRuntimeHealth",
@@ -4333,6 +4379,14 @@
       "kind": "unary",
       "request_type": "ListUsageStatsRequest",
       "response_type": "ListUsageStatsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+      "service": "RuntimeAuditService",
+      "method": "SubscribeDesktopAIActivity",
+      "kind": "server_stream",
+      "request_type": "SubscribeDesktopAIActivityRequest",
+      "response_type": "DesktopAIActivitySnapshot"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
@@ -6545,6 +6599,22 @@
       "response_type": "AuditExportChunk"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+      "service": "RuntimeAuditService",
+      "method": "GetDesktopAIActivitySnapshot",
+      "kind": "unary",
+      "request_type": "GetDesktopAIActivitySnapshotRequest",
+      "response_type": "GetDesktopAIActivitySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+      "service": "RuntimeAuditService",
+      "method": "GetDesktopAIUsageSummary",
+      "kind": "unary",
+      "request_type": "GetDesktopAIUsageSummaryRequest",
+      "response_type": "GetDesktopAIUsageSummaryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
       "service": "RuntimeAuditService",
       "method": "GetRuntimeHealth",
@@ -6575,6 +6645,14 @@
       "kind": "unary",
       "request_type": "ListUsageStatsRequest",
       "response_type": "ListUsageStatsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+      "service": "RuntimeAuditService",
+      "method": "SubscribeDesktopAIActivity",
+      "kind": "server_stream",
+      "request_type": "SubscribeDesktopAIActivityRequest",
+      "response_type": "DesktopAIActivitySnapshot"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
@@ -7710,6 +7788,14 @@
       "DeletePortableAIProfileResponse",
       "DeleteVoiceAssetRequest",
       "DeleteVoiceAssetResponse",
+      "DesktopAIActivitySnapshot",
+      "DesktopAICostEstimate",
+      "DesktopAIExecution",
+      "DesktopAIExecutionModel",
+      "DesktopAISourceCoverage",
+      "DesktopAIUsageGroup",
+      "DesktopAIUsageSummary",
+      "DesktopAIUsageTotals",
       "DesktopAuditEventProjection",
       "DisableAutonomyRequest",
       "DisableAutonomyResponse",
@@ -7773,6 +7859,10 @@
       "GetDelegatedControlSurfaceSnapshotResponse",
       "GetDelegatedReplayTraceRequest",
       "GetDelegatedReplayTraceResponse",
+      "GetDesktopAIActivitySnapshotRequest",
+      "GetDesktopAIActivitySnapshotResponse",
+      "GetDesktopAIUsageSummaryRequest",
+      "GetDesktopAIUsageSummaryResponse",
       "GetDeveloperModeStatusRequest",
       "GetDeveloperModeStatusResponse",
       "GetIntegrationCallRequest",
@@ -8385,6 +8475,7 @@
       "SubscribeAppActivityOpenRequestsRequest",
       "SubscribeAppActivityOpenRequestsResponse",
       "SubscribeAppMessagesRequest",
+      "SubscribeDesktopAIActivityRequest",
       "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppAgentWorkEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
@@ -8599,6 +8690,8 @@
       "DelegatedReplayOutcome",
       "DelegatedTraceStageKind",
       "DelegatedTransportKind",
+      "DesktopAIExecutionRoute",
+      "DesktopAIExecutionState",
       "DeveloperModeState",
       "EffectClass",
       "ExecutionInterruptionCause",
@@ -18743,6 +18836,502 @@
         "source_file": "proto/runtime/v1/voice.proto"
       },
       {
+        "name": "DesktopAIActivitySnapshot",
+        "fields": [
+          {
+            "name": "generation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "executions",
+            "type": "DesktopAIExecution",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_coverage",
+            "type": "DesktopAISourceCoverage",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "records_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "known_active_attempt_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "work_count_known",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "known_work_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "partial_reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAICostEstimate",
+        "fields": [
+          {
+            "name": "currency",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "estimated_amount",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "pricing_basis",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIExecution",
+        "fields": [
+          {
+            "name": "attempt_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "parent_work_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "parent_work_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "source_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "source_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "models",
+            "type": "DesktopAIExecutionModel",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "route",
+            "type": "DesktopAIExecutionRoute",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "state",
+            "type": "DesktopAIExecutionState",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "started_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIExecutionModel",
+        "fields": [
+          {
+            "name": "model_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "role",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "provider_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAISourceCoverage",
+        "fields": [
+          {
+            "name": "source",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "activity_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "usage_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIUsageGroup",
+        "fields": [
+          {
+            "name": "source_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "models",
+            "type": "DesktopAIExecutionModel",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "route",
+            "type": "DesktopAIExecutionRoute",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "totals",
+            "type": "DesktopAIUsageTotals",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "estimates",
+            "type": "DesktopAICostEstimate",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIUsageSummary",
+        "fields": [
+          {
+            "name": "generation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "read_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "from_time",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "to_time",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "effective_to",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "totals",
+            "type": "DesktopAIUsageTotals",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "groups",
+            "type": "DesktopAIUsageGroup",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "groups_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "estimates",
+            "type": "DesktopAICostEstimate",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "source_coverage",
+            "type": "DesktopAISourceCoverage",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "source_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "time_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "quantity_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "coverage_from",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "coverage_to",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "partial_reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIUsageTotals",
+        "fields": [
+          {
+            "name": "attempt_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "active_attempt_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "pending_usage_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "measured_attempt_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "input_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "output_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "cached_input_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "reasoning_output_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "compute_ms",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "unpriced_attempt_count",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
         "name": "DesktopAuditEventProjection",
         "fields": [
           {
@@ -20342,6 +20931,65 @@
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "GetDesktopAIActivitySnapshotRequest",
+        "fields": [
+          {
+            "name": "limit",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "GetDesktopAIActivitySnapshotResponse",
+        "fields": [
+          {
+            "name": "snapshot",
+            "type": "DesktopAIActivitySnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "GetDesktopAIUsageSummaryRequest",
+        "fields": [
+          {
+            "name": "from_time",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "to_time",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "GetDesktopAIUsageSummaryResponse",
+        "fields": [
+          {
+            "name": "summary",
+            "type": "DesktopAIUsageSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
       },
       {
         "name": "GetDeveloperModeStatusRequest",
@@ -41055,6 +41703,19 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "SubscribeDesktopAIActivityRequest",
+        "fields": [
+          {
+            "name": "limit",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
         "name": "SubscribeLocalAppAgentRealtimeEventsRequest",
         "fields": [
           {
@@ -45986,6 +46647,24 @@
           "DELEGATED_TRANSPORT_KIND_UNSPECIFIED"
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "DesktopAIExecutionRoute",
+        "values": [
+          "DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED",
+          "DESKTOP_AI_EXECUTION_ROUTE_LOCAL",
+          "DESKTOP_AI_EXECUTION_ROUTE_CLOUD"
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIExecutionState",
+        "values": [
+          "DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED",
+          "DESKTOP_AI_EXECUTION_STATE_RUNNING",
+          "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN"
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
       },
       {
         "name": "DeveloperModeState",

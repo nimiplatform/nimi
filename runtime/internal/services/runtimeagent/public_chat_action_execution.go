@@ -110,6 +110,7 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	// originating turn's explicit cancellation or owner lifecycle.
 	actionCtx, cancel := context.WithCancel(runtimeAgentImageActionContext(ctx, ownerAppID, ownerUserID))
 	defer cancel()
+	actionCtx = withPublicChatAIObservation(actionCtx, req.Session, req.Turn)
 	actionCtx = withPublicChatExecutionIntent(actionCtx, binding, "image.generate")
 	idempotencyKey := "runtime-agent-image-action:" + strings.TrimSpace(req.Turn.TurnID) + ":" + actionID
 	submitResp, err := e.ai.SubmitScenarioJob(actionCtx, buildPublicChatImageActionSubmitRequest(binding, params, prompt, idempotencyKey, ownerAppID, ownerUserID))

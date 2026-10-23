@@ -83,6 +83,9 @@ profiles:
     identity_class: account
     native_profile_marker: desktop-account-product-v1
     methods:
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary
       # Formal App session mechanics. Product coverage remains release/EAS-owned.
       - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession

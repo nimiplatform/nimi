@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"reflect"
 	"strings"
 
@@ -223,6 +224,8 @@ func (s *Service) ExecuteMemoryEmbedding(ctx context.Context, raw []byte) (resul
 		if claimErr != nil {
 			return MemoryEmbeddingResult{}, claimErr
 		}
+		jobCtx = aitelemetry.WithSource(jobCtx, aitelemetry.Source{Kind: "agent-background", ID: execution.Owner.AgentRef, Label: "Agent memory", ParentID: execution.Owner.OperationID, ParentKind: "agent-background"})
+		jobCtx = s.scenarioObservationContext(jobCtx, id)
 		defer cancel()
 		defer s.finishScenarioJobExecution(id)
 		ownsExecution = true

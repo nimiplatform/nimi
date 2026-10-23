@@ -46,7 +46,7 @@ func (s *Service) submitLocalVisionScenarioJob(ctx context.Context, req *runtime
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localVisionJobOrder.reserve()
-	go s.runLocalVisionScenarioJob(jobCtx, jobID, ticket)
+	go s.runLocalVisionScenarioJob(s.scenarioObservationContext(jobCtx, jobID), jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 

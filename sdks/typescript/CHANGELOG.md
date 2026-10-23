@@ -9,6 +9,12 @@ Use matching source-built Realm, Runtime, SDK, Kit and Desktop. Realm Post/feed,
 Account 2FA setup now sends the actual prepare body and requires the same-session `challengeId` when enabling; callers must retain the prepare response until successful enable.
 
 
+## Unreleased — Home AI observation (0.x minor)
+
+The protected Desktop account-product client adds `accountProduct.audit.getDesktopAIActivitySnapshot`, `subscribeDesktopAIActivity` and `getDesktopAIUsageSummary`. These exact read operations preserve Runtime snapshots, source/time coverage and usage uncertainty. Activity requests are bounded to 100 entries and usage reads use a non-empty half-open UTC interval of at most seven days. No request accepts an account selector; the native account purpose supplies account scope.
+
+Use matching source-built Runtime, native carrier and SDK. Machine audit, ordinary public Runtime clients and App-purpose clients do not gain these reads; there is no generic audit or direct-network fallback. Existing generic RPC Usage remains a separate diagnostic contract, not a replacement for AI attempt accounting. No published package release or historical-data migration is implied.
+
 ## SDK 0.22.0 — LocalAgent life frames (development)
 
 Use matching source-built Runtime, SDK, Kit, and native builds. This unreleased 0.x hard cut has no compatibility path or automatic migration. LocalAgent no longer owns user commitments, generic natural-language task controls, task timezones, or control outcomes. Existing conversations and Memory are preserved; obsolete local controls are retired only through explicitly reviewed one-time tools.

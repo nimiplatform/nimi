@@ -111,6 +111,7 @@ func (s *Service) transcribeAgentVoiceInput(
 		scenarioRequestID = "runtime-agent-voice-input-" + digest[:24]
 		idempotencyKey = "runtime-agent-voice-input:" + digest
 	}
+	waitCtx = withLocalAgentAIObservation(waitCtx, identity.LocalAgentRef, "agent-voice-input", scenarioRequestID, false)
 	submit, err := s.voiceTranscription.SubmitScenarioJob(waitCtx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         runtimeAgentVoiceInputAppID,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"os"
 	"os/exec"
@@ -118,6 +119,7 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 		cleanupAudioCppStaging(output, tempOutput)
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("start audio.cpp CLI"))
 	}
+	aitelemetry.Begin(ctx)
 	if ownerReader != nil {
 		_ = ownerReader.Close()
 	}

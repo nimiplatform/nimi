@@ -913,6 +913,22 @@ const (
 	DELEGATEDTRANSPORTKINDUNSPECIFIED DelegatedTransportKind = "DELEGATED_TRANSPORT_KIND_UNSPECIFIED"
 )
 
+type DesktopAIExecutionRoute string
+
+const (
+	DESKTOPAIEXECUTIONROUTEUNSPECIFIED DesktopAIExecutionRoute = "DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED"
+	DESKTOPAIEXECUTIONROUTELOCAL       DesktopAIExecutionRoute = "DESKTOP_AI_EXECUTION_ROUTE_LOCAL"
+	DESKTOPAIEXECUTIONROUTECLOUD       DesktopAIExecutionRoute = "DESKTOP_AI_EXECUTION_ROUTE_CLOUD"
+)
+
+type DesktopAIExecutionState string
+
+const (
+	DESKTOPAIEXECUTIONSTATEUNSPECIFIED        DesktopAIExecutionState = "DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED"
+	DESKTOPAIEXECUTIONSTATERUNNING            DesktopAIExecutionState = "DESKTOP_AI_EXECUTION_STATE_RUNNING"
+	DESKTOPAIEXECUTIONSTATEOBSERVATIONUNKNOWN DesktopAIExecutionState = "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN"
+)
+
 type DeveloperModeState string
 
 const (
@@ -4331,6 +4347,94 @@ type DeleteVoiceAssetResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
+type DesktopAIActivitySnapshot struct {
+	GenerationId            string                    `json:"generation_id,omitempty"`
+	Revision                uint64                    `json:"revision,omitempty"`
+	ObservedAt              string                    `json:"observed_at,omitempty"`
+	Executions              []DesktopAIExecution      `json:"executions,omitempty"`
+	SourceCoverage          []DesktopAISourceCoverage `json:"source_coverage,omitempty"`
+	RecordsComplete         bool                      `json:"records_complete,omitempty"`
+	KnownActiveAttemptCount int64                     `json:"known_active_attempt_count,omitempty"`
+	WorkCountKnown          bool                      `json:"work_count_known,omitempty"`
+	KnownWorkCount          int64                     `json:"known_work_count,omitempty"`
+	PartialReasons          []string                  `json:"partial_reasons,omitempty"`
+}
+
+type DesktopAICostEstimate struct {
+	Currency        string `json:"currency,omitempty"`
+	EstimatedAmount string `json:"estimated_amount,omitempty"`
+	PricingBasis    string `json:"pricing_basis,omitempty"`
+}
+
+type DesktopAIExecution struct {
+	AttemptId      string                    `json:"attempt_id,omitempty"`
+	ParentWorkId   string                    `json:"parent_work_id,omitempty"`
+	ParentWorkKind string                    `json:"parent_work_kind,omitempty"`
+	SourceKind     string                    `json:"source_kind,omitempty"`
+	SourceId       string                    `json:"source_id,omitempty"`
+	SourceLabel    string                    `json:"source_label,omitempty"`
+	Capability     string                    `json:"capability,omitempty"`
+	Models         []DesktopAIExecutionModel `json:"models,omitempty"`
+	Route          DesktopAIExecutionRoute   `json:"route,omitempty"`
+	State          DesktopAIExecutionState   `json:"state,omitempty"`
+	StartedAt      string                    `json:"started_at,omitempty"`
+	ObservedAt     string                    `json:"observed_at,omitempty"`
+}
+
+type DesktopAIExecutionModel struct {
+	ModelId     string `json:"model_id,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Role        string `json:"role,omitempty"`
+	ProviderId  string `json:"provider_id,omitempty"`
+}
+
+type DesktopAISourceCoverage struct {
+	Source           string `json:"source,omitempty"`
+	ActivityComplete bool   `json:"activity_complete,omitempty"`
+	UsageComplete    bool   `json:"usage_complete,omitempty"`
+}
+
+type DesktopAIUsageGroup struct {
+	SourceKind string                    `json:"source_kind,omitempty"`
+	Capability string                    `json:"capability,omitempty"`
+	Models     []DesktopAIExecutionModel `json:"models,omitempty"`
+	Route      DesktopAIExecutionRoute   `json:"route,omitempty"`
+	Totals     *DesktopAIUsageTotals     `json:"totals,omitempty"`
+	Estimates  []DesktopAICostEstimate   `json:"estimates,omitempty"`
+}
+
+type DesktopAIUsageSummary struct {
+	GenerationId     string                    `json:"generation_id,omitempty"`
+	ReadAt           string                    `json:"read_at,omitempty"`
+	FromTime         string                    `json:"from_time,omitempty"`
+	ToTime           string                    `json:"to_time,omitempty"`
+	EffectiveTo      string                    `json:"effective_to,omitempty"`
+	Totals           *DesktopAIUsageTotals     `json:"totals,omitempty"`
+	Groups           []DesktopAIUsageGroup     `json:"groups,omitempty"`
+	GroupsComplete   bool                      `json:"groups_complete,omitempty"`
+	Estimates        []DesktopAICostEstimate   `json:"estimates,omitempty"`
+	SourceCoverage   []DesktopAISourceCoverage `json:"source_coverage,omitempty"`
+	SourceComplete   bool                      `json:"source_complete,omitempty"`
+	TimeComplete     bool                      `json:"time_complete,omitempty"`
+	QuantityComplete bool                      `json:"quantity_complete,omitempty"`
+	CoverageFrom     string                    `json:"coverage_from,omitempty"`
+	CoverageTo       string                    `json:"coverage_to,omitempty"`
+	PartialReasons   []string                  `json:"partial_reasons,omitempty"`
+}
+
+type DesktopAIUsageTotals struct {
+	AttemptCount          int64 `json:"attempt_count,omitempty"`
+	ActiveAttemptCount    int64 `json:"active_attempt_count,omitempty"`
+	PendingUsageCount     int64 `json:"pending_usage_count,omitempty"`
+	MeasuredAttemptCount  int64 `json:"measured_attempt_count,omitempty"`
+	InputTokens           int64 `json:"input_tokens,omitempty"`
+	OutputTokens          int64 `json:"output_tokens,omitempty"`
+	CachedInputTokens     int64 `json:"cached_input_tokens,omitempty"`
+	ReasoningOutputTokens int64 `json:"reasoning_output_tokens,omitempty"`
+	ComputeMs             int64 `json:"compute_ms,omitempty"`
+	UnpricedAttemptCount  int64 `json:"unpriced_attempt_count,omitempty"`
+}
+
 type DesktopAuditEventProjection struct {
 	AuditId    string     `json:"audit_id,omitempty"`
 	RequestId  string     `json:"request_id,omitempty"`
@@ -4693,6 +4797,23 @@ type GetDelegatedReplayTraceRequest struct {
 
 type GetDelegatedReplayTraceResponse struct {
 	Trace *DelegatedReplayTrace `json:"trace,omitempty"`
+}
+
+type GetDesktopAIActivitySnapshotRequest struct {
+	Limit int32 `json:"limit,omitempty"`
+}
+
+type GetDesktopAIActivitySnapshotResponse struct {
+	Snapshot *DesktopAIActivitySnapshot `json:"snapshot,omitempty"`
+}
+
+type GetDesktopAIUsageSummaryRequest struct {
+	FromTime string `json:"from_time,omitempty"`
+	ToTime   string `json:"to_time,omitempty"`
+}
+
+type GetDesktopAIUsageSummaryResponse struct {
+	Summary *DesktopAIUsageSummary `json:"summary,omitempty"`
 }
 
 type GetDeveloperModeStatusRequest struct {
@@ -8969,6 +9090,10 @@ type SubscribeAppMessagesRequest struct {
 	ConversationAnchorId string   `json:"conversation_anchor_id,omitempty"`
 }
 
+type SubscribeDesktopAIActivityRequest struct {
+	Limit int32 `json:"limit,omitempty"`
+}
+
 type SubscribeLocalAppAgentRealtimeEventsRequest struct {
 	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
 	Generation        uint64 `json:"generation,omitempty"`
@@ -11198,6 +11323,22 @@ func (c RuntimeTypedClient) ExportAuditEvents(ctx context.Context, request Expor
 	return &RuntimeTypedStream[AuditExportChunk]{reader: reader}, nil
 }
 
+func (c RuntimeTypedClient) GetDesktopAIActivitySnapshot(ctx context.Context, request GetDesktopAIActivitySnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDesktopAIActivitySnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return GetDesktopAIActivitySnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetDesktopAIActivitySnapshotResponse](raw, "GetDesktopAIActivitySnapshotResponse")
+}
+
+func (c RuntimeTypedClient) GetDesktopAIUsageSummary(ctx context.Context, request GetDesktopAIUsageSummaryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDesktopAIUsageSummaryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary", request, metadata, timeoutMS)
+	if err != nil {
+		return GetDesktopAIUsageSummaryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetDesktopAIUsageSummaryResponse](raw, "GetDesktopAIUsageSummaryResponse")
+}
+
 func (c RuntimeTypedClient) GetRuntimeHealth(ctx context.Context, request GetRuntimeHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRuntimeHealthResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", request, metadata, timeoutMS)
 	if err != nil {
@@ -11228,6 +11369,14 @@ func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsag
 		return ListUsageStatsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListUsageStatsResponse](raw, "ListUsageStatsResponse")
+}
+
+func (c RuntimeTypedClient) SubscribeDesktopAIActivity(ctx context.Context, request SubscribeDesktopAIActivityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[DesktopAIActivitySnapshot], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[DesktopAIActivitySnapshot]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SubscribeRuntimeHealthEvents(ctx context.Context, request SubscribeRuntimeHealthEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[RuntimeHealthEvent], error) {

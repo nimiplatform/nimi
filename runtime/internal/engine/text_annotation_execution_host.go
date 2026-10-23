@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"net"
 	"net/http"
@@ -85,6 +86,7 @@ func (host *TextAnnotationExecutionHost) ExecuteTextAnnotation(ctx context.Conte
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-nimi-nlp-token", host.token)
+	aitelemetry.Begin(ctx)
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, host.fail(ctx, err)

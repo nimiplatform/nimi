@@ -1575,6 +1575,32 @@ impl Default for DelegatedTransportKind {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DesktopAIExecutionRoute {
+    DESKTOPAIEXECUTIONROUTEUNSPECIFIED,
+    DESKTOPAIEXECUTIONROUTELOCAL,
+    DESKTOPAIEXECUTIONROUTECLOUD,
+}
+
+impl Default for DesktopAIExecutionRoute {
+    fn default() -> Self {
+        Self::DESKTOPAIEXECUTIONROUTEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DesktopAIExecutionState {
+    DESKTOPAIEXECUTIONSTATEUNSPECIFIED,
+    DESKTOPAIEXECUTIONSTATERUNNING,
+    DESKTOPAIEXECUTIONSTATEOBSERVATIONUNKNOWN,
+}
+
+impl Default for DesktopAIExecutionState {
+    fn default() -> Self {
+        Self::DESKTOPAIEXECUTIONSTATEUNSPECIFIED
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum DeveloperModeState {
     #[serde(rename = "DEVELOPER_MODE_STATE_UNSPECIFIED")]
@@ -7578,6 +7604,102 @@ pub struct DeleteVoiceAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIActivitySnapshot {
+    pub generation_id: Option<String>,
+    pub revision: Option<u64>,
+    pub observed_at: Option<String>,
+    pub executions: Vec<Box<DesktopAIExecution>>,
+    pub source_coverage: Vec<Box<DesktopAISourceCoverage>>,
+    pub records_complete: Option<bool>,
+    pub known_active_attempt_count: Option<i64>,
+    pub work_count_known: Option<bool>,
+    pub known_work_count: Option<i64>,
+    pub partial_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAICostEstimate {
+    pub currency: Option<String>,
+    pub estimated_amount: Option<String>,
+    pub pricing_basis: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIExecution {
+    pub attempt_id: Option<String>,
+    pub parent_work_id: Option<String>,
+    pub parent_work_kind: Option<String>,
+    pub source_kind: Option<String>,
+    pub source_id: Option<String>,
+    pub source_label: Option<String>,
+    pub capability: Option<String>,
+    pub models: Vec<Box<DesktopAIExecutionModel>>,
+    pub route: Option<DesktopAIExecutionRoute>,
+    pub state: Option<DesktopAIExecutionState>,
+    pub started_at: Option<String>,
+    pub observed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIExecutionModel {
+    pub model_id: Option<String>,
+    pub display_name: Option<String>,
+    pub role: Option<String>,
+    pub provider_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAISourceCoverage {
+    pub source: Option<String>,
+    pub activity_complete: Option<bool>,
+    pub usage_complete: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIUsageGroup {
+    pub source_kind: Option<String>,
+    pub capability: Option<String>,
+    pub models: Vec<Box<DesktopAIExecutionModel>>,
+    pub route: Option<DesktopAIExecutionRoute>,
+    pub totals: Option<Box<DesktopAIUsageTotals>>,
+    pub estimates: Vec<Box<DesktopAICostEstimate>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIUsageSummary {
+    pub generation_id: Option<String>,
+    pub read_at: Option<String>,
+    pub from_time: Option<String>,
+    pub to_time: Option<String>,
+    pub effective_to: Option<String>,
+    pub totals: Option<Box<DesktopAIUsageTotals>>,
+    pub groups: Vec<Box<DesktopAIUsageGroup>>,
+    pub groups_complete: Option<bool>,
+    pub estimates: Vec<Box<DesktopAICostEstimate>>,
+    pub source_coverage: Vec<Box<DesktopAISourceCoverage>>,
+    pub source_complete: Option<bool>,
+    pub time_complete: Option<bool>,
+    pub quantity_complete: Option<bool>,
+    pub coverage_from: Option<String>,
+    pub coverage_to: Option<String>,
+    pub partial_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIUsageTotals {
+    pub attempt_count: Option<i64>,
+    pub active_attempt_count: Option<i64>,
+    pub pending_usage_count: Option<i64>,
+    pub measured_attempt_count: Option<i64>,
+    pub input_tokens: Option<i64>,
+    pub output_tokens: Option<i64>,
+    pub cached_input_tokens: Option<i64>,
+    pub reasoning_output_tokens: Option<i64>,
+    pub compute_ms: Option<i64>,
+    pub unpriced_attempt_count: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DesktopAuditEventProjection {
     pub audit_id: Option<String>,
     pub request_id: Option<String>,
@@ -8230,6 +8352,27 @@ pub struct GetDelegatedReplayTraceRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetDelegatedReplayTraceResponse {
     pub trace: Option<Box<DelegatedReplayTrace>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetDesktopAIActivitySnapshotRequest {
+    pub limit: Option<i32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetDesktopAIActivitySnapshotResponse {
+    pub snapshot: Option<Box<DesktopAIActivitySnapshot>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetDesktopAIUsageSummaryRequest {
+    pub from_time: Option<String>,
+    pub to_time: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetDesktopAIUsageSummaryResponse {
+    pub summary: Option<Box<DesktopAIUsageSummary>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -14701,6 +14844,11 @@ pub struct SubscribeAppMessagesRequest {
     pub from_app_ids: Vec<String>,
     pub local_agent_ref: Option<String>,
     pub conversation_anchor_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeDesktopAIActivityRequest {
+    pub limit: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

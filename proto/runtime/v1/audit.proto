@@ -194,6 +194,132 @@ message AuditExportChunk {
   string mime_type = 5;
 }
 
+// Protected Desktop-account projections. The authenticated account is derived
+// from the native carrier; these requests deliberately have no account selector.
+message GetDesktopAIActivitySnapshotRequest {
+  int32 limit = 1;
+}
+
+message GetDesktopAIActivitySnapshotResponse {
+  DesktopAIActivitySnapshot snapshot = 1;
+}
+
+message SubscribeDesktopAIActivityRequest {
+  int32 limit = 1;
+}
+
+enum DesktopAIExecutionRoute {
+  DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED = 0;
+  DESKTOP_AI_EXECUTION_ROUTE_LOCAL = 1;
+  DESKTOP_AI_EXECUTION_ROUTE_CLOUD = 2;
+}
+
+enum DesktopAIExecutionState {
+  DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED = 0;
+  DESKTOP_AI_EXECUTION_STATE_RUNNING = 1;
+  DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN = 2;
+}
+
+message DesktopAIExecutionModel {
+  string model_id = 1;
+  string display_name = 2;
+  string role = 3;
+  string provider_id = 4;
+}
+
+message DesktopAISourceCoverage {
+  string source = 1;
+  bool activity_complete = 2;
+  bool usage_complete = 3;
+}
+
+message DesktopAIExecution {
+  string attempt_id = 1;
+  string parent_work_id = 2;
+  string parent_work_kind = 3;
+  string source_kind = 4;
+  string source_id = 5;
+  string source_label = 6;
+  string capability = 7;
+  repeated DesktopAIExecutionModel models = 8;
+  DesktopAIExecutionRoute route = 9;
+  DesktopAIExecutionState state = 10;
+  google.protobuf.Timestamp started_at = 11;
+  google.protobuf.Timestamp observed_at = 12;
+}
+
+message DesktopAIActivitySnapshot {
+  string generation_id = 1;
+  uint64 revision = 2;
+  google.protobuf.Timestamp observed_at = 3;
+  repeated DesktopAIExecution executions = 4;
+  repeated DesktopAISourceCoverage source_coverage = 5;
+  bool records_complete = 6;
+  int64 known_active_attempt_count = 7;
+  bool work_count_known = 8;
+  int64 known_work_count = 9;
+  repeated string partial_reasons = 10;
+}
+
+message GetDesktopAIUsageSummaryRequest {
+  // Half-open UTC interval, at most seven days. Future time is not claimed as
+  // covered: effective_to is the earlier of to_time and the consistent read.
+  google.protobuf.Timestamp from_time = 1;
+  google.protobuf.Timestamp to_time = 2;
+}
+
+message GetDesktopAIUsageSummaryResponse {
+  DesktopAIUsageSummary summary = 1;
+}
+
+message DesktopAIUsageTotals {
+  int64 attempt_count = 1;
+  int64 active_attempt_count = 2;
+  int64 pending_usage_count = 3;
+  int64 measured_attempt_count = 4;
+  int64 input_tokens = 5;
+  int64 output_tokens = 6;
+  int64 cached_input_tokens = 7;
+  int64 reasoning_output_tokens = 8;
+  int64 compute_ms = 9;
+  int64 unpriced_attempt_count = 10;
+}
+
+message DesktopAICostEstimate {
+  string currency = 1;
+  // Decimal estimated amount, never an actual Provider charge.
+  string estimated_amount = 2;
+  string pricing_basis = 3;
+}
+
+message DesktopAIUsageGroup {
+  string source_kind = 1;
+  string capability = 2;
+  repeated DesktopAIExecutionModel models = 3;
+  DesktopAIExecutionRoute route = 4;
+  DesktopAIUsageTotals totals = 5;
+  repeated DesktopAICostEstimate estimates = 6;
+}
+
+message DesktopAIUsageSummary {
+  string generation_id = 1;
+  google.protobuf.Timestamp read_at = 2;
+  google.protobuf.Timestamp from_time = 3;
+  google.protobuf.Timestamp to_time = 4;
+  google.protobuf.Timestamp effective_to = 5;
+  DesktopAIUsageTotals totals = 6;
+  repeated DesktopAIUsageGroup groups = 7;
+  bool groups_complete = 8;
+  repeated DesktopAICostEstimate estimates = 9;
+  repeated DesktopAISourceCoverage source_coverage = 10;
+  bool source_complete = 11;
+  bool time_complete = 12;
+  bool quantity_complete = 13;
+  google.protobuf.Timestamp coverage_from = 14;
+  google.protobuf.Timestamp coverage_to = 15;
+  repeated string partial_reasons = 16;
+}
+
 service RuntimeAuditService {
   rpc ListAuditEvents(ListAuditEventsRequest) returns (ListAuditEventsResponse);
   rpc ListDesktopAuditEvents(ListDesktopAuditEventsRequest) returns (ListDesktopAuditEventsResponse);
@@ -201,4 +327,7 @@ service RuntimeAuditService {
   rpc ListUsageStats(ListUsageStatsRequest) returns (ListUsageStatsResponse);
   rpc GetRuntimeHealth(GetRuntimeHealthRequest) returns (GetRuntimeHealthResponse);
   rpc SubscribeRuntimeHealthEvents(SubscribeRuntimeHealthEventsRequest) returns (stream RuntimeHealthEvent);
+  rpc GetDesktopAIActivitySnapshot(GetDesktopAIActivitySnapshotRequest) returns (GetDesktopAIActivitySnapshotResponse);
+  rpc SubscribeDesktopAIActivity(SubscribeDesktopAIActivityRequest) returns (stream DesktopAIActivitySnapshot);
+  rpc GetDesktopAIUsageSummary(GetDesktopAIUsageSummaryRequest) returns (GetDesktopAIUsageSummaryResponse);
 }

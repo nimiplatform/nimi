@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"math"
 	"net"
@@ -104,6 +105,7 @@ func (host *SpeakerEmbeddingExecutionHost) ExecuteSpeakerEmbedding(ctx context.C
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-nimi-speaker-token", host.token)
+	aitelemetry.Begin(ctx)
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, host.fail(ctx, err)

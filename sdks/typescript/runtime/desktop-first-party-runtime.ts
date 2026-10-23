@@ -124,6 +124,10 @@ export type NimiDesktopMachineProductRuntimeClient = {
 };
 
 export type NimiDesktopAccountProductRuntimeClient = {
+  readonly audit: Pick<DesktopAccountProductRuntimeMethods,
+    | 'getDesktopAIActivitySnapshot'
+    | 'subscribeDesktopAIActivity'
+    | 'getDesktopAIUsageSummary'>;
   readonly appAIConfig: (appId: string) => NimiAppAIConfigClient;
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
@@ -285,6 +289,18 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     hostOwnedIdentity: true,
   });
   const protectedGenerated = createProtectedDesktopTypedClient(input.transport);
+  // @nimi-authority: rule.nimi.sdks.client-core.home-ai-observation
+  const accountAudit: NimiDesktopAccountProductRuntimeClient['audit'] = Object.freeze({
+    getDesktopAIActivitySnapshot: (request, options) => protectedGenerated.getDesktopAIActivitySnapshot(
+      validateHomeAIActivityRequest(request), options,
+    ),
+    subscribeDesktopAIActivity: (request, options) => protectedGenerated.subscribeDesktopAIActivity(
+      validateHomeAIActivityRequest(request), options,
+    ),
+    getDesktopAIUsageSummary: (request, options) => protectedGenerated.getDesktopAIUsageSummary(
+      validateHomeAIUsageRequest(request), options,
+    ),
+  });
   const boundProtectedAgents = bindProtectedRuntimeModule(protectedGenerated, RUNTIME_AGENT_METHODS);
   const protectedAgents = Object.freeze({
     ...boundProtectedAgents,
@@ -523,6 +539,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
     }),
     accountProduct: Object.freeze({
+      audit: accountAudit,
       appAIConfig,
       profiles,
       agents: accountAgents,
@@ -563,6 +580,52 @@ function invalidProtectedAIConfigMutation(message: string): never {
     message,
     reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
     actionHint: 'provide_route_only_local_ai_config_intent',
+    source: 'sdk',
+  });
+}
+
+function exactHomeAIRequest(value: unknown, keys: readonly string[], name: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).some((key) => !keys.includes(key))) {
+    return invalidHomeAIRequest(`${name} must contain only ${keys.join(', ')}.`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function validateHomeAIActivityRequest(request: { readonly limit: number }): { limit: number } {
+  const value = exactHomeAIRequest(request, ['limit'], 'Home AI activity request');
+  if (!Number.isInteger(value.limit) || Number(value.limit) < 0 || Number(value.limit) > 100) {
+    return invalidHomeAIRequest('Home AI activity limit must be an integer from 0 through 100; 0 uses the Runtime default.');
+  }
+  return { limit: value.limit as number };
+}
+
+function homeAITimestamp(value: unknown): { seconds: string; nanos: number } {
+  const timestamp = exactHomeAIRequest(value, ['seconds', 'nanos'], 'Home AI usage timestamp');
+  if (typeof timestamp.seconds !== 'string' || !/^-?\d{1,19}$/u.test(timestamp.seconds)
+    || !Number.isInteger(timestamp.nanos) || Number(timestamp.nanos) < 0 || Number(timestamp.nanos) > 999_999_999) {
+    return invalidHomeAIRequest('Home AI usage timestamps require integer seconds and valid nanoseconds.');
+  }
+  return { seconds: timestamp.seconds, nanos: timestamp.nanos as number };
+}
+
+function validateHomeAIUsageRequest(request: Parameters<DesktopAccountProductRuntimeMethods['getDesktopAIUsageSummary']>[0]) {
+  const value = exactHomeAIRequest(request, ['fromTime', 'toTime'], 'Home AI usage request');
+  const fromTime = homeAITimestamp(value.fromTime);
+  const toTime = homeAITimestamp(value.toTime);
+  const fromNanos = BigInt(fromTime.seconds) * 1_000_000_000n + BigInt(fromTime.nanos);
+  const toNanos = BigInt(toTime.seconds) * 1_000_000_000n + BigInt(toTime.nanos);
+  if (fromNanos >= toNanos || toNanos - fromNanos > 7n * 24n * 60n * 60n * 1_000_000_000n) {
+    return invalidHomeAIRequest('Home AI usage requires a non-empty half-open interval no longer than seven days.');
+  }
+  return { fromTime, toTime };
+}
+
+function invalidHomeAIRequest(message: string): never {
+  throw createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+    actionHint: 'provide_bounded_home_ai_observation_request',
     source: 'sdk',
   });
 }

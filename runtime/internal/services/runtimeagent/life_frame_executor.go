@@ -269,6 +269,7 @@ func (s *Service) executeLifeFrames(ctx context.Context, input *lifeFrameExecuti
 		return nil, 0, err
 	}
 	ctx = withPublicChatExecutionIntent(ctx, input.Binding, "text.generate")
+	ctx = withLocalAgentAIObservation(ctx, input.Entry.Agent.GetLocalAgentRef(), "agent-background-execution", input.RequestID, true)
 	response, err := ai.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "runtime.agent.internal.life", SubjectUserId: input.Entry.Agent.GetOwnerUserId(), TimeoutMs: lifeFrameTimeoutMS},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,

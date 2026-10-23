@@ -143,6 +143,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		terminalInputs:   make(map[string]struct{}),
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
 	}
+	s.configureRealtimeAIObservation(capturedCtx, realtime, catalogBinding.Provider, catalogBinding.ProviderModelID)
 	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
 		realtime.ownerSessionID, realtime.ownerInvalidated = decision.SessionID, decision.SessionInvalidated
 	}
@@ -428,6 +429,7 @@ func (s *Service) SubmitRealtimeOwnerControl(ctx context.Context, req *runtimev1
 			}
 			record.responseKeysRequired = true
 			record.requestsByResponse[effect.ResponseKey] = req.GetRequestId()
+			beginRealtimeAIObservationLocked(record, effect.ResponseKey, req.GetRequestId())
 		}
 	}
 	if effect.AwaitNativeStop && stopTrack != nil {
@@ -744,6 +746,13 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		// single output-track/request decision so cancellation can still win.
 		_ = ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 	case capabilitydriver.CloudRealtimeEventResponseDone:
+		// Count the actual Provider round once, before owner-intention usage is
+		// combined with the next response for the Conversation projection.
+		var track *realtimeOutputTrack
+		if !source.NoOutput {
+			track = ensureRealtimeOutputTrack(record, source.ProviderResponseID)
+		}
+		finishRealtimeAIObservation(record, source.ProviderResponseID, source.Usage)
 		if s.logger != nil {
 			s.logger.Info("AI Realtime response finished", "response_id", source.ProviderResponseID, "status", source.ResponseStatus, "output_types", source.OutputTypes)
 		}
@@ -772,7 +781,6 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 			_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_RequestTerminal{RequestTerminal: &runtimev1.AiRealtimeRequestTerminal{RequestId: requestID, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: source.Usage, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}}})
 			return false
 		}
-		track := ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 		s.completeRealtimeResponse(record, track, source.ResponseStatus, source.Usage)
 	case capabilitydriver.CloudRealtimeEventFailed:
 		if s.logger != nil {
@@ -826,6 +834,7 @@ func ensureRealtimeOutputTrack(record *realtimeSessionRecord, providerResponseID
 	record.mu.Lock()
 	defer record.mu.Unlock()
 	providerResponseID = strings.TrimSpace(providerResponseID)
+	observedProviderResponseID := providerResponseID
 	if providerResponseID == "" {
 		providerResponseID = "provider-response-" + ulid.Make().String()
 	}
@@ -837,6 +846,7 @@ func ensureRealtimeOutputTrack(record *realtimeSessionRecord, providerResponseID
 		requestID = record.requestsByResponse[providerResponseID]
 	}
 	track := &realtimeOutputTrack{providerResponseID: providerResponseID, outputTrackID: ulid.Make().String(), requestID: requestID}
+	track.aiAttempt = beginRealtimeAIObservationLocked(record, observedProviderResponseID, requestID)
 	record.tracksByProvider[providerResponseID] = track
 	record.tracksByRuntime[track.outputTrackID] = track
 	return track
@@ -1223,6 +1233,7 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 		Event:   &runtimev1.AiRealtimeEvent_SessionTerminal{SessionTerminal: &runtimev1.AiRealtimeSessionTerminal{ReasonCode: reason}},
 	}
 	record.mu.Unlock()
+	markRealtimeAIObservationUnknown(record)
 	if record.cancel != nil {
 		record.cancel()
 	}

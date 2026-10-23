@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"net/http"
 	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -108,6 +110,9 @@ func (session *faceSwapSessionHost) ReplaceFrame(ctx context.Context, frame []by
 	request.Header.Set("Content-Type", "application/octet-stream")
 	request.Header.Set("x-nimi-face-swap-token", session.token)
 	request.Header.Set("x-nimi-face-swap-session", session.sessionID)
+	attempt := aitelemetry.Begin(ctx)
+	started := time.Now()
+	defer func() { attempt.Finish(observedLocalComputeUsage(time.Since(started).Milliseconds())) }()
 	response, err := (&http.Client{}).Do(request)
 	if err != nil {
 		if ctx.Err() == nil {

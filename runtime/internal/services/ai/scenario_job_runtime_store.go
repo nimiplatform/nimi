@@ -968,6 +968,9 @@ func (s *Service) transitionScenarioJob(
 		}
 		if err == nil {
 			if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
+				if s.aiObservation != nil {
+					s.aiObservation.FinishOperation(jobID, job.GetUsage())
+				}
 				s.releaseCloudCredentialCustodyForJob(jobID)
 			}
 			return job, transitioned, nil
@@ -1028,6 +1031,9 @@ func (s *Service) transitionVoiceScenarioJobCompleted(
 			return job, false, err
 		}
 		if err == nil {
+			if job != nil && s.aiObservation != nil {
+				s.aiObservation.FinishOperation(jobID, job.GetUsage())
+			}
 			return job, transitioned, nil
 		}
 		s.logScenarioJobPersistenceFailure(
@@ -1079,6 +1085,10 @@ func (s *Service) finishScenarioJobExecution(jobID string) {
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
 		_, err = s.scenarioJobs.finishExecution(jobID)
 		if err == nil {
+			finished, _ := s.scenarioJobs.get(jobID)
+			if finished != nil && isTerminalScenarioJobStatus(finished.GetStatus()) && s.aiObservation != nil {
+				s.aiObservation.FinishOperation(jobID, finished.GetUsage())
+			}
 			if cleanupErr := s.releaseScenarioBodyCandidates(jobID); cleanupErr != nil {
 				s.logScenarioJobPersistenceFailure("Job body cleanup remains pending", "job_id", jobID, "error", cleanupErr)
 			}

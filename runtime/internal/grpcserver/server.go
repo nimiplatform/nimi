@@ -14,6 +14,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
@@ -58,6 +59,7 @@ type Server struct {
 	healthServer          *grpcHealth.Server
 	rpcRegistry           *activeRPCRegistry
 	auditStore            *auditlog.Store
+	aiObservation         *aitelemetry.Store
 	accountService        *accountservice.Service
 	authService           *authservice.Service
 	aiSvc                 *aiservice.Service
@@ -527,6 +529,13 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err != nil {
 		return nil, fmt.Errorf("init Runtime audit store: %w", err)
 	}
+	aiObservation := aitelemetry.Open(backend, logger)
+	keepAIObservation := false
+	defer func() {
+		if !keepAIObservation {
+			_ = aiObservation.Close()
+		}
+	}()
 	desktopRefusals := newTransportRefusalAudit(auditStore, transportDesktop)
 	localAppRefusals := newTransportRefusalAudit(auditStore, transportLocalApp)
 	appRegistry := appregistry.New()
@@ -661,6 +670,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	)
 	healthpb.RegisterHealthServer(g, h)
 	auditSvc := auditservice.New(state, logger, auditStore)
+	auditSvc.SetAIObservationStore(aiObservation)
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditSvc)
 
 	connectorBasePath := filepath.Join(filepath.Dir(cfg.LocalStatePath), "connectors")
@@ -691,6 +701,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init ai service: %w", err)
 	}
 	aiSvc.SetRuntimeArtifactStore(artifactStore)
+	aiSvc.SetAIObservationStore(aiObservation)
 	if err := aiSvc.ReconcileNativeBodyPublications(); err != nil {
 		return nil, fmt.Errorf("recover native Job body publication: %w", err)
 	}
@@ -1076,6 +1087,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		healthServer:          h,
 		rpcRegistry:           rpcRegistry,
 		auditStore:            auditStore,
+		aiObservation:         aiObservation,
 		accountService:        accountSvc,
 		authService:           authSvc,
 		aiSvc:                 aiSvc,
@@ -1106,6 +1118,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	keepLocalDevelopmentStore = true
 	keepLocalService = true
 	keepBackend = true
+	keepAIObservation = true
 	return s, nil
 }
 

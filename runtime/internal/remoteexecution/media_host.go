@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"strings"
 	"sync"
 	"time"
@@ -88,6 +89,7 @@ func (h *ProviderMediaHost) ExecuteMedia(
 	ctx = nimillm.WithProviderTaskCleanupObserver(ctx, func(observation nimillm.ProviderTaskCleanupObservation) {
 		cleanup = &observation
 	})
+	attempt := aitelemetry.Begin(ctx)
 	result, err := h.transport.ExecuteMediaAdapter(
 		ctx,
 		request.Adapter(),
@@ -103,6 +105,9 @@ func (h *ProviderMediaHost) ExecuteMedia(
 				return capabilitydriver.CloudMediaTransportResponse{}, auditErr
 			}
 			return capabilitydriver.CloudMediaTransportResponse{}, err
+		}
+		if nimillm.IsNativeCreateResponseUnavailable(err) {
+			attempt.Unknown()
 		}
 		if auditErr := h.recordDispatch(audit, dispatchExit(ctx, "error"), mediaReasonCode(err), false, cleanup); auditErr != nil {
 			return capabilitydriver.CloudMediaTransportResponse{}, auditErr
@@ -228,6 +233,7 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
+	aitelemetry.Begin(ctx)
 	result, err := nimillm.ExecuteVoiceWorkflowAdapter(ctx, request.Adapter(), nimillm.VoiceWorkflowRequest{
 		Provider:        request.Provider(),
 		WorkflowType:    request.WorkflowType(),
@@ -310,6 +316,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		backendModelID = request.ProviderModelID()
 	}
 	extensions := nimillm.ScenarioExtensionPayloadForType(mapped.GetScenarioType(), mapped.GetExtensions())
+	aitelemetry.Begin(ctx)
 	if request.StreamMode() == capabilitydriver.CloudMediaStreamNative {
 		usage, finish, streamErr := backend.StreamSynthesizeSpeech(ctx, backendModelID, spec, extensions, func(chunk nimillm.SpeechStreamChunk) error {
 			mimeType := strings.TrimSpace(chunk.MIMEType)

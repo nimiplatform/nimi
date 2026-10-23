@@ -16,6 +16,12 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
     posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents

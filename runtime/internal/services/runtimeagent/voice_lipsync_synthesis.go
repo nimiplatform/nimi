@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -214,6 +215,9 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
 	ctx = accountservice.ContextWithAgentVoiceJobOrigin(ctx, input.Context, speechAppID, ownerUserID, input.AgentID)
+	if _, attributed := aitelemetry.SourceFromContext(ctx); !attributed {
+		ctx = withLocalAgentAIObservation(ctx, input.AgentID, "agent-turn", turnID, false)
+	}
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
 		intent := executionintent.Clone(input.SpeechExecutionIntent)
 		cloudTarget := input.SpeechTargetRef.GetCloud()

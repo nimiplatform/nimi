@@ -133,6 +133,104 @@ func (RuntimeHealthStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{1}
 }
 
+type DesktopAIExecutionRoute int32
+
+const (
+	DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED DesktopAIExecutionRoute = 0
+	DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_LOCAL       DesktopAIExecutionRoute = 1
+	DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_CLOUD       DesktopAIExecutionRoute = 2
+)
+
+// Enum value maps for DesktopAIExecutionRoute.
+var (
+	DesktopAIExecutionRoute_name = map[int32]string{
+		0: "DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED",
+		1: "DESKTOP_AI_EXECUTION_ROUTE_LOCAL",
+		2: "DESKTOP_AI_EXECUTION_ROUTE_CLOUD",
+	}
+	DesktopAIExecutionRoute_value = map[string]int32{
+		"DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED": 0,
+		"DESKTOP_AI_EXECUTION_ROUTE_LOCAL":       1,
+		"DESKTOP_AI_EXECUTION_ROUTE_CLOUD":       2,
+	}
+)
+
+func (x DesktopAIExecutionRoute) Enum() *DesktopAIExecutionRoute {
+	p := new(DesktopAIExecutionRoute)
+	*p = x
+	return p
+}
+
+func (x DesktopAIExecutionRoute) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DesktopAIExecutionRoute) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_audit_proto_enumTypes[2].Descriptor()
+}
+
+func (DesktopAIExecutionRoute) Type() protoreflect.EnumType {
+	return &file_runtime_v1_audit_proto_enumTypes[2]
+}
+
+func (x DesktopAIExecutionRoute) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DesktopAIExecutionRoute.Descriptor instead.
+func (DesktopAIExecutionRoute) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{2}
+}
+
+type DesktopAIExecutionState int32
+
+const (
+	DesktopAIExecutionState_DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED         DesktopAIExecutionState = 0
+	DesktopAIExecutionState_DESKTOP_AI_EXECUTION_STATE_RUNNING             DesktopAIExecutionState = 1
+	DesktopAIExecutionState_DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN DesktopAIExecutionState = 2
+)
+
+// Enum value maps for DesktopAIExecutionState.
+var (
+	DesktopAIExecutionState_name = map[int32]string{
+		0: "DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED",
+		1: "DESKTOP_AI_EXECUTION_STATE_RUNNING",
+		2: "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN",
+	}
+	DesktopAIExecutionState_value = map[string]int32{
+		"DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED":         0,
+		"DESKTOP_AI_EXECUTION_STATE_RUNNING":             1,
+		"DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN": 2,
+	}
+)
+
+func (x DesktopAIExecutionState) Enum() *DesktopAIExecutionState {
+	p := new(DesktopAIExecutionState)
+	*p = x
+	return p
+}
+
+func (x DesktopAIExecutionState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DesktopAIExecutionState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_audit_proto_enumTypes[3].Descriptor()
+}
+
+func (DesktopAIExecutionState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_audit_proto_enumTypes[3]
+}
+
+func (x DesktopAIExecutionState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DesktopAIExecutionState.Descriptor instead.
+func (DesktopAIExecutionState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{3}
+}
+
 type ListAuditEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -1592,6 +1690,1039 @@ func (x *AuditExportChunk) GetMimeType() string {
 	return ""
 }
 
+// Protected Desktop-account projections. The authenticated account is derived
+// from the native carrier; these requests deliberately have no account selector.
+type GetDesktopAIActivitySnapshotRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDesktopAIActivitySnapshotRequest) Reset() {
+	*x = GetDesktopAIActivitySnapshotRequest{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDesktopAIActivitySnapshotRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDesktopAIActivitySnapshotRequest) ProtoMessage() {}
+
+func (x *GetDesktopAIActivitySnapshotRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDesktopAIActivitySnapshotRequest.ProtoReflect.Descriptor instead.
+func (*GetDesktopAIActivitySnapshotRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetDesktopAIActivitySnapshotRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetDesktopAIActivitySnapshotResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Snapshot      *DesktopAIActivitySnapshot `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDesktopAIActivitySnapshotResponse) Reset() {
+	*x = GetDesktopAIActivitySnapshotResponse{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDesktopAIActivitySnapshotResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDesktopAIActivitySnapshotResponse) ProtoMessage() {}
+
+func (x *GetDesktopAIActivitySnapshotResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDesktopAIActivitySnapshotResponse.ProtoReflect.Descriptor instead.
+func (*GetDesktopAIActivitySnapshotResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetDesktopAIActivitySnapshotResponse) GetSnapshot() *DesktopAIActivitySnapshot {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+type SubscribeDesktopAIActivityRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeDesktopAIActivityRequest) Reset() {
+	*x = SubscribeDesktopAIActivityRequest{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeDesktopAIActivityRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeDesktopAIActivityRequest) ProtoMessage() {}
+
+func (x *SubscribeDesktopAIActivityRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeDesktopAIActivityRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeDesktopAIActivityRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SubscribeDesktopAIActivityRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type DesktopAIExecutionModel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	ProviderId    string                 `protobuf:"bytes,4,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DesktopAIExecutionModel) Reset() {
+	*x = DesktopAIExecutionModel{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIExecutionModel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIExecutionModel) ProtoMessage() {}
+
+func (x *DesktopAIExecutionModel) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIExecutionModel.ProtoReflect.Descriptor instead.
+func (*DesktopAIExecutionModel) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *DesktopAIExecutionModel) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *DesktopAIExecutionModel) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *DesktopAIExecutionModel) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *DesktopAIExecutionModel) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+type DesktopAISourceCoverage struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Source           string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	ActivityComplete bool                   `protobuf:"varint,2,opt,name=activity_complete,json=activityComplete,proto3" json:"activity_complete,omitempty"`
+	UsageComplete    bool                   `protobuf:"varint,3,opt,name=usage_complete,json=usageComplete,proto3" json:"usage_complete,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DesktopAISourceCoverage) Reset() {
+	*x = DesktopAISourceCoverage{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAISourceCoverage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAISourceCoverage) ProtoMessage() {}
+
+func (x *DesktopAISourceCoverage) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAISourceCoverage.ProtoReflect.Descriptor instead.
+func (*DesktopAISourceCoverage) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DesktopAISourceCoverage) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *DesktopAISourceCoverage) GetActivityComplete() bool {
+	if x != nil {
+		return x.ActivityComplete
+	}
+	return false
+}
+
+func (x *DesktopAISourceCoverage) GetUsageComplete() bool {
+	if x != nil {
+		return x.UsageComplete
+	}
+	return false
+}
+
+type DesktopAIExecution struct {
+	state          protoimpl.MessageState     `protogen:"open.v1"`
+	AttemptId      string                     `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
+	ParentWorkId   string                     `protobuf:"bytes,2,opt,name=parent_work_id,json=parentWorkId,proto3" json:"parent_work_id,omitempty"`
+	ParentWorkKind string                     `protobuf:"bytes,3,opt,name=parent_work_kind,json=parentWorkKind,proto3" json:"parent_work_kind,omitempty"`
+	SourceKind     string                     `protobuf:"bytes,4,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
+	SourceId       string                     `protobuf:"bytes,5,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	SourceLabel    string                     `protobuf:"bytes,6,opt,name=source_label,json=sourceLabel,proto3" json:"source_label,omitempty"`
+	Capability     string                     `protobuf:"bytes,7,opt,name=capability,proto3" json:"capability,omitempty"`
+	Models         []*DesktopAIExecutionModel `protobuf:"bytes,8,rep,name=models,proto3" json:"models,omitempty"`
+	Route          DesktopAIExecutionRoute    `protobuf:"varint,9,opt,name=route,proto3,enum=nimi.runtime.v1.DesktopAIExecutionRoute" json:"route,omitempty"`
+	State          DesktopAIExecutionState    `protobuf:"varint,10,opt,name=state,proto3,enum=nimi.runtime.v1.DesktopAIExecutionState" json:"state,omitempty"`
+	StartedAt      *timestamppb.Timestamp     `protobuf:"bytes,11,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	ObservedAt     *timestamppb.Timestamp     `protobuf:"bytes,12,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *DesktopAIExecution) Reset() {
+	*x = DesktopAIExecution{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIExecution) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIExecution) ProtoMessage() {}
+
+func (x *DesktopAIExecution) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIExecution.ProtoReflect.Descriptor instead.
+func (*DesktopAIExecution) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *DesktopAIExecution) GetAttemptId() string {
+	if x != nil {
+		return x.AttemptId
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetParentWorkId() string {
+	if x != nil {
+		return x.ParentWorkId
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetParentWorkKind() string {
+	if x != nil {
+		return x.ParentWorkKind
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetSourceKind() string {
+	if x != nil {
+		return x.SourceKind
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetSourceId() string {
+	if x != nil {
+		return x.SourceId
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetSourceLabel() string {
+	if x != nil {
+		return x.SourceLabel
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *DesktopAIExecution) GetModels() []*DesktopAIExecutionModel {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+func (x *DesktopAIExecution) GetRoute() DesktopAIExecutionRoute {
+	if x != nil {
+		return x.Route
+	}
+	return DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED
+}
+
+func (x *DesktopAIExecution) GetState() DesktopAIExecutionState {
+	if x != nil {
+		return x.State
+	}
+	return DesktopAIExecutionState_DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED
+}
+
+func (x *DesktopAIExecution) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *DesktopAIExecution) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
+type DesktopAIActivitySnapshot struct {
+	state                   protoimpl.MessageState     `protogen:"open.v1"`
+	GenerationId            string                     `protobuf:"bytes,1,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	Revision                uint64                     `protobuf:"varint,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	ObservedAt              *timestamppb.Timestamp     `protobuf:"bytes,3,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	Executions              []*DesktopAIExecution      `protobuf:"bytes,4,rep,name=executions,proto3" json:"executions,omitempty"`
+	SourceCoverage          []*DesktopAISourceCoverage `protobuf:"bytes,5,rep,name=source_coverage,json=sourceCoverage,proto3" json:"source_coverage,omitempty"`
+	RecordsComplete         bool                       `protobuf:"varint,6,opt,name=records_complete,json=recordsComplete,proto3" json:"records_complete,omitempty"`
+	KnownActiveAttemptCount int64                      `protobuf:"varint,7,opt,name=known_active_attempt_count,json=knownActiveAttemptCount,proto3" json:"known_active_attempt_count,omitempty"`
+	WorkCountKnown          bool                       `protobuf:"varint,8,opt,name=work_count_known,json=workCountKnown,proto3" json:"work_count_known,omitempty"`
+	KnownWorkCount          int64                      `protobuf:"varint,9,opt,name=known_work_count,json=knownWorkCount,proto3" json:"known_work_count,omitempty"`
+	PartialReasons          []string                   `protobuf:"bytes,10,rep,name=partial_reasons,json=partialReasons,proto3" json:"partial_reasons,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *DesktopAIActivitySnapshot) Reset() {
+	*x = DesktopAIActivitySnapshot{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIActivitySnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIActivitySnapshot) ProtoMessage() {}
+
+func (x *DesktopAIActivitySnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIActivitySnapshot.ProtoReflect.Descriptor instead.
+func (*DesktopAIActivitySnapshot) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *DesktopAIActivitySnapshot) GetGenerationId() string {
+	if x != nil {
+		return x.GenerationId
+	}
+	return ""
+}
+
+func (x *DesktopAIActivitySnapshot) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *DesktopAIActivitySnapshot) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
+func (x *DesktopAIActivitySnapshot) GetExecutions() []*DesktopAIExecution {
+	if x != nil {
+		return x.Executions
+	}
+	return nil
+}
+
+func (x *DesktopAIActivitySnapshot) GetSourceCoverage() []*DesktopAISourceCoverage {
+	if x != nil {
+		return x.SourceCoverage
+	}
+	return nil
+}
+
+func (x *DesktopAIActivitySnapshot) GetRecordsComplete() bool {
+	if x != nil {
+		return x.RecordsComplete
+	}
+	return false
+}
+
+func (x *DesktopAIActivitySnapshot) GetKnownActiveAttemptCount() int64 {
+	if x != nil {
+		return x.KnownActiveAttemptCount
+	}
+	return 0
+}
+
+func (x *DesktopAIActivitySnapshot) GetWorkCountKnown() bool {
+	if x != nil {
+		return x.WorkCountKnown
+	}
+	return false
+}
+
+func (x *DesktopAIActivitySnapshot) GetKnownWorkCount() int64 {
+	if x != nil {
+		return x.KnownWorkCount
+	}
+	return 0
+}
+
+func (x *DesktopAIActivitySnapshot) GetPartialReasons() []string {
+	if x != nil {
+		return x.PartialReasons
+	}
+	return nil
+}
+
+type GetDesktopAIUsageSummaryRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Half-open UTC interval, at most seven days. Future time is not claimed as
+	// covered: effective_to is the earlier of to_time and the consistent read.
+	FromTime      *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=from_time,json=fromTime,proto3" json:"from_time,omitempty"`
+	ToTime        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=to_time,json=toTime,proto3" json:"to_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDesktopAIUsageSummaryRequest) Reset() {
+	*x = GetDesktopAIUsageSummaryRequest{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDesktopAIUsageSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDesktopAIUsageSummaryRequest) ProtoMessage() {}
+
+func (x *GetDesktopAIUsageSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDesktopAIUsageSummaryRequest.ProtoReflect.Descriptor instead.
+func (*GetDesktopAIUsageSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetDesktopAIUsageSummaryRequest) GetFromTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FromTime
+	}
+	return nil
+}
+
+func (x *GetDesktopAIUsageSummaryRequest) GetToTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ToTime
+	}
+	return nil
+}
+
+type GetDesktopAIUsageSummaryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Summary       *DesktopAIUsageSummary `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDesktopAIUsageSummaryResponse) Reset() {
+	*x = GetDesktopAIUsageSummaryResponse{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDesktopAIUsageSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDesktopAIUsageSummaryResponse) ProtoMessage() {}
+
+func (x *GetDesktopAIUsageSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDesktopAIUsageSummaryResponse.ProtoReflect.Descriptor instead.
+func (*GetDesktopAIUsageSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetDesktopAIUsageSummaryResponse) GetSummary() *DesktopAIUsageSummary {
+	if x != nil {
+		return x.Summary
+	}
+	return nil
+}
+
+type DesktopAIUsageTotals struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	AttemptCount          int64                  `protobuf:"varint,1,opt,name=attempt_count,json=attemptCount,proto3" json:"attempt_count,omitempty"`
+	ActiveAttemptCount    int64                  `protobuf:"varint,2,opt,name=active_attempt_count,json=activeAttemptCount,proto3" json:"active_attempt_count,omitempty"`
+	PendingUsageCount     int64                  `protobuf:"varint,3,opt,name=pending_usage_count,json=pendingUsageCount,proto3" json:"pending_usage_count,omitempty"`
+	MeasuredAttemptCount  int64                  `protobuf:"varint,4,opt,name=measured_attempt_count,json=measuredAttemptCount,proto3" json:"measured_attempt_count,omitempty"`
+	InputTokens           int64                  `protobuf:"varint,5,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	OutputTokens          int64                  `protobuf:"varint,6,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	CachedInputTokens     int64                  `protobuf:"varint,7,opt,name=cached_input_tokens,json=cachedInputTokens,proto3" json:"cached_input_tokens,omitempty"`
+	ReasoningOutputTokens int64                  `protobuf:"varint,8,opt,name=reasoning_output_tokens,json=reasoningOutputTokens,proto3" json:"reasoning_output_tokens,omitempty"`
+	ComputeMs             int64                  `protobuf:"varint,9,opt,name=compute_ms,json=computeMs,proto3" json:"compute_ms,omitempty"`
+	UnpricedAttemptCount  int64                  `protobuf:"varint,10,opt,name=unpriced_attempt_count,json=unpricedAttemptCount,proto3" json:"unpriced_attempt_count,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *DesktopAIUsageTotals) Reset() {
+	*x = DesktopAIUsageTotals{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIUsageTotals) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIUsageTotals) ProtoMessage() {}
+
+func (x *DesktopAIUsageTotals) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIUsageTotals.ProtoReflect.Descriptor instead.
+func (*DesktopAIUsageTotals) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *DesktopAIUsageTotals) GetAttemptCount() int64 {
+	if x != nil {
+		return x.AttemptCount
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetActiveAttemptCount() int64 {
+	if x != nil {
+		return x.ActiveAttemptCount
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetPendingUsageCount() int64 {
+	if x != nil {
+		return x.PendingUsageCount
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetMeasuredAttemptCount() int64 {
+	if x != nil {
+		return x.MeasuredAttemptCount
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetInputTokens() int64 {
+	if x != nil {
+		return x.InputTokens
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetOutputTokens() int64 {
+	if x != nil {
+		return x.OutputTokens
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetCachedInputTokens() int64 {
+	if x != nil {
+		return x.CachedInputTokens
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetReasoningOutputTokens() int64 {
+	if x != nil {
+		return x.ReasoningOutputTokens
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetComputeMs() int64 {
+	if x != nil {
+		return x.ComputeMs
+	}
+	return 0
+}
+
+func (x *DesktopAIUsageTotals) GetUnpricedAttemptCount() int64 {
+	if x != nil {
+		return x.UnpricedAttemptCount
+	}
+	return 0
+}
+
+type DesktopAICostEstimate struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Currency string                 `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"`
+	// Decimal estimated amount, never an actual Provider charge.
+	EstimatedAmount string `protobuf:"bytes,2,opt,name=estimated_amount,json=estimatedAmount,proto3" json:"estimated_amount,omitempty"`
+	PricingBasis    string `protobuf:"bytes,3,opt,name=pricing_basis,json=pricingBasis,proto3" json:"pricing_basis,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DesktopAICostEstimate) Reset() {
+	*x = DesktopAICostEstimate{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAICostEstimate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAICostEstimate) ProtoMessage() {}
+
+func (x *DesktopAICostEstimate) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAICostEstimate.ProtoReflect.Descriptor instead.
+func (*DesktopAICostEstimate) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *DesktopAICostEstimate) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *DesktopAICostEstimate) GetEstimatedAmount() string {
+	if x != nil {
+		return x.EstimatedAmount
+	}
+	return ""
+}
+
+func (x *DesktopAICostEstimate) GetPricingBasis() string {
+	if x != nil {
+		return x.PricingBasis
+	}
+	return ""
+}
+
+type DesktopAIUsageGroup struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	SourceKind    string                     `protobuf:"bytes,1,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
+	Capability    string                     `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
+	Models        []*DesktopAIExecutionModel `protobuf:"bytes,3,rep,name=models,proto3" json:"models,omitempty"`
+	Route         DesktopAIExecutionRoute    `protobuf:"varint,4,opt,name=route,proto3,enum=nimi.runtime.v1.DesktopAIExecutionRoute" json:"route,omitempty"`
+	Totals        *DesktopAIUsageTotals      `protobuf:"bytes,5,opt,name=totals,proto3" json:"totals,omitempty"`
+	Estimates     []*DesktopAICostEstimate   `protobuf:"bytes,6,rep,name=estimates,proto3" json:"estimates,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DesktopAIUsageGroup) Reset() {
+	*x = DesktopAIUsageGroup{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIUsageGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIUsageGroup) ProtoMessage() {}
+
+func (x *DesktopAIUsageGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIUsageGroup.ProtoReflect.Descriptor instead.
+func (*DesktopAIUsageGroup) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *DesktopAIUsageGroup) GetSourceKind() string {
+	if x != nil {
+		return x.SourceKind
+	}
+	return ""
+}
+
+func (x *DesktopAIUsageGroup) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *DesktopAIUsageGroup) GetModels() []*DesktopAIExecutionModel {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageGroup) GetRoute() DesktopAIExecutionRoute {
+	if x != nil {
+		return x.Route
+	}
+	return DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED
+}
+
+func (x *DesktopAIUsageGroup) GetTotals() *DesktopAIUsageTotals {
+	if x != nil {
+		return x.Totals
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageGroup) GetEstimates() []*DesktopAICostEstimate {
+	if x != nil {
+		return x.Estimates
+	}
+	return nil
+}
+
+type DesktopAIUsageSummary struct {
+	state            protoimpl.MessageState     `protogen:"open.v1"`
+	GenerationId     string                     `protobuf:"bytes,1,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	ReadAt           *timestamppb.Timestamp     `protobuf:"bytes,2,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
+	FromTime         *timestamppb.Timestamp     `protobuf:"bytes,3,opt,name=from_time,json=fromTime,proto3" json:"from_time,omitempty"`
+	ToTime           *timestamppb.Timestamp     `protobuf:"bytes,4,opt,name=to_time,json=toTime,proto3" json:"to_time,omitempty"`
+	EffectiveTo      *timestamppb.Timestamp     `protobuf:"bytes,5,opt,name=effective_to,json=effectiveTo,proto3" json:"effective_to,omitempty"`
+	Totals           *DesktopAIUsageTotals      `protobuf:"bytes,6,opt,name=totals,proto3" json:"totals,omitempty"`
+	Groups           []*DesktopAIUsageGroup     `protobuf:"bytes,7,rep,name=groups,proto3" json:"groups,omitempty"`
+	GroupsComplete   bool                       `protobuf:"varint,8,opt,name=groups_complete,json=groupsComplete,proto3" json:"groups_complete,omitempty"`
+	Estimates        []*DesktopAICostEstimate   `protobuf:"bytes,9,rep,name=estimates,proto3" json:"estimates,omitempty"`
+	SourceCoverage   []*DesktopAISourceCoverage `protobuf:"bytes,10,rep,name=source_coverage,json=sourceCoverage,proto3" json:"source_coverage,omitempty"`
+	SourceComplete   bool                       `protobuf:"varint,11,opt,name=source_complete,json=sourceComplete,proto3" json:"source_complete,omitempty"`
+	TimeComplete     bool                       `protobuf:"varint,12,opt,name=time_complete,json=timeComplete,proto3" json:"time_complete,omitempty"`
+	QuantityComplete bool                       `protobuf:"varint,13,opt,name=quantity_complete,json=quantityComplete,proto3" json:"quantity_complete,omitempty"`
+	CoverageFrom     *timestamppb.Timestamp     `protobuf:"bytes,14,opt,name=coverage_from,json=coverageFrom,proto3" json:"coverage_from,omitempty"`
+	CoverageTo       *timestamppb.Timestamp     `protobuf:"bytes,15,opt,name=coverage_to,json=coverageTo,proto3" json:"coverage_to,omitempty"`
+	PartialReasons   []string                   `protobuf:"bytes,16,rep,name=partial_reasons,json=partialReasons,proto3" json:"partial_reasons,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DesktopAIUsageSummary) Reset() {
+	*x = DesktopAIUsageSummary{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIUsageSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIUsageSummary) ProtoMessage() {}
+
+func (x *DesktopAIUsageSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIUsageSummary.ProtoReflect.Descriptor instead.
+func (*DesktopAIUsageSummary) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *DesktopAIUsageSummary) GetGenerationId() string {
+	if x != nil {
+		return x.GenerationId
+	}
+	return ""
+}
+
+func (x *DesktopAIUsageSummary) GetReadAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReadAt
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetFromTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FromTime
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetToTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ToTime
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetEffectiveTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EffectiveTo
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetTotals() *DesktopAIUsageTotals {
+	if x != nil {
+		return x.Totals
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetGroups() []*DesktopAIUsageGroup {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetGroupsComplete() bool {
+	if x != nil {
+		return x.GroupsComplete
+	}
+	return false
+}
+
+func (x *DesktopAIUsageSummary) GetEstimates() []*DesktopAICostEstimate {
+	if x != nil {
+		return x.Estimates
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetSourceCoverage() []*DesktopAISourceCoverage {
+	if x != nil {
+		return x.SourceCoverage
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetSourceComplete() bool {
+	if x != nil {
+		return x.SourceComplete
+	}
+	return false
+}
+
+func (x *DesktopAIUsageSummary) GetTimeComplete() bool {
+	if x != nil {
+		return x.TimeComplete
+	}
+	return false
+}
+
+func (x *DesktopAIUsageSummary) GetQuantityComplete() bool {
+	if x != nil {
+		return x.QuantityComplete
+	}
+	return false
+}
+
+func (x *DesktopAIUsageSummary) GetCoverageFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CoverageFrom
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetCoverageTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CoverageTo
+	}
+	return nil
+}
+
+func (x *DesktopAIUsageSummary) GetPartialReasons() []string {
+	if x != nil {
+		return x.PartialReasons
+	}
+	return nil
+}
+
 var File_runtime_v1_audit_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_audit_proto_rawDesc = "" +
@@ -1763,7 +2894,109 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x14\n" +
 	"\x05chunk\x18\x03 \x01(\fR\x05chunk\x12\x10\n" +
 	"\x03eof\x18\x04 \x01(\bR\x03eof\x12\x1b\n" +
-	"\tmime_type\x18\x05 \x01(\tR\bmimeType*q\n" +
+	"\tmime_type\x18\x05 \x01(\tR\bmimeType\";\n" +
+	"#GetDesktopAIActivitySnapshotRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"n\n" +
+	"$GetDesktopAIActivitySnapshotResponse\x12F\n" +
+	"\bsnapshot\x18\x01 \x01(\v2*.nimi.runtime.v1.DesktopAIActivitySnapshotR\bsnapshot\"9\n" +
+	"!SubscribeDesktopAIActivityRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"\x8c\x01\n" +
+	"\x17DesktopAIExecutionModel\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x12\n" +
+	"\x04role\x18\x03 \x01(\tR\x04role\x12\x1f\n" +
+	"\vprovider_id\x18\x04 \x01(\tR\n" +
+	"providerId\"\x85\x01\n" +
+	"\x17DesktopAISourceCoverage\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12+\n" +
+	"\x11activity_complete\x18\x02 \x01(\bR\x10activityComplete\x12%\n" +
+	"\x0eusage_complete\x18\x03 \x01(\bR\rusageComplete\"\xbe\x04\n" +
+	"\x12DesktopAIExecution\x12\x1d\n" +
+	"\n" +
+	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12$\n" +
+	"\x0eparent_work_id\x18\x02 \x01(\tR\fparentWorkId\x12(\n" +
+	"\x10parent_work_kind\x18\x03 \x01(\tR\x0eparentWorkKind\x12\x1f\n" +
+	"\vsource_kind\x18\x04 \x01(\tR\n" +
+	"sourceKind\x12\x1b\n" +
+	"\tsource_id\x18\x05 \x01(\tR\bsourceId\x12!\n" +
+	"\fsource_label\x18\x06 \x01(\tR\vsourceLabel\x12\x1e\n" +
+	"\n" +
+	"capability\x18\a \x01(\tR\n" +
+	"capability\x12@\n" +
+	"\x06models\x18\b \x03(\v2(.nimi.runtime.v1.DesktopAIExecutionModelR\x06models\x12>\n" +
+	"\x05route\x18\t \x01(\x0e2(.nimi.runtime.v1.DesktopAIExecutionRouteR\x05route\x12>\n" +
+	"\x05state\x18\n" +
+	" \x01(\x0e2(.nimi.runtime.v1.DesktopAIExecutionStateR\x05state\x129\n" +
+	"\n" +
+	"started_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vobserved_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\"\x96\x04\n" +
+	"\x19DesktopAIActivitySnapshot\x12#\n" +
+	"\rgeneration_id\x18\x01 \x01(\tR\fgenerationId\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\x04R\brevision\x12;\n" +
+	"\vobserved_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\x12C\n" +
+	"\n" +
+	"executions\x18\x04 \x03(\v2#.nimi.runtime.v1.DesktopAIExecutionR\n" +
+	"executions\x12Q\n" +
+	"\x0fsource_coverage\x18\x05 \x03(\v2(.nimi.runtime.v1.DesktopAISourceCoverageR\x0esourceCoverage\x12)\n" +
+	"\x10records_complete\x18\x06 \x01(\bR\x0frecordsComplete\x12;\n" +
+	"\x1aknown_active_attempt_count\x18\a \x01(\x03R\x17knownActiveAttemptCount\x12(\n" +
+	"\x10work_count_known\x18\b \x01(\bR\x0eworkCountKnown\x12(\n" +
+	"\x10known_work_count\x18\t \x01(\x03R\x0eknownWorkCount\x12'\n" +
+	"\x0fpartial_reasons\x18\n" +
+	" \x03(\tR\x0epartialReasons\"\x8f\x01\n" +
+	"\x1fGetDesktopAIUsageSummaryRequest\x127\n" +
+	"\tfrom_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\bfromTime\x123\n" +
+	"\ato_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x06toTime\"d\n" +
+	" GetDesktopAIUsageSummaryResponse\x12@\n" +
+	"\asummary\x18\x01 \x01(\v2&.nimi.runtime.v1.DesktopAIUsageSummaryR\asummary\"\xd8\x03\n" +
+	"\x14DesktopAIUsageTotals\x12#\n" +
+	"\rattempt_count\x18\x01 \x01(\x03R\fattemptCount\x120\n" +
+	"\x14active_attempt_count\x18\x02 \x01(\x03R\x12activeAttemptCount\x12.\n" +
+	"\x13pending_usage_count\x18\x03 \x01(\x03R\x11pendingUsageCount\x124\n" +
+	"\x16measured_attempt_count\x18\x04 \x01(\x03R\x14measuredAttemptCount\x12!\n" +
+	"\finput_tokens\x18\x05 \x01(\x03R\vinputTokens\x12#\n" +
+	"\routput_tokens\x18\x06 \x01(\x03R\foutputTokens\x12.\n" +
+	"\x13cached_input_tokens\x18\a \x01(\x03R\x11cachedInputTokens\x126\n" +
+	"\x17reasoning_output_tokens\x18\b \x01(\x03R\x15reasoningOutputTokens\x12\x1d\n" +
+	"\n" +
+	"compute_ms\x18\t \x01(\x03R\tcomputeMs\x124\n" +
+	"\x16unpriced_attempt_count\x18\n" +
+	" \x01(\x03R\x14unpricedAttemptCount\"\x83\x01\n" +
+	"\x15DesktopAICostEstimate\x12\x1a\n" +
+	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12)\n" +
+	"\x10estimated_amount\x18\x02 \x01(\tR\x0festimatedAmount\x12#\n" +
+	"\rpricing_basis\x18\x03 \x01(\tR\fpricingBasis\"\xdd\x02\n" +
+	"\x13DesktopAIUsageGroup\x12\x1f\n" +
+	"\vsource_kind\x18\x01 \x01(\tR\n" +
+	"sourceKind\x12\x1e\n" +
+	"\n" +
+	"capability\x18\x02 \x01(\tR\n" +
+	"capability\x12@\n" +
+	"\x06models\x18\x03 \x03(\v2(.nimi.runtime.v1.DesktopAIExecutionModelR\x06models\x12>\n" +
+	"\x05route\x18\x04 \x01(\x0e2(.nimi.runtime.v1.DesktopAIExecutionRouteR\x05route\x12=\n" +
+	"\x06totals\x18\x05 \x01(\v2%.nimi.runtime.v1.DesktopAIUsageTotalsR\x06totals\x12D\n" +
+	"\testimates\x18\x06 \x03(\v2&.nimi.runtime.v1.DesktopAICostEstimateR\testimates\"\xff\x06\n" +
+	"\x15DesktopAIUsageSummary\x12#\n" +
+	"\rgeneration_id\x18\x01 \x01(\tR\fgenerationId\x123\n" +
+	"\aread_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\x127\n" +
+	"\tfrom_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bfromTime\x123\n" +
+	"\ato_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x06toTime\x12=\n" +
+	"\feffective_to\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveTo\x12=\n" +
+	"\x06totals\x18\x06 \x01(\v2%.nimi.runtime.v1.DesktopAIUsageTotalsR\x06totals\x12<\n" +
+	"\x06groups\x18\a \x03(\v2$.nimi.runtime.v1.DesktopAIUsageGroupR\x06groups\x12'\n" +
+	"\x0fgroups_complete\x18\b \x01(\bR\x0egroupsComplete\x12D\n" +
+	"\testimates\x18\t \x03(\v2&.nimi.runtime.v1.DesktopAICostEstimateR\testimates\x12Q\n" +
+	"\x0fsource_coverage\x18\n" +
+	" \x03(\v2(.nimi.runtime.v1.DesktopAISourceCoverageR\x0esourceCoverage\x12'\n" +
+	"\x0fsource_complete\x18\v \x01(\bR\x0esourceComplete\x12#\n" +
+	"\rtime_complete\x18\f \x01(\bR\ftimeComplete\x12+\n" +
+	"\x11quantity_complete\x18\r \x01(\bR\x10quantityComplete\x12?\n" +
+	"\rcoverage_from\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\fcoverageFrom\x12;\n" +
+	"\vcoverage_to\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"coverageTo\x12'\n" +
+	"\x0fpartial_reasons\x18\x10 \x03(\tR\x0epartialReasons*q\n" +
 	"\vUsageWindow\x12\x1c\n" +
 	"\x18USAGE_WINDOW_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13USAGE_WINDOW_MINUTE\x10\x01\x12\x15\n" +
@@ -1775,14 +3008,25 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\x1eRUNTIME_HEALTH_STATUS_STARTING\x10\x02\x12\x1f\n" +
 	"\x1bRUNTIME_HEALTH_STATUS_READY\x10\x03\x12\"\n" +
 	"\x1eRUNTIME_HEALTH_STATUS_DEGRADED\x10\x04\x12\"\n" +
-	"\x1eRUNTIME_HEALTH_STATUS_STOPPING\x10\x052\xa4\x05\n" +
+	"\x1eRUNTIME_HEALTH_STATUS_STOPPING\x10\x05*\x91\x01\n" +
+	"\x17DesktopAIExecutionRoute\x12*\n" +
+	"&DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED\x10\x00\x12$\n" +
+	" DESKTOP_AI_EXECUTION_ROUTE_LOCAL\x10\x01\x12$\n" +
+	" DESKTOP_AI_EXECUTION_ROUTE_CLOUD\x10\x02*\xa1\x01\n" +
+	"\x17DesktopAIExecutionState\x12*\n" +
+	"&DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"DESKTOP_AI_EXECUTION_STATE_RUNNING\x10\x01\x122\n" +
+	".DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN\x10\x022\xb3\b\n" +
 	"\x13RuntimeAuditService\x12d\n" +
 	"\x0fListAuditEvents\x12'.nimi.runtime.v1.ListAuditEventsRequest\x1a(.nimi.runtime.v1.ListAuditEventsResponse\x12y\n" +
 	"\x16ListDesktopAuditEvents\x12..nimi.runtime.v1.ListDesktopAuditEventsRequest\x1a/.nimi.runtime.v1.ListDesktopAuditEventsResponse\x12c\n" +
 	"\x11ExportAuditEvents\x12).nimi.runtime.v1.ExportAuditEventsRequest\x1a!.nimi.runtime.v1.AuditExportChunk0\x01\x12a\n" +
 	"\x0eListUsageStats\x12&.nimi.runtime.v1.ListUsageStatsRequest\x1a'.nimi.runtime.v1.ListUsageStatsResponse\x12g\n" +
 	"\x10GetRuntimeHealth\x12(.nimi.runtime.v1.GetRuntimeHealthRequest\x1a).nimi.runtime.v1.GetRuntimeHealthResponse\x12{\n" +
-	"\x1cSubscribeRuntimeHealthEvents\x124.nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest\x1a#.nimi.runtime.v1.RuntimeHealthEvent0\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x1cSubscribeRuntimeHealthEvents\x124.nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest\x1a#.nimi.runtime.v1.RuntimeHealthEvent0\x01\x12\x8b\x01\n" +
+	"\x1cGetDesktopAIActivitySnapshot\x124.nimi.runtime.v1.GetDesktopAIActivitySnapshotRequest\x1a5.nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse\x12~\n" +
+	"\x1aSubscribeDesktopAIActivity\x122.nimi.runtime.v1.SubscribeDesktopAIActivityRequest\x1a*.nimi.runtime.v1.DesktopAIActivitySnapshot0\x01\x12\x7f\n" +
+	"\x18GetDesktopAIUsageSummary\x120.nimi.runtime.v1.GetDesktopAIUsageSummaryRequest\x1a1.nimi.runtime.v1.GetDesktopAIUsageSummaryResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_audit_proto_rawDescOnce sync.Once
@@ -1796,80 +3040,127 @@ func file_runtime_v1_audit_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_audit_proto_rawDescData
 }
 
-var file_runtime_v1_audit_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_runtime_v1_audit_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_runtime_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_runtime_v1_audit_proto_goTypes = []any{
-	(UsageWindow)(0),                            // 0: nimi.runtime.v1.UsageWindow
-	(RuntimeHealthStatus)(0),                    // 1: nimi.runtime.v1.RuntimeHealthStatus
-	(*ListAuditEventsRequest)(nil),              // 2: nimi.runtime.v1.ListAuditEventsRequest
-	(*AuditEventRecord)(nil),                    // 3: nimi.runtime.v1.AuditEventRecord
-	(*ListAuditEventsResponse)(nil),             // 4: nimi.runtime.v1.ListAuditEventsResponse
-	(*ListDesktopAuditEventsRequest)(nil),       // 5: nimi.runtime.v1.ListDesktopAuditEventsRequest
-	(*DesktopAuditEventProjection)(nil),         // 6: nimi.runtime.v1.DesktopAuditEventProjection
-	(*ListDesktopAuditEventsResponse)(nil),      // 7: nimi.runtime.v1.ListDesktopAuditEventsResponse
-	(*ExportAuditEventsRequest)(nil),            // 8: nimi.runtime.v1.ExportAuditEventsRequest
-	(*ListUsageStatsRequest)(nil),               // 9: nimi.runtime.v1.ListUsageStatsRequest
-	(*UsageStatRecord)(nil),                     // 10: nimi.runtime.v1.UsageStatRecord
-	(*ListUsageStatsResponse)(nil),              // 11: nimi.runtime.v1.ListUsageStatsResponse
-	(*GetRuntimeHealthRequest)(nil),             // 12: nimi.runtime.v1.GetRuntimeHealthRequest
-	(*GetRuntimeHealthResponse)(nil),            // 13: nimi.runtime.v1.GetRuntimeHealthResponse
-	(*SubscribeRuntimeHealthEventsRequest)(nil), // 14: nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
-	(*RuntimeHealthEvent)(nil),                  // 15: nimi.runtime.v1.RuntimeHealthEvent
-	(*AuditExportChunk)(nil),                    // 16: nimi.runtime.v1.AuditExportChunk
-	(ReasonCode)(0),                             // 17: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),               // 18: google.protobuf.Timestamp
-	(CallerKind)(0),                             // 19: nimi.runtime.v1.CallerKind
-	(*structpb.Struct)(nil),                     // 20: google.protobuf.Struct
+	(UsageWindow)(0),                             // 0: nimi.runtime.v1.UsageWindow
+	(RuntimeHealthStatus)(0),                     // 1: nimi.runtime.v1.RuntimeHealthStatus
+	(DesktopAIExecutionRoute)(0),                 // 2: nimi.runtime.v1.DesktopAIExecutionRoute
+	(DesktopAIExecutionState)(0),                 // 3: nimi.runtime.v1.DesktopAIExecutionState
+	(*ListAuditEventsRequest)(nil),               // 4: nimi.runtime.v1.ListAuditEventsRequest
+	(*AuditEventRecord)(nil),                     // 5: nimi.runtime.v1.AuditEventRecord
+	(*ListAuditEventsResponse)(nil),              // 6: nimi.runtime.v1.ListAuditEventsResponse
+	(*ListDesktopAuditEventsRequest)(nil),        // 7: nimi.runtime.v1.ListDesktopAuditEventsRequest
+	(*DesktopAuditEventProjection)(nil),          // 8: nimi.runtime.v1.DesktopAuditEventProjection
+	(*ListDesktopAuditEventsResponse)(nil),       // 9: nimi.runtime.v1.ListDesktopAuditEventsResponse
+	(*ExportAuditEventsRequest)(nil),             // 10: nimi.runtime.v1.ExportAuditEventsRequest
+	(*ListUsageStatsRequest)(nil),                // 11: nimi.runtime.v1.ListUsageStatsRequest
+	(*UsageStatRecord)(nil),                      // 12: nimi.runtime.v1.UsageStatRecord
+	(*ListUsageStatsResponse)(nil),               // 13: nimi.runtime.v1.ListUsageStatsResponse
+	(*GetRuntimeHealthRequest)(nil),              // 14: nimi.runtime.v1.GetRuntimeHealthRequest
+	(*GetRuntimeHealthResponse)(nil),             // 15: nimi.runtime.v1.GetRuntimeHealthResponse
+	(*SubscribeRuntimeHealthEventsRequest)(nil),  // 16: nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
+	(*RuntimeHealthEvent)(nil),                   // 17: nimi.runtime.v1.RuntimeHealthEvent
+	(*AuditExportChunk)(nil),                     // 18: nimi.runtime.v1.AuditExportChunk
+	(*GetDesktopAIActivitySnapshotRequest)(nil),  // 19: nimi.runtime.v1.GetDesktopAIActivitySnapshotRequest
+	(*GetDesktopAIActivitySnapshotResponse)(nil), // 20: nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse
+	(*SubscribeDesktopAIActivityRequest)(nil),    // 21: nimi.runtime.v1.SubscribeDesktopAIActivityRequest
+	(*DesktopAIExecutionModel)(nil),              // 22: nimi.runtime.v1.DesktopAIExecutionModel
+	(*DesktopAISourceCoverage)(nil),              // 23: nimi.runtime.v1.DesktopAISourceCoverage
+	(*DesktopAIExecution)(nil),                   // 24: nimi.runtime.v1.DesktopAIExecution
+	(*DesktopAIActivitySnapshot)(nil),            // 25: nimi.runtime.v1.DesktopAIActivitySnapshot
+	(*GetDesktopAIUsageSummaryRequest)(nil),      // 26: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest
+	(*GetDesktopAIUsageSummaryResponse)(nil),     // 27: nimi.runtime.v1.GetDesktopAIUsageSummaryResponse
+	(*DesktopAIUsageTotals)(nil),                 // 28: nimi.runtime.v1.DesktopAIUsageTotals
+	(*DesktopAICostEstimate)(nil),                // 29: nimi.runtime.v1.DesktopAICostEstimate
+	(*DesktopAIUsageGroup)(nil),                  // 30: nimi.runtime.v1.DesktopAIUsageGroup
+	(*DesktopAIUsageSummary)(nil),                // 31: nimi.runtime.v1.DesktopAIUsageSummary
+	(ReasonCode)(0),                              // 32: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),                // 33: google.protobuf.Timestamp
+	(CallerKind)(0),                              // 34: nimi.runtime.v1.CallerKind
+	(*structpb.Struct)(nil),                      // 35: google.protobuf.Struct
 }
 var file_runtime_v1_audit_proto_depIdxs = []int32{
-	17, // 0: nimi.runtime.v1.ListAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	18, // 1: nimi.runtime.v1.ListAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	18, // 2: nimi.runtime.v1.ListAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	19, // 3: nimi.runtime.v1.ListAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	17, // 4: nimi.runtime.v1.AuditEventRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	18, // 5: nimi.runtime.v1.AuditEventRecord.timestamp:type_name -> google.protobuf.Timestamp
-	20, // 6: nimi.runtime.v1.AuditEventRecord.payload:type_name -> google.protobuf.Struct
-	19, // 7: nimi.runtime.v1.AuditEventRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	3,  // 8: nimi.runtime.v1.ListAuditEventsResponse.events:type_name -> nimi.runtime.v1.AuditEventRecord
-	17, // 9: nimi.runtime.v1.ListDesktopAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	19, // 10: nimi.runtime.v1.ListDesktopAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	18, // 11: nimi.runtime.v1.ListDesktopAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	18, // 12: nimi.runtime.v1.ListDesktopAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	17, // 13: nimi.runtime.v1.DesktopAuditEventProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	18, // 14: nimi.runtime.v1.DesktopAuditEventProjection.timestamp:type_name -> google.protobuf.Timestamp
-	19, // 15: nimi.runtime.v1.DesktopAuditEventProjection.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	6,  // 16: nimi.runtime.v1.ListDesktopAuditEventsResponse.events:type_name -> nimi.runtime.v1.DesktopAuditEventProjection
-	18, // 17: nimi.runtime.v1.ExportAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	18, // 18: nimi.runtime.v1.ExportAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	19, // 19: nimi.runtime.v1.ListUsageStatsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	32, // 0: nimi.runtime.v1.ListAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	33, // 1: nimi.runtime.v1.ListAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	33, // 2: nimi.runtime.v1.ListAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	34, // 3: nimi.runtime.v1.ListAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	32, // 4: nimi.runtime.v1.AuditEventRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	33, // 5: nimi.runtime.v1.AuditEventRecord.timestamp:type_name -> google.protobuf.Timestamp
+	35, // 6: nimi.runtime.v1.AuditEventRecord.payload:type_name -> google.protobuf.Struct
+	34, // 7: nimi.runtime.v1.AuditEventRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	5,  // 8: nimi.runtime.v1.ListAuditEventsResponse.events:type_name -> nimi.runtime.v1.AuditEventRecord
+	32, // 9: nimi.runtime.v1.ListDesktopAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	34, // 10: nimi.runtime.v1.ListDesktopAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	33, // 11: nimi.runtime.v1.ListDesktopAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	33, // 12: nimi.runtime.v1.ListDesktopAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	32, // 13: nimi.runtime.v1.DesktopAuditEventProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	33, // 14: nimi.runtime.v1.DesktopAuditEventProjection.timestamp:type_name -> google.protobuf.Timestamp
+	34, // 15: nimi.runtime.v1.DesktopAuditEventProjection.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	8,  // 16: nimi.runtime.v1.ListDesktopAuditEventsResponse.events:type_name -> nimi.runtime.v1.DesktopAuditEventProjection
+	33, // 17: nimi.runtime.v1.ExportAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	33, // 18: nimi.runtime.v1.ExportAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	34, // 19: nimi.runtime.v1.ListUsageStatsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	0,  // 20: nimi.runtime.v1.ListUsageStatsRequest.window:type_name -> nimi.runtime.v1.UsageWindow
-	18, // 21: nimi.runtime.v1.ListUsageStatsRequest.from_time:type_name -> google.protobuf.Timestamp
-	18, // 22: nimi.runtime.v1.ListUsageStatsRequest.to_time:type_name -> google.protobuf.Timestamp
-	19, // 23: nimi.runtime.v1.UsageStatRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	33, // 21: nimi.runtime.v1.ListUsageStatsRequest.from_time:type_name -> google.protobuf.Timestamp
+	33, // 22: nimi.runtime.v1.ListUsageStatsRequest.to_time:type_name -> google.protobuf.Timestamp
+	34, // 23: nimi.runtime.v1.UsageStatRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	0,  // 24: nimi.runtime.v1.UsageStatRecord.window:type_name -> nimi.runtime.v1.UsageWindow
-	18, // 25: nimi.runtime.v1.UsageStatRecord.bucket_start:type_name -> google.protobuf.Timestamp
-	10, // 26: nimi.runtime.v1.ListUsageStatsResponse.records:type_name -> nimi.runtime.v1.UsageStatRecord
+	33, // 25: nimi.runtime.v1.UsageStatRecord.bucket_start:type_name -> google.protobuf.Timestamp
+	12, // 26: nimi.runtime.v1.ListUsageStatsResponse.records:type_name -> nimi.runtime.v1.UsageStatRecord
 	1,  // 27: nimi.runtime.v1.GetRuntimeHealthResponse.status:type_name -> nimi.runtime.v1.RuntimeHealthStatus
-	18, // 28: nimi.runtime.v1.GetRuntimeHealthResponse.sampled_at:type_name -> google.protobuf.Timestamp
+	33, // 28: nimi.runtime.v1.GetRuntimeHealthResponse.sampled_at:type_name -> google.protobuf.Timestamp
 	1,  // 29: nimi.runtime.v1.RuntimeHealthEvent.status:type_name -> nimi.runtime.v1.RuntimeHealthStatus
-	18, // 30: nimi.runtime.v1.RuntimeHealthEvent.sampled_at:type_name -> google.protobuf.Timestamp
-	2,  // 31: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:input_type -> nimi.runtime.v1.ListAuditEventsRequest
-	5,  // 32: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:input_type -> nimi.runtime.v1.ListDesktopAuditEventsRequest
-	8,  // 33: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:input_type -> nimi.runtime.v1.ExportAuditEventsRequest
-	9,  // 34: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:input_type -> nimi.runtime.v1.ListUsageStatsRequest
-	12, // 35: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:input_type -> nimi.runtime.v1.GetRuntimeHealthRequest
-	14, // 36: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:input_type -> nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
-	4,  // 37: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:output_type -> nimi.runtime.v1.ListAuditEventsResponse
-	7,  // 38: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:output_type -> nimi.runtime.v1.ListDesktopAuditEventsResponse
-	16, // 39: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:output_type -> nimi.runtime.v1.AuditExportChunk
-	11, // 40: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:output_type -> nimi.runtime.v1.ListUsageStatsResponse
-	13, // 41: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:output_type -> nimi.runtime.v1.GetRuntimeHealthResponse
-	15, // 42: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:output_type -> nimi.runtime.v1.RuntimeHealthEvent
-	37, // [37:43] is the sub-list for method output_type
-	31, // [31:37] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	33, // 30: nimi.runtime.v1.RuntimeHealthEvent.sampled_at:type_name -> google.protobuf.Timestamp
+	25, // 31: nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse.snapshot:type_name -> nimi.runtime.v1.DesktopAIActivitySnapshot
+	22, // 32: nimi.runtime.v1.DesktopAIExecution.models:type_name -> nimi.runtime.v1.DesktopAIExecutionModel
+	2,  // 33: nimi.runtime.v1.DesktopAIExecution.route:type_name -> nimi.runtime.v1.DesktopAIExecutionRoute
+	3,  // 34: nimi.runtime.v1.DesktopAIExecution.state:type_name -> nimi.runtime.v1.DesktopAIExecutionState
+	33, // 35: nimi.runtime.v1.DesktopAIExecution.started_at:type_name -> google.protobuf.Timestamp
+	33, // 36: nimi.runtime.v1.DesktopAIExecution.observed_at:type_name -> google.protobuf.Timestamp
+	33, // 37: nimi.runtime.v1.DesktopAIActivitySnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	24, // 38: nimi.runtime.v1.DesktopAIActivitySnapshot.executions:type_name -> nimi.runtime.v1.DesktopAIExecution
+	23, // 39: nimi.runtime.v1.DesktopAIActivitySnapshot.source_coverage:type_name -> nimi.runtime.v1.DesktopAISourceCoverage
+	33, // 40: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest.from_time:type_name -> google.protobuf.Timestamp
+	33, // 41: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest.to_time:type_name -> google.protobuf.Timestamp
+	31, // 42: nimi.runtime.v1.GetDesktopAIUsageSummaryResponse.summary:type_name -> nimi.runtime.v1.DesktopAIUsageSummary
+	22, // 43: nimi.runtime.v1.DesktopAIUsageGroup.models:type_name -> nimi.runtime.v1.DesktopAIExecutionModel
+	2,  // 44: nimi.runtime.v1.DesktopAIUsageGroup.route:type_name -> nimi.runtime.v1.DesktopAIExecutionRoute
+	28, // 45: nimi.runtime.v1.DesktopAIUsageGroup.totals:type_name -> nimi.runtime.v1.DesktopAIUsageTotals
+	29, // 46: nimi.runtime.v1.DesktopAIUsageGroup.estimates:type_name -> nimi.runtime.v1.DesktopAICostEstimate
+	33, // 47: nimi.runtime.v1.DesktopAIUsageSummary.read_at:type_name -> google.protobuf.Timestamp
+	33, // 48: nimi.runtime.v1.DesktopAIUsageSummary.from_time:type_name -> google.protobuf.Timestamp
+	33, // 49: nimi.runtime.v1.DesktopAIUsageSummary.to_time:type_name -> google.protobuf.Timestamp
+	33, // 50: nimi.runtime.v1.DesktopAIUsageSummary.effective_to:type_name -> google.protobuf.Timestamp
+	28, // 51: nimi.runtime.v1.DesktopAIUsageSummary.totals:type_name -> nimi.runtime.v1.DesktopAIUsageTotals
+	30, // 52: nimi.runtime.v1.DesktopAIUsageSummary.groups:type_name -> nimi.runtime.v1.DesktopAIUsageGroup
+	29, // 53: nimi.runtime.v1.DesktopAIUsageSummary.estimates:type_name -> nimi.runtime.v1.DesktopAICostEstimate
+	23, // 54: nimi.runtime.v1.DesktopAIUsageSummary.source_coverage:type_name -> nimi.runtime.v1.DesktopAISourceCoverage
+	33, // 55: nimi.runtime.v1.DesktopAIUsageSummary.coverage_from:type_name -> google.protobuf.Timestamp
+	33, // 56: nimi.runtime.v1.DesktopAIUsageSummary.coverage_to:type_name -> google.protobuf.Timestamp
+	4,  // 57: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:input_type -> nimi.runtime.v1.ListAuditEventsRequest
+	7,  // 58: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:input_type -> nimi.runtime.v1.ListDesktopAuditEventsRequest
+	10, // 59: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:input_type -> nimi.runtime.v1.ExportAuditEventsRequest
+	11, // 60: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:input_type -> nimi.runtime.v1.ListUsageStatsRequest
+	14, // 61: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:input_type -> nimi.runtime.v1.GetRuntimeHealthRequest
+	16, // 62: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:input_type -> nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
+	19, // 63: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIActivitySnapshot:input_type -> nimi.runtime.v1.GetDesktopAIActivitySnapshotRequest
+	21, // 64: nimi.runtime.v1.RuntimeAuditService.SubscribeDesktopAIActivity:input_type -> nimi.runtime.v1.SubscribeDesktopAIActivityRequest
+	26, // 65: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIUsageSummary:input_type -> nimi.runtime.v1.GetDesktopAIUsageSummaryRequest
+	6,  // 66: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:output_type -> nimi.runtime.v1.ListAuditEventsResponse
+	9,  // 67: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:output_type -> nimi.runtime.v1.ListDesktopAuditEventsResponse
+	18, // 68: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:output_type -> nimi.runtime.v1.AuditExportChunk
+	13, // 69: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:output_type -> nimi.runtime.v1.ListUsageStatsResponse
+	15, // 70: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:output_type -> nimi.runtime.v1.GetRuntimeHealthResponse
+	17, // 71: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:output_type -> nimi.runtime.v1.RuntimeHealthEvent
+	20, // 72: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIActivitySnapshot:output_type -> nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse
+	25, // 73: nimi.runtime.v1.RuntimeAuditService.SubscribeDesktopAIActivity:output_type -> nimi.runtime.v1.DesktopAIActivitySnapshot
+	27, // 74: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIUsageSummary:output_type -> nimi.runtime.v1.GetDesktopAIUsageSummaryResponse
+	66, // [66:75] is the sub-list for method output_type
+	57, // [57:66] is the sub-list for method input_type
+	57, // [57:57] is the sub-list for extension type_name
+	57, // [57:57] is the sub-list for extension extendee
+	0,  // [0:57] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_audit_proto_init() }
@@ -1883,8 +3174,8 @@ func file_runtime_v1_audit_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_audit_proto_rawDesc), len(file_runtime_v1_audit_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   15,
+			NumEnums:      4,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

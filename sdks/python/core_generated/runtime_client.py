@@ -1352,6 +1352,22 @@ RUNTIME_METHODS = [
     "response_type": "AuditExportChunk"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+    "service": "RuntimeAuditService",
+    "method": "GetDesktopAIActivitySnapshot",
+    "kind": "unary",
+    "request_type": "GetDesktopAIActivitySnapshotRequest",
+    "response_type": "GetDesktopAIActivitySnapshotResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+    "service": "RuntimeAuditService",
+    "method": "GetDesktopAIUsageSummary",
+    "kind": "unary",
+    "request_type": "GetDesktopAIUsageSummaryRequest",
+    "response_type": "GetDesktopAIUsageSummaryResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "service": "RuntimeAuditService",
     "method": "GetRuntimeHealth",
@@ -1382,6 +1398,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListUsageStatsRequest",
     "response_type": "ListUsageStatsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+    "service": "RuntimeAuditService",
+    "method": "SubscribeDesktopAIActivity",
+    "kind": "server_stream",
+    "request_type": "SubscribeDesktopAIActivityRequest",
+    "response_type": "DesktopAIActivitySnapshot"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",

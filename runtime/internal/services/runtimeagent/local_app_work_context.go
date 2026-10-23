@@ -132,6 +132,7 @@ func (s *Service) executeLocalAppWork(work *localAppWorkExecution, binding publi
 		return "", err
 	}
 	execution := &PublicChatTurnExecutionRequest{AppID: work.owner.decision.AppID, SubjectUserID: work.owner.decision.AccountID, Messages: publicChatAgentTurnProviderMessages(compiled.ProviderPrompt.Messages), ReservedOutputTokens: int32(compiled.Manifest.Budget.ReservedOutputTokens), Binding: binding, Tools: work.tools}
+	executionCtx := withLocalAgentAIObservation(work.ctx, work.owner.identity.LocalAgentRef, "agent-work", work.snapshot.ExecutionId, false)
 	for {
 		if err := s.revalidateLocalAppWork(work); err != nil {
 			return "", err
@@ -140,7 +141,7 @@ func (s *Service) executeLocalAppWork(work *localAppWorkExecution, binding publi
 			return "", err
 		}
 		batch := &appWorkModelBatch{}
-		if err := s.currentPublicChatTurnExecutor().StreamChatTurn(work.ctx, execution, func(event *runtimev1.StreamScenarioEvent) error {
+		if err := s.currentPublicChatTurnExecutor().StreamChatTurn(executionCtx, execution, func(event *runtimev1.StreamScenarioEvent) error {
 			if err := batch.accept(event); err != nil {
 				return err
 			}

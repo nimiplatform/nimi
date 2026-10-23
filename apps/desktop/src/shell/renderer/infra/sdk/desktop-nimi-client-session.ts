@@ -270,6 +270,7 @@ export function getDesktopAccountProductClient(): DesktopRendererAccountProductC
   const { resolveDesktopAgentReference: _privateReferenceResolver, ...agents } = client.agents;
   return Object.freeze({
     appAIConfig: client.appAIConfig,
+    audit: client.audit,
     profiles: client.profiles,
     agents: Object.freeze(agents),
     appMessages: client.appMessages,

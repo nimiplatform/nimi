@@ -16,6 +16,7 @@ func (r publicChatRuntime) runTurn(
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) {
+	ctx = withPublicChatAIObservation(ctx, session, turn)
 	runStartedAt := time.Now()
 	r.svc.observeLatency("runtime.agent.turn.accepted_to_run_start_ms", turn.TimelineStartedAt,
 		"caller_app_id", session.CallerAppID,

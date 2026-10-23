@@ -67,7 +67,7 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localImageJobOrder.reserve()
-	go s.runLocalImageScenarioJob(jobCtx, jobID, ticket)
+	go s.runLocalImageScenarioJob(s.scenarioObservationContext(jobCtx, jobID), jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 

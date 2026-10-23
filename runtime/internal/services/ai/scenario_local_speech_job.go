@@ -81,7 +81,7 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localSpeechJobOrder.reserve()
-	go s.runLocalSpeechScenarioJob(jobCtx, jobID, ticket, func() { cleanupLocalSpeechStagingPaths(effective.stagingPaths) })
+	go s.runLocalSpeechScenarioJob(s.scenarioObservationContext(jobCtx, jobID), jobID, ticket, func() { cleanupLocalSpeechStagingPaths(effective.stagingPaths) })
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 

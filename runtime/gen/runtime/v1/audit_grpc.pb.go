@@ -25,6 +25,9 @@ const (
 	RuntimeAuditService_ListUsageStats_FullMethodName               = "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats"
 	RuntimeAuditService_GetRuntimeHealth_FullMethodName             = "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth"
 	RuntimeAuditService_SubscribeRuntimeHealthEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents"
+	RuntimeAuditService_GetDesktopAIActivitySnapshot_FullMethodName = "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot"
+	RuntimeAuditService_SubscribeDesktopAIActivity_FullMethodName   = "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity"
+	RuntimeAuditService_GetDesktopAIUsageSummary_FullMethodName     = "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary"
 )
 
 // RuntimeAuditServiceClient is the client API for RuntimeAuditService service.
@@ -37,6 +40,9 @@ type RuntimeAuditServiceClient interface {
 	ListUsageStats(ctx context.Context, in *ListUsageStatsRequest, opts ...grpc.CallOption) (*ListUsageStatsResponse, error)
 	GetRuntimeHealth(ctx context.Context, in *GetRuntimeHealthRequest, opts ...grpc.CallOption) (*GetRuntimeHealthResponse, error)
 	SubscribeRuntimeHealthEvents(ctx context.Context, in *SubscribeRuntimeHealthEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeHealthEvent], error)
+	GetDesktopAIActivitySnapshot(ctx context.Context, in *GetDesktopAIActivitySnapshotRequest, opts ...grpc.CallOption) (*GetDesktopAIActivitySnapshotResponse, error)
+	SubscribeDesktopAIActivity(ctx context.Context, in *SubscribeDesktopAIActivityRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DesktopAIActivitySnapshot], error)
+	GetDesktopAIUsageSummary(ctx context.Context, in *GetDesktopAIUsageSummaryRequest, opts ...grpc.CallOption) (*GetDesktopAIUsageSummaryResponse, error)
 }
 
 type runtimeAuditServiceClient struct {
@@ -125,6 +131,45 @@ func (c *runtimeAuditServiceClient) SubscribeRuntimeHealthEvents(ctx context.Con
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAuditService_SubscribeRuntimeHealthEventsClient = grpc.ServerStreamingClient[RuntimeHealthEvent]
 
+func (c *runtimeAuditServiceClient) GetDesktopAIActivitySnapshot(ctx context.Context, in *GetDesktopAIActivitySnapshotRequest, opts ...grpc.CallOption) (*GetDesktopAIActivitySnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDesktopAIActivitySnapshotResponse)
+	err := c.cc.Invoke(ctx, RuntimeAuditService_GetDesktopAIActivitySnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAuditServiceClient) SubscribeDesktopAIActivity(ctx context.Context, in *SubscribeDesktopAIActivityRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DesktopAIActivitySnapshot], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAuditService_ServiceDesc.Streams[2], RuntimeAuditService_SubscribeDesktopAIActivity_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeDesktopAIActivityRequest, DesktopAIActivitySnapshot]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAuditService_SubscribeDesktopAIActivityClient = grpc.ServerStreamingClient[DesktopAIActivitySnapshot]
+
+func (c *runtimeAuditServiceClient) GetDesktopAIUsageSummary(ctx context.Context, in *GetDesktopAIUsageSummaryRequest, opts ...grpc.CallOption) (*GetDesktopAIUsageSummaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDesktopAIUsageSummaryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAuditService_GetDesktopAIUsageSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAuditServiceServer is the server API for RuntimeAuditService service.
 // All implementations should embed UnimplementedRuntimeAuditServiceServer
 // for forward compatibility.
@@ -135,6 +180,9 @@ type RuntimeAuditServiceServer interface {
 	ListUsageStats(context.Context, *ListUsageStatsRequest) (*ListUsageStatsResponse, error)
 	GetRuntimeHealth(context.Context, *GetRuntimeHealthRequest) (*GetRuntimeHealthResponse, error)
 	SubscribeRuntimeHealthEvents(*SubscribeRuntimeHealthEventsRequest, grpc.ServerStreamingServer[RuntimeHealthEvent]) error
+	GetDesktopAIActivitySnapshot(context.Context, *GetDesktopAIActivitySnapshotRequest) (*GetDesktopAIActivitySnapshotResponse, error)
+	SubscribeDesktopAIActivity(*SubscribeDesktopAIActivityRequest, grpc.ServerStreamingServer[DesktopAIActivitySnapshot]) error
+	GetDesktopAIUsageSummary(context.Context, *GetDesktopAIUsageSummaryRequest) (*GetDesktopAIUsageSummaryResponse, error)
 }
 
 // UnimplementedRuntimeAuditServiceServer should be embedded to have
@@ -161,6 +209,15 @@ func (UnimplementedRuntimeAuditServiceServer) GetRuntimeHealth(context.Context, 
 }
 func (UnimplementedRuntimeAuditServiceServer) SubscribeRuntimeHealthEvents(*SubscribeRuntimeHealthEventsRequest, grpc.ServerStreamingServer[RuntimeHealthEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeRuntimeHealthEvents not implemented")
+}
+func (UnimplementedRuntimeAuditServiceServer) GetDesktopAIActivitySnapshot(context.Context, *GetDesktopAIActivitySnapshotRequest) (*GetDesktopAIActivitySnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDesktopAIActivitySnapshot not implemented")
+}
+func (UnimplementedRuntimeAuditServiceServer) SubscribeDesktopAIActivity(*SubscribeDesktopAIActivityRequest, grpc.ServerStreamingServer[DesktopAIActivitySnapshot]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeDesktopAIActivity not implemented")
+}
+func (UnimplementedRuntimeAuditServiceServer) GetDesktopAIUsageSummary(context.Context, *GetDesktopAIUsageSummaryRequest) (*GetDesktopAIUsageSummaryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDesktopAIUsageSummary not implemented")
 }
 func (UnimplementedRuntimeAuditServiceServer) testEmbeddedByValue() {}
 
@@ -276,6 +333,53 @@ func _RuntimeAuditService_SubscribeRuntimeHealthEvents_Handler(srv interface{}, 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAuditService_SubscribeRuntimeHealthEventsServer = grpc.ServerStreamingServer[RuntimeHealthEvent]
 
+func _RuntimeAuditService_GetDesktopAIActivitySnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDesktopAIActivitySnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAuditServiceServer).GetDesktopAIActivitySnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAuditService_GetDesktopAIActivitySnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAuditServiceServer).GetDesktopAIActivitySnapshot(ctx, req.(*GetDesktopAIActivitySnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAuditService_SubscribeDesktopAIActivity_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeDesktopAIActivityRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAuditServiceServer).SubscribeDesktopAIActivity(m, &grpc.GenericServerStream[SubscribeDesktopAIActivityRequest, DesktopAIActivitySnapshot]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAuditService_SubscribeDesktopAIActivityServer = grpc.ServerStreamingServer[DesktopAIActivitySnapshot]
+
+func _RuntimeAuditService_GetDesktopAIUsageSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDesktopAIUsageSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAuditServiceServer).GetDesktopAIUsageSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAuditService_GetDesktopAIUsageSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAuditServiceServer).GetDesktopAIUsageSummary(ctx, req.(*GetDesktopAIUsageSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAuditService_ServiceDesc is the grpc.ServiceDesc for RuntimeAuditService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -299,6 +403,14 @@ var RuntimeAuditService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetRuntimeHealth",
 			Handler:    _RuntimeAuditService_GetRuntimeHealth_Handler,
 		},
+		{
+			MethodName: "GetDesktopAIActivitySnapshot",
+			Handler:    _RuntimeAuditService_GetDesktopAIActivitySnapshot_Handler,
+		},
+		{
+			MethodName: "GetDesktopAIUsageSummary",
+			Handler:    _RuntimeAuditService_GetDesktopAIUsageSummary_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -309,6 +421,11 @@ var RuntimeAuditService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeRuntimeHealthEvents",
 			Handler:       _RuntimeAuditService_SubscribeRuntimeHealthEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeDesktopAIActivity",
+			Handler:       _RuntimeAuditService_SubscribeDesktopAIActivity_Handler,
 			ServerStreams: true,
 		},
 	},

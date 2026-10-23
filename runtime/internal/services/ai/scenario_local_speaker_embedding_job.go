@@ -50,7 +50,7 @@ func (s *Service) submitLocalSpeakerEmbeddingScenarioJob(ctx context.Context, re
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localSpeechJobOrder.reserve()
-	go s.runLocalSpeakerEmbeddingScenarioJob(jobCtx, jobID, ticket)
+	go s.runLocalSpeakerEmbeddingScenarioJob(s.scenarioObservationContext(jobCtx, jobID), jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 

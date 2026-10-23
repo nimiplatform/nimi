@@ -80,7 +80,7 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localMusicJobOrder.reserve()
-	go s.runLocalMusicScenarioJob(jobCtx, jobID, ticket, func() { cleanupLocalMusicPlan(effective.plan) })
+	go s.runLocalMusicScenarioJob(s.scenarioObservationContext(jobCtx, jobID), jobID, ticket, func() { cleanupLocalMusicPlan(effective.plan) })
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 

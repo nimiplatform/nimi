@@ -118,6 +118,6 @@ func (s *Service) submitScenarioAsyncJob(
 		return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 	}
 	effective.release()
-	go s.executeScenarioAsyncJob(jobCtx, jobID)
+	go s.executeScenarioAsyncJob(s.scenarioObservationContext(jobCtx, jobID), jobID)
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
 }

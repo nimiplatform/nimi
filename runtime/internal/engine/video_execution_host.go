@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -312,7 +313,10 @@ func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecu
 	}
 	resultCh := make(chan videoGenerateOutcome, 1)
 	go func() {
+		attempt := aitelemetry.Begin(request.ctx)
+		generationStarted := time.Now()
 		candidate, generateErr := h.substrate.GenerateVideo(request.ctx, request.plan, request.progress)
+		attempt.Finish(observedLocalComputeUsage(time.Since(generationStarted).Milliseconds()))
 		resultCh <- videoGenerateOutcome{candidate: candidate, err: generateErr}
 	}()
 	var generated videoGenerateOutcome

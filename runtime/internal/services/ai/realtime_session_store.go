@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
@@ -16,6 +17,7 @@ import (
 )
 
 type realtimeOutputTrack struct {
+	aiAttempt          *aitelemetry.Attempt
 	providerResponseID string
 	outputTrackID      string
 	requestID          string
@@ -35,6 +37,11 @@ type realtimeInputIdentity struct {
 }
 
 type realtimeSessionRecord struct {
+	aiObservation        *aitelemetry.Store
+	aiObservationFacts   aitelemetry.Facts
+	aiObservationStarted time.Time
+	aiObservationGap     bool
+	aiAttemptsByResponse map[string]*aitelemetry.Attempt
 	contextMetadata      agentintent.RealtimeContext
 	selfUsageObserver    agentintent.UsageObserver
 	selfHandler          agentintent.Handler

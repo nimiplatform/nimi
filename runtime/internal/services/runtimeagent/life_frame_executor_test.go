@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"math"
 	"strings"
@@ -61,6 +62,10 @@ func TestLifeFrameExecutorUsesCommonCompilerCommittedRouteAndActualUsage(t *test
 	intent, ok := executionintent.FromContext(ai.contexts[0])
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != "text.generate" {
 		t.Fatal("committed route lost")
+	}
+	source, ok := aitelemetry.SourceFromContext(ai.contexts[0])
+	if !ok || source.Kind != "agent-background" || source.ID != ref || source.ParentID != input.RequestID {
+		t.Fatalf("real planning lost its owner attribution: %+v", source)
 	}
 	compiled, err := compileLifeFrameContext(input)
 	if err != nil {

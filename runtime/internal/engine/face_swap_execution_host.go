@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"image"
 	"io"
 	"net"
@@ -126,6 +127,7 @@ func (host *FaceSwapExecutionHost) ExecuteImageFaceSwap(ctx context.Context, pla
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("x-nimi-face-swap-token", host.token)
+	aitelemetry.Begin(ctx)
 	response, err := (&http.Client{}).Do(request)
 	if err != nil {
 		return localexecution.ImageArtifact{}, host.fail(ctx, executionFailure(localexecution.FailureProcessCrash, err))

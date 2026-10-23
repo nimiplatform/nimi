@@ -85,6 +85,9 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
     identityClass: "account",
     nativeProfileMarker: "desktop-account-product-v1",
     methods: {
+      "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity": { kind: "server_stream" },
+      "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession": { kind: "unary" },

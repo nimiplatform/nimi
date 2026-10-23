@@ -7,6 +7,8 @@ import {
   getRuntimeWireCodec,
   hasRuntimeWireCodec,
   runtimeRpcAuthPosture,
+  DesktopAIExecutionRoute,
+  DesktopAIExecutionState,
 } from './generated';
 
 const HOST_PRIVATE_AVATAR_METHOD_IDS = [
@@ -33,4 +35,14 @@ test('public Runtime generated facade retains an admitted public method', () => 
   assert.equal(hasRuntimeWireCodec(methodId), true);
   assert.equal(getRuntimeWireCodec(methodId).methodId, methodId);
   assert.equal(runtimeRpcAuthPosture(methodId), 'protected_origin_required');
+});
+
+test('Home observation DTO exports retain exact protected operation posture', () => {
+  assert.equal(typeof DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD, 'number');
+  assert.equal(typeof DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN, 'number');
+  for (const name of ['GetDesktopAIActivitySnapshot', 'SubscribeDesktopAIActivity', 'GetDesktopAIUsageSummary']) {
+    const methodId = `/nimi.runtime.v1.RuntimeAuditService/${name}`;
+    assert.equal(runtimeRpcAuthPosture(methodId), 'protected_origin_required');
+    assert.equal(hasRuntimeWireCodec(methodId), true);
+  }
 });

@@ -372,6 +372,8 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 		return err
 	}
 	execution = resolvedExecution
+	attemptCtx = withLocalAgentAIObservation(attemptCtx, identity.AgentID, "agent-conversation-summary",
+		fmt.Sprintf("%s:%d:%d", anchor.ConversationAnchorID, targetEnd, conversationContextRevision(anchor.ConversationContext)), true)
 	summaryText, err := s.executePublicChatConversationSummaryWithExecution(attemptCtx, identity, execution)
 	if err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)

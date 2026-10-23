@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
@@ -26,10 +27,13 @@ import (
 // Service implements RuntimeAuditService with runtime health first.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAuditServiceServer
-	state  *health.State
-	logger *slog.Logger
-	store  *auditlog.Store
+	state         *health.State
+	logger        *slog.Logger
+	store         *auditlog.Store
+	aiObservation *aitelemetry.Store
 }
+
+func (s *Service) SetAIObservationStore(owner *aitelemetry.Store) { s.aiObservation = owner }
 
 func New(state *health.State, logger *slog.Logger, store ...*auditlog.Store) *Service {
 	var auditStore *auditlog.Store

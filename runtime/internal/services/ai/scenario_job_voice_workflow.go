@@ -100,7 +100,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	}
 	go func() {
 		defer cancel()
-		s.executeCapturedVoiceWorkflowJob(jobCtx, stored.GetJobId())
+		s.executeCapturedVoiceWorkflowJob(s.scenarioObservationContext(jobCtx, stored.GetJobId()), stored.GetJobId())
 	}()
 
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil

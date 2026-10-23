@@ -89,7 +89,7 @@ func (s *Service) submitLocalVideoScenarioJob(
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localVideoJobOrder.reserve()
-	go s.runLocalVideoScenarioJob(jobCtx, jobID, ticket)
+	go s.runLocalVideoScenarioJob(s.scenarioObservationContext(jobCtx, jobID), jobID, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 

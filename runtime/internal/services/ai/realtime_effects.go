@@ -47,6 +47,9 @@ func (s *Service) finishRealtimeNativeStop(ctx context.Context, record *realtime
 	if s.logger != nil {
 		s.logger.Info("AI Realtime native stop observed", "realtime_session_id", record.sessionID, "status", result.Status, "control_observation", result.Observation)
 	}
+	if result.Status == capabilitydriver.CloudRealtimeResponseStatusCompleted || result.Status == capabilitydriver.CloudRealtimeResponseStatusCancelled {
+		finishRealtimeAIObservation(record, key, result.Usage)
+	}
 	record.mu.Lock()
 	if record.closed {
 		record.mu.Unlock()

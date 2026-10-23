@@ -631,14 +631,15 @@ function createPublicRuntimeGeneratedClient(
       continue;
     }
     if (RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.has(property)) {
-      publicClient[property] = async () => {
-        throw createNimiError({
+      const unavailable = () => createNimiError({
           message: `Runtime protected method ${property} is unavailable on the public generated client.`,
           reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
           actionHint: 'use_admitted_protected_runtime_carrier',
           source: 'sdk',
         });
-      };
+      publicClient[property] = RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.get(property) === 'server_stream'
+        ? async function* () { throw unavailable(); }
+        : async () => { throw unavailable(); };
       continue;
     }
     const value = client[property as RuntimeTypedMethodName];
@@ -653,13 +654,13 @@ const RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES = new Set<RuntimeRpcAuthPosture>
   'protected_origin_required',
 ]);
 
-const RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS = new Set(
+const RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS = new Map(
   RUNTIME_METHODS
     .filter(({ methodId }) => {
       const posture = runtimeRpcAuthPosture(methodId);
       return posture !== null && RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES.has(posture);
     })
-    .map(({ method }) => `${method.slice(0, 1).toLowerCase()}${method.slice(1)}`),
+    .map(({ method, kind }) => [`${method.slice(0, 1).toLowerCase()}${method.slice(1)}`, kind] as const),
 );
 
 function toCoreClientOptions(

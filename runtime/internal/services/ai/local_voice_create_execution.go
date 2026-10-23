@@ -218,7 +218,7 @@ func (s *Service) submitLocalVoiceWorkflowJob(
 	}
 	go func() {
 		defer cancel()
-		s.executeCapturedLocalVoiceCreateJob(jobCtx, jobID)
+		s.executeCapturedLocalVoiceCreateJob(s.scenarioObservationContext(jobCtx, jobID), jobID)
 	}()
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }

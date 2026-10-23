@@ -1383,6 +1383,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AuditExportChunk"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+    "service": "RuntimeAuditService",
+    "method": "GetDesktopAIActivitySnapshot",
+    "kind": "unary",
+    "requestType": "GetDesktopAIActivitySnapshotRequest",
+    "responseType": "GetDesktopAIActivitySnapshotResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+    "service": "RuntimeAuditService",
+    "method": "GetDesktopAIUsageSummary",
+    "kind": "unary",
+    "requestType": "GetDesktopAIUsageSummaryRequest",
+    "responseType": "GetDesktopAIUsageSummaryResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "service": "RuntimeAuditService",
     "method": "GetRuntimeHealth",
@@ -1413,6 +1429,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListUsageStatsRequest",
     "responseType": "ListUsageStatsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+    "service": "RuntimeAuditService",
+    "method": "SubscribeDesktopAIActivity",
+    "kind": "server_stream",
+    "requestType": "SubscribeDesktopAIActivityRequest",
+    "responseType": "DesktopAIActivitySnapshot"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",

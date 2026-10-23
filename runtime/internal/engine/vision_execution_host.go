@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"net"
 	"net/http"
@@ -96,6 +97,7 @@ func (host *VisionExecutionHost) ExecuteVisionLocate(ctx context.Context, plan *
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-nimi-vision-token", host.token)
+	aitelemetry.Begin(ctx)
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, host.fail(ctx, err)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -59,6 +60,7 @@ func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, pla
 	} else {
 		source = bytes.NewReader(plan.AudioBytes())
 	}
+	aitelemetry.Begin(ctx)
 	response, err := backend.OpenAudioSeparation(ctx, plan.ModelAssetID(), source, plan.MIMEType())
 	if err != nil {
 		return localexecution.AudioSeparationResult{}, host.speechHostBackendError(ctx, err)

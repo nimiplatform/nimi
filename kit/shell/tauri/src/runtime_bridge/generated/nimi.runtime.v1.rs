@@ -16369,6 +16369,190 @@ pub struct AuditExportChunk {
     #[prost(string, tag = "5")]
     pub mime_type: ::prost::alloc::string::String,
 }
+/// Protected Desktop-account projections. The authenticated account is derived
+/// from the native carrier; these requests deliberately have no account selector.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDesktopAiActivitySnapshotRequest {
+    #[prost(int32, tag = "1")]
+    pub limit: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDesktopAiActivitySnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<DesktopAiActivitySnapshot>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeDesktopAiActivityRequest {
+    #[prost(int32, tag = "1")]
+    pub limit: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopAiExecutionModel {
+    #[prost(string, tag = "1")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub role: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub provider_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopAiSourceCoverage {
+    #[prost(string, tag = "1")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub activity_complete: bool,
+    #[prost(bool, tag = "3")]
+    pub usage_complete: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DesktopAiExecution {
+    #[prost(string, tag = "1")]
+    pub attempt_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub parent_work_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub parent_work_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub source_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "8")]
+    pub models: ::prost::alloc::vec::Vec<DesktopAiExecutionModel>,
+    #[prost(enumeration = "DesktopAiExecutionRoute", tag = "9")]
+    pub route: i32,
+    #[prost(enumeration = "DesktopAiExecutionState", tag = "10")]
+    pub state: i32,
+    #[prost(message, optional, tag = "11")]
+    pub started_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DesktopAiActivitySnapshot {
+    #[prost(string, tag = "1")]
+    pub generation_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "4")]
+    pub executions: ::prost::alloc::vec::Vec<DesktopAiExecution>,
+    #[prost(message, repeated, tag = "5")]
+    pub source_coverage: ::prost::alloc::vec::Vec<DesktopAiSourceCoverage>,
+    #[prost(bool, tag = "6")]
+    pub records_complete: bool,
+    #[prost(int64, tag = "7")]
+    pub known_active_attempt_count: i64,
+    #[prost(bool, tag = "8")]
+    pub work_count_known: bool,
+    #[prost(int64, tag = "9")]
+    pub known_work_count: i64,
+    #[prost(string, repeated, tag = "10")]
+    pub partial_reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDesktopAiUsageSummaryRequest {
+    /// Half-open UTC interval, at most seven days. Future time is not claimed as
+    /// covered: effective_to is the earlier of to_time and the consistent read.
+    #[prost(message, optional, tag = "1")]
+    pub from_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "2")]
+    pub to_time: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDesktopAiUsageSummaryResponse {
+    #[prost(message, optional, tag = "1")]
+    pub summary: ::core::option::Option<DesktopAiUsageSummary>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopAiUsageTotals {
+    #[prost(int64, tag = "1")]
+    pub attempt_count: i64,
+    #[prost(int64, tag = "2")]
+    pub active_attempt_count: i64,
+    #[prost(int64, tag = "3")]
+    pub pending_usage_count: i64,
+    #[prost(int64, tag = "4")]
+    pub measured_attempt_count: i64,
+    #[prost(int64, tag = "5")]
+    pub input_tokens: i64,
+    #[prost(int64, tag = "6")]
+    pub output_tokens: i64,
+    #[prost(int64, tag = "7")]
+    pub cached_input_tokens: i64,
+    #[prost(int64, tag = "8")]
+    pub reasoning_output_tokens: i64,
+    #[prost(int64, tag = "9")]
+    pub compute_ms: i64,
+    #[prost(int64, tag = "10")]
+    pub unpriced_attempt_count: i64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopAiCostEstimate {
+    #[prost(string, tag = "1")]
+    pub currency: ::prost::alloc::string::String,
+    /// Decimal estimated amount, never an actual Provider charge.
+    #[prost(string, tag = "2")]
+    pub estimated_amount: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub pricing_basis: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DesktopAiUsageGroup {
+    #[prost(string, tag = "1")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub models: ::prost::alloc::vec::Vec<DesktopAiExecutionModel>,
+    #[prost(enumeration = "DesktopAiExecutionRoute", tag = "4")]
+    pub route: i32,
+    #[prost(message, optional, tag = "5")]
+    pub totals: ::core::option::Option<DesktopAiUsageTotals>,
+    #[prost(message, repeated, tag = "6")]
+    pub estimates: ::prost::alloc::vec::Vec<DesktopAiCostEstimate>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DesktopAiUsageSummary {
+    #[prost(string, tag = "1")]
+    pub generation_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub read_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub from_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "4")]
+    pub to_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub effective_to: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub totals: ::core::option::Option<DesktopAiUsageTotals>,
+    #[prost(message, repeated, tag = "7")]
+    pub groups: ::prost::alloc::vec::Vec<DesktopAiUsageGroup>,
+    #[prost(bool, tag = "8")]
+    pub groups_complete: bool,
+    #[prost(message, repeated, tag = "9")]
+    pub estimates: ::prost::alloc::vec::Vec<DesktopAiCostEstimate>,
+    #[prost(message, repeated, tag = "10")]
+    pub source_coverage: ::prost::alloc::vec::Vec<DesktopAiSourceCoverage>,
+    #[prost(bool, tag = "11")]
+    pub source_complete: bool,
+    #[prost(bool, tag = "12")]
+    pub time_complete: bool,
+    #[prost(bool, tag = "13")]
+    pub quantity_complete: bool,
+    #[prost(message, optional, tag = "14")]
+    pub coverage_from: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "15")]
+    pub coverage_to: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, repeated, tag = "16")]
+    pub partial_reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum UsageWindow {
@@ -16435,6 +16619,66 @@ impl RuntimeHealthStatus {
             "RUNTIME_HEALTH_STATUS_READY" => Some(Self::Ready),
             "RUNTIME_HEALTH_STATUS_DEGRADED" => Some(Self::Degraded),
             "RUNTIME_HEALTH_STATUS_STOPPING" => Some(Self::Stopping),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopAiExecutionRoute {
+    Unspecified = 0,
+    Local = 1,
+    Cloud = 2,
+}
+impl DesktopAiExecutionRoute {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED",
+            Self::Local => "DESKTOP_AI_EXECUTION_ROUTE_LOCAL",
+            Self::Cloud => "DESKTOP_AI_EXECUTION_ROUTE_CLOUD",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_AI_EXECUTION_ROUTE_LOCAL" => Some(Self::Local),
+            "DESKTOP_AI_EXECUTION_ROUTE_CLOUD" => Some(Self::Cloud),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopAiExecutionState {
+    Unspecified = 0,
+    Running = 1,
+    ObservationUnknown = 2,
+}
+impl DesktopAiExecutionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED",
+            Self::Running => "DESKTOP_AI_EXECUTION_STATE_RUNNING",
+            Self::ObservationUnknown => "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_AI_EXECUTION_STATE_RUNNING" => Some(Self::Running),
+            "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN" => {
+                Some(Self::ObservationUnknown)
+            }
             _ => None,
         }
     }
@@ -16703,6 +16947,93 @@ pub mod runtime_audit_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn get_desktop_ai_activity_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetDesktopAiActivitySnapshotRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetDesktopAiActivitySnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuditService",
+                        "GetDesktopAIActivitySnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_desktop_ai_activity(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubscribeDesktopAiActivityRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::DesktopAiActivitySnapshot>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuditService",
+                        "SubscribeDesktopAIActivity",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn get_desktop_ai_usage_summary(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetDesktopAiUsageSummaryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetDesktopAiUsageSummaryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuditService",
+                        "GetDesktopAIUsageSummary",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

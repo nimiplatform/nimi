@@ -1360,6 +1360,22 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AuditExportChunk",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot",
+        service: "RuntimeAuditService",
+        method: "GetDesktopAIActivitySnapshot",
+        kind: "unary",
+        request_type: "GetDesktopAIActivitySnapshotRequest",
+        response_type: "GetDesktopAIActivitySnapshotResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
+        service: "RuntimeAuditService",
+        method: "GetDesktopAIUsageSummary",
+        kind: "unary",
+        request_type: "GetDesktopAIUsageSummaryRequest",
+        response_type: "GetDesktopAIUsageSummaryResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
         service: "RuntimeAuditService",
         method: "GetRuntimeHealth",
@@ -1390,6 +1406,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListUsageStatsRequest",
         response_type: "ListUsageStatsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
+        service: "RuntimeAuditService",
+        method: "SubscribeDesktopAIActivity",
+        kind: "server_stream",
+        request_type: "SubscribeDesktopAIActivityRequest",
+        response_type: "DesktopAIActivitySnapshot",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",

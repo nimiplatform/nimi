@@ -17,6 +17,15 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+type textBehaviorDispatchObserverKey struct{}
+
+// WithTextBehaviorDispatchObserver lets the execution owner observe the actual
+// text POST boundary, after account-model admission and request construction.
+// Inventory reads and requests rejected before dispatch never call observer.
+func WithTextBehaviorDispatchObserver(ctx context.Context, observer func()) context.Context {
+	return context.WithValue(ctx, textBehaviorDispatchObserverKey{}, observer)
+}
+
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.chatgpt-plan-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
@@ -108,6 +117,12 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	if wireStream {
 		request.Header.Set("Accept", "text/event-stream")
+	}
+	if err := ctx.Err(); err != nil {
+		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
+	}
+	if observer, _ := ctx.Value(textBehaviorDispatchObserverKey{}).(func()); observer != nil {
+		observer()
 	}
 	started := time.Now()
 	response, err := backend.do(request)

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"runtime"
 	"sync"
 	"time"
@@ -139,6 +140,15 @@ func (s *Service) OpenVideoSession(ctx context.Context, req *runtimev1.OpenVideo
 		return nil, localImageExecutionError(err)
 	}
 	life, stop := context.WithCancel(context.Background())
+	observedModels := make([]*runtimev1.DesktopAIExecutionModel, 0, len(selected.ExactBindings))
+	for _, binding := range selected.ExactBindings {
+		label := s.aiObservedModelName(ctx, binding.ModelAssetID)
+		observedModels = append(observedModels, &runtimev1.DesktopAIExecutionModel{ModelId: binding.ModelAssetID, DisplayName: label, Role: binding.RequirementRole.String()})
+	}
+	facts := s.aiObservationFacts(ctx, decision.AccountID, decision.AppID, id, capabilitydriver.VideoFaceSwapContract, observedModels, runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_LOCAL)
+	facts.Source.ParentID = id
+	facts.Source.ParentKind = "video-session"
+	life = aitelemetry.WithInvocation(life, s.aiObservation, facts)
 	record := &videoSessionRecord{id: id, accountID: decision.AccountID, subject: decision.RegisteredAppSubject, generation: 1, format: proto.Clone(req.Format).(*runtimev1.AiVideoSessionFormat), ctx: life, cancel: stop, host: host, pending: make(chan *runtimev1.SubmitVideoSessionFrameRequest, 1), results: results, lastConsumption: time.Now()}
 	record.modelAssetUse = modelAssetUse
 	s.videoSessions.add(record)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -71,7 +72,7 @@ func (h *ProviderTextHost) ExecuteText(
 	target capabilitydriver.CloudTextTarget,
 	request *capabilitydriver.CloudTextMappedRequest,
 	audit TextDispatchAudit,
-) (capabilitydriver.CloudTextTransportResponse, error) {
+) (response capabilitydriver.CloudTextTransportResponse, executionErr error) {
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
@@ -86,8 +87,11 @@ func (h *ProviderTextHost) ExecuteText(
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	spec := request.Spec()
+	var attempt *aitelemetry.Attempt
+	defer func() { attempt.Finish(response.Usage) }()
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
-		result, err := h.transport.ExecuteTextBehaviorWithTarget(ctx, request.ProviderModelID(), remoteTarget, invocation, serialized, nil)
+		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() { attempt = aitelemetry.Begin(ctx) })
+		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, nil)
 		if err != nil {
 			return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 		}
@@ -96,6 +100,7 @@ func (h *ProviderTextHost) ExecuteText(
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
+	attempt = aitelemetry.Begin(ctx)
 	text, toolCalls, usage, finish, err := h.transport.GenerateTextScenarioWithTarget(
 		ctx,
 		request.ProviderModelID(),
@@ -122,7 +127,7 @@ func (h *ProviderTextHost) StreamText(
 	request *capabilitydriver.CloudTextMappedRequest,
 	onDelta func(textbehavior.OrderedDelta) error,
 	audit TextDispatchAudit,
-) (capabilitydriver.CloudTextTransportResponse, error) {
+) (response capabilitydriver.CloudTextTransportResponse, executionErr error) {
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
@@ -135,8 +140,11 @@ func (h *ProviderTextHost) StreamText(
 		err = grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
+	var attempt *aitelemetry.Attempt
+	defer func() { attempt.Finish(response.Usage) }()
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
-		result, err := h.transport.ExecuteTextBehaviorWithTarget(ctx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)
+		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() { attempt = aitelemetry.Begin(ctx) })
+		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)
 		if err != nil {
 			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 		}
@@ -145,6 +153,7 @@ func (h *ProviderTextHost) StreamText(
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
+	attempt = aitelemetry.Begin(ctx)
 	var text strings.Builder
 	usage, finish, err := h.transport.StreamGenerateTextScenarioWithTarget(
 		ctx,

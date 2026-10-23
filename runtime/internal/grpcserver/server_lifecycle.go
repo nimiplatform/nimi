@@ -109,11 +109,14 @@ func (s *Server) releaseOwners() {
 	if s.cognitionV1Owner != nil {
 		_ = s.cognitionV1Owner.Close()
 	}
-	if s.persistenceBackend != nil {
-		_ = s.persistenceBackend.Close()
-	}
 	if s.aiSvc != nil {
 		s.aiSvc.ShutdownRealtime()
+	}
+	if s.aiObservation != nil {
+		_ = s.aiObservation.Close()
+	}
+	if s.persistenceBackend != nil {
+		_ = s.persistenceBackend.Close()
 	}
 	if s.realmRealtimeService != nil {
 		s.realmRealtimeService.Close()

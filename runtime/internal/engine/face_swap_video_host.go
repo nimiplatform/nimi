@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"net/http"
 	"os"
@@ -112,6 +113,7 @@ func (host *FaceSwapExecutionHost) ExecuteVideoFaceSwap(ctx context.Context, pla
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("x-nimi-face-swap-token", host.token)
+	aitelemetry.Begin(ctx)
 	response, err := (&http.Client{}).Do(request)
 	if err != nil {
 		return nil, host.fail(ctx, executionFailure(localexecution.FailureProcessCrash, err))

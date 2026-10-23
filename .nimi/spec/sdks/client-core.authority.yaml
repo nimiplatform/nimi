@@ -10,6 +10,18 @@ units:
     kind: definition
     title: SDK Runtime client plane
     meaning: The SDK Runtime client plane transports Runtime mediation and projects Runtime-owned LocalAgent, immutable snapshot and lorebook readiness, context capacity, summary availability, AI, Conversation, media, authorization, and failure semantics together with bounded typed Cognition Memory owner results; Runtime retains committed Conversation and Agent events, authorization, outbox delivery, AI Jobs, request-context assembly, and Conversation final commit, Cognition remains long-term Memory and Knowledge canonical owner, Memory Recall is optional, Knowledge V1 is inactive and has no client result surface, and the SDK becomes neither an execution or state owner, Cognition corpus reader, nor shadow source of truth.
+  - id: rule.nimi.sdks.client-core.home-ai-observation
+    kind: rule
+    title: Home AI observation uses only the protected account facade
+    modality: must
+    statement: The Desktop account-product audit facade exposes only typed current AI snapshot, replacement-snapshot subscription and half-open AI usage summary through the protected Desktop account purpose. It preserves Runtime-derived current account, source and time coverage, revision, route, provider and pricing uncertainty, accepts no account selector and has no generic Runtime audit, machine-profile, App-purpose, anonymous or direct-network fallback. SDK transport and projections do not calculate a second execution state or durable usage ledger.
+    condition: Whenever the SDK carries Home AI observation.
+    failure: Reject unsupported purpose or unavailable access with its typed owner error and never fabricate empty or complete data.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
+      - type: applies_to
+        target: definition.nimi.sdks.client-core.runtime-client-plane
   - id: definition.nimi.sdks.client-core.transport-plane
     kind: definition
     title: SDK consumer access plane

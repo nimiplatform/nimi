@@ -99,5 +99,5 @@ func (s *Service) prepareCloudScenarioJob(
 		}
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return stored, jobCtx, nil
+	return stored, s.scenarioObservationContext(jobCtx, stored.GetJobId()), nil
 }

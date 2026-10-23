@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"io"
 	"math"
 	"net"
@@ -99,6 +100,7 @@ func (host *TextDecisionExecutionHost) ExecuteTextDecision(ctx context.Context, 
 	if err != nil {
 		return localexecution.TextDecisionResult{}, err
 	}
+	aitelemetry.Begin(ctx)
 	payload, status, err := host.exchange(ctx, endpoint, token, body)
 	if err != nil {
 		if ctx.Err() != nil {

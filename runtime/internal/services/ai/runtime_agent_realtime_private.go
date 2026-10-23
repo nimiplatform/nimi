@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
@@ -59,6 +60,7 @@ func (s *Service) OpenRuntimeAgentRealtime(ctx context.Context, accountID string
 	ownerCtx = executionintent.WithIntent(ownerCtx, intent)
 	ownerCtx = agentintent.WithHandler(ownerCtx, agentintent.FromContext(ctx))
 	ownerCtx = agentintent.WithUsageObserver(ownerCtx, agentintent.UsageFromContext(ctx))
+	ownerCtx = aitelemetry.CopySource(ctx, ownerCtx)
 	return s.OpenRealtimeSession(ownerCtx, req)
 }
 

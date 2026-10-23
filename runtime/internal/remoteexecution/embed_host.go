@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"math"
 	"strings"
 	"time"
@@ -87,7 +88,9 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
 		}
 		batch := inputs[offset:min(offset+batchSize, len(inputs))]
+		attempt := aitelemetry.Begin(ctx)
 		values, reportedUsage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), batch, request.Dimensions(), request.Protocol(), remoteTarget)
+		attempt.Finish(reportedUsage)
 		if err != nil {
 			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
 		}

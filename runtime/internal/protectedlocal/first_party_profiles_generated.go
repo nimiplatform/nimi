@@ -172,6 +172,12 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		}
 	case "desktop_account_product_v1":
 		switch methodID {
+		case "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity":
+			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession":
@@ -716,6 +722,9 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		}
 	case "desktop_account_product_v1":
 		return []FirstPartyProfileMethodEntry{
+			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession", Kind: FirstPartyMethodUnary},

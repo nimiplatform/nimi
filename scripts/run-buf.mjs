@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import { copyFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +9,15 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const protoRoot = path.join(repoRoot, 'proto');
 const args = process.argv.slice(2);
+
+function syncPackagedRuntimeProtos() {
+  if (args[0] !== 'generate') return;
+  const sourceRoot = path.join(protoRoot, 'runtime', 'v1');
+  const packagedRoot = path.join(repoRoot, 'kit', 'shell', 'protected-local', 'proto', 'runtime', 'v1');
+  for (const name of readdirSync(sourceRoot).filter((name) => name.endsWith('.proto'))) {
+    copyFileSync(path.join(sourceRoot, name), path.join(packagedRoot, name));
+  }
+}
 
 function run(command, commandArgs, options = {}) {
   return spawnSync(command, commandArgs, {
@@ -20,6 +30,7 @@ function run(command, commandArgs, options = {}) {
 
 let result = run('buf', args);
 if ((result.status ?? 1) === 0) {
+  syncPackagedRuntimeProtos();
   process.exit(0);
 }
 
@@ -35,6 +46,7 @@ if (gopath) {
   const bufBinary = path.join(gopath, 'bin', process.platform === 'win32' ? 'buf.exe' : 'buf');
   result = run(bufBinary, args, { shell: false });
   if ((result.status ?? 1) === 0) {
+    syncPackagedRuntimeProtos();
     process.exit(0);
   }
 }

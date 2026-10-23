@@ -17,6 +17,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -62,6 +63,7 @@ type Service struct {
 	logger                                 *slog.Logger
 	config                                 Config
 	audit                                  *auditlog.Store
+	aiObservation                          *aitelemetry.Store
 	scheduler                              *scheduler.Scheduler
 	scenarioJobs                           *scenarioJobStore
 	realtimeSessions                       *realtimeSessionStore

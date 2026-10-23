@@ -144,6 +144,70 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.streaming-plane
+  - id: definition.nimi.runtime.rpc-foundations.home-ai-observation
+    kind: definition
+    title: Account-scoped Home AI observation
+    meaning: Runtime owns a bounded read-only projection of actual AI execution and durable device AI attempt accounting for the current authenticated Home account, separate from generic RPC diagnostics, App business workflow, provider billing and private ExecutionHost residency. It carries safe actual source, parent, capability, model, provider, route, timing, observation, usage and coverage facts without private content or executable authority.
+  - id: rule.nimi.runtime.rpc-foundations.home-ai-observation-access
+    kind: rule
+    title: Home AI reads require the protected account purpose
+    modality: must
+    statement: GetDesktopAIActivitySnapshot, SubscribeDesktopAIActivity and GetDesktopAIUsageSummary belong only to the protected Desktop account product purpose. Runtime derives the current account from its protected principal and rechecks that purpose in the owner handler, accepts no caller account selector, and rejects ordinary public, anonymous, machine-only or App-purpose access. The SDK and transport preserve this exact boundary and no read initiates AI, Provider polling, Job recovery or business mutation.
+    condition: Whenever Home AI observation is requested.
+    failure: Return the owning unauthenticated, forbidden or unavailable result without an alternate transport, empty success or cross-account disclosure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
+  - id: rule.nimi.runtime.rpc-foundations.home-ai-execution
+    kind: rule
+    title: Current execution comes from actual owners
+    modality: must
+    statement: Actual execution owners publish safe attempt identity, accepted parent identity when available, captured source and account, capability, actual adopted model and provider, local or cloud or unknown route, start and observation time and truthful execution state. A parent work groups its child attempts once; unknown parent association is shown as unassociated execution and never supports an exact combined work total. Simulated Agent life frames do not count as actual work, but real life planning and other admitted background inference count as actual AI. Configured, installed and resident models or completed activity messages never stand in for current execution. Snapshot generation and revision fence stale data; subscriptions emit an initial complete replacement snapshot and coalesce slow delivery to the latest snapshot.
+    condition: Whenever current AI execution is retained, counted or projected.
+    failure: Preserve missing association, source coverage, truncation and observation uncertainty without fabricating a current model, work total, provider state or resumed execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
+  - id: rule.nimi.runtime.rpc-foundations.home-ai-accounting
+    kind: rule
+    title: AI attempts are accounted at execution owner boundaries
+    modality: must
+    statement: Runtime records an actual local-engine or remote-AI execution attempt at its owner admission and dispatch boundary, captures its authenticated account and immutable start attribution, and counts real retries independently while excluding rejected admission, health and audit reads, generic RPCs, Job observation and artifact reads. Agent background inference is included; Realtime counts owner-identified model response or generation rounds rather than session setup or audio fragments. Owner cumulative usage carries a monotonic revision; each accepted revision updates the existing attempt and aggregate by its delta in one persistence transaction, ignoring equal or old revisions and never regressing terminal state or holding a database transaction across AI I/O. Late usage remains attributed to the original start interval and never creates a second attempt.
+    condition: Whenever actual AI execution or a usage revision is recorded.
+    failure: Preserve the AI owner's real outcome, report accounting uncertainty when recording fails, and never replay AI, infer zero cost or relabel generic RPC Usage as product AI accounting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
+  - id: rule.nimi.runtime.rpc-foundations.home-ai-retention
+    kind: rule
+    title: AI observation and accounting remain bounded
+    modality: must
+    statement: Runtime retains ordinary minute aggregates for seven days and accepts usage revisions until seven days after the owning attempt terminal; linked aggregates and deduplication share the latest relevant revision deadline, while nonterminal attempts retain their original owner lifecycle. Aggregate and attempt rows each have a 100000-row bound and together a 64 MiB encoded-payload bound, an attempt projection has a 4 KiB bound, active memory has a 1024-attempt bound, generation and coverage-gap history each have a 1024-entry bound, activity snapshots default to fifty and admit at most one hundred entries, usage groups admit at most two hundred without truncating totals, and subscription buffering holds one replacement snapshot. Retention precedes capacity eviction and protects current-day necessary data where possible; forced eviction atomically advances a conservative source acceptance boundary against immutable attempt start or creation order and marks coverage partial, never permitting an old revision to recreate an evicted attempt. These bounds describe retained payload rather than the whole database file and indexes.
+    condition: Whenever Home AI observation or accounting retains, revises, evicts or returns data.
+    failure: Bound resource use, preserve explicit incomplete coverage and reject expired revisions without silently clearing real history, blocking independent AI success or creating an unbounded event or proof store.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
+  - id: rule.nimi.runtime.rpc-foundations.home-ai-coverage
+    kind: rule
+    title: Usage completeness survives missing writers and failed persistence
+    modality: must
+    statement: Source coverage and past-time coverage are independent facts for protected Home and App AI, admitted direct Runtime AI, LocalAgent foreground, actual Agent background inference and supported Realtime work. Missing writers or observers cannot establish global complete zero. Runtime uses its own persistence generation and clean-end facts to retain accounting uncertainty. Current healthy generation completeness is evaluated at an owner-consistent durable read point with prior accepted writes flushed, while an ended or recovered generation lacking clean completion and unknown gaps between proven intervals remain partial. Failure to persist the generation or coverage makes accounting unavailable or partial; only a successfully flushed end with no write gap is clean, and a later restart or heartbeat cannot erase the gap. Newly enabled accounting never reconstructs unrecorded history; pending quantities and pricing completeness remain separate from attempt-count coverage.
+    condition: Whenever Home AI coverage is recorded, recovered or presented.
+    failure: Return bounded coverage reasons and the proven observation interval without pretending an unwritable or absent record is complete, filling unknown history or replaying execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
+  - id: rule.nimi.runtime.rpc-foundations.home-ai-usage-summary
+    kind: rule
+    title: Device AI usage uses a consistent half-open interval
+    modality: must
+    statement: Home AI usage reads accept a valid half-open UTC interval no longer than seven days, derive account scope from the protected principal, and return totals and bounded groups from one consistent owner read rather than client pagination sums. Time coverage is evaluated only through the earlier of the requested end and read time. The user local calendar determines day boundaries, including offset and daylight changes; late completion updates the immutable start interval. Safe captured route, provider, model, capability, unit and currency determine estimates; missing price, actual billing quantity or usage is unpriced or pending rather than zero, token-to-character or inference-time-to-media-duration guesses are forbidden, and currencies remain separate. Every amount is identified as an estimate rather than a provider bill.
+    condition: Whenever Home queries or displays current-account device AI usage.
+    failure: Reject invalid ranges and preserve source, time, quantity, route and pricing uncertainty without cross-account aggregation, boundary double counting or fabricated charges.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
   - id: rule.nimi.runtime.rpc-foundations.r012
     kind: rule
     title: Streams preserve ordering and terminal truth

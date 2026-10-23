@@ -47,7 +47,7 @@ func (s *Service) submitCapturedFaceSwapJob(ctx context.Context, req *runtimev1.
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localFaceSwapJobOrder.reserve()
-	go run(jobCtx, job.JobId, ticket)
+	go run(s.scenarioObservationContext(jobCtx, job.JobId), job.JobId, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
