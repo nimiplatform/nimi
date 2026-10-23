@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, PillTabs } from '@nimiplatform/kit/ui';
-import { Plus } from 'lucide-react';
+import { Button, PillTabs, TextField } from '@nimiplatform/kit/ui';
+import { Plus, Search } from 'lucide-react';
 import { isActive } from '../domain/reminders.js';
 import { addDays, toLocalDate } from '../domain/time.js';
 import { buildAgenda, undatedItems } from '../domain/today.js';
@@ -11,6 +11,7 @@ import { Card, Hint, PageHead } from './common.js';
 import { ItemRow } from './item-row.js';
 import { QuickCapture } from './quick-capture.js';
 import { useUi } from './ui-context.js';
+import { completedItemEntries, matchesItemSearch } from './item-list-model.js';
 import './items-page.css';
 
 type Tab = 'upcoming' | 'waiting' | 'recurring' | 'done';
@@ -22,6 +23,9 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
   const ui = useUi();
   const [tab, setTab] = useState<Tab>('upcoming');
   const [circleFilter, setCircleFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const [historyLimit, setHistoryLimit] = useState(40);
+  const searching = query.trim().length > 0;
   const today = toLocalDate(now);
 
   useEffect(() => {
@@ -45,10 +49,8 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
   const someday = undatedItems(filtered);
   const waiting = filtered.items.filter((item) => item.state === 'waiting');
   const recurring = filtered.items.filter((item) => isActive(item) && item.repeat);
-  const done = filtered.items
-    .filter((item) => item.state === 'done' || item.state === 'dropped')
-    .sort((a, b) => ((a.completedAt ?? '') < (b.completedAt ?? '') ? 1 : -1))
-    .slice(0, 80);
+  const done = completedItemEntries(filtered.items);
+  const searchResults = filtered.items.filter(item => matchesItemSearch(item, query, state.circles));
 
   const circles = state.circles.filter((circle) => circle.status !== 'ended');
 
@@ -61,8 +63,13 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
       <Card>
         <QuickCapture circleId={circleFilter !== 'all' && circleFilter !== 'none' ? circleFilter : null} />
       </Card>
+      <div className="nd-item-search">
+        <TextField type="search" aria-label={copy.items.search} placeholder={copy.items.search} value={query}
+          leading={<Search size={16} aria-hidden="true" />} onChange={event => setQuery(event.target.value)} />
+        {searching ? <Button size="sm" tone="ghost" onClick={() => setQuery('')}>{copy.items.clearSearch}</Button> : null}
+      </div>
       <div className="nd-split" style={{ margin: '18px 0 12px', flexWrap: 'wrap' }}>
-        <PillTabs
+        {!searching ? <PillTabs
           ariaLabel={copy.items.title}
           value={tab}
           onValueChange={(value) => setTab(value as Tab)}
@@ -72,7 +79,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
             { value: 'recurring', label: copy.items.recurring },
             { value: 'done', label: copy.items.done },
           ]}
-        />
+        /> : <p role="status" className="nd-faint">{copy.items.searchCount(searchResults.length)}</p>}
         {circles.length > 0 ? (
           <div className="nd-kind-picker" aria-label={copy.items.filterCircle}>
             {[{ id: 'all', name: copy.common.all }, ...circles.map((circle) => ({ id: circle.id, name: circle.name })), { id: 'none', name: copy.common.unassigned }].map((entry) => (
@@ -84,7 +91,12 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         ) : null}
       </div>
 
-      {tab === 'upcoming' ? (
+      {searching ? <Card>
+        {searchResults.length ? <div className="nd-list">{searchResults.map(item => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
+          : <Hint>{copy.items.noMatches}</Hint>}
+      </Card> : null}
+
+      {!searching && tab === 'upcoming' ? (
         <Card className="nd-items-list" testId="nd-items-list">
           {overdue.length > 0 ? (
             <section className="nd-items-group" aria-labelledby="nd-items-overdue">
@@ -126,7 +138,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         </Card>
       ) : null}
 
-      {tab === 'waiting' ? (
+      {!searching && tab === 'waiting' ? (
         <Card>
           {waiting.length === 0 ? <Hint>{copy.items.waitingEmpty}</Hint> : (
             <div className="nd-list">{waiting.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
@@ -134,7 +146,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         </Card>
       ) : null}
 
-      {tab === 'recurring' ? (
+      {!searching && tab === 'recurring' ? (
         <Card>
           {recurring.length === 0 ? <Hint>{copy.items.recurringEmpty}</Hint> : (
             <div className="nd-list">{recurring.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
@@ -142,11 +154,12 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         </Card>
       ) : null}
 
-      {tab === 'done' ? (
+      {!searching && tab === 'done' ? (
         <Card>
           {done.length === 0 ? <Hint>{copy.items.doneEmpty}</Hint> : (
-            <div className="nd-list">{done.map((item) => <ItemRow key={item.id} item={item} layout="title-first" showDay />)}</div>
+            <div className="nd-list">{done.slice(0, historyLimit).map(entry => <ItemRow key={entry.key} item={entry.item} date={entry.date} done={entry.occurrence} layout="title-first" showDay />)}</div>
           )}
+          {done.length > historyLimit ? <Button tone="ghost" size="sm" onClick={() => setHistoryLimit(value => value + 40)}>{copy.items.moreHistory}</Button> : null}
         </Card>
       ) : null}
     </div>

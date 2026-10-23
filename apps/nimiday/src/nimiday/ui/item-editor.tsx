@@ -198,7 +198,6 @@ export function ItemEditor({
             <label className="nd-field">
               <span className="nd-field-label">{copy.item.title}</span>
               <TextField
-                autoFocus={!item}
                 value={form.title}
                 placeholder={copy.item.titlePlaceholder}
                 maxLength={200}

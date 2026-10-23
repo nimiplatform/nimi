@@ -1,7 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, ipcMain, Menu, protocol, screen, session, webContents } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, protocol, screen, session, Tray, webContents } from 'electron';
 import { configureNimiElectronAppHostProfile } from '@nimiplatform/kit/shell/electron/host-profile';
+import { registerWindowsNotificationIdentity } from './windows-notification-identity.js';
 
 declare const __NIMI_ELECTRON_PRODUCTION__: boolean;
 
@@ -31,6 +32,7 @@ const APP_ID = 'nimi.day';
 const NATIVE_BUNDLE_IDENTIFIER = "ai.nimi.apps.nimi.day";
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
+const appIconPath = path.join(appRoot, 'assets', 'app-icon.png');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const productionRendererUrl = pathToFileURL(path.join(appRoot, 'dist', 'index.html')).toString();
 const developmentRendererUrl = readDevelopmentRendererUrl();
@@ -38,12 +40,25 @@ const rendererUrl = developmentRendererUrl || productionRendererUrl;
 const allowedRendererUrls = [rendererUrl];
 let resettingRenderer = false;
 let quitting = false;
+let tray: Tray | undefined;
 let followups: ReturnType<typeof import('./followup-host.js')['createDayFollowUpHost']> | undefined;
 
 app.setName("NimiDay");
 app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
+// Complete Windows sender registration before any renderer can notify.
+try {
+  await registerWindowsNotificationIdentity({
+    appUserModelId: NATIVE_BUNDLE_IDENTIFIER,
+    displayName: app.getName(),
+    iconPath: appIconPath,
+  });
+} catch (error) {
+  process.stderr.write(`[nimiday-notification-identity] ${error instanceof Error ? error.message : String(error)}\n`);
+  app.exit(1);
+  throw error;
+}
 Menu.setApplicationMenu(Menu.buildFromTemplate([
-  { label: 'NimiDay', submenu: [{ label: '打开 Day', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 Day', role: 'quit' }] },
+  { label: 'NimiDay', submenu: [{ label: '打开 NimiDay', click: openMainWindow }, { label: '退出并停止 NimiDay', role: 'quit' }] },
   ...(process.platform === 'darwin' ? [
     { role: 'fileMenu' as const },
     { role: 'editMenu' as const },
@@ -54,7 +69,20 @@ registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
   const { createDayFollowUpHost } = await import('./followup-host.js');
-  followups = createDayFollowUpHost(() => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); });
+  followups = createDayFollowUpHost(openMainWindow);
+  // @nimi-authority: rule.nimi.nimiday.assistant.background-follow-up
+  // Windows has no Dock/application menu once the last window closes.
+  // Keep a user-owned way to reopen the live Host without stopping its work.
+  if (process.platform === 'win32') {
+    tray = new Tray(nativeImage.createFromPath(appIconPath).resize({ width: 16, height: 16 }));
+    tray.setToolTip('NimiDay');
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: '打开 NimiDay', click: openMainWindow },
+      { type: 'separator' },
+      { label: '退出并停止 NimiDay', click: () => app.quit() },
+    ]));
+    tray.on('click', openMainWindow);
+  }
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls,
@@ -65,14 +93,26 @@ void app.whenReady().then(async () => {
     onSessionInvalidated: () => { followups?.invalidate(); resetAccountScopedRenderer(); },
   });
   await createMainWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) void createMainWindow();
-  });
+  app.on('activate', openMainWindow);
 });
 
 // Accepted arrangements keep following real replies in this protected Host.
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; followups?.invalidate(); });
+app.on('before-quit', () => { quitting = true; tray?.destroy(); tray = undefined; followups?.invalidate(); });
+
+function openMainWindow(): void {
+  if (quitting) return;
+  const window = BrowserWindow.getAllWindows()[0];
+  if (window) {
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
+  } else {
+    void createMainWindow().catch((error: unknown) => {
+      process.stderr.write(`[nimiday-open-window] ${error instanceof Error ? error.message : String(error)}\n`);
+    });
+  }
+}
 
 // A revoked/account-changed scope must not leave renderer timers or queued
 // promises alive to use the rebound Host. This does not run on normal renewal.
@@ -97,6 +137,7 @@ async function createMainWindow(): Promise<void> {
     minHeight: Math.min(560, height),
     center: true,
     title: "NimiDay",
+    icon: appIconPath,
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,

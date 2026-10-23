@@ -10,6 +10,7 @@ import { Card } from './common.js';
 import { GoVersionReferenceField } from './go-version-reference-field.js';
 import { FollowUpConnectionActions } from './followup-connection-actions.js';
 import { isFollowUpTarget } from '../followup/connection-state.js';
+import { useUi } from './ui-context.js';
 
 export function FollowUpComposer({ snapshot, visible, refresh, refreshing, onCreated, onBack }: {
   snapshot: FollowUpSnapshot | null;
@@ -22,10 +23,14 @@ export function FollowUpComposer({ snapshot, visible, refresh, refreshing, onCre
   const { state } = useDayStore();
   const { copy } = useNimiDay();
   const text = copy.followups;
-  const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState({ title: '', when: '', goal: '', notice: '', recipients: '', targetRef: '', agentBinding: state.profile.appointment?.binding || '', publishHome: state.profile.homeMessages });
-  const [sourceRef, setSourceRef] = useState('');
-  const [sourceReference, setSourceReference] = useState('');
+  const { followUpDraft } = useUi();
+  const [step, setStep] = useState(followUpDraft.current?.step ?? 0);
+  const [draft, setDraft] = useState(followUpDraft.current?.content ?? { title: '', when: '', goal: '', notice: '', recipients: '', targetRef: '', agentBinding: state.profile.appointment?.binding || '', publishHome: state.profile.homeMessages });
+  const [sourceRef, setSourceRef] = useState(followUpDraft.current?.sourceRef ?? '');
+  const [sourceReference, setSourceReference] = useState(followUpDraft.current?.sourceReference ?? '');
+  useEffect(() => {
+    followUpDraft.current = { step, content: draft, sourceRef, sourceReference };
+  }, [followUpDraft, step, draft, sourceRef, sourceReference]);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [neededSetup, setNeededSetup] = useState(false);
@@ -65,12 +70,18 @@ export function FollowUpComposer({ snapshot, visible, refresh, refreshing, onCre
   };
   const send = async () => {
     if (!confirming || sending) return;
+    // Once confirmed, this is a submitted request, not a resumable unsent draft.
+    // Leaving this page during start must not offer the same notice for resending.
+    followUpDraft.current = null;
     setSending(true); setError('');
     try {
       const result = await invoke('nimiday.followups.start', { input: confirming.input }) as { id: string };
       if (!alive.current) return;
       setConfirming(null); onCreated(result.id);
-    } catch (failure) { if (alive.current) { setConfirming(null); setError(failure instanceof Error ? failure.message : String(failure)); } }
+    } catch (failure) { if (alive.current) {
+      followUpDraft.current = { step, content: draft, sourceRef, sourceReference };
+      setConfirming(null); setError(failure instanceof Error ? failure.message : String(failure));
+    } }
     finally { if (alive.current) setSending(false); }
   };
   return <>

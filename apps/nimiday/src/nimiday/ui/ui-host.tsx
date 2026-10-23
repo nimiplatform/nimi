@@ -1,5 +1,5 @@
 import { skillRunName, resolveSkills } from '../domain/skills.js';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Button,
   Dialog,
@@ -26,6 +26,7 @@ import { ItemRow } from './item-row.js';
 import { ParentOSChildren } from './parentos-children.js';
 import { RunCard } from './run-card.js';
 import { UiContext, useUi, type NoteTarget, type UiApi } from './ui-context.js';
+import type { FollowUpDraft } from './followup-draft.js';
 
 type Overlay =
   | { readonly kind: 'item'; readonly itemId: string | null; readonly draft?: Partial<ItemDraft> }
@@ -36,8 +37,11 @@ type Overlay =
 
 export function UiHost({ children }: { readonly children: ReactNode }) {
   const [overlay, setOverlay] = useState<Overlay | null>(null);
+  // UI-session only: navigation keeps the draft; a new App/session starts clean.
+  const followUpDraft = useRef<FollowUpDraft | null>(null);
   const close = () => setOverlay(null);
   const api = useMemo<UiApi>(() => ({
+    followUpDraft,
     openItem: (itemId) => setOverlay({ kind: 'item', itemId }),
     newItem: (draft) => setOverlay({ kind: 'item', itemId: null, draft }),
     openRun: (runId) => setOverlay({ kind: 'run', runId }),
@@ -141,13 +145,12 @@ function CircleEditor({ circleId, onClose }: { readonly circleId: string | null;
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent onClose={onClose} data-testid="nd-circle-editor">
+      <DialogContent onClose={onClose} data-testid="nd-circle-editor" className="nd-circle-editor">
         <DialogHeader><DialogTitle>{circle ? copy.care.edit : copy.care.add}</DialogTitle></DialogHeader>
         <DialogBody>
           <div className="nd-form nd-dialog-scroll">
             <div className="nd-field">
-              <span className="nd-field-label">{copy.care.kind}</span>
-              <div className="nd-kind-picker">
+              <div className="nd-kind-picker" role="group" aria-label={copy.care.kind}>
                 {CIRCLE_TEMPLATES.map((template) => {
                   const Icon = CIRCLE_ICONS[template.kind];
                   return (
@@ -158,29 +161,34 @@ function CircleEditor({ circleId, onClose }: { readonly circleId: string | null;
                 })}
               </div>
             </div>
-            {choosingChild ? <>
+            {choosingChild ? (
               <ParentOSChildren contentLayer="dialog" onAdded={created => { navigate({ view: 'care', circleId: created.id }); onClose(); }} />
-              <Button tone="ghost" size="sm" onClick={() => setManualChild(true)}>{copy.childSources.manual}</Button>
-            </> : <>
-            {!circle && kind === 'child' ? <Button tone="ghost" size="sm" onClick={() => setManualChild(false)}>{copy.childSources.back}</Button> : null}
-            <label className="nd-field">
-              <span className="nd-field-label">{copy.care.name}</span>
-              <TextField value={name} autoFocus placeholder={copy.kinds.circlePlaceholder[kind]} maxLength={60} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label className="nd-field">
-              <span className="nd-field-label">{copy.care.watch}</span>
-              <TextareaField value={watch} rows={3} maxLength={1000} placeholder={copy.care.watchPlaceholder} onChange={(event) => setWatch(event.target.value)} />
-            </label>
-            <label className="nd-field">
-              <span className="nd-field-label">{copy.care.focus}</span>
-              <TextField value={focus} maxLength={240} placeholder={copy.care.focusPlaceholder} onChange={(event) => setFocus(event.target.value)} />
-            </label>
+            ) : <>
+              {!circle && kind === 'child' ? <Button tone="ghost" size="sm" onClick={() => setManualChild(false)}>{copy.childSources.back}</Button> : null}
+              <label className="nd-field">
+                <span className="nd-field-label">{copy.care.name}</span>
+                <TextField value={name} autoFocus placeholder={copy.kinds.circlePlaceholder[kind]} maxLength={60} onChange={(event) => setName(event.target.value)} />
+              </label>
+              <details className="nd-care-optional" open={circle ? true : undefined}>
+                <summary>{copy.care.optionalDetails}</summary>
+                <div className="nd-form">
+                  <label className="nd-field">
+                    <span className="nd-field-label">{copy.care.watch}</span>
+                    <TextareaField value={watch} rows={3} maxLength={1000} placeholder={copy.care.watchPlaceholder} onChange={(event) => setWatch(event.target.value)} />
+                  </label>
+                  <label className="nd-field">
+                    <span className="nd-field-label">{copy.care.focus}</span>
+                    <TextField value={focus} maxLength={240} placeholder={copy.care.focusPlaceholder} onChange={(event) => setFocus(event.target.value)} />
+                  </label>
+                </div>
+              </details>
             </>}
           </div>
         </DialogBody>
-        <DialogFooter>
+        <DialogFooter className="nd-circle-editor-footer">
+          {choosingChild ? <Button tone="ghost" size="sm" onClick={() => setManualChild(true)}>{copy.childSources.manual}</Button> : null}
           <Button tone="secondary" size="sm" onClick={onClose}>{copy.common.cancel}</Button>
-          {!choosingChild ? <Button tone="primary" size="sm" disabled={!name.trim()} onClick={save}>{copy.common.save}</Button> : null}
+          {!choosingChild ? <Button tone="primary" size="sm" disabled={!name.trim()} onClick={save}>{circle ? copy.common.save : copy.common.add}</Button> : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

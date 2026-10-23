@@ -233,9 +233,11 @@ function RhythmEditor({ rhythm, skills, initialSkillId, onClose }: { readonly in
   const [start, setStart] = useState<'ask' | 'auto'>(rhythm?.start ?? 'ask');
   const desk = useDesk();
   const skill = skills.find((candidate) => candidate.id === skillId);
+  const needsWeekday = days === 'custom' && weekdays.length === 0;
 
   const save = () => {
-    const schedule = { days, weekdays: days === 'custom' ? (weekdays.length ? weekdays : [1]) : [], time };
+    if (!skillId || needsWeekday) return;
+    const schedule = { days, weekdays: days === 'custom' ? weekdays : [], time };
     if (rhythm) actions.editRhythm(rhythm.id, { name: name || skill?.name, schedule, notify, start });
     else {
       const created = actions.addRhythm({ skillId, name: name || skill?.name || skillId, schedule });
@@ -263,14 +265,14 @@ function RhythmEditor({ rhythm, skills, initialSkillId, onClose }: { readonly in
               <SegmentedControl className="nd-segmented-fill" ariaLabel={copy.routines.rhythmDays} size="sm" value={days} onValueChange={(value) => setDays(value as RhythmDays)}
                 items={(['daily', 'weekdays', 'weekends', 'custom'] as const).map((value) => ({ value, label: copy.routines.daysOptions[value] }))} />
               {days === 'custom' ? (
-                <div className="nd-weekday-picker">
+                <><div className="nd-weekday-picker" role="group" aria-label={copy.routines.rhythmDays} aria-describedby={needsWeekday ? 'nd-rhythm-weekday-hint' : undefined}>
                   {[1, 2, 3, 4, 5, 6, 0].map((weekday) => (
                     <button key={weekday} type="button" className="nd-weekday" aria-pressed={weekdays.includes(weekday)}
                       onClick={() => setWeekdays(weekdays.includes(weekday) ? weekdays.filter((value) => value !== weekday) : [...weekdays, weekday])}>
                       {copy.time.weekdays[weekday]}
                     </button>
                   ))}
-                </div>
+                </div>{needsWeekday ? <p id="nd-rhythm-weekday-hint" role="status" className="nd-field-error">{copy.routines.chooseWeekday}</p> : null}</>
               ) : null}
             </div>
             <label className="nd-field">
@@ -306,7 +308,7 @@ function RhythmEditor({ rhythm, skills, initialSkillId, onClose }: { readonly in
             {rhythm ? <Button tone="ghost" size="sm" onClick={() => { actions.deleteRhythm(rhythm.id); onClose(); }}>{copy.routines.deleteRhythm}</Button> : <span />}
             <div className="nd-inline-actions">
               <Button tone="secondary" size="sm" onClick={onClose}>{copy.common.cancel}</Button>
-              <Button tone="primary" size="sm" disabled={!skillId} onClick={save}>{copy.common.save}</Button>
+              <Button tone="primary" size="sm" disabled={!skillId || needsWeekday} onClick={save}>{copy.common.save}</Button>
             </div>
           </div>
         </DialogFooter>

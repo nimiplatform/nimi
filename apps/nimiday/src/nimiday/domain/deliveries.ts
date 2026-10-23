@@ -16,9 +16,6 @@ export type ReminderPlan = {
   readonly missed: readonly { readonly item: LifeItem; readonly at: string }[];
 };
 
-/** Late by more than this when first seen means NimiDay was not running. */
-export const MISSED_THRESHOLD_MS = 2 * 60_000;
-
 export function planReminders(
   items: readonly LifeItem[],
   now: Date,
@@ -32,7 +29,7 @@ export function planReminders(
     if (!isReminderPending(item, now, settings)) continue;
     const instant = reminderInstant(item, settings)!;
     const at = instant.toISOString();
-    if (instant.getTime() < sessionStartedAt.getTime() - MISSED_THRESHOLD_MS) {
+    if (instant.getTime() < sessionStartedAt.getTime()) {
       missed.push({ item, at });
       continue;
     }

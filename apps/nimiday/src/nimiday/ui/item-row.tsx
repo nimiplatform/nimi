@@ -4,7 +4,7 @@ import { snoozeInstant, snoozeOptions, isOverdue } from '../domain/reminders.js'
 import { linkedSource } from '../domain/sources.js';
 import { parseInstant, toLocalDate } from '../domain/time.js';
 import type { LifeItem, LocalDate, LocalTime } from '../domain/types.js';
-import { describeRepeat, formatDay, formatInstant } from '../i18n/index.js';
+import { describeRepeat, formatDate, formatDay, formatInstant } from '../i18n/index.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
 import { CheckButton, Chip, MenuButton, OriginNote } from './common.js';
 import { openSourceWithFeedback } from './source-row.js';
@@ -17,6 +17,7 @@ export function ItemRow({
   done = false,
   projected = false,
   showDay = false,
+  showFullDate = false,
   showSnooze = false,
   layout = 'timeline',
 }: {
@@ -26,6 +27,7 @@ export function ItemRow({
   readonly done?: boolean;
   readonly projected?: boolean;
   readonly showDay?: boolean;
+  readonly showFullDate?: boolean;
   readonly showSnooze?: boolean;
   readonly layout?: 'timeline' | 'title-first';
 }) {
@@ -46,7 +48,9 @@ export function ItemRow({
   const linked = item.source ? linkedSource(item.source, changes) : null;
 
   const timeLabel = occurrenceTime ?? (occurrenceDate ? copy.time.allDay : '');
-  const dayLabel = showDay && occurrenceDate ? formatDay(copy, occurrenceDate, today) : null;
+  const dayLabel = showFullDate
+    ? occurrenceDate ? formatDate(copy, occurrenceDate, today) : copy.time.noDate
+    : showDay && occurrenceDate ? formatDay(copy, occurrenceDate, today) : null;
 
   return (
     <div className="nd-row" data-layout={layout} data-done={done || closed} data-testid="nd-item-row">
@@ -55,7 +59,8 @@ export function ItemRow({
       ) : (
         <CheckButton
           checked={done || closed}
-          label={item.repeat ? copy.item.completeOccurrence : copy.item.complete}
+          disabled={done || projected}
+          label={done ? copy.today.done : closed ? copy.item.reopen : projected ? copy.today.projected : item.repeat ? copy.item.completeOccurrence : copy.item.complete}
           onClick={() => {
             if (done || projected) return;
             if (closed) {
@@ -91,7 +96,8 @@ export function ItemRow({
           {circle ? <Chip tone="accent">{circle.status === 'ended' ? `${circle.name} · ${copy.care.endedTag}` : circle.name}</Chip> : null}
           {item.kind !== 'todo' ? <Chip>{copy.kinds.item[item.kind]}</Chip> : null}
           {overdue ? <Chip tone="danger">{copy.today.overdue}</Chip> : null}
-          {item.state === 'dropped' ? <Chip>{item.repeat ? copy.item.repeatStopped : copy.item.events.dropped}</Chip> : null}
+          {!done && item.state === 'dropped' ? <Chip>{item.repeat ? copy.item.repeatStopped : copy.item.events.dropped}</Chip> : null}
+          {done ? <Chip tone="success">{copy.today.done}</Chip> : null}
           {item.source ? (
             <Chip tone={linked?.todoState === 'completed' ? 'success' : undefined}>
               {linked?.todoState === 'completed' ? copy.item.sourceDone(item.source.appName)

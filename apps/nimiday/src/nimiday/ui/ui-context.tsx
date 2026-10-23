@@ -1,9 +1,11 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, type RefObject } from 'react';
 import type { ItemDraft } from '../domain/items.js';
+import type { FollowUpDraft } from './followup-draft.js';
 
 export type NoteTarget = { readonly noteId?: string; readonly circleId: string | null };
 
 export type UiApi = {
+  readonly followUpDraft: RefObject<FollowUpDraft | null>;
   readonly openItem: (itemId: string) => void;
   readonly newItem: (draft?: Partial<ItemDraft>) => void;
   readonly openRun: (runId: string) => void;

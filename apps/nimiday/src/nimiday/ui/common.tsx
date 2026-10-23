@@ -118,9 +118,9 @@ export function AgentAvatar({ name, url, size = 'md' }: { readonly name: string;
   );
 }
 
-export function CheckButton({ checked, label, onClick }: { readonly checked: boolean; readonly label: string; readonly onClick: () => void }) {
+export function CheckButton({ checked, label, onClick, disabled = false }: { readonly checked: boolean; readonly label: string; readonly onClick: () => void; readonly disabled?: boolean }) {
   return (
-    <button type="button" className="nd-check" data-checked={checked} aria-label={label} title={label} onClick={onClick}>
+      <button type="button" className="nd-check" data-checked={checked} aria-pressed={checked} aria-label={label} title={label} disabled={disabled} onClick={onClick}>
       {checked ? <Check size={13} strokeWidth={3} aria-hidden="true" /> : null}
     </button>
   );

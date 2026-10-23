@@ -31,6 +31,13 @@ describe('reminder delivery planning', () => {
     expect(plan.missed).toEqual([]);
   });
 
+  it('does not replay a reminder when the window reopens seconds after it was due', () => {
+    const reopened = at('2026-09-24T07:50:12+08:00');
+    const plan = planReminders([breakfast], reopened, reopened, settings);
+    expect(plan.deliver).toEqual([]);
+    expect(plan.missed.map(entry => entry.item.id)).toEqual([breakfast.id]);
+  });
+
   it('holds normal reminders in quiet hours but lets important ones interrupt', () => {
     const plan = planReminders([medicine, plants], at('2026-09-24T23:00:05+08:00'), at('2026-09-24T20:00:00+08:00'), settings);
     const byTitle = Object.fromEntries(plan.deliver.map((entry) => [entry.item.title, entry]));

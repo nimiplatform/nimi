@@ -60,3 +60,14 @@
     margin-left: auto;
   }
 }
+.nd-item-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.nd-item-search > :first-child {
+  flex: 1;
+  min-width: 0;
+}

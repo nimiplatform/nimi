@@ -7,6 +7,7 @@ import { Card, Chip, PageHead } from './common.js';
 import { IntegrationReferencePanel } from './integration-reference-panel.js';
 import { CalendarCheck2, Plus, ShieldCheck } from 'lucide-react';
 import { FollowUpComposer } from './followup-composer.js';
+import { useUi } from './ui-context.js';
 import { FollowUpConnectionActions } from './followup-connection-actions.js';
 import { affectedFollowUps, isFollowUpTarget } from '../followup/connection-state.js';
 import './followups-page.css';
@@ -67,6 +68,8 @@ const needsAttention = (item: FollowUp) => ['needs-input', 'interrupted', 'faile
 
 export function FollowUpsPage({ focusId }: { focusId?: string }) {
   const { copy } = useNimiDay(); const text = copy.followups;
+  const { followUpDraft } = useUi();
+  const hasDraft = Boolean(followUpDraft.current && [followUpDraft.current.content.title, followUpDraft.current.content.when, followUpDraft.current.content.goal].some(value => value.trim()));
   const [snapshot, setSnapshot] = useState<FollowUpSnapshot | null>(null);
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -135,7 +138,7 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
     .sort((a, b) => Number(needsAttention(b)) - Number(needsAttention(a)) || Number(active.has(b.state)) - Number(active.has(a.state)) || b.updatedAt.localeCompare(a.updatedAt));
   const openCreate = () => { setCreating(true); setNotice(''); };
   return <div className="nd-page nd-followups-page" data-testid="nd-followups">
-    <PageHead title={creating ? text.create : text.title} sub={creating ? text.createIntro : text.intro} action={!creating ? <Button ref={createButton} tone="primary" onClick={openCreate}><Plus size={17} aria-hidden="true" />{text.newArrangement}</Button> : undefined} />
+    <PageHead title={creating ? text.create : text.title} sub={creating ? text.createIntro : text.intro} action={!creating ? <Button ref={createButton} tone="primary" onClick={openCreate}><Plus size={17} aria-hidden="true" />{hasDraft ? text.resumeDraft : text.newArrangement}</Button> : undefined} />
     {error || loadError || snapshot?.error ? <InlineAlert tone="warning">{error || loadError || snapshot?.error}</InlineAlert> : null}
     {notice && <div role="status" className="nd-followup-success"><ShieldCheck size={18} aria-hidden="true" />{notice}</div>}
     {!creating && affected.length > 0 && <div className="nd-followup-connection-warning" role="status">
@@ -156,7 +159,7 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
           <div className="nd-followup-empty-icon"><CalendarCheck2 size={30} strokeWidth={1.5} aria-hidden="true" /></div>
           <h2>{text.emptyTitle}</h2><p>{text.emptyBody}</p>
           <ol className="nd-followup-how">{text.howItWorks.map((item, index) => <li key={item.title}><span>{index + 1}</span><strong>{item.title}</strong><p>{item.body}</p></li>)}</ol>
-          <Button tone="primary" onClick={openCreate}><Plus size={16} aria-hidden="true" />{text.firstArrangement}</Button>
+          <Button tone="primary" onClick={openCreate}><Plus size={16} aria-hidden="true" />{hasDraft ? text.resumeDraft : text.firstArrangement}</Button>
           <p className="nd-faint">{text.preSendHint}</p>
           {(missingAccount || missingAgent) && setupHint}
         </Card>

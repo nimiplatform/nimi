@@ -68,7 +68,7 @@ export function SourceRow({ change, showCircle = true, presentation = 'default',
         {change.summary ? <div className="nd-faint" style={{ marginTop: 2 }}>{change.summary}</div> : null}
         <div className="nd-row-meta">
           {!associationInGroup ? <span>{change.appName}</span> : null}
-          {change.child && !associationInGroup ? <span>{change.child.childName}</span> : null}
+          {change.child && !associationInGroup && (presentation !== 'care' || !change.circleId) ? <span>{change.child.childName}</span> : null}
           {change.appId === PARENTOS_APP_ID && !change.circleId && !associationInGroup ? <Chip tone="warning">{copy.sources.unassociated}</Chip> : null}
           <Chip tone={natureTone}>{copy.kinds.nature[change.nature]}</Chip>
           {circle ? <Chip tone="accent">{circle.name}</Chip> : null}

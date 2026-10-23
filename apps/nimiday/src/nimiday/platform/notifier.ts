@@ -3,6 +3,7 @@
 // decided by the caller; this module only delivers.
 
 import { nimiToast } from '@nimiplatform/kit/ui';
+import notificationIcon from '../../../assets/app-icon.png';
 
 export type SystemPermission = 'granted' | 'denied' | 'default' | 'unsupported';
 export type SystemDeliveryStatus = 'submitted' | 'shown' | 'failed' | 'unavailable' | 'unconfirmed';
@@ -51,7 +52,7 @@ export function deliver(delivery: Delivery): { readonly system: boolean } {
   }
   try {
     shown.get(delivery.tag)?.close();
-    const notification = new Notification(delivery.title, { body: delivery.body, tag: delivery.tag });
+    const notification = new Notification(delivery.title, { body: delivery.body, tag: delivery.tag, icon: notificationIcon });
     // Windows can suppress a notification without changing the browser's
     // permission or emitting show/error. Do not leave a test waiting forever.
     const feedbackTimer = delivery.onSystemStatus
