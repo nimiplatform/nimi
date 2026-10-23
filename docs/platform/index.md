@@ -37,8 +37,7 @@ See [Platform Protocol](/platform/protocol) and [Execution Protocol](/platform/e
 
 The current core loop spans Realm, Runtime, SDK, Nimi Home, and independent Apps. Generalized workflow orchestration (Workflow), external protocol bridges (MCP), autonomous world evolution, public app marketplaces, and commercial settlement are not prerequisites for running the core system. Future capabilities will integrate within their own bounded domains.
 
-> [!NOTE]
-> The legacy Simulator has been archived and is no longer used for app development or verification. For current instructions, see [Create an App](/start/create-an-app).
+Use Desktop-supervised Electron for App development and verification. See [Create an App](/start/create-an-app).
 
 ## Source Basis
 

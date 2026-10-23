@@ -1,6 +1,3 @@
-import {
-  isNimiRuntimeAgentCanceledError,
-} from '@nimiplatform/sdk/runtime';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
@@ -24,10 +21,6 @@ import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentUserProjectionAttachment } from './chat-agent-user-projection';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
-
-export function isTypedSubmitCancellationError(error: unknown): boolean {
-  return isNimiRuntimeAgentCanceledError(error);
-}
 
 async function openConversationAnchorForTarget(
   sdk: DesktopRendererSdkPort,

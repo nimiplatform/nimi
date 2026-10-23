@@ -30,25 +30,27 @@ import type {
   DesktopCanonicalRendererBindings,
   DesktopRendererRouteView,
 } from '../src/shell/renderer/renderer/contract.js';
-import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
+
 import {
-  createMemoryDesktopRendererSettingsPort,
-} from '../src/shell/renderer/renderer/settings-port.js';
+  createTestDesktopRendererAuthPort,
+  createTestDesktopRendererSettingsPort,
+  createUnavailableDesktopFirstRunPort,
+  createUnavailableDesktopRendererOfflinePort,
+  createUnavailableDesktopRendererWorldFollowPort,
+  createUnavailableDesktopRendererSupportRepairPort,
+  createUnavailableDesktopRendererSystemResourcesPort,
+  createUnavailableDesktopRendererVoiceCapturePort,
+  createUnavailableDesktopRendererSupportLogsPort,
+  createMemoryDesktopRendererLocalModelProgressPort,
+  createUnavailableDesktopRendererAvatarHandoffPort,
+  createDeterministicDesktopVirtualizationPort,
+} from './helpers/desktop-renderer-ports.js';
 import type { AppearancePreferences } from '../src/shell/renderer/features/settings/settings-device-preferences.js';
 import { createTestStreamController } from './helpers/test-stream-controller.js';
 import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
-import { createUnavailableDesktopRendererAuthPort } from '../src/shell/renderer/renderer/auth-port.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
 import { createHomeNavigation, type HomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
-import { createUnavailableDesktopRendererOfflinePort } from '../src/shell/renderer/renderer/offline-port.js';
-import { createUnavailableDesktopRendererWorldFollowPort } from '../src/shell/renderer/renderer/world-follow-port.js';
-import { createUnavailableDesktopRendererSupportRepairPort } from '../src/shell/renderer/renderer/support-repair-port.js';
-import { createUnavailableDesktopRendererSystemResourcesPort } from '../src/shell/renderer/renderer/system-resources-port.js';
-import { createUnavailableDesktopRendererVoiceCapturePort } from '../src/shell/renderer/renderer/voice-capture-port.js';
-import { createUnavailableDesktopRendererSupportLogsPort } from '../src/shell/renderer/renderer/support-logs-port.js';
-import { createMemoryDesktopRendererLocalModelProgressPort } from '../src/shell/renderer/renderer/local-model-progress-port.js';
-import { createUnavailableDesktopRendererAvatarHandoffPort } from '../src/shell/renderer/renderer/avatar-handoff-port.js';
-import { createDeterministicDesktopVirtualizationPort } from '../src/shell/renderer/renderer/virtualization-port.js';
+
 import { createWorldFollowStore } from '../src/shell/renderer/features/world/world-follow-store.js';
 import { createAgentVisibleProjectionStore } from '../src/shell/renderer/features/chat/chat-agent-visible-projection-store.js';
 import { createChatUploadPlaceholderStore } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
@@ -340,8 +342,8 @@ function createCanonicalBindings(input: {
         windowFocused: () => true,
         titlebarDragEnabled: () => false,
         menuBarShellEnabled: () => false,
-        resourceBaseUrl: () => 'https://simulator.invalid/',
-        walletCheckoutBaseUrl: () => 'https://simulator.invalid/',
+        resourceBaseUrl: () => 'https://renderer-test.invalid/',
+        walletCheckoutBaseUrl: () => 'https://renderer-test.invalid/',
       }),
       commands: Object.freeze({
         productUpdate: Object.freeze({
@@ -352,13 +354,13 @@ function createCanonicalBindings(input: {
           async check() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
           async cancel() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
         }),
-        auth: createUnavailableDesktopRendererAuthPort(),
+        auth: createTestDesktopRendererAuthPort(),
         firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
         runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(() => {
           if (!lifecycleNavigation) throw new Error('Test lifecycle is not connected.');
           return lifecycleNavigation;
         }),
-        settings: createMemoryDesktopRendererSettingsPort(),
+        settings: createTestDesktopRendererSettingsPort(),
         worldFollow: createUnavailableDesktopRendererWorldFollowPort('TEST_WORLD_FOLLOW_UNAVAILABLE'),
         supportRepair: createUnavailableDesktopRendererSupportRepairPort('TEST_SUPPORT_REPAIR_UNAVAILABLE'),
         supportLogs: createUnavailableDesktopRendererSupportLogsPort('TEST_SUPPORT_LOGS_UNAVAILABLE'),
@@ -478,8 +480,8 @@ test('canonical Desktop resources are fresh for every factory invocation', async
 });
 
 test('renderer settings ports isolate selection, subscriptions, and preferences per instance', () => {
-  const first = createMemoryDesktopRendererSettingsPort();
-  const second = createMemoryDesktopRendererSettingsPort();
+  const first = createTestDesktopRendererSettingsPort();
+  const second = createTestDesktopRendererSettingsPort();
   const firstPreferences: AppearancePreferences = {
     theme: 'dark',
     reduceMotion: true,

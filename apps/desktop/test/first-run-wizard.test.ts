@@ -1,3 +1,4 @@
+import { createUnavailableDesktopFirstRunPort } from './helpers/desktop-renderer-ports.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
@@ -13,7 +14,6 @@ import {
   type NimiProductControlState,
 } from '@nimiplatform/sdk/runtime';
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
-import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
 
 const TEST_FIRST_RUN = createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED');
 

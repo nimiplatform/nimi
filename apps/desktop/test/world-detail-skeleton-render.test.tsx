@@ -21,7 +21,6 @@ import {
   type WorldDetailPageProps,
 } from '../src/shell/renderer/features/world/world-detail-template';
 import {
-  WorldLoreLibrarySkeleton,
   WorldRelationshipExplorerSkeleton,
 } from '../src/shell/renderer/features/world/world-detail-skeletons';
 import { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view';
@@ -67,14 +66,10 @@ test('world detail loading state export renders the same skeleton surface', () =
   assert.match(markup, /data-testid="world-detail-page-skeleton"/);
 });
 
-test('world detail subpage skeletons render pulse placeholder structures', () => {
+test('world relationship explorer skeleton renders pulse placeholder structures', () => {
   const relationship = renderToStaticMarkup(<WorldRelationshipExplorerSkeleton />);
   assert.match(relationship, /data-testid="world-relationship-explorer-skeleton"/);
   assert.match(relationship, /animate-pulse/);
-
-  const lore = renderToStaticMarkup(<WorldLoreLibrarySkeleton />);
-  assert.match(lore, /data-testid="world-detail-lore-library-skeleton"/);
-  assert.match(lore, /animate-pulse/);
 });
 
 test('source detail view renders the dossier skeleton while loading', () => {

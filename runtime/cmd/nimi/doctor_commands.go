@@ -51,9 +51,6 @@ func runRuntimeDoctor(args []string) error {
 	case publicDaemonHealthStopped:
 		itemStatus = "warn"
 		nextStep = "nimi start"
-	case publicDaemonHealthUnreachable:
-		itemStatus = "warn"
-		nextStep = "nimi logs -f"
 	}
 	items = append(items, doctorItem{Name: "daemon", Value: publicHealth.Process, Status: itemStatus, Detail: detail})
 

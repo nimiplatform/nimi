@@ -97,10 +97,9 @@ Runtime methods through the verified native transport.
 
 CLI runtime management semantics:
 - `serve`: production daemon entry point for the admitted platform service launcher
-- `start`: admitted background/service start, otherwise bounded unsupported failure
-- `status`: process status + reachability summary
-- `health`: sanitized daemon process or protected-service health summary
-- `logs`: managed background log tail
+- `start` / `stop`: control the installed Windows fixed service; other OS builds return an unsupported failure. There is no `stop --force` option.
+- `status` / `health`: sanitized service-controller state (`service-running` or `stopped`), without probing protected RPC or AI readiness
+- `logs`: currently returns `protected Runtime service logs are unavailable`. Source-development logs appear in the terminal running `pnpm dev:runtime`.
 
 Health endpoints:
 - `GET /livez`

@@ -41,19 +41,3 @@ export interface DesktopRendererSupportRepairPort {
   planAppHostCacheCleanup(): Promise<NimiAppHostCachePlan>;
   executeAppHostCacheCleanup(): Promise<NimiAppHostCacheOutcome>;
 }
-
-export function createUnavailableDesktopRendererSupportRepairPort(
-  reason = 'DESKTOP_RENDERER_SUPPORT_REPAIR_UNAVAILABLE',
-): DesktopRendererSupportRepairPort {
-  const unavailable = async (): Promise<never> => {
-    throw new Error(reason);
-  };
-  return Object.freeze({
-    loadProductControlRecord: unavailable,
-    loadStorageDirs: unavailable,
-    planDataCleanup: unavailable,
-    executeDataCleanup: unavailable,
-    planAppHostCacheCleanup: unavailable,
-    executeAppHostCacheCleanup: unavailable,
-  });
-}

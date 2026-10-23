@@ -31,16 +31,12 @@ func TestReadAllBoundedRejectsOversizePayload(t *testing.T) {
 
 func TestProjectPublicDaemonHealthRedactsPrivateDetail(t *testing.T) {
 	projection := projectPublicDaemonHealth(daemonctl.Status{
-		Mode:            daemonctl.ModeBackground,
-		Process:         "running",
-		GRPCAddr:        "127.0.0.1:46371",
-		ConfigPath:      `C:\private\runtime.json`,
-		HealthReachable: true,
-		HealthSummary:   "RUNTIME_HEALTH_STATUS_DEGRADED (engine:llama stderr: private detail)",
-		HealthError:     "dial private endpoint failed",
-		Version:         "0.5.0",
+		Mode:          daemonctl.ModeProtectedService,
+		Process:       "running",
+		HealthSummary: "RUNTIME_HEALTH_STATUS_DEGRADED (engine:llama stderr: private detail)",
+		Version:       "0.5.0",
 	})
-	if projection.Health != publicDaemonHealthReachable {
+	if projection.Health != publicDaemonHealthServiceRunning {
 		t.Fatalf("public health mismatch: %#v", projection)
 	}
 	serialized := strings.Join([]string{projection.Mode, projection.Process, projection.Health, projection.Version}, "|")
@@ -50,7 +46,7 @@ func TestProjectPublicDaemonHealthRedactsPrivateDetail(t *testing.T) {
 		}
 	}
 
-	protected := projectPublicDaemonHealth(daemonctl.Status{Mode: daemonctl.ModeProtectedService, Process: "running", HealthReachable: true})
+	protected := projectPublicDaemonHealth(daemonctl.Status{Mode: daemonctl.ModeProtectedService, Process: "running"})
 	if protected.Health != publicDaemonHealthServiceRunning {
 		t.Fatalf("protected service health mismatch: %#v", protected)
 	}
@@ -60,10 +56,9 @@ func TestRunRuntimeHealthUsesDaemonManagerProjection(t *testing.T) {
 	previousFactory := daemonManagerFactory
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{status: daemonctl.Status{
-			Mode:            daemonctl.ModeBackground,
-			Process:         "running",
-			HealthReachable: true,
-			HealthSummary:   "engine:qwen unhealthy (stderr: private detail)",
+			Mode:          daemonctl.ModeProtectedService,
+			Process:       "running",
+			HealthSummary: "engine:qwen unhealthy (stderr: private detail)",
 		}}
 	}
 	defer func() { daemonManagerFactory = previousFactory }()
@@ -72,7 +67,7 @@ func TestRunRuntimeHealthUsesDaemonManagerProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runRuntimeHealth: %v", err)
 	}
-	if !strings.Contains(output, `"health": "reachable"`) {
+	if !strings.Contains(output, `"health": "service-running"`) {
 		t.Fatalf("missing sanitized health: %s", output)
 	}
 	for _, privateDetail := range []string{"engine:qwen", "stderr", "private detail", "healthSummary"} {

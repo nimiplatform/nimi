@@ -21,10 +21,6 @@ import { JSDOM } from 'jsdom';
 import { worldReadingEntries, worldReadingProseBlocks } from '../src/shell/renderer/features/world/world-detail-reading-model';
 import { worldTimeDisplay } from '../src/shell/renderer/features/world/world-detail-paper-model';
 import { derivedScenes } from '../src/shell/renderer/features/world/world-detail-template-model';
-import {
-  WorldLoreLibraryPage,
-  buildWorldLoreEntries,
-} from '../src/shell/renderer/features/world/world-detail-lore-library';
 import { WorldRelationshipExplorer } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
 import {
   WorldDetailPage,
@@ -277,63 +273,33 @@ test('derived scenes never place characters from tag or topic text', () => {
   assert.equal(scenes[0]?.counts.relatedCharacterCount, 0);
 });
 
+test('world reader groups explicit rules, systems, and languages in source order', () => {
+  const entries = worldReadingEntries(world, semantic, emptyHistory).filter((entry) => entry.section !== 'description');
 
-
-test('semantic lore library derives grouped entries from world semantic data', () => {
-  const entries = buildWorldLoreEntries(semantic);
-
-  assert.deepEqual(entries.map((entry) => entry.kind), ['rule', 'system', 'language']);
+  assert.deepEqual(entries.map((entry) => entry.section), ['rules', 'systems', 'languages']);
   assert.equal(entries[0]?.title, '书院讲学');
-  assert.equal(entries[0]?.body, '以书院为核心组织讲学与交游。');
+  assert.deepEqual(entries[0]?.body, ['以书院为核心组织讲学与交游。']);
   assert.equal(entries[1]?.title, '文人交游体系');
-  assert.equal((entries[1] as { subtitle?: string } | undefined)?.subtitle, '人物之间通过书信、拜访、诗文唱和形成关系网络。');
-  assert.equal(entries[1]?.body, '交游关系必须来自公开资料。');
-  assert.deepEqual(entries[1]?.details, []);
-  assert.equal(entries[2]?.title, '古典汉语');
+  assert.deepEqual(entries[1]?.body, ['人物之间通过书信、拜访、诗文唱和形成关系网络。', '交游关系必须来自公开资料。']);
+  assert.deepEqual(entries[2]?.text, ['古典汉语']);
 });
 
-test('semantic lore overview derives reusable card fields from world systems', () => {
-  const entries = buildWorldLoreEntries(institutionSemantic);
+test('world reader preserves system descriptions, rules, and explicit level labels', () => {
+  const entries = worldReadingEntries(world, institutionSemantic, emptyHistory).filter((entry) => entry.section === 'systems');
 
-  assert.deepEqual(entries.map((entry) => entry.kind), ['system', 'system']);
+  assert.equal(entries.length, 2);
   assert.equal(entries[0]?.title, '官制结构');
-  assert.equal((entries[0] as { subtitle?: string } | undefined)?.subtitle, '中央与地方官职体系');
-  assert.equal(entries[0]?.body, '涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。');
-  assert.deepEqual((entries[0] as { keywords?: readonly string[] } | undefined)?.keywords, ['官职', '仕宦', '地方治理']);
+  assert.deepEqual(entries[0]?.body, [
+    '中央与地方官职体系',
+    '涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。',
+    '官职', '仕宦', '地方治理',
+  ]);
   assert.equal(entries[1]?.title, '入仕制度');
-  assert.equal((entries[1] as { subtitle?: string } | undefined)?.subtitle, '士人如何进入官场');
-  assert.equal(entries[1]?.body, '记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。');
-  assert.deepEqual((entries[1] as { keywords?: readonly string[] } | undefined)?.keywords, ['科举', '荐举', '荫补']);
-});
-
-
-
-
-test('world lore library page renders semantic groups as browseable records', async () => {
-  await changeLocale('zh');
-  try {
-    const markup = renderToStaticMarkup(
-      React.createElement(WorldLoreLibraryPage, {
-        world,
-        semantic,
-        onBack: () => {},
-      }),
-    );
-
-    assert.match(markup, /data-testid="world-detail-lore-library-page"/);
-    assert.match(markup, /世界设定集/);
-    assert.match(markup, /运行规则/);
-    assert.match(markup, /制度与体系/);
-    assert.match(markup, /语言与表达/);
-    assert.match(markup, /书院讲学/);
-    assert.match(markup, /以书院为核心组织讲学与交游。/);
-    assert.match(markup, /文人交游体系/);
-    assert.match(markup, /交游关系必须来自公开资料。/);
-    assert.match(markup, /古典汉语/);
-    assert.doesNotMatch(markup, /WorldDetail\.paper\.loreLibrary/);
-  } finally {
-    await changeLocale('en');
-  }
+  assert.deepEqual(entries[1]?.body, [
+    '士人如何进入官场',
+    '记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。',
+    '科举', '荐举', '荫补',
+  ]);
 });
 
 test('world relationship explorer lists people without inventing relationships from topic text', async () => {

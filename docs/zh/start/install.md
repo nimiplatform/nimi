@@ -14,7 +14,7 @@
 - **pnpm**：推荐使用 pnpm 10.34.7（或兼容的 pnpm 10.x 版本）。
 - **C/C++ 构建工具**（可选）：若需从源码编译 Kit 的可选原生扩展，macOS 请安装 Xcode Command Line Tools，Windows 请安装 Visual Studio C++ 生成工具。
 
-脚手架生成的 App 工程已内置项目级 Nimi Coding（0.6.5），执行 `pnpm install && pnpm run init` 即可自动完成初始化，无需全局安装。
+脚手架生成的 App 工程内置项目级 Nimi Coding，其版本由所选 App Tools 包锁定；当前源码脚手架锁定为 0.7.0。执行 `pnpm install && pnpm run init` 即可完成初始化，无需全局安装。
 
 ---
 
@@ -26,7 +26,7 @@ Nimi 核心模块之间通过明确的契约协同工作。当前源码脚手架
 | :--- | :--- | :--- |
 | `@nimiplatform/sdk` | `^0.21.0` | 客户端核心 API、AI 推理与宿主会话绑定 |
 | `@nimiplatform/kit` | `^0.21.0` | 跨平台 UI 组件库、窗口桥接与主题契约 |
-| `@nimiplatform/app-tools` | `^0.13.0` | 项目脚手架与构建打包工具 |
+| `@nimiplatform/app-tools` | `^0.13.1` | 项目脚手架与构建打包工具 |
 | `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | （可选）Vercel AI SDK 7 适配器 |
 
 > [!NOTE] 本地归档与覆盖

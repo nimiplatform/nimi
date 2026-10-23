@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-func onboardingRuntimeUnavailableHint() string {
-	return "Run 'nimi start' for background mode, or 'nimi serve' in another terminal."
-}
-
 func fileExists(path string) bool {
 	if strings.TrimSpace(path) == "" {
 		return false

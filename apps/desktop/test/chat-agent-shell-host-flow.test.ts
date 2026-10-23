@@ -13,7 +13,6 @@ import {
 import {
   overlayAgentAssistantVisibleState,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-bundle.js';
-import { resolveAgentProjectionRefreshOutcome } from '../src/shell/renderer/features/chat/chat-agent-shell-projection-refresh.js';
 import {
   resolveCompletedAgentSubmitHostFlow,
   resolveInterruptedAgentSubmitHostFlow,
@@ -134,14 +133,8 @@ test('agent host flow preserves authoritative assistant content across first-bea
   });
   assert.equal(firstBeatBundle.messages.at(-1)?.contentText, 'sealed first beat');
 
-  const refreshOutcome = resolveAgentProjectionRefreshOutcome({
-    terminal: 'running',
-    refreshedBundle: authoritativeBundle(),
-  });
-  assert.ok(refreshOutcome);
-
   const staleDeltaBundle = overlayAgentAssistantVisibleState({
-    bundle: refreshOutcome?.bundle,
+    bundle: authoritativeBundle(),
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
     assistantPlaceholder: assistantPlaceholder(),

@@ -1,6 +1,6 @@
-version: 8
+version: 9
 id: nimicoding.authority-authoring
-purpose: Author explicit authority and navigate current implementation without inference.
+purpose: Author authority and navigate code.
 authority_boundary:
   canonical_root: .nimi/spec
   sources: ["*.authority.yaml", "*.authority.md"]
@@ -15,7 +15,7 @@ cli_execution:
 
 daily_workflow:
   - For needed authority selection without an ID, use pnpm exec nimicoding authority discover <path> <query> --max-candidates 10 --max-snippet-terms 24 --max-bytes 131072 --json. Candidates never prove selection or absence.
-  - Select IDs only from task/product authority. pnpm exec nimicoding authority query <path> <id> --max-bytes <n> --json returns one unit; pnpm exec nimicoding authority context <path> <id> --max-units <n> --max-bytes <n> --json returns its outgoing applies_to/supersedes closure, not task context.
+  - Select task/product-authorized IDs. pnpm exec nimicoding authority query <path> <id> --max-bytes <n> --json returns one unit; pnpm exec nimicoding authority context <path> <id> --max-units <n> --max-bytes <n> --json returns outgoing applies_to/supersedes, not task context.
   - Modify only project authority; never infer product values or relations.
   - Run pnpm exec nimicoding authority fmt <changed-file> for each changed file.
   - Run pnpm exec nimicoding authority check <complete-path> [--scope-bindings <file>] --json, then pnpm exec nimicoding authority compile <complete-path> --json. For anchors run pnpm exec nimicoding authority anchors <repo> --spec <corpus> [--scope-bindings <file>] --max-units <n> --max-anchors <n> --max-bytes <n> --json.
@@ -45,20 +45,20 @@ source_profiles:
   yaml:
     shape: "Closed nimicoding.authority/v2 mapping with optional owner/scope defaults and units."
     defaults: owner/rule scope inherit; unit values override; definitions have no scope.
-    omissions: active lifecycle and empty relations may be omitted; removed reason stays explicit.
+    omissions: active lifecycle and empty relations are optional; removed reason is required.
     format: nimicoding.authority/v2_only_without_legacy_migration_or_history_input
   markdown:
-    shape: One unit per file; front matter carries fields and relations.
+    shape: One unit per file with front matter.
     title: One plain H1.
     sections:
       active_definition: [Meaning]
       active_rule: [Statement, Condition, Failure]
       removed_unit: [Removal reason]
-    boundary: One plain-text line per section; no free prose or unknown structures.
+    boundary: One plain-text line per section; no extra content.
   shared_text_rule: Text is non-empty trimmed single-line Unicode.
 
 common_fields:
-  id: Stable lower-case dot identity; never reuse a removed ID.
+  id: Lower-case dotted ID. Across snapshots, retained IDs keep kind and cannot reactivate from removed; IDs absent before are additions.
   owner: Accountable lower-case dotted identity.
 
 unit_shapes:
@@ -77,7 +77,7 @@ unit_shapes:
   removed_tombstone:
     required: [id, kind, lifecycle, title, reason]
     fixed: {lifecycle: removed}
-    boundary: Preserve identity/kind; reason is rationale, not replacement content.
+    boundary: Optional identity/lineage record. Keep kind; reason explains removal.
     forbidden: [meaning, modality, scope, statement, condition, failure]
 
 relation_rules:
@@ -91,30 +91,31 @@ formatter_and_diagnostics:
   - check/compile use complete paths and emit no public/partial AuthorityIR.
 
 change_workflow:
-  diff: pnpm exec nimicoding authority diff <before-path> <after-path> --max-bytes <positive-integer> --json
-  candidates: pnpm exec nimicoding authority change-candidates <before-path> <after-path> --channels <comma-separated-closed-set> --max-candidates <positive-safe-integer> --max-reasons <positive-safe-integer> --max-bytes <positive-safe-integer> --json
-  impact: pnpm exec nimicoding authority impact <before-path> <after-path> --max-bytes <positive-integer> --json
+  diff: pnpm exec nimicoding authority diff <before> <after> --max-bytes <n> --json
+  candidates: pnpm exec nimicoding authority change-candidates <before> <after> --channels <channels> --max-candidates <n> --max-reasons <n> --max-bytes <n> --json
+  impact: pnpm exec nimicoding authority impact <before> <after> --max-bytes <n> --json
   boundaries:
-    - Diff compares complete canonical inputs; formatting, profile, file, and order-only changes are semantic zero.
+    - Complete-input diff treats formatting, profiles, files, and order as non-semantic.
+    - Delete active/removed units and repair incoming references. Delete empty files; keep a valid non-empty corpus.
+    - unit_removed returns the before unit/location; impact keeps old dependencies and active-rule consumer/test targets.
+    - Tombstones are optional; Git keeps history. No all-history ID guarantee or registry.
     - Candidates cover only requested exact channels, never semantic judgment.
-    - Impact reports declared reverse-relation consumers and one test target per impacted active rule.
     - Diff/impact budget failure returns no partial result.
     - Impact accepts no disposition, receipt, external result, test outcome, or completion state; workflow stays host-owned.
 
 canonical_examples:
   complete_yaml_lifecycle: |
     format: nimicoding.authority/v2
+    owner: team.identity
     scope: api.checkout
     units:
       - id: definition.session-v0
         kind: definition
-        owner: team.identity
         lifecycle: removed
         title: Old session
         reason: Replaced by definition.session.
       - id: definition.session
         kind: definition
-        owner: team.identity
         title: Session
         meaning: A server-issued request identity.
         relations:

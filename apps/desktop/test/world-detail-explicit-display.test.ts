@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { initI18n } from '../src/shell/renderer/i18n';
-import { buildWorldLoreEntries } from '../src/shell/renderer/features/world/world-detail-lore-library';
+import { worldReadingEntries } from '../src/shell/renderer/features/world/world-detail-reading-model';
 import { WorldRelationshipExplorer } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
 import { WorldCover } from '../src/shell/renderer/features/world/world-list-cover';
 import { WORLD_NEUTRAL_COVER_BACKGROUND } from '../src/shell/renderer/features/world/world-list-theme';
@@ -129,7 +129,7 @@ test('world covers keep an explicit banner image', () => {
   assert.match(markup, /https:\/\/cdn\.example\.test\/troupe\.png/);
 });
 
-test('lore systems keep the neutral system icon instead of keyword-guessed institution or pathway icons', () => {
+test('world reader groups systems by their explicit section without guessing from names', () => {
   const semantic: WorldSemanticData = {
     operationTitle: null,
     operationDescription: null,
@@ -149,16 +149,10 @@ test('lore systems keep the neutral system icon instead of keyword-guessed insti
     hasContent: true,
   };
 
-  const entries = buildWorldLoreEntries(semantic);
+  const entries = worldReadingEntries(spaceWorld, semantic, { items: [], summary: null })
+    .filter((entry) => entry.section !== 'description');
 
-  assert.deepEqual(entries.map((entry) => [entry.kind, entry.icon]), [
-    ['rule', 'rule'],
-    ['system', 'system'],
-    ['system', 'system'],
-    ['system', 'system'],
-    ['taboo', 'taboo'],
-    ['language', 'language'],
-  ]);
+  assert.deepEqual(entries.map((entry) => entry.section), ['rules', 'systems', 'systems', 'systems', 'taboos', 'languages']);
   assert.deepEqual(entries.map((entry) => entry.title), [
     'Docking rule',
     '官制结构',

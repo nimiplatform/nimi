@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"strings"
@@ -26,7 +25,7 @@ func (s stubDaemonManager) Start(_ time.Duration) (daemonctl.StartResult, error)
 	return s.startResult, s.startErr
 }
 
-func (s stubDaemonManager) Stop(_ time.Duration, _ bool) (daemonctl.StopResult, error) {
+func (s stubDaemonManager) Stop(_ time.Duration) (daemonctl.StopResult, error) {
 	return s.stopResult, s.stopErr
 }
 
@@ -38,17 +37,51 @@ func (s stubDaemonManager) PrintLogs(_ context.Context, _ io.Writer, _ int, _ bo
 	return s.logsErr
 }
 
+func TestRunRuntimeStopRejectsForceBeforeControllerAccess(t *testing.T) {
+	previousFactory := daemonManagerFactory
+	daemonManagerFactory = func() daemonManager {
+		t.Fatal("removed --force must be rejected before accessing the service controller")
+		return stubDaemonManager{}
+	}
+	t.Cleanup(func() { daemonManagerFactory = previousFactory })
+	if err := runRuntimeStop([]string{"--force"}); err == nil || !strings.Contains(err.Error(), "flag provided but not defined") {
+		t.Fatalf("expected unknown flag error, got %v", err)
+	}
+}
+
+func TestRunRuntimeLogsRetainsGrammarAndReportsUnavailable(t *testing.T) {
+	for _, args := range [][]string{nil, {"--tail", "1"}, {"-n", "1", "-f"}, {"--follow"}} {
+		output, err := captureStdoutFromRun(func() error { return runRuntimeLogs(args) })
+		if err == nil || err.Error() != "protected Runtime service logs are unavailable" || output != "" {
+			t.Fatalf("logs %v: output=%q, error=%v", args, output, err)
+		}
+	}
+}
+
+func TestRuntimeDiagnosticsPropagateControllerFailure(t *testing.T) {
+	failure := errors.New("controller unavailable")
+	previousFactory := daemonManagerFactory
+	daemonManagerFactory = func() daemonManager { return stubDaemonManager{statusErr: failure} }
+	t.Cleanup(func() { daemonManagerFactory = previousFactory })
+	for _, run := range []func([]string) error{runRuntimeStatus, runRuntimeHealth, runRuntimeDoctor} {
+		for _, args := range [][]string{nil, {"--json"}} {
+			output, err := captureStdoutFromRun(func() error { return run(args) })
+			if !errors.Is(err, failure) || output != "" {
+				t.Fatalf("diagnostic must fail without a success projection: output=%q, error=%v", output, err)
+			}
+		}
+	}
+}
+
 func TestRunRuntimeStatusPrintsProcessStatus(t *testing.T) {
 	previousFactory := daemonManagerFactory
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{
 			status: daemonctl.Status{
-				Mode:            daemonctl.ModeExternal,
-				Process:         "running",
-				PID:             123,
-				GRPCAddr:        "127.0.0.1:46371",
-				HealthSummary:   "RUNTIME_HEALTH_STATUS_READY",
-				HealthReachable: true,
+				Mode:          daemonctl.ModeProtectedService,
+				Process:       "running",
+				PID:           123,
+				HealthSummary: "RUNTIME_HEALTH_STATUS_READY",
 			},
 		}
 	}
@@ -62,7 +95,7 @@ func TestRunRuntimeStatusPrintsProcessStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runRuntimeStatus: %v", err)
 	}
-	if !strings.Contains(output, "Nimi Runtime") || !strings.Contains(output, "process:") || !strings.Contains(output, "running") || !strings.Contains(output, "mode:") || !strings.Contains(output, "external") {
+	if !strings.Contains(output, "Nimi Runtime") || !strings.Contains(output, "process:") || !strings.Contains(output, "running") || !strings.Contains(output, "mode:") || !strings.Contains(output, "protected-service") {
 		t.Fatalf("unexpected status output: %q", output)
 	}
 }
@@ -72,9 +105,8 @@ func TestRunRuntimeStatusStoppedPrintsNextStep(t *testing.T) {
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{
 			status: daemonctl.Status{
-				Mode:     daemonctl.ModeStopped,
-				Process:  "stopped",
-				GRPCAddr: "127.0.0.1:46371",
+				Mode:    daemonctl.ModeStopped,
+				Process: "stopped",
 			},
 		}
 	}
@@ -102,9 +134,8 @@ func TestRunRuntimeStatusReturnsStoppedExitCode(t *testing.T) {
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{
 			status: daemonctl.Status{
-				Mode:     daemonctl.ModeStopped,
-				Process:  "stopped",
-				GRPCAddr: "127.0.0.1:46371",
+				Mode:    daemonctl.ModeStopped,
+				Process: "stopped",
 			},
 		}
 	}
@@ -122,49 +153,6 @@ func TestRunRuntimeStatusReturnsStoppedExitCode(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeStatusReturnsUnreachableExitCode(t *testing.T) {
-	previousFactory := daemonManagerFactory
-	daemonManagerFactory = func() daemonManager {
-		return stubDaemonManager{
-			status: daemonctl.Status{
-				Mode:            daemonctl.ModeBackground,
-				Process:         "running",
-				PID:             124,
-				GRPCAddr:        "127.0.0.1:46371",
-				HealthSummary:   "unreachable",
-				HealthReachable: false,
-				HealthError:     "dial failed",
-			},
-		}
-	}
-	defer func() {
-		daemonManagerFactory = previousFactory
-	}()
-
-	output, err := captureStdoutFromRun(func() error {
-		return runRuntimeStatus([]string{"--json"})
-	})
-	var exitErr cliExitError
-	if !errors.As(err, &exitErr) {
-		t.Fatalf("expected cliExitError, got %v", err)
-	}
-	if exitErr.ExitCode() != 2 {
-		t.Fatalf("unexpected exit code: %d", exitErr.ExitCode())
-	}
-	var payload map[string]any
-	if unmarshalErr := json.Unmarshal([]byte(output), &payload); unmarshalErr != nil {
-		t.Fatalf("unmarshal status output: %v output=%q", unmarshalErr, output)
-	}
-	if got := asString(payload["health"]); got != publicDaemonHealthUnreachable {
-		t.Fatalf("status payload mismatch: %#v", payload)
-	}
-	for _, privateDetail := range []string{"healthError", "dial failed", "grpc", "config", "logPath"} {
-		if strings.Contains(output, privateDetail) {
-			t.Fatalf("status payload exposed private detail %q: %s", privateDetail, output)
-		}
-	}
-}
-
 func TestRunRuntimeHealthReturnsDaemonStatusExitCode(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -178,29 +166,10 @@ func TestRunRuntimeHealthReturnsDaemonStatusExitCode(t *testing.T) {
 			wantCode: 1,
 		},
 		{
-			name: "plain unreachable",
-			status: daemonctl.Status{
-				Mode:            daemonctl.ModeBackground,
-				Process:         "running",
-				HealthReachable: false,
-			},
-			wantCode: 2,
-		},
-		{
 			name:     "json stopped",
 			args:     []string{"--json"},
 			status:   daemonctl.Status{Mode: daemonctl.ModeStopped, Process: "stopped"},
 			wantCode: 1,
-		},
-		{
-			name: "json unreachable",
-			args: []string{"--json"},
-			status: daemonctl.Status{
-				Mode:            daemonctl.ModeBackground,
-				Process:         "running",
-				HealthReachable: false,
-			},
-			wantCode: 2,
 		},
 	}
 
@@ -270,9 +239,8 @@ func TestRunRuntimeDoctorProtectedServiceUsesSanitizedServiceState(t *testing.T)
 	daemonManagerFactory = func() daemonManager {
 		statusCalls++
 		return stubDaemonManager{status: daemonctl.Status{
-			Mode:            daemonctl.ModeProtectedService,
-			Process:         "running",
-			HealthReachable: true,
+			Mode:    daemonctl.ModeProtectedService,
+			Process: "running",
 		}}
 	}
 	defer func() {

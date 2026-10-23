@@ -984,7 +984,7 @@ units:
     kind: rule
     title: P-KIT-042 host-neutral renderer shell
     modality: must
-    statement: Renderer shell provides host-neutral commands, bridges, bootstrap hooks, and a provider-scoped seam for capabilities, localization, opaque identity, targets, theme, lifecycle, overlays, and result mapping; concrete hosts allocate resources; Kit exposes no host discriminator, credentials, Runtime transport, simulator authority, raw identity, app store, navigation, UI, readiness, auth, or telemetry truth; bridges source standard commands and failures, parse required defaults without empty normalization, fail closed without a host, and exclude raw host APIs, local-file fallbacks, consumer UI, and shared-core app duplicates.
+    statement: Renderer shell provides host-neutral commands, bridges, bootstrap hooks, and a provider-scoped seam for capabilities, localization, opaque identity, targets, theme, lifecycle, overlays, and result mapping; concrete hosts allocate resources; Kit exposes no host discriminator, credentials, Runtime transport, raw identity, app store, navigation, UI, readiness, auth, or telemetry truth; bridges source standard commands and failures, parse required defaults without empty normalization, fail closed without a host, and exclude raw host APIs, local-file fallbacks, consumer UI, and shared-core app duplicates.
     condition: Whenever renderer shell glue initializes or dispatches.
     failure: Reject foreign ownership, host discrimination, forked parsing, silent fallback, raw host access, consumer UI, or app-specific shared logic.
     relations:

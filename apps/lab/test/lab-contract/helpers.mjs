@@ -45,7 +45,6 @@ function buildBehaviorModules() {
     'src/lab/app-access/app-access-catalog.ts',
     'src/lab/app-access/app-access-probes.ts',
     'src/lab/app-access/app-access-state.ts',
-    'src/lab/app-access/app-access-mapping.ts',
     'src/lab/activity/lab-activity-model.ts',
     'src/lab/integrations/integration-history-model.ts',
     'src/lab/integrations/integration-run.ts',

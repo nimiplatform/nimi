@@ -6,7 +6,7 @@ Nimi Lab 可作为平台能力集成的参考实现。其中涉及的权限校�
 
 ## 运行与调试
 
-在源码仓库根目录下执行以下命令即可启动：
+按[开发环境安装](/zh/start/install)完成准备，启动 Runtime 和 Nimi Home 并登录后，在仓库根目录的另一个终端执行：
 
 ```bash
 pnpm dev:lab
@@ -15,20 +15,19 @@ pnpm dev:lab
 若在 `apps/lab/` 目录下操作，可使用以下常用工程脚本：
 
 ```bash
-pnpm run init       # 初始化项目与受管配置
 pnpm dev:shell      # 在官方 Electron 宿主容器中启动应用
 pnpm run validate   # 校验 App 清单与访问声明
 pnpm run typecheck  # 运行 TypeScript 类型检查
 pnpm run test       # 运行单元测试与集成测试
 ```
 
-在 Windows 和 macOS 上，Nimi Lab 运行在桌面端监管的 Electron 开发环境中。本地开发构建可通过 Nimi Home 的开发者模式（Developer Mode）完成注册并检查访问就绪状态。
+在 Windows 和 macOS 上，Nimi Lab 运行在桌面端监管的 Electron 开发环境中。本地开发构建可通过 Nimi Home 的开发者模式（Developer Mode）完成注册并检查访问就绪状态。Lab 直接在根工作区维护，不运行脚手架 init/sync，也没有公开发布流程。
 
 ## 关键代码与架构参考
 
 | 探索方向 | 对应源码路径 |
 | --- | --- |
-| 脚手架配置与本地检查脚本 | `apps/lab/package.json` |
+| 工作区脚本与本地检查 | `apps/lab/package.json` |
 | 受保护的 Shell 宿主通信与路由 | `apps/lab/README.md` 与 shell 路由模块 |
 | AIConfig 存储与应用数据隔离 | `apps/lab/src/lab/lab-ai-config-store.ts` |
 | 基于能力意图（Capability Intent）的 Runtime AI 调度 | `apps/lab/src/lab/lab-runtime.ts` |

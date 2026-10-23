@@ -1,3 +1,4 @@
+import { createMemoryDesktopRendererLocalModelProgressPort } from './helpers/desktop-renderer-ports.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
@@ -7,7 +8,7 @@ import { I18nextProvider } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
-import { createMemoryDesktopRendererLocalModelProgressPort } from '../src/shell/renderer/renderer/local-model-progress-port.js';
+
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context';
 import { DesktopMotionProvider } from '../src/shell/renderer/ui/motion/desktop-motion-context.js';
 import { createLocalModelCenterProgressCache } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache';

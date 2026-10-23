@@ -9,11 +9,10 @@
 - Web must not import Desktop renderer or package surfaces, `@renderer/*`, `@runtime/*`, `@desktop-public/*`, `@tauri-apps/*`, Runtime-private code, local-file behavior, native IPC, or Desktop CORS bypasses.
 - Use `@nimiplatform/kit` and public typed SDK/Realm surfaces. Web account UI submits credential interactions to Realm but owns neither account truth nor bearer custody.
 - Keep landing, auth, legal, download, navigation, and Home/App informational composition under `apps/web`; do not restore Web Shell, hash-shell routing, Desktop adapters, or post/social product routes.
-- Simulator is retired and its source is retained in Git history; Web must not restore an active Simulator entry or import historical product source.
 
 ## Retrieval Defaults
 - Start in the observed Web route, `apps/web/src/landing/**`, or the Web-owned account adapter and follow only public Kit/SDK contracts.
-- Skip Desktop renderer, Runtime internals, Simulator source, generated SDK output, and unrelated product layers unless a direct public-contract failure points there.
+- Skip Desktop renderer, Runtime internals, generated SDK output, and unrelated product layers unless a direct public-contract failure points there.
 
 ## Public Presentation
 - Organize product entry pages around an ordinary visitor's purpose and the actual result of the next action. Explain current availability and consequential restrictions before that action; identify developer previews by their audience and contents.

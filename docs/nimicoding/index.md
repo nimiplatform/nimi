@@ -2,7 +2,7 @@
 
 Nimi Coding provides deterministic access to project-owned canonical authority for AI hosts and repository tooling. It handles authority formatting, schema validation, relationship queries, dependency navigation, and impact review; it is designed as a focused specification tool rather than an autonomous AI agent, code generator, or product-spec synthesizer.
 
-This documentation corresponds to `@nimiplatform/nimi-coding@0.6.5` pinned by this workspace. Command ergonomics and parameters are described authoritatively in the package's CLI help and bundled README.
+This documentation corresponds to `@nimiplatform/nimi-coding@0.7.0` pinned by this workspace. Command ergonomics and parameters are described authoritatively in the package's CLI help and bundled README.
 
 ## Specification and Configuration Boundaries
 

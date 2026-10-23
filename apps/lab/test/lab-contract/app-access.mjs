@@ -13,7 +13,6 @@ test.after(cleanupBehaviorModules);
 const catalogModule = () => importBehaviorModule('lab/app-access/app-access-catalog.js');
 const probesModule = () => importBehaviorModule('lab/app-access/app-access-probes.js');
 const stateModule = () => importBehaviorModule('lab/app-access/app-access-state.js');
-const mappingModule = () => importBehaviorModule('lab/app-access/app-access-mapping.js');
 
 const rejected = (reasonCode) => Object.assign(new Error(`rejected: ${reasonCode}`), { reasonCode });
 
@@ -507,31 +506,7 @@ test('agent conversation probe requires a reference and reports bounded facts', 
 
 // ------------------------------------------------- naming and mount guards --
 
-test('mapping tables cover every legacy id and keep current names campaign-free', async () => {
-  const { appAccessTestIdMapping, appAccessLabelMapping } = await mappingModule();
-
-  const legacyIds = appAccessTestIdMapping.map((entry) => entry.legacy);
-  assert.equal(new Set(legacyIds).size, legacyIds.length, 'legacy ids unique');
-  assert.equal(legacyIds.length, 28);
-  for (const legacy of legacyIds) {
-    assert.match(legacy, /^imp[45]-/u, `${legacy} is a real campaign id`);
-  }
-  for (const entry of appAccessTestIdMapping) {
-    assert.ok(
-      entry.current === '(folded)' || entry.current.startsWith('app-access-'),
-      `${entry.legacy} maps to an app-access id or a documented fold`,
-    );
-    assert.doesNotMatch(entry.current, /imp[45]/iu);
-    if (entry.note) assert.doesNotMatch(entry.note, /IMP[45]/u);
-  }
-
-  for (const entry of appAccessLabelMapping) {
-    assert.ok(entry.legacy.trim().length > 0);
-    assert.doesNotMatch(entry.current, /imp[45]/iu);
-  }
-});
-
-test('no campaign codenames remain in lab sources outside the mapping module', async () => {
+test('no campaign codenames remain in lab sources', async () => {
   const srcDir = path.join(root, 'src', 'lab');
   const files = [];
   const walk = (dir) => {
@@ -542,10 +517,8 @@ test('no campaign codenames remain in lab sources outside the mapping module', a
     }
   };
   walk(srcDir);
-  const allowed = new Set([path.join(srcDir, 'app-access', 'app-access-mapping.ts')]);
   const offenders = [];
   for (const file of files) {
-    if (allowed.has(file)) continue;
     const text = readFileSync(file, 'utf8');
     if (/imp4-|imp5-|Imp4|IMP4|IMP5/u.test(text)) offenders.push(path.relative(root, file));
   }

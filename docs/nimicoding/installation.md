@@ -1,6 +1,6 @@
 # Nimi Coding Host Integration
 
-The Nimi workspace pins `@nimiplatform/nimi-coding@0.6.5` as an exact development dependency. Standard workspace installation sets up the CLI tools:
+The Nimi workspace pins `@nimiplatform/nimi-coding@0.7.0` as an exact development dependency. Standard workspace installation sets up the CLI tools:
 
 ```bash
 pnpm install
@@ -24,7 +24,7 @@ The managed blocks in `AGENTS.md` and `CLAUDE.md` define available tools and arc
 
 ## Source Code Reads and Authority Markers
 
-Version 0.6.5 provides two primary source inspection utilities:
+Version 0.7.0 provides two primary source inspection utilities:
 - **`code context`**: Extracts bounded outbound static context from explicit TypeScript and TSX source files.
 - **`code authority`**: Scans tracked TypeScript, TSX, Go, Python, and Rust files for explicit `@nimi-authority` and `@nimi-deprecated` marker lines. Marker discovery operates via exact line matching and does not evaluate unannotated code.
 

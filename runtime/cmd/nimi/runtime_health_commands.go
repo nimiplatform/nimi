@@ -11,19 +11,16 @@ import (
 )
 
 const (
-	publicDaemonHealthReachable      = "reachable"
-	publicDaemonHealthUnreachable    = "unreachable"
 	publicDaemonHealthServiceRunning = "service-running"
 	publicDaemonHealthStopped        = "stopped"
 )
 
 type publicDaemonHealth struct {
-	Mode      string `json:"mode"`
-	Process   string `json:"process"`
-	PID       int    `json:"pid,omitempty"`
-	StartedAt string `json:"startedAt,omitempty"`
-	Health    string `json:"health"`
-	Version   string `json:"version,omitempty"`
+	Mode    string `json:"mode"`
+	Process string `json:"process"`
+	PID     int    `json:"pid,omitempty"`
+	Health  string `json:"health"`
+	Version string `json:"version,omitempty"`
 }
 
 // @nimi-authority: rule.nimi.runtime.service-operations.r086
@@ -57,7 +54,7 @@ func runRuntimeHealth(args []string) error {
 		if projection.Version != "" {
 			printCLIField(os.Stdout, "version", projection.Version)
 		}
-		if projection.Health == publicDaemonHealthStopped || projection.Health == publicDaemonHealthUnreachable {
+		if projection.Health == publicDaemonHealthStopped {
 			printCLINextStep(os.Stdout, "nimi start")
 		}
 	}
@@ -70,11 +67,10 @@ func runRuntimeHealth(args []string) error {
 // @nimi-authority: rule.nimi.runtime.service-operations.r082
 func projectPublicDaemonHealth(status daemonctl.Status) publicDaemonHealth {
 	projection := publicDaemonHealth{
-		Mode:      status.Mode.String(),
-		Process:   strings.TrimSpace(status.Process),
-		PID:       status.PID,
-		StartedAt: strings.TrimSpace(status.StartedAt),
-		Version:   strings.TrimSpace(status.Version),
+		Mode:    status.Mode.String(),
+		Process: strings.TrimSpace(status.Process),
+		PID:     status.PID,
+		Version: strings.TrimSpace(status.Version),
 	}
 	if projection.Mode == "" {
 		projection.Mode = daemonctl.ModeStopped.String()
@@ -86,12 +82,8 @@ func projectPublicDaemonHealth(status daemonctl.Status) publicDaemonHealth {
 	switch {
 	case projection.Process != "running":
 		projection.Health = publicDaemonHealthStopped
-	case status.Mode == daemonctl.ModeProtectedService:
-		projection.Health = publicDaemonHealthServiceRunning
-	case status.HealthReachable:
-		projection.Health = publicDaemonHealthReachable
 	default:
-		projection.Health = publicDaemonHealthUnreachable
+		projection.Health = publicDaemonHealthServiceRunning
 	}
 	return projection
 }

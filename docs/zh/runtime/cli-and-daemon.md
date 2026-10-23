@@ -23,7 +23,9 @@ pnpm dev:runtime
 | `nimi status` | 查询固定服务状态 |
 | `nimi start` | 启动已安装的固定服务 |
 | `nimi stop` | 停止该固定服务 |
-| `nimi logs` | 查看该服务的日志 |
+| `nimi logs` | 当前返回 `protected Runtime service logs are unavailable`，暂不支持读取服务日志 |
+
+`nimi stop` 通过服务控制器停止服务，不提供 `--force` 选项。源码开发日志请查看运行 `pnpm dev:runtime` 的终端；`nimi logs` 不读取 supervisor 日志。
 
 `nimi serve` 是生产 daemon 内部启动入口，无法在普通非特权终端中直接拉起受保护的系统服务。
 
@@ -31,9 +33,9 @@ pnpm dev:runtime
 
 - `nimi doctor` 检查本地环境与依赖条件。
 - `nimi version` 显示二进制版本。
-- `nimi health --json` 读取已运行服务的健康摘要，需要该服务可达并满足其访问条件。
+- `nimi health --json` 与 `nimi status` 使用同一份服务控制器状态，健康分类为 `service-running` 或 `stopped`。
 
-服务状态为 `READY` 表示 daemon 已就绪并开始响应 RPC；但具体 AI 能力调用仍需依赖有效的授权会话及执行配置，并按所选路由具备就绪的本地 Loadout 或受支持的云端目标。源码 supervisor 仅以普通用户模式运行，并不具备生产固定服务的系统身份与配置环境。
+`service-running` 表示 Windows 服务控制器确认服务正在运行，并不代表 RPC 或 AI 能力已经就绪。具体 AI 能力调用仍需有效的授权会话及执行配置，并按所选路由具备就绪的本地 Loadout 或受支持的云端目标。源码 supervisor 仅以普通用户模式运行，并不具备生产固定服务的系统身份与配置环境。
 
 ## 相关文档
 

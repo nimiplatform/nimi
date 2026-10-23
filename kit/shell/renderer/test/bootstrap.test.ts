@@ -56,6 +56,26 @@ describe('shell renderer bootstrap primitives', () => {
     });
   });
 
+  it.each(['0.2.5-rc.5', '0.2.5', '0.2.5-rc.6+other'])('rejects a different complete release version: %s', (daemonVersion) => {
+    expect(checkRuntimeDaemonVersion(daemonVersion, '0.2.5-rc.6', { strictExactMatch: true })).toMatchObject({
+      ok: false,
+      severity: 'fatal',
+    });
+  });
+
+  it.each(['0.2.5garbage', '0.2.5-rc.01', '00.2.5', '0.2.5-', '0.2.5+'])('rejects malformed release versions on either side: %s', (invalidVersion) => {
+    expect(checkRuntimeDaemonVersion(invalidVersion, '0.2.5', { strictExactMatch: true }).ok).toBe(false);
+    expect(checkRuntimeDaemonVersion('0.2.5', invalidVersion, { strictExactMatch: true }).ok).toBe(false);
+  });
+
+  it('accepts complete identical releases and the existing v prefix', () => {
+    expect(checkRuntimeDaemonVersion('v0.2.5-rc.6+build.01', '0.2.5-rc.6+build.01', { strictExactMatch: true })).toMatchObject({
+      ok: true,
+      severity: 'none',
+    });
+    expect(checkRuntimeDaemonVersion('0.0.0-dev', '0.2.5-rc.6')).toMatchObject({ ok: true, severity: 'none' });
+  });
+
   it('derives runtime daemon reachability from running state and shared version policy', () => {
     expect(isRuntimeDaemonReachable({ running: false, version: undefined }, { appVersion: '0.1.0' })).toBe(false);
     expect(isRuntimeDaemonReachable({ running: false, version: '0.1.0' }, { appVersion: '0.1.0' })).toBe(false);

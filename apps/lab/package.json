@@ -8,7 +8,6 @@
     "dev:renderer": "vite --host 127.0.0.1 --port 1468 --strictPort",
     "dev:electron": "nimi-app dev --shell electron",
     "dev:shell": "nimi-app dev",
-    "init": "nimi-app init",
     "typecheck:prepared": "tsc --noEmit",
     "typecheck": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run typecheck:prepared",
     "build:prepared": "tsc --noEmit && vite build",
@@ -33,7 +32,7 @@
   },
   "devDependencies": {
     "@nimiplatform/app-tools": "workspace:*",
-    "@nimiplatform/nimi-coding": "0.6.5",
+    "@nimiplatform/nimi-coding": "0.7.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",

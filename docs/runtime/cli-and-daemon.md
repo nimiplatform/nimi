@@ -23,7 +23,9 @@ These commands require the corresponding fixed service to be installed and its c
 | `nimi status` | Inspect fixed-service status |
 | `nimi start` | Start the installed fixed service |
 | `nimi stop` | Stop that fixed service |
-| `nimi logs` | Inspect its logs |
+| `nimi logs` | Currently returns `protected Runtime service logs are unavailable` |
+
+`nimi stop` uses the service controller and has no `--force` option. For source-development logs, use the terminal running `pnpm dev:runtime`; `nimi logs` does not read supervisor logs.
 
 `nimi serve` is an entry point for the production daemon itself; executing it in an unprivileged terminal will not launch or manage the protected service.
 
@@ -31,9 +33,9 @@ These commands require the corresponding fixed service to be installed and its c
 
 - `nimi doctor` checks local environment and dependency prerequisites.
 - `nimi version` reports the binary version.
-- `nimi health --json` reads the running service's health summary, subject to reachability and access conditions.
+- `nimi health --json` reports the same service-controller state as `nimi status`, with `service-running` or `stopped` as its health classification.
 
-A `READY` state indicates that the daemon is actively serving RPC requests. However, executing a specific AI operation still requires a valid session and execution configuration, plus a ready local Loadout or supported cloud target according to the selected route. Running the source supervisor in current-user mode does not establish the identity or configuration of a production fixed service.
+`service-running` confirms that the Windows service controller reports the service as running. It does not establish RPC or AI capability readiness. Executing a specific AI operation still requires a valid session and execution configuration, plus a ready local Loadout or supported cloud target according to the selected route. Running the source supervisor in current-user mode does not establish the identity or configuration of a production fixed service.
 
 ## Related Documentation
 

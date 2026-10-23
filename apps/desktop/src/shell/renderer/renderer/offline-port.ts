@@ -26,32 +26,3 @@ export interface DesktopRendererOfflinePort {
   }): Promise<void>;
   dispose(): void;
 }
-
-export function createUnavailableDesktopRendererOfflinePort(
-  reason = 'DESKTOP_RENDERER_OFFLINE_UNAVAILABLE',
-): DesktopRendererOfflinePort {
-  const unavailable = async (): Promise<never> => {
-    throw new Error(reason);
-  };
-  const unavailableSync = (): never => {
-    throw new Error(reason);
-  };
-  return Object.freeze({
-    syncChatList: unavailable,
-    getCachedChatList: unavailable,
-    syncChatMessages: unavailable,
-    getCachedMessages: unavailable,
-    syncProfileMetadata: unavailable,
-    getCachedProfileMetadata: unavailable,
-    upsertChatOutboxEntry: unavailable,
-    getChatOutboxEntry: unavailable,
-    getChatOutboxEntries: unavailable,
-    markChatOutboxSent: unavailable,
-    markChatOutboxFailed: unavailable,
-    markCacheFallbackUsed: unavailableSync,
-    markRealmUnreachable: unavailableSync,
-    getTier: unavailableSync,
-    queueSocialMutation: unavailable,
-    dispose() {},
-  });
-}

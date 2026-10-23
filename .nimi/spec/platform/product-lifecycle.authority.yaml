@@ -938,7 +938,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.release-bundle
     kind: definition
     title: Nimi release bundle
-    meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell, the exact compatible Runtime service release under Platform-admitted target trust, and the bundled Avatar App, together with admitted version, update-channel, verification, compatibility and owner-approved recovery metadata; Zhiyu and Nimi Lab are independently published Third-party Apps outside this product bundle.
+    meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell, the exact compatible Runtime service release under Platform-admitted target trust, and the bundled Avatar App, together with admitted version, update-channel, verification, compatibility and owner-approved recovery metadata; Zhiyu is an independently published Third-party App outside this product bundle, while Nimi Lab remains a local-development-only integration and testing App.
   - id: definition.nimi.platform.product-lifecycle.update-channel
     kind: definition
     title: Nimi update channel
@@ -951,7 +951,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.public-account-web-surface
     kind: definition
     title: Public and account Web surface
-    meaning: The Web release surface consists of the first-party public Nimi site, Realm-backed account authentication and account-security interaction pages, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and the release-distribution gateway under apps/install-gateway, while Desktop remains the current Nimi Home host; Simulator is archived and has no active workspace, conformance, deployment, or release role.
+    meaning: The Web release surface consists of the first-party public Nimi site, Realm-backed account authentication and account-security interaction pages, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and the release-distribution gateway under apps/install-gateway, while Desktop remains the current Nimi Home host.
     relations:
       - type: supersedes
         target: definition.nimi.platform.product-lifecycle.web-release-surface
@@ -1159,12 +1159,14 @@ units:
     kind: rule
     title: P-PKGREL-009 bundled Avatar and independent App publication
     modality: must
-    statement: Avatar ships as part of the Nimi product bundle while retaining the same formal App contract, registration, protected-session, and access semantics as other equally covered Apps; Zhiyu and Nimi Lab version, publish, and enter Registry admission independently through the Third-party App lifecycle and are neither bundled Nimi product components nor coupled to its release version.
+    statement: Avatar ships as part of the Nimi product bundle while retaining the same formal App contract, registration, protected-session, and access semantics as other equally covered Apps; Zhiyu versions, publishes, and enters Registry admission independently through the Third-party App lifecycle without being bundled or coupled to the Nimi release version; Nimi Lab remains local-development-only and has no public release, Registry admission, or bundled product role.
     condition: Whenever Nimi product composition or the distribution of Avatar, Zhiyu, or Nimi Lab is defined or published.
-    failure: Reject a product bundle that omits Avatar, includes Zhiyu or Nimi Lab as a required product component, couples their independent releases, or turns bundling into an App authority or access privilege.
+    failure: Reject a product bundle that omits Avatar, includes Zhiyu or Nimi Lab as a required product component, couples Zhiyu to the Nimi release version, gives Nimi Lab public release or Registry admission, or turns bundling into an App authority or access privilege.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.product-boundary
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.nimi-lab
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
       - type: applies_to
@@ -1226,11 +1228,6 @@ units:
     lifecycle: removed
     title: P-WEB-001 Web surface ownership
     reason: Removed because it includes the retired web-shell adapters; the replacement rule preserves Platform ownership without retaining Web Shell semantics.
-  - id: rule.nimi.platform.product-lifecycle.p-web-001b
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-001 Simulator remains independent
-    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.product-lifecycle.p-web-002a
     kind: rule
     lifecycle: removed
@@ -1246,11 +1243,6 @@ units:
     lifecycle: removed
     title: P-WEB-002 client-only browser boundary
     reason: Removed because its client-only and memory-bearer Web Shell model is replaced by a Realm-owned secure browser session contract.
-  - id: rule.nimi.platform.product-lifecycle.p-web-002d
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-002 Simulator is not a shell mode
-    reason: Removed with the Desktop-or-Web shell-mode identity; Simulator separation continues under active standalone Web rules.
   - id: rule.nimi.platform.product-lifecycle.p-web-005a
     kind: rule
     title: P-WEB-005 standalone public and account surface
@@ -1327,8 +1319,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
-      - type: supersedes
-        target: rule.nimi.platform.product-lifecycle.p-web-002d
   - id: rule.nimi.platform.product-lifecycle.p-web-003
     kind: rule
     title: P-WEB-003 install gateway ownership
@@ -1349,11 +1339,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
-  - id: rule.nimi.platform.product-lifecycle.p-web-004b
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-004 Simulator deployment separation
-    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-001
     kind: rule
     lifecycle: removed

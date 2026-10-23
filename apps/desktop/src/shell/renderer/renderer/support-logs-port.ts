@@ -11,15 +11,3 @@ export interface DesktopRendererSupportLogsPort {
   loadStorageDirs(): Promise<DesktopRendererStorageDirs>;
   exportLogs(): Promise<DesktopLogsExportResult>;
 }
-
-export function createUnavailableDesktopRendererSupportLogsPort(
-  reason = 'DESKTOP_RENDERER_SUPPORT_LOGS_UNAVAILABLE',
-): DesktopRendererSupportLogsPort {
-  const unavailable = async (): Promise<never> => {
-    throw new Error(reason);
-  };
-  return Object.freeze({
-    loadStorageDirs: unavailable,
-    exportLogs: unavailable,
-  });
-}

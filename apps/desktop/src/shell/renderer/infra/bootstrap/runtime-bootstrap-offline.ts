@@ -7,10 +7,6 @@ export type OfflineCoordinatorBindingsInput = {
   probeRealmReachability: () => Promise<boolean>;
   probeRuntimeReachability: () => Promise<boolean>;
   hasPendingRealmRecoveryWork: () => Promise<boolean>;
-  // Retained as optional input compatibility only. Reconnect never auto-replays
-  // durable mutations; product retry remains explicit user intent.
-  flushChatOutbox?: () => Promise<void>;
-  flushSocialOutbox?: () => Promise<void>;
   invalidateRealmQueries: () => Promise<unknown>;
   rebootstrapRuntime: () => Promise<void>;
 };

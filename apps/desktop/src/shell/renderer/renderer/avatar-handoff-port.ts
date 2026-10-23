@@ -15,15 +15,3 @@ export interface DesktopRendererAvatarHandoffPort {
     readonly launchSource: string;
   }): Promise<{ readonly opened: boolean }>;
 }
-
-export function createUnavailableDesktopRendererAvatarHandoffPort(
-  reason = 'DESKTOP_RENDERER_AVATAR_HANDOFF_UNAVAILABLE',
-): DesktopRendererAvatarHandoffPort {
-  const unavailable = async (): Promise<never> => {
-    throw new Error(reason);
-  };
-  return Object.freeze({
-    available: () => false,
-    launch: unavailable,
-  });
-}

@@ -1,9 +1,9 @@
 # AGENTS.md
 
 ## Scope
-- Applies to `apps/lab/**`; treat `.nimi/app-scaffold/{intent,lock}.json` as app-scaffold intent and lock state.
-- Treat `.nimi/{config,contracts,methodology}/**` as `@nimiplatform/nimi-coding` managed projections; keep auth, Runtime, permission, manifest, and shell glue in scaffold-managed files.
-- The app-owned area is `src/shell/routes/product-area.tsx`, `src/lab/**`, `src-electron/**`, and lab contract tests.
+- Applies to `apps/lab/**`, the hand-authored capability workbench in the root workspace. Root dependency installation, lockfile, and Nimi-coding guidance apply.
+- Lab source, Electron host, manifests, and tests are maintained in this repository. Do not run scaffold init/sync or create app-scaffold intent/lock state for Lab.
+- App Tools consumes explicitly admitted Lab source slices as generator inputs; this does not make Lab itself a generated scaffold.
 
 ## Hard Boundaries
 - Consume Runtime and Realm only through SDK and reusable UI through Kit; do not create app-local platform truth, private transport, provider/model constants, or admission truth.

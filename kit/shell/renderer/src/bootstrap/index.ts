@@ -281,15 +281,20 @@ export type RuntimeDaemonVersionCheckOptions = {
   logEvent?: BootstrapLogEventSink;
 };
 
-function parseSemver(version: string): { major: number; minor: number; patch: number } | null {
-  const match = version.match(/^v?(\d+)\.(\d+)\.(\d+)/);
-  if (!match) {
+function parseSemver(version: string): { major: string; minor: string; patch: string; normalized: string } | null {
+  const match = version.match(/^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/);
+  const [, major, minor, patch, prerelease] = match ?? [];
+  if (!match || match[0] !== version || major === undefined || minor === undefined || patch === undefined) {
+    return null;
+  }
+  if (prerelease?.split('.').some((identifier) => /^0\d+$/.test(identifier))) {
     return null;
   }
   return {
-    major: Number(match[1]),
-    minor: Number(match[2]),
-    patch: Number(match[3]),
+    major,
+    minor,
+    patch,
+    normalized: version.replace(/^v/, ''),
   };
 }
 
@@ -385,7 +390,9 @@ export function checkRuntimeDaemonVersion(
     };
   }
 
-  if (daemonParsed.minor !== appParsed.minor || daemonParsed.patch !== appParsed.patch) {
+  if (daemonParsed.minor !== appParsed.minor
+    || daemonParsed.patch !== appParsed.patch
+    || (strictExactMatch && daemonParsed.normalized !== appParsed.normalized)) {
     if (!strictExactMatch && isDevelopmentVersion(daemonVersion)) {
       emitVersionCheckEvent(options.logEvent, {
         level: 'info',

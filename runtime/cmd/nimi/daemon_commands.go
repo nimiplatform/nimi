@@ -16,7 +16,7 @@ import (
 
 type daemonManager interface {
 	Start(timeout time.Duration) (daemonctl.StartResult, error)
-	Stop(timeout time.Duration, force bool) (daemonctl.StopResult, error)
+	Stop(timeout time.Duration) (daemonctl.StopResult, error)
 	Status() (daemonctl.Status, error)
 	PrintLogs(ctx context.Context, w io.Writer, tail int, follow bool) error
 }
@@ -73,17 +73,11 @@ func runRuntimeStart(args []string) error {
 	printCLIHeader(os.Stdout, "Started Nimi Runtime")
 	printCLIField(os.Stdout, "mode", result.Mode.String())
 	printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", result.PID))
-	printCLIField(os.Stdout, "grpc", result.GRPCAddr)
-	printCLIField(os.Stdout, "config", result.ConfigPath)
-	printCLIField(os.Stdout, "logs", result.LogPath)
 	if strings.TrimSpace(result.Version) != "" {
 		printCLIField(os.Stdout, "version", result.Version)
 	}
 	if strings.TrimSpace(result.HealthSummary) != "" {
 		printCLIField(os.Stdout, "health", result.HealthSummary)
-	}
-	if strings.TrimSpace(result.Warning) != "" {
-		printCLIField(os.Stdout, "warning", result.Warning)
 	}
 	return nil
 }
@@ -92,7 +86,6 @@ func runRuntimeStop(args []string) error {
 	fs := flag.NewFlagSet("nimi stop", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	timeoutRaw := fs.String("timeout", "10s", "shutdown timeout")
-	force := fs.Bool("force", false, "force kill the runtime process")
 	jsonOutput := fs.Bool("json", false, "output json")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -102,7 +95,7 @@ func runRuntimeStop(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-	result, err := daemonManagerFactory().Stop(timeout, *force)
+	result, err := daemonManagerFactory().Stop(timeout)
 	if err != nil {
 		return err
 	}
@@ -154,18 +147,12 @@ func runRuntimeStatus(args []string) error {
 		if projection.PID > 0 {
 			printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", projection.PID))
 		}
-		if projection.StartedAt != "" {
-			printCLIField(os.Stdout, "started", projection.StartedAt)
-		}
 		if projection.Version != "" {
 			printCLIField(os.Stdout, "version", projection.Version)
 		}
 		printCLIField(os.Stdout, "health", projection.Health)
-		switch {
-		case projection.Health == publicDaemonHealthStopped:
+		if projection.Health == publicDaemonHealthStopped {
 			printCLINextStep(os.Stdout, "nimi start")
-		case projection.Health == publicDaemonHealthUnreachable:
-			printCLINextStep(os.Stdout, "nimi logs -f")
 		}
 	}
 	if code := status.ExitCode(); code != 0 {
@@ -177,10 +164,10 @@ func runRuntimeStatus(args []string) error {
 func runRuntimeLogs(args []string) error {
 	fs := flag.NewFlagSet("nimi logs", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	follow := fs.Bool("follow", false, "follow runtime logs")
-	fs.BoolVar(follow, "f", false, "follow runtime logs")
-	tailRaw := fs.String("tail", "200", "number of lines to show")
-	fs.StringVar(tailRaw, "n", "200", "number of lines to show")
+	follow := fs.Bool("follow", false, "follow runtime logs (currently unavailable)")
+	fs.BoolVar(follow, "f", false, "follow runtime logs (currently unavailable)")
+	tailRaw := fs.String("tail", "200", "number of log lines (currently unavailable)")
+	fs.StringVar(tailRaw, "n", "200", "number of log lines (currently unavailable)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

@@ -37,8 +37,7 @@ Nimi Home 是用户的统一交互入口，当前由桌面客户端承载。它�
 
 当前 Nimi 的核心产品闭环涵盖 Realm、Runtime、SDK、Nimi Home 以及各独立 App。通用的复杂工作流编排（Workflow）、外部协议扩展（MCP）、自主世界演化（World Evolution）、公共应用市场（Marketplace）与商业结算等扩展能力，均不是运行当前核心闭环的前置依赖。未来生态扩展将在保持现有架构边界安全的前提下按需引入。
 
-> [!NOTE]
-> 早期试验性质的 Simulator 机制已归档淘汰，不再参与应用开发与调试。最新应用开发指引请参阅 [创建 Nimi App](/zh/start/create-an-app)。
+应用开发与验收使用 Desktop 监管的 Electron 宿主，具体步骤见 [创建 Nimi App](/zh/start/create-an-app)。
 
 ## Source Basis
 

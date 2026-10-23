@@ -17,13 +17,3 @@ export type DesktopSystemResourceSnapshot = {
 export interface DesktopRendererSystemResourcesPort {
   load(): Promise<DesktopSystemResourceSnapshot>;
 }
-
-export function createUnavailableDesktopRendererSystemResourcesPort(
-  reason = 'DESKTOP_RENDERER_SYSTEM_RESOURCES_UNAVAILABLE',
-): DesktopRendererSystemResourcesPort {
-  return Object.freeze({
-    async load() {
-      throw new Error(reason);
-    },
-  });
-}

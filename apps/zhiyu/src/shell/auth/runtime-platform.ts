@@ -6,7 +6,6 @@ import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electr
 
 export const appId = 'nimi.zhiyu';
 export const appTitle = '织羽';
-export const runtimeAccountLoginEnabled = false;
 
 export type RuntimeAuthMode = 'local-app';
 export type ZhiyuLocalAppClient = NimiLocalAppClient;

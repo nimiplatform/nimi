@@ -14,7 +14,7 @@ Ensure your development machine has the following tools installed:
 - **pnpm**: pnpm 10.34.7 (or compatible pnpm 10.x).
 - **C/C++ Build Tools** (optional): If compiling Kit's optional native extensions from source, macOS requires Xcode Command Line Tools, while Windows requires Visual Studio C++ build tools.
 
-Scaffolded app projects include project-local Nimi Coding (0.6.5). Running `pnpm install && pnpm run init` configures it automatically without requiring global binary installations.
+Scaffolded app projects include project-local Nimi Coding pinned by the selected App Tools package; the current source scaffold pins 0.7.0. Running `pnpm install && pnpm run init` configures it without requiring a global binary installation.
 
 ---
 
@@ -26,7 +26,7 @@ Nimi's core packages are versioned independently. Use the dependency combination
 | :--- | :--- | :--- |
 | `@nimiplatform/sdk` | `^0.21.0` | Client core API, AI inference, and host-bound session integration |
 | `@nimiplatform/kit` | `^0.21.0` | Cross-platform UI components, window bridge, and theme contracts |
-| `@nimiplatform/app-tools` | `^0.13.0` | App scaffolding, project initialization, and production packaging |
+| `@nimiplatform/app-tools` | `^0.13.1` | App scaffolding, project initialization, and production packaging |
 | `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | (Optional) Adapter for Vercel AI SDK 7 |
 
 > [!NOTE] Local Archives & Overrides

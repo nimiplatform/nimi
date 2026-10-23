@@ -1,12 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import {
   WORLD_DETAIL_PAPER_CONTENT_PADDING,
-  worldDetailPaperContentFrameStyle,
 } from './world-detail-layout.js';
 
-// Loading skeletons for the world detail root page and its subpages
-// (relationship explorer / people archive / lore library). Block tones resolve
+// Loading skeletons for the world detail root page and relationship explorer. Block tones resolve
 // through Nimi surface tokens so the pulse reads as unfilled cards rather than
 // a foreign overlay.
 const SKELETON_CARD = 'var(--nimi-surface-card)';
@@ -119,29 +117,5 @@ export function WorldRelationshipExplorerSkeleton() {
         <SkeletonBlock height={560} radius={18} />
       </div>
     </div>
-  );
-}
-
-function SubpageSkeletonShell({ testId, children }: { testId: string; children: ReactNode }) {
-  return (
-    <div data-testid={testId} aria-busy="true" aria-live="polite" style={{ position: 'relative', minHeight: '100%' }}>
-      <div style={worldDetailPaperContentFrameStyle()}>
-        <div style={{ marginBottom: 14 }}>
-          <SkeletonBlock height={34} width={148} radius={999} />
-        </div>
-        <div style={{ display: 'grid', gap: 18 }}>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-export function WorldLoreLibrarySkeleton() {
-  return (
-    <SubpageSkeletonShell testId="world-detail-lore-library-skeleton">
-      <SkeletonBlock height={168} radius={20} />
-      {Array.from({ length: 4 }).map((_, index) => (
-        <SkeletonBlock key={index} height={96} radius={16} />
-      ))}
-    </SubpageSkeletonShell>
   );
 }

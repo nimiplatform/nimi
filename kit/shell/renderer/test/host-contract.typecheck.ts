@@ -77,23 +77,21 @@ interface CanonicalRendererFactory {
 
 declare const canonicalFactory: CanonicalRendererFactory;
 declare const productionHostInput: CanonicalBindingInput;
-declare const simulatorHostInput: CanonicalBindingInput;
+declare const alternateHostInput: CanonicalBindingInput;
 
 const productionBindings = createNimiCanonicalRendererHostBindings(productionHostInput);
-const simulatorBindings = createNimiCanonicalRendererHostBindings(simulatorHostInput);
+const alternateBindings = createNimiCanonicalRendererHostBindings(alternateHostInput);
 const productionInstance = canonicalFactory.createInstance(productionBindings);
-const simulatorInstance = canonicalFactory.createInstance(simulatorBindings);
+const alternateInstance = canonicalFactory.createInstance(alternateBindings);
 
 type _ProductionBindingIsCanonical = Assert<Equal<typeof productionBindings, CanonicalBindings>>;
-type _SimulatorBindingIsCanonical = Assert<Equal<typeof simulatorBindings, CanonicalBindings>>;
-type _ProviderBindingParity = Assert<Equal<typeof productionBindings, typeof simulatorBindings>>;
-type _ProviderInstanceParity = Assert<Equal<typeof productionInstance, typeof simulatorInstance>>;
+type _AlternateBindingIsCanonical = Assert<Equal<typeof alternateBindings, CanonicalBindings>>;
+type _ProviderBindingParity = Assert<Equal<typeof productionBindings, typeof alternateBindings>>;
+type _ProviderInstanceParity = Assert<Equal<typeof productionInstance, typeof alternateInstance>>;
 
 // @ts-expect-error Canonical UI cannot discriminate the concrete host.
 productionBindings.hostKind;
-// @ts-expect-error Canonical UI cannot branch on Simulator identity.
-simulatorBindings.isSimulator;
 // @ts-expect-error Raw instance identity is not renderer-visible.
-simulatorBindings.rawInstanceId;
+alternateBindings.rawInstanceId;
 
 export {};

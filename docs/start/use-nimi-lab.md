@@ -6,7 +6,7 @@ Nimi Lab serves as a reference implementation for capability integration. Core r
 
 ## Running and Debugging
 
-Run the following command from the repository root:
+After completing [Development Environment Setup](/start/install), start Runtime and Nimi Home and sign in. Run the following command from the repository root in a separate terminal:
 
 ```bash
 pnpm dev:lab
@@ -15,20 +15,19 @@ pnpm dev:lab
 Key development scripts provided in `apps/lab/`:
 
 ```bash
-pnpm run init       # Initialize project configurations
 pnpm dev:shell      # Start the app in the official Electron host
 pnpm run validate   # Validate the App manifest and access declarations
 pnpm run typecheck  # Check TypeScript types
 pnpm run test       # Execute unit and integration tests
 ```
 
-On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron development environment. Register local development builds through Developer Mode in Nimi Home and check their Nimi Access session status.
+On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron development environment. Register local development builds through Developer Mode in Nimi Home and check their Nimi Access session status. Lab is maintained directly in the root workspace; it does not use scaffold init/sync or a public release workflow.
 
 ## Key Code and Architectural References
 
 | Area of Interest | Source Path |
 | --- | --- |
-| Scaffold configuration & local checks | `apps/lab/package.json` |
+| Workspace scripts & local checks | `apps/lab/package.json` |
 | Protected shell host routing and communication | `apps/lab/README.md` and shell route modules |
 | AIConfig storage and application data isolation | `apps/lab/src/lab/lab-ai-config-store.ts` |
 | Capability Intent-driven Runtime AI dispatch | `apps/lab/src/lab/lab-runtime.ts` |

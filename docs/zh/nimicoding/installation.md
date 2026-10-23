@@ -1,6 +1,6 @@
 # Nimi Coding 宿主环境集成
 
-Nimi 工作区将 `@nimiplatform/nimi-coding@0.6.5` 作为严格锁定的开发依赖进行管理。在完成工作区初始化后即可直接调用其 CLI 工具：
+Nimi 工作区将 `@nimiplatform/nimi-coding@0.7.0` 作为严格锁定的开发依赖进行管理。在完成工作区初始化后即可直接调用其 CLI 工具：
 
 ```bash
 pnpm install
@@ -24,7 +24,7 @@ pnpm nimicoding:doctor
 
 ## 源码上下文与规范标记扫描
 
-当前 0.6.5 版本提供了两个核心代码分析命令：
+当前 0.7.0 版本提供了两个核心代码分析命令：
 - **`code context`**：按需提取 TypeScript / TSX 文件向外引用的有界静态依赖上下文。
 - **`code authority`**：扫描 TypeScript、TSX、Go、Python 与 Rust 代码中显式声明的 `@nimi-authority` 或 `@nimi-deprecated` 物理行标记（扫描器不判断其语法上下文）。该扫描属于轻量级静态匹配，不会对未标记的代码进行推断或评价。
 

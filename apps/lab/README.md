@@ -1,27 +1,34 @@
 # Nimi Lab
 
-Profile: `standalone`
+Nimi Lab is a hand-authored, local-development-only workspace App.
 
 Nimi Lab is the incubation and capability testing application within the Nimi ecosystem. It serves as a comprehensive testbed for developers to exercise, benchmark, and validate new SDK capabilities, AI models, and multimodal pipelines under the supervised Electron development environment.
 
 ## Development
 
+Complete the repository's [local development setup](../../LOCAL_DEVELOPMENT.md),
+start Runtime and Nimi Home, and sign in. Then run from the repository root:
+
 ```bash
-pnpm install
-pnpm run init
-pnpm dev
+pnpm dev:lab
+```
+
+Lab is maintained directly in this workspace and does not use scaffold `init` or `sync`.
+From `apps/lab/`, use these engineering checks:
+
+```bash
+pnpm run typecheck
 pnpm run check
 pnpm run build
 ```
 
-- `init`: Runs project-local code generation and synchronizes app-scaffold lock state.
 - `dev`: Launches the Electron development host and Vite dev server under Desktop supervision (equivalent to `pnpm dev:electron`).
-- `check`: Runs the complete test and schema validation suite.
-- `build`: Produces the standalone production build.
+- `check`: Runs the complete test and manifest validation suite.
+- `build`: Type-checks and builds renderer assets for workspace validation. Lab has no public packaging or release workflow.
 
 ### App Permissions and Access Boundaries
 
-The Lab manifest requests the standard App Access scopes: `realm.data`, `runtime.consume`, `agent.local`, `agent.configure`, and `app.activity`. Operations adhere strictly to protected channel security contracts:
+The Lab manifest requests the standard App Access scopes: `realm.data`, `runtime.consume`, `agent.local`, `agent.configure`, `app.activity`, and `integration.consume`. Operations adhere strictly to protected channel security contracts:
 - Sensitive runtime credentials, system registration tokens, and private session material are never exposed to renderer processes or command-line logs.
 - Unimplemented or unauthorized operations return structured error codes rather than silently failing or bypassing security boundaries.
 

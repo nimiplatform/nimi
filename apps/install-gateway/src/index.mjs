@@ -59,10 +59,6 @@ async function fetchInstallScriptAsset(request, env, maxAgeSeconds) {
 async function buildRouteResponse(request, env, fetchImpl) {
   const maxAgeSeconds = cacheMaxAgeSeconds(env);
   const url = new URL(request.url);
-  if (request.method !== 'GET') {
-    return errorResponse('METHOD_NOT_ALLOWED', 405);
-  }
-
   if (url.pathname === '/' || url.pathname === '/install.sh') {
     return fetchInstallScriptAsset(request, env, maxAgeSeconds);
   }
@@ -86,6 +82,10 @@ async function buildRouteResponse(request, env, fetchImpl) {
 }
 
 export async function handleInstallGatewayRequest(request, env, ctx, options = {}) {
+  if (request.method !== 'GET') {
+    return errorResponse('METHOD_NOT_ALLOWED', 405);
+  }
+
   const cache = globalThis.caches?.default;
   const cacheKey = request.url;
   if (cache) {
@@ -97,7 +97,7 @@ export async function handleInstallGatewayRequest(request, env, ctx, options = {
 
   try {
     const response = await buildRouteResponse(request, env, options.fetchImpl || fetch);
-    if (cache && response.ok && request.method === 'GET') {
+    if (cache && response.ok) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     }
     return response;

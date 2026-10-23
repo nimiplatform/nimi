@@ -12,16 +12,3 @@ export interface DesktopRendererWorldFollowPort {
   write(accountId: string, worldIds: readonly string[]): DesktopWorldFollowWriteResult;
   subscribe(listener: (accountId: string | null) => void): () => void;
 }
-
-export function createUnavailableDesktopRendererWorldFollowPort(
-  reason = 'DESKTOP_RENDERER_WORLD_FOLLOW_UNAVAILABLE',
-): DesktopRendererWorldFollowPort {
-  const unavailable = (): never => {
-    throw new Error(reason);
-  };
-  return Object.freeze({
-    read: unavailable,
-    write: unavailable,
-    subscribe: unavailable,
-  });
-}

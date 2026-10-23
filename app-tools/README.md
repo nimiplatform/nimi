@@ -109,7 +109,7 @@ Before publishing publicly, verify the `.nimiapp` package on your own machine:
 
 Exercise the actual install, launch, and key user flows on each supported target. Passing tests or packaging alone is not enough—mark any path you have not run as `NOT-VERIFIED`.
 
-Simulator integration is retired. Use Desktop-supervised Electron for App development and acceptance.
+Use Desktop-supervised Electron for App development and acceptance.
 
 ---
 

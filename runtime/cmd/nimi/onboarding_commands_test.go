@@ -82,13 +82,10 @@ func TestRunRuntimeDoctorJSON(t *testing.T) {
 	previousFactory := daemonManagerFactory
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{status: daemonctl.Status{
-			Mode:            daemonctl.ModeBackground,
-			Process:         "running",
-			PID:             42,
-			HealthReachable: true,
-			HealthSummary:   "RUNTIME_HEALTH_STATUS_DEGRADED (engine:llama unhealthy (stderr: secret internal detail))",
-			ConfigPath:      configPath,
-			LogPath:         filepath.Join(homeDir, ".nimi", "logs", "runtime.log"),
+			Mode:          daemonctl.ModeProtectedService,
+			Process:       "running",
+			PID:           42,
+			HealthSummary: "RUNTIME_HEALTH_STATUS_DEGRADED (engine:llama unhealthy (stderr: secret internal detail))",
 		}}
 	}
 	defer func() { daemonManagerFactory = previousFactory }()
@@ -194,71 +191,6 @@ func TestRunRuntimeDoctorJSONReturnsStoppedExitCodeAfterOutput(t *testing.T) {
 	}
 	if strings.Count(output, "nimi start") != 1 || strings.Contains(output, "nimi serve") {
 		t.Fatalf("doctor JSON must emit exactly one executable next-step hint: %q", output)
-	}
-}
-
-func TestRunRuntimeDoctorJSONReturnsUnreachableExitCodeAfterOutput(t *testing.T) {
-	previousFactory := daemonManagerFactory
-	daemonManagerFactory = func() daemonManager {
-		return stubDaemonManager{status: daemonctl.Status{
-			Mode:            daemonctl.ModeBackground,
-			Process:         "running",
-			HealthReachable: false,
-		}}
-	}
-	defer func() { daemonManagerFactory = previousFactory }()
-
-	output, err := captureStdoutFromRun(func() error {
-		return runRuntimeDoctor([]string{"--json"})
-	})
-	var exitErr cliExitError
-	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 2 {
-		t.Fatalf("runRuntimeDoctor error = %v, want exit code 2", err)
-	}
-	var payload map[string]any
-	if unmarshalErr := json.Unmarshal([]byte(output), &payload); unmarshalErr != nil {
-		t.Fatalf("unmarshal doctor output: %v output=%q", unmarshalErr, output)
-	}
-	items, ok := payload["items"].([]any)
-	if !ok {
-		t.Fatalf("doctor items payload mismatch: %#v", payload["items"])
-	}
-	assertDoctorItem(t, items, "daemon", "warn")
-	if got := asString(payload["nextStep"]); got != "nimi logs -f" {
-		t.Fatalf("doctor nextStep = %q, want nimi logs -f: %#v", got, payload)
-	}
-	for _, wrongStep := range []string{"nimi start", "nimi serve"} {
-		if strings.Contains(output, wrongStep) {
-			t.Fatalf("doctor JSON emitted incorrect next-step %q: %q", wrongStep, output)
-		}
-	}
-}
-
-func TestRunRuntimeDoctorPlainTextShowsSingleNextStepWhenRuntimeUnreachable(t *testing.T) {
-	previousFactory := daemonManagerFactory
-	daemonManagerFactory = func() daemonManager {
-		return stubDaemonManager{status: daemonctl.Status{
-			Mode:            daemonctl.ModeBackground,
-			Process:         "running",
-			HealthReachable: false,
-		}}
-	}
-	defer func() { daemonManagerFactory = previousFactory }()
-
-	output, err := captureStdoutFromRun(func() error {
-		return runRuntimeDoctor(nil)
-	})
-	var exitErr cliExitError
-	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 2 {
-		t.Fatalf("runRuntimeDoctor error = %v, want exit code 2", err)
-	}
-	if !strings.Contains(output, "\nNext\n\n  nimi logs -f") || strings.Count(output, "nimi logs -f") != 1 {
-		t.Fatalf("doctor must emit one unreachable next-step hint: %q", output)
-	}
-	for _, wrongStep := range []string{"nimi start", "nimi serve"} {
-		if strings.Contains(output, wrongStep) {
-			t.Fatalf("doctor emitted incorrect next-step %q: %q", wrongStep, output)
-		}
 	}
 }
 

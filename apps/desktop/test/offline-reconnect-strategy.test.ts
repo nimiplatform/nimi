@@ -60,7 +60,7 @@ async function flushAsyncWork(): Promise<void> {
 }
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
-  test('realm_reconnect revalidates queries without durable mutation replay', async () => {
+  test('realm_reconnect only probes and revalidates queries', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });
     const effects: string[] = [];
@@ -72,8 +72,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
-      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
-      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
@@ -83,10 +81,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.equal(timer.nextDelay(), 1000);
 
     await timer.runNext();
-    assert.ok(!effects.includes('flushChatOutbox'));
-    assert.ok(!effects.includes('flushSocialOutbox'));
-    assert.ok(effects.includes('invalidateQueries'));
-    assert.ok(!effects.includes('rebootstrapRuntime'));
+    assert.deepEqual(effects.filter((effect) => !effect.startsWith('tier:')), ['invalidateQueries']);
   });
 
   test('runtime_reconnect reboots runtime state', async () => {
@@ -101,8 +96,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
-      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
-      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
@@ -127,8 +120,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => false,
       hasPendingRealmRecoveryWork: async () => true,
-      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
-      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
@@ -159,8 +150,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
-      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
-      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => {
         rebootstrapAttempts += 1;
