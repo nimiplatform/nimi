@@ -1,6 +1,6 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
-export type HumanProfileTab = 'Posts' | 'Collections' | 'Likes' | 'FollowedWorlds';
+export type HumanProfileTab = 'Collections' | 'FollowedWorlds';
 
 export type HumanProfileData = {
   accessState: 'full' | 'restricted';

@@ -112,7 +112,7 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
   const { initI18n, changeLocale, productionDesktopI18n } = await import('../src/shell/renderer/i18n');
   const { DesktopI18nResourceProvider } = await import('../src/shell/renderer/i18n/i18n-context.js');
   const { HomeMessagesColumn } = await import('../src/shell/renderer/features/home/home-messages-column.js');
-  const { activityMessage, realmPostMessage } = await import('../src/shell/renderer/features/home/home-messages-model.js');
+  const { activityMessage } = await import('../src/shell/renderer/features/home/home-messages-model.js');
   await initI18n();
   await changeLocale('en');
 
@@ -121,10 +121,6 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
     source: RUNTIME, kind: 'activity', todoState: null, objectRef: null, summary: null,
     type: 'nimi.runtime.agent-conversation.turn-completed.v1', agent: { agentRef: 'agr_qilan', displayName: 'Qilan' },
   }));
-  const agentPost = realmPostMessage({
-    id: 'post_1', authorKind: 'personaCharacter', authorRef: 'persona_qilan', authorName: 'Qilan', authorAvatarUrl: null,
-    caption: 'Practised calligraphy this afternoon.', createdAt: new Date(2026, 8, 22, 21, 5).toISOString(), media: [],
-  });
   const cardContext: HomeMessageCardContext = {
     now: new Date(2026, 8, 23, 15, 0, 0),
     busy: {},
@@ -153,7 +149,7 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
         <QueryClientProvider client={client}>
           <DesktopI18nResourceProvider resource={productionDesktopI18n}>
             <HomeMessagesColumn
-              messages={messages([growthOpen, turn, agentPost])}
+              messages={messages([growthOpen, turn])}
               context={cardContext}
               onViewAll={noop}
             />
@@ -162,36 +158,31 @@ test('the quick filter menu applies one preset and names it under the toolbar', 
       );
     });
     const { document } = dom.window;
-    assert.ok(cardShown(growthOpen.key) && cardShown(turn.key) && cardShown(agentPost.key));
+    assert.ok(cardShown(growthOpen.key) && cardShown(turn.key));
     await openMenu();
     assert.ok(menuItem('All')?.querySelector('svg'), 'the active preset carries the check');
     assert.ok(!menuItem('Unread')?.querySelector('svg'), 'inactive presets carry no check');
-    assert.ok(menuItem('Pending') && menuItem('Activity only') && menuItem('Items only'), 'every preset is listed');
+    assert.ok(menuItem('Pending') && menuItem('Messages only') && menuItem('Items only'), 'every preset is listed');
     assert.ok(document.querySelector('[role="separator"]'), 'activity presets sit behind a separator');
     assert.equal(menuItem('View activity'), undefined, 'the filter menu has no activity navigation');
     assert.equal(menuItem('Message settings'), undefined, 'settings remain in the message center');
     await act(async () => { (menuItem('Unread') as HTMLElement).click(); });
     assert.ok(cardShown(growthOpen.key) && cardShown(turn.key), 'unread app items stay');
-    assert.ok(!cardShown(agentPost.key), 'posts leave an unread listing');
+    assert.equal(menuItem('Activity only'), undefined, 'the deferred Post filter is absent');
     assert.ok(document.querySelector('[role="status"]')?.textContent?.includes('Unread'), 'the active preset is named under the toolbar');
     assert.ok(document.querySelector('[data-testid="home-messages-filter"]')?.getAttribute('aria-label')?.includes('active'), 'the trigger marks the active filter');
     await settle();
     assert.ok(!document.querySelector('[role="menuitem"]'), 'choosing a preset closes the menu');
     await openMenu();
     assert.ok(menuItem('Unread')?.querySelector('svg'), 'the check follows the active preset');
-    await act(async () => { (menuItem('Activity only') as HTMLElement).click(); });
-    assert.ok(cardShown(agentPost.key), 'activity only keeps the Post');
-    assert.ok(!cardShown(growthOpen.key) && !cardShown(turn.key), 'app items leave an activity-only listing');
-    await settle();
-    await openMenu();
     await act(async () => { (menuItem('All') as HTMLElement).click(); });
-    assert.ok(cardShown(growthOpen.key) && cardShown(turn.key) && cardShown(agentPost.key), 'all messages restores every source');
+    assert.ok(cardShown(growthOpen.key) && cardShown(turn.key), 'all messages restores every source');
     assert.ok(!document.querySelector('[role="status"]'), 'no preset label once the filter is cleared');
     await settle();
     await openMenu();
     await act(async () => { (menuItem('Messages only') as HTMLElement).click(); });
     assert.ok(cardShown(turn.key));
-    assert.ok(!cardShown(growthOpen.key) && !cardShown(agentPost.key));
+    assert.ok(!cardShown(growthOpen.key));
     await settle();
   } finally {
     await act(async () => { root.unmount(); });

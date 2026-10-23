@@ -1,7 +1,9 @@
+import { UserPlus } from 'lucide-react';
+import { FriendHandleLookupDialog } from '../relationship/friend-handle-lookup-dialog.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
-import { IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
+import { IconButton, IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -292,6 +294,8 @@ export function ChatRelationshipRail({
   onManageAgents,
 }: ChatRelationshipRailProps) {
   const { t } = useTranslation();
+  const [findFriendOpen, setFindFriendOpen] = useState(false);
+  const currentAccountId = useAppStore((state) => String(state.auth.user?.id ?? ''));
   const aiTargets = targets.filter((t) => t.source === 'ai');
   const humanTargets = targets.filter((t) => t.source === 'human');
   const agentTargets = targets.filter((t) => t.source === 'agent');
@@ -318,6 +322,9 @@ export function ChatRelationshipRail({
           />
         ))}
 
+        <IconButton tone="ghost" size="sm" icon={<UserPlus size={18} />} onClick={() => setFindFriendOpen(true)}
+          aria-label={t('Relationship.findByHandleTitle')} title={t('Relationship.findByHandleTitle')}
+          data-testid="find-friend-by-handle" />
         {/* Human contacts */}
         {humanTargets.length > 0 ? (
           <>
@@ -387,6 +394,7 @@ export function ChatRelationshipRail({
         />
         )}
       </div>
+      {findFriendOpen ? <FriendHandleLookupDialog key={currentAccountId} onClose={() => setFindFriendOpen(false)} /> : null}
     </aside>
   );
 }

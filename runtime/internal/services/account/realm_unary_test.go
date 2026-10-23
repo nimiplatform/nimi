@@ -28,8 +28,8 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_listWorldCatalog":             {method: http.MethodGet, path: "/api/world/catalog"},
 		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 	}
-	if len(realmBrokerOperations) != 76 {
-		t.Fatalf("Realm broker operation count = %d, want 76", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 68 {
+		t.Fatalf("Realm broker operation count = %d, want 68", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -391,5 +391,34 @@ func realmDesktopShellCaller() *runtimev1.AccountCaller {
 		AppInstanceId: "nimi.desktop.local-first-party",
 		DeviceId:      "desktop-shell",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
+	}
+}
+
+func TestInvokeRealmUnaryFriendRequestByHandleKeepsProfileReadSeparate(t *testing.T) {
+	var observed []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		observed = append(observed, r.Method+" "+r.URL.Path)
+		if r.Header.Get("Authorization") == "" {
+			t.Error("Realm bearer was not mediated")
+		}
+		w.Header().Set("content-type", "application/json")
+		_, _ = w.Write([]byte(`{"outcome":"requested"}`))
+	}))
+	defer server.Close()
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
+		Caller: realmDesktopShellCaller(), MethodId: "addFriendByHandle", RequestJson: `{"path":{"handle":"alice"}}`,
+	})
+	if err != nil || !response.GetAccepted() || response.GetResponseJson() != `{"outcome":"requested"}` {
+		t.Fatalf("friend request failed: response=%+v error=%v", response, err)
+	}
+	if len(observed) != 1 || observed[0] != "POST /api/human/handle/alice/friends" {
+		t.Fatalf("unexpected profile read or route: %v", observed)
+	}
+	for _, methodID := range []string{"getHomeFeed", "getExploreFeed", "createPost", "likePost"} {
+		if _, admitted := realmBrokerOperations[methodID]; admitted {
+			t.Errorf("retired operation admitted: %s", methodID)
+		}
 	}
 }

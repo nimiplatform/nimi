@@ -19,6 +19,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/accounts/{id}/friends"
   },
   {
+    "operationId": "addFriendByHandle",
+    "service": "User",
+    "method": "POST",
+    "path": "/api/human/handle/{handle}/friends"
+  },
+  {
     "operationId": "archiveAsset",
     "service": "Assets",
     "method": "POST",
@@ -97,12 +103,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/resources/images/direct-upload"
   },
   {
-    "operationId": "createPost",
-    "service": "Posts",
-    "method": "POST",
-    "path": "/api/world/posts"
-  },
-  {
     "operationId": "createTextResource",
     "service": "Resources",
     "method": "POST",
@@ -113,12 +113,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/videos/direct-upload"
-  },
-  {
-    "operationId": "deletePost",
-    "service": "Posts",
-    "method": "DELETE",
-    "path": "/api/world/posts/by-id/{id}"
   },
   {
     "operationId": "deleteResource",
@@ -277,12 +271,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
-    "operationId": "ExploreController_checkStatus",
-    "service": "Explore",
-    "method": "GET",
-    "path": "/api/explore/status"
-  },
-  {
     "operationId": "FeedbackController_getMyFeedbacks",
     "service": "Support (Feedback)",
     "method": "GET",
@@ -323,18 +311,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}"
-  },
-  {
-    "operationId": "getExploreFeed",
-    "service": "Explore",
-    "method": "GET",
-    "path": "/api/explore"
-  },
-  {
-    "operationId": "getHomeFeed",
-    "service": "Posts",
-    "method": "GET",
-    "path": "/api/world/posts"
   },
   {
     "operationId": "getMe",
@@ -409,30 +385,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/me/wallets"
   },
   {
-    "operationId": "getPost",
-    "service": "Posts",
-    "method": "GET",
-    "path": "/api/world/posts/by-id/{id}"
-  },
-  {
-    "operationId": "getPostRecommendations",
-    "service": "Discover",
-    "method": "GET",
-    "path": "/api/discover/recommendations/posts"
-  },
-  {
-    "operationId": "getPublicPost",
-    "service": "Posts",
-    "method": "GET",
-    "path": "/api/world/posts/public/{id}"
-  },
-  {
-    "operationId": "getRecommendations",
-    "service": "Discover",
-    "method": "GET",
-    "path": "/api/discover/recommendations"
-  },
-  {
     "operationId": "getResource",
     "service": "Resources",
     "method": "GET",
@@ -463,22 +415,22 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/accounts/{id}/friends"
   },
   {
-    "operationId": "getWorldPosts",
-    "service": "WorldPost",
+    "operationId": "HealthController_live",
+    "service": "Health",
     "method": "GET",
-    "path": "/api/world/by-id/{worldId}/posts"
+    "path": "/api/health/live"
+  },
+  {
+    "operationId": "HealthController_ready",
+    "service": "Health",
+    "method": "GET",
+    "path": "/api/health/ready"
   },
   {
     "operationId": "introspectSession",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/sessions/introspect"
-  },
-  {
-    "operationId": "likePost",
-    "service": "Posts",
-    "method": "POST",
-    "path": "/api/world/posts/by-id/{postId}/like"
   },
   {
     "operationId": "linkOauth",
@@ -503,12 +455,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats"
-  },
-  {
-    "operationId": "listLikedPosts",
-    "service": "Posts",
-    "method": "GET",
-    "path": "/api/world/posts/liked"
   },
   {
     "operationId": "listMessages",
@@ -655,24 +601,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/email/otp/request"
   },
   {
-    "operationId": "searchHumanUsers",
-    "service": "User",
-    "method": "GET",
-    "path": "/api/human/search"
-  },
-  {
-    "operationId": "searchIndexedUsers",
-    "service": "Search",
-    "method": "GET",
-    "path": "/api/search/users"
-  },
-  {
-    "operationId": "searchPosts",
-    "service": "Search",
-    "method": "GET",
-    "path": "/api/search/posts"
-  },
-  {
     "operationId": "sendMessage",
     "service": "Human Chats",
     "method": "POST",
@@ -757,12 +685,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/me/blocks/{id}"
   },
   {
-    "operationId": "unlikePost",
-    "service": "Posts",
-    "method": "DELETE",
-    "path": "/api/world/posts/by-id/{postId}/like"
-  },
-  {
     "operationId": "unlinkOauth",
     "service": "Auth",
     "method": "DELETE",
@@ -815,12 +737,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "PUT",
     "path": "/api/auth/me/password"
-  },
-  {
-    "operationId": "updatePost",
-    "service": "Posts",
-    "method": "PATCH",
-    "path": "/api/world/posts/by-id/{id}"
   },
   {
     "operationId": "updateResource",

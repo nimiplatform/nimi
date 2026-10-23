@@ -1,13 +1,13 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Avatar, Button, IconButton, Popover, PopoverContent, PopoverTrigger, SearchField } from '@nimiplatform/kit/ui';
-import { Check, ChevronDown, Globe, LayoutGrid, MessageCircle, Settings2, X } from 'lucide-react';
+import { Check, ChevronDown, LayoutGrid, MessageCircle, Settings2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { messageSourceLabel } from './home-message-card.js';
 import { compareTimelineMessages, messageCenterSourceKey, type HomeMessage, type HomeMessageDomain } from './home-messages-model.js';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-const DOMAINS = ['app', 'runtime-agent', 'realm-post', 'system'] as const;
-const DOMAIN_ICONS = { app: LayoutGrid, 'runtime-agent': MessageCircle, 'realm-post': Globe, system: Settings2 };
+const DOMAINS = ['app', 'runtime-agent', 'system'] as const;
+const DOMAIN_ICONS = { app: LayoutGrid, 'runtime-agent': MessageCircle, system: Settings2 };
 
 export type MessageSourceOption = Readonly<{
   value: string;
@@ -26,7 +26,7 @@ export function messageSourceOptions(messages: readonly HomeMessage[], t: Transl
     const value = messageCenterSourceKey(message);
     const label = message.sourceKind === 'runtime-agent' && message.record.agent
       ? message.record.agent.displayName
-      : message.sourceKind === 'realm-post' ? message.post.authorName : messageSourceLabel(message, t);
+      : messageSourceLabel(message, t);
     const appId = message.sourceKind === 'app' ? message.record.source.appId : null;
     const existing = sources.get(value);
     sources.set(value, existing ? {

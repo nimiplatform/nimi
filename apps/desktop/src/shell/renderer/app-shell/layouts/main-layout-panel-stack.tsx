@@ -1,11 +1,7 @@
-import { useHomeNavigation } from '../providers/app-store.js';
-import { Button } from '@nimiplatform/kit/ui';
-import { useTranslation } from 'react-i18next';
 
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { AppTab } from '../providers/app-store';
-import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '../../features/world/world-detail-route-state';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -61,10 +57,6 @@ const GlobalDownloadsView = lazy(async () => ({
 const NimiOverview = lazy(async () => ({
   default: (await import('../../features/home/nimi-overview')).NimiOverview,
 }));
-const HomePanel = lazy(async () => {
-  const mod = await import('../../features/home/home-panel');
-  return { default: mod.HomePanel };
-});
 const PrivacyPolicyView = lazy(async () => {
   const mod = await import('../../features/legal/privacy-policy-view');
   return { default: mod.PrivacyPolicyView };
@@ -78,10 +70,8 @@ type MainLayoutPanelStackProps = {
   activeTab: AppTab;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
-  homeFeedScope: NimiRealmFeedScope;
   runtimeActive: boolean;
   runtimeEverMounted: boolean;
-  onHomeFeedScopeChange: (scope: NimiRealmFeedScope) => void;
   onExploreSectionChange: (section: ExploreSectionId) => void;
   onExploreSearchTextChange: (value: string) => void;
 };
@@ -116,15 +106,11 @@ export function MainLayoutPanelStack({
   activeTab,
   exploreActiveSection,
   exploreSearchText,
-  homeFeedScope,
   runtimeActive,
   runtimeEverMounted,
-  onHomeFeedScopeChange,
   onExploreSectionChange,
   onExploreSearchTextChange,
 }: MainLayoutPanelStackProps) {
-  const navigation = useHomeNavigation();
-  const { t } = useTranslation();
 
   return (
     <>
@@ -153,14 +139,6 @@ export function MainLayoutPanelStack({
           {activeTab === 'home' ? (
             <MotionPanelFrame panelId="home">
               <NimiOverview />
-            </MotionPanelFrame>
-          ) : null}
-          {activeTab === 'activity' ? (
-            <MotionPanelFrame panelId="activity">
-              <Button tone="ghost" className="self-start" onClick={() => navigation.push({ id: 'home' })}>
-                {t('runtimeConfig.overview.back')}
-              </Button>
-              <HomePanel feedScope={homeFeedScope} onFeedScopeChange={onHomeFeedScopeChange} />
             </MotionPanelFrame>
           ) : null}
 

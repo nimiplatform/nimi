@@ -1,7 +1,6 @@
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import type {
   PersistentOutboxEntry,
-  SocialMutationKind,
 } from '../infra/offline/types.js';
 
 export interface DesktopRendererOfflinePort {
@@ -19,10 +18,5 @@ export interface DesktopRendererOfflinePort {
   markCacheFallbackUsed(): void;
   markRealmUnreachable(): void;
   getTier(): 'L0' | 'L1' | 'L2';
-  queueSocialMutation(input: {
-    readonly kind: SocialMutationKind;
-    readonly payload: JsonObject;
-    readonly now: () => number;
-  }): Promise<void>;
   dispose(): void;
 }

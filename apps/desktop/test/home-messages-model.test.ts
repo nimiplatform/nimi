@@ -11,9 +11,7 @@ import {
   isPendingMessage,
   messageDomainOfGroup,
   quickFilterSelection,
-  realmPostMessage,
   systemMessage,
-  type HomeRealmPost,
   type HomeSystemMessage,
 } from '../src/shell/renderer/features/home/home-messages-model.js';
 import {
@@ -55,20 +53,6 @@ function snapshot(records: NimiAppActivityRecord[]): NimiAppActivityViewSnapshot
   return { status: 'ready', records, complete: true, hasMore: false, error: null };
 }
 
-function post(id: string, overrides: Partial<HomeRealmPost> = {}): HomeRealmPost {
-  return {
-    id,
-    authorKind: 'personaCharacter',
-    authorRef: 'persona_lumi',
-    authorName: 'Lumi',
-    authorAvatarUrl: null,
-    caption: `Post ${id}`,
-    createdAt: '2026-09-22T12:00:00.000Z',
-    media: [],
-    ...overrides,
-  };
-}
-
 function system(kind: HomeSystemMessage['kind'], id: string, time: string | null): HomeSystemMessage {
   return { kind, id, title: `${kind} ${id}`, detail: '', progress: null, time, app: null, open: () => undefined };
 }
@@ -89,7 +73,7 @@ test('the two App views join at the highest decimal change sequence before state
   assert.equal(isPendingMessage(activityMessage(readOpen)), true, 'a read open todo stays pending');
 });
 
-test('App sources group by sourceRef, Runtime summaries by agentRef, Realm Posts by trusted author', () => {
+test('App sources group by sourceRef and Runtime summaries by agentRef', () => {
   const studioA = activityMessage(record(3));
   const studioB = activityMessage(record(4, {
     source: { kind: 'app', sourceRef: 'src_studio_second', appId: 'com.example.studio', displayName: 'Studio', available: false },
@@ -103,25 +87,15 @@ test('App sources group by sourceRef, Runtime summaries by agentRef, Realm Posts
     agent: { agentRef: 'agr_nova', displayName: 'Nova' },
   }));
   const loose = activityMessage(record(7, { source: RUNTIME_SOURCE, kind: 'activity', todoState: null, objectRef: null }));
-  const trusted = [realmPostMessage(post('p1')), realmPostMessage(post('p2'))];
-  const untrusted = [
-    realmPostMessage(post('p3', { authorRef: null, authorName: 'Nova' })),
-    realmPostMessage(post('p4', { authorRef: null, authorName: 'Nova' })),
-  ];
-  const groups = groupMessages([studioA, studioB, unknownType, turn, loose, ...trusted, ...untrusted]);
+  const groups = groupMessages([studioA, studioB, unknownType, turn, loose]);
   const keys = groups.map((group) => group.key).sort();
   assert.deepEqual(keys, [
     'app:src_studio',
     'app:src_studio_second',
     'app:src_vendor',
-    'realm-author:personaCharacter:persona_lumi',
-    'realm-post:p3',
-    'realm-post:p4',
     'runtime-agent',
     'runtime-agent:agr_nova',
   ]);
-  assert.equal(groups.find((group) => group.key === 'realm-author:personaCharacter:persona_lumi')!.messages.length, 2);
-  assert.notEqual(turn.groupKey, trusted[0]!.groupKey, 'a Runtime summary never joins a Realm author group');
 });
 
 test('work in progress leads, then owner time newest first, then items without a time', () => {
@@ -138,7 +112,7 @@ test('Home is a bounded time stream: interleaved, old and different-type message
   const first = activityMessage(record(1));
   const second = activityMessage(record(2));
   const old = activityMessage(record(3, { occurredAt: '2026-09-22T02:00:00Z' }));
-  const between = realmPostMessage(post('between', { createdAt: '2026-09-23T02:01:30Z' }));
+  const between = systemMessage(system('update', 'between', '2026-09-23T02:01:30Z'));
   const otherType = activityMessage(record(4, { type: 'com.example.other.v1' }));
   const download = systemMessage(system('download', 'install', '2026-09-20T00:00:00Z'));
   const unknown = systemMessage(system('update', 'update', null));
@@ -154,23 +128,19 @@ test('quick filters pin one type/status pair each', () => {
   assert.deepEqual(quickFilterSelection('all'), { type: 'all', status: 'all' });
   assert.deepEqual(quickFilterSelection('unread'), { type: 'all', status: 'unread' });
   assert.deepEqual(quickFilterSelection('pending'), { type: 'all', status: 'pending' });
-  assert.deepEqual(quickFilterSelection('post'), { type: 'post', status: 'all' });
   assert.deepEqual(quickFilterSelection('todo'), { type: 'todo', status: 'all' });
 });
 
-test('timeline filters distinguish todos, summaries and Posts without inventing unread state', () => {
+test('timeline filters distinguish todos and summaries without inventing unread state', () => {
   const todo = activityMessage(record(1));
   const readTodo = activityMessage(record(2, { userView: { readThroughRevision: 1, unread: false, needsAttention: false } }));
   const summary = activityMessage(record(3, { kind: 'activity', todoState: null }));
-  const realm = realmPostMessage(post('post'));
   const update = systemMessage(system('update', 'update', null));
-  const messages = [todo, readTodo, summary, realm, update];
+  const messages = [todo, readTodo, summary,  update];
   assert.deepEqual(filterTimelineMessages(messages, 'all', 'pending'), [todo, readTodo, update]);
   assert.deepEqual(filterTimelineMessages(messages, 'all', 'unread'), [todo, summary]);
   assert.deepEqual(filterTimelineMessages(messages, 'message', 'all'), [summary]);
   assert.deepEqual(filterTimelineMessages(messages, 'todo', 'unread'), [todo]);
-  assert.deepEqual(filterTimelineMessages(messages, 'post', 'all'), [realm]);
-  assert.deepEqual(filterTimelineMessages(messages, 'post', 'unread'), []);
 });
 
 test('Pending holds open todos and system items only', () => {
@@ -178,17 +148,14 @@ test('Pending holds open todos and system items only', () => {
   const completed = activityMessage(record(31, { todoState: 'completed' }));
   const summary = activityMessage(record(32, { kind: 'activity', todoState: null, objectRef: null }));
   const turn = activityMessage(record(33, { source: RUNTIME_SOURCE, kind: 'activity', todoState: null, objectRef: null }));
-  const realm = realmPostMessage(post('p5'));
   const setup = systemMessage(system('setup', 'task-2', null));
-  const pending = filterCenterMessages([openRead, completed, summary, turn, realm, setup], 'pending', null);
+  const pending = filterCenterMessages([openRead, completed, summary, turn,  setup], 'pending', null);
   assert.deepEqual(pending.map((message) => message.key), [openRead.key, setup.key]);
-  assert.deepEqual(filterCenterMessages([openRead, completed, realm], 'all', 'app-id:com.example.studio').map((message) => message.key).sort(), [completed.key, openRead.key].sort());
+  assert.deepEqual(filterCenterMessages([openRead, completed], 'all', 'app-id:com.example.studio').map((message) => message.key).sort(), [completed.key, openRead.key].sort());
   assert.equal(messageDomainOfGroup(null), null);
   assert.equal(messageDomainOfGroup('app:src_studio'), 'app');
   assert.equal(messageDomainOfGroup('app-id:com.example.studio'), 'app');
   assert.equal(messageDomainOfGroup('runtime-agent:agr_nova'), 'runtime-agent');
-  assert.equal(messageDomainOfGroup('realm-post:p5'), 'realm-post');
-  assert.equal(messageDomainOfGroup('realm-author:personaCharacter:persona_lumi'), 'realm-post');
   assert.equal(messageDomainOfGroup('system:setup'), 'system');
 });
 
@@ -209,7 +176,6 @@ test('Home hiding keeps the displayed revision; a read change stays hidden and a
   const hidden = applyHomeMessagePreferenceChange(DEFAULT_HOME_MESSAGE_PREFERENCES, {
     kind: 'hide',
     activities: [{ activityId: shown.record.activityId, revision: 3 }],
-    realmPostIds: ['p6'],
   });
   const markedRead = activityMessage(record(40, {
     revision: 3,
@@ -218,30 +184,24 @@ test('Home hiding keeps the displayed revision; a read change stays hidden and a
   }));
   assert.equal(isHiddenFromHome(markedRead, hidden), true, 'the same revision stays hidden after mark read');
   assert.equal(isHiddenFromHome(activityMessage(record(40, { revision: 4 })), hidden), false, 'a higher revision shows again');
-  assert.equal(isHiddenFromHome(realmPostMessage(post('p6')), hidden), true);
   assert.equal(isHiddenFromHome(systemMessage(system('setup', 'task-3', null)), hidden), false, 'system items cannot be hidden');
   // Hiding an older revision never lowers the hidden revision.
-  const again = applyHomeMessagePreferenceChange(hidden, { kind: 'hide', activities: [{ activityId: shown.record.activityId, revision: 2 }], realmPostIds: [] });
+  const again = applyHomeMessagePreferenceChange(hidden, { kind: 'hide', activities: [{ activityId: shown.record.activityId, revision: 2 }], });
   assert.equal(again.hiddenActivities[shown.record.activityId], 3);
   const restored = applyHomeMessagePreferenceChange(hidden, { kind: 'show', activityId: shown.record.activityId });
   assert.equal(isHiddenFromHome(shown, restored), false);
-  assert.equal(isHiddenFromHome(realmPostMessage(post('p6')), restored), true, 'restoring one card leaves the others hidden');
 });
 
 test('source display choices and restore-all stay independent', () => {
   const studio = activityMessage(record(50));
   const turn = activityMessage(record(51, { source: RUNTIME_SOURCE, kind: 'activity', todoState: null, objectRef: null }));
-  const realm = realmPostMessage(post('p7'));
   let preferences = applyHomeMessagePreferenceChange(DEFAULT_HOME_MESSAGE_PREFERENCES, { kind: 'app-source', sourceRef: 'src_studio', onHome: false });
-  preferences = applyHomeMessagePreferenceChange(preferences, { kind: 'realm-posts', onHome: false });
-  preferences = applyHomeMessagePreferenceChange(preferences, { kind: 'hide', activities: [{ activityId: studio.record.activityId, revision: 1 }], realmPostIds: [] });
+  preferences = applyHomeMessagePreferenceChange(preferences, { kind: 'hide', activities: [{ activityId: studio.record.activityId, revision: 1 }], });
   assert.equal(isSourceOffHome(studio, preferences), true);
-  assert.equal(isSourceOffHome(realm, preferences), true);
   assert.equal(isSourceOffHome(turn, preferences), false, 'Runtime summaries have no source switch');
   const cleared = applyHomeMessagePreferenceChange(preferences, { kind: 'restore-hidden' });
   assert.deepEqual(cleared.hiddenActivities, {});
   assert.deepEqual(cleared.appSourcesOffHome, ['src_studio'], 'restore-all keeps source choices');
-  assert.equal(cleared.realmPostsOnHome, false);
   const back = applyHomeMessagePreferenceChange(cleared, { kind: 'app-source', sourceRef: 'src_studio', onHome: true });
   assert.deepEqual(back.appSourcesOffHome, []);
 });
@@ -261,7 +221,7 @@ test('only an explicit missing document reads as no preferences; the document ro
   }), (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'LOCAL_APP_OWNER_UNAVAILABLE');
   const written: unknown[] = [];
   const preferences = applyHomeMessagePreferenceChange(DEFAULT_HOME_MESSAGE_PREFERENCES, {
-    kind: 'hide', activities: [{ activityId: 'act_1', revision: 2 }], realmPostIds: ['p8'],
+    kind: 'hide', activities: [{ activityId: 'act_1', revision: 2 }],
   });
   await writeHomeMessagePreferences({
     readJson: async () => { throw new Error('unused'); },

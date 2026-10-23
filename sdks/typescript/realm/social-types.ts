@@ -5,7 +5,6 @@ import type {
   UserProfileDto,
 } from '../core-generated/realm-typed-client';
 import type { JsonObject } from '../types';
-import type { NimiRealmFeedScope } from './feed';
 
 export type NimiRealmSocialContactRecord = JsonObject;
 
@@ -32,37 +31,10 @@ export interface NimiRealmSocialApi {
   readonly social: Pick<RealmTypedClient, 'addFriend' | 'blockUser' | 'removeFriend' | 'unblockUser'>;
   readonly generated: Pick<
     RealmTypedClient,
-    | 'createPost'
-    | 'deletePost'
-    | 'getExploreFeed'
-    | 'getHomeFeed'
     | 'getMyBlockedUsers'
     | 'getMyPendingFriendRequests'
-    | 'getPost'
     | 'getUser'
-    | 'likePost'
-    | 'listLikedPosts'
     | 'listMyFriendsWithDetails'
     | 'reportControllerCreateReport'
-    | 'unlikePost'
-    | 'updatePost'
   >;
-}
-
-export type NimiRealmPostFeedInput = {
-  readonly visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-  readonly worldId?: string;
-  readonly authorId?: string;
-  readonly limit?: number;
-  readonly cursor?: string;
-  readonly scope?: NimiRealmFeedScope;
-};
-
-export type NimiRealmSocialMutationKind =
-  | 'post-like'
-  | 'post-unlike';
-
-export interface NimiRealmSocialMutationExecutionInput {
-  readonly kind: NimiRealmSocialMutationKind | string;
-  readonly payload: JsonObject;
 }

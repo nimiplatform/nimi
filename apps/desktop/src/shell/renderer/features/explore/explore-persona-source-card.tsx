@@ -25,11 +25,6 @@ function sourcePillStyle(state: CharacterSourceState): CSSProperties {
     borderColor: 'var(--nimi-border-subtle)',
   };
 }
-function formatCompact(n: number): string {
-  if (n >= 10_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-  if (n >= 1_000) return `${(n / 1000).toFixed(2).replace(/\.?0+$/, '')}k`;
-  return String(n);
-}
 function PrimaryActionIcon({ action: _action }: { action: CharacterPrimaryActionGlyph }) {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -41,7 +36,7 @@ function PrimaryActionIcon({ action: _action }: { action: CharacterPrimaryAction
 type CharacterPrimaryActionGlyph = ReturnType<typeof describeCharacterPrimaryAction>['action'];
 // Compact Persona Source Card for horizontal scrolling recommendation section.
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
-// Origin meta row · footer (optional server count + source action). Every
+// Origin meta row · footer (source action). Every
 // color uses fg-*/accent-*/border-* tokens, every font uses the three font
 // tokens.
 export function PersonaSourceCard({
@@ -70,11 +65,15 @@ export function PersonaSourceCard({
     ? i18n.t('Explore.worldOwnedSource', { defaultValue: 'World-owned' })
     : i18n.t('Explore.userOwnedSource', { defaultValue: 'User-owned' });
   const worldText = `${source.worldName} · ${ownershipText}`;
-  const postsCount = typeof source.postsCount === 'number' ? source.postsCount : null;
   const isPublic = source.visibility === 'public';
   const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
   const sourceState: CharacterSourceState = source.sourceState ?? 'source_materialization_unavailable';
-  const primaryAction = describeCharacterPrimaryAction(sourceState, i18n.t);
+  const sourceAction = describeCharacterPrimaryAction(sourceState, i18n.t);
+  const primaryAction = source.materializationActionState === 'running'
+    ? { ...sourceAction, label: i18n.t('Explore.characterRuntimePendingLabel', { defaultValue: 'Checking partner' }), disabled: true }
+    : source.materializationActionState === 'refresh'
+      ? { ...sourceAction, label: i18n.t('Explore.characterPartnerRefresh', { defaultValue: 'Refresh partner' }), disabled: false }
+      : sourceAction;
   const handlePrimaryActionClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     void onPrimaryAction?.();
@@ -214,39 +213,13 @@ export function PersonaSourceCard({
         className="relative mt-auto flex items-center justify-between border-t pt-3"
         style={{ borderColor: 'var(--nimi-border-subtle)' }}
       >
-        {postsCount !== null ? (
-          <div className="flex flex-col leading-tight">
-            <span
-              style={{
-                fontFamily: 'var(--nimi-font-mono)',
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--nimi-fg-1)',
-              }}
-            >
-              {formatCompact(postsCount)}
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--nimi-font-mono)',
-                fontSize: 9,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                color: 'var(--nimi-fg-3)',
-              }}
-            >
-              {i18n.t('Explore.chatsLabel', { defaultValue: 'Posts' })}
-            </span>
-          </div>
-        ) : null}
         <button
           type="button"
           onClick={handlePrimaryActionClick}
           disabled={primaryAction.disabled}
           data-testid={E2E_IDS.explorePersonaSourcePrimaryAction(source.id)}
           data-source-state={sourceState}
-          data-primary-action={primaryAction.action}
+          data-primary-action={source.materializationActionState === 'refresh' ? 'refresh_partner' : primaryAction.action}
           className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"
           style={{
             fontFamily: 'var(--nimi-font-sans)',

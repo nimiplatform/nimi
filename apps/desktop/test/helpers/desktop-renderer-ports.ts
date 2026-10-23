@@ -128,7 +128,6 @@ export function createUnavailableDesktopRendererOfflinePort(
     markCacheFallbackUsed: unavailableSync,
     markRealmUnreachable: unavailableSync,
     getTier: unavailableSync,
-    queueSocialMutation: unavailable,
     dispose() {},
   });
 }

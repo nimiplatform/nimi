@@ -1,17 +1,9 @@
-import { createNimiClientId } from '@nimiplatform/sdk';
 import type { OfflineCoordinator } from '@nimiplatform/kit/core/offline-coordinator';
 import type { DesktopRendererOfflinePort } from '../../renderer/offline-port.js';
-import type { PersistentSocialMutationEntry } from './types.js';
 import { OfflineCacheManager } from './cache-manager.js';
 import { OfflineOutboxManager } from './outbox-manager.js';
 
-export type DesktopProductionOfflinePort = DesktopRendererOfflinePort & {
-  queueSocialMutationEntry(entry: PersistentSocialMutationEntry): Promise<void>;
-  getPendingSocialMutationCount(): Promise<number>;
-  getSocialMutationEntries(): Promise<PersistentSocialMutationEntry[]>;
-  markSocialMutationSent(id: string): Promise<void>;
-  markSocialMutationFailed(id: string, reason: string): Promise<void>;
-};
+export type DesktopProductionOfflinePort = DesktopRendererOfflinePort;
 
 export function createDesktopProductionOfflinePort(
   coordinator: OfflineCoordinator,
@@ -88,32 +80,6 @@ export function createDesktopProductionOfflinePort(
     getTier() {
       requireActive();
       return coordinator.getTier();
-    },
-    async queueSocialMutation(input: Parameters<DesktopRendererOfflinePort['queueSocialMutation']>[0]) {
-      const manager = await openOutbox();
-      await manager.queueSocialMutation({
-        id: createNimiClientId(`social:${input.kind}`),
-        kind: input.kind,
-        payload: input.payload,
-        enqueuedAt: input.now(),
-        attempts: 0,
-        status: 'pending',
-      });
-    },
-    async queueSocialMutationEntry(entry: PersistentSocialMutationEntry) {
-      await (await openOutbox()).queueSocialMutation(entry);
-    },
-    async getPendingSocialMutationCount() {
-      return (await openOutbox()).getPendingSocialMutationCount();
-    },
-    async getSocialMutationEntries() {
-      return (await openOutbox()).getSocialMutationEntries();
-    },
-    async markSocialMutationSent(id: string) {
-      await (await openOutbox()).markSocialMutationSent(id);
-    },
-    async markSocialMutationFailed(id: string, reason: string) {
-      await (await openOutbox()).markSocialMutationFailed(id, reason);
     },
     dispose() {
       if (disposed) return;

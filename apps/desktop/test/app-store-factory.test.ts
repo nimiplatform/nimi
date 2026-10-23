@@ -208,7 +208,6 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
           async loadProfileMetadata() { return null; },
           markCacheFallbackUsed() {},
           markRealmUnreachable() {},
-          async queueSocialMutation() {},
         }),
       }),
       runtimeConnectorSdk: createRuntimeConfigConnectorSdkService(() => {
@@ -318,7 +317,6 @@ function createCanonicalBindings(input: {
           async loadProfileMetadata() { return null; },
           markCacheFallbackUsed() {},
           markRealmUnreachable() {},
-          async queueSocialMutation() {},
         }),
       }),
       accountCaller: sdkUnavailable,

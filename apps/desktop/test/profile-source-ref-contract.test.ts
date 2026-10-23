@@ -10,7 +10,6 @@ import {
   toAgentTargetSnapshotFromSummary,
   toHumanFriendTargetSummary,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
-import { buildPostCardAuthorProjection } from '../src/shell/renderer/features/home/post-card-projections.js';
 import { toFriendContact } from '../src/shell/renderer/features/relationship/relationship-model.js';
 import { toWorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
@@ -205,66 +204,4 @@ test('chat target projection accepts only canonical handle plus Runtime-issued a
       displayName: 'Persona A',
     },
   }), null);
-});
-
-test('post author projection keeps Character sourceRef separate from human profileId', () => {
-  const characterProjection = buildPostCardAuthorProjection({
-    authorId: '',
-    unknownDisplayName: 'Unknown',
-    post: {
-      authorKind: 'personaCharacter',
-      sourceAuthor: {
-        id: sourceRef.id,
-        kind: sourceRef.kind,
-        worldId: sourceRef.worldId,
-        sourceRef,
-        displayName: 'Persona A',
-        handle: '~persona-a',
-        avatarUrl: null,
-      },
-    } as never,
-  });
-  assert.deepEqual(characterProjection.authorProfileTarget, {
-    kind: 'character',
-    sourceRef,
-  });
-
-  assert.throws(() => buildPostCardAuthorProjection({
-    authorId: sourceRef.id,
-    unknownDisplayName: 'Unknown',
-    post: {
-      authorKind: 'personaCharacter',
-    } as never,
-  }), /Character-authored post requires sourceAuthor/i);
-
-  assert.throws(() => buildPostCardAuthorProjection({
-    authorId: 'account-a',
-    unknownDisplayName: 'Unknown',
-    post: {
-      authorKind: 'human',
-      sourceAuthor: {
-        id: sourceRef.id,
-        kind: sourceRef.kind,
-        worldId: sourceRef.worldId,
-        sourceRef,
-      },
-    } as never,
-  }), /Human-authored post cannot include Character sourceAuthor/i);
-
-  const humanProjection = buildPostCardAuthorProjection({
-    authorId: 'account-a',
-    unknownDisplayName: 'Unknown',
-    post: {
-      authorKind: 'human',
-      author: {
-        displayName: 'Human A',
-        handle: 'human-a',
-        avatarUrl: null,
-      },
-    } as never,
-  });
-  assert.equal(humanProjection.authorProfileTarget?.kind, 'human');
-  if (humanProjection.authorProfileTarget?.kind === 'human') {
-    assert.equal(humanProjection.authorProfileTarget.profileId, 'account-a');
-  }
 });

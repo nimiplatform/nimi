@@ -2,42 +2,33 @@ import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
-import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useExploreCatalogQuery } from './explore-catalog-query.js';
 import { createRealmExploreData } from './data/realm-explore-data';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
+import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import { ProfileDetailModal } from '../relationship/profile-detail-modal.js';
-import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ExploreView } from './explore-view';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
 import type { ExploreSectionId } from './explore-section-nav';
-import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources } from './explore-persona-source-projection';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import type { WorldCatalogPaging } from '../world/world-list';
 import { WorldAtlasPeople, WorldAtlasTopics } from '../world/world-atlas-data.js';
 import type { WorldListItem } from '../world/world-list-model.js';
 import { useWorldFavorites } from '../world/use-world-favorites.js';
-import { characterSourceMaterializationFailureMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from './character-source-materialization';
-import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { characterSourceMaterializationFailureMessage, characterSourceRefKey, describeCharacterPrimaryAction, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from './character-source-materialization';
+import { CharacterSourceConfirmationPendingError, confirmCharacterSourceMaterialized, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
-type PostDto = RealmModel<'PostDto'>;
 
 const PAGE_SIZE = 20;
-const DEFAULT_CATEGORIES = ['Research', 'Coding', 'Writing', 'Analysis', 'Creative', 'Education', 'Health & Finance'];
-
-function toRecord(value: unknown): JsonObject | null {
-  return parseOptionalJsonObject(value) ?? null;
-}
 
 type ExplorePanelProps = {
   activeSection: ExploreSectionId;
@@ -67,11 +58,9 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
 
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedProfileTarget, setSelectedProfileTarget] = useState<
-    Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
-  >(null);
   const setFeedback = emitFeedbackToast;
+  const sourceActionsInFlight = useRef(new Set<string>());
+  const [sourceActionStates, setSourceActionStates] = useState<Record<string, 'running' | 'refresh'>>({});
 
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const networkOffline = useAppStore((state) => state.offlineTier !== 'L0');
@@ -167,6 +156,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const personaSources = useMemo(
     () => personaSourceBase.map((personaSource) => ({
       ...personaSource,
+      materializationActionState: sourceActionStates[`${realmBaseUrl}:${ownerUserId}:${characterSourceRefKey(personaSource.sourceRef)}`],
       sourceState: resolveCharacterSourceState(
         personaSource,
         personaSourceLocalAgentsQuery.data ?? [],
@@ -181,120 +171,83 @@ export function ExplorePanel(props: ExplorePanelProps) {
       personaSourceLocalAgentsQuery.data,
       personaSourceRuntimeInventoryPending,
       personaSourceRuntimeInventoryUnavailable,
+      sourceActionStates,
+      ownerUserId,
+      realmBaseUrl,
     ],
   );
 
-  const categories = useMemo(() => {
-    const dynamicTags = new Set<string>();
-    for (const personaSource of personaSources) {
-      for (const tag of personaSource.tags) {
-        const normalized = tag.trim();
-        if (normalized) {
-          dynamicTags.add(normalized);
-        }
-      }
-    }
-    const combined = [...DEFAULT_CATEGORIES, ...Array.from(dynamicTags)];
-    return Array.from(new Set(combined)).slice(0, 16);
-  }, [personaSources]);
-
-  // fetchPostPage for PostFeed --PostFeed manages its own pagination internally
-  const fetchPostPage = useCallback(
-    async (cursor: string | null) => {
-      const tag = selectedCategory || undefined;
-      const result = cursor
-        ? await realmExploreData.loadMoreExploreFeed(PAGE_SIZE, cursor, tag)
-        : await realmExploreData.loadExploreFeed(tag ?? null, PAGE_SIZE);
-      const payload = toRecord(result);
-      const items = Array.isArray(payload?.items) ? (payload.items as PostDto[]) : [];
-      const page = toRecord(payload?.page);
-      const nextCursor =
-        typeof page?.nextCursor === 'string' && page.nextCursor ? page.nextCursor : null;
-      return { items, nextCursor };
-    },
-    [selectedCategory],
-  );
-
-  // Reset PostFeed when category changes or refresh is triggered
-  const [refreshKey, setRefreshKey] = useState(0);
-  const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
-
+  // @nimi-authority: rule.nimi.desktop.product-surfaces.r006
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
-    const auth = appStore.getState().auth;
-    const isCurrent = () => mounted.current && auth.status === 'authenticated' && appStore.getState().auth === auth;
-    if (!isCurrent()) return;
+    const scope = captureAccountActionScope(appStore);
+    if (!scope) return;
+    const isCurrent = () => mounted.current && scope.isCurrent();
+    if (!isCurrent() || scope.accountId !== ownerUserId || scope.realmBaseUrl !== realmBaseUrl) {
+      scope.dispose();
+      return;
+    }
+    const actionKey = `${realmBaseUrl}:${ownerUserId}:${characterSourceRefKey(source.sourceRef)}`;
+    if (sourceActionsInFlight.current.has(actionKey)) { scope.dispose(); return; }
+    const refreshOnly = source.materializationActionState === 'refresh';
+    const action = describeCharacterPrimaryAction(source.sourceState ?? 'source_materialization_unavailable', i18n.t);
+    if (!refreshOnly && action.disabled) { scope.dispose(); return; }
+    sourceActionsInFlight.current.add(actionKey);
+    setSourceActionStates((current) => ({ ...current, [actionKey]: 'running' }));
+    const clearAction = () => setSourceActionStates((current) => {
+      const next = { ...current };
+      delete next[actionKey];
+      return next;
+    });
+    let partnerConfirmed = refreshOnly;
     try {
-      await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
-      await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
-      if (!isCurrent()) return;
-      // Open the partner's own conversation; the list is only the fallback.
-      const target = source.sourceRef
-        ? await resolveAgentTargetSnapshotForSourceRef({ sourceRef: source.sourceRef, ownerUserId, sdk: bindings.sdk, isCurrent }).catch(() => null)
-        : null;
-      if (!isCurrent()) return;
-      if (target) {
-        await launchAgentConversationFromDisplay({
-          target,
-          navigation,
-
-          setAgentConversationTargetSnapshot,
-        });
-        logRendererEvent({ level: 'info', area: 'explore', message: 'action:realm-source-materialization:partner-ready' });
+      if (!refreshOnly && action.action === 'open_partner') {
+        const target = await resolveAgentTargetSnapshotForSourceRef({ sourceRef: source.sourceRef, ownerUserId, sdk: bindings.sdk, isCurrent });
+        if (!isCurrent()) return;
+        if (!target) throw new Error(i18n.t('Explore.characterPartnerOpenUnavailable', {
+          defaultValue: 'This partner could not be opened. Refresh your partner list and select the partner again.',
+        }));
+        await launchAgentConversationFromDisplay({ target, navigation, setAgentConversationTargetSnapshot });
+        if (isCurrent()) clearAction();
         return;
       }
-      void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
+      if (refreshOnly) {
+        await confirmCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
+      } else {
+        await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
+      }
+      partnerConfirmed = true;
+      await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false }, { throwOnError: true });
+      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true }, { throwOnError: true });
+      await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false }, { throwOnError: true });
       if (!isCurrent()) return;
+      clearAction();
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Partner added.',
-        }),
+        message: i18n.t('Explore.characterPartnerReadyFeedback', { defaultValue: 'Your partner is ready. Choose Open partner when you want to chat.' }),
       });
-      logRendererEvent({
-        level: 'info',
-        area: 'explore',
-        message: 'action:realm-source-materialization:partner-ready',
-      });
+      logRendererEvent({ level: 'info', area: 'explore', message: 'action:realm-source-materialization:partner-ready' });
     } catch (error) {
       if (!isCurrent()) return;
+      const refreshPending = partnerConfirmed || error instanceof CharacterSourceConfirmationPendingError;
+      if (refreshPending) setSourceActionStates((current) => ({ ...current, [actionKey]: 'refresh' }));
+      else clearAction();
       setFeedback({
-        kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error, i18n.t),
+        kind: refreshPending ? 'warning' : 'error',
+        message: refreshPending
+          ? i18n.t('Explore.characterSourceRefreshPending', { defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.' })
+          : characterSourceMaterializationFailureMessage(error, i18n.t),
+      });
+    } finally {
+      sourceActionsInFlight.current.delete(actionKey);
+      scope.dispose();
+      if (mounted.current) setSourceActionStates((current) => {
+        if (current[actionKey] !== 'running') return current;
+        const next = { ...current };
+        delete next[actionKey];
+        return next;
       });
     }
-  }, [
-    bindings,
-    ownerUserId,
-    queryClient,
-    navigation,
-
-    setAgentConversationTargetSnapshot,
-
-  ]);
-
-  const onToggleCategory = useCallback(
-    (category: string) => {
-      if (category === '') {
-        setSelectedCategory(null);
-      } else {
-        setSelectedCategory((current) => (current === category ? null : category));
-      }
-    },
-    [],
-  );
-
-  const onPostAuthorOpen = useCallback(
-    (target: PostCardAuthorProfileTarget) => {
-      if (target.kind === 'character') {
-        navigation.push({ id: 'source-detail', sourceRef: target.sourceRef });
-        return;
-      }
-      setSelectedProfileTarget(target);
-    },
-    [navigation],
-  );
+  }, [appStore, bindings.sdk, i18n, ownerUserId, realmBaseUrl, queryClient, navigation, setAgentConversationTargetSnapshot]);
 
   const onPersonaSourceOpen = useCallback(
     (sourceRef: CharacterSourceRefV3) => {
@@ -306,8 +259,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
   return (
     <>
       <ExploreView
-        selectedCategory={selectedCategory}
-        categories={categories}
         personaSources={personaSources}
         worldCatalogItems={worldFavorites ? favorites.worlds : worldCatalogItems}
         worldCatalogPaging={worldFavorites ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : worldCatalogPaging}
@@ -343,24 +294,13 @@ export function ExplorePanel(props: ExplorePanelProps) {
         activeSection={props.activeSection}
         onSectionChange={props.onSectionChange}
         onSearchTextChange={props.onSearchTextChange}
-        fetchPostPage={fetchPostPage}
-        postFeedKey={postFeedKey}
-        onPostDelete={() => setRefreshKey((k) => k + 1)}
         personaLoading={personaCatalog.initialLoading}
         personaError={personaCatalog.initialUnavailable}
         onRetryPersonas={() => {
           void personaSourcesQuery.refetch();
         }}
-        onToggleCategory={onToggleCategory}
         onPersonaSourceManage={onPersonaSourceManage}
         onPersonaSourceOpen={onPersonaSourceOpen}
-        onPostAuthorOpen={onPostAuthorOpen}
-      />
-      <ProfileDetailModal
-        open={Boolean(selectedProfileTarget)}
-        profileId={selectedProfileTarget?.profileId || ''}
-        profileSeed={selectedProfileTarget?.profileSeed || null}
-        onClose={() => setSelectedProfileTarget(null)}
       />
     </>
   );

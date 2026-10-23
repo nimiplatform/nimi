@@ -23,6 +23,8 @@ const goldenVectorPath = path.resolve(
 );
 
 const rejectedGoldenPayloads: Record<string, unknown> = {
+  'explore-activity-view': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-feed-1', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' } },
+  'explore-activity-section-only': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-feed-2', intent: { kind: 'open-explore', section: 'activity' } },
   'source-app-missing': { schemaVersion: 1, sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-1', intent: { kind: 'open-settings', section: 'profile' } },
   'unknown-field-authorization': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-2', authorization: 'secret', intent: { kind: 'open-settings', section: 'profile' } },
   'unknown-target': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-3', intent: { kind: 'open-developer-tools' } },

@@ -57,5 +57,9 @@
   "characterSourceUnavailable": "不可用",
   "friendshipRequested": "已申请",
   "friendshipFriends": "已是好友",
-  "worldOwned": "世界归属"
+  "worldOwned": "世界归属",
+  "characterPartnerRefresh": "刷新伙伴",
+  "characterPartnerOpenUnavailable": "暂时无法打开这位伙伴。请刷新伙伴列表，再重新选择。",
+  "characterPartnerReadyFeedback": "伙伴已就绪。想聊天时，请点击“打开伙伴”。",
+  "characterSourceRefreshPending": "伙伴已创建，但暂时无法刷新伙伴列表。请刷新伙伴以确认结果，这不会再次创建伙伴。"
 }

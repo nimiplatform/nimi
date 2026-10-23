@@ -43,7 +43,7 @@ async function settle() {
 }
 
 function document(overrides: Record<string, unknown> = {}) {
-  return { version: 1, hiddenActivities: {}, hiddenRealmPosts: [], appSourcesOffHome: [], realmPostsOnHome: true, ...overrides };
+  return { version: 1, hiddenActivities: {}, appSourcesOffHome: [], ...overrides };
 }
 
 async function withRenderer(run: (render: (store: HomeMessagePreferencesStorage) => Promise<void>, latest: () => HomeMessagePreferencesController) => Promise<void>) {
@@ -81,7 +81,7 @@ test('a first missing document means defaults, and only the first real change wr
     assert.equal(store.writes.length, 0, 'opening Home or Settings never writes an empty document');
     let saved = false;
     await act(async () => {
-      saved = await latest().apply({ kind: 'hide', activities: [{ activityId: 'act_1', revision: 2 }], realmPostIds: [] });
+      saved = await latest().apply({ kind: 'hide', activities: [{ activityId: 'act_1', revision: 2 }] });
     });
     assert.equal(saved, true);
     assert.deepEqual(store.writes, [document({ hiddenActivities: { act_1: 2 } })]);
@@ -101,7 +101,7 @@ test('any other read failure stays visible and blocks changes until a manual rel
     await render(store);
     assert.equal(latest().state.status, 'unavailable', 'a failed read is never mistaken for defaults');
     let saved = true;
-    await act(async () => { saved = await latest().apply({ kind: 'realm-posts', onHome: false }); });
+    await act(async () => { saved = await latest().apply({ kind: 'app-source', sourceRef: 'src_test', onHome: false }); });
     assert.equal(saved, false);
     assert.equal(store.writes.length, 0);
     await act(async () => { latest().reload(); });
@@ -135,14 +135,14 @@ test('a replaced storage boundary ignores the late read of the previous one', as
   await withRenderer(async (render, latest) => {
     let resolveFirst: (value: unknown) => void = () => undefined;
     const first = storage({ read: () => new Promise((resolve) => { resolveFirst = resolve; }) });
-    const second = storage({ read: async () => document({ hiddenRealmPosts: ['post_b'] }) });
+    const second = storage({ read: async () => document({ hiddenActivities: { act_b: 2 } }) });
     await render(first);
     assert.equal(latest().state.status, 'loading');
     await render(second);
-    await act(async () => { resolveFirst(document({ hiddenRealmPosts: ['post_a'] })); });
+    await act(async () => { resolveFirst(document({ hiddenActivities: { act_a: 1 } })); });
     await settle();
     const state = latest().state;
-    assert.deepEqual(state.status === 'ready' ? state.preferences.hiddenRealmPosts : null, ['post_b']);
+    assert.deepEqual(state.status === 'ready' ? state.preferences.hiddenActivities : null, { act_b: 2 });
     assert.equal(second.reads, 1, 'the new boundary reads its own storage');
   });
 });

@@ -21,9 +21,6 @@ const failClosedOffline: RealmSocialOfflinePort = Object.freeze({
   async loadProfileMetadata() { return null; },
   markCacheFallbackUsed() {},
   markRealmUnreachable() {},
-  async queueSocialMutation() {
-    throw new Error('TEST_SOCIAL_OFFLINE_QUEUE_UNADMITTED');
-  },
 });
 
 function resetCachedContacts() {

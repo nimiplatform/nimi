@@ -1,6 +1,5 @@
 import type {
   PersistentOutboxEntry,
-  PersistentSocialMutationEntry,
 } from './types.js';
 import {
   OFFLINE_OUTBOX_MAX_ENTRIES,
@@ -8,7 +7,6 @@ import {
 import {
   hasIndexedDb,
   OFFLINE_STORE_CHAT_OUTBOX,
-  OFFLINE_STORE_SOCIAL_OUTBOX,
   openOfflineDatabase,
 } from './database.js';
 
@@ -18,13 +16,11 @@ export type OfflineOutboxEphemeralStoreOptions = {
 
 type OfflineOutboxEphemeralStore = {
   chatOutbox: Map<string, PersistentOutboxEntry>;
-  socialOutbox: Map<string, PersistentSocialMutationEntry>;
 };
 
 function createEphemeralStore(): OfflineOutboxEphemeralStore {
   return {
     chatOutbox: new Map(),
-    socialOutbox: new Map(),
   };
 }
 
@@ -202,52 +198,4 @@ export class OfflineOutboxManager {
     });
   }
 
-  async queueSocialMutation(entry: PersistentSocialMutationEntry): Promise<void> {
-    if (this.ephemeral) {
-      this.ensureEphemeralStore().socialOutbox.set(entry.id, entry);
-      return;
-    }
-    const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_SOCIAL_OUTBOX, 'readwrite');
-    tx.objectStore(OFFLINE_STORE_SOCIAL_OUTBOX).put(entry);
-    await this.complete(tx);
-  }
-
-  async getSocialMutationEntries(): Promise<PersistentSocialMutationEntry[]> {
-    if (this.ephemeral) {
-      return Array.from(this.ensureEphemeralStore().socialOutbox.values())
-        .sort((a, b) => a.enqueuedAt - b.enqueuedAt);
-    }
-    const items = await this.getAll<PersistentSocialMutationEntry>(OFFLINE_STORE_SOCIAL_OUTBOX);
-    return items.sort((a, b) => a.enqueuedAt - b.enqueuedAt);
-  }
-
-  async getPendingSocialMutationCount(): Promise<number> {
-    const entries = await this.getSocialMutationEntries();
-    return entries.filter((entry) => entry.status === 'pending').length;
-  }
-
-  async markSocialMutationSent(id: string): Promise<void> {
-    if (this.ephemeral) {
-      this.ensureEphemeralStore().socialOutbox.delete(id);
-      return;
-    }
-    const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_SOCIAL_OUTBOX, 'readwrite');
-    tx.objectStore(OFFLINE_STORE_SOCIAL_OUTBOX).delete(id);
-    await this.complete(tx);
-  }
-
-  async markSocialMutationFailed(id: string, reason: string): Promise<void> {
-    const entries = await this.getSocialMutationEntries();
-    const existing = entries.find((entry) => entry.id === id);
-    if (!existing) {
-      return;
-    }
-    await this.queueSocialMutation({
-      ...existing,
-      status: 'failed',
-      failReason: reason,
-    });
-  }
 }

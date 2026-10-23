@@ -45,8 +45,10 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
     },
   } as never;
   const flushAutosave = async () => {
-    for (const listener of [...timers]) { timers.delete(listener); listener({ ok: true }); }
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => {
+      for (const listener of [...timers]) { timers.delete(listener); listener({ ok: true }); }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
   };
   const radio = (label: string) => [...dom.window.document.querySelectorAll('[role="radio"]')]
     .find((element) => element.textContent === label) as HTMLButtonElement | undefined;
@@ -64,11 +66,17 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
       );
     });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    assert.equal(dom.window.document.querySelector('[aria-label="Default Post Visibility"]'), null);
+    assert.ok(dom.window.document.querySelector('[aria-label="Direct Message Visibility"]'));
+    assert.ok(dom.window.document.querySelector('[aria-label="Online Status Visibility"]'));
     const strict = radio('Strict');
     assert.ok(strict, 'visibility mode control rendered');
     await act(async () => { strict.click(); });
     await flushAutosave();
     assert.equal(updates.length, 1);
+    assert.equal(Object.hasOwn(updates[0] as object, 'defaultPostVisibility'), false);
+    assert.equal((updates[0] as { dmVisibility: string }).dmVisibility, 'FRIENDS');
+    assert.equal((updates[0] as { onlineStatusVisibility: string }).onlineStatusVisibility, 'PRIVATE');
     for (let cycle = 0; cycle < 5; cycle += 1) await flushAutosave();
     assert.equal(updates.length, 1, 'the same failed edit was retried automatically');
     assert.equal(radio('Strict')?.getAttribute('aria-checked'), 'true', 'unsaved choice was discarded');

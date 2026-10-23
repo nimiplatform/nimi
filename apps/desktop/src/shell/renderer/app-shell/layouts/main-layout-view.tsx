@@ -16,7 +16,6 @@ import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
 } from '../../features/notification/notification-query.js';
-import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { shouldHideMainLayoutPrimaryRail } from './main-layout-primary-rail';
 import {
@@ -101,7 +100,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
-  const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
   const reducedMotion = useDesktopReducedMotion();
   const interactiveMotion = useDesktopInteractiveMotion();
 
@@ -404,10 +402,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             activeTab={props.activeTab}
             exploreActiveSection={exploreActiveSection}
             exploreSearchText={exploreSearchText}
-            homeFeedScope={homeFeedScope}
             runtimeActive={runtimeActive}
             runtimeEverMounted={runtimeEverMounted}
-            onHomeFeedScopeChange={setHomeFeedScope}
             onExploreSectionChange={section => void navigation.push({ id: 'explore', exploreSection: section, search: destination.search ?? '', worldSearch: destination.worldSearch, worldTopicId: destination.worldTopicId })}
             onExploreSearchTextChange={search => void navigation.replace({ id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search, exploreWorldId: destination.exploreWorldId, worldSearch: destination.worldSearch, worldTopicId: destination.worldTopicId })}
           />

@@ -1,6 +1,6 @@
 import { AppCardSurface, Button, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
 import { NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE } from '@nimiplatform/sdk/app';
-import { ArrowUpCircle, ArrowUpRight, Check, CircleAlert, Download, Play, X } from 'lucide-react';
+import { ArrowUpCircle, ArrowUpRight, Check, CircleAlert, Download, X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -45,8 +45,6 @@ export function messageSourceLabel(message: HomeMessage, t: Translate): string {
       return message.record.agent
         ? t('runtimeConfig.overview.messages.sourceRuntime', { name: message.record.agent.displayName })
         : t('runtimeConfig.overview.messages.sourceRuntimeUnknown');
-    case 'realm-post':
-      return t('runtimeConfig.overview.messages.sourceRealm', { name: message.post.authorName });
     case 'system':
       return t(`runtimeConfig.overview.messages.system.${message.system.kind}`);
   }
@@ -59,21 +57,16 @@ export function messageTitle(message: HomeMessage, t: Translate): string {
       return message.sourceKind === 'runtime-agent' && message.record.type === NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE
         ? t('runtimeConfig.overview.appActivity.runtimeTurnTitle')
         : message.record.title;
-    case 'realm-post':
-      return t('runtimeConfig.overview.messages.postedTitle', { author: message.post.authorName });
     case 'system':
       return message.system.title;
   }
 }
 
-function messageSummary(message: HomeMessage, t: Translate): string | null {
+function messageSummary(message: HomeMessage): string | null {
   switch (message.sourceKind) {
     case 'app':
     case 'runtime-agent':
       return message.record.summary;
-    case 'realm-post':
-      if (message.post.caption) return message.post.caption;
-      return message.post.media.length ? null : t('runtimeConfig.overview.messages.noCaption');
     case 'system':
       return message.system.detail || null;
   }
@@ -147,12 +140,6 @@ export function MessageSourceIcon({ message, context }: { message: HomeMessage; 
     }
     case 'runtime-agent':
       return <Initial name={message.record.agent?.displayName || 'Runtime'} tone="info" />;
-    case 'realm-post':
-      return message.post.authorAvatarUrl ? (
-        <img src={message.post.authorAvatarUrl} alt="" className="size-10 shrink-0 rounded-xl object-cover" />
-      ) : (
-        <Initial name={message.post.authorName} tone="info" />
-      );
     case 'system':
       if (message.system.kind === 'update' && message.system.app) {
         return (
@@ -180,7 +167,6 @@ function StateBadges({ message }: { message: HomeMessage }) {
     const tone = message.system.kind === 'setup' ? 'warning' : message.system.kind === 'download' ? 'info' : 'neutral';
     return <StatusBadge tone={tone}>{t(`runtimeConfig.overview.messages.system.${message.system.kind}State`)}</StatusBadge>;
   }
-  if (message.sourceKind === 'realm-post') return null;
   const { record } = message;
   return (
     <>
@@ -198,7 +184,6 @@ function StateBadges({ message }: { message: HomeMessage }) {
 
 function openLabel(message: HomeMessage, busy: 'open' | 'read' | undefined, t: Translate): string | null {
   if (message.sourceKind === 'system') return t('runtimeConfig.overview.messages.view');
-  if (message.sourceKind === 'realm-post') return t('runtimeConfig.overview.messages.viewPost');
   // Runtime summaries and records without an App source object have no target.
   if (!isOpenable(message.record)) return null;
   return t(busy === 'open' ? 'runtimeConfig.overview.appActivity.opening' : 'runtimeConfig.overview.appActivity.open');
@@ -221,27 +206,6 @@ function HideButton({ label, onClick }: { label: string; onClick: () => void }) 
         <X size={12} strokeWidth={2.5} aria-hidden="true" />
       </span>
     </button>
-  );
-}
-
-function MediaThumb({ message }: { message: HomeMessage }) {
-  if (message.sourceKind !== 'realm-post' || !message.post.media.length) return null;
-  const [first] = message.post.media;
-  const more = message.post.media.length - 1;
-  return (
-    <span className="relative size-11 shrink-0 self-start overflow-hidden rounded-xl bg-[var(--nimi-surface-active)]" aria-hidden="true">
-      <img src={first!.url} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
-      {first!.kind === 'VIDEO' ? (
-        <span className="absolute inset-0 flex items-center justify-center text-white drop-shadow">
-          <Play size={14} fill="currentColor" />
-        </span>
-      ) : null}
-      {more > 0 ? (
-        <span className="absolute bottom-0.5 right-0.5 rounded-md bg-[var(--nimi-text-primary)] px-1 text-[10px] font-medium text-[var(--nimi-text-inverse)]">
-          {`+${more}`}
-        </span>
-      ) : null}
-    </span>
   );
 }
 
@@ -318,7 +282,7 @@ function HomeMessageCardCompact({ message, context }: {
   const activityId = message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
   const busy = activityId ? context.busy[activityId] : undefined;
   const notice = activityId ? context.notices[activityId] : undefined;
-  const summary = messageSummary(message, t);
+  const summary = messageSummary(message);
   const open = openLabel(message, busy, t);
   const progress = message.sourceKind === 'system' ? message.system.progress : null;
   const title = messageTitle(message, t);
@@ -327,8 +291,7 @@ function HomeMessageCardCompact({ message, context }: {
     ? t('runtimeConfig.overview.appActivity.withAgent', { agent: message.record.agent.displayName })
     : null;
   const hasBadges = message.sourceKind === 'system'
-    || (message.sourceKind !== 'realm-post'
-      && ((message.record.kind === 'todo' && Boolean(message.record.todoState)) || message.record.userView.needsAttention));
+    || (((message.record.kind === 'todo' && Boolean(message.record.todoState)) || message.record.userView.needsAttention));
   const actions: ReactNode[] = [];
   if (unread) {
     actions.push(
@@ -399,7 +362,6 @@ function HomeMessageCardCompact({ message, context }: {
           </p>
         ) : null}
       </div>
-      <MediaThumb message={message} />
       {actions.length ? (
         <div className="absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100">
           {actions}
@@ -422,7 +384,7 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
   const activityId = message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
   const busy = activityId ? context.busy[activityId] : undefined;
   const notice = activityId ? context.notices[activityId] : undefined;
-  const summary = messageSummary(message, t);
+  const summary = messageSummary(message);
   const open = openLabel(message, busy, t);
   const progress = message.sourceKind === 'system' ? message.system.progress : null;
   const title = messageTitle(message, t);
@@ -509,7 +471,6 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
           </p>
         ) : null}
       </div>
-      <MediaThumb message={message} />
     </AppCardSurface>
   );
 }
@@ -563,7 +524,7 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
   const lead = group.messages[0]!;
   const others = group.messages.length - 1;
   const label = messageSourceLabel(lead, t);
-  const summary = messageSummary(lead, t);
+  const summary = messageSummary(lead);
   const hideable = context.canHide && group.messages.every(isHideableMessage);
   const pending = group.sourceKind !== 'system' && group.messages.some(isPendingMessage);
   return (

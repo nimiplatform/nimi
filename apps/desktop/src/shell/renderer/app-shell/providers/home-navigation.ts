@@ -27,7 +27,7 @@ export type HomeDestination = {
   readonly sourceRef?: CharacterSourceRefV3;
   readonly worldId?: string;
   readonly worldSubpage?: WorldDetailInitialSubpage;
-  readonly exploreSection?: 'worlds' | 'personas' | 'activity';
+  readonly exploreSection?: 'worlds' | 'personas';
   readonly search?: string;
   readonly exploreWorldId?: string;
   readonly worldSearch?: string;
@@ -36,7 +36,6 @@ export type HomeDestination = {
   readonly appId?: string;
   readonly appEntryKey?: string;
   readonly appSection?: NimiDesktopOpenAppsSection;
-  readonly postId?: string;
   readonly settingsSection?: string;
   readonly chat?: HomeChatPosition;
   readonly runtime?: HomeRuntimePosition;
@@ -55,7 +54,7 @@ export type HomeChatPosition = {
 const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], 'agent-center': ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
-  activity: ['postId'], settings: ['settingsSection'], support: [], profile: ['profileId'],
+  settings: ['settingsSection'], support: [], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
   notification: [], 'privacy-policy': [], 'terms-of-service': [],
 };
@@ -72,7 +71,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   if (Object.keys(input).some(key => key !== 'id' && !CATALOG[id].includes(key))) throw new Error('Unexpected Home destination fields.');
   const result: Record<string, unknown> = { id };
   for (const key of CATALOG[id]) if (input[key] !== undefined) result[key] = input[key];
-  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'worldTopicId', 'appId', 'appEntryKey', 'postId']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
+  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'worldTopicId', 'appId', 'appEntryKey']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
   if (id === 'profile' && typeof result.profileId === 'string' && /^(local-agent:|runtime-source:)/.test(result.profileId)) throw new Error('A human profile requires an account reference.');
   if (id === 'world-detail' && !result.worldId) throw new Error('World detail requires a world reference.');
   if (id === 'source-detail') {
@@ -82,7 +81,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   }
   const closed = (key: string, allowed: readonly string[]) => { if (result[key] !== undefined && !allowed.includes(result[key] as string)) throw new Error(`Invalid Home ${key}.`); };
   closed('homeSection', ['overview', 'center', 'integrations']);
-  closed('exploreSection', ['worlds', 'personas', 'activity']);
+  closed('exploreSection', ['worlds', 'personas']);
   closed('worldCollection', ['favorites']);
   closed('worldSubpage', ['relationship-explorer']);
   closed('appSection', ['overview', 'ai-models']);

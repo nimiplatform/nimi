@@ -33,7 +33,7 @@ export type ProfileDetailViewProps = {
 
 export const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
-const DEFAULT_TAB: HumanProfileTab = 'Posts';
+const DEFAULT_TAB: HumanProfileTab = 'Collections';
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 
 export function useProfileDetailViewController(props: ProfileDetailViewProps, realmBaseUrl: string) {

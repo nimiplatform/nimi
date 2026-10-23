@@ -39,7 +39,6 @@ const MODE_PRESETS: ModePresets = {
     friendRequestVisibility: 'PUBLIC',
     socialVisibility: 'FRIENDS',
     onlineStatusVisibility: 'PUBLIC',
-    defaultPostVisibility: 'PUBLIC',
     dmVisibility: 'PUBLIC',
   },
   SMARTER_FILTER: {
@@ -47,7 +46,6 @@ const MODE_PRESETS: ModePresets = {
     friendRequestVisibility: 'FRIENDS',
     socialVisibility: 'FRIENDS',
     onlineStatusVisibility: 'FRIENDS',
-    defaultPostVisibility: 'FRIENDS',
     dmVisibility: 'FRIENDS',
   },
   STRICT: {
@@ -55,7 +53,6 @@ const MODE_PRESETS: ModePresets = {
     friendRequestVisibility: 'FRIENDS',
     socialVisibility: 'PRIVATE',
     onlineStatusVisibility: 'PRIVATE',
-    defaultPostVisibility: 'FRIENDS',
     dmVisibility: 'FRIENDS',
   },
 };
@@ -65,7 +62,6 @@ type PrivacyForm = {
   friendRequestVisibility: VisibilityValue;
   socialVisibility: VisibilityValue;
   onlineStatusVisibility: VisibilityValue;
-  defaultPostVisibility: VisibilityValue;
   dmVisibility: VisibilityValue;
 };
 
@@ -93,21 +89,17 @@ function toPrivacyForm(settings: UserSettingsDto | null | undefined): PrivacyFor
       settings.onlineStatusVisibility,
       DEFAULT_FORM.onlineStatusVisibility,
     ),
-    defaultPostVisibility: normalizeVisibility(
-      settings.defaultPostVisibility,
-      DEFAULT_FORM.defaultPostVisibility,
-    ),
     dmVisibility: normalizeVisibility(settings.dmVisibility, DEFAULT_FORM.dmVisibility),
   };
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r018
 function toUpdatePayload(form: PrivacyForm): UpdateUserSettingsDto {
   return {
     profileVisibility: form.profileVisibility as Visibility,
     friendRequestVisibility: form.friendRequestVisibility as Visibility,
     socialVisibility: form.socialVisibility as Visibility,
     onlineStatusVisibility: form.onlineStatusVisibility as Visibility,
-    defaultPostVisibility: form.defaultPostVisibility as Visibility,
     dmVisibility: form.dmVisibility as Visibility,
   };
 }
@@ -128,7 +120,6 @@ function formsEqual(left: PrivacyForm, right: PrivacyForm): boolean {
     && left.friendRequestVisibility === right.friendRequestVisibility
     && left.socialVisibility === right.socialVisibility
     && left.onlineStatusVisibility === right.onlineStatusVisibility
-    && left.defaultPostVisibility === right.defaultPostVisibility
     && left.dmVisibility === right.dmVisibility
   );
 }
@@ -416,28 +407,13 @@ export function PrivacyPage() {
         </Card>
       </Section>
 
-      {/* Messaging & Post Section */}
+      {/* Direct Messaging Section */}
       <Section
         title={t('PrivacySettings.messagingSectionTitle')}
         description={t('PrivacySettings.messagingSectionDescription')}
       >
         <Card>
           <div className="divide-y divide-[color:var(--nimi-border-subtle)]">
-            <SettingRow
-              title={t('PrivacySettings.defaultPostVisibilityLabel')}
-              description={t('PrivacySettings.defaultPostVisibilityHelper')}
-              control={(
-                <SegmentedControl
-                  items={visibilitySelectOptions}
-                  value={form.defaultPostVisibility}
-                  onValueChange={(value) => applyUserEdit({
-                    defaultPostVisibility: normalizeVisibility(value, form.defaultPostVisibility),
-                  })}
-                  ariaLabel={t('PrivacySettings.defaultPostVisibilityLabel')}
-                  size="sm"
-                />
-              )}
-            />
             <SettingRow
               title={t('PrivacySettings.directMessageVisibilityLabel')}
               description={t('PrivacySettings.directMessageVisibilityHelper')}

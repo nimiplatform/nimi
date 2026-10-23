@@ -2,6 +2,13 @@
 
 # SDK migration notes
 
+## Unreleased — Realm launch hard cut (0.x minor)
+
+Use matching source-built Realm, Runtime, SDK, Kit and Desktop. Realm Post/feed, user/Post search and recommendations are deferred: their generated operations, handwritten SDK helpers, offline replay, Runtime broker admission and Desktop Activity entry are removed. Explore retains World and Persona catalogs and source actions. Exact-handle friend requests use `social.addFriendByHandle` and return only `requested`, `accepted` or `unchanged`; complete profile reads retain their separate privacy checks. Rebuild Runtime with the regenerated broker policy to use this operation from Desktop. Ordinary friendship, direct messaging and presence remain supported. `open-explore` accepts only `worlds` or `personas`; `activity`/`view-activity` reject. No compatibility route or automatic user-data migration is provided. This changes the next unreleased minor, not the published 0.21.0 package.
+
+Account 2FA setup now sends the actual prepare body and requires the same-session `challengeId` when enabling; callers must retain the prepare response until successful enable.
+
+
 ## SDK 0.22.0 — LocalAgent life frames (development)
 
 Use matching source-built Runtime, SDK, Kit, and native builds. This unreleased 0.x hard cut has no compatibility path or automatic migration. LocalAgent no longer owns user commitments, generic natural-language task controls, task timezones, or control outcomes. Existing conversations and Memory are preserved; obsolete local controls are retired only through explicitly reviewed one-time tools.

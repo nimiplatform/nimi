@@ -73,25 +73,6 @@ accepted:
       intent:
         kind: open-explore
         section: worlds
-  - id: explore-activity-view
-    envelope:
-      schemaVersion: 1
-      sourceApp: nimi.test-launcher
-      sourceHost: tauri-standard-shell
-      requestId: desktop-open-20260708-0010
-      intent:
-        kind: open-explore
-        section: activity
-        productIntent: view-activity
-  - id: explore-activity-section-only
-    envelope:
-      schemaVersion: 1
-      sourceApp: nimi.test-launcher
-      sourceHost: electron-standard-shell
-      requestId: desktop-open-20260708-0013
-      intent:
-        kind: open-explore
-        section: activity
   - id: explore-personas-discover
     envelope:
       schemaVersion: 1
@@ -178,6 +159,10 @@ accepted:
         kind: open-settings
         section: profile
 rejected:
+  - id: explore-activity-view
+    reasonCode: desktop-open-target-unsupported
+  - id: explore-activity-section-only
+    reasonCode: desktop-open-target-unsupported
   - id: source-app-missing
     reasonCode: desktop-open-intent-invalid
   - id: unknown-field-authorization

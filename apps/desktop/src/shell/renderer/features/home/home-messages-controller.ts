@@ -1,12 +1,10 @@
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useMemo } from 'react';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { mergeActivitySnapshots } from './home-app-activity-model.js';
 import { useHomeAppActivity, type HomeAppActivity } from './home-app-activity.js';
-import { activityMessage, isHideableMessage, realmPostMessage, type HomeMessage, type HomeSystemItemMessage } from './home-messages-model.js';
+import { activityMessage, isHideableMessage, type HomeMessage, type HomeSystemItemMessage } from './home-messages-model.js';
 import { isHiddenFromHome, isSourceOffHome, useHomeMessagePreferences, type HomeMessagePreferences, type HomeMessagePreferencesController, type HomeMessagePreferencesStorage } from './home-messages-preferences.js';
-import { HOME_REALM_POST_PREVIEW, useHomeRealmPosts, type HomeRealmPosts } from './home-realm-posts.js';
 
 /** Where a message stands relative to the Home preview. */
 export type HomeMessagePlacement = 'shown' | 'hidden' | 'source-off';
@@ -19,7 +17,6 @@ export type HomeMessages = Readonly<{
   /** Loaded messages kept off Home by hiding or a source display choice. */
   offHomeCount: number;
   app: HomeAppActivity;
-  realm: HomeRealmPosts;
   preferences: HomeMessagePreferencesController;
   placement: (message: HomeMessage) => HomeMessagePlacement;
   open: (message: HomeMessage) => void;
@@ -44,11 +41,9 @@ function placementOf(message: HomeMessage, preferences: HomeMessagePreferences |
 export function useHomeMessages(input: Readonly<{
   systemMessages: readonly HomeSystemItemMessage[];
 }>): HomeMessages {
-  const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
 
   const app = useHomeAppActivity();
-  const realm = useHomeRealmPosts(true);
   const storage = useMemo<HomeMessagePreferencesStorage>(() => ({
     readJson: (relativePath) => sdk.appProduct().storage.readJson(relativePath),
     writeJson: (relativePath, value) => sdk.appProduct().storage.writeJson(relativePath, value),
@@ -59,16 +54,14 @@ export function useHomeMessages(input: Readonly<{
   const messages = useMemo<HomeMessage[]>(() => [
     ...input.systemMessages,
     ...mergeActivitySnapshots(app.pending, app.recent).map(activityMessage),
-    ...realm.posts.map(realmPostMessage),
-  ], [app.pending, app.recent, input.systemMessages, realm.posts]);
+  ], [app.pending, app.recent, input.systemMessages]);
 
   const { homeMessages, offHomeCount } = useMemo(() => {
     if (preferences.state.status === 'loading') return { homeMessages: null, offHomeCount: 0 };
     // Unreadable preferences keep every message visible rather than guessing.
     const onHome = messages.filter((message) => placementOf(message, ready) === 'shown');
-    let realmPosts = 0;
     return {
-      homeMessages: onHome.filter((message) => message.sourceKind !== 'realm-post' || (realmPosts += 1) <= HOME_REALM_POST_PREVIEW),
+      homeMessages: onHome,
       offHomeCount: messages.length - onHome.length,
     };
   }, [messages, preferences.state.status, ready]);
@@ -78,12 +71,10 @@ export function useHomeMessages(input: Readonly<{
     homeMessages,
     offHomeCount,
     app,
-    realm,
     preferences,
     placement: (message) => placementOf(message, ready),
     open: (message) => {
       if (message.sourceKind === 'system') message.system.open();
-      else if (message.sourceKind === 'realm-post') navigation.push({ id: 'activity', postId: message.post.id });
       else app.open(message.record);
     },
     markRead: (message) => {
@@ -97,12 +88,10 @@ export function useHomeMessages(input: Readonly<{
         activities: hideable.flatMap((message) => (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent'
           ? [{ activityId: message.record.activityId, revision: message.record.revision }]
           : [])),
-        realmPostIds: hideable.flatMap((message) => (message.sourceKind === 'realm-post' ? [message.post.id] : [])),
       });
     },
     showOnHome: (message) => {
-      if (message.sourceKind === 'realm-post') void preferences.apply({ kind: 'show', realmPostId: message.post.id });
-      else if (message.sourceKind !== 'system') void preferences.apply({ kind: 'show', activityId: message.record.activityId });
+      if (message.sourceKind !== 'system') void preferences.apply({ kind: 'show', activityId: message.record.activityId });
     },
   };
 }

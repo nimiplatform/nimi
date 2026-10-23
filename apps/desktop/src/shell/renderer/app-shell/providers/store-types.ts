@@ -41,7 +41,6 @@ export type AppTab =
   | 'cloud'
   | 'downloads'
   | 'diagnostics'
-  | 'activity'
   | 'settings'
   | 'support'
   | 'profile'

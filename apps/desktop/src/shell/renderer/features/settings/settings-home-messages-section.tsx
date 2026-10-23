@@ -143,13 +143,6 @@ export function HomeMessagesSettingsView({ preferences, sources, sourcesStatus, 
                 ) : null}
               </div>
             ) : null}
-            <ToggleRow
-              title={t('Notifications.homeMessages.realmPosts')}
-              description={t('Notifications.homeMessages.realmPostsDescription')}
-              checked={ready?.realmPostsOnHome ?? true}
-              disabled={disabled}
-              onChange={(onHome) => void preferences.apply({ kind: 'realm-posts', onHome })}
-            />
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Button

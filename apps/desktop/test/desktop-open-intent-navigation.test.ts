@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
+import { parseNimiDesktopOpenIntent, type NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 import {
   applyDesktopOpenIntentToAppStore as applyDesktopOpenIntent,
   resolveDesktopOpenAgentCenterTarget,
@@ -38,8 +38,6 @@ const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.explore-personas-section', intent: { kind: 'open-explore', section: 'personas' }, expected: { activeTab: 'explore', section: 'personas' } },
   { rowId: 'target.explore-personas', intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' }, expected: { activeTab: 'explore', section: 'personas' } },
   { rowId: 'target.explore-personas-discover', intent: { kind: 'open-explore', section: 'personas', productIntent: 'discover-personas' }, expected: { activeTab: 'explore', section: 'personas' } },
-  { rowId: 'target.explore-activity-section', intent: { kind: 'open-explore', section: 'activity' }, expected: { activeTab: 'explore', section: 'activity' } },
-  { rowId: 'target.explore-activity', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' }, expected: { activeTab: 'explore', section: 'activity' } },
   { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'personas', query: 'mentor' }, expected: { activeTab: 'explore', section: 'personas', query: 'mentor' } },
   { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloudServices' } },
   { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'modelLibrary' } },
@@ -234,4 +232,10 @@ test('Desktop Open Intent maps settings profile and app details to owned surface
   assert.equal(state.appId, 'nimi.notes');
   assert.equal(state.appEntryKey, undefined);
   assert.equal(state.appSection, 'ai-models');
+});
+
+test('Desktop Open rejects the deferred activity feed before changing navigation', () => {
+  const before = productionAppStore.navigation.getSnapshot();
+  assert.throws(() => applyDesktopOpenIntentToAppStore(parseNimiDesktopOpenIntent({ kind: 'open-explore', section: 'activity' })), { reasonCode: 'desktop-open-target-unsupported' });
+  assert.equal(productionAppStore.navigation.getSnapshot(), before);
 });

@@ -15,11 +15,11 @@ units:
   - id: definition.nimi.desktop.product-surfaces.explore
     kind: definition
     title: Desktop Explore product surface
-    meaning: Desktop Explore is the ordinary Realm discovery surface for admitted Worlds, PersonaCharacter sources, World-bound WorldCharacter sources, and public Realm activity without owning Realm, source, Runtime, LocalAgent, shell, or AI-execution truth.
+    meaning: Desktop Explore is the ordinary Realm discovery surface for admitted Worlds, PersonaCharacter sources and World-bound WorldCharacter sources; Realm public-activity feed and publishing are deferred for the current launch. It owns no Realm, source, Runtime, LocalAgent or AI-execution truth.
   - id: definition.nimi.desktop.product-surfaces.home-feed
     kind: definition
     title: Desktop activity feed
-    meaning: The activity feed is the Realm feed presentation and Create Post affordance reached through an explicit Activity entry from the Nimi overview. It remains separate from the overview, the enclosing shell and Realm feed truth.
+    meaning: Realm public-activity feed is deferred for the current Desktop launch and has no mounted reader, publishing affordance or navigation destination; its historical records do not admit an executable Desktop surface.
   - id: definition.nimi.desktop.product-surfaces.support
     kind: definition
     title: Desktop Support product surface
@@ -36,7 +36,7 @@ units:
     kind: rule
     title: Explore is the unified Realm discovery surface
     modality: must
-    statement: Explore is the single ordinary Desktop surface for discovering admitted Realm Worlds, PersonaCharacters, World-bound WorldCharacter sources, and public activity; World is folded into Explore, Apps retains App discovery, and WorldCharacter discovery uses World detail and source detail without a fourth Explore section.
+    statement: Explore is the single ordinary Desktop surface for discovering admitted Realm Worlds and PersonaCharacters. World is folded into Explore, Apps retains App discovery, and WorldCharacter discovery uses World detail and source detail. Realm public activity, publishing and social search or recommendation are deferred and have no ordinary entry.
     condition: Whenever Desktop exposes ordinary Realm discovery or constructs its ordinary navigation destinations.
     failure: Reject a standalone World destination, App discovery in Explore, a fourth Explore section, or another ordinary Realm discovery owner.
     relations:
@@ -46,7 +46,7 @@ units:
     kind: rule
     title: Explore sections are closed
     modality: must
-    statement: Explore has exactly Worlds for admitted WorldCore browsing and World detail entry, Personas for PersonaCharacter discovery across Worlds, and Activity for admitted public Realm activity from humans, personas, and world characters, whose meanings remain distinct.
+    statement: Explore has exactly Worlds for admitted WorldCore browsing and World detail entry and Personas for PersonaCharacter discovery across Worlds. Their meanings remain distinct; the deferred Realm Activity feed is not a third section.
     condition: Whenever Desktop configures, renders, labels, or selects an Explore section.
     failure: Reject a missing, additional, renamed, reordered in meaning, or undifferentiated Explore section projection.
     relations:
@@ -66,7 +66,7 @@ units:
     kind: rule
     title: World detail presents bounded typed product facts
     modality: must
-    statement: World detail presents WorldCore overview, semantic or world summary, scenes, locations and entry points, WorldCharacter or PersonaCharacter sources with typed source-detail routing, public activity, and useful governance or status only when corresponding typed data exists; Realm people discovery does not depend on Runtime LocalAgent inventory, source detail owns materialization and partner actions, Desktop shell authority retains ordering and responsive layout, and ordinary Explore exposes no Desktop-local source creation entry.
+    statement: World detail presents WorldCore overview, semantic or world summary, scenes, locations and entry points, WorldCharacter or PersonaCharacter sources with typed source-detail routing, and useful governance or status only when corresponding typed data exists; Realm people discovery does not depend on Runtime LocalAgent inventory, source detail owns materialization and partner actions, Desktop shell authority retains ordering and responsive layout, and ordinary Explore exposes no Desktop-local source creation entry.
     condition: Whenever Explore opens or composes World detail.
     failure: Shrink sections lacking typed data and reject untyped facts, product-surface-owned layout authority, or ordinary Explore authoring controls.
     relations:
@@ -166,7 +166,7 @@ units:
     kind: rule
     title: Explore Open targets are closed
     modality: must
-    statement: Explore Open accepts exactly worlds with optional discover-worlds, personas with optional discover-personas or select-partner, and activity with optional view-activity; WorldCharacter materialization remains behind selected World detail and source detail and adds no section or productIntent pair.
+    statement: Explore Open accepts exactly worlds with optional discover-worlds and personas with optional discover-personas or select-partner. Activity and view-activity are not admitted in the current launch. WorldCharacter materialization remains behind selected World detail and source detail and adds no section or productIntent pair.
     condition: Whenever Desktop applies an Explore Open Intent section and productIntent pairing.
     failure: Reject an invalid pairing as desktop-open-target-unsupported and never create WorldCore, PersonaCharacter, Packet v3, or LocalAgent truth while opening Explore.
     relations:
@@ -176,9 +176,9 @@ units:
     kind: rule
     title: Home presents the personal AI overview
     modality: must
-    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, and one Messages column that previews pending items and recent messages from App and Runtime Agent activity, Realm agent-authored Posts, download progress, unresolved setup failures and available App updates, in one bounded timeline ordered by owner fact time newest first with unknown times last. The column header holds a compact Pending filter with the loaded pending count, View all messages to the Home Message center, and a filter control for message, item and Post types and all, unread and pending states with an explicit clear action. Only consecutive same-source, same-type activity within a short time window may collapse together; pending or download status never overrides Home chronology. Activity has no separate bottom preview section; the header filter panel retains explicit access to the preserved feed and Create Post surface and message settings. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
+    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, and one Messages column that previews pending items and recent messages from App and Runtime Agent activity, download progress, unresolved setup failures and available App updates, in one bounded timeline ordered by owner fact time newest first with unknown times last. The column header holds a compact Pending filter with the loaded pending count, View all messages to the Home Message center, and a filter control for message and item types and all, unread and pending states with an explicit clear action. Only consecutive same-source, same-type activity within a short time window may collapse together; pending or download status never overrides Home chronology. Activity has no separate bottom preview section; message settings remain accessible while the deferred Realm feed and Create Post surface have no entry. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
     condition: Whenever Desktop renders or routes the Home primary-navigation tab.
-    failure: Keep independent sections and message sources usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the Message center, the activity feed and existing use surfaces.
+    failure: Keep independent sections and message sources usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the Message center, existing use surfaces.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
@@ -195,20 +195,20 @@ units:
   - id: rule.nimi.desktop.product-surfaces.r017
     kind: rule
     title: Activity feed and Nimi Home do not overlap
-    modality: must
-    statement: The activity feed remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, LocalAgent conversation placement, and failure-projection ownership.
+    modality: must_not
+    statement: The current Desktop launch mounts a Realm activity feed, Create Post affordance or equivalent publishing or feed navigation inside Nimi Home. Nimi Home overview, App and Runtime messages, direct human messaging and source catalogs retain their existing ownership.
     condition: Whenever Desktop composes, names, or assigns ownership to Home or Nimi Home.
-    failure: Reject an interpretation that equates the two objects, gives shell ownership to Activity feed, or lets Activity feed redefine or narrow enclosing shell authority.
+    failure: Reject a deferred feed or publishing entry before any Realm call; never display an empty-success replacement.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-feed
   - id: rule.nimi.desktop.product-surfaces.r018
     kind: rule
     title: Activity feed scopes are closed
-    modality: must
-    statement: The activity feed presents and distinguishes exactly personal for viewer-authored Posts, friends for visible Posts from the viewer's ACTIVE human friends, persona_activity for public-activity Posts from PersonaCharacter sources, and world_character_activity for public-activity Posts from explicitly admitted WorldCharacter sources, while Realm owns scope semantics, visibility, and author attribution.
-    condition: Whenever the activity feed configures, reads, labels, filters, or renders Realm feed scope.
-    failure: Reject a missing, additional, renamed, or semantically collapsed scope and never present LocalAgent private activity as Realm feed content.
+    modality: must_not
+    statement: The current Desktop launch emits Realm feed, post, like, social search or recommendation calls through Home, Profile, Explore, offline replay or another renamed entry. World and Persona catalog filtering and precise human handle lookup remain admitted.
+    condition: Whenever Desktop composes Realm consumers for the current launch.
+    failure: Reject the deferred action and remove its active consumer without bypassing retained source, chat or account authorization.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-feed
@@ -217,7 +217,7 @@ units:
     title: The activity feed provides a typed Create Post affordance
     modality: must
     statement: The activity feed provides a Create Post affordance and submits publication intent through the SDK-typed Realm path, while Realm retains author attribution, attachment envelope, worldId and visibility resolution, content moderation, and truth-write admission; Desktop supplies no client-authoritative authorId, postId, worldId, or contentRating.
-    condition: Whenever The activity feed presents or submits Create Post.
+    condition: Only after a later release explicitly re-admits the activity feed; it is deferred in the current launch. Whenever The activity feed presents or submits Create Post.
     failure: Present the typed fail-closed state for attachment, moderation, or Realm-write failure and reject client-owned identifiers, generic success, and synthetic success.
     relations:
       - type: applies_to
@@ -227,7 +227,7 @@ units:
     title: Home consumes SDK-typed Realm feed projection
     modality: must
     statement: Activity feed reads and Create Post consume the SDK-typed Realm PostDto and FeedResponseDto path, and pagination consumes Realm cursor-paginated projection without renderer-direct Realm REST, shell-local Post or Feed truth, or placeholder Posts, attachments, counts, and success.
-    condition: Whenever the activity feed reads, paginates, or writes Realm feed content.
+    condition: Only after a later release explicitly re-admits the activity feed; it is deferred in the current launch. Whenever the activity feed reads, paginates, or writes Realm feed content.
     failure: Fail closed or shrink the affected presentation when the typed projection is absent or failed and reject REST bypass, parallel truth, and fabricated content.
     relations:
       - type: applies_to
@@ -237,7 +237,7 @@ units:
     title: Activity feed performs no AI execution
     modality: must_not
     statement: Activity feed carries AIConfig owner identity, CapabilityContract, prompt text, provider or model selection, Runtime turn payload, or Runtime AI execution on feed read or Create Post paths.
-    condition: Whenever The activity feed presents, reads, or publishes Realm social content.
+    condition: Only after a later release explicitly re-admits the activity feed; it is deferred in the current launch. Whenever The activity feed presents, reads, or publishes Realm social content.
     failure: Reject the AI payload or execution call and preserve the activity feed as a Realm social projection and publication surface only.
     relations:
       - type: applies_to
@@ -378,11 +378,11 @@ units:
   - id: definition.nimi.desktop.product-surfaces.home-overview
     kind: definition
     title: Nimi personal AI overview
-    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, machine preparation and Runtime availability, with a Messages column and a Home-internal Message center that present, as one card family, App and Runtime Agent activity published through the App activity protocol, Realm agent-authored Posts, downloads, setup failures and App updates. Each section and message source consumes its existing owner projection independently; the presentation creates no new execution, billing, social, readiness, read, completion or publishing truth.
+    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, machine preparation and Runtime availability, with a Messages column and a Home-internal Message center that present, as one card family, App and Runtime Agent activity published through the App activity protocol, downloads, setup failures and App updates. Each section and message source consumes its existing owner projection independently; the presentation creates no new execution, billing, social, readiness, read, completion or publishing truth.
   - id: definition.nimi.desktop.product-surfaces.home-message-preferences
     kind: definition
     title: Home message display preferences
-    meaning: Home message display preferences are Desktop-owned presentation choices kept in the Desktop formal App private JSON storage of the current account, subject and data root, holding App or Runtime activity hidden from Home at a displayed revision, Realm Posts hidden from Home, Home display per App sourceRef and Home display of Realm Posts; they change only the Home Messages preview and never publishing, sharing, read state, todo state, App access or Realm notification settings.
+    meaning: Home message display preferences are Desktop-owned presentation choices kept in the Desktop formal App private JSON storage of the current account, subject and data root, holding App or Runtime activity hidden from Home at a displayed revision, Home display per App sourceRef; they change only the Home Messages preview and never publishing, sharing, read state, todo state, App access or Realm notification settings.
   - id: definition.nimi.desktop.product-surfaces.global-downloads
     kind: definition
     title: Global preparation and downloads surface
@@ -401,7 +401,7 @@ units:
     kind: rule
     title: Home activity consumes the public App activity client
     modality: must
-    statement: Home reads App activity only through Desktop's formal App client and the same activity operations, SDK merged views, and open action as every covered App; the Messages preview and Message center share one open-todo view and one recent view, a record present in both is taken at its highest decimal change sequence before state and unread are judged, and read open todos stay pending. Each card shows source, title, summary, occurred time, todo state, attention and unread emphasis, and an open action only when the record has an App source object; App sources are grouped by sourceRef rather than appId, Runtime Agent summaries by agentRef without Conversation navigation, unknown extension types use the standard card without App-specific parsing or executable content, reading is marked only by an explicit Mark as read of the displayed revision, and Realm notifications, the Realm activity feed, and existing Home sections keep their own owners.
+    statement: Home reads App activity only through Desktop's formal App client and the same activity operations, SDK merged views, and open action as every covered App; the Messages preview and Message center share one open-todo view and one recent view, a record present in both is taken at its highest decimal change sequence before state and unread are judged, and read open todos stay pending. Each card shows source, title, summary, occurred time, todo state, attention and unread emphasis, and an open action only when the record has an App source object; App sources are grouped by sourceRef rather than appId, Runtime Agent summaries by agentRef without Conversation navigation, unknown extension types use the standard card without App-specific parsing or executable content, reading is marked only by an explicit Mark as read of the displayed revision, and Realm notifications and existing Home sections keep their own owners.
     condition: Whenever Desktop renders, refreshes, reads, marks read, or opens App activity in Home or its Message center.
     failure: Show only the App message source as unavailable with a retry on read failure without blocking Desktop startup or other Home sections and message sources, show the typed unavailable or failed open result, claim no complete count or definite empty state while a listing is incomplete, and never merge Realm cursors, unread counts, or state into activity.
     relations:
@@ -413,19 +413,17 @@ units:
     kind: rule
     title: The Message center is a Home-internal view over existing owners
     modality: must
-    statement: View all messages opens a full-width Message center inside Home without a new primary navigation item, keeps Home selected, returns to the overview through Back to Home, and ordinary Home entry opens the overview. The center lists loaded messages with All, Pending and source filters; Pending holds loaded open todos including read and Home-hidden ones plus active downloads, unresolved setup failures and available App updates. Center cards show full titles and summaries, App and Realm listings continue separately through their own continuation, and counts or empty results are stated as complete only after the relevant listing is complete. A Realm Post card opens that Post in the Activity feed through a transient Post identity and the existing Realm Post read, system cards open their download, setup task or App detail, and a collapsed group only expands.
+    statement: View all messages opens a full-width Message center inside Home without a new primary navigation item, keeps Home selected, returns to the overview through Back to Home, and ordinary Home entry opens the overview. The center lists loaded messages with All, Pending and source filters; Pending holds loaded open todos including read and Home-hidden ones plus active downloads, unresolved setup failures and available App updates. Center cards show full titles and summaries, App listings use their owner continuation, and counts or empty results are stated as complete only after the relevant listing is complete. System cards open their download, setup task or App detail, and a collapsed group only expands.
     condition: Whenever Desktop renders, filters, paginates, or navigates from the Home Messages column or the Message center.
-    failure: Show loading, source-local unavailable with retry, incomplete, and actual open or Post-unavailable results, and reject merged owner cursors, read state or counts, fabricated completeness, and open actions that a source does not support.
+    failure: Show loading, source-local unavailable with retry, incomplete, and actual open results, and reject merged owner cursors, read state or counts, fabricated completeness, and open actions that a source does not support.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.product-surfaces.home-feed
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
   - id: rule.nimi.desktop.product-surfaces.r037
     kind: rule
     title: Home hiding and display preferences change only the Home preview
     modality: must
-    statement: Hiding an App or Runtime activity card from Home stores its activityId at the displayed revision so only a higher revision reappears, hiding a Realm Post stores its Post identity, and hiding a group stores only the members counted in that group when the user acts; system items collapse but are not hidden. The Message center ignores Home hiding and source display choices, offers Show on Home for hidden cards, and says when a source display choice still keeps a restored card off Home. Settings > Notifications presents a Home messages section, saved and reported apart from Realm notification settings, with Home display per App sourceRef that has appeared, Home display of Realm Posts, and a restore action that clears hidden cards without changing source choices. A first read that returns APP_STORAGE_ENTRY_NOT_FOUND means no preferences yet and the first user change writes the document; any other read failure keeps messages visible while hiding and preference changes stay unavailable until a manual reload, and a change updates the display only after its write succeeds.
+    statement: Hiding an App or Runtime activity card from Home stores its activityId at the displayed revision so only a higher revision reappears, and hiding a group stores only the members counted in that group when the user acts; system items collapse but are not hidden. The Message center ignores Home hiding and source display choices, offers Show on Home for hidden cards, and says when a source display choice still keeps a restored card off Home. Settings > Notifications presents a Home messages section, saved and reported apart from Realm notification settings, with Home display per App sourceRef that has appeared, and a restore action that clears hidden cards without changing source choices. A first read that returns APP_STORAGE_ENTRY_NOT_FOUND means no preferences yet and the first user change writes the document; any other read failure keeps messages visible while hiding and preference changes stay unavailable until a manual reload, and a change updates the display only after its write succeeds.
     condition: Whenever Home, the Message center or Settings reads, applies, or changes Home message display preferences.
     failure: Keep the previous display and show the read or save failure with a manual retry, and reject hiding that marks read, completes, cancels, or stops publishing, reuse of the Realm notification settings DTO, and preferences carried across accounts, subjects, or data roots.
     relations:

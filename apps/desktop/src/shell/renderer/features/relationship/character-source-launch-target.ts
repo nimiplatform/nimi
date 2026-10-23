@@ -33,6 +33,35 @@ function normalizeRequiredText(value: unknown, field: string): string {
   return normalized;
 }
 
+export class CharacterSourceConfirmationPendingError extends Error {
+  constructor(message: string, cause: unknown) {
+    super(message, { cause });
+    this.name = 'CharacterSourceConfirmationPendingError';
+  }
+}
+
+/** Re-read a committed partner without issuing another materialization request. */
+export async function confirmCharacterSourceMaterialized(
+  source: CharacterSourceMaterializationInput,
+  ownerUserIdInput: string | null | undefined,
+  t: TFunction,
+  sdk: DesktopRendererSdkPort,
+  isCurrent: () => boolean,
+): Promise<void> {
+  if (!isCurrent()) throw new Error('Source action expired');
+  const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
+  const sourceRef = resolveCharacterSourceRefV3(source);
+  if (!sourceRef) throw new Error(characterSourceMaterializationMessage(t));
+  const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
+  if (!isCurrent()) throw new Error('Source action expired');
+  if (committed.length > 1) throw new Error(characterSourceAmbiguousMessage(t));
+  if (committed.length !== 1) {
+    throw new Error(t('Explore.characterSourceRefreshPending', {
+      defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.',
+    }));
+  }
+}
+
 /**
  * Ensures one Runtime-owned LocalAgent exists for a canonical Realm source.
  * Raw Runtime identity remains inside the materialization/discovery adapters;
@@ -62,13 +91,13 @@ export async function ensureCharacterSourceMaterialized(
 
   await materializeCharacterSourceLocalAgent({ sourceRef }, t, sdk);
   assertCurrent();
-  const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
-  assertCurrent();
-  if (committed.length > 1) {
-    throw new Error(characterSourceAmbiguousMessage(t));
-  }
-  if (committed.length !== 1) {
-    throw new Error('Runtime materialization committed without one discoverable LocalAgent projection.');
+  try {
+    await confirmCharacterSourceMaterialized(source, ownerUserId, t, sdk, isCurrent);
+  } catch (error) {
+    assertCurrent();
+    throw new CharacterSourceConfirmationPendingError(t('Explore.characterSourceRefreshPending', {
+      defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.',
+    }), error);
   }
 }
 

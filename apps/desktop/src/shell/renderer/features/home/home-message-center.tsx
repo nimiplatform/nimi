@@ -36,15 +36,11 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
   const pending = pendingSummary(messages);
   const domain = messageDomainOfGroup(selectedSource);
   const appView = filter === 'pending' ? messages.app.pending : messages.app.recent;
-  // Runtime summaries are never pending; the Realm feed never holds pending items.
+  // Runtime summaries are never pending.
   const appRelevant = domain === null || domain === 'app' || (domain === 'runtime-agent' && filter === 'all');
-  const realmRelevant = filter === 'all' && (domain === null || domain === 'realm-post');
   const appIncomplete = appRelevant && !appView.complete;
-  const realmIncomplete = realmRelevant && (messages.realm.status !== 'ready' || messages.realm.hasMore);
-  const loading = (appRelevant && appView.status === 'loading' && !appView.records.length)
-    || (realmRelevant && messages.realm.status === 'loading');
+  const loading = appRelevant && appView.status === 'loading' && !appView.records.length;
   const canLoadApp = appRelevant && appView.hasMore;
-  const canLoadRealm = realmRelevant && messages.realm.hasMore;
   return (
     <section className="mx-auto flex w-full max-w-[1060px] flex-col gap-4 pb-6" aria-labelledby="home-message-center-title" data-testid="home-message-center">
       <div>
@@ -80,7 +76,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
       </div>
 
       <HomeExecutionNotices />
-      <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
+      <HomeMessageSourceNotices messages={messages} app={appRelevant} />
 
       <div className="flex flex-col gap-2.5" data-testid="home-message-center-list">
         {list.map((message) => (
@@ -100,7 +96,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
         {!list.length && !loading ? (
           <div className="flex flex-col items-center gap-2 py-10 text-sm text-[var(--nimi-text-secondary)]" data-testid="home-message-center-empty">
             <Inbox size={20} aria-hidden="true" className="text-[var(--nimi-text-muted)]" />
-            {appIncomplete || realmIncomplete
+            {appIncomplete
               ? t('runtimeConfig.overview.messages.notLoaded')
               : filter === 'pending'
                 ? t('runtimeConfig.overview.messages.pendingEmpty')
@@ -109,7 +105,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
         ) : null}
       </div>
 
-      {canLoadApp || canLoadRealm ? (
+      {canLoadApp ? (
         <div className="flex flex-col items-center gap-2">
           <div className="flex flex-wrap justify-center gap-2">
             {canLoadApp ? (
@@ -117,21 +113,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
                 {t('runtimeConfig.overview.messages.loadMoreApp')}
               </Button>
             ) : null}
-            {canLoadRealm ? (
-              <Button
-                tone="secondary"
-                size="sm"
-                loading={messages.realm.loadingMore}
-                onClick={messages.realm.loadMore}
-                data-testid="home-message-center-more-posts"
-              >
-                {t('runtimeConfig.overview.messages.loadMorePosts')}
-              </Button>
-            ) : null}
           </div>
-          {canLoadRealm && messages.realm.loadMoreFailed ? (
-            <p role="status" className="text-xs text-[var(--nimi-status-warning)]">{t('runtimeConfig.overview.messages.loadMoreFailed')}</p>
-          ) : null}
         </div>
       ) : null}
     </section>

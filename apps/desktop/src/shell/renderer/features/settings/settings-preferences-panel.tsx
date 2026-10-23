@@ -20,9 +20,7 @@ import {
 import { InfoIcon, MailIcon, MonitorIcon } from './settings-assets.js';
 import { HomeMessagesSettingsSection } from './settings-home-messages-section.js';
 import {
-  AtSignIcon,
   BellIcon,
-  HeartIcon,
   UserPlusIcon,
 } from './settings-preferences-panel-parts.js';
 
@@ -32,8 +30,6 @@ type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
 export type NotificationForm = {
   directMessages: boolean;
   friendRequests: boolean;
-  mentions: boolean;
-  likes: boolean;
   inApp: boolean;
   push: boolean;
   email: boolean;
@@ -42,8 +38,6 @@ export type NotificationForm = {
 export const DEFAULT_NOTIFICATION_FORM: NotificationForm = {
   directMessages: true,
   friendRequests: true,
-  mentions: true,
-  likes: true,
   inApp: true,
   push: false,
   email: true,
@@ -63,21 +57,18 @@ export function toNotificationForm(input: UserNotificationSettingsDto | null | u
   return {
     directMessages: isEnabled([activity?.directMessages], DEFAULT_NOTIFICATION_FORM.directMessages),
     friendRequests: isEnabled([activity?.friendRequests], DEFAULT_NOTIFICATION_FORM.friendRequests),
-    mentions: isEnabled([activity?.mentions], DEFAULT_NOTIFICATION_FORM.mentions),
-    likes: isEnabled([activity?.likes], DEFAULT_NOTIFICATION_FORM.likes),
     inApp: isEnabled([channels?.inApp], DEFAULT_NOTIFICATION_FORM.inApp),
     push: isEnabled([channels?.push], DEFAULT_NOTIFICATION_FORM.push),
     email: isEnabled([channels?.email], DEFAULT_NOTIFICATION_FORM.email),
   };
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r018
 export function toNotificationPayload(form: NotificationForm): UpdateUserNotificationSettingsDto {
   return {
     activity: {
       directMessages: form.directMessages,
       friendRequests: form.friendRequests,
-      mentions: form.mentions,
-      likes: form.likes,
     },
     channels: {
       inApp: form.inApp,
@@ -91,8 +82,6 @@ export function notificationsEqual(left: NotificationForm, right: NotificationFo
   return (
     left.directMessages === right.directMessages
     && left.friendRequests === right.friendRequests
-    && left.mentions === right.mentions
-    && left.likes === right.likes
     && left.inApp === right.inApp
     && left.push === right.push
     && left.email === right.email
@@ -297,20 +286,6 @@ export function NotificationsPage() {
             description={t('Notifications.friendRequestsDescription')}
             checked={form.friendRequests}
             onChange={(value) => applyUserEdit({ friendRequests: value })}
-          />
-          <ToggleRow
-            icon={<AtSignIcon className="h-5 w-5" />}
-            title={t('Notifications.mentions')}
-            description={t('Notifications.mentionsDescription')}
-            checked={form.mentions}
-            onChange={(value) => applyUserEdit({ mentions: value })}
-          />
-          <ToggleRow
-            icon={<HeartIcon className="h-5 w-5" />}
-            title={t('Notifications.likes')}
-            description={t('Notifications.likesDescription')}
-            checked={form.likes}
-            onChange={(value) => applyUserEdit({ likes: value })}
           />
         </Card>
       </Section>

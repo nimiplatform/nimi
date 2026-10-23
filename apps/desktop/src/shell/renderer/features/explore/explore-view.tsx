@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, EmptyState, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
-import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
-import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
-import { PostFeed } from '../home/post-feed';
 import {
   WorldCatalogContent,
   type WorldCatalogPaging,
@@ -25,13 +21,9 @@ import {
 } from './explore-section-nav';
 import { ExploreSourceModeFlap, type ExploreSourceMode } from './explore-source-mode-flap';
 import { PersonaCatalogContent, PersonaCatalogMore } from './persona-catalog-content';
-import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
-type PostDto = RealmModel<'PostDto'>;
 
 type ExploreViewProps = {
-  selectedCategory: string | null;
-  categories: string[];
   personaSources: ExplorePersonaSourceCardData[];
   worldCatalogItems: WorldListItem[];
   worldCatalogPaging: WorldCatalogPaging;
@@ -62,16 +54,11 @@ type ExploreViewProps = {
   activeSection: ExploreSectionId;
   onSectionChange: (section: ExploreSectionId) => void;
   onSearchTextChange: (value: string) => void;
-  fetchPostPage: (cursor: string | null) => Promise<{ items: PostDto[]; nextCursor: string | null }>;
-  postFeedKey: string;
-  onPostDelete?: () => void;
   personaLoading: boolean;
   personaError: boolean;
   onRetryPersonas: () => void;
-  onToggleCategory: (category: string) => void;
   onPersonaSourceManage: (source: ExplorePersonaSourceCardData) => void;
   onPersonaSourceOpen?: (sourceRef: CharacterSourceRefV3) => void;
-  onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
 };
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
@@ -115,27 +102,13 @@ function ExplorePersonaSourcesSection({
 }
 
 export function ExploreView(props: ExploreViewProps) {
-  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const feedScrollRef = useRef<HTMLDivElement>(null);
-  const feedSectionRef = useRef<HTMLElement>(null);
-  const postCardActionAdapter = usePostCardActionAdapter();
-  const [feedColumns, setFeedColumns] = useState(() => (
-    bindings.app.projection.viewportWidth() >= 640 ? 2 : 1
-  ));
+  const catalogScrollRef = useRef<HTMLDivElement>(null);
   const [sourceRailMode, setSourceRailMode] = useState<ExploreSourceMode>('worlds');
   const sourceModeFlap = (
     <ExploreSourceModeFlap mode={sourceRailMode} onChange={setSourceRailMode} />
   );
-
-  useEffect(() => {
-    const updateColumns = () => setFeedColumns(
-      bindings.app.projection.viewportWidth() >= 640 ? 2 : 1,
-    );
-    updateColumns();
-    return bindings.app.events.subscribeWindowResize(updateColumns);
-  }, [bindings]);
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
@@ -144,7 +117,7 @@ export function ExploreView(props: ExploreViewProps) {
   const searchPlaceholder = t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' });
   const isWorldsSection = props.activeSection === 'worlds';
   // The worlds section owns a rail + detail layout with in-rail search, so the
-  // shared section nav bar only renders for the personas/activity sections.
+  // shared section nav bar only renders for the personas section.
   const sectionHeader = isWorldsSection ? null : (
     <div className="shrink-0 pb-3">
       <div className="mx-auto w-full max-w-6xl">
@@ -278,7 +251,7 @@ export function ExploreView(props: ExploreViewProps) {
           className="min-h-0 flex-1"
           viewportClassName="bg-transparent"
           contentClassName="mx-auto w-full max-w-6xl px-1 py-5"
-          viewportRef={feedScrollRef}
+          viewportRef={catalogScrollRef}
         >
           {props.activeSection === 'personas' && (
             <section data-testid={E2E_IDS.exploreSection('personas')}>
@@ -298,30 +271,6 @@ export function ExploreView(props: ExploreViewProps) {
             </section>
           )}
 
-          {props.activeSection === 'activity' && (
-            <section ref={feedSectionRef} data-testid={E2E_IDS.exploreSection('activity')}>
-              <ExploreSectionHeader section="activity" />
-              <PostFeed
-                key={props.postFeedKey}
-                fetchPage={props.fetchPostPage}
-                scrollRef={feedScrollRef}
-                virtualOffsetRef={feedSectionRef}
-                columns={feedColumns}
-                emptyText={t('Explore.noPosts')}
-                renderItem={(post) => (
-                  <div className="h-fit [contain:paint] [transform:translateZ(0)]">
-                    <PostCard
-                      post={post}
-                      actionAdapter={postCardActionAdapter}
-                      onDelete={props.onPostDelete}
-                      onOpenAuthorProfile={props.onPostAuthorOpen}
-                    />
-                  </div>
-                )}
-                className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2"
-              />
-            </section>
-          )}
         </ScrollArea>
       )}
     </div>

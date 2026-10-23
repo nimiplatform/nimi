@@ -17,9 +17,9 @@ import {
 const NOTIFICATION_LIST_FIXTURE = {
   items: [{
     id: 'notification-1',
-    type: 'post_liked',
-    title: 'Post liked',
-    body: 'Someone liked your post',
+    type: 'friend_request_received',
+    title: 'Friend request',
+    body: 'Ada sent you a friend request',
     createdAt: '2026-06-05T00:00:00.000Z',
     isRead: false,
     actor: {
@@ -29,10 +29,10 @@ const NOTIFICATION_LIST_FIXTURE = {
       handle: 'ada',
       avatarUrl: 'https://img.test/a.png',
     },
-    target: { postId: 'post-1' },
-    data: { postId: 'post-1' },
+    target: { accountId: 'user-1' },
+    data: { accountId: 'user-1' },
   }],
-  page: { nextCursor: 'cursor-2' },
+  page: { nextCursor: 'cursor-2', hasNext: true },
 } satisfies NotificationListResultDto;
 
 test('Realm notification helpers map to generated notification requests', async () => {
@@ -41,7 +41,7 @@ test('Realm notification helpers map to generated notification requests', async 
     notifications: {
       async getUnreadCount(request) {
         calls.push({ method: 'getUnreadCount', request });
-        return { total: 3, byType: { post_liked: 2 } };
+        return { total: 3, byType: { friend_request_received: 2 } };
       },
       async listNotifications(request) {
         calls.push({ method: 'listNotifications', request });
@@ -60,10 +60,10 @@ test('Realm notification helpers map to generated notification requests', async 
 
   assert.deepEqual(await loadNimiRealmNotificationUnreadCount(realm), {
     total: 3,
-    byType: { post_liked: 2 },
+    byType: { friend_request_received: 2 },
   });
   const page = await loadNimiRealmNotifications(realm, {
-    type: 'post_liked',
+    type: 'friend_request_received',
     unreadOnly: true,
     limit: 20,
     cursor: 'cursor-1',
@@ -83,7 +83,7 @@ test('Realm notification helpers map to generated notification requests', async 
   assert.deepEqual(calls[1]?.request, {
     path: {},
     query: {
-      type: 'post_liked',
+      type: 'friend_request_received',
       unreadOnly: true,
       limit: 20,
       cursor: 'cursor-1',
@@ -98,8 +98,8 @@ test('Realm notification views fail closed on invalid required values', async ()
   for (const malformed of [
     { total: -1, byType: {} },
     { total: 1.5, byType: {} },
-    { total: 1, byType: { post_liked: -1 } },
-    { total: 1, byType: { post_liked: '1' } },
+    { total: 1, byType: { friend_request_received: -1 } },
+    { total: 1, byType: { friend_request_received: '1' } },
   ]) {
     assert.throws(
       () => normalizeNimiRealmNotificationUnreadCount(
@@ -125,7 +125,7 @@ test('Realm notification views fail closed on invalid required values', async ()
   );
   assert.throws(
     () => toNimiRealmNotificationListView(
-      { items: [{ id: '', type: 'post_liked' }], page: {} } as unknown as NotificationListResultDto,
+      { items: [{ id: '', type: 'friend_request_received' }], page: {} } as unknown as NotificationListResultDto,
       'Notification',
       'Unknown',
     ),
@@ -148,7 +148,7 @@ test('Realm notification views fail closed on invalid required values', async ()
   const realm: NimiRealmNotificationApi = {
     notifications: {
       async getUnreadCount() { return { total: 0, byType: {} }; },
-      async listNotifications() { return { items: [], page: {} }; },
+      async listNotifications() { return { items: [], page: { nextCursor: null, hasNext: false } }; },
       async markNotificationRead() { return {}; },
       async markNotificationsRead() { return {}; },
     },

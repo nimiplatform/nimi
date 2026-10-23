@@ -3,17 +3,12 @@ import type {
   BlockedUserDto,
   BlockedUserListDto,
   BlockUserBodyDto,
-  CreatePostDto,
   CreateReportDto,
-  FeedPageMetaDto,
-  FeedResponseDto,
   FriendProfileDto,
   FriendProfileListDto,
-  PostDto,
   RealmTypedCallOptions,
   ReportResponseDto,
   SocialProfileDto,
-  UpdatePostDto,
   UpdateUserDto,
   UserPrivateDto,
   UserProfileDto,
@@ -28,12 +23,10 @@ import { ReasonCode, type JsonObject } from '../types';
 import type {
   NimiRealmPendingFriendRequestDto,
   NimiRealmPendingFriendRequestListDto,
-  NimiRealmPostFeedInput,
   NimiRealmSocialApi,
   NimiRealmSocialContactRecord,
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
-  NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialProfileView,
 } from './social-types';
 import {
@@ -47,13 +40,10 @@ import {
 export type {
   NimiRealmPendingFriendRequestDto,
   NimiRealmPendingFriendRequestListDto,
-  NimiRealmPostFeedInput,
   NimiRealmSocialApi,
   NimiRealmSocialContactRecord,
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
-  NimiRealmSocialMutationExecutionInput,
-  NimiRealmSocialMutationKind,
   NimiRealmSocialProfileView,
 } from './social-types';
 
@@ -61,17 +51,6 @@ type PendingRequestMapValue = {
   readonly requestedAt: string | null;
   readonly requestMessage: string | null;
 };
-
-function normalizePostFeedInput(input: NimiRealmPostFeedInput): NimiRealmPostFeedInput {
-  return {
-    visibility: input.visibility,
-    worldId: typeof input.worldId === 'string' ? input.worldId : undefined,
-    authorId: typeof input.authorId === 'string' ? input.authorId : undefined,
-    limit: typeof input.limit === 'number' ? input.limit : undefined,
-    cursor: typeof input.cursor === 'string' ? input.cursor : undefined,
-    scope: input.scope,
-  };
-}
 
 type NimiRealmPendingFriendRequestApi = {
   readonly generated: Pick<NimiRealmSocialApi['generated'], 'getMyPendingFriendRequests'>;
@@ -432,20 +411,6 @@ export async function loadNimiRealmSocialSnapshot(
   };
 }
 
-export function buildEmptyNimiRealmPostFeedResponse(input: {
-  readonly cursor?: string;
-  readonly limit?: number;
-}): FeedResponseDto {
-  const page: FeedPageMetaDto = {
-    ...(input.cursor ? { cursor: input.cursor } : {}),
-    ...(input.limit !== undefined ? { limit: input.limit } : {}),
-  };
-  return {
-    items: [],
-    page,
-  };
-}
-
 export async function loadNimiRealmCurrentUserProfile(
   realm: Pick<NimiRealmSocialApi, 'account'>,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
@@ -557,162 +522,6 @@ export async function unblockNimiRealmUser(
   return { id: normalizedContactId };
 }
 
-export async function loadNimiRealmPostFeed(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  input: NimiRealmPostFeedInput,
-  options?: RealmTypedCallOptions,
-): Promise<FeedResponseDto> {
-  const normalized = normalizePostFeedInput(input);
-  try {
-    return await realm.generated.getHomeFeed({
-      path: {},
-      query: normalized,
-    }, options);
-  } catch (error) {
-    emitRealmDataError('load-post-feed', error, normalized);
-    throw error;
-  }
-}
-
-export async function loadNimiRealmLikedPosts(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  profileId: unknown,
-  limit = 20,
-  cursor?: string,
-  options?: RealmTypedCallOptions,
-): Promise<FeedResponseDto> {
-  const normalizedProfileId = requireText(profileId, {
-    reasonCode: 'SDK_REALM_USER_ID_REQUIRED',
-    message: 'Realm user id is required.',
-    actionHint: 'provide_realm_user_id',
-  });
-  try {
-    return await realm.generated.listLikedPosts({
-      path: {},
-      query: { limit, cursor, userId: normalizedProfileId },
-    }, options);
-  } catch (error) {
-    emitRealmDataError('load-liked-posts', error, { profileId: normalizedProfileId, limit, cursor });
-    throw error;
-  }
-}
-
-export async function loadNimiRealmPostById(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  postId: unknown,
-  options?: RealmTypedCallOptions,
-): Promise<PostDto> {
-  const normalizedPostId = requireText(postId, {
-    reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-    message: 'Realm post id is required.',
-    actionHint: 'provide_realm_post_id',
-  });
-  try {
-    return await realm.generated.getPost({ path: { id: normalizedPostId } }, options);
-  } catch (error) {
-    emitRealmDataError('load-post-by-id', error, { postId: normalizedPostId });
-    throw error;
-  }
-}
-
-export async function createNimiRealmPost(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  payload: CreatePostDto,
-  options?: RealmTypedCallOptions,
-): Promise<PostDto> {
-  try {
-    return await realm.generated.createPost({ path: {}, body: payload }, options);
-  } catch (error) {
-    emitRealmDataError('create-post', error, {
-      attachmentCount: Array.isArray(payload.attachments) ? payload.attachments.length : 0,
-      tagsCount: Array.isArray(payload.tags) ? payload.tags.length : 0,
-    });
-    throw error;
-  }
-}
-
-export async function deleteNimiRealmPost(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  postId: unknown,
-  options?: RealmTypedCallOptions,
-): Promise<void> {
-  const normalizedPostId = requireText(postId, {
-    reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-    message: 'Realm post id is required.',
-    actionHint: 'provide_realm_post_id',
-  });
-  try {
-    await realm.generated.deletePost({ path: { id: normalizedPostId } }, options);
-  } catch (error) {
-    emitRealmDataError('delete-post', error, { postId: normalizedPostId });
-    throw error;
-  }
-}
-
-export async function updateNimiRealmPostVisibility(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  postId: unknown,
-  visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
-  options?: RealmTypedCallOptions,
-): Promise<PostDto> {
-  const normalizedPostId = requireText(postId, {
-    reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-    message: 'Realm post id is required.',
-    actionHint: 'provide_realm_post_id',
-  });
-  const body: UpdatePostDto = { visibility };
-  try {
-    return await realm.generated.updatePost({ path: { id: normalizedPostId }, body }, options);
-  } catch (error) {
-    emitRealmDataError('update-post-visibility', error, { postId: normalizedPostId, visibility });
-    throw error;
-  }
-}
-
-export async function likeNimiRealmPost(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  postId: unknown,
-  options?: RealmTypedCallOptions,
-): Promise<void> {
-  const normalizedPostId = requireText(postId, {
-    reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-    message: 'Realm post id is required.',
-    actionHint: 'provide_realm_post_id',
-  });
-  try {
-    await realm.generated.likePost({ path: { postId: normalizedPostId } }, options);
-  } catch (error) {
-    emitRealmDataError('like-post', error, { postId: normalizedPostId });
-    throw error;
-  }
-}
-
-export async function unlikeNimiRealmPost(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  postId: unknown,
-  options?: RealmTypedCallOptions,
-): Promise<void> {
-  const normalizedPostId = requireText(postId, {
-    reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-    message: 'Realm post id is required.',
-    actionHint: 'provide_realm_post_id',
-  });
-  try {
-    await realm.generated.unlikePost({ path: { postId: normalizedPostId } }, options);
-  } catch (error) {
-    emitRealmDataError('unlike-post', error, { postId: normalizedPostId });
-    throw error;
-  }
-}
-
 export async function createNimiRealmReport(
   realm: Pick<NimiRealmSocialApi, 'generated'>,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
@@ -727,60 +536,6 @@ export async function createNimiRealmReport(
       targetId: payload.targetId,
       reason: payload.reason,
     });
-    throw error;
-  }
-}
-
-export async function executeNimiRealmSocialMutation(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  entry: NimiRealmSocialMutationExecutionInput,
-  options?: RealmTypedCallOptions,
-): Promise<void> {
-  if (entry.kind === 'post-like') {
-    const postId = requireText(entry.payload.postId, {
-      reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-      message: 'Realm post id is required.',
-      actionHint: 'provide_realm_post_id',
-    });
-    await realm.generated.likePost({ path: { postId } }, options);
-    return;
-  }
-  if (entry.kind === 'post-unlike') {
-    const postId = requireText(entry.payload.postId, {
-      reasonCode: 'SDK_REALM_POST_ID_REQUIRED',
-      message: 'Realm post id is required.',
-      actionHint: 'provide_realm_post_id',
-    });
-    await realm.generated.unlikePost({ path: { postId } }, options);
-    return;
-  }
-  throw socialError({
-    reasonCode: 'SDK_REALM_SOCIAL_MUTATION_UNSUPPORTED',
-    message: 'Realm social mutation kind is not supported.',
-    actionHint: 'use_supported_realm_social_mutation_kind',
-    details: { kind: entry.kind },
-  });
-}
-
-export async function loadNimiRealmExploreFeedItems(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  tag: string | null,
-  limit: number,
-  cursor?: string,
-  options?: RealmTypedCallOptions,
-): Promise<FeedResponseDto> {
-  try {
-    return await realm.generated.getExploreFeed({
-      path: {},
-      query: {
-        tag: tag || undefined,
-        limit,
-        cursor,
-      },
-    }, options);
-  } catch (error) {
-    emitRealmDataError(cursor ? 'load-more-explore-feed' : 'load-explore-feed', error, { tag, limit });
     throw error;
   }
 }

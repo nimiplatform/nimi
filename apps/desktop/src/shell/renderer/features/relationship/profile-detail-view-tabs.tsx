@@ -4,20 +4,12 @@ import { NimiTabs } from '@nimiplatform/kit/ui';
 import type { HumanProfileTab } from '../profile/profile-model';
 import { ProfileDetailTabFallback } from './profile-detail-view-content-shell.js';
 
-const PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes'];
-const OWN_PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'FollowedWorlds'];
+const PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Collections'];
+const OWN_PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Collections', 'FollowedWorlds'];
 
-const PostsTab = lazy(async () => {
-  const module = await import('../profile/posts-tab');
-  return { default: module.PostsTab };
-});
 const CollectionsTab = lazy(async () => {
   const module = await import('../profile/collections-tab');
   return { default: module.CollectionsTab };
-});
-const LikesTab = lazy(async () => {
-  const module = await import('../profile/likes-tab');
-  return { default: module.LikesTab };
 });
 const FollowedWorldsTab = lazy(async () => {
   const module = await import('../profile/followed-worlds-tab');
@@ -26,12 +18,8 @@ const FollowedWorldsTab = lazy(async () => {
 
 function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: HumanProfileTab): string {
   switch (tab) {
-    case 'Posts':
-      return t('Profile.tabPosts', { defaultValue: 'Posts' });
     case 'Collections':
       return t('Profile.tabCollections', { defaultValue: 'Collections' });
-    case 'Likes':
-      return t('Profile.tabLikes', { defaultValue: 'Likes' });
     case 'FollowedWorlds':
       return t('Profile.tabFollowedWorlds', { defaultValue: 'Followed worlds' });
   }
@@ -50,14 +38,8 @@ function renderTabPanel(
 
   let content: ReactNode;
   switch (tab) {
-    case 'Posts':
-      content = <PostsTab profileId={profileId} layout="grid" blockedContent={isBlockedProfile} />;
-      break;
     case 'Collections':
       content = <CollectionsTab profileId={profileId} layout="grid" />;
-      break;
-    case 'Likes':
-      content = <LikesTab profileId={profileId} layout="grid" />;
       break;
     case 'FollowedWorlds':
       content = <FollowedWorldsTab />;

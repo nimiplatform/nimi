@@ -40,18 +40,10 @@ surfaces:
   - getMyBlockedUsers
   - getUser
   - addFriend
+  - addFriendByHandle
   - removeFriend
   - blockUser
   - unblockUser
-  - getHomeFeed
-  - getExploreFeed
-  - listLikedPosts
-  - getPost
-  - createPost
-  - deletePost
-  - updatePost
-  - likePost
-  - unlikePost
   - ReportController_createReport
   - getChatById
   - listChats
@@ -473,6 +465,14 @@ operations:
     response_schema_ref: realm-openapi://operation/addFriend/response
 
   - <<: *desktop_product
+    operation_id: addFriendByHandle
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/handle/{handle}/friends
+    request_schema_ref: realm-openapi://operation/addFriendByHandle/request
+    response_schema_ref: realm-openapi://operation/addFriendByHandle/response
+
+  - <<: *desktop_product
     operation_id: removeFriend
     authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
     http_method: DELETE
@@ -495,78 +495,6 @@ operations:
     path_template: /api/human/me/blocks/{id}
     request_schema_ref: realm-openapi://operation/unblockUser/request
     response_schema_ref: realm-openapi://operation/unblockUser/response
-
-  - <<: *desktop_product
-    operation_id: getHomeFeed
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/world/posts
-    request_schema_ref: realm-openapi://operation/getHomeFeed/request
-    response_schema_ref: realm-openapi://operation/getHomeFeed/response
-
-  - <<: *desktop_product
-    operation_id: getExploreFeed
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/explore
-    request_schema_ref: realm-openapi://operation/getExploreFeed/request
-    response_schema_ref: realm-openapi://operation/getExploreFeed/response
-
-  - <<: *desktop_product
-    operation_id: listLikedPosts
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/world/posts/liked
-    request_schema_ref: realm-openapi://operation/listLikedPosts/request
-    response_schema_ref: realm-openapi://operation/listLikedPosts/response
-
-  - <<: *desktop_product
-    operation_id: getPost
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/world/posts/by-id/{id}
-    request_schema_ref: realm-openapi://operation/getPost/request
-    response_schema_ref: realm-openapi://operation/getPost/response
-
-  - <<: *desktop_product
-    operation_id: createPost
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: POST
-    path_template: /api/world/posts
-    request_schema_ref: realm-openapi://operation/createPost/request
-    response_schema_ref: realm-openapi://operation/createPost/response
-
-  - <<: *desktop_product
-    operation_id: deletePost
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: DELETE
-    path_template: /api/world/posts/by-id/{id}
-    request_schema_ref: realm-openapi://operation/deletePost/request
-    response_schema_ref: realm-openapi://operation/deletePost/response
-
-  - <<: *desktop_product
-    operation_id: updatePost
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: PATCH
-    path_template: /api/world/posts/by-id/{id}
-    request_schema_ref: realm-openapi://operation/updatePost/request
-    response_schema_ref: realm-openapi://operation/updatePost/response
-
-  - <<: *desktop_product
-    operation_id: likePost
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: POST
-    path_template: /api/world/posts/by-id/{postId}/like
-    request_schema_ref: realm-openapi://operation/likePost/request
-    response_schema_ref: realm-openapi://operation/likePost/response
-
-  - <<: *desktop_product
-    operation_id: unlikePost
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: DELETE
-    path_template: /api/world/posts/by-id/{postId}/like
-    request_schema_ref: realm-openapi://operation/unlikePost/request
-    response_schema_ref: realm-openapi://operation/unlikePost/response
 
   - <<: *desktop_product
     operation_id: ReportController_createReport

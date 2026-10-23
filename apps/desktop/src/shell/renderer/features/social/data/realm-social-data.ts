@@ -19,18 +19,6 @@ import {
   updateCurrentUserProfile,
 } from './profile-data';
 import {
-  createPost,
-  createReport,
-  deletePost,
-  likePost,
-  loadLikedPosts,
-  loadPostById,
-  loadPostFeed,
-  unlikePost,
-  updatePostVisibility,
-  type LoadPostFeedInput,
-} from './post-feed-data';
-import {
   isBlockedUser,
 } from './blocked-content';
 import {
@@ -38,7 +26,6 @@ import {
 } from './social-offline-port.js';
 
 export type { SocialContactSnapshot } from './social-snapshot';
-export type { PostFeedScope } from './post-feed-data';
 
 export function createRealmSocialData(input: {
   readonly callApi: RealmApiCaller;
@@ -109,24 +96,6 @@ export function createRealmSocialData(input: {
     isFriend: (userId: string) => isFriendInContacts(snapshotStore.get(), userId),
     isBlockedUser: (userId: string) => isBlockedUser(snapshotStore.get(), userId),
     contacts: snapshotStore.get,
-    loadPostFeed: (feedInput: LoadPostFeedInput) =>
-      loadPostFeed(input.callApi, input.emitDataError, snapshotStore.get(), feedInput),
-    loadLikedPosts: (profileId: string, limit = 20, cursor?: string) =>
-      loadLikedPosts(input.callApi, input.emitDataError, snapshotStore.get(), profileId, limit, cursor),
-    loadPostById: (postId: string) =>
-      loadPostById(input.callApi, input.emitDataError, snapshotStore.get(), postId),
-    createPost: (payload: Parameters<typeof createPost>[2]) =>
-      createPost(input.callApi, input.emitDataError, payload),
-    deletePost: (postId: string) =>
-      deletePost(input.callApi, input.emitDataError, postId),
-    updatePostVisibility: (postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') =>
-      updatePostVisibility(input.callApi, input.emitDataError, postId, visibility),
-    likePost: (postId: string) =>
-      likePost(input.callApi, input.emitDataError, input.offline, input.now, postId),
-    unlikePost: (postId: string) =>
-      unlikePost(input.callApi, input.emitDataError, input.offline, input.now, postId),
-    createReport: (payload: Parameters<typeof createReport>[2]) =>
-      createReport(input.callApi, input.emitDataError, payload),
     dispose() {
       blockedUserListeners.clear();
       snapshotStore.reset();

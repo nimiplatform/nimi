@@ -73,6 +73,75 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "addFriendByHandle",
+      "method": "POST",
+      "path": "/api/human/handle/{handle}/friends",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "parameters": [
+        {
+          "name": "handle",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "handle",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AddFriendBodyDto",
+        "ref_name": "AddFriendBodyDto"
+      },
+      "request_schema_ref": "#/components/schemas/AddFriendBodyDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FriendRequestResultDto",
+            "ref_name": "FriendRequestResultDto"
+          },
+          "schema_ref": "#/components/schemas/FriendRequestResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FriendRequestResultDto"
+        }
+      ]
+    },
+    {
       "operation_id": "archiveAsset",
       "method": "POST",
       "path": "/api/assets/{assetId}/archive",
@@ -944,43 +1013,6 @@
       ]
     },
     {
-      "operation_id": "createPost",
-      "method": "POST",
-      "path": "/api/world/posts",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/CreatePostDto",
-        "ref_name": "CreatePostDto"
-      },
-      "request_schema_ref": "#/components/schemas/CreatePostDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/PostDto",
-            "ref_name": "PostDto"
-          },
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ]
-    },
-    {
       "operation_id": "createTextResource",
       "method": "POST",
       "path": "/api/resources/texts",
@@ -1083,58 +1115,6 @@
           "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
         }
       ]
-    },
-    {
-      "operation_id": "deletePost",
-      "method": "DELETE",
-      "path": "/api/world/posts/by-id/{id}",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
     },
     {
       "operation_id": "deleteResource",
@@ -2537,26 +2517,6 @@
       ]
     },
     {
-      "operation_id": "ExploreController_checkStatus",
-      "method": "GET",
-      "path": "/api/explore/status",
-      "service": "Explore",
-      "tags": [
-        "Explore"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
-    },
-    {
       "operation_id": "FeedbackController_getMyFeedbacks",
       "method": "GET",
       "path": "/api/support/feedback",
@@ -3005,378 +2965,6 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ChatViewDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getExploreFeed",
-      "method": "GET",
-      "path": "/api/explore",
-      "service": "Explore",
-      "tags": [
-        "Explore"
-      ],
-      "parameters": [
-        {
-          "name": "seed",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "seed",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/FeedResponseDto",
-            "ref_name": "FeedResponseDto"
-          },
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getHomeFeed",
-      "method": "GET",
-      "path": "/api/world/posts",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "visibility",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "PUBLIC",
-              "FRIENDS",
-              "PRIVATE"
-            ],
-            "type": "string"
-          }
-        },
-        {
-          "name": "worldId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "scope",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "personal",
-              "friends",
-              "persona_activity",
-              "world_character_activity"
-            ],
-            "type": "string"
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "visibility",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "PUBLIC",
-              "FRIENDS",
-              "PRIVATE"
-            ],
-            "type": "string"
-          }
-        },
-        {
-          "name": "worldId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "scope",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "personal",
-              "friends",
-              "persona_activity",
-              "world_character_activity"
-            ],
-            "type": "string"
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/FeedResponseDto",
-            "ref_name": "FeedResponseDto"
-          },
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/FeedResponseDto"
         }
       ]
     },
@@ -3988,425 +3576,6 @@
       ]
     },
     {
-      "operation_id": "getPost",
-      "method": "GET",
-      "path": "/api/world/posts/by-id/{id}",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "worldId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [
-        {
-          "name": "worldId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/PostDto",
-            "ref_name": "PostDto"
-          },
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getPostRecommendations",
-      "method": "GET",
-      "path": "/api/discover/recommendations/posts",
-      "service": "Discover",
-      "tags": [
-        "Discover"
-      ],
-      "parameters": [
-        {
-          "name": "seed",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "seed",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/FeedResponseDto",
-            "ref_name": "FeedResponseDto"
-          },
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getPublicPost",
-      "method": "GET",
-      "path": "/api/world/posts/public/{id}",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/PostDto",
-            "ref_name": "PostDto"
-          },
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getRecommendations",
-      "method": "GET",
-      "path": "/api/discover/recommendations",
-      "service": "Discover",
-      "tags": [
-        "Discover"
-      ],
-      "parameters": [
-        {
-          "name": "seed",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "seed",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/UserSearchResponseDto",
-            "ref_name": "UserSearchResponseDto"
-          },
-          "schema_ref": "#/components/schemas/UserSearchResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/UserSearchResponseDto"
-        }
-      ]
-    },
-    {
       "operation_id": "getResource",
       "method": "GET",
       "path": "/api/resources/{resourceId}",
@@ -4763,220 +3932,44 @@
       "response_schema_refs": []
     },
     {
-      "operation_id": "getWorldPosts",
+      "operation_id": "HealthController_live",
       "method": "GET",
-      "path": "/api/world/by-id/{worldId}/posts",
-      "service": "WorldPost",
+      "path": "/api/health/live",
+      "service": "Health",
       "tags": [
-        "WorldPost"
+        "Health"
       ],
-      "parameters": [
-        {
-          "name": "visibility",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "PUBLIC",
-              "FRIENDS",
-              "PRIVATE"
-            ],
-            "type": "string"
-          }
-        },
-        {
-          "name": "authorId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "scope",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "personal",
-              "friends",
-              "persona_activity",
-              "world_character_activity"
-            ],
-            "type": "string"
-          }
-        },
-        {
-          "name": "worldId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "worldId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [
-        {
-          "name": "visibility",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "PUBLIC",
-              "FRIENDS",
-              "PRIVATE"
-            ],
-            "type": "string"
-          }
-        },
-        {
-          "name": "authorId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "scope",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "personal",
-              "friends",
-              "persona_activity",
-              "world_character_activity"
-            ],
-            "type": "string"
-          }
-        }
-      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/FeedResponseDto",
-            "ref_name": "FeedResponseDto"
-          },
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
+      "response_schemas": [],
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "HealthController_ready",
+      "method": "GET",
+      "path": "/api/health/ready",
+      "service": "Health",
+      "tags": [
+        "Health"
       ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ]
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [],
+      "response_schema_refs": []
     },
     {
       "operation_id": "introspectSession",
@@ -5040,58 +4033,6 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
-    },
-    {
-      "operation_id": "likePost",
-      "method": "POST",
-      "path": "/api/world/posts/by-id/{postId}/like",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "postId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "postId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
     },
     {
       "operation_id": "linkOauth",
@@ -5496,163 +4437,6 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ListChatsResultDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "listLikedPosts",
-      "method": "GET",
-      "path": "/api/world/posts/liked",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "worldId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "userId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "worldId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "userId",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/FeedResponseDto",
-            "ref_name": "FeedResponseDto"
-          },
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/FeedResponseDto"
         }
       ]
     },
@@ -7985,1227 +6769,6 @@
       ]
     },
     {
-      "operation_id": "searchHumanUsers",
-      "method": "GET",
-      "path": "/api/human/search",
-      "service": "User",
-      "tags": [
-        "User"
-      ],
-      "parameters": [
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMax",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMin",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "city",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "countryCode",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "gender",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minVitalityScore",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInteractionTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInfluenceTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minAssetTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "q",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMax",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMin",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "city",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "countryCode",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "gender",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minVitalityScore",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInteractionTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInfluenceTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minAssetTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "q",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/UserSearchResponseDto",
-            "ref_name": "UserSearchResponseDto"
-          },
-          "schema_ref": "#/components/schemas/UserSearchResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/UserSearchResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "searchIndexedUsers",
-      "method": "GET",
-      "path": "/api/search/users",
-      "service": "Search",
-      "tags": [
-        "Search"
-      ],
-      "parameters": [
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMax",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMin",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "city",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "countryCode",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "gender",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minVitalityScore",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInteractionTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInfluenceTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minAssetTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "q",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMax",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "ageMin",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "city",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "countryCode",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "gender",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minVitalityScore",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInteractionTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minInfluenceTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minAssetTier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "q",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/UserSearchResponseDto",
-            "ref_name": "UserSearchResponseDto"
-          },
-          "schema_ref": "#/components/schemas/UserSearchResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/UserSearchResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "searchPosts",
-      "method": "GET",
-      "path": "/api/search/posts",
-      "service": "Search",
-      "tags": [
-        "Search"
-      ],
-      "parameters": [
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorAgeMax",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorAgeMin",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorIsAi",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "boolean",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorCity",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorCountryCode",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorGender",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minLikeCount",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "q",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "cursor",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorAgeMax",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorAgeMin",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorIsAi",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "boolean",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorCity",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorCountryCode",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "authorGender",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "tag",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "minLikeCount",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "q",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/FeedResponseDto",
-            "ref_name": "FeedResponseDto"
-          },
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ]
-    },
-    {
       "operation_id": "sendMessage",
       "method": "POST",
       "path": "/api/human/chats/{chatId}/messages",
@@ -10258,58 +7821,6 @@
       "response_schema_refs": []
     },
     {
-      "operation_id": "unlikePost",
-      "method": "DELETE",
-      "path": "/api/world/posts/by-id/{postId}/like",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "postId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "postId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
-    },
-    {
       "operation_id": "unlinkOauth",
       "method": "DELETE",
       "path": "/api/auth/oauth/{provider}",
@@ -10837,75 +8348,6 @@
         {
           "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "updatePost",
-      "method": "PATCH",
-      "path": "/api/world/posts/by-id/{id}",
-      "service": "Posts",
-      "tags": [
-        "Posts"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/UpdatePostDto",
-        "ref_name": "UpdatePostDto"
-      },
-      "request_schema_ref": "#/components/schemas/UpdatePostDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/PostDto",
-            "ref_name": "PostDto"
-          },
-          "schema_ref": "#/components/schemas/PostDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/PostDto"
         }
       ]
     },
@@ -14706,6 +12148,12 @@
       "path": "/api/human/accounts/{id}/friends"
     },
     {
+      "operation_id": "addFriendByHandle",
+      "service": "User",
+      "method": "POST",
+      "path": "/api/human/handle/{handle}/friends"
+    },
+    {
       "operation_id": "archiveAsset",
       "service": "Assets",
       "method": "POST",
@@ -14784,12 +12232,6 @@
       "path": "/api/resources/images/direct-upload"
     },
     {
-      "operation_id": "createPost",
-      "service": "Posts",
-      "method": "POST",
-      "path": "/api/world/posts"
-    },
-    {
       "operation_id": "createTextResource",
       "service": "Resources",
       "method": "POST",
@@ -14800,12 +12242,6 @@
       "service": "Resources",
       "method": "POST",
       "path": "/api/resources/videos/direct-upload"
-    },
-    {
-      "operation_id": "deletePost",
-      "service": "Posts",
-      "method": "DELETE",
-      "path": "/api/world/posts/by-id/{id}"
     },
     {
       "operation_id": "deleteResource",
@@ -14964,12 +12400,6 @@
       "path": "/api/auth/me/2fa/enable"
     },
     {
-      "operation_id": "ExploreController_checkStatus",
-      "service": "Explore",
-      "method": "GET",
-      "path": "/api/explore/status"
-    },
-    {
       "operation_id": "FeedbackController_getMyFeedbacks",
       "service": "Support (Feedback)",
       "method": "GET",
@@ -15010,18 +12440,6 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats/{chatId}"
-    },
-    {
-      "operation_id": "getExploreFeed",
-      "service": "Explore",
-      "method": "GET",
-      "path": "/api/explore"
-    },
-    {
-      "operation_id": "getHomeFeed",
-      "service": "Posts",
-      "method": "GET",
-      "path": "/api/world/posts"
     },
     {
       "operation_id": "getMe",
@@ -15096,30 +12514,6 @@
       "path": "/api/human/me/wallets"
     },
     {
-      "operation_id": "getPost",
-      "service": "Posts",
-      "method": "GET",
-      "path": "/api/world/posts/by-id/{id}"
-    },
-    {
-      "operation_id": "getPostRecommendations",
-      "service": "Discover",
-      "method": "GET",
-      "path": "/api/discover/recommendations/posts"
-    },
-    {
-      "operation_id": "getPublicPost",
-      "service": "Posts",
-      "method": "GET",
-      "path": "/api/world/posts/public/{id}"
-    },
-    {
-      "operation_id": "getRecommendations",
-      "service": "Discover",
-      "method": "GET",
-      "path": "/api/discover/recommendations"
-    },
-    {
       "operation_id": "getResource",
       "service": "Resources",
       "method": "GET",
@@ -15156,22 +12550,22 @@
       "path": "/api/human/accounts/{id}/friends"
     },
     {
-      "operation_id": "getWorldPosts",
-      "service": "WorldPost",
+      "operation_id": "HealthController_live",
+      "service": "Health",
       "method": "GET",
-      "path": "/api/world/by-id/{worldId}/posts"
+      "path": "/api/health/live"
+    },
+    {
+      "operation_id": "HealthController_ready",
+      "service": "Health",
+      "method": "GET",
+      "path": "/api/health/ready"
     },
     {
       "operation_id": "introspectSession",
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/sessions/introspect"
-    },
-    {
-      "operation_id": "likePost",
-      "service": "Posts",
-      "method": "POST",
-      "path": "/api/world/posts/by-id/{postId}/like"
     },
     {
       "operation_id": "linkOauth",
@@ -15196,12 +12590,6 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats"
-    },
-    {
-      "operation_id": "listLikedPosts",
-      "service": "Posts",
-      "method": "GET",
-      "path": "/api/world/posts/liked"
     },
     {
       "operation_id": "listMessages",
@@ -15348,24 +12736,6 @@
       "path": "/api/auth/email/otp/request"
     },
     {
-      "operation_id": "searchHumanUsers",
-      "service": "User",
-      "method": "GET",
-      "path": "/api/human/search"
-    },
-    {
-      "operation_id": "searchIndexedUsers",
-      "service": "Search",
-      "method": "GET",
-      "path": "/api/search/users"
-    },
-    {
-      "operation_id": "searchPosts",
-      "service": "Search",
-      "method": "GET",
-      "path": "/api/search/posts"
-    },
-    {
       "operation_id": "sendMessage",
       "service": "Human Chats",
       "method": "POST",
@@ -15450,12 +12820,6 @@
       "path": "/api/human/me/blocks/{id}"
     },
     {
-      "operation_id": "unlikePost",
-      "service": "Posts",
-      "method": "DELETE",
-      "path": "/api/world/posts/by-id/{postId}/like"
-    },
-    {
       "operation_id": "unlinkOauth",
       "service": "Auth",
       "method": "DELETE",
@@ -15508,12 +12872,6 @@
       "service": "Auth",
       "method": "PUT",
       "path": "/api/auth/me/password"
-    },
-    {
-      "operation_id": "updatePost",
-      "service": "Posts",
-      "method": "PATCH",
-      "path": "/api/world/posts/by-id/{id}"
     },
     {
       "operation_id": "updateResource",
@@ -15824,13 +13182,6 @@
       ]
     },
     {
-      "name": "Discover",
-      "operation_ids": [
-        "getPostRecommendations",
-        "getRecommendations"
-      ]
-    },
-    {
       "name": "Economy (Currency)",
       "operation_ids": [
         "EconomyController_calculateWithdrawal",
@@ -15858,16 +13209,16 @@
       ]
     },
     {
-      "name": "Explore",
-      "operation_ids": [
-        "ExploreController_checkStatus",
-        "getExploreFeed"
-      ]
-    },
-    {
       "name": "Governance",
       "operation_ids": [
         "ReportController_createReport"
+      ]
+    },
+    {
+      "name": "Health",
+      "operation_ids": [
+        "HealthController_live",
+        "HealthController_ready"
       ]
     },
     {
@@ -15936,20 +13287,6 @@
       ]
     },
     {
-      "name": "Posts",
-      "operation_ids": [
-        "createPost",
-        "deletePost",
-        "getHomeFeed",
-        "getPost",
-        "getPublicPost",
-        "likePost",
-        "listLikedPosts",
-        "unlikePost",
-        "updatePost"
-      ]
-    },
-    {
       "name": "Realm Core",
       "operation_ids": [
         "WorldCoreController_createPersonaCharacter",
@@ -15996,13 +13333,6 @@
       ]
     },
     {
-      "name": "Search",
-      "operation_ids": [
-        "searchIndexedUsers",
-        "searchPosts"
-      ]
-    },
-    {
       "name": "Support (Feedback)",
       "operation_ids": [
         "FeedbackController_getMyFeedbacks",
@@ -16031,6 +13361,7 @@
       "name": "User",
       "operation_ids": [
         "addFriend",
+        "addFriendByHandle",
         "checkHandle",
         "getMutualFriends",
         "getMutualFriendsCount",
@@ -16038,8 +13369,7 @@
         "getUserByHandle",
         "getUserFriends",
         "listOnlineUsers",
-        "removeFriend",
-        "searchHumanUsers"
+        "removeFriend"
       ]
     },
     {
@@ -16061,12 +13391,6 @@
         "WorldPublicController_listWorldCatalog",
         "WorldPublicController_listWorldCharacterCatalog",
         "WorldPublicController_listWorldTopics"
-      ]
-    },
-    {
-      "name": "WorldPost",
-      "operation_ids": [
-        "getWorldPosts"
       ]
     }
   ],
@@ -16282,9 +13606,6 @@
       "name": "ConnectOnboardingResponseDto"
     },
     {
-      "name": "ContentRatingString"
-    },
-    {
       "name": "CreateAssetDto"
     },
     {
@@ -16304,12 +13625,6 @@
     },
     {
       "name": "CreatePortalSessionDto"
-    },
-    {
-      "name": "CreatePostAttachmentDto"
-    },
-    {
-      "name": "CreatePostDto"
     },
     {
       "name": "CreateReportDto"
@@ -16378,12 +13693,6 @@
       "name": "FeedbackResponseDto"
     },
     {
-      "name": "FeedPageMetaDto"
-    },
-    {
-      "name": "FeedResponseDto"
-    },
-    {
       "name": "FinalizeResourceDto"
     },
     {
@@ -16391,6 +13700,9 @@
     },
     {
       "name": "FriendProfileListDto"
+    },
+    {
+      "name": "FriendRequestResultDto"
     },
     {
       "name": "Gender"
@@ -16492,9 +13804,6 @@
       "name": "MessageViewDto"
     },
     {
-      "name": "ModerationStatusString"
-    },
-    {
       "name": "MutualFriendCountDto"
     },
     {
@@ -16580,15 +13889,6 @@
     },
     {
       "name": "PortalSessionDto"
-    },
-    {
-      "name": "PostAttachmentDto"
-    },
-    {
-      "name": "PostDto"
-    },
-    {
-      "name": "PostSourceAuthorDto"
     },
     {
       "name": "PPSlotConfigDto"
@@ -16801,9 +14101,6 @@
       "name": "UpdatePasswordRequestDto"
     },
     {
-      "name": "UpdatePostDto"
-    },
-    {
       "name": "UpdatePPSlotConfigDto"
     },
     {
@@ -16838,9 +14135,6 @@
     },
     {
       "name": "UserProfileDto"
-    },
-    {
-      "name": "UserSearchResponseDto"
     },
     {
       "name": "UserSettingsDto"
@@ -23422,20 +20716,6 @@
       }
     },
     {
-      "name": "ContentRatingString",
-      "schema": {
-        "kind": "enum",
-        "values": [
-          "UNRATED",
-          "G",
-          "PG13",
-          "R18",
-          "EXPLICIT"
-        ],
-        "type": "string"
-      }
-    },
-    {
       "name": "CreateAssetDto",
       "schema": {
         "kind": "object",
@@ -24341,112 +21621,6 @@
         ],
         "required_properties": [
           "returnUrl"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CreatePostAttachmentDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "targetId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "targetType",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/AttachmentTargetType",
-              "ref_name": "AttachmentTargetType"
-            }
-          }
-        ],
-        "required_properties": [
-          "targetType",
-          "targetId"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CreatePostDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "attachments",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/CreatePostAttachmentDto",
-                "ref_name": "CreatePostAttachmentDto"
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "caption",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
-              "ref_name": "CharacterSourceRefV3Dto"
-            }
-          },
-          {
-            "name": "tags",
-            "required": false,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          }
-        ],
-        "required_properties": [
-          "attachments"
         ],
         "closed": false,
         "additional_properties": null
@@ -25779,26 +22953,11 @@
         "kind": "object",
         "properties": [
           {
-            "name": "cursor",
-            "required": false,
+            "name": "hasNext",
+            "required": true,
             "schema": {
               "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
+              "type": "boolean",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -25809,7 +22968,7 @@
           },
           {
             "name": "nextCursor",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -25823,7 +22982,10 @@
             }
           }
         ],
-        "required_properties": [],
+        "required_properties": [
+          "nextCursor",
+          "hasNext"
+        ],
         "closed": false,
         "additional_properties": null
       }
@@ -26224,98 +23386,6 @@
           "screenshotUrls",
           "priority",
           "status"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "FeedPageMetaDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "nextCursor",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          }
-        ],
-        "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "FeedResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "items",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/PostDto",
-                "ref_name": "PostDto"
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "page",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/FeedPageMetaDto",
-              "ref_name": "FeedPageMetaDto"
-            }
-          }
-        ],
-        "required_properties": [
-          "items",
-          "page"
         ],
         "closed": false,
         "additional_properties": null
@@ -27018,6 +24088,32 @@
           "items",
           "nextCursor",
           "total"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "FriendRequestResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "outcome",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "requested",
+                "accepted",
+                "unchanged"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "outcome"
         ],
         "closed": false,
         "additional_properties": null
@@ -29589,19 +26685,6 @@
       }
     },
     {
-      "name": "ModerationStatusString",
-      "schema": {
-        "kind": "enum",
-        "values": [
-          "ACTIVE",
-          "UNDER_REVIEW",
-          "FLAGGED",
-          "BANNED"
-        ],
-        "type": "string"
-      }
-    },
-    {
       "name": "MutualFriendCountDto",
       "schema": {
         "kind": "object",
@@ -31619,535 +28702,6 @@
         ],
         "required_properties": [
           "url"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PostAttachmentDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "displayKind",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/AttachmentDisplayKind",
-              "ref_name": "AttachmentDisplayKind"
-            }
-          },
-          {
-            "name": "duration",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "height",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "preview",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/AttachmentEnvelopeDto",
-              "ref_name": "AttachmentEnvelopeDto"
-            }
-          },
-          {
-            "name": "subtitle",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "targetId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "targetType",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/AttachmentTargetType",
-              "ref_name": "AttachmentTargetType"
-            }
-          },
-          {
-            "name": "thumbnail",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "title",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "url",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "width",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "targetType",
-          "targetId"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PostDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "attachments",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/PostAttachmentDto",
-                "ref_name": "PostAttachmentDto"
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "author",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/UserLiteDto",
-              "ref_name": "UserLiteDto"
-            }
-          },
-          {
-            "name": "authorId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "authorKind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "human",
-                "worldCharacter",
-                "personaCharacter"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "caption",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "contentRating",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/ContentRatingString",
-              "ref_name": "ContentRatingString"
-            }
-          },
-          {
-            "name": "createdAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "likedByCurrentUser",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "moderationStatus",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/ModerationStatusString",
-              "ref_name": "ModerationStatusString"
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "sourceAuthor",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PostSourceAuthorDto",
-              "ref_name": "PostSourceAuthorDto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
-              "ref_name": "CharacterSourceRefV3Dto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "tags",
-            "required": false,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "updatedAt",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "visibility",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/Visibility",
-              "ref_name": "Visibility"
-            }
-          },
-          {
-            "name": "worldId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "id",
-          "authorId",
-          "author",
-          "authorKind",
-          "attachments",
-          "visibility",
-          "createdAt"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PostSourceAuthorDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "avatarUrl",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "displayName",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "handle",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "worldCharacter",
-                "personaCharacter"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceAuthorityAccountId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
-              "ref_name": "CharacterSourceRefV3Dto"
-            }
-          },
-          {
-            "name": "worldId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "kind",
-          "id",
-          "worldId",
-          "displayName",
-          "handle",
-          "sourceAuthorityAccountId",
-          "sourceRef",
-          "runtimeSourceRef"
         ],
         "closed": false,
         "additional_properties": null
@@ -34727,7 +31281,7 @@
           },
           {
             "name": "payload",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "union",
               "variants": [
@@ -34825,7 +31379,8 @@
         ],
         "required_properties": [
           "clientMessageId",
-          "type"
+          "type",
+          "payload"
         ],
         "closed": false,
         "additional_properties": null
@@ -37502,26 +34057,6 @@
       }
     },
     {
-      "name": "UpdatePostDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "visibility",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/Visibility",
-              "ref_name": "Visibility"
-            }
-          }
-        ],
-        "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
       "name": "UpdatePPSlotConfigDto",
       "schema": {
         "kind": "object",
@@ -39409,43 +35944,6 @@
           "handle",
           "displayName",
           "createdAt"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "UserSearchResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "items",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/UserLiteDto",
-                "ref_name": "UserLiteDto"
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "page",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/CursorPageMetaDto",
-              "ref_name": "CursorPageMetaDto"
-            }
-          }
-        ],
-        "required_properties": [
-          "items",
-          "page"
         ],
         "closed": false,
         "additional_properties": null

@@ -10,7 +10,6 @@ export * from './oauth';
 export * from './auth';
 export * from './account-settings';
 export * from './resource-upload';
-export * from './feed';
 export * from './social';
 export * from './world-public';
 export * from './notifications';
@@ -62,6 +61,7 @@ export type RealmPublicGeneratedClient = Readonly<{
 
 export const REALM_SOCIAL_METHODS = [
   'addFriend',
+  'addFriendByHandle',
   'blockUser',
   'unblockUser',
   'removeFriend',
@@ -75,20 +75,6 @@ export const REALM_SOCIAL_METHODS = [
   'listMyFriendIds',
   'listMyFriendsWithDetails',
   'listOnlineUsers',
-  'searchHumanUsers',
-  'searchIndexedUsers',
-  'searchPosts',
-  'createPost',
-  'deletePost',
-  'getExploreFeed',
-  'getHomeFeed',
-  'getPost',
-  'getPublicPost',
-  'getWorldPosts',
-  'listLikedPosts',
-  'likePost',
-  'unlikePost',
-  'updatePost',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_HUMAN_CHAT_METHODS = [

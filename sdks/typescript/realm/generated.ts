@@ -24,8 +24,6 @@ export type RealmModels = Pick<RealmTypedModelMap, RealmModelName>;
 export type RealmModel<Name extends RealmModelName> = RealmTypedModel<Name>;
 
 export type {
-  PostDto,
-  RealmGetExploreFeedOperationResponse,
   RealmGetMeOperationResponse,
   RealmWorldCoreControllerGetOasisWorldOperationResponse,
   RealmWorldCoreControllerGetPersonaCharacterOperationResponse,

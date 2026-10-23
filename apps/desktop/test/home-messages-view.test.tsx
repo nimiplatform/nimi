@@ -15,7 +15,6 @@ import { HomeExecutionNotices } from '../src/shell/renderer/features/home/execut
 import type { HomeMessagePlacement, HomeMessages } from '../src/shell/renderer/features/home/home-messages-controller.js';
 import {
   activityMessage,
-  realmPostMessage,
   systemMessage,
   type HomeMessage,
   type HomeMessageFilter,
@@ -68,7 +67,6 @@ function controller(input: {
   offHomeCount?: number;
   pending?: NimiAppActivityViewSnapshot;
   recent?: NimiAppActivityViewSnapshot;
-  realm?: Partial<HomeMessages['realm']>;
   preferencesStatus?: 'loading' | 'ready' | 'unavailable';
   placement?: (message: HomeMessage) => HomeMessagePlacement;
   onLoadMore?: (key: 'pending' | 'recent') => void;
@@ -88,17 +86,6 @@ function controller(input: {
       markRead: noop,
       retry: noop,
       loadMore: input.onLoadMore ?? noop,
-    },
-    realm: {
-      status: 'ready',
-      posts: [],
-      stale: false,
-      hasMore: false,
-      loadingMore: false,
-      loadMoreFailed: false,
-      loadMore: noop,
-      retry: noop,
-      ...input.realm,
     },
     preferences: {
       state: status === 'ready' ? { status, preferences: DEFAULT_HOME_MESSAGE_PREFERENCES } : { status },
@@ -198,10 +185,6 @@ const turn = activityMessage(record(4, {
   source: RUNTIME, kind: 'activity', todoState: null, objectRef: null, summary: null,
   type: 'nimi.runtime.agent-conversation.turn-completed.v1', agent: { agentRef: 'agr_qilan', displayName: 'Qilan' },
 }));
-const agentPost = realmPostMessage({
-  id: 'post_1', authorKind: 'personaCharacter', authorRef: 'persona_qilan', authorName: 'Qilan', authorAvatarUrl: null,
-  caption: 'Practised calligraphy this afternoon.', createdAt: new Date(2026, 8, 22, 21, 5).toISOString(), media: [],
-});
 const download = systemMessage({
   kind: 'download', id: 'install-1', title: 'Qwen3 8B', detail: '2.1 GB / 4.9 GB',
   progress: { value: 43, max: 100 }, time: new Date(2026, 8, 20).toISOString(), app: null, open: noop,
@@ -210,7 +193,7 @@ const download = systemMessage({
 test('Home mixes sources chronologically with compact navigation above the preview', async () => {
   await initI18n(); await changeLocale('en');
   const html = renderColumn(controller({
-    messages: [growthOpen, growthRead, rijing, turn, agentPost, download],
+    messages: [growthOpen, growthRead, rijing, turn, download],
     pending: view([growthOpen.record, growthRead.record], { complete: false, hasMore: true }),
   }));
   assert.match(html, /data-testid="home-messages"/);
@@ -222,15 +205,15 @@ test('Home mixes sources chronologically with compact navigation above the previ
   assert.match(html, /1 more · Expand/);
   assert.match(html, />43%</, 'download progress comes from real totals');
   assert.match(html, /Pending 3\+/, 'an incomplete open-todo listing never claims a total');
-  // ShiJing and Runtime summaries have no open target; the Realm Post opens that Post.
+  // ShiJing and Runtime summaries have no open target; Runtime summaries remain non-openable.
   assert.doesNotMatch(cardHtml(html, rijing.key), />Open</);
   assert.match(cardHtml(html, rijing.key), /Mark as read/);
   assert.doesNotMatch(cardHtml(html, turn.key), />Open</);
-  assert.match(cardHtml(html, agentPost.key), /View post/);
+  assert.doesNotMatch(html, /View post/, 'deferred Realm Posts have no Home action');
   assert.match(html, /Runtime · Qilan/);
   assert.match(html, /Replied in a conversation/);
   assert.doesNotMatch(html, /publisher-owned/, 'publisher data is never parsed or shown');
-  assert.equal((html.match(/aria-label="Hide from Home"/g) ?? []).length, 3, 'ShiJing, Runtime and Realm cards can be hidden');
+  assert.equal((html.match(/aria-label="Hide from Home"/g) ?? []).length, 2, 'ShiJing and Runtime cards can be hidden');
   assert.match(html, /aria-label="Hide these 2 messages from Home"/, 'a stack hides its counted members');
   assert.match(html, /View all messages/);
   assert.match(html, /aria-label="Filter"/);
@@ -240,14 +223,14 @@ test('Home mixes sources chronologically with compact navigation above the previ
 test('one unavailable source keeps the others and never claims an empty list', async () => {
   await initI18n(); await changeLocale('zh');
   const html = renderColumn(controller({
-    messages: [agentPost],
+    messages: [download],
     pending: view([], { status: 'unavailable', complete: false }),
     recent: view([], { status: 'unavailable', complete: false }),
   }));
   assert.match(html, /data-testid="home-messages-app-unavailable"/);
   assert.match(html, /暂时无法读取应用消息/);
   assert.match(html, /其他来源照常显示。/);
-  assert.match(html, /发布了动态/);
+  assert.match(html, /Qwen3 8B/);
   assert.doesNotMatch(html, /没有消息/);
 });
 
@@ -256,8 +239,7 @@ test('Home applies one chronological preview limit across every source', async (
   const items = Array.from({ length: 6 }, (_, index) => activityMessage(record(index + 10, {
     source: { ...PARENTOS, sourceRef: `src_${index}`, appId: `app.example.${index}` },
   })));
-  const html = renderColumn(controller({ messages: [...items, agentPost] }));
-  assert.ok(!html.includes(`data-testid="home-message:${agentPost.key}"`), 'older Posts do not reserve a separate section');
+  const html = renderColumn(controller({ messages: [...items] }));
   assert.equal(items.filter((item) => html.includes(`data-testid="home-message:${item.key}"`)).length, 6);
   assert.doesNotMatch(html, /No activity yet/);
 });
@@ -269,7 +251,7 @@ test('Home empty states distinguish hidden, complete and not yet loaded', async 
   const empty = renderColumn(controller({ messages: [] }));
   assert.match(empty, /没有消息/);
   assert.doesNotMatch(empty, /暂无动态/);
-  const partial = renderColumn(controller({ messages: [], realm: { hasMore: true } }));
+  const partial = renderColumn(controller({ messages: [], recent: view([], { complete: false, hasMore: true }) }));
   assert.match(partial, /尚未加载到匹配事项/);
   assert.doesNotMatch(partial, /没有消息/);
   const pendingPartial = renderColumn(controller({ messages: [], pending: view([], { complete: false, hasMore: true }) }));
@@ -292,18 +274,18 @@ test('the center reads summaries in full, keeps read and hidden open todos pendi
     source: SHIJING, kind: 'activity', todoState: null, objectRef: null, title: 'Weekly reading review', summary: longSummary,
   }));
   const hiddenOpen = activityMessage(record(6));
-  const all = renderCenter(controller({ messages: [reading, growthRead, hiddenOpen, agentPost] }));
+  const all = renderCenter(controller({ messages: [reading, growthRead, hiddenOpen] }));
   assert.ok(all.includes(longSummary), 'the whole summary is rendered');
   assert.doesNotMatch(all, /line-clamp-3/);
   const pending = renderCenter(controller({
-    messages: [reading, growthRead, hiddenOpen, agentPost],
+    messages: [reading, growthRead, hiddenOpen],
     placement: (message) => (message.key === hiddenOpen.key ? 'hidden' : message.key === growthRead.key ? 'source-off' : 'shown'),
     pending: view([growthRead.record, hiddenOpen.record], { complete: false, hasMore: true }),
   }), 'pending');
   assert.match(pending, /Pending 2\+/);
   assert.match(pending, /Growth record 2/);
   assert.match(pending, /Growth record 6/);
-  assert.doesNotMatch(pending, /Weekly reading review|Practised calligraphy/, 'summaries and Posts are never pending');
+  assert.doesNotMatch(pending, /Weekly reading review|Practised calligraphy/, 'summaries are never pending');
   assert.match(pending, /Hidden from Home/);
   assert.match(pending, /Show on Home/);
   assert.match(pending, /This source is hidden from Home/);
@@ -322,9 +304,7 @@ test('center empty results are definite only after the relevant listing is compl
   assert.doesNotMatch(incomplete, /Nothing pending/);
   const complete = renderCenter(controller({ messages: [rijing] }), 'pending');
   assert.match(complete, /Nothing pending/);
-  const posts = renderCenter(controller({ messages: [], realm: { hasMore: true } }), 'all', 'realm-author:personaCharacter:persona_qilan');
-  assert.match(posts, /Load more posts/);
-  assert.match(posts, /No matching items loaded yet/);
+
 });
 
 test('center sources collect registrations by app identity and search every source name', async () => {
@@ -337,8 +317,8 @@ test('center sources collect registrations by app identity and search every sour
   assert.equal(options[0]!.label, 'Realm World Studio');
   const differentApp = activityMessage(record(9, { source: { ...PARENTOS, appId: 'another.app', displayName: 'Realm World Studio' } }));
   const renamed = activityMessage(record(10, { source: { ...PARENTOS, appId: 'app.rws', displayName: 'World Studio' } }));
-  const grouped = messageSourceOptions([current, previous, differentApp, renamed, turn, agentPost, download], t);
-  assert.deepEqual(grouped.map((option) => option.domain), ['app', 'app', 'runtime-agent', 'realm-post', 'system']);
+  const grouped = messageSourceOptions([current, previous, differentApp, renamed, turn, download], t);
+  assert.deepEqual(grouped.map((option) => option.domain), ['app', 'app', 'runtime-agent', 'system']);
   assert.deepEqual(searchMessageSources(grouped, '  REALM world  ').map((option) => option.value).sort(), ['app-id:another.app', 'app-id:app.rws']);
   assert.equal(searchMessageSources(grouped, 'no-such-source').length, 0);
   const duplicates = messageSourceOptions([current, differentApp], t);

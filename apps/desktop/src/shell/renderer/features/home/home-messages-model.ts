@@ -4,25 +4,23 @@ import { isPendingTodo } from './home-app-activity-model.js';
 /** A bounded preview; the Message center retains the complete loaded listing. */
 export const HOME_MESSAGE_GROUP_LIMIT = 6;
 
-export type HomeTimelineType = 'all' | 'message' | 'todo' | 'post';
+export type HomeTimelineType = 'all' | 'message' | 'todo';
 export type HomeTimelineStatus = 'all' | 'unread' | 'pending';
 
 /** Home toolbar quick filters; each preset pins one type/status pair. */
-export type HomeTimelineQuickFilter = 'all' | 'unread' | 'pending' | 'message' | 'post' | 'todo';
+export type HomeTimelineQuickFilter = 'all' | 'unread' | 'pending' | 'message' | 'todo';
 
 export function quickFilterSelection(filter: HomeTimelineQuickFilter): Readonly<{ type: HomeTimelineType; status: HomeTimelineStatus }> {
   switch (filter) {
     case 'unread': return { type: 'all', status: 'unread' };
     case 'pending': return { type: 'all', status: 'pending' };
     case 'message': return { type: 'message', status: 'all' };
-    case 'post': return { type: 'post', status: 'all' };
     case 'todo': return { type: 'todo', status: 'all' };
     default: return { type: 'all', status: 'all' };
   }
 }
 
 export function timelineType(message: HomeMessage): Exclude<HomeTimelineType, 'all'> {
-  if (message.sourceKind === 'realm-post') return 'post';
   if (message.sourceKind === 'system' || message.record.kind === 'todo') return 'todo';
   return 'message';
 }
@@ -50,22 +48,6 @@ export type HomeSystemMessage = Readonly<{
   open: () => void;
 }>;
 
-export type HomeRealmThumbnail = Readonly<{ url: string; kind: 'IMAGE' | 'VIDEO' }>;
-
-/** An agent-authored Realm Post from the viewer's personal feed. */
-export type HomeRealmPost = Readonly<{
-  id: string;
-  authorKind: string;
-  /** Trusted Realm author reference; null keeps the Post in its own group. */
-  authorRef: string | null;
-  authorName: string;
-  authorAvatarUrl: string | null;
-  caption: string;
-  createdAt: string;
-  /** Renderable Realm media in attachment order. */
-  media: readonly HomeRealmThumbnail[];
-}>;
-
 type MessageBase = Readonly<{
   /** Namespaced stable identity of the message. */
   key: string;
@@ -78,19 +60,13 @@ export type HomeActivityMessage = MessageBase & Readonly<{
   record: NimiAppActivityRecord;
 }>;
 
-export type HomeRealmPostMessage = MessageBase & Readonly<{
-  sourceKind: 'realm-post';
-  time: string;
-  post: HomeRealmPost;
-}>;
-
 export type HomeSystemItemMessage = MessageBase & Readonly<{
   sourceKind: 'system';
   time: string | null;
   system: HomeSystemMessage;
 }>;
 
-export type HomeMessage = HomeActivityMessage | HomeRealmPostMessage | HomeSystemItemMessage;
+export type HomeMessage = HomeActivityMessage | HomeSystemItemMessage;
 
 export type HomeMessageGroup = Readonly<{
   key: string;
@@ -116,16 +92,6 @@ export function activityMessage(record: NimiAppActivityRecord): HomeActivityMess
   return { key, sourceKind: 'app', groupKey: `app:${record.source.sourceRef}`, time: record.occurredAt, record };
 }
 
-export function realmPostMessage(post: HomeRealmPost): HomeRealmPostMessage {
-  return {
-    key: `realm-post:${post.id}`,
-    sourceKind: 'realm-post',
-    groupKey: post.authorRef ? `realm-author:${post.authorKind}:${post.authorRef}` : `realm-post:${post.id}`,
-    time: post.createdAt,
-    post,
-  };
-}
-
 export function systemMessage(system: HomeSystemMessage): HomeSystemItemMessage {
   return {
     key: `system:${system.kind}:${system.id}`,
@@ -136,10 +102,9 @@ export function systemMessage(system: HomeSystemMessage): HomeSystemItemMessage 
   };
 }
 
-/** Open todos (read or not) and unresolved system items; activity summaries and Posts never are. */
+/** Open todos (read or not) and unresolved system items; activity summaries never are. */
 export function isPendingMessage(message: HomeMessage): boolean {
   if (message.sourceKind === 'system') return true;
-  if (message.sourceKind === 'realm-post') return false;
   return isPendingTodo(message.record);
 }
 
@@ -230,7 +195,7 @@ export function filterCenterMessages(
     .sort(compareMessages);
 }
 
-export type HomeMessageDomain = 'app' | 'runtime-agent' | 'realm-post' | 'system';
+export type HomeMessageDomain = 'app' | 'runtime-agent' | 'system';
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r036
 /** Center filtering aggregates App registrations only; records and actions retain their exact source. */
@@ -246,5 +211,5 @@ export function messageDomainOfGroup(groupKey: string | null): HomeMessageDomain
   if (groupKey.startsWith('app:') || groupKey.startsWith('app-id:')) return 'app';
   if (groupKey.startsWith('runtime-agent')) return 'runtime-agent';
   if (groupKey.startsWith('system:')) return 'system';
-  return 'realm-post';
+  return null;
 }

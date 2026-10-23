@@ -9,8 +9,6 @@ import { createProductionAppStoreDependencies } from '../app-shell/providers/pro
 import { createBrowserAppAttentionSource } from '../app-shell/providers/production-app-attention-source.js';
 import { LOCALE_STORAGE_KEY } from '../i18n/desktop-i18n.js';
 import type { DesktopCanonicalRendererBindings } from './contract.js';
-import { connectMenuBarNavigation } from '../infra/menu-bar/menu-bar-navigation-listener.js';
-import { connectMenuBarRuntimeSync } from '../infra/menu-bar/menu-bar-runtime-sync.js';
 import {
   connectRuntimeHealthCoordinator,
   createRuntimeHealthCoordinator,
@@ -130,7 +128,6 @@ export function createDesktopProductionBindings(
           loadProfileMetadata: offline.getCachedProfileMetadata,
           markCacheFallbackUsed: offline.markCacheFallbackUsed,
           markRealmUnreachable: offline.markRealmUnreachable,
-          queueSocialMutation: offline.queueSocialMutation,
         }),
       }),
       accountCaller: getDesktopRuntimeAccountCaller,
@@ -361,27 +358,17 @@ export function createDesktopProductionBindings(
           }
           connectedLifecycle = lifecycle;
           let active = true;
-          const disconnectMenuBarNavigation = connectMenuBarNavigation(
-            lifecycle,
-            runtimeConfigNavigation,
-          );
           const disconnectRuntimeHealth = connectRuntimeHealthCoordinator(
             runtimeHealthCoordinator,
             lifecycle,
             getShellFeatureFlags().mode === 'desktop',
-          );
-          const disconnectMenuBarRuntimeSync = connectMenuBarRuntimeSync(
-            lifecycle,
-            runtimeHealthCoordinator,
           );
           const disconnectBootstrap = connectProductionBootstrap(lifecycle);
           return () => {
             if (!active) return;
             active = false;
             connectedLifecycle = null;
-            disconnectMenuBarRuntimeSync();
             disconnectRuntimeHealth();
-            disconnectMenuBarNavigation();
             disconnectBootstrap();
           };
         },

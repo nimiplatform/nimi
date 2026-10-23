@@ -36,5 +36,13 @@
   "removeFriendFailed": "Failed to remove friend",
   "removeFriendSuccess": "Friend removed.",
   "tags": "Tags",
-  "tagsPlaceholder": "creator, traveler, world-native"
+  "tagsPlaceholder": "creator, traveler, world-native",
+  "findByHandleTitle": "Add a friend",
+  "findByHandleDescription": "Enter their complete account handle to send a friend request. Their profile can stay private.",
+  "handleLabel": "Account handle",
+  "findByHandleAction": "Send friend request",
+  "findByHandleFailed": "The friend request could not be confirmed. Check the handle, their friend request settings and your connection, then try again.",
+  "friendHandleRequested": "Friend request sent. They will appear in your friends when they accept.",
+  "friendHandleAccepted": "You are now friends.",
+  "friendHandleUnchanged": "You are already friends or a request is already pending. Check your friends and requests."
 }

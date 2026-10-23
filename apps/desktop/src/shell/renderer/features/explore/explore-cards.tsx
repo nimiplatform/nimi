@@ -4,6 +4,7 @@ import type { CharacterSourceViewerRelationProjection } from '../realm-source/ch
 export { PersonaSourceCard } from './explore-persona-source-card';
 export { toSafeBackgroundImage } from './explore-background-image';
 export type ExplorePersonaSourceCardData = {
+  materializationActionState?: 'running' | 'refresh';
   // Basic contact info
   id: string;
   name: string;

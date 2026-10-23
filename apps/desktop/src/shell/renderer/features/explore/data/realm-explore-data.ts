@@ -1,8 +1,4 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import {
-  loadNimiRealmExploreFeedItems,
-} from '@nimiplatform/sdk/realm';
-import type { RealmGetExploreFeedOperationResponse } from '@nimiplatform/sdk/realm/generated';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import { readCharacterSourceRefV3 } from '../../realm-source/realm-source-identity.js';
@@ -124,34 +120,6 @@ export async function loadExplorePersonas(
   );
 }
 
-export async function loadExploreFeedItems(
-  callApi: RealmExploreApiCaller,
-  emitRealmExploreError: RealmExploreErrorEmitter,
-  tag: string | null,
-  limit: number,
-): Promise<RealmGetExploreFeedOperationResponse> {
-  const normalizedTag = normalizeText(tag);
-  return callApi(
-    (realm) => loadNimiRealmExploreFeedItems(realm, emitRealmExploreError, normalizedTag ?? null, limit),
-    '加载探索流失败',
-  );
-}
-
-export async function loadMoreExploreFeedItems(
-  callApi: RealmExploreApiCaller,
-  emitRealmExploreError: RealmExploreErrorEmitter,
-  limit: number,
-  cursor?: string,
-  tag?: string | null,
-): Promise<RealmGetExploreFeedOperationResponse | undefined> {
-  if (!cursor) return undefined;
-  const normalizedTag = normalizeText(tag);
-  return callApi(
-    (realm) => loadNimiRealmExploreFeedItems(realm, emitRealmExploreError, normalizedTag ?? null, limit, cursor),
-    '加载更多探索流失败',
-  );
-}
-
 export function createRealmExploreData(sdk: DesktopRendererSdkPort) {
   const callRealmApi = sdk.socialData.callApi;
   const emitRealmDataError = sdk.socialData.emitDataError;
@@ -161,9 +129,5 @@ export function createRealmExploreData(sdk: DesktopRendererSdkPort) {
         ...input,
         limit: Math.min(input.limit ?? 20, 100),
       }),
-  loadExploreFeed: (tag: string | null = null, limit = 20) =>
-    loadExploreFeedItems(callRealmApi, emitRealmDataError, tag, Math.min(limit, 100)),
-  loadMoreExploreFeed: (limit = 20, cursor?: string, tag?: string | null) =>
-    loadMoreExploreFeedItems(callRealmApi, emitRealmDataError, Math.min(limit, 100), cursor, tag),
   });
 }

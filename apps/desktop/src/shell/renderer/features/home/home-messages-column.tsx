@@ -28,10 +28,9 @@ function appLoading(messages: HomeMessages): boolean {
 }
 
 /** Source-local read problems; each keeps the other sources usable. */
-export function HomeMessageSourceNotices({ messages, app = true, realm = true, preferences = true }: {
+export function HomeMessageSourceNotices({ messages, app = true, preferences = true }: {
   messages: HomeMessages;
   app?: boolean;
-  realm?: boolean;
   preferences?: boolean;
 }) {
   const { t } = useTranslation();
@@ -45,16 +44,6 @@ export function HomeMessageSourceNotices({ messages, app = true, realm = true, p
         <InlineAlert tone="warning" action={retry(messages.app.retry)} data-testid="home-messages-app-unavailable">
           <p className="font-medium">{t('runtimeConfig.overview.messages.appUnavailable')}</p>
           <p>{t('runtimeConfig.overview.messages.otherSourcesShown')}</p>
-        </InlineAlert>
-      ) : null}
-      {realm && messages.realm.status === 'unavailable' ? (
-        <InlineAlert tone="warning" action={retry(messages.realm.retry)} data-testid="home-messages-realm-unavailable">
-          {t('runtimeConfig.overview.messages.realmUnavailable')}
-        </InlineAlert>
-      ) : null}
-      {realm && messages.realm.stale ? (
-        <InlineAlert tone="neutral" action={retry(messages.realm.retry)}>
-          {t('runtimeConfig.overview.messages.realmStale')}
         </InlineAlert>
       ) : null}
       {preferences && displayPreferences.state.status === 'unavailable' ? (
@@ -114,14 +103,11 @@ export function HomeMessagesColumn({ messages, context, onViewAll }: {
     }),
   };
   const pending = pendingSummary(messages);
-  const appRelevant = type !== 'post';
-  const realmRelevant = (type === 'all' || type === 'post') && status === 'all';
-  const loading = !groups || (appRelevant && appLoading(messages)) || (realmRelevant && messages.realm.status === 'loading');
+  const loading = !groups || appLoading(messages);
   const appComplete = status === 'pending' ? messages.app.pending.complete
     : type === 'message' ? messages.app.recent.complete
     : messages.app.pending.complete && messages.app.recent.complete;
-  const complete = (!appRelevant || appComplete)
-    && (!realmRelevant || (messages.realm.status === 'ready' && !messages.realm.hasMore));
+  const complete = appComplete;
   const clearFilters = () => setFilter('all');
   const quickFilterItem = (value: HomeTimelineQuickFilter): NimiMenuItem => ({
     id: value,
@@ -206,7 +192,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll }: {
               />
               <div className="mx-1 my-1 border-t border-[var(--nimi-border-subtle)]" role="separator" />
               <ActionMenu
-                items={(['message', 'post', 'todo'] as const).map(quickFilterItem)}
+                items={(['message', 'todo'] as const).map(quickFilterItem)}
                 ariaLabel={t('runtimeConfig.overview.messages.quickFilterTypeGroup')}
               />
             </PopoverContent>
@@ -223,7 +209,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll }: {
           ) : null}
 
           <HomeExecutionNotices />
-          <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
+          <HomeMessageSourceNotices messages={messages} />
 
           <div
             ref={listRef}

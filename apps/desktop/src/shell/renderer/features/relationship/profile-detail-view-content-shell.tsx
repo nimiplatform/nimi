@@ -348,8 +348,6 @@ export function ProfileDetailStatsActionsBlock(input: {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="grid max-w-[320px] grid-cols-3 gap-2 lg:flex-1">
           <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
-          <StatTile label={i18n.t('Profile.posts', { defaultValue: 'Posts' })} value={input.postCount} />
-          <StatTile label={i18n.t('Profile.likes', { defaultValue: 'Likes' })} value={input.likesCount} />
         </div>
         <div className="lg:min-w-[11rem]">
           <div className="flex items-center gap-2 lg:justify-end">
@@ -394,9 +392,7 @@ export function ProfileDetailDesktopStatsActions(input: {
       <div className="mt-5 grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
         <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
         <StatDivider />
-        <StatTile label={i18n.t('Profile.posts', { defaultValue: 'Posts' })} value={input.postCount} />
         <StatDivider />
-        <StatTile label={i18n.t('Profile.likes', { defaultValue: 'Likes' })} value={input.likesCount} />
       </div>
     </div>
   );

@@ -11,5 +11,4 @@ export const productionRealmSocialOfflinePort: RealmSocialOfflinePort = Object.f
   loadProfileMetadata: productionDesktopOfflinePort.getCachedProfileMetadata,
   markCacheFallbackUsed: productionDesktopOfflinePort.markCacheFallbackUsed,
   markRealmUnreachable: productionDesktopOfflinePort.markRealmUnreachable,
-  queueSocialMutation: productionDesktopOfflinePort.queueSocialMutation,
 });

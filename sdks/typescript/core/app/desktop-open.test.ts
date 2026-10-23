@@ -5,6 +5,7 @@ import {
   NimiDesktopOpenIntentParseError,
   composeNimiDesktopOpenIntentEnvelope,
   parseNimiDesktopOpenIntentEnvelope,
+  parseNimiDesktopOpenIntent,
   parseNimiDesktopOpenRendererRequest,
   parseNimiDesktopOpenResult,
   safeParseNimiDesktopOpenIntentEnvelope,
@@ -39,20 +40,6 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0012',
     intent: { kind: 'open-explore', section: 'worlds' },
-  },
-  {
-    schemaVersion: 1,
-    sourceApp: 'nimi.test-launcher',
-    sourceHost: 'tauri-standard-shell',
-    requestId: 'desktop-open-20260708-0010',
-    intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' },
-  },
-  {
-    schemaVersion: 1,
-    sourceApp: 'nimi.test-launcher',
-    sourceHost: 'electron-standard-shell',
-    requestId: 'desktop-open-20260708-0013',
-    intent: { kind: 'open-explore', section: 'activity' },
   },
   {
     schemaVersion: 1,
@@ -378,4 +365,9 @@ it('rejects a creator trial target without changing the admitted Desktop targets
     kind: 'open-world-character-preview',
     sourceRef: { kind: 'worldCharacter', id: 'character-1', worldId: 'world-1', sourceHash: 'a'.repeat(64), worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' } },
   } }, 'desktop-open-target-unsupported');
+});
+
+
+it('rejects deferred Realm activity before a Desktop open request', () => {
+  assert.throws(() => parseNimiDesktopOpenIntent({ kind: 'open-explore', section: 'activity', productIntent: 'view-activity' }));
 });
