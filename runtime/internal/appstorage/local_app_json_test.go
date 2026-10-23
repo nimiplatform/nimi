@@ -2,12 +2,41 @@ package appstorage
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+// One-shot disk fixtures intentionally do not retain a projection. Production
+// callers use the activation-owned LocalAppJSONStore, never these helpers.
+func WriteLocalAppJSON(root string, owner ManagedOwner, path string, value []byte) (LocalAppJSONDocument, error) {
+	store, err := NewLocalAppJSONStore(root)
+	if err != nil {
+		return LocalAppJSONDocument{}, err
+	}
+	defer store.Close()
+	return store.Write(context.Background(), owner, path, value, jsonTestCommit)
+}
+func ReadLocalAppJSON(root string, owner ManagedOwner, path string) (LocalAppJSONDocument, error) {
+	store, err := NewLocalAppJSONStore(root)
+	if err != nil {
+		return LocalAppJSONDocument{}, err
+	}
+	defer store.Close()
+	return store.Read(context.Background(), owner, path)
+}
+func RemoveLocalAppJSON(root string, owner ManagedOwner, path string) (bool, error) {
+	store, err := NewLocalAppJSONStore(root)
+	if err != nil {
+		return false, err
+	}
+	defer store.Close()
+	return store.Remove(context.Background(), owner, path, jsonTestCommit)
+}
+func jsonTestCommit(commit func() error) error { return commit() }
 
 func TestLocalAppJSONStorageIsPrincipalPartitionedAndRedacted(t *testing.T) {
 	dataRoot := t.TempDir()

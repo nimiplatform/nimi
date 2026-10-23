@@ -2,11 +2,12 @@ import { emptyState } from '../domain/defaults.js';
 import type { DayState, Language, LifeItem, SkillRun } from '../domain/types.js';
 import { builtInSkillIds } from '../domain/skills.js';
 import {
+  CollectionPersistenceError,
   documentPath,
-  readCollection,
-  writeCollection,
-  type JsonDocumentStore,
-} from './persistence.js';
+  persistenceReason,
+  type PersistenceFailureKind,
+} from './json-documents.js';
+import type { DayPersistence } from './persistence.js';
 import {
   normalizeCircle,
   normalizeCustomSkill,
@@ -30,6 +31,10 @@ export type StoreSnapshot = {
   readonly unsaved: boolean;
   readonly loadError: string | null;
   readonly saveError: string | null;
+  readonly saveErrorKind: Exclude<PersistenceFailureKind, 'closed'> | null;
+  readonly cleanupPending: boolean;
+  readonly recoveryRequired: boolean;
+  readonly recoveryPending: boolean;
 };
 
 export type SaveOutcome = { readonly ok: true } | { readonly ok: false; readonly error: string };
@@ -42,7 +47,8 @@ export type DayStore = {
   readonly update: (mutate: (state: DayState) => DayState, dirty: readonly DocKey[]) => void;
   /**
    * Save now. Resolves ok only once every change made so far is in storage;
-   * otherwise with the reason. A failed save stays queued for the usual retry.
+   * otherwise with the reason. Only temporary failures retry automatically;
+   * refused content stays dirty for an edit or an explicit retry.
    */
   readonly persist: () => Promise<SaveOutcome>;
   readonly flush: () => Promise<void>;
@@ -70,9 +76,12 @@ const SESSION_ENDED: ReadonlySet<string> = new Set([
 ]);
 
 function sessionEnded(error: unknown): boolean {
+  if (error instanceof CollectionPersistenceError && error.kind === 'closed') return true;
   if (!error || typeof error !== 'object') return false;
   const record = error as { reasonCode?: unknown; code?: unknown };
-  return SESSION_ENDED.has(String(record.reasonCode ?? record.code ?? ''));
+  const reason = String(record.reasonCode ?? record.code ?? '');
+  return SESSION_ENDED.has(reason.toLowerCase().replaceAll('_', '-'))
+    || ['SESSION_INVALID', 'LOCAL_APP_SESSION_REVOKED', 'LOCAL_APP_ACCOUNT_CHANGED'].includes(persistenceReason(error));
 }
 
 const RUN_LIMIT = 300;
@@ -82,6 +91,16 @@ const RETRY_DELAYS_MS = [2_000, 8_000, 30_000];
 
 function message(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function saveFailureKind(error: unknown): Exclude<StoreSnapshot['saveErrorKind'], null> {
+  if (error instanceof CollectionPersistenceError) return error.kind === 'closed' ? 'uncertain' : error.kind;
+  if (error && typeof error === 'object') {
+    const reason = persistenceReason(error);
+    if (reason === 'APP_STORAGE_QUOTA_EXCEEDED' || reason === 'RESOURCE_EXHAUSTED') return 'capacity';
+    if (['INVALID_PATH', 'INVALID_PAYLOAD', 'APP_STORAGE_PATH_INVALID', 'PROTOCOL_ENVELOPE_INVALID'].includes(reason)) return 'invalid-data';
+  }
+  return 'temporary';
 }
 
 /** Keep every open item; keep the most recently closed ones. */
@@ -98,7 +117,7 @@ export function pruneRuns(runs: readonly SkillRun[]): SkillRun[] {
   return runs.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, RUN_LIMIT);
 }
 
-export function createDayStore(documents: JsonDocumentStore, options: {
+export function createDayStore(documents: DayPersistence, options: {
   readonly language: () => Language;
   readonly now?: () => Date;
 }): DayStore {
@@ -110,6 +129,10 @@ export function createDayStore(documents: JsonDocumentStore, options: {
     unsaved: false,
     loadError: null,
     saveError: null,
+    saveErrorKind: null,
+    cleanupPending: false,
+    recoveryRequired: false,
+    recoveryPending: false,
   };
   const listeners = new Set<() => void>();
   const dirty = new Set<DocKey>();
@@ -120,6 +143,22 @@ export function createDayStore(documents: JsonDocumentStore, options: {
   let version = 0;
   let savedVersion = 0;
 
+  const requireOpen = () => {
+    if (snapshot.status === 'closed') throw new Error('NimiDay storage session has ended.');
+  };
+  // A collection uses several calls. Fence each call, not only its outer save,
+  // because the carrier can rebind while an earlier call is still completing.
+  const scopedDocuments: DayPersistence = {
+    read: async (path) => { requireOpen(); return documents.read(path); },
+    write: async (path, value) => { requireOpen(); return documents.write(path, value); },
+    remove: async (path) => { requireOpen(); return documents.remove(path); },
+    readCollection: async name => { requireOpen(); return documents.readCollection(name); },
+    writeCollection: async (name, records) => { requireOpen(); return documents.writeCollection(name, records); },
+    maintain: async () => { requireOpen(); return documents.maintain(); },
+    status: documents.status,
+    close: documents.close,
+  };
+
   const publish = (next: Omit<StoreSnapshot, 'unsaved'>) => {
     snapshot = { ...next, unsaved: savedVersion < version };
     listeners.forEach((listener) => listener());
@@ -128,24 +167,29 @@ export function createDayStore(documents: JsonDocumentStore, options: {
   const writeDocument = async (key: DocKey, state: DayState) => {
     switch (key) {
       case 'profile':
-        return documents.write(documentPath('profile'), state.profile);
+        return scopedDocuments.write(documentPath('profile'), state.profile);
       case 'circles':
-        return documents.write(documentPath('circles'), state.circles);
+        return scopedDocuments.write(documentPath('circles'), state.circles);
       case 'rhythms':
-        return documents.write(documentPath('rhythms'), state.rhythms);
+        return scopedDocuments.write(documentPath('rhythms'), state.rhythms);
       case 'skills':
-        return documents.write(documentPath('skills'), { overrides: state.skillOverrides, custom: state.customSkills, favorites: state.favoriteSkillIds });
+        return scopedDocuments.write(documentPath('skills'), { overrides: state.skillOverrides, custom: state.customSkills, favorites: state.favoriteSkillIds });
       case 'items':
-        return writeCollection(documents, 'items', state.items);
+        return scopedDocuments.writeCollection('items', state.items);
       case 'notes':
-        return writeCollection(documents, 'notes', state.notes);
+        return scopedDocuments.writeCollection('notes', state.notes);
       case 'runs':
-        return writeCollection(documents, 'runs', state.runs);
+        return scopedDocuments.writeCollection('runs', state.runs);
     }
   };
 
   const runSave = async (): Promise<void> => {
     if (snapshot.status !== 'ready') return;
+    if (documents.status().cleanupPending && !documents.status().recoveryRequired) {
+      try { await scopedDocuments.maintain(); } catch { /* pending remains visible and prevents a new commit */ }
+      if (isClosed()) return;
+      publish({ ...snapshot, ...documents.status() });
+    }
     if (dirty.size === 0) {
       // Nothing is waiting, and saves run one at a time: everything so far is stored.
       if (savedVersion < version) {
@@ -155,23 +199,30 @@ export function createDayStore(documents: JsonDocumentStore, options: {
       return;
     }
     const keys = [...dirty];
+    const remaining = new Set(keys);
     dirty.clear();
     const state = snapshot.state;
     const target = version;
     publish({ ...snapshot, saving: 'saving' });
     try {
-      for (const key of keys) await writeDocument(key, state);
+      for (const key of keys) {
+        await writeDocument(key, state);
+        if (isClosed()) return;
+        remaining.delete(key);
+      }
       retryIndex = 0;
       savedVersion = Math.max(savedVersion, target);
-      publish({ ...snapshot, saving: dirty.size > 0 ? 'saving' : 'idle', saveError: null });
+      publish({ ...snapshot, ...documents.status(), saving: dirty.size > 0 ? 'saving' : 'idle', saveError: null, saveErrorKind: null });
     } catch (error) {
       // A store whose session has ended never retries: the next attempt would go to whatever scope is bound now.
       if (isClosed() || sessionEnded(error)) {
         close();
         return;
       }
-      keys.forEach((key) => dirty.add(key));
-      publish({ ...snapshot, saving: 'error', saveError: message(error, 'NimiDay could not save your changes.') });
+      remaining.forEach((key) => dirty.add(key));
+      const kind = saveFailureKind(error);
+      publish({ ...snapshot, ...documents.status(), saving: 'error', saveError: message(error, 'NimiDay could not save your changes.'), saveErrorKind: kind });
+      if (kind !== 'temporary') return;
       const delay = RETRY_DELAYS_MS[Math.min(retryIndex, RETRY_DELAYS_MS.length - 1)] ?? 30_000;
       retryIndex += 1;
       schedule(delay);
@@ -187,6 +238,7 @@ export function createDayStore(documents: JsonDocumentStore, options: {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = null;
     dirty.clear();
+    documents.close();
     publish({ ...snapshot, status: 'closed', saving: 'idle' });
   };
 
@@ -214,17 +266,19 @@ export function createDayStore(documents: JsonDocumentStore, options: {
       return () => listeners.delete(listener);
     },
     load: async () => {
+      if (isClosed()) return;
       publish({ ...snapshot, status: 'loading', loadError: null });
       try {
         const [profile, circles, rhythms, skills, items, notes, runs] = await Promise.all([
-          documents.read(documentPath('profile')),
-          documents.read(documentPath('circles')),
-          documents.read(documentPath('rhythms')),
-          documents.read(documentPath('skills')),
-          readCollection(documents, 'items'),
-          readCollection(documents, 'notes'),
-          readCollection(documents, 'runs'),
+          scopedDocuments.read(documentPath('profile')),
+          scopedDocuments.read(documentPath('circles')),
+          scopedDocuments.read(documentPath('rhythms')),
+          scopedDocuments.read(documentPath('skills')),
+          scopedDocuments.readCollection('items'),
+          scopedDocuments.readCollection('notes'),
+          scopedDocuments.readCollection('runs'),
         ]);
+        if (isClosed()) return;
         const fresh = emptyState(options.language(), now());
         const skillsRecord = skills && typeof skills === 'object' ? (skills as Record<string, unknown>) : {};
         const customSkills = normalizeList(skillsRecord.custom, normalizeCustomSkill);
@@ -236,16 +290,25 @@ export function createDayStore(documents: JsonDocumentStore, options: {
           skillOverrides: normalizeList(skillsRecord.overrides, normalizeOverride),
           customSkills,
           favoriteSkillIds: [...new Set(normalizeList(skillsRecord.favorites, value => typeof value === 'string' && availableSkills.has(value) ? value : null))],
-          items: normalizeList(items, normalizeItem),
-          notes: normalizeList(notes, normalizeNote),
-          runs: normalizeList(runs, normalizeRun),
+          items: normalizeList(items.records, normalizeItem),
+          notes: normalizeList(notes.records, normalizeNote),
+          runs: normalizeList(runs.records, normalizeRun),
         };
-        publish({ status: 'ready', state, saving: 'idle', loadError: null, saveError: null });
         if (rhythms === undefined) {
           dirty.add('rhythms');
+          // Initial defaults are also a pending write. Track their version so
+          // an explicit retry cannot report success after their save was refused.
+          version += 1;
+        }
+        publish({ status: 'ready', state, saving: 'idle', loadError: null, saveError: null, saveErrorKind: null, ...documents.status() });
+        if (rhythms === undefined || documents.status().cleanupPending) {
           schedule(SAVE_DELAY_MS);
         }
       } catch (error) {
+        if (isClosed() || sessionEnded(error)) {
+          close();
+          return;
+        }
         publish({ ...snapshot, status: 'failed', loadError: message(error, 'NimiDay could not open your saved data.') });
       }
     },
@@ -266,7 +329,7 @@ export function createDayStore(documents: JsonDocumentStore, options: {
     persist: async () => {
       if (snapshot.status === 'closed') return { ok: false, error: 'NimiDay is reloading for a new session.' };
       const target = version;
-      if (savedVersion >= target) return { ok: true };
+      if (savedVersion >= target && !documents.status().cleanupPending) return { ok: true };
       if (saveTimer) {
         clearTimeout(saveTimer);
         saveTimer = null;

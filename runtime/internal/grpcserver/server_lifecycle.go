@@ -88,6 +88,9 @@ func (s *Server) StopWithShutdownRecord(ctx context.Context, record func(StopRes
 }
 
 func (s *Server) releaseOwners() {
+	if s.appService != nil {
+		s.appService.CloseLocalAppStorage()
+	}
 	if s.appInstallCoordinator != nil {
 		_ = s.appInstallCoordinator.Close()
 	}

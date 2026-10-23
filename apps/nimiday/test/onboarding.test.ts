@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
-import type { JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
+import type { JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
 import { onboardingSteps, type CircleDraft } from '../src/nimiday/ui/onboarding-steps.js';
 
 function memoryDocuments(): JsonDocumentStore {

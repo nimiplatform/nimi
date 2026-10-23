@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.ReadLocalAppStorageJsonRequest) (*runtimev1.ReadLocalAppStorageJsonResponse, error) {
@@ -21,12 +22,13 @@ func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.Re
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
-	s.localAppStorageMu.RLock()
 	owner := appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
-	document, readErr := appstorage.ReadLocalAppJSON(s.appStorageDataRoot, owner, req.GetRelativePath())
-	s.localAppStorageMu.RUnlock()
+	document, readErr := s.localAppJSONStore.Read(ctx, owner, req.GetRelativePath())
 	if readErr != nil {
 		return nil, localAppStorageFailure(readErr)
+	}
+	if err := s.commitLocalAppStorage(ctx, localappop.IngressStorageJSONRead, decision, func() error { return nil }); err != nil {
+		return nil, localAppStorageCommitFailure(err)
 	}
 	return &runtimev1.ReadLocalAppStorageJsonResponse{
 		JsonValue:  append([]byte(nil), document.JSONValue...),
@@ -43,10 +45,15 @@ func (s *Service) WriteLocalAppStorageJson(ctx context.Context, req *runtimev1.W
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	s.localAppStorageMu.Lock()
 	owner := appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
-	document, writeErr := appstorage.WriteLocalAppJSON(s.appStorageDataRoot, owner, req.GetRelativePath(), req.GetJsonValue())
-	s.localAppStorageMu.Unlock()
+	var commitErr error
+	document, writeErr := s.localAppJSONStore.Write(ctx, owner, req.GetRelativePath(), req.GetJsonValue(), func(commit func() error) error {
+		commitErr = s.commitLocalAppStorage(ctx, localappop.IngressStorageJSONWrite, decision, commit)
+		return commitErr
+	})
+	if commitErr != nil {
+		return nil, localAppStorageCommitFailure(commitErr)
+	}
 	if writeErr != nil {
 		return nil, localAppStorageFailure(writeErr)
 	}
@@ -65,10 +72,15 @@ func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
-	s.localAppStorageMu.Lock()
 	owner := appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
-	removed, removeErr := appstorage.RemoveLocalAppJSON(s.appStorageDataRoot, owner, req.GetRelativePath())
-	s.localAppStorageMu.Unlock()
+	var commitErr error
+	removed, removeErr := s.localAppJSONStore.Remove(ctx, owner, req.GetRelativePath(), func(commit func() error) error {
+		commitErr = s.commitLocalAppStorage(ctx, localappop.IngressStorageJSONRemove, decision, commit)
+		return commitErr
+	})
+	if commitErr != nil {
+		return nil, localAppStorageCommitFailure(commitErr)
+	}
 	if removeErr != nil {
 		return nil, localAppStorageFailure(removeErr)
 	}
@@ -76,8 +88,11 @@ func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.
 }
 
 func (s *Service) localAppStorageDecision(ctx context.Context, operation accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error) {
-	if s == nil || strings.TrimSpace(s.appStorageDataRoot) == "" {
+	if s == nil || strings.TrimSpace(s.appStorageDataRoot) == "" || s.localAppJSONStoreErr != nil || s.localAppJSONStore == nil {
 		return accountservice.LocalAppCallerDecision{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+	}
+	if err := ctx.Err(); err != nil {
+		return accountservice.LocalAppCallerDecision{}, status.FromContextError(err).Err()
 	}
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != operation || decision.AuthorityClass != localappop.AuthorityClassBase ||
@@ -90,9 +105,31 @@ func (s *Service) localAppStorageDecision(ctx context.Context, operation account
 	return decision, nil
 }
 
+// The owner was captured before preparation/queueing. Fresh admission must
+// authorize that SAME owner and scope, not a rebound connection's new account.
+func (s *Service) commitLocalAppStorage(ctx context.Context, ingress localappop.Ingress, expected accountservice.LocalAppCallerDecision, commit func() error) error {
+	return s.CommitLocalAppIngress(ctx, ingress, func(authorized context.Context) error {
+		current, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+		if !ok || current.AccountID != expected.AccountID || current.RealmEnvironmentID != expected.RealmEnvironmentID ||
+			current.AccountGeneration != expected.AccountGeneration || current.RegisteredAppSubject != expected.RegisteredAppSubject ||
+			current.SourceGeneration != expected.SourceGeneration || current.DeclarationGeneration != expected.DeclarationGeneration ||
+			current.SessionID != expected.SessionID || !s.now().UTC().Before(expected.ExpiresAt.UTC()) {
+			return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		}
+		select {
+		case <-expected.SessionInvalidated:
+			return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		default:
+		}
+		return commit()
+	})
+}
+
 func localAppStorageFailure(err error) error {
 	options := grpcerr.ReasonOptions{Message: "local app storage operation failed"}
 	switch {
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return status.FromContextError(err).Err()
 	case errors.Is(err, appstorage.ErrLocalAppJSONPathInvalid):
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID, err, options)
 	case errors.Is(err, appstorage.ErrLocalAppJSONNotFound):
@@ -104,4 +141,11 @@ func localAppStorageFailure(err error) error {
 	default:
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE, err, options)
 	}
+}
+
+func localAppStorageCommitFailure(err error) error {
+	if _, ok := status.FromError(err); ok {
+		return err
+	}
+	return localAppStorageFailure(err)
 }

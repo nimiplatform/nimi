@@ -42,6 +42,7 @@ let resettingRenderer = false;
 let quitting = false;
 let tray: Tray | undefined;
 let followups: ReturnType<typeof import('./followup-host.js')['createDayFollowUpHost']> | undefined;
+let dayStorage: ReturnType<typeof import('./day-storage-host.js')['createDayStorageHost']> | undefined;
 
 app.setName("NimiDay");
 app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
@@ -69,7 +70,9 @@ registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
   const { createDayFollowUpHost } = await import('./followup-host.js');
-  followups = createDayFollowUpHost(openMainWindow);
+  const { createDayStorageHost } = await import('./day-storage-host.js');
+  dayStorage = createDayStorageHost();
+  followups = createDayFollowUpHost(openMainWindow, dayStorage.readCollection);
   // @nimi-authority: rule.nimi.nimiday.assistant.background-follow-up
   // Windows has no Dock/application menu once the last window closes.
   // Keep a user-owned way to reopen the live Host without stopping its work.
@@ -88,9 +91,9 @@ void app.whenReady().then(async () => {
     allowedRendererUrls,
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
-    appCommandHandlers: followups.handlers,
-    onSessionReady: services => { followups?.bind(services); },
-    onSessionInvalidated: () => { followups?.invalidate(); resetAccountScopedRenderer(); },
+    appCommandHandlers: { ...followups.handlers, ...dayStorage.handlers },
+    onSessionReady: services => { dayStorage?.bind(services); followups?.bind(services); },
+    onSessionInvalidated: () => { dayStorage?.invalidate(); followups?.invalidate(); resetAccountScopedRenderer(); },
   });
   await createMainWindow();
   app.on('activate', openMainWindow);
@@ -98,7 +101,7 @@ void app.whenReady().then(async () => {
 
 // Accepted arrangements keep following real replies in this protected Host.
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; tray?.destroy(); tray = undefined; followups?.invalidate(); });
+app.on('before-quit', () => { quitting = true; tray?.destroy(); tray = undefined; dayStorage?.invalidate(); followups?.invalidate(); });
 
 function openMainWindow(): void {
   if (quitting) return;

@@ -10,7 +10,7 @@ import { createDayEngine, type EngineState, type NavTarget } from '../platform/e
 import { NimiDayContext, type NimiDayContextValue, type Services } from './context-object.js';
 import { dayActions } from '../store/actions.js';
 import { createDayStore, type StoreSnapshot } from '../store/day-store.js';
-import { runtimeDocumentStore } from '../store/persistence.js';
+import { createHostPersistence } from '../store/host-persistence.js';
 import { getNimiLocalAppClient } from '../../shell/auth/local-app-client.js';
 
 function prefersDark(): boolean {
@@ -28,7 +28,7 @@ export function NimiDayProvider({ children }: { readonly children: ReactNode }) 
   const services = useMemo<Services>(() => {
     const client = getNimiLocalAppClient();
     let languageRef: Language = resolveLanguage(readLanguagePreference());
-    const store = createDayStore(runtimeDocumentStore(client.storage), { language: () => languageRef });
+    const store = createDayStore(createHostPersistence(), { language: () => languageRef });
     const actions = dayActions(store);
     const desk = createAgentDesk(client, {
       history: () => store.getSnapshot().state.runs,

@@ -2,10 +2,10 @@ import type { NimiLocalAppAgentWorkClient, NimiLocalAppAgentWorkScope } from '@n
 import type { NimiElectronAppBusinessServices, NimiElectronCommandHandler } from '@nimiplatform/kit/shell/electron/main';
 import { FollowUpEngine, type FollowUpContinueInput, type FollowUpInput } from '../src/nimiday/followup/engine.js';
 import { parseObjectRef } from '../src/nimiday/platform/activity-bridge.js';
-import { readCollection, runtimeDocumentStore } from '../src/nimiday/store/persistence.js';
+import type { CollectionName } from '../src/nimiday/store/collection-layout.js';
 
 type Navigation = { view: 'followups'; followupId: string } | { view: 'items'; itemId: string } | { view: 'routines'; runId: string };
-export function createDayFollowUpHost(showWindow: () => void) {
+export function createDayFollowUpHost(showWindow: () => void, readCollection?: (name: CollectionName) => Promise<unknown[] | undefined>) {
   let services: NimiElectronAppBusinessServices | undefined;
   let generation = 0;
   let engine: FollowUpEngine | undefined;
@@ -21,7 +21,8 @@ export function createDayFollowUpHost(showWindow: () => void) {
         if (request.objectRef.startsWith('followup:')) return (await current()).open(request.objectRef.slice('followup:'.length));
         const target = parseObjectRef(request.objectRef);
         if (!target || !services) return 'object-unavailable';
-        const records = await readCollection(runtimeDocumentStore(services.storage), target.kind === 'item' ? 'items' : 'runs');
+        if (!readCollection) throw new Error('Day storage Host 尚未就绪');
+        const records = await readCollection(target.kind === 'item' ? 'items' : 'runs');
         if (expected !== generation) return 'object-unavailable';
         if (!records?.some(value => (value as { id?: string })?.id === target.id)) return 'object-unavailable';
         navigation = target.kind === 'item' ? { view: 'items', itemId: target.id } : { view: 'routines', runId: target.id };

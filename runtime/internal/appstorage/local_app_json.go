@@ -72,12 +72,8 @@ func ParseLocalAppJSONResourceRef(resourceRef string) (string, error) {
 	return NormalizeLocalAppJSONRelativePath(strings.TrimPrefix(resourceRef, prefix))
 }
 
-func ReadLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath string) (LocalAppJSONDocument, error) {
-	root, normalized, err := localAppJSONRoot(dataRootRef, owner, relativePath)
-	if err != nil {
-		return LocalAppJSONDocument{}, err
-	}
-	target, exists, err := resolveLocalAppJSONTarget(root, normalized, false)
+func readLocalAppJSON(root, relativePath string, readFile func(string) ([]byte, error)) (LocalAppJSONDocument, error) {
+	target, exists, err := resolveLocalAppJSONTarget(root, relativePath, false)
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
@@ -94,105 +90,47 @@ func ReadLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath strin
 	if info.Size() < 0 || info.Size() > LocalAppJSONMaxDocumentBytes {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONQuota
 	}
-	value, err := os.ReadFile(target)
+	value, err := readFile(target)
 	if err != nil {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
 	}
-	if int64(len(value)) != info.Size() || !json.Valid(value) {
+	canonical, canonicalErr := canonicalLocalAppJSON(value)
+	if int64(len(value)) != info.Size() || canonicalErr != nil || !bytes.Equal(canonical, value) {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
 	}
 	return LocalAppJSONDocument{JSONValue: value, SizeBytes: int64(len(value))}, nil
 }
 
-func WriteLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath string, value []byte) (LocalAppJSONDocument, error) {
-	root, normalized, err := localAppJSONRoot(dataRootRef, owner, relativePath)
-	if err != nil {
-		return LocalAppJSONDocument{}, err
-	}
-	canonical, err := canonicalLocalAppJSON(value)
-	if err != nil {
-		return LocalAppJSONDocument{}, err
-	}
-	usage, err := localAppJSONPartitionUsage(root)
-	if err != nil {
-		return LocalAppJSONDocument{}, err
-	}
-	target, exists, err := resolveLocalAppJSONTarget(root, normalized, false)
-	if err != nil {
-		return LocalAppJSONDocument{}, err
-	}
-	var existingSize int64
-	if exists {
-		if info, statErr := os.Lstat(target); statErr == nil {
-			if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-				return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
-			}
-			existingSize = info.Size()
-		} else if !errors.Is(statErr, os.ErrNotExist) {
-			return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
-		}
-	}
-	if usage-existingSize+int64(len(canonical)) > LocalAppJSONPartitionQuotaBytes {
-		return LocalAppJSONDocument{}, ErrLocalAppJSONQuota
-	}
-	target, _, err = resolveLocalAppJSONTarget(root, normalized, true)
-	if err != nil {
-		return LocalAppJSONDocument{}, err
-	}
+func prepareLocalAppJSON(target string, canonical []byte) (string, error) {
 	parent := filepath.Dir(target)
 	temporary, err := os.CreateTemp(parent, ".nimi-json-*.tmp")
 	if err != nil {
-		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
+		return "", ErrLocalAppJSONUnavailable
 	}
 	temporaryPath := temporary.Name()
-	committed := false
+	prepared := false
 	defer func() {
-		if !committed {
+		if !prepared {
 			_ = os.Remove(temporaryPath)
 		}
 	}()
 	if err := temporary.Chmod(0o600); err != nil {
 		_ = temporary.Close()
-		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
+		return "", ErrLocalAppJSONUnavailable
 	}
 	if _, err := temporary.Write(canonical); err != nil {
 		_ = temporary.Close()
-		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
+		return "", ErrLocalAppJSONUnavailable
 	}
 	if err := temporary.Sync(); err != nil {
 		_ = temporary.Close()
-		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
+		return "", ErrLocalAppJSONUnavailable
 	}
 	if err := temporary.Close(); err != nil {
-		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
+		return "", ErrLocalAppJSONUnavailable
 	}
-	if err := replaceLocalAppJSONFile(temporaryPath, target); err != nil {
-		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
-	}
-	committed = true
-	return LocalAppJSONDocument{JSONValue: canonical, SizeBytes: int64(len(canonical))}, nil
-}
-
-func RemoveLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath string) (bool, error) {
-	root, normalized, err := localAppJSONRoot(dataRootRef, owner, relativePath)
-	if err != nil {
-		return false, err
-	}
-	target, exists, err := resolveLocalAppJSONTarget(root, normalized, false)
-	if err != nil || !exists {
-		return false, err
-	}
-	info, err := os.Lstat(target)
-	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
-	}
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-		return false, ErrLocalAppJSONUnavailable
-	}
-	if err := os.Remove(target); err != nil {
-		return false, ErrLocalAppJSONUnavailable
-	}
-	return true, nil
+	prepared = true
+	return temporaryPath, nil
 }
 
 func localAppJSONRoot(dataRootRef string, owner ManagedOwner, relativePath string) (string, string, error) {
@@ -224,6 +162,10 @@ func resolveLocalAppJSONTarget(root, relativePath string, create bool) (string, 
 }
 
 func localAppJSONPartitionUsage(root string) (int64, error) {
+	return localAppJSONPartitionUsageWithReader(root, os.ReadFile)
+}
+
+func localAppJSONPartitionUsageWithReader(root string, readFile func(string) ([]byte, error)) (int64, error) {
 	var total int64
 	err := filepath.WalkDir(root, func(current string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -242,12 +184,12 @@ func localAppJSONPartitionUsage(root string) (int64, error) {
 		if err != nil || !info.Mode().IsRegular() || info.Size() < 0 {
 			return ErrLocalAppJSONUnavailable
 		}
-		payload, err := os.ReadFile(current)
+		payload, err := readFile(current)
 		if err != nil {
 			return ErrLocalAppJSONUnavailable
 		}
 		canonical, err := canonicalLocalAppJSON(payload)
-		if err != nil || !bytes.Equal(canonical, payload) {
+		if err != nil || int64(len(payload)) != info.Size() || !bytes.Equal(canonical, payload) {
 			return ErrLocalAppJSONValueInvalid
 		}
 		total += info.Size()

@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { integrationReferenceDocument, parseGoVersionReference, referenceFailure, referenceHandbookNote } from '../src/nimiday/domain/integration-reference.js';
 import { copyFor } from '../src/nimiday/i18n/index.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
-import { readCollection, type JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
+import { readCollection } from './persistence-fixture.js';
+import type { JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
 
 const go = { integrationId: 'nimi.go.deliverables', operation: 'deliverable.read', displayName: 'NimiGo 成果' };
 const reference = { workId: 'work-one', deliverableId: 'document-one', revisionId: 'revision-one' };

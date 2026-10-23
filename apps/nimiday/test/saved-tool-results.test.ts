@@ -6,11 +6,12 @@ import type { ActivityBridge, ActivityState } from '../src/nimiday/platform/acti
 import { createDayEngine, type DayEngine } from '../src/nimiday/platform/engine.js';
 import { copyFor } from '../src/nimiday/i18n/index.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
-import { readCollection, type JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
+import { readCollection } from './persistence-fixture.js';
+import type { JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
 import { createFakeAgentClient, handle, settle } from './fake-agent.js';
 
-/** Storage whose writes can be refused or held open, like a storage service that is down or slow. */
+/** Storage whose writes can be definitively refused by quota or held open. */
 function controllableDocuments() {
   const data = new Map<string, unknown>();
   let refuse = false;
@@ -19,7 +20,7 @@ function controllableDocuments() {
     read: async (path) => (data.has(path) ? structuredClone(data.get(path)) : undefined),
     write: async (path, value) => {
       if (gate) await gate;
-      if (refuse) throw new Error('storage unavailable');
+      if (refuse) throw Object.assign(new Error('storage quota exhausted'), { reasonCode: 'resource-exhausted' });
       data.set(path, structuredClone(value));
     },
     remove: async (path) => { data.delete(path); },

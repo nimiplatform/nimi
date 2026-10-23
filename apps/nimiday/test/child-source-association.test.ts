@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createCircle, DEFAULT_PROFILE } from '../src/nimiday/domain/defaults.js';
 import { parentOSChildIdentity, sourceApps, sourceGroupKey, toSourceChange, type ActivityRecordLike } from '../src/nimiday/domain/sources.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import type { JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import type { JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
 import { onboardingSteps } from '../src/nimiday/ui/onboarding-steps.js';
 
 const now = new Date('2026-10-20T04:00:00Z');
@@ -100,7 +100,7 @@ describe('ParentOS source and child association', () => {
     let fail = true;
     const documents: JsonDocumentStore = {
       read: async () => undefined,
-      write: async () => { if (fail) throw new Error('disk unavailable'); },
+      write: async () => { if (fail) throw Object.assign(new Error('storage quota exhausted'), { reasonCode: 'resource-exhausted' }); },
       remove: async () => {},
     };
     const store = createDayStore(documents, { language: () => 'zh', now: () => now });

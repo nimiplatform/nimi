@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PROFILE, createCircle } from '../src/nimiday/domain/defaults.js';
 import { createItem } from '../src/nimiday/domain/items.js';
 import { followedChanges, linkedSource, sourceApps, sourceLinkFor, type ActivityRecordLike } from '../src/nimiday/domain/sources.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
-import { chunkRecords, readCollection, writeCollection, type JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
+import { CollectionPersistenceError, chunkRecords, type JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
+import { readCollection, writeCollection } from './persistence-fixture.js';
 
 function memoryStore(options: { failWrites?: () => boolean } = {}): JsonDocumentStore & { data: Map<string, unknown> } {
   const data = new Map<string, unknown>();
@@ -12,7 +13,7 @@ function memoryStore(options: { failWrites?: () => boolean } = {}): JsonDocument
     data,
     read: async (path) => (data.has(path) ? structuredClone(data.get(path)) : undefined),
     write: async (path, value) => {
-      if (options.failWrites?.()) throw new Error('disk unavailable');
+      if (options.failWrites?.()) throw Object.assign(new Error('operation temporarily unavailable'), { reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE' });
       data.set(path, structuredClone(value));
     },
     remove: async (path) => { data.delete(path); },
@@ -37,12 +38,115 @@ describe('persistence', () => {
     const store = memoryStore({ failWrites: () => fail });
     await writeCollection(store, 'notes', [{ id: 'a' }]);
     fail = true;
-    await expect(writeCollection(store, 'notes', [{ id: 'b' }])).rejects.toThrow('disk unavailable');
+    await expect(writeCollection(store, 'notes', [{ id: 'b' }])).rejects.toThrow('operation temporarily unavailable');
     expect(await readCollection(store, 'notes')).toEqual([{ id: 'a' }]);
+  });
+
+  it.each([null, [], {}, { generation: -1, chunks: 1 }, { generation: 1, chunks: 65 }, { generation: Number.MAX_SAFE_INTEGER + 1, chunks: 1 }])('rejects an invalid index instead of treating it as a missing collection: %j', async (index) => {
+    const store = memoryStore();
+    store.data.set('nimiday/v1/notes.index.json', index);
+    store.data.set('nimiday/v1/notes.g1-0.json', [{ id: 'saved' }]);
+    const before = structuredClone(store.data);
+    await expect(readCollection(store, 'notes')).rejects.toThrow('index is damaged or unsupported');
+    await expect(writeCollection(store, 'notes', [{ id: 'replacement' }])).rejects.toThrow('index is damaged or unsupported');
+    expect(store.data).toEqual(before);
+  });
+
+  it('distinguishes an absent collection from an explicitly empty one', async () => {
+    const store = memoryStore();
+    expect(await readCollection(store, 'notes')).toBeUndefined();
+    await writeCollection(store, 'notes', []);
+    expect(await readCollection(store, 'notes')).toEqual([]);
+  });
+
+  it('accepts 64 chunks but refuses a 65th before writing any new document', async () => {
+    const store = memoryStore();
+    const records = Array.from({ length: 64 }, (_, id) => ({ id, text: 'x'.repeat(180 * 1024) }));
+    await writeCollection(store, 'notes', records);
+    expect(await readCollection(store, 'notes')).toEqual(records);
+    const before = structuredClone(store.data);
+    await expect(writeCollection(store, 'notes', [...records, { ...records[0], id: 64 }])).rejects.toThrow('collection is too large');
+    expect(store.data).toEqual(before);
+  });
+
+  it('preflights every record before starting a new generation, counting UTF-8 bytes', async () => {
+    const store = memoryStore();
+    await writeCollection(store, 'notes', [{ id: 'saved' }]);
+    const before = structuredClone(store.data);
+    await expect(writeCollection(store, 'notes', [{ id: 'new' }, { text: '字'.repeat(90_000) }])).rejects.toThrow('record is too large');
+    expect(store.data).toEqual(before);
+    expect(chunkRecords([{ text: 'x'.repeat(200 * 1024) }])).toHaveLength(1);
+  });
+
+  it('refuses an exhausted generation without reusing a committed path', async () => {
+    const store = memoryStore();
+    store.data.set('nimiday/v1/notes.index.json', { version: 2, generation: Number.MAX_SAFE_INTEGER, current: [] });
+    const before = structuredClone(store.data);
+    await expect(writeCollection(store, 'notes', [{ id: 'new' }])).rejects.toThrow('generation cannot advance');
+    expect(store.data).toEqual(before);
   });
 });
 
 describe('day store', () => {
+  it('retries refused initial defaults explicitly instead of acknowledging an unsaved initial version', async () => {
+    vi.useFakeTimers();
+    const documents = memoryStore();
+    let refused = true;
+    const store = createDayStore({ ...documents, write: async (path, value) => {
+      if (refused) throw Object.assign(new Error('quota'), { reasonCode: 'APP_STORAGE_QUOTA_EXCEEDED' });
+      await documents.write(path, value);
+    } }, { language: () => 'zh' });
+    try {
+      await store.load();
+      await vi.advanceTimersByTimeAsync(400);
+      expect(store.getSnapshot()).toMatchObject({ saving: 'error', unsaved: true, saveErrorKind: 'capacity' });
+      expect((await store.persist()).ok).toBe(false);
+      refused = false;
+      expect(await store.persist()).toEqual({ ok: true });
+      expect(documents.data.get('nimiday/v1/rhythms.json')).toHaveLength(3);
+      expect(store.getSnapshot().unsaved).toBe(false);
+    } finally {
+      store.close();
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    new CollectionPersistenceError('oversized collection', 'capacity'),
+    Object.assign(new Error('quota'), { reasonCode: 'app-storage-quota-exceeded' }),
+    Object.assign(new Error('quota'), { reasonCode: 'APP_STORAGE_QUOTA_EXCEEDED' }),
+    new CollectionPersistenceError('damaged index', 'invalid-data'),
+    Object.assign(new Error('native quota'), { reasonCode: 'resource-exhausted' }),
+  ])('keeps refused edits unsaved without an endless retry, and permits an explicit recovery: %s', async (failure) => {
+    vi.useFakeTimers();
+    const documents = memoryStore();
+    let refused = false;
+    let attempts = 0;
+    const store = createDayStore({ ...documents, write: async (path, value) => {
+      attempts++;
+      if (refused) throw failure;
+      await documents.write(path, value);
+    } }, { language: () => 'zh' });
+    try {
+      await store.load();
+      await store.flush();
+      refused = true;
+      store.update((state) => ({ ...state, circles: [createCircle({ kind: 'self', name: '保存测试' }, new Date())] }), ['circles']);
+      expect((await store.persist()).ok).toBe(false);
+      const failedAttempts = attempts;
+      await vi.advanceTimersByTimeAsync(90_000);
+      expect(attempts).toBe(failedAttempts);
+      expect(store.getSnapshot()).toMatchObject({ saving: 'error', unsaved: true });
+      expect(store.getSnapshot().state.circles[0]?.name).toBe('保存测试');
+      refused = false;
+      expect(await store.persist()).toEqual({ ok: true });
+      expect(store.getSnapshot()).toMatchObject({ saving: 'idle', unsaved: false, saveErrorKind: null });
+    } finally {
+      store.close();
+      vi.useRealTimers();
+    }
+  });
+
   // @nimi-authority: rule.nimi.nimiday.assistant.skill-library
   it('persists explicit favorites without changing methods, lessons or routines', async () => {
     const documents = memoryStore();
@@ -110,13 +214,27 @@ describe('day store', () => {
 
   it('never writes over saved data it could not read', async () => {
     const documents = memoryStore();
-    documents.data.set('nimiday/v1/items.index.json', { generation: 1, chunks: 1 });
+    documents.data.set('nimiday/v1/items.index.json', { version: 2, generation: 1, current: ['nimiday/v1/items.g1-0.json'] });
     const store = createDayStore(documents, { language: () => 'zh' });
     await store.load();
     expect(store.getSnapshot().status).toBe('failed');
     store.update((state) => ({ ...state, circles: [] }), ['circles']);
     await store.flush();
     expect(documents.data.has('nimiday/v1/circles.json')).toBe(false);
+  });
+
+  it('does not initialize or save over an unreadable collection index', async () => {
+    const documents = memoryStore();
+    documents.data.set('nimiday/v1/notes.index.json', { generation: 1, chunks: 67 });
+    const before = structuredClone(documents.data);
+    const store = createDayStore(documents, { language: () => 'zh' });
+    await store.load();
+    expect(store.getSnapshot().status).toBe('failed');
+    expect(store.getSnapshot().loadError).toContain('index is damaged or unsupported');
+    store.update((state) => ({ ...state, notes: [] }), ['notes']);
+    await store.flush();
+    expect(documents.data).toEqual(before);
+    store.close();
   });
 
   it('keeps what the household learned when a custom skill is edited', async () => {

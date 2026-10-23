@@ -6,8 +6,8 @@ import type { ActivityBridge, ActivityState } from '../src/nimiday/platform/acti
 import { createDayEngine, type DayEngine } from '../src/nimiday/platform/engine.js';
 import { copyFor } from '../src/nimiday/i18n/index.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
-import type { JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
+import type { JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
 import { createFakeAgentClient, handle, settle } from './fake-agent.js';
 
 // What the user would be told, captured instead of shown.

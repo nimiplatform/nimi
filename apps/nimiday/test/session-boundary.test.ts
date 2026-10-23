@@ -4,8 +4,8 @@ import { createAgentDesk } from '../src/nimiday/platform/agent-desk.js';
 import { createDayEngine } from '../src/nimiday/platform/engine.js';
 import { copyFor } from '../src/nimiday/i18n/index.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
-import { createDayStore } from '../src/nimiday/store/day-store.js';
-import type { JsonDocumentStore } from '../src/nimiday/store/persistence.js';
+import { createTestDayStore as createDayStore } from './persistence-fixture.js';
+import type { JsonDocumentStore } from '../src/nimiday/store/json-documents.js';
 import { createFakeAgentClient, handle, settle } from './fake-agent.js';
 
 const at = '2026-09-24T00:00:00.000Z';
@@ -55,6 +55,59 @@ function idleActivity(): ActivityBridge {
 
 describe('when the signed-in account changes', () => {
   afterEach(() => { vi.useRealTimers(); });
+
+  it('does not reopen a closed store when its reads succeed late, or schedule missing defaults', async () => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let reads = 0;
+    const writes: string[] = [];
+    const store = createDayStore({
+      read: async () => { reads++; await gate; return undefined; },
+      write: async (path) => { writes.push(path); },
+      remove: async () => undefined,
+    }, { language: () => 'zh' });
+    const loading = store.load();
+    const startedReads = reads;
+    store.close();
+    release();
+    await loading;
+    await vi.advanceTimersByTimeAsync(5000);
+    await store.load();
+    expect(store.getSnapshot().status).toBe('closed');
+    expect(reads).toBe(startedReads);
+    expect(writes).toEqual([]);
+  });
+
+  it.each(['documents', 'collection'] as const)('does not continue %s writes after an in-flight write succeeds in a closed session', async (kind) => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const writes: string[] = [];
+    const store = createDayStore({
+      read: async (path) => path === 'nimiday/v1/rhythms.json' ? [] : undefined,
+      write: async (path) => { writes.push(path); if (kind === 'documents' || path.includes('.g')) await gate; },
+      remove: async () => undefined,
+    }, { language: () => 'zh' });
+    await store.load();
+    if (kind === 'documents') {
+      store.update((state) => ({ ...state, profile: { ...state.profile, onboarded: true }, circles: [] }), ['profile', 'circles']);
+    } else {
+      store.update((state) => ({ ...state, notes: Array.from({ length: 3 }, (_, id) => ({
+        id: String(id), title: 'Account A note', body: 'x'.repeat(100_000), circleId: null,
+        pinned: false, origin: { by: 'user' as const }, createdAt: at, updatedAt: at,
+      })) }), ['notes']);
+    }
+    const saving = store.persist();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(writes).toEqual(kind === 'documents' ? ['nimiday/v1/profile.json'] : ['nimiday/v1/notes.index.json', 'nimiday/v1/notes.g1-0.json']);
+    store.close();
+    release();
+    expect(await saving).toMatchObject({ ok: false });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(writes).toHaveLength(kind === 'documents' ? 1 : 2);
+    expect(store.getSnapshot().status).toBe('closed');
+  });
 
   it('never retries the old account\'s unsaved state into the new one', async () => {
     const host = switchableAccount();

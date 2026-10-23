@@ -72,12 +72,12 @@ func (s *Service) CheckSyncManagedOwner(ctx context.Context, dataRoot string, ow
 	if err := s.CheckSyncDataRoot(dataRoot); err != nil {
 		return false, err
 	}
-	exists, err := appstorage.InspectManagedOwner(dataRoot, owner)
+	if s.localAppJSONStoreErr != nil || s.localAppJSONStore == nil {
+		return false, appstorage.ErrLocalAppJSONUnavailable
+	}
+	exists, err := s.localAppJSONStore.Inspect(ctx, owner)
 	if err != nil || !exists {
 		return exists, err
-	}
-	if err := appstorage.InspectManagedOwnerJSON(dataRoot, owner); err != nil {
-		return true, err
 	}
 	assets, err := s.localAppAssets()
 	if err != nil {
@@ -144,7 +144,8 @@ type Service struct {
 	formalAppReleaseResolver   FormalAppReleaseResolver
 	formalAppSourceDevelopment bool
 	sourceDevelopmentHosts     map[string]protectedlocal.Identifier // guarded by installedAppRegistrationMu
-	localAppStorageMu          sync.RWMutex
+	localAppJSONStore          *appstorage.LocalAppJSONStore
+	localAppJSONStoreErr       error
 	localAppAssetStoreOnce     sync.Once
 	localAppAssetStore         *appstorage.AssetStore
 	localAppAssetStoreErr      error
@@ -289,7 +290,17 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 			opt(svc)
 		}
 	}
+	svc.localAppJSONStore, svc.localAppJSONStoreErr = appstorage.NewLocalAppJSONStore(svc.appStorageDataRoot)
 	return svc
+}
+
+// CloseLocalAppStorage is called after transport draining. Forced transport
+// stop does not prove synchronous filesystem work has returned, so the owner
+// rejects further acquisitions and waits for its real holders before release.
+func (s *Service) CloseLocalAppStorage() {
+	if s != nil && s.localAppJSONStore != nil {
+		s.localAppJSONStore.Close()
+	}
 }
 
 func WithTrustedInternalCaller(ctx context.Context, appID string) context.Context {

@@ -100,13 +100,7 @@ export function Shell() {
           ))}
         </nav>
         <div className="nd-sidebar-foot">
-          {snapshot.saving === 'error' ? (
-            <span className="nd-save-state" data-tone="error" role="status" data-testid="nd-save-failed">
-              {copy.common.saveFailed}
-              <button type="button" className="nd-link" onClick={() => { void store.persist(); }}>{copy.common.retrySave}</button>
-              {snapshot.saveError ? <details className="nd-faint"><summary>{copy.assistant.technical}</summary>{snapshot.saveError}</details> : null}
-            </span>
-          ) : snapshot.saving === 'saving' ? (
+          {snapshot.saving === 'saving' ? (
             <span className="nd-save-state" role="status">{copy.common.saving}</span>
           ) : null}
           <button
@@ -124,6 +118,19 @@ export function Shell() {
         </div>
       </aside>
       <main className="nd-main" data-view={nav.view}>
+        {snapshot.saving === 'error' || snapshot.cleanupPending ? (
+          <div className="nd-save-notice" data-tone={snapshot.saving === 'error' ? 'error' : 'pending'} role="status" data-testid={snapshot.saving === 'error' ? 'nd-save-failed' : 'nd-cleanup-pending'}>
+            <p>{snapshot.saving === 'error'
+              ? snapshot.saveErrorKind === 'capacity' ? copy.common.saveCapacityFailed
+                : snapshot.saveErrorKind === 'invalid-data' ? copy.common.saveInvalidDataFailed
+                  : snapshot.saveErrorKind === 'uncertain' ? copy.common.saveUncertain
+                    : copy.common.saveFailed
+              : snapshot.recoveryPending ? copy.common.recoveryPending : copy.common.cleanupPending}</p>
+            {snapshot.recoveryRequired && snapshot.saving !== 'error' ? <p>{copy.common.cleanupReopen}</p> : null}
+            {!snapshot.recoveryRequired ? <button type="button" className="nd-link" onClick={() => { void store.persist(); }}>{copy.common.retrySave}</button> : null}
+            {snapshot.saveError ? <details className="nd-faint"><summary>{copy.assistant.technical}</summary>{snapshot.saveError}</details> : null}
+          </div>
+        ) : null}
         <Page />
       </main>
     </div>
