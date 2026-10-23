@@ -3,7 +3,7 @@ package capabilitydriver
 import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 
 // @nimi-authority: rule.nimi.runtime.local-compute.audio-cpp-package
-const AudioCppMusicPackageVersion = "0.9.1"
+const AudioCppMusicPackageVersion = "0.9.2-drama3-base-small"
 
 type MusicInputProjector interface {
 	MusicInputCapabilities() *runtimev1.MusicInputCapabilities

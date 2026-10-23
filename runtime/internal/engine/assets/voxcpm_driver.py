@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from contextlib import nullcontext
 import tempfile
 import importlib.metadata
 import json
@@ -18,6 +19,17 @@ DRIVER_BACKEND = "standard"
 DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
 _MODEL_CACHE: dict[str, Any] = {}
+
+
+def _attention_context():
+    import torch
+
+    # Preserve the CUDA attention numerics of the admitted Torch 2.11 profile.
+    # Torch 2.14 selects efficient SDPA instead; paired VoxCPM2 runs produced
+    # extra trailing speech. CPU keeps its existing dispatch policy.
+    if torch.cuda.is_available():
+        return torch.nn.attention.sdpa_kernel(torch.nn.attention.SDPBackend.MATH)
+    return nullcontext()
 
 
 def fail(message: str) -> None:
@@ -81,7 +93,8 @@ def load_model(model_ref: str) -> Any:
         return cached
     VoxCPM, _ = ensure_dependencies_importable()
     try:
-        model = VoxCPM.from_pretrained(model_ref, load_denoiser=False)
+        with _attention_context():
+            model = VoxCPM.from_pretrained(model_ref, load_denoiser=False)
     except Exception as error:
         fail(f"VoxCPM model load failed: {error}")
     _MODEL_CACHE[model_ref] = model
@@ -187,7 +200,8 @@ def handle_synthesize(request: dict[str, Any]) -> dict[str, Any]:
             if performance:
                 options["prompt_wav_path"] = performance
                 options["prompt_text"] = transcript
-            wav = model.generate(text=text, cfg_value=2.0, inference_timesteps=10, **options)
+            with _attention_context():
+                wav = model.generate(text=text, cfg_value=2.0, inference_timesteps=10, **options)
     except Exception as error:
         fail(f"VoxCPM generation failed: {error}")
     destination = output_path()

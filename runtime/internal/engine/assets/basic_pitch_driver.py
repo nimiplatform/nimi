@@ -30,7 +30,7 @@ OUTPUT_NAMES = ["StatefulPartitionedCall:1", "StatefulPartitionedCall:2", "State
 
 
 def probe_environment() -> None:
-    if ort.__version__ != "1.20.1" or "CPUExecutionProvider" not in ort.get_available_providers():
+    if ort.__version__ != "1.31.0" or "CPUExecutionProvider" not in ort.get_available_providers():
         raise ValueError("the admitted ONNX CPU runtime is unavailable")
     allocation = float(np.sum(np.ones(1, dtype=np.float32)))
     print(json.dumps({

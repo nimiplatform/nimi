@@ -93,7 +93,7 @@ func TestTransformerAnnotationProfileOwnsWindowsCPUContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if identity.ProfileDigest == medium.ProfileDigest || identity.SourceLabel != "text-spacy-curated-cpu" || identity.TorchVersion != "2.11.0" || identity.AcceleratorPlane != "cpu" {
+	if identity.ProfileDigest == medium.ProfileDigest || identity.SourceLabel != "text-spacy-curated-cpu" || identity.TorchVersion != "2.14.1" || identity.AcceleratorPlane != "cpu" {
 		t.Fatalf("transformer did not capture an independent CPU Torch profile: %+v", identity)
 	}
 	probes, err := pythonDependencyProfileImportProbes(TextAnnotationTrfConsumerID, identity)

@@ -27,7 +27,7 @@ func verifySpleeterDriverBundle(root string) error {
 	return nil
 }
 func verifySpleeterProfileProbe(p pythonDependencyProfileProbe, id PythonDependencyProfileIdentity) error {
-	if id.PlatformTuple != "windows/amd64" || id.AcceleratorPlane != "cpu" || id.TorchVersion != "" || id.CUDAABI != "" || p.TorchVersion != "" || p.CUDAABI != "" || p.Device != "cpu" || p.Allocation != 1 || p.TensorFlowVersion != "2.16.1" || len(p.InstalledDistributions) == 0 {
+	if id.PlatformTuple != "windows/amd64" || id.AcceleratorPlane != "cpu" || id.TorchVersion != "" || id.CUDAABI != "" || p.TorchVersion != "" || p.CUDAABI != "" || p.Device != "cpu" || p.Allocation != 1 || p.TensorFlowVersion != "2.21.0" || len(p.InstalledDistributions) == 0 {
 		return fmt.Errorf("Spleeter profile did not verify its fixed TensorFlow CPU composition")
 	}
 	return nil

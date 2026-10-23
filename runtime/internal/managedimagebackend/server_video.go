@@ -16,7 +16,7 @@ import (
 // The model-family marker alone cannot establish compatibility with the C
 // struct layouts and function signatures compiled into the Windows bridge.
 // Reuse the materializer's existing verified archive identity.
-const stableDiffusionVideoArchiveSHA256 = "f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3" // pragma: allowlist secret -- public archive checksum
+const stableDiffusionVideoArchiveSHA256 = "959063b5bdd3b7780d4ae0023adc47a6e0f4cea2d36f9f6585336341259cdb18" // pragma: allowlist secret -- public archive checksum
 
 type videoPackageIdentity struct {
 	Name                   string   `json:"name,omitempty"`

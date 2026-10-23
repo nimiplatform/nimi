@@ -283,8 +283,14 @@ func TestAudioCppPackageInputUsesTheOwnerReleaseIdentity(t *testing.T) {
 	if err != nil || got.AudioCppVersion != engine.AudioCppPackageVersion {
 		t.Fatalf("owner release identity lost its version: %+v %v", got, err)
 	}
-	selected.ExactDependencySources[0].Version = engine.AudioCppPackageVersion
-	if _, err := audioCppRuntimePackageInput(selected); err == nil {
-		t.Fatal("incomplete source identity was accepted")
+	for _, invalid := range []string{
+		engine.AudioCppPackageVersion,
+		"release-" + engine.AudioCppPackageVersion + "/../@" + engine.AudioCppPackageCommit,
+		"release-" + engine.AudioCppPackageVersion + "@short-commit",
+	} {
+		selected.ExactDependencySources[0].Version = invalid
+		if _, err := audioCppRuntimePackageInput(selected); err == nil {
+			t.Fatalf("invalid source identity was accepted: %q", invalid)
+		}
 	}
 }

@@ -126,7 +126,7 @@ consumers:
       - nvidia-cuda13-user-space-runtime
     version_constraints:
       cuda_major: 13
-      package_abi: audio.cpp-v0.9.1
+      package_abi: audio.cpp-v0.9.2-drama3-base-small
     activation_gate:
       required_states:
         - ready_system
@@ -152,7 +152,7 @@ consumers:
       - nvidia-cuda13-user-space-runtime
     version_constraints:
       cuda_major: 13
-      package_abi: audio.cpp-v0.9.1
+      package_abi: audio.cpp-v0.9.2-drama3-base-small
     activation_gate:
       required_states:
         - ready_system

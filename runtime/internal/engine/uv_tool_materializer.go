@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const ManagedUVVersion = "0.11.8"
+const ManagedUVVersion = "0.13.5"
 
 type managedUVArchiveSpec struct {
 	OS          string
@@ -22,37 +22,37 @@ var managedUVArchiveSpecs = []managedUVArchiveSpec{
 		OS:          "windows",
 		Arch:        "amd64",
 		ArchiveName: "uv-x86_64-pc-windows-msvc.zip",
-		SHA256:      "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8",
+		SHA256:      "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a",
 	},
 	{
 		OS:          "windows",
 		Arch:        "arm64",
 		ArchiveName: "uv-aarch64-pc-windows-msvc.zip",
-		SHA256:      "bb48716e74e4998993f15bc57a55e4d0d73ccbd27a66d7cbed37605f7c67d747",
+		SHA256:      "09f47edf90726084a70f9426f6e3ca4f46e9bf7cbf23b1716ec64d60b055fae3",
 	},
 	{
 		OS:          "darwin",
 		Arch:        "amd64",
 		ArchiveName: "uv-x86_64-apple-darwin.tar.gz",
-		SHA256:      "c59d73bf34b58bc8e33a11629f7a255c11789fd00f03cd3e68ab2d1603645de9",
+		SHA256:      "b0f52b0e3945b4107d89024ea38e625683011fbfc05a0d98f9fa2d6dcee28c66",
 	},
 	{
 		OS:          "darwin",
 		Arch:        "arm64",
 		ArchiveName: "uv-aarch64-apple-darwin.tar.gz",
-		SHA256:      "c729adb365114e844dd7f9316313a7ed6443b89bb5681d409eebac78b0bd06c8",
+		SHA256:      "743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73",
 	},
 	{
 		OS:          "linux",
 		Arch:        "amd64",
 		ArchiveName: "uv-x86_64-unknown-linux-gnu.tar.gz",
-		SHA256:      "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb",
+		SHA256:      "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f",
 	},
 	{
 		OS:          "linux",
 		Arch:        "arm64",
 		ArchiveName: "uv-aarch64-unknown-linux-gnu.tar.gz",
-		SHA256:      "eee8dd658d20e5ac85fec9c2326b6cbc9d83a1eef09ef07433e58698ac849591",
+		SHA256:      "4bb69cf95ed13f23713bb7bc09f241896ea0c75b7c557e615a20604b82f9c403",
 	},
 }
 

@@ -27,13 +27,13 @@ func TestYuE2NativeExecutionIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	model := filepath.Join(root, "models", "Yue2-3B-GGUF")
-	engineRoot := filepath.Join(root, "engine", "audio-v0.9.1-bin-windows-x64-cuda13.3")
-	cuda := filepath.Join(root, "engine", "audio-v0.9.1-cudart-windows-x64-cuda13.3")
+	engineRoot := filepath.Join(root, "engine", "audio-v0.9.2-drama3-base-small-bin-windows-x64-cuda13.3")
+	cuda := filepath.Join(root, "engine", "audio-v0.9.2-drama3-base-small-cudart-windows-x64-cuda13.3")
 	files := []string{"yue2-3b-q8_0.gguf", "yue2-vae-f16.gguf", "sidecars/yue2-generation-config.json", "sidecars/yue2-model-config.json", "sidecars/yue2-qwen.tiktoken", "sidecars/yue2-vae-config.json"}
 	sort.Strings(files)
 	input := capabilitydriver.MusicInvocationInput{LoadoutID: "isolated-yue2-verification", RecipeID: capabilitydriver.YuE2RecipeID,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.YuE2RequirementID, ModelAssetID: "fixed-yue2-q8-f16", BundleDir: model, AbsolutePath: filepath.Join(model, "yue2-3b-q8_0.gguf"), DeclaredFiles: files, VerifiedContentID: capabilitydriver.YuE2VerifiedContentID, EntrySHA256: "f3a9e3b197bfd05aa4ae6ab2d4b93f6d57c8cc0ea39a4af7d151f58697c7cfb6"}},
-		Package:       capabilitydriver.MusicRuntimePackageInput{AudioCppVersion: "0.9.1", AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "isolated-v0.9.1-cf124a6", AudioCppRoot: engineRoot, AudioCppExecutablePath: filepath.Join(engineRoot, "audiocpp_cli.exe"), CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "isolated-v0.9.1-cuda13.3", CUDA13Root: cuda},
+		Package:       capabilitydriver.MusicRuntimePackageInput{AudioCppVersion: "0.9.2-drama3-base-small", AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "isolated-v0.9.2-drama3-base-small-5074956", AudioCppRoot: engineRoot, AudioCppExecutablePath: filepath.Join(engineRoot, "audiocpp_cli.exe"), CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "isolated-v0.9.2-drama3-base-small-cuda13.3", CUDA13Root: cuda},
 		Request:       &runtimev1.MusicGenerateScenarioSpec{Prompt: "English acoustic folk, warm restrained lead vocal, guitar and soft drums", Lyrics: "[Verse]\nI keep a light beside the window\nAnd watch the silver river flow\n[Chorus]\nCarry the song across the water\nWe have another mile to go", DurationSeconds: 20}, StagingWAVPath: filepath.Join(output, "music.wav")}
 	plan, err := (capabilitydriver.YuE2AudioCppDriver{}).PlanMusicInvocation(input)
 	if err != nil {

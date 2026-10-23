@@ -172,7 +172,7 @@ func (runner *pythonDependencyProfileTestRunner) run(
 			}
 			torchVersion := strings.TrimSpace(runner.torchVersion)
 			if torchVersion == "" {
-				torchVersion = "2.11.0+cpu"
+				torchVersion = "2.14.1+cpu"
 			}
 			platformTuple := strings.ToLower(strings.TrimSpace(runner.platformTuple))
 			if platformTuple == "" {
@@ -257,7 +257,7 @@ func TestEnsurePythonDependencyProfileStagesPromotesAndReusesReadOnly(t *testing
 	if status.ProfileRoot != wantRoot || status.PackageCacheRoot != filepath.Join(manager.depsDir, "python-package-cache") {
 		t.Fatalf("profile roots = (%q, %q), want (%q, shared cache)", status.ProfileRoot, status.PackageCacheRoot, wantRoot)
 	}
-	if status.ObservedTorchVersion != "2.11.0+cpu" || status.ObservedCUDAABI != "none" {
+	if status.ObservedTorchVersion != "2.14.1+cpu" || status.ObservedCUDAABI != "none" {
 		t.Fatalf("observed Torch status = (%q, %q)", status.ObservedTorchVersion, status.ObservedCUDAABI)
 	}
 	if err := verifyPythonDependencyProfileInputs(filepath.Join(status.ProfileRoot, pythonDependencyProfileInputDir), identity); err != nil {

@@ -19,7 +19,7 @@ entries:
   - dependency_families_11
   - dependency families are resolved by Runtime local environment plan before
     activation
-  - precisely pinned managed uv 0.11.8, exact Python, venv, package sets, and
+  - precisely pinned managed uv 0.13.5, exact Python, venv, package sets, and
     Torch wheels are managed dependency families, not user or PATH
     prerequisites
   - venv, package-set, Torch, declared source, and Driver inputs compose one
@@ -237,7 +237,7 @@ dependency_families:
       - runtime_data_root
     environment_key_semantics:
       tool_version: >-
-        Precisely pinned Runtime-managed uv version 0.11.8. A PATH-selected,
+        Precisely pinned Runtime-managed uv version 0.13.5. A PATH-selected,
         system, or otherwise unpinned uv executable is not admitted.
     source_policy: pinned-managed-tool-only
     source_candidates:
@@ -254,7 +254,7 @@ dependency_families:
     verification_evidence_ref: python-tool-uv-evidence
     required_proof:
       - canonical_executable
-      - exact_version_0.11.8
+      - exact_version_0.13.5
       - declared_archive_and_source_hash
       - selected_source_record
 
@@ -395,7 +395,7 @@ dependency_families:
 
 graph_rules:
   - dependency families are resolved by Runtime local environment plan before activation
-  - precisely pinned managed uv 0.11.8, exact Python, venv, package sets, and Torch wheels are managed dependency families, not user or PATH prerequisites
+  - precisely pinned managed uv 0.13.5, exact Python, venv, package sets, and Torch wheels are managed dependency families, not user or PATH prerequisites
   - venv, package-set, Torch, declared source, and Driver inputs compose one immutable consumer-independent Python dependency profile; the profile is not a new dependency family or selected-source owner
   - equal complete profile fingerprints reuse one content-addressed capsule and one shared Runtime package cache; incompatible inputs create a new capsule
   - engine package selection consumes dependency graph truth and must not select private prerequisites

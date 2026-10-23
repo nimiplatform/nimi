@@ -39,7 +39,7 @@ MODEL_FILES = {
 
 def tensorflow_cpu():
  import tensorflow as tf
- if tf.__version__ != '2.16.1': raise ValueError('TensorFlow version differs from fixed profile')
+ if tf.__version__ != '2.21.0': raise ValueError('TensorFlow version differs from fixed profile')
  tf.config.set_visible_devices([], 'GPU')
  return tf
 

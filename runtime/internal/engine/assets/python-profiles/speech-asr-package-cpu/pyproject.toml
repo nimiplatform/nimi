@@ -1,17 +1,22 @@
 [project]
 name = "nimi-managed-python-profile"
 version = "0.0.0"
-requires-python = "==3.12.13"
+requires-python = "==3.12.15"
 dependencies = [
-  "fastapi==0.121.1",
+  "fastapi==0.161.1",
+  "Pillow==13.0.0",
   "imageio-ffmpeg==0.6.0",
-  "python-multipart==0.0.26",
+  "python-multipart==0.0.32",
   "qwen-asr==0.0.6",
-  "torch==2.11.0",
-  "uvicorn[standard]==0.38.0",
+  "torch==2.14.1",
+  "uvicorn[standard]==0.54.0",
 ]
 
 [tool.uv]
+# The Runtime inference Driver uses the model package, not qwen_asr.cli.demo.
+override-dependencies = ["accelerate==1.15.0"]
+exclude-dependencies = [{ package = { name = "qwen-asr", version = "0.0.6" }, dependencies = ["gradio"] }]
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'", "sys_platform == 'darwin' and platform_machine == 'arm64'"]
 package = false
 
 [[tool.uv.index]]

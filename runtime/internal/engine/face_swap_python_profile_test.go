@@ -50,11 +50,11 @@ func TestHyperSwapMacProfileRequiresItsExactONNXCPUPlane(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if mac.SourceLabel != "face-swap-hyperswap-macos-cpu" || mac.PythonVersion != "3.12.13" || mac.TorchVersion != "" || mac.CUDAABI != "" ||
+	if mac.SourceLabel != "face-swap-hyperswap-macos-cpu" || mac.PythonVersion != "3.12.15" || mac.TorchVersion != "" || mac.CUDAABI != "" ||
 		mac.ProfileDigest == windows.ProfileDigest || mac.ExactLockDigest == windows.ExactLockDigest || mac.DriverBundleDigest != windows.DriverBundleDigest {
 		t.Fatal("Mac CPU identity was conflated with the Windows CUDA environment", mac)
 	}
-	probe := pythonDependencyProfileProbe{ONNXRuntimeVersion: "1.28.0", Device: "cpu", Allocation: 1, InstalledDistributions: []string{"onnxruntime==1.28.0"}}
+	probe := pythonDependencyProfileProbe{ONNXRuntimeVersion: "1.31.0", Device: "cpu", Allocation: 1, InstalledDistributions: []string{"onnxruntime==1.31.0"}}
 	if err := verifyFaceSwapProfileProbe(probe, mac); err != nil {
 		t.Fatal(err)
 	}

@@ -174,7 +174,7 @@ func validSelectedMusicExecution(selected *localexecution.SelectedLocalExecution
 	return selected != nil && selected.Configured && selected.CapabilityContract == capabilitydriver.MiniMaxMusic3CapabilityContract && selected.DriverIdentity != nil && len(selected.Requirements) == 1 && len(selected.ExactBindings) == 1 && len(selected.ExactDependencySources) == 2
 }
 
-var audioCppSelectedSourceVersionPattern = regexp.MustCompile(`^release-([0-9]+\.[0-9]+\.[0-9]+)@[0-9a-f]{40}$`)
+var audioCppSelectedSourceVersionPattern = regexp.MustCompile(`^release-([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)@[0-9a-f]{40}$`)
 
 // @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
 func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution) (capabilitydriver.AudioCppRuntimePackageInput, error) {
@@ -192,7 +192,7 @@ func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution
 			result.AudioCppPackageID = capabilitydriver.AudioCppWindowsCUDA13PackageID
 			executableName := "audiocpp_cli.exe"
 			if source.ConsumerScope == "audio.cpp.vevo2.cpu" {
-				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID || source.Version != "release-0.9.1@cf124a67cc55d8f65a9a15eec69edbff0fb212c8" {
+				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID || source.Version != "release-0.9.2-drama3-base-small@507495611b22dc4590e0e5609e05e8096384e33f" {
 					return result, fmt.Errorf("Mac audio.cpp source does not belong to VeVo2")
 				}
 				result.AudioCppPackageID = capabilitydriver.AudioCppMacOSPackageID

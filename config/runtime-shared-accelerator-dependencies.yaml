@@ -64,13 +64,13 @@ dependencies:
         - driver_compatibility
         - selected_source_record
     managed_sources:
-      - source_id: sdcpp-master-951-f89d9b1-cuda12.8-win-x64-runtime
-        install_dir_name: nvidia-cuda12.8-sdcpp-f89d9b1
+      - source_id: sdcpp-master-995-fd21ecf-cuda12.8-win-x64-runtime
+        install_dir_name: nvidia-cuda12.8-sdcpp-fd21ecf
         source_owner: runtime_shared_dependency_source
         release_owner: leejet/stable-diffusion.cpp
-        release_tag_ref: master-951-f89d9b1
+        release_tag_ref: master-995-fd21ecf
         archive_name: cudart-sd-bin-win-cu12-x64.zip
-        archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-951-f89d9b1/cudart-sd-bin-win-cu12-x64.zip
+        archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-995-fd21ecf/cudart-sd-bin-win-cu12-x64.zip
         archive_sha256: fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d # pragma: allowlist secret
         package_format: direct_archive
         stage_policy: staged_extract_verify_atomic_promote
@@ -125,22 +125,22 @@ dependencies:
     version_constraints:
       cuda_major: 13
       driver_compatibility: runtime_must_verify_driver_supports_selected_cuda_runtime
-      consumer_abi: audio.cpp-v0.9.1
+      consumer_abi: audio.cpp-v0.9.2-drama3-base-small
     required_artifacts:
       - cublas64_13.dll
       - cublasLt64_13.dll
       - cufft64_12.dll
       - cudart64_13.dll
     managed_sources:
-      - source_id: audiocpp-0.9.1-cuda13.3-win-x64-runtime
-        install_dir_name: nvidia-cuda13.3-audiocpp-0.9.1
+      - source_id: audiocpp-0.9.2-drama3-base-small-cuda13.3-win-x64-runtime
+        install_dir_name: nvidia-cuda13.3-audiocpp-0.9.2-drama3-base-small
         source_owner: runtime_shared_dependency_source
         release_owner: 0xShug0/audio.cpp
-        release_tag_ref: v0.9.1
-        archive_name: audio-v0.9.1-cudart-windows-x64-cuda13.3.zip
-        archive_url: https://github.com/0xShug0/audio.cpp/releases/download/v0.9.1/audio-v0.9.1-cudart-windows-x64-cuda13.3.zip
+        release_tag_ref: v0.9.2-drama3-base-small
+        archive_name: audio-v0.9.2-drama3-base-small-cudart-windows-x64-cuda13.3.zip
+        archive_url: https://github.com/0xShug0/audio.cpp/releases/download/v0.9.2-drama3-base-small/audio-v0.9.2-drama3-base-small-cudart-windows-x64-cuda13.3.zip
         archive_bytes: 575457454
-        archive_sha256: fa0fb817540c578bad085c7befb9d25b5a7634548e47955bff7b732b04b8a84b # pragma: allowlist secret
+        archive_sha256: cf58e70c53db680af5e4b8e5ef538ffd1d81bd489ef49843fe486fcd079c9182 # pragma: allowlist secret
         package_format: direct_archive
         stage_policy: staged_extract_verify_atomic_promote
         product_state: supported

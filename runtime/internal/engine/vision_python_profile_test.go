@@ -10,7 +10,7 @@ import (
 func TestLocateProfilesBindExactPlatformAndLoaderSupply(t *testing.T) {
 	var digests []string
 	for _, test := range []struct{ platform, plane, source, loader string }{
-		{"windows/amd64", "cuda", "vision-locateanything-transformers-cu128", "locateanything_loader.modeling_locateanything"},
+		{"windows/amd64", "cuda", "vision-locateanything-transformers-cu130", "locateanything_loader.modeling_locateanything"},
 		{"darwin/arm64", "cpu", "vision-locateanything-mlx-cpu", "mlx_vlm"},
 	} {
 		t.Run(test.platform, func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestGroundingDinoProfileUsesSeparateConsumerWithPinnedWindowsSupply(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if identity.SourceLabel != "vision-locateanything-transformers-cu128" || identity.DriverProtocol != capabilitydriver.GroundingDinoProtocol {
+	if identity.SourceLabel != "vision-locateanything-transformers-cu130" || identity.DriverProtocol != capabilitydriver.GroundingDinoProtocol {
 		t.Fatalf("Grounding DINO profile has incorrect supply: %+v", identity)
 	}
 	locateIdentity, err := ResolvePythonDependencyProfileIdentity(VisionLocateConsumerID, "windows/amd64", "cuda")

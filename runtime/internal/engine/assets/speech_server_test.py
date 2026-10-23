@@ -6,6 +6,7 @@ import importlib
 import importlib.metadata
 import importlib.util
 import base64
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -645,7 +646,7 @@ class SpeechServerTests(unittest.TestCase):
                 os.environ[VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV] = str(output)
                 with mock.patch.object(VOXCPM_DRIVER, "load_model", return_value=FakeModel()), mock.patch.object(
                     VOXCPM_DRIVER, "ensure_dependencies_importable", return_value=(object(), FakeSoundFile)
-                ):
+                ), mock.patch.object(VOXCPM_DRIVER, "_attention_context", return_value=nullcontext()):
                     result = VOXCPM_DRIVER.handle_synthesize(request)
             finally:
                 restore_env(VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV, old_work)
@@ -682,7 +683,7 @@ class SpeechServerTests(unittest.TestCase):
             output=pathlib.Path(directory)/"result.wav"
             request={"driver":"voxcpm","input":"目标口播","audio_format":"wav","bundle_dir":str(bundle),"declared_files":["model.safetensors"],
                 "identity_audio_base64":base64.b64encode(b"identity-input").decode(),"performance_audio_base64":base64.b64encode(b"performance-input").decode(),"performance_text":"  独立示范逐字稿\n"}
-            with mock.patch.dict(os.environ,{VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV:directory,VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV:str(output)}), mock.patch.object(VOXCPM_DRIVER,"load_model",return_value=Model()),mock.patch.object(VOXCPM_DRIVER,"ensure_dependencies_importable",return_value=(object(),SoundFile)):
+            with mock.patch.dict(os.environ,{VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV:directory,VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV:str(output)}), mock.patch.object(VOXCPM_DRIVER,"load_model",return_value=Model()),mock.patch.object(VOXCPM_DRIVER,"ensure_dependencies_importable",return_value=(object(),SoundFile)), mock.patch.object(VOXCPM_DRIVER, "_attention_context", return_value=nullcontext()):
                 VOXCPM_DRIVER.handle_synthesize(request)
         self.assertEqual(captured["identity_bytes"],b"identity-input")
         self.assertEqual(captured["performance_bytes"],b"performance-input")

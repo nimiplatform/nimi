@@ -10,7 +10,7 @@ func TestSpleeterProfileIsExactCPUWithoutTorch(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if id.PythonVersion != "3.12.13" || id.SourceLabel != "audio-spleeter-cpu" || id.TorchVersion != "" || id.CUDAABI != "" || id.DriverProtocol != "nimi-spleeter-tf-checkpoint/1" {
+	if id.PythonVersion != "3.12.15" || id.SourceLabel != "audio-spleeter-cpu" || id.TorchVersion != "" || id.CUDAABI != "" || id.DriverProtocol != "nimi-spleeter-tf-checkpoint/1" {
 		t.Fatalf("wrong profile %+v", id)
 	}
 	for _, host := range []struct{ os, plane string }{{"windows/amd64", "cuda"}, {"darwin/arm64", "cpu"}} {
@@ -20,7 +20,7 @@ func TestSpleeterProfileIsExactCPUWithoutTorch(t *testing.T) {
 	}
 	project, _ := pythonDependencyProfileInput(id.SourceLabel, "pyproject.toml")
 	lock, _ := pythonDependencyProfileInput(id.SourceLabel, "uv.lock")
-	if !strings.Contains(string(project), "tensorflow-intel==2.16.1") || !strings.Contains(string(lock), `name = "tensorflow-intel"`) {
+	if !strings.Contains(string(project), "tensorflow==2.21.0") || !strings.Contains(string(lock), `name = "tensorflow"`) {
 		t.Fatal("Windows CPU runtime must be an explicit frozen dependency, not only the TensorFlow metadata wheel")
 	}
 	files, e := PythonDependencyProfileStaticFiles(SpleeterConsumerID, id)
@@ -36,10 +36,10 @@ func TestSpleeterProfileIsExactCPUWithoutTorch(t *testing.T) {
 	if !found {
 		t.Fatal("driver not materialized")
 	}
-	if e := verifySpleeterProfileProbe(pythonDependencyProfileProbe{Device: "cpu", Allocation: 1, TensorFlowVersion: "2.16.1", InstalledDistributions: []string{"tensorflow"}}, id); e != nil {
+	if e := verifySpleeterProfileProbe(pythonDependencyProfileProbe{Device: "cpu", Allocation: 1, TensorFlowVersion: "2.21.0", InstalledDistributions: []string{"tensorflow"}}, id); e != nil {
 		t.Fatal(e)
 	}
-	if e := verifySpleeterProfileProbe(pythonDependencyProfileProbe{Device: "cuda", Allocation: 1, TensorFlowVersion: "2.16.1"}, id); e == nil {
+	if e := verifySpleeterProfileProbe(pythonDependencyProfileProbe{Device: "cuda", Allocation: 1, TensorFlowVersion: "2.21.0"}, id); e == nil {
 		t.Fatal("wrong probe accepted")
 	}
 }

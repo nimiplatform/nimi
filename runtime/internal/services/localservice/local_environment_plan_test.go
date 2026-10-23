@@ -142,14 +142,14 @@ func TestResolveLocalSpeechPlanIncludesHostAppropriateTorchWheel(t *testing.T) {
 		{
 			name:              "nvidia",
 			profile:           localEnvironmentNvidiaProfile(),
-			wantTorchID:       "torch-2.11.0.cuda-cu128.torch-wheel",
+			wantTorchID:       "torch-2.14.1.cuda-cu130.torch-wheel",
 			wantTorchConsumer: "speech.qwen3-tts.python.cuda",
 			wantCUDARequired:  true,
 		},
 		{
 			name:              "cpu",
 			profile:           localEnvironmentCPUProfileForTest(),
-			wantTorchID:       "torch-2.11.0.cpu-none.torch-wheel",
+			wantTorchID:       "torch-2.14.1.cpu-none.torch-wheel",
 			wantTorchConsumer: "speech.qwen3-tts.python.cpu",
 			wantCUDARequired:  false,
 		},

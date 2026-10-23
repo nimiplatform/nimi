@@ -1,20 +1,21 @@
 [project]
 name = "nimi-managed-python-profile"
 version = "0.0.0"
-requires-python = "==3.12.13"
+requires-python = "==3.12.15"
 dependencies = [
-  "fastapi==0.121.1",
+  "fastapi==0.161.1",
   "pymorphy3==2.0.6",
   "spacy==3.8.16",
   "spacy-curated-transformers==0.3.1",
   "spacy-pkuseg==1.0.1",
-  "sudachidict-core==20260723",
-  "sudachipy==0.6.11",
-  "torch==2.11.0",
-  "uvicorn[standard]==0.38.0",
+  "sudachidict-core==20261015",
+  "sudachipy==0.7.0",
+  "torch==2.14.1",
+  "uvicorn[standard]==0.54.0",
 ]
 
 [tool.uv]
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'", "sys_platform == 'darwin' and platform_machine == 'arm64'"]
 package = false
 
 [[tool.uv.index]]

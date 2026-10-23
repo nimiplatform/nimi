@@ -104,7 +104,7 @@ func TestSheetSage2PlanRejectsMIDIAndOwnsOnlyTranscriptionArgs(t *testing.T) {
 	input := MusicTranscriptionInvocationInput{RecipeID: SheetSage2RecipeID, LoadoutID: "loadout", Request: request, SourceInfo: info,
 		SourcePath: filepath.Join(root, "source.wav"), StagingDir: root,
 		ExactBindings: []InvocationExactBinding{{RequirementID: SheetSage2RequirementID, VerifiedContentID: SheetSage2VerifiedContentID, AbsolutePath: filepath.Join(root, "model.gguf"), DeclaredFiles: []string{"model.gguf"}}},
-		Package: AudioCppRuntimePackageInput{AudioCppVersion: "0.9.1", AudioCppPackageID: AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "package-source", AudioCppRoot: root,
+		Package: AudioCppRuntimePackageInput{AudioCppVersion: "0.9.2-drama3-base-small", AudioCppPackageID: AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "package-source", AudioCppRoot: root,
 			AudioCppExecutablePath: filepath.Join(root, "audiocpp_cli.exe"), CUDA13DependencyID: AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "cuda-source", CUDA13Root: root}}
 	plan, err := (SheetSage2AudioCppDriver{}).PlanMusicTranscriptionInvocation(input)
 	if err != nil {

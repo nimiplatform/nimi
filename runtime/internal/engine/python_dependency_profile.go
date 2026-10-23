@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	ManagedPythonVersion        = "3.12.13"
+	ManagedPythonVersion        = "3.12.15"
 	ManagedPythonABI            = "cp312"
 	speechDriverProtocolVersion = "speech-http-v3"
 )
@@ -268,12 +268,12 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 		if backend == "mlx" {
 			return "vision-locateanything-mlx-cpu", nil
 		}
-		return "vision-locateanything-transformers-cu128", nil
+		return "vision-locateanything-transformers-cu130", nil
 	case GroundingDinoConsumerID:
 		if _, err := visionPythonBackendForConsumer(consumer, platformTuple, acceleratorPlane); err != nil {
 			return "", err
 		}
-		return "vision-locateanything-transformers-cu128", nil
+		return "vision-locateanything-transformers-cu130", nil
 	case "speech.qwen3-tts.python":
 		line = "speech-tts"
 	case "speech.qwen3-asr.python":
@@ -306,7 +306,7 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 	}
 	sourceSuffix := acceleratorPlane
 	if acceleratorPlane == "cuda" {
-		sourceSuffix = "cu128"
+		sourceSuffix = "cu130"
 	}
 	return line + "-" + sourceSuffix, nil
 }

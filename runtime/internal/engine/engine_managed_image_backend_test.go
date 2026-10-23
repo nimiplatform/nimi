@@ -652,7 +652,7 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 		managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("expected Windows managed image backend package to declare only the canonical z-image family, got %v", spec.SupportedModelFamilies)
 	}
-	if !strings.Contains(spec.InstallDirName, "f89d9b1") {
+	if !strings.Contains(spec.InstallDirName, "fd21ecf") {
 		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
 	}
 }
@@ -687,9 +687,9 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonic
 	if !ok || !spec.Supported {
 		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-951-f89d9b1" ||
-		spec.SourceCommit != "f89d9b13d730eabeede7314ce49dacd18d3c90c2" || // pragma: allowlist secret -- public source commit
-		spec.ArchiveSHA256 != "8057dbfb1529b4e0bc07d35eaf68fa821e44bca6852428c539bf70602189bf92" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-995-fd21ecf" ||
+		spec.SourceCommit != "fd21ecfceef2665d2c5f2db8536e3202d864fd30" || // pragma: allowlist secret -- public source commit
+		spec.ArchiveSHA256 != "3ee05d3f230b124834d2e67df7915017ef9b7ded9d811f72b8d5124fa93a4dd3" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
 		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
 	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {

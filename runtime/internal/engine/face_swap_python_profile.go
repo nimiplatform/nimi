@@ -38,7 +38,7 @@ func verifyFaceSwapDriverBundle(root string) error {
 
 // @nimi-authority: rule.nimi.runtime.local-compute.hyperswap-1a-driver
 func verifyFaceSwapProfileProbe(probe pythonDependencyProfileProbe, identity PythonDependencyProfileIdentity) error {
-	if identity.TorchVersion != "" || probe.ONNXRuntimeVersion != "1.28.0" || probe.TorchVersion != "" || probe.Allocation != 1 || len(probe.InstalledDistributions) == 0 {
+	if identity.TorchVersion != "" || probe.ONNXRuntimeVersion != "1.31.0" || probe.TorchVersion != "" || probe.Allocation != 1 || len(probe.InstalledDistributions) == 0 {
 		return fmt.Errorf("face replacement dependency profile did not execute with its exact ONNX Runtime composition")
 	}
 	if identity.PlatformTuple == "windows/amd64" && identity.AcceleratorPlane == "cuda" && identity.CUDAABI == "cu13" && probe.CUDAABI == "13" && probe.Device == "cuda" {

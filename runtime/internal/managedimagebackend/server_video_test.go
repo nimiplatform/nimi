@@ -246,7 +246,7 @@ func TestManagedVideoRecipeRejectsIllegalValues(t *testing.T) {
 }
 
 func TestStableDiffusionVideoFFILayoutMatchesPinnedHeader(t *testing.T) {
-	if got := unsafe.Sizeof(sdCtxParams{}); got != 320 {
+	if got := unsafe.Sizeof(sdCtxParams{}); got != 336 {
 		t.Fatalf("sizeof(sd_ctx_params_t) = %d", got)
 	}
 	if got := unsafe.Sizeof(sdVideoGenParams{}); got != 584 {
@@ -265,8 +265,9 @@ func TestStableDiffusionVideoFFILayoutMatchesPinnedHeader(t *testing.T) {
 		"rng_type": unsafe.Offsetof(ctx.RNGType), "diffusion_flash_attn": unsafe.Offsetof(ctx.DiffusionFlashAttention),
 		"params_backend":     unsafe.Offsetof(ctx.ParamsBackend),
 		"audio_encoder_path": unsafe.Offsetof(ctx.AudioEncoderPath), "conditioning_cache_size": unsafe.Offsetof(ctx.ConditioningCacheSize),
+		"batched_cfg": unsafe.Offsetof(ctx.BatchedCFG), "flash_attn_mode": unsafe.Offsetof(ctx.FlashAttentionMode), "conv_direct_mode": unsafe.Offsetof(ctx.ConvDirectMode),
 	} {
-		want := map[string]uintptr{"llm_path": 40, "diffusion_model_path": 56, "vae_path": 88, "audio_vae_path": 96, "rng_type": 192, "diffusion_flash_attn": 210, "params_backend": 248, "audio_encoder_path": 104, "conditioning_cache_size": 316}[name]
+		want := map[string]uintptr{"llm_path": 40, "diffusion_model_path": 56, "vae_path": 88, "audio_vae_path": 96, "rng_type": 192, "diffusion_flash_attn": 210, "params_backend": 248, "audio_encoder_path": 104, "conditioning_cache_size": 316, "batched_cfg": 289, "flash_attn_mode": 320, "conv_direct_mode": 328}[name]
 		if got != want {
 			t.Fatalf("offsetof(sd_ctx_params_t.%s) = %d, want %d", name, got, want)
 		}
@@ -304,7 +305,7 @@ func startVideoTestServer(t *testing.T, server *Server) (string, func()) {
 }
 
 func h3VideoPackageIdentity() videoPackageIdentity {
-	return videoPackageIdentity{Name: "master-951-f89d9b1", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
+	return videoPackageIdentity{Name: "master-995-fd21ecf", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
 }
 
 func validVideoModelRequest(address string) VideoModelRequest {

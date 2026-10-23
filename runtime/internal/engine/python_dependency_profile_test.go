@@ -100,7 +100,7 @@ func TestResolvePythonDependencyProfileIdentitySelectsPrivateVoxCPMBackendByHost
 	if err != nil {
 		t.Fatalf("resolve Apple Silicon VoxCPM profile: %v", err)
 	}
-	if windowsCPU.SourceLabel != "speech-voxcpm-standard-cpu" || windowsCUDA.SourceLabel != "speech-voxcpm-standard-cu128" || macOS.SourceLabel != "speech-voxcpm-mlx-cpu" {
+	if windowsCPU.SourceLabel != "speech-voxcpm-standard-cpu" || windowsCUDA.SourceLabel != "speech-voxcpm-standard-cu130" || macOS.SourceLabel != "speech-voxcpm-mlx-cpu" {
 		t.Fatalf("VoxCPM private backend profile labels = cpu %q cuda %q mlx %q", windowsCPU.SourceLabel, windowsCUDA.SourceLabel, macOS.SourceLabel)
 	}
 	if windowsCPU.DependencyID == windowsCUDA.DependencyID || windowsCPU.DependencyID == macOS.DependencyID || windowsCUDA.DependencyID == macOS.DependencyID {
@@ -179,18 +179,18 @@ func TestResolvePythonDependencyProfileIdentityDoesNotExpandLinuxAdmission(t *te
 
 func TestPythonDependencyProfileDigestChangesForEveryCanonicalFactor(t *testing.T) {
 	base := pythonDependencyProfileDigestInput{
-		PythonVersion:      "3.12.13",
+		PythonVersion:      "3.12.15",
 		PythonABI:          "cp312",
 		PlatformTuple:      "windows/amd64",
 		AcceleratorPlane:   "cuda",
-		TorchVersion:       "2.11.0",
-		CUDAABI:            "cu128",
+		TorchVersion:       "2.14.1",
+		CUDAABI:            "cu130",
 		TorchWheelLockHash: strings.Repeat("0", 64),
-		TorchWheelIndex:    "https://download.pytorch.org/whl/cu128",
+		TorchWheelIndex:    "https://download.pytorch.org/whl/cu130",
 		TorchPackageSource: "pytorch-official-wheel-index",
 		ExactLockDigest:    strings.Repeat("1", 64),
 		ProjectInputDigest: strings.Repeat("2", 64),
-		PackageSource:      "pypi=https://pypi.org/simple;pytorch=https://download.pytorch.org/whl/cu128",
+		PackageSource:      "pypi=https://pypi.org/simple;pytorch=https://download.pytorch.org/whl/cu130",
 		DriverProtocol:     "speech-http-v1",
 		DriverBundleDigest: strings.Repeat("3", 64),
 	}
@@ -201,7 +201,7 @@ func TestPythonDependencyProfileDigestChangesForEveryCanonicalFactor(t *testing.
 		"platform":       func(input *pythonDependencyProfileDigestInput) { input.PlatformTuple = "darwin/arm64" },
 		"accelerator":    func(input *pythonDependencyProfileDigestInput) { input.AcceleratorPlane = "cpu" },
 		"Torch":          func(input *pythonDependencyProfileDigestInput) { input.TorchVersion = "2.12.0" },
-		"CUDA ABI":       func(input *pythonDependencyProfileDigestInput) { input.CUDAABI = "cu130" },
+		"CUDA ABI":       func(input *pythonDependencyProfileDigestInput) { input.CUDAABI = "cu126" },
 		"Torch wheel lock": func(input *pythonDependencyProfileDigestInput) {
 			input.TorchWheelLockHash = strings.Repeat("7", 64)
 		},
@@ -236,7 +236,7 @@ func TestPythonDependencyProfileLocksBindTorchToDeclaredIndex(t *testing.T) {
 		index          string
 		companionWheel string
 	}{
-		{label: "speech-tts-cu128", index: defaultSpeechTorchCUDAIndexURL, companionWheel: "torchaudio"},
+		{label: "speech-tts-cu130", index: defaultSpeechTorchCUDAIndexURL, companionWheel: "torchaudio"},
 		{label: "speech-tts-cpu", index: defaultTorchCPUIndexURL, companionWheel: "torchaudio"},
 	} {
 		project, err := pythonDependencyProfileInput(test.label, "pyproject.toml")

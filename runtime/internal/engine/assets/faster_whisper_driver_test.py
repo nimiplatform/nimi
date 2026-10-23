@@ -1,16 +1,37 @@
 import pathlib
 import io
+import importlib.util
 import json
+import math
+import struct
 import sys
 import tempfile
 import types
 import unittest
+import wave
 from unittest import mock
 
 import faster_whisper_driver as driver
 
 
 class FasterWhisperDriverTests(unittest.TestCase):
+    @unittest.skipUnless(importlib.util.find_spec("faster_whisper"), "requires the installed faster-whisper profile")
+    def test_installed_decoder_reads_and_resamples_real_wav(self):
+        # PyAV 19 removed a keyword still used by faster-whisper 1.2.1.
+        # An import probe cannot catch that failure; exercise the actual decoder.
+        from faster_whisper.audio import decode_audio
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "input.wav"
+            samples = [int(8000 * math.sin(2 * math.pi * 440 * i / 8000)) for i in range(1600)]
+            with wave.open(str(path), "wb") as output:
+                output.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
+                output.writeframes(struct.pack("<1600h", *samples))
+            decoded = decode_audio(str(path), sampling_rate=16000)
+            self.assertEqual(decoded.shape, (3200,))
+            self.assertEqual(str(decoded.dtype), "float32")
+            self.assertTrue(all(math.isfinite(float(value)) for value in decoded))
+            self.assertGreater(float(abs(decoded).max()), 0.1)
+
     def test_private_input_error_is_distinct_from_execution_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             request = pathlib.Path(directory) / "request.json"

@@ -11,7 +11,7 @@ func TestTextDecisionProfilesBindExactTorchPlanes(t *testing.T) {
 	for _, test := range []struct {
 		platform, plane, label, index, cudaABI string
 	}{
-		{"windows/amd64", "cuda", "text-laya-cu128", defaultSpeechTorchCUDAIndexURL, "cu128"},
+		{"windows/amd64", "cuda", "text-laya-cu130", defaultSpeechTorchCUDAIndexURL, "cu130"},
 		{"windows/amd64", "cpu", "text-laya-cpu", defaultTorchCPUIndexURL, "none"},
 		{"darwin/arm64", "cpu", "text-laya-cpu", defaultTorchCPUIndexURL, "none"},
 	} {
@@ -19,7 +19,7 @@ func TestTextDecisionProfilesBindExactTorchPlanes(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s/%s: %v", test.platform, test.plane, err)
 		}
-		if identity.SourceLabel != test.label || identity.AcceleratorPlane != test.plane || identity.TorchVersion != "2.11.0" ||
+		if identity.SourceLabel != test.label || identity.AcceleratorPlane != test.plane || identity.TorchVersion != "2.14.1" ||
 			identity.CUDAABI != test.cudaABI || identity.TorchWheelIndex != test.index || identity.DriverProtocol != capabilitydriver.LayaProtocol ||
 			identity.DriverBundleDigest != textDecisionDriverBundleDigest(capabilitydriver.LayaProtocol) {
 			t.Fatalf("%s/%s identity is not exact: %+v", test.platform, test.plane, identity)
@@ -30,7 +30,7 @@ func TestTextDecisionProfilesBindExactTorchPlanes(t *testing.T) {
 				t.Fatal(err)
 			}
 			text := string(content)
-			for _, pin := range []string{test.index, "laya", "0.3.11", "transformers", "5.13.0", "torch", "2.11.0"} {
+			for _, pin := range []string{test.index, "laya", "0.4.13", "transformers", "5.20.2", "torch", "2.14.1"} {
 				if !strings.Contains(text, pin) {
 					t.Fatalf("%s %s does not pin %s", test.label, name, pin)
 				}
@@ -48,7 +48,7 @@ func TestTextDecisionProfilesBindExactTorchPlanes(t *testing.T) {
 			t.Fatalf("profile static files omit the Worker: %v", names)
 		}
 	}
-	if lock, _ := pythonDependencyProfileInput("text-laya-cu128", "uv.lock"); !strings.Contains(string(lock), "sha256:1ee717dd05a742135869383af9b66b20d5c5f62e62d9e57e3fcf84203ea1e443") {
+	if lock, _ := pythonDependencyProfileInput("text-laya-cu130", "uv.lock"); !strings.Contains(string(lock), "sha256:0a09031e93632d14ef49553acd6211ece3ae9cdc0969a369b8c24e3cc4d15be9") {
 		t.Fatal("CUDA profile lock does not pin the exact laya 0.3.11 wheel")
 	}
 	for _, target := range [][2]string{{"darwin/arm64", "cuda"}, {"linux/amd64", "cpu"}} {

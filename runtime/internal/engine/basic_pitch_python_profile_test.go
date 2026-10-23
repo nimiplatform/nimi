@@ -13,7 +13,7 @@ func TestBasicPitchProfilesAreExplicitCPUWithoutTorch(t *testing.T) {
 			t.Fatal(err)
 		}
 		identities[platform] = identity
-		if identity.PythonVersion != "3.12.13" || identity.PythonABI != "cp312" || identity.TorchVersion != "" || identity.CUDAABI != "" || identity.SourceLabel != label {
+		if identity.PythonVersion != "3.12.15" || identity.PythonABI != "cp312" || identity.TorchVersion != "" || identity.CUDAABI != "" || identity.SourceLabel != label {
 			t.Fatal("profile selected a different substrate", identity)
 		}
 		probes, err := pythonDependencyProfileImportProbes(BasicPitchConsumerID, identity)
@@ -53,7 +53,7 @@ func TestBasicPitchMacProfileProbeRejectsDifferentBackend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	probe := pythonDependencyProfileProbe{Device: "cpu", Allocation: 1, ONNXRuntimeVersion: "1.20.1", InstalledDistributions: []string{"onnxruntime"}}
+	probe := pythonDependencyProfileProbe{Device: "cpu", Allocation: 1, ONNXRuntimeVersion: "1.31.0", InstalledDistributions: []string{"onnxruntime"}}
 	if err := verifyBasicPitchProfileProbe(probe, identity); err != nil {
 		t.Fatal(err)
 	}

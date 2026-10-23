@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 from functools import lru_cache
+import importlib.metadata
 import json
 import math
 import os
@@ -45,18 +47,34 @@ def load_models(recognition_root: str, vad_entry: str):
     from faster_whisper import WhisperModel
     from silero_vad.utils_vad import OnnxWrapper
 
-    # CTranslate2 uses the CUDA libraries supplied by this managed profile.
-    dll_directory = None
-    if sys.platform == "win32":
-        dll_directory = os.add_dll_directory(str(Path(torch.__file__).parent / "lib"))
     device = os.environ.get("NIMI_RUNTIME_SPEECH_FASTER_WHISPER_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
     if device not in {"cpu", "cuda"} or (device == "cuda" and not torch.cuda.is_available()):
         raise RuntimeError("captured Whisper accelerator is unavailable")
+    # Torch supplies cuDNN 9, but its CUDA 13 cuBLAS cannot satisfy CTranslate2's
+    # CUDA 12 ABI. Load only the exact libraries installed in this profile.
+    dll_handles = []
+    if sys.platform == "win32":
+        dll_handles.append(os.add_dll_directory(str(Path(torch.__file__).parent / "lib")))
+        if device == "cuda":
+            prefix = Path(sys.prefix).resolve()
+            libraries = [
+                ("nvidia-cuda-nvrtc-cu12", "nvidia/cuda_nvrtc/bin", ["nvrtc64_120_0.dll"]),
+                ("nvidia-cublas-cu12", "nvidia/cublas/bin", ["cublasLt64_12.dll", "cublas64_12.dll"]),
+            ]
+            for package, relative, names in libraries:
+                directory = Path(importlib.metadata.distribution(package).locate_file(relative)).resolve()
+                if not directory.is_dir() or not directory.is_relative_to(prefix):
+                    raise RuntimeError("captured CTranslate2 CUDA dependency is unavailable")
+                dll_handles.append(os.add_dll_directory(str(directory)))
+                for name in names:
+                    # CTranslate2 loads these by basename. Preloading the exact
+                    # path prevents an ambient PATH installation from satisfying it.
+                    dll_handles.append(ctypes.WinDLL(str(directory / name)))
     model = WhisperModel(recognition_root, device=device,
                          compute_type="float16" if device == "cuda" else "int8",
                          local_files_only=True)
     vad = OnnxWrapper(vad_entry, force_onnx_cpu=True)
-    return model, vad, dll_directory
+    return model, vad, dll_handles
 
 
 def transcription_words(segments, duration: float) -> tuple[str, list[dict[str, Any]]]:

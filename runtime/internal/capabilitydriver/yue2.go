@@ -35,7 +35,7 @@ var yue2Files = map[string]int64{
 }
 
 // YuE2AudioCppDriver admits only the verified Q8/F16 bundle. It requires the
-// typed result carrier and exact v0.9.1 executable cohort; registration does
+// typed result carrier and exact v0.9.2-drama3-base-small executable cohort; registration does
 // not imply commercial permission or subjective music-quality acceptance.
 // @nimi-authority: definition.nimi.runtime.ai-provider.multimodal-provider-plane
 type YuE2AudioCppDriver struct{}
@@ -130,7 +130,7 @@ func (YuE2AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*Musi
 	}
 	pkg := input.Package
 	if pkg.AudioCppVersion != AudioCppMusicPackageVersion || pkg.AudioCppPackageID != AudioCppWindowsCUDA13PackageID || pkg.CUDA13DependencyID != AudioCppCUDA13RuntimeDependencyID || strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) == "" || !filepath.IsAbs(pkg.AudioCppRoot) || !filepath.IsAbs(pkg.AudioCppExecutablePath) || !filepath.IsAbs(pkg.CUDA13Root) || !musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath) || !strings.EqualFold(filepath.Base(pkg.AudioCppExecutablePath), "audiocpp_cli.exe") {
-		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.9.1 CUDA package")
+		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.9.2-drama3-base-small CUDA package")
 	}
 	r := input.Request
 	if r.GetVideoReference() != nil {

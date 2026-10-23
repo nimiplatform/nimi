@@ -3,7 +3,7 @@ package managedimagebackend
 import "unsafe"
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
-// The following types mirror stable-diffusion.h at master-951-f89d9b1.
+// The following types mirror stable-diffusion.h at master-995-fd21ecf.
 // C enums/int are int32, C bool is one byte, and pointers/size_t use MSVC x64
 // eight-byte alignment. Update these layouts with the exact package cohort.
 type sdCtxParams struct {
@@ -59,7 +59,8 @@ type sdCtxParams struct {
 	RPCServers                  uintptr
 	ModelArgs                   uintptr
 	DisableSegmentedCompute     uint8
-	_                           [3]byte
+	BatchedCFG                  uint8
+	_                           [2]byte
 	LinearScale                 float32
 	AttentionScale              float32
 	_                           [4]byte
@@ -67,6 +68,8 @@ type sdCtxParams struct {
 	SageAttention               uint8
 	_                           [3]byte
 	ConditioningCacheSize       int32
+	FlashAttentionMode          uintptr
+	ConvDirectMode              uintptr
 }
 
 type sdAudio struct {
@@ -216,8 +219,8 @@ type sdVideoGenParams struct {
 
 // Bidirectional compile-time size assertions for the MSVC x64 ABI.
 var (
-	_ [320 - unsafe.Sizeof(sdCtxParams{})]byte
-	_ [unsafe.Sizeof(sdCtxParams{}) - 320]byte
+	_ [336 - unsafe.Sizeof(sdCtxParams{})]byte
+	_ [unsafe.Sizeof(sdCtxParams{}) - 336]byte
 	_ [24 - unsafe.Sizeof(sdAudio{})]byte
 	_ [unsafe.Sizeof(sdAudio{}) - 24]byte
 	_ [24 - unsafe.Sizeof(sdImage{})]byte

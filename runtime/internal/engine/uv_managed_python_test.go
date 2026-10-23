@@ -23,7 +23,7 @@ func TestEnsureManagedPythonRuntimeReusesVerifiedManagedInterpreter(t *testing.T
 			if path == "" {
 				t.Fatal("verification received an empty interpreter path")
 			}
-			return "Python 3.12.13\n", nil
+			return "Python 3.12.15\n", nil
 		},
 		func() error {
 			installCalls++
@@ -37,7 +37,7 @@ func TestEnsureManagedPythonRuntimeReusesVerifiedManagedInterpreter(t *testing.T
 	if err != nil {
 		t.Fatalf("reuse verified managed interpreter: %v", err)
 	}
-	if path == "" || version != "Python 3.12.13" || findCalls != 1 || installCalls != 0 {
+	if path == "" || version != "Python 3.12.15" || findCalls != 1 || installCalls != 0 {
 		t.Fatalf("reuse result = (%q, %q, find=%d, install=%d)", path, version, findCalls, installCalls)
 	}
 }
@@ -51,7 +51,7 @@ func TestEnsureManagedPythonRuntimeInstallsOnlyWhenManagedFindIsMissing(t *testi
 			findCalls++
 			return "", errors.New("managed Python missing")
 		},
-		func(string) (string, error) { return "Python 3.12.13", nil },
+		func(string) (string, error) { return "Python 3.12.15", nil },
 		func() error {
 			installCalls++
 			return nil
@@ -64,7 +64,7 @@ func TestEnsureManagedPythonRuntimeInstallsOnlyWhenManagedFindIsMissing(t *testi
 	if err != nil {
 		t.Fatalf("install missing managed interpreter: %v", err)
 	}
-	if path == "" || version != "Python 3.12.13" || findCalls != 2 || installCalls != 1 {
+	if path == "" || version != "Python 3.12.15" || findCalls != 2 || installCalls != 1 {
 		t.Fatalf("materialization result = (%q, %q, find=%d, install=%d)", path, version, findCalls, installCalls)
 	}
 }
@@ -105,7 +105,7 @@ func TestEnsureManagedPythonRuntimeDoesNotInstallWhenFinderItselfFails(t *testin
 
 func TestDiscoverManagedPythonRuntimeRequiresCanonicalPayloadFiles(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "environments", "python", ManagedPythonVersion)
-	candidate := filepath.Join(managedPythonInstallationDir(root), "cpython-3.12.13-windows-x86_64-none")
+	candidate := filepath.Join(managedPythonInstallationDir(root), "cpython-3.12.15-windows-x86_64-none")
 	if err := os.MkdirAll(candidate, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestDiscoverManagedPythonRuntimeRequiresCanonicalPayloadFiles(t *testing.T)
 
 func TestDiscoverManagedPythonRuntimeSelectsExactPatchVersion(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "environments", "python", ManagedPythonVersion)
-	wanted := filepath.Join(managedPythonInstallationDir(root), "cpython-3.12.13-windows-x86_64-none")
+	wanted := filepath.Join(managedPythonInstallationDir(root), "cpython-3.12.15-windows-x86_64-none")
 	newer := filepath.Join(managedPythonInstallationDir(root), "cpython-3.12.14-windows-x86_64-none")
 	for _, candidate := range []string{wanted, newer} {
 		required := []string{managedPythonInterpreterPath(candidate)}

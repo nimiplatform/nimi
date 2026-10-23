@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const defaultLlamaVersion = "b11429"
+const defaultLlamaVersion = "b11669"
 
 // EngineKind identifies a supported local AI engine.
 type EngineKind string
@@ -305,7 +305,7 @@ type EngineConfig struct {
 
 // DefaultLlamaConfig returns the default configuration for the llama engine.
 //
-// Version gate (b11429):
+// Version gate (b11669):
 //   - Supports: --ctx-size, --cache-type-k/v, --flash-attn (on/off/auto),
 //     --mmproj, --n-gpu-layers.
 //   - Includes LLM_ARCH_GEMMA4 and Gemma 4 vision projector support.

@@ -29,11 +29,11 @@ func textDecisionDriverStaticFiles() []PythonDependencyProfileStaticFile {
 }
 
 // textDecisionPythonSourceLabel selects the exact frozen profile input. CUDA
-// uses the PyTorch cu128 wheel plane; every admitted host may use the CPU plane.
+// uses the PyTorch cu130 wheel plane; every admitted host may use the CPU plane.
 func textDecisionPythonSourceLabel(platformTuple string, acceleratorPlane string) (string, error) {
 	switch {
 	case platformTuple == "windows/amd64" && acceleratorPlane == "cuda":
-		return "text-laya-cu128", nil
+		return "text-laya-cu130", nil
 	case (platformTuple == "windows/amd64" || platformTuple == "darwin/arm64") && acceleratorPlane == "cpu":
 		return "text-laya-cpu", nil
 	default:

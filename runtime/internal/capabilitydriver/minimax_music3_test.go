@@ -43,7 +43,7 @@ func testMiniMaxMusic3Invocation(t *testing.T, request *runtimev1.MusicGenerateS
 		RecipeID:      MiniMaxMusic3RecipeID,
 		ExactBindings: []InvocationExactBinding{testMiniMaxMusic3Binding(root)},
 		Package: MusicRuntimePackageInput{
-			AudioCppVersion:                "0.9.1",
+			AudioCppVersion:                "0.9.2-drama3-base-small",
 			AudioCppPackageID:              MiniMaxMusic3AudioCppPackageID,
 			AudioCppSelectedSourceRecordID: "selected-audio-cpp",
 			AudioCppRoot:                   filepath.Join(root, "audio-cpp"),

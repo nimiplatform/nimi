@@ -16,8 +16,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const defaultPythonVersion = '3.12';
 const defaultHostPackages = [
   'huggingface-hub',
-  'fastapi==0.121.1',
-  'uvicorn[standard]==0.38.0',
+  'fastapi==0.159.1',
+  'uvicorn[standard]==0.54.0',
   'python-multipart',
 ];
 const defaultTTSPackages = [

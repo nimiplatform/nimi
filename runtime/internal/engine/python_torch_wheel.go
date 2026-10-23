@@ -9,9 +9,10 @@ import (
 
 const (
 	defaultTorchCPUIndexURL        = "https://download.pytorch.org/whl/cpu"
-	defaultSpeechTorchCUDAIndexURL = "https://download.pytorch.org/whl/cu128"
+	defaultSpeechTorchCUDAIndexURL = "https://download.pytorch.org/whl/cu130"
 	pythonTorchPackageSource       = "pytorch-official-wheel-index"
-	speechTorchVersion             = "2.11.0"
+	speechTorchVersion             = "2.14.1"
+	speechTorchAudioVersion        = "2.11.0"
 )
 
 type pythonTorchWheelManifest struct {
@@ -70,21 +71,21 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 		}, nil
 	case trimmed == VisionLocateConsumerID+".cuda" || trimmed == GroundingDinoConsumerID+".cuda":
 		return pythonTorchWheelManifest{
-			Packages:         []string{"torch==2.11.0", "torchvision==0.26.0"},
+			Packages:         []string{"torch==2.14.1", "torchvision==0.29.1"},
 			ImportProbes:     []string{"torch", "torchvision"},
-			AcceleratorPlane: "cuda", CUDAABI: "cu128",
+			AcceleratorPlane: "cuda", CUDAABI: "cu130",
 			WheelIndex: defaultSpeechTorchCUDAIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
 	case trimmed == VisionLocateConsumerID+".cpu":
 		return pythonTorchWheelManifest{
-			Packages: []string{"torch==2.11.0"}, ImportProbes: []string{"torch"},
+			Packages: []string{"torch==2.14.1"}, ImportProbes: []string{"torch"},
 			AcceleratorPlane: "cpu", CUDAABI: "none",
 			WheelIndex: defaultTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
 	case trimmed == TextDecisionConsumerID+".cuda":
 		return pythonTorchWheelManifest{
 			Packages: []string{"torch==" + speechTorchVersion}, ImportProbes: []string{"torch"},
-			AcceleratorPlane: "cuda", CUDAABI: "cu128",
+			AcceleratorPlane: "cuda", CUDAABI: "cu130",
 			WheelIndex: defaultSpeechTorchCUDAIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
 	case trimmed == TextDecisionConsumerID+".cpu":
@@ -97,14 +98,14 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 		packages := []string{"torch==" + speechTorchVersion}
 		probes := []string{"torch"}
 		if strings.HasPrefix(trimmed, "speech.qwen3-tts.python.") {
-			packages = append(packages, "torchaudio=="+speechTorchVersion)
+			packages = append(packages, "torchaudio=="+speechTorchAudioVersion)
 			probes = append(probes, "torchaudio")
 		}
 		return pythonTorchWheelManifest{
 			Packages:         packages,
 			ImportProbes:     probes,
 			AcceleratorPlane: "cuda",
-			CUDAABI:          "cu128",
+			CUDAABI:          "cu130",
 			WheelIndex:       defaultSpeechTorchCUDAIndexURL,
 			PackageSource:    pythonTorchPackageSource,
 		}, nil
@@ -112,7 +113,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 		packages := []string{"torch==" + speechTorchVersion}
 		probes := []string{"torch"}
 		if strings.HasPrefix(trimmed, "speech.qwen3-tts.python.") {
-			packages = append(packages, "torchaudio=="+speechTorchVersion)
+			packages = append(packages, "torchaudio=="+speechTorchAudioVersion)
 			probes = append(probes, "torchaudio")
 		}
 		return pythonTorchWheelManifest{

@@ -56,8 +56,8 @@ test('bootstrapLocalQwen3Speech reuses existing install state when unchanged', a
       'qwen-tts',
       'soundfile',
       'huggingface-hub',
-      'fastapi==0.121.1',
-      'uvicorn[standard]==0.38.0',
+      'fastapi==0.159.1',
+      'uvicorn[standard]==0.54.0',
       'python-multipart',
     ],
   }, null, 2)}\n`, 'utf8');
@@ -67,8 +67,8 @@ test('bootstrapLocalQwen3Speech reuses existing install state when unchanged', a
     packages: [
       'qwen-asr',
       'huggingface-hub',
-      'fastapi==0.121.1',
-      'uvicorn[standard]==0.38.0',
+      'fastapi==0.159.1',
+      'uvicorn[standard]==0.54.0',
       'python-multipart',
     ],
   }, null, 2)}\n`, 'utf8');

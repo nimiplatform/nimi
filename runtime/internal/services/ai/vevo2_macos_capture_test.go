@@ -24,7 +24,7 @@ func TestMacVeVo2AssemblySurvivesCaptureIdentityAndReconstruction(t *testing.T) 
 			VerifiedContentID: capabilitydriver.VeVo2VerifiedContentID, EntrySHA256: strings.TrimPrefix(capabilitydriver.VeVo2VerifiedContentID, "sha256:"),
 			AbsolutePath: filepath.Join(root, "vevo2.gguf"), DeclaredFiles: []string{"vevo2.gguf"}}},
 		ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "native-engine-package.audio-cpp", DependencyID: "audio.cpp.package",
-			ConsumerScope: "audio.cpp.vevo2.cpu", Version: "release-0.9.1@cf124a67cc55d8f65a9a15eec69edbff0fb212c8", SelectedSourceRecordID: "mac-native",
+			ConsumerScope: "audio.cpp.vevo2.cpu", Version: "release-0.9.2-drama3-base-small@507495611b22dc4590e0e5609e05e8096384e33f", SelectedSourceRecordID: "mac-native",
 			CanonicalRoot: root, VerifiedArtifacts: []string{filepath.Join(root, "audiocpp_cli")}}}}
 	pkg, err := audioCppRuntimePackageInput(selected)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestMacVeVo2AssemblySurvivesCaptureIdentityAndReconstruction(t *testing.T) 
 
 func TestMacAudioCppCaptureRequiresExactVeVo2SourceAndNoCUDA(t *testing.T) {
 	root := t.TempDir()
-	selected := &localexecution.SelectedLocalExecution{CapabilityContract: capabilitydriver.VoiceConvertCapabilityContract, DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.VeVo2ImplementationID, DriverID: capabilitydriver.VeVo2DriverID, DriverDialect: capabilitydriver.VeVo2DriverDialect}).Proto(), ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "native-engine-package.audio-cpp", DependencyID: "audio.cpp.package", ConsumerScope: "audio.cpp.vevo2.cpu", Version: "release-0.9.1@cf124a67cc55d8f65a9a15eec69edbff0fb212c8", SelectedSourceRecordID: "mac-native", CanonicalRoot: root, VerifiedArtifacts: []string{filepath.Join(root, "audiocpp_cli")}}}}
+	selected := &localexecution.SelectedLocalExecution{CapabilityContract: capabilitydriver.VoiceConvertCapabilityContract, DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.VeVo2ImplementationID, DriverID: capabilitydriver.VeVo2DriverID, DriverDialect: capabilitydriver.VeVo2DriverDialect}).Proto(), ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "native-engine-package.audio-cpp", DependencyID: "audio.cpp.package", ConsumerScope: "audio.cpp.vevo2.cpu", Version: "release-0.9.2-drama3-base-small@507495611b22dc4590e0e5609e05e8096384e33f", SelectedSourceRecordID: "mac-native", CanonicalRoot: root, VerifiedArtifacts: []string{filepath.Join(root, "audiocpp_cli")}}}}
 	pkg, err := audioCppRuntimePackageInput(selected)
 	if err != nil || pkg.AudioCppPackageID != capabilitydriver.AudioCppMacOSPackageID || pkg.CUDA13Root != "" {
 		t.Fatalf("capture=%+v err=%v", pkg, err)

@@ -1,25 +1,26 @@
 [project]
 name = "nimi-managed-python-profile"
 version = "0.0.0"
-requires-python = "==3.12.13"
+requires-python = "==3.12.15"
 dependencies = [
-  "demucs==4.0.1",
-  "fastapi==0.121.1",
+  "demucs==4.1.0",
+  "fastapi==0.161.1",
   "imageio-ffmpeg==0.6.0",
-  "numpy==2.4.2",
-  "python-multipart==0.0.26",
+  "numpy==2.5.4",
+  "python-multipart==0.0.32",
   "soundfile==0.14.0",
-  "torch==2.11.0",
+  "torch==2.14.1",
   "torchaudio==2.11.0",
-  "uvicorn[standard]==0.38.0",
+  "uvicorn[standard]==0.54.0",
 ]
 
 [tool.uv]
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
 package = false
 
 [[tool.uv.index]]
 name = "pytorch"
-url = "https://download.pytorch.org/whl/cu128"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [[tool.uv.index]]

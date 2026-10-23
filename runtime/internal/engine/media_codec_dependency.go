@@ -40,10 +40,10 @@ type MediaCodecDependencyStatus struct {
 func mediaCodecSpecFor(goos, goarch string) (mediaCodecSpec, error) {
 	switch goos + "/" + goarch {
 	case "windows/amd64":
-		return mediaCodecSpec{version: "8.1.2-gyan", directory: "ffmpeg-8.1.2-windows-amd64", suffix: ".exe", archives: []mediaCodecArchive{{
-			url: "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-essentials_build.zip", sha256: "db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec", bytes: 109728040, // pragma: allowlist secret -- public archive checksum
-			files: map[string]string{"ffmpeg-8.1.2-essentials_build/bin/ffmpeg.exe": "bin/ffmpeg.exe", "ffmpeg-8.1.2-essentials_build/bin/ffprobe.exe": "bin/ffprobe.exe", "ffmpeg-8.1.2-essentials_build/README.txt": "upstream-README.txt"},
-		}}, hashes: map[string]string{"bin/ffmpeg.exe": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e", "bin/ffprobe.exe": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07"}}, nil
+		return mediaCodecSpec{version: "9.0.2-gyan", directory: "ffmpeg-9.0.2-windows-amd64", suffix: ".exe", archives: []mediaCodecArchive{{
+			url: "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip", sha256: "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba", bytes: 114768076, // pragma: allowlist secret -- public archive checksum
+			files: map[string]string{"ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe": "bin/ffmpeg.exe", "ffmpeg-9.0.2-essentials_build/bin/ffprobe.exe": "bin/ffprobe.exe", "ffmpeg-9.0.2-essentials_build/README.txt": "upstream-README.txt"},
+		}}, hashes: map[string]string{"bin/ffmpeg.exe": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec", "bin/ffprobe.exe": "f0d36ecbbdd3bcfac3efa078c96c7271c2e68b3810595552ac3b7f17e9a65c52"}}, nil
 	case "darwin/arm64":
 		return mediaCodecSpec{version: "9.0.2-martin-riedl-1789931890", directory: "ffmpeg-9.0.2-darwin-arm64", archives: []mediaCodecArchive{
 			{url: "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip", sha256: "c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924", bytes: 28395699, files: map[string]string{"ffmpeg": "bin/ffmpeg"}},

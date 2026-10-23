@@ -12,7 +12,7 @@ type managedBinaryReleaseAsset struct {
 }
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r037
-// Official v0.6.0 binaries live under its b11429 build tag. Acquisition uses
+// Official v0.7.0 binaries live under its b11669 build tag. Acquisition uses
 // these reviewed immutable identities without a GitHub metadata API request.
 func llamaReleaseAsset(version string) (managedBinaryReleaseAsset, error) {
 	names, err := llamaAssetNameCandidates(version, currentGOOS(), currentGOARCH(), detectLocalGPUVendor())
@@ -29,10 +29,10 @@ func llamaReleaseAssetByName(version string, assetName string) (managedBinaryRel
 	name := strings.TrimSpace(assetName)
 	var digest string
 	switch name {
-	case "llama-b11429-bin-win-cuda-12.4-x64.zip":
-		digest = "dd6df685c1024e6aa55ca55ad35038692d5e284d4dc895e7a646c3245d3d14ff" // pragma: allowlist secret -- public archive checksum
-	case "llama-b11429-bin-macos-arm64.tar.gz":
-		digest = "740288ec6887be94280a5dfa25b5e23a78285cab104519e6c7e218904ee82459" // pragma: allowlist secret -- public archive checksum
+	case "llama-b11669-bin-win-cuda-12.4-x64.zip":
+		digest = "c2da1f73ed176ae093ac5aceb978a7b167a16113f6d74c6789eeaee2135cb8dc" // pragma: allowlist secret -- public archive checksum
+	case "llama-b11669-bin-macos-arm64.tar.gz":
+		digest = "dbed55493d72bc1ba2babc8770d669c2289b5bc4ee9fb2a4dfc158d45b7d13fd" // pragma: allowlist secret -- public archive checksum
 	default:
 		return managedBinaryReleaseAsset{}, fmt.Errorf("%w: unadmitted llama release asset %q", ErrEngineBinaryDownloadFailed, name)
 	}

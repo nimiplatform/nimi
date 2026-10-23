@@ -21,16 +21,16 @@ func TestResolvePythonTorchWheelManifestAdmitsExactSpeechAcceleratorPlane(t *tes
 		{
 			name:         "tts cuda",
 			consumer:     "speech.qwen3-tts.python.cuda",
-			wantPackages: []string{"torch==2.11.0", "torchaudio==2.11.0"},
+			wantPackages: []string{"torch==2.14.1", "torchaudio==2.11.0"},
 			wantProbes:   []string{"torch", "torchaudio"},
 			wantPlane:    "cuda",
-			wantABI:      "cu128",
-			wantIndex:    "https://download.pytorch.org/whl/cu128",
+			wantABI:      "cu130",
+			wantIndex:    "https://download.pytorch.org/whl/cu130",
 		},
 		{
 			name:         "tts cpu",
 			consumer:     "speech.qwen3-tts.python.cpu",
-			wantPackages: []string{"torch==2.11.0", "torchaudio==2.11.0"},
+			wantPackages: []string{"torch==2.14.1", "torchaudio==2.11.0"},
 			wantProbes:   []string{"torch", "torchaudio"},
 			wantPlane:    "cpu",
 			wantABI:      "none",
@@ -39,11 +39,11 @@ func TestResolvePythonTorchWheelManifestAdmitsExactSpeechAcceleratorPlane(t *tes
 		{
 			name:         "asr cuda",
 			consumer:     "speech.qwen3-asr.python.cuda",
-			wantPackages: []string{"torch==2.11.0"},
+			wantPackages: []string{"torch==2.14.1"},
 			wantProbes:   []string{"torch"},
 			wantPlane:    "cuda",
-			wantABI:      "cu128",
-			wantIndex:    "https://download.pytorch.org/whl/cu128",
+			wantABI:      "cu130",
+			wantIndex:    "https://download.pytorch.org/whl/cu130",
 		},
 	}
 
@@ -80,7 +80,7 @@ func TestResolvePythonTorchWheelDependencyIdentityCarriesVersionPlaneABIAndLock(
 	if err != nil {
 		t.Fatalf("ResolvePythonTorchWheelDependencyIdentity: %v", err)
 	}
-	if identity.TorchVersion != "2.11.0" || identity.AcceleratorPlane != "cuda" || identity.CUDAABI != "cu128" || identity.WheelLockHash == "" || identity.WheelIndex != defaultSpeechTorchCUDAIndexURL || identity.PackageSource != pythonTorchPackageSource {
+	if identity.TorchVersion != "2.14.1" || identity.AcceleratorPlane != "cuda" || identity.CUDAABI != "cu130" || identity.WheelLockHash == "" || identity.WheelIndex != defaultSpeechTorchCUDAIndexURL || identity.PackageSource != pythonTorchPackageSource {
 		t.Fatalf("unexpected Torch wheel identity: %+v", identity)
 	}
 	if got := strings.Join(identity.ImportProbes, ","); got != "torch,torchaudio" {
@@ -101,7 +101,7 @@ func TestPythonTorchWheelPackageSpecReflectsExactManifest(t *testing.T) {
 	if got := pythonTorchWheelPackageSpec(speech, "torchvision"); got != "" {
 		t.Fatalf("speech torchvision spec = %q, want absent", got)
 	}
-	if got := pythonTorchWheelPackageSpec(vision, "torchvision"); got != "torchvision==0.26.0" {
+	if got := pythonTorchWheelPackageSpec(vision, "torchvision"); got != "torchvision==0.29.1" {
 		t.Fatalf("vision torchvision spec = %q", got)
 	}
 }
