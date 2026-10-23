@@ -2,7 +2,7 @@ import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers
 import { IntegrationsPanel, type IntegrationsPanelIntent } from '../integrations/integrations-panel.js';
 import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, ArrowUp, ChevronRight } from 'lucide-react';
+import { ArrowUp, ChevronRight } from 'lucide-react';
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
@@ -20,6 +20,7 @@ import { isDownloadTerminal } from '../runtime-config/runtime-config-model-cente
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import { runtimeSetupFailureText } from '../runtime-config/runtime-setup-failure-message.js';
 import { HomeAgentCard } from './home-agent-card.js';
+import { HomeGettingStarted } from './home-getting-started.js';
 import { HomeIntegrationsCard } from './home-integrations-card.js';
 import { HomeMachineStatus, homeRuntimeState } from './home-machine-status.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
@@ -148,9 +149,12 @@ export function NimiOverview() {
     ? String(authUser.id)
     : null;
   const now = new Date();
-  const firstRun = !apps.isError && apps.data?.status === 'loaded'
-    && !apps.data.runtimeError && apps.data.catalogStatus !== 'unavailable'
-    && !inventory.isPending && unique.length === 0 && prepared.length === 0 && !inventory.isError;
+  const textPreparation = capabilityPreparationState({
+    capability: 'text.generate',
+    inventory: inventory.data,
+    tasks: inventory.tasks,
+    unavailable: inventory.isError,
+  });
   const openApp = (appId: string, entryKey: string) => {
     void navigation.push({ id: 'apps', appId, appEntryKey: entryKey });
   };
@@ -307,32 +311,18 @@ export function NimiOverview() {
           contentClassName="flex flex-col gap-5"
         >
         <HomeMachineStatus runtime={homeRuntimeState(health)} capabilities={status} onOpenDiagnostics={openDiagnostics} />
-        {firstRun ? (
-          <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-first-run">
-            <h2 className="text-base font-semibold">{t('runtimeConfig.overview.firstRunTitle')}</h2>
-            <ol className="grid gap-3 md:grid-cols-3">
-              {(['model', 'chat', 'apps'] as const).map((step, index) => (
-                <li key={step} className="flex flex-col gap-3 rounded-2xl bg-[var(--nimi-surface-card)] p-4">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-[var(--nimi-surface-active)] text-sm font-semibold text-[var(--nimi-action-primary-bg)]">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{t(`runtimeConfig.overview.firstRun.${step}.title`)}</h3>
-                    <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t(`runtimeConfig.overview.firstRun.${step}.body`)}</p>
-                  </div>
-                  <Button
-                    tone={index === 0 ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => (step === 'model' ? navigation.push({ id: 'runtime' }) : step === 'chat' ? openChat() : navigation.push({ id: 'apps' }))}
-                  >
-                    {t(`runtimeConfig.overview.firstRun.${step}.action`)}
-                    <ArrowRight size={14} />
-                  </Button>
-                </li>
-              ))}
-            </ol>
-          </section>
-        ) : (
+        {messagesAccountKey ? (
+          <HomeGettingStarted
+            key={messagesAccountKey}
+            accountKey={messagesAccountKey}
+            textPreparation={inventory.isPending ? 'unknown' : textPreparation.state}
+            onOpenAI={() => void navigation.push({ id: 'runtime' })}
+            onOpenCloud={() => void navigation.push({ id: 'cloud' })}
+            onOpenChat={openChat}
+            onExplore={() => void navigation.push({ id: 'explore' })}
+            onOpenApps={() => void navigation.push({ id: 'apps' })}
+          />
+        ) : null}
           <section className="flex flex-col gap-3 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-apps">
             <SectionHeader
               title={t('runtimeConfig.overview.apps')}
@@ -387,7 +377,6 @@ export function NimiOverview() {
               <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.noApps')}</p>
             ) : null}
           </section>
-        )}
         <HomeIntegrationsCard appIconUrls={iconUrls} onOpen={openIntegrations} />
         </ScrollArea>
       </div>

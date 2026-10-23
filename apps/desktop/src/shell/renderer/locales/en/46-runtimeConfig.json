@@ -716,21 +716,31 @@
     "statusDownloading": "Unfinished downloads: {{count}}",
     "setupFailed": "{{capability}} · setup needs attention",
     "updateTag": "Update",
-    "firstRunTitle": "Three steps to get going",
+    "firstRunTitle": "Start a task",
+    "firstRunCollapse": "Hide guidance",
+    "firstRunExpand": "Show guidance",
     "firstRun": {
       "model": {
-        "title": "Choose a model",
-        "body": "Pick a recommended text model that fits this device.",
-        "action": "Open AI capabilities"
+        "title": "Prepare AI",
+        "action": "View local AI",
+        "cloud": "Use cloud services",
+        "states": {
+          "unset": "Prepare a text model for this device, or use a cloud service.",
+          "preparing": "Your local text model is being prepared. When it is ready, open chat to try a task.",
+          "ready": "Local text resources are ready. Open chat next and try a task.",
+          "attention": "Local text setup needs attention. Review it, or use a cloud service.",
+          "unknown": "Local text readiness is not confirmed. Review local setup or use a cloud service."
+        }
       },
       "chat": {
-        "title": "Say hello",
-        "body": "Try a first conversation with Nimi Chat.",
-        "action": "Open Nimi Chat"
+        "title": "Try a task",
+        "body": "Ask a question or write something in Nimi Chat. To talk with a continuing character companion, visit Explore.",
+        "action": "Open Nimi Chat",
+        "partner": "Explore companions"
       },
       "apps": {
-        "title": "Add an app",
-        "body": "Install an app that uses your AI.",
+        "title": "Use a focused app",
+        "body": "Find an app for your task, install it, and try it. Continue using installed apps below.",
         "action": "Browse apps"
       }
     },

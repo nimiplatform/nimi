@@ -716,21 +716,31 @@
     "statusDownloading": "未完成的下载：{{count}}",
     "setupFailed": "{{capability}} · 设置需要处理",
     "updateTag": "有更新",
-    "firstRunTitle": "三步开始使用",
+    "firstRunTitle": "开始一个任务",
+    "firstRunCollapse": "收起指引",
+    "firstRunExpand": "展开指引",
     "firstRun": {
       "model": {
-        "title": "选一个模型",
-        "body": "采用适合这台设备的推荐文本模型。",
-        "action": "打开 AI 能力"
+        "title": "准备 AI",
+        "action": "查看本地 AI",
+        "cloud": "使用云端服务",
+        "states": {
+          "unset": "准备一个适合这台设备的文本模型，也可以使用云端服务。",
+          "preparing": "本机文本模型正在准备。完成后，继续打开聊天尝试任务。",
+          "ready": "本机文本资源已就绪。接下来打开聊天，试着完成一个任务。",
+          "attention": "本机文本配置需要处理。查看当前配置，也可以使用云端服务。",
+          "unknown": "尚未确认本机文本资源状态。可查看本地配置或使用云端服务。"
+        }
       },
       "chat": {
-        "title": "说一句话",
-        "body": "在 Nimi Chat 里试试第一段对话。",
-        "action": "打开 Nimi Chat"
+        "title": "试一个任务",
+        "body": "在 Nimi Chat 中提问或写一段内容。想与持续陪伴的角色交流，可先去探索。",
+        "action": "打开 Nimi Chat",
+        "partner": "探索角色伙伴"
       },
       "apps": {
-        "title": "装一个应用",
-        "body": "安装一款能与你的 AI 配合使用的应用。",
+        "title": "使用专门的应用",
+        "body": "找到适合任务的应用，安装后完成一次真实操作。已有应用可在下方继续使用。",
         "action": "浏览应用"
       }
     },
