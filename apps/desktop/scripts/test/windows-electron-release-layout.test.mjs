@@ -77,6 +77,10 @@ test('Windows Electron ASAR inventory carries the current shell and rejects reti
     /avatar\/dist\/index\.html/u,
   );
   assert.throws(
+    () => assertWindowsElectronAsarInventory([...entries, 'avatar/dist/assets/avatar.js.map'], mainSource),
+    /compiler source maps/u,
+  );
+  assert.throws(
     () => assertWindowsElectronAsarInventory(entries.filter((entry) => !entry.endsWith('local-development-process-guardian.js')), mainSource),
     /local-development-process-guardian\.js/u,
   );

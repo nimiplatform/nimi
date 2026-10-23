@@ -32,14 +32,14 @@ test('signed full inventory binds native dependencies, cohort and role; policy k
   } finally { await rm(root,{recursive:true,force:true}); }
 });
 test('formal generated installer secures bootstrap before extraction and never launches Home elevated', () => {
-  const script=windowsNsisScript({root:'C:\\candidate\\$source',output:'C:\\candidate\\Nimi.exe',version:'0.3.0'});
+  const script=windowsNsisScript({root:'C:\\candidate\\$source',output:'C:\\candidate\\Nimi.exe',version:'0.3.0',extraction:{logicalBytes:4096,entries:8}});
   assert.ok(script.indexOf('SetFileSecurityW(w r0')<script.indexOf('\n  File "C:'));
   assert.ok(script.includes('RequestExecutionLevel admin')); assert.ok(script.includes('RunningX64')); assert.ok(script.includes('--install 0.3.0')); assert.ok(!script.includes('ExecShell')); assert.ok(script.includes('$$source'));
   assert.throws(()=>windowsNsisScript({root:'C:\\x',output:'C:\\x',version:'../arbitrary'}));
 });
 
 test('each generated attempt has its own bootstrap and every exit reaches bounded cleanup; current owner bypasses extract', () => {
-  const script=windowsNsisScript({root:'C:\\candidate',output:'C:\\candidate\\Nimi.exe',version:'0.3.0'});
+  const script=windowsNsisScript({root:'C:\\candidate',output:'C:\\candidate\\Nimi.exe',version:'0.3.0',extraction:{logicalBytes:4096,entries:8}});
   assert.ok(!script.includes('ProductInstaller-0.3.0'));
   const create=script.indexOf('GetTempFileName $0'), owned=script.indexOf('StrCpy $7 1');
   assert.ok(create>0 && owned>create);
@@ -51,4 +51,6 @@ test('each generated attempt has its own bootstrap and every exit reaches bounde
   assert.ok(script.indexOf('IntCmp $2 10 currentowner')<script.indexOf('\n  extract:'));
   assert.ok(script.indexOf('\n  currentowner:')>script.indexOf('File /r'));
   assert.ok(script.includes('Goto end\n  installfail:') && script.includes('SetErrorLevel $2\n  end:'));
+  assert.ok(script.includes('--prepare 0.3.0 4096 8'));
+  assert.ok(script.indexOf('--prepare 0.3.0 4096 8') < script.indexOf('File /r'));
 });

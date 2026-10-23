@@ -5,6 +5,7 @@ import { CircleAlert, CircleCheck, Download, Info, LoaderCircle, type LucideIcon
 import { useTranslation } from 'react-i18next';
 import type { ProductUpdateStatus } from '../../../shared/product-update.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { ProductRetentionDialog } from './product-retention-dialog.js';
 
 const QUERY_KEY = ['nimi-product-update'];
 const BUSY_PHASES = new Set(['checking', 'downloading', 'verifying', 'quiescing', 'handoff', 'awaiting-activation']);
@@ -29,6 +30,7 @@ type ProductUpdateContextValue = {
   homeReady: () => void;
   check: () => Promise<void>;
   open: () => void;
+  openDetails: () => void;
 };
 const ProductUpdateContext = createContext<ProductUpdateContextValue | null>(null);
 
@@ -123,7 +125,7 @@ export function ProductUpdateProvider({ children }: PropsWithChildren) {
     finally { setSubmitting(false); }
   };
 
-  return <ProductUpdateContext.Provider value={{ status, busy, attention, checkAvailable, message, homeReady, check, open,
+  return <ProductUpdateContext.Provider value={{ status, busy, attention, checkAvailable, message, homeReady, check, open, openDetails: () => setFeedbackOpen(true),
     railVisible: ready && (busy || attention || status?.phase === 'prepared') }}>
     {children}
     <ConfirmDialog open={confirmedRelease !== null} title={t('ProductUpdate.confirmTitle')} message={t('ProductUpdate.confirmBody')}
@@ -133,6 +135,7 @@ export function ProductUpdateProvider({ children }: PropsWithChildren) {
       onClose={closeFeedback} title={t(completed ? 'ProductUpdate.completedTitle'
         : !busy && !attention && status?.phase === 'current' ? 'ProductUpdate.currentTitle' : 'ProductUpdate.check')}
       footer={<div className="flex justify-end gap-3">
+        {status?.maintenanceAvailable ? <ProductRetentionDialog port={port} disabled={busy} /> : null}
         {!attention && status?.phase === 'prepared' && status.installationAvailable ? <Button onClick={open}>{t('ProductUpdate.update')}</Button> : null}
         {status?.recoveryAction === 'reopen-current' ? <Button disabled={submitting} onClick={() => { void act('reopenCurrentVersion'); }}>{t('ProductUpdate.reopen')}</Button> : null}
         {CANCELABLE_PHASES.has(status?.phase ?? '') ? <Button disabled={submitting} onClick={() => { void act('cancel'); }}>{t('ProductUpdate.cancel')}</Button> : null}

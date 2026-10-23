@@ -2,17 +2,18 @@ import { closeSync, openSync, readSync, readdirSync, statSync } from 'node:fs';
 import { cp, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { stageReleaseTree } from './release-source-maps.mjs';
 
 // Called while the existing workspace build lock is held. Packaging and
 // signing subsequently read only this transaction's built inputs.
-export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, nativeRoot }) {
+export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, nativeRoot, debugRoot }) {
   const desktopSource = path.join(sourceRoot, 'desktop-app');
   const nativeSource = path.join(sourceRoot, 'native-carrier');
   await mkdir(path.join(desktopSource, 'dist-electron'), { recursive: true });
   await mkdir(nativeSource, { recursive: true });
   await Promise.all([
-    cp(path.join(desktopRoot, 'dist'), path.join(desktopSource, 'dist'), { recursive: true, force: false }),
-    cp(path.join(avatarRoot, 'dist'), path.join(desktopSource, 'avatar', 'dist'), { recursive: true, force: false }),
+    stageReleaseTree(path.join(desktopRoot, 'dist'), path.join(desktopSource, 'dist'), path.join(debugRoot, 'dist')),
+    stageReleaseTree(path.join(avatarRoot, 'dist'), path.join(desktopSource, 'avatar', 'dist'), path.join(debugRoot, 'avatar', 'dist')),
     cp(path.join(desktopRoot, 'assets'), path.join(desktopSource, 'assets'), { recursive: true, force: false }),
     ...['main.js', 'chat-ai-store-worker.js', 'preload.cjs', 'system-entry-preload.cjs'].map((name) => (
       cp(path.join(desktopRoot, 'dist-electron', name), path.join(desktopSource, 'dist-electron', name), { force: false })

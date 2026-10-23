@@ -23,6 +23,7 @@ import { packager } from '@electron/packager';
 
 import { flipElectronFuses, HOME_WINDOWS_FUSES, requireElectronFuses } from '../../../scripts/lib/electron-fuses.mjs';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
+import { assertReleaseDebugSeparation, preserveReleaseSourceMaps, stageReleaseTree } from './lib/release-source-maps.mjs';
 import {
   requireWindowsDevSignedFiles,
   requireWindowsDevSigningIdentity,
@@ -58,8 +59,9 @@ const electronPackage = JSON.parse(await readFile(path.join(desktopRoot, 'node_m
 const version = exactReleaseVersion(desktopPackage.version);
 const electronVersion = exactReleaseVersion(electronPackage.version);
 const outputRoot = resolveWindowsElectronLayoutOutput(desktopRoot);
+assertReleaseDebugSeparation(outputRoot, path.join(localRoot, 'debug-symbols'));
 const developmentIdentity = production ? null : requireWindowsDevSigningIdentity({ cwd: repoRoot });
-const sourceRevision = production ? runLayoutCommand('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim() : null;
+const sourceRevision = runLayoutCommand('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim();
 if (production && runLayoutCommand('git', ['status', '--porcelain=v1'], { cwd: repoRoot }).stdout.trim()) throw new Error('UPDATE_SOURCE_NOT_RELEASEABLE');
 
 await mkdir(localRoot, { recursive: true });
@@ -138,6 +140,8 @@ try {
   const mainSource = extractFile(asarPath, 'dist-electron/main.js').toString('utf8');
   assertWindowsElectronAsarInventory(listPackage(asarPath, { isPack: false }), mainSource);
   await requireFile(path.join(packagedRoot, 'resources', 'nimi-home-symbol.ico'));
+  const debugPath = await preserveReleaseSourceMaps({ transactionRoot, localRoot, sourceRevision, target: 'windows-amd64' });
+  process.stdout.write(`Private source maps (not release assets): ${debugPath}\n`);
   if (production) {
     await buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevision, transactionRoot, args[2]);
   } else {
@@ -193,8 +197,8 @@ function runPnpm(args) {
 async function stageApplicationSource(sourceRoot, packageVersion) {
   await mkdir(path.join(sourceRoot, 'dist-electron'), { recursive: true });
   await Promise.all([
-    cp(path.join(desktopRoot, 'dist'), path.join(sourceRoot, 'dist'), { recursive: true, force: false }),
-    cp(path.join(avatarRoot, 'dist'), path.join(sourceRoot, 'avatar', 'dist'), { recursive: true, force: false }),
+    stageReleaseTree(path.join(desktopRoot, 'dist'), path.join(sourceRoot, 'dist'), path.join(transactionRoot, 'source-maps', 'dist')),
+    stageReleaseTree(path.join(avatarRoot, 'dist'), path.join(sourceRoot, 'avatar', 'dist'), path.join(transactionRoot, 'source-maps', 'avatar', 'dist')),
     cp(path.join(desktopRoot, 'assets'), path.join(sourceRoot, 'assets'), { recursive: true, force: false }),
     cp(path.join(desktopRoot, 'dist-electron', 'main.js'), path.join(sourceRoot, 'dist-electron', 'main.js')),
     cp(
@@ -252,7 +256,7 @@ async function stageProtectedLocalCarrier(sourceRoot) {
 async function stageNodePackage(sourceRoot, packageName, packageSource) {
   const destination = path.join(sourceRoot, 'node_modules', ...packageName.split('/'));
   await mkdir(path.dirname(destination), { recursive: true });
-  await cp(packageSource, destination, { recursive: true, force: false, dereference: true });
+  await stageReleaseTree(packageSource, destination, path.join(transactionRoot, 'source-maps', 'node_modules', ...packageName.split('/')), { dereference: true });
 }
 
 async function collectNativeCode(root) {
@@ -355,7 +359,7 @@ async function buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevis
   await writeFile(path.join(packagedRoot, 'nimi-product-identity.json'), `${JSON.stringify(admission.envelope)}\n`, { flag: 'wx' });
   const name = `Nimi-${version}-windows-amd64.exe`, installer = path.join(transactionRoot, name);
   const script = path.join(transactionRoot, 'product.nsi');
-  await writeFile(script, windowsNsisScript({ root: packagedRoot, output: installer, version }));
+  await writeFile(script, windowsNsisScript({ root: packagedRoot, output: installer, version, extraction: admission.extraction }));
   runLayoutCommand('makensis', ['/NOCONFIG', '/V2', script], { cwd: repoRoot, inherit: true });
   await verifyWindowsUnsignedInstaller(installer);
   if (runLayoutCommand('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim() !== sourceRevision

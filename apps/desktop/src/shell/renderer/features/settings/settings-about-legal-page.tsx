@@ -82,6 +82,9 @@ export function AboutLegalPage() {
           <Button variant="secondary" disabled={!update.checkAvailable} onClick={() => { void update.check(); }}>
             {t('ProductUpdate.check')}
           </Button>
+          {update.status?.maintenanceAvailable ? <Button variant="secondary" disabled={update.busy} onClick={update.openDetails}>
+            {t('ProductUpdate.retention.open')}
+          </Button> : null}
         </Card>
       </Section>
       <Section title={t('Settings.sectionAboutLegal')}>

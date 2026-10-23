@@ -14,6 +14,7 @@ type Inputs = {
   policy?: typeof PRODUCT_UPDATE_POLICY;
   installation?: ProductInstallationPorts;
   prepareCache?: () => Promise<void>;
+  maintenanceAvailable?: boolean;
 };
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-009
@@ -39,7 +40,7 @@ export class DesktopProductUpdateHost {
     this.state = { phase: 'idle', currentVersion: input.currentVersion, channel: this.policy.channel,
       target: input.target, candidateVersion: null, releaseId: null, downloadedBytes: 0,
       totalBytes: 0, checkedAt: null, reason: null, installationAvailable: false,
-      checkAvailable: true, recoveryAction: 'none', recoveryError: null };
+      checkAvailable: true, recoveryAction: 'none', recoveryError: null, maintenanceAvailable: input.maintenanceAvailable === true };
   }
   status(): ProductUpdateStatus {
     if (this.state.phase === 'prepared' && this.stagedRelease && Date.parse(this.stagedRelease.expiresAt) <= Date.now()) {

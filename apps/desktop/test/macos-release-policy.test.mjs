@@ -31,7 +31,7 @@ test('packaging inputs survive a subsequent build replacing the shared outputs',
       mkdirSync(path.dirname(file), { recursive: true });
       writeFileSync(file, `first-build:${relative}`);
     }
-    await stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, nativeRoot });
+    await stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, nativeRoot, debugRoot: path.join(directory, 'debug') });
     for (const [root, relative] of files) writeFileSync(path.join(root, relative), `next-build:${relative}`);
     for (const [, relative, staged] of files) {
       assert.equal(readFileSync(path.join(sourceRoot, staged), 'utf8'), `first-build:${relative}`);

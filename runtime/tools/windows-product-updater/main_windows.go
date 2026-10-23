@@ -43,6 +43,20 @@ func main() {
 	case len(args) == 1 && args[0] == "--probe":
 		probe()
 		return
+	case len(args) == 1 && args[0] == "--retention-preview":
+		var preview productrelease.RetentionPreview
+		err = withProductInstallerMutex(func() error {
+			var previewErr error
+			preview, previewErr = previewProductRetention(nil)
+			return previewErr
+		})
+		if err == nil {
+			emit(preview)
+		}
+	case len(args) == 2 && args[0] == "--cleanup":
+		err = requestProductCleanup(args[1])
+	case len(args) == 3 && args[0] == "--cleanup-authorized":
+		err = executeProductCleanup(args[1], args[2])
 	case len(args) == 1 && args[0] == "--prepare-cache":
 		if _, _, err = currentIdentity(); err == nil {
 			err = prepareCache()
@@ -51,11 +65,11 @@ func main() {
 		err = verifyCacheFile(args[1])
 	case len(args) == 2 && args[0] == "--apply":
 		err = apply(args[1])
-	case len(args) == 2 && args[0] == "--prepare":
-		err = prepare(args[1])
 	case len(args) == 4 && args[0] == "--prepare":
-		if err = verifyAuthorizedUpdate(args[1], args[2], args[3], nil); err == nil {
-			err = prepare(args[1])
+		err = prepareWithBudget(args[1], args[2], args[3])
+	case len(args) == 6 && args[0] == "--prepare":
+		if err = verifyAuthorizedUpdate(args[1], args[4], args[5], nil); err == nil {
+			err = prepareWithBudget(args[1], args[2], args[3])
 		}
 	case len(args) == 2 && args[0] == "--install":
 		err = install(args[1], "", "")
@@ -77,6 +91,9 @@ func main() {
 		}
 		if strings.Contains(err.Error(), "UPDATE_METADATA_EXPIRED") {
 			os.Exit(32)
+		}
+		if strings.Contains(err.Error(), "UPDATE_DISK_SPACE_INSUFFICIENT") {
+			os.Exit(33)
 		}
 		os.Exit(5)
 	}
@@ -339,6 +356,10 @@ func apply(file string) error {
 				phase = "failed"
 				reason = "UPDATE_METADATA_EXPIRED"
 			}
+			if code == 33 {
+				phase = "failed"
+				reason = "UPDATE_DISK_SPACE_INSUFFICIENT"
+			}
 		}
 	}
 	// These results are diagnostics only. New Home verifies the signed installed
@@ -380,10 +401,14 @@ type shellExecuteInfo struct {
 }
 
 func runInstaller(file, jobPath, requestHash string) (uint32, error) {
+	return runElevated(file, `/S /UpdateJob="`+jobPath+`" /UpdateHash=`+requestHash, 1)
+}
+
+func runElevated(file, parameters string, show int32) (uint32, error) {
 	verb, _ := windows.UTF16PtrFromString("runas")
 	path, _ := windows.UTF16PtrFromString(file)
-	args, _ := windows.UTF16PtrFromString(`/S /UpdateJob="` + jobPath + `" /UpdateHash=` + requestHash)
-	info := shellExecuteInfo{Mask: 0x40 | 0x400, Verb: verb, File: path, Parameters: args, Show: 1}
+	args, _ := windows.UTF16PtrFromString(parameters)
+	info := shellExecuteInfo{Mask: 0x40 | 0x400, Verb: verb, File: path, Parameters: args, Show: show}
 	info.Size = uint32(unsafe.Sizeof(info))
 	result, _, err := windows.NewLazySystemDLL("shell32.dll").NewProc("ShellExecuteExW").Call(uintptr(unsafe.Pointer(&info)))
 	if result == 0 {
@@ -421,7 +446,7 @@ func elevated() error {
 	}
 	return nil
 }
-func prepare(version string) error {
+func prepare(version string, payloadBytes, payloadEntries uint64) error {
 	if err := elevated(); err != nil {
 		return err
 	}
@@ -479,6 +504,9 @@ func prepare(version string) error {
 	}
 	use, err := candidateUse(root, expected)
 	if err != nil {
+		return err
+	}
+	if err := preflightCandidateExtraction(root, expected, productrelease.PublicKey, use, payloadBytes, payloadEntries); err != nil {
 		return err
 	}
 	decision, err := productrelease.EnsurePreparedCandidate(root, raw, productrelease.PublicKey, use, sealAdministrative)
@@ -814,10 +842,18 @@ func verifyCacheFile(file string) error {
 	if err != nil {
 		return err
 	}
+	return verifyCacheFileOwner(file, user)
+}
+
+func verifyCacheFileOwner(file, user string) error {
 	cache, err := fixedCache()
 	if err != nil {
 		return err
 	}
+	return verifyCacheFileOwnerAtRoot(file, user, cache)
+}
+
+func verifyCacheFileOwnerAtRoot(file, user, cache string) error {
 	rel, err := filepath.Rel(cache, file)
 	if err != nil || filepath.IsAbs(rel) || strings.HasPrefix(rel, "..") {
 		return fmt.Errorf("UPDATE_CACHE_UNSAFE")

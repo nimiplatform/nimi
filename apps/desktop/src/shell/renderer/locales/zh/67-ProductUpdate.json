@@ -47,7 +47,7 @@
     "UPDATE_CHANNEL_MISMATCH": "此更新属于其他发布渠道，已停止更新。",
     "UPDATE_TARGET_UNSUPPORTED": "当前平台暂不支持更新。",
     "UPDATE_CACHE_UNSAFE": "无法安全使用更新缓存，已停止更新。",
-    "UPDATE_DISK_SPACE_INSUFFICIENT": "磁盘空间不足，无法下载更新。",
+    "UPDATE_DISK_SPACE_INSUFFICIENT": "磁盘可用空间不足，无法下载或解包更新。当前受保护版本会保留。",
     "UPDATE_ASSET_SIZE_MISMATCH": "下载包不完整或大小与发布信息不符。",
     "UPDATE_ASSET_DIGEST_MISMATCH": "下载包完整性验证失败，已停止更新。",
     "UPDATE_INSTALLER_TRUST_FAILED": "无法验证安装器，更新已停止。",
@@ -79,5 +79,27 @@
   "confirmTitle": "重启并更新 Nimi？",
   "confirmBody": "正在运行的 App 和任务将会停止。Nimi 退出后会在需要时请求系统授权，更新完成后自动回到 Home。你也可以稍后再更新。",
   "reopen": "安全重开 Nimi",
-  "reopenRequired": "尚未安装更新。请重开当前版本，重新建立已关闭的资源后继续使用。"
+  "reopenRequired": "尚未安装更新。请重开当前版本，重新建立已关闭的资源后继续使用。",
+  "retention": {
+    "open": "查看旧版本占用",
+    "title": "清理 Nimi 旧版本",
+    "refresh": "重新预览",
+    "confirm": "删除 {{count}} 个旧版本",
+    "policy": "保留当前版本、一个较新的完整代码版本，以及仍在使用的版本。保留代码不代表可以回滚。账号、App 资料、模型和 Runtime 数据不在本次清理范围内。",
+    "working": "正在检查或清理版本，请保持此窗口打开…",
+    "failed": "未能确认清理结果。请查看详情，重新预览后再操作。",
+    "summary": "可清理 {{count}} 个旧版本，文件逻辑大小合计 {{size}}；实际释放的磁盘空间可能不同。",
+    "empty": "目前没有符合条件的可清理旧版本。",
+    "kept": "保留",
+    "confirmation": "确认后只删除预览中标为可清理的版本，并请求 Windows 管理员授权。删除前会再次检查；已变化或正在使用的版本将保留。",
+    "removed": "已移除 {{size}} 的逻辑文件。",
+    "retainedResult": "已保留或部分清理；本次已移除 {{size}} 的逻辑文件。",
+    "reasons": {
+      "current-or-newer": "当前版本或更高版本。",
+      "current-service": "Runtime 服务仍引用此版本。",
+      "retained-code-version": "保留的较新完整代码版本。",
+      "live-code": "此版本仍有代码运行。",
+      "unknown": "暂不可清理：内容未知、已变化、无法读取或受保护。"
+    }
+  }
 }

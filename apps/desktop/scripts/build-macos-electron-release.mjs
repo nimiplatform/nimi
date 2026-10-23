@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 
 import { sign } from '@electron/osx-sign';
 import { packager } from '@electron/packager';
+import { listPackage } from '@electron/asar';
+import { assertNoCompilerSourceMaps, assertReleaseDebugSeparation, preserveReleaseSourceMaps, stageReleaseTree } from './lib/release-source-maps.mjs';
 
 import { flipElectronFuses, HOME_MACOS_FUSES, requireElectronFuses } from '../../../scripts/lib/electron-fuses.mjs';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
@@ -73,6 +75,7 @@ if (publicProductRelease && dirtyInput.length) throw new Error('UPDATE_SOURCE_NO
 if (production && release.teamId !== PRODUCT_UPDATE_POLICY.macOSTeamId) throw new Error('UPDATE_RELEASE_POLICY_MISMATCH');
 const outputName = layoutOnly ? `layout-${Date.now()}` : localDevelopment ? `local-development-${Date.now()}` : release.releaseId;
 const outputRoot = resolveOutputRoot(process.env.NIMI_MACOS_RELEASE_OUTPUT, outputName);
+assertReleaseDebugSeparation(outputRoot, path.join(localRoot, 'debug-symbols'));
 await assertAbsent(outputRoot);
 await mkdir(localRoot, { recursive: true, mode: 0o700 });
 const transactionRoot = await mkdtemp(path.join(localRoot, '.macos-electron-release-'));
@@ -103,9 +106,12 @@ try {
   }
 
   const desktopApp = await packageDesktop({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
+  assertNoCompilerSourceMaps(listPackage(path.join(desktopApp, 'Contents', 'Resources', 'app.asar'), { isPack: false }));
   const embeddedLocalHost = path.join(desktopApp, 'Contents', 'Frameworks', localDevelopment ? 'Nimi Local App Host Dev.app' : 'Nimi Local App Host.app');
   await runDittoCopy(localHostApp, embeddedLocalHost);
   await stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment);
+  const debugPath = await preserveReleaseSourceMaps({ transactionRoot, localRoot, sourceRevision, target: 'macos-arm64' });
+  process.stdout.write(`Private source maps (not release assets): ${debugPath}\n`);
 
   if (!release) {
     const applicationName = localDevelopment ? 'Nimi Dev.app' : 'Nimi.app';
@@ -235,6 +241,7 @@ async function buildReleaseInputs({
     sourceRoot,
     desktopRoot,
     avatarRoot,
+    debugRoot: path.join(transactionRoot, 'source-maps'),
     nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
   });
   const desktopSource = path.join(sourceRoot, 'desktop-app');
@@ -361,7 +368,7 @@ async function stageSharpRuntime(sourceRoot) {
   for (const [packageName, source] of packages) {
     const destination = path.join(sourceRoot, 'node_modules', ...packageName.split('/'));
     await mkdir(path.dirname(destination), { recursive: true });
-    await cp(source, destination, { recursive: true, force: false, dereference: true });
+    await stageReleaseTree(source, destination, path.join(transactionRoot, 'source-maps', 'node_modules', ...packageName.split('/')), { dereference: true });
   }
 }
 

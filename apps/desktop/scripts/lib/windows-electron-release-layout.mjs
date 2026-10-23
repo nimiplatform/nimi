@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { assertNoCompilerSourceMaps } from './release-source-maps.mjs';
 
 export const WINDOWS_ELECTRON_LAYOUT_APP_NAME = 'Nimi';
 export const WINDOWS_ELECTRON_LAYOUT_DIRECTORY = 'nimi-desktop-local-development-win32-x64';
@@ -95,6 +96,7 @@ export function windowsElectronCandidateNotice({ electronVersion, version }) {
 }
 
 export function assertWindowsElectronAsarInventory(entries, mainSource) {
+  assertNoCompilerSourceMaps(entries);
   const normalized = new Set(entries.map(normalizeAsarEntry));
   const missing = REQUIRED_WINDOWS_ELECTRON_ASAR_ENTRIES.filter((entry) => !normalized.has(entry));
   if (missing.length > 0) {

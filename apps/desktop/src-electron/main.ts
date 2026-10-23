@@ -231,6 +231,7 @@ let productUpdateHost: DesktopProductUpdateHost | undefined;
 let productUpdateAdapter: MacOSProductUpdateAdapter | WindowsProductUpdateAdapter | undefined;
 let reconcileProductActivation: (() => Promise<void>) | undefined;
 let productUpdateHomeReady = false;
+let productRetentionBusy = false;
 const DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS = 5_000;
 // Home's own Host technical profile (P-MIG-006d / P-COLD-017a).
 const HOME_PROFILE_RELAUNCH_ARGUMENT = '--nimi-home-profile-relaunch';
@@ -459,6 +460,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     const productVersion = ELECTRON_DEVELOPMENT_BUILD ? desktopPackage.version : app.getVersion();
     productUpdateHost = new DesktopProductUpdateHost({
       currentVersion: productVersion,
+      maintenanceAvailable: Boolean(windowsUpdate && productionUpdate),
       target: process.platform === 'darwin' && process.arch === 'arm64' ? 'macos-arm64'
         : process.platform === 'win32' && process.arch === 'x64' ? 'windows-amd64' : 'unsupported',
       osVersion: process.getSystemVersion(),
@@ -579,9 +581,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
     const updateHealthControl = createNimiElectronDesktopControlHost();
     let activationInFlight: Promise<void> | undefined;
-    reconcileProductActivation = () => {
-      activationInFlight ??= (async () => {
-        const result = await productUpdateAdapter?.reconcile(async () => {
+    const readProductRuntimeHealth = async () => {
           const lifecycle = await runtimeLifecycleHost.invoke(runtimeCommandNames.status, runtimeCommandNames) as { running: boolean; managed?: boolean; launchMode?: string; version?: string; lastError?: string };
           if (!lifecycle.running) return { ...lifecycle, healthy: false, homeReady: false, approvalPending: lifecycle.lastError === 'runtime-service-approval-required' };
           if (runtimeStartupFailure === 'runtime-service-approval-required') {
@@ -593,7 +593,21 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           const bytes = await updateHealthControl.machineProductUnary({ methodId: method, requestBytes: codec.encodeRequest({}), timeoutMs: 2_000 });
           const health = codec.decodeResponse(bytes) as { status?: number };
           return { ...lifecycle, healthy: lifecycle.managed === true && lifecycle.launchMode === 'RELEASE' && health.status === RuntimeHealthStatus.READY, homeReady: productUpdateHomeReady && normalHomeWorkAllowed() };
-        });
+    };
+    const assertProductRetentionReady = async (expected?: { currentVersion: string; runtimeVersion: string }) => {
+      if (!productUpdateHomeReady || !normalHomeWorkAllowed() || !(productUpdateAdapter instanceof WindowsProductUpdateAdapter)
+        || await productUpdateAdapter.hasPending()
+        || ['quiescing', 'handoff', 'awaiting-activation', 'recovery-required'].includes(productUpdateHost?.status().phase ?? '')) {
+        throw new ProductUpdateError('UPDATE_RETENTION_UNAVAILABLE');
+      }
+      const facts = await readProductRuntimeHealth();
+      if (!facts.healthy || !facts.homeReady || (expected && (expected.currentVersion !== app.getVersion() || expected.runtimeVersion !== facts.version))) {
+        throw new ProductUpdateError('UPDATE_RETENTION_UNAVAILABLE');
+      }
+    };
+    reconcileProductActivation = () => {
+      activationInFlight ??= (async () => {
+        const result = await productUpdateAdapter?.reconcile(readProductRuntimeHealth);
         if (result) productUpdateHost?.projectActivation(result.phase, result.release, result.reason);
         if (result?.phase === 'completed') productUpdateHost?.start(false);
       })().catch((error: unknown) => {
@@ -926,7 +940,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
         nimi_product_update_install: ({ payload, event }) => {
           if (!authorizeDesktopRendererSender(event) || Object.keys(payload).sort().join(',') !== 'consentApproved,releaseId'
-            || payload.consentApproved !== true || typeof payload.releaseId !== 'string' || !productUpdateHost) throw new Error('desktop-product-update-request-rejected');
+            || payload.consentApproved !== true || typeof payload.releaseId !== 'string' || !productUpdateHost || productRetentionBusy) throw new Error('desktop-product-update-request-rejected');
           void productUpdateHost.install(payload.releaseId, true);
           return productUpdateHost.status();
         },
@@ -955,6 +969,30 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           assertProductUpdateRequest(payload, event);
           await productUpdateHost?.reopenCurrentVersion();
           return productUpdateHost?.status();
+        },
+        // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-013
+        nimi_product_retention_preview: async ({ payload, event }) => {
+          assertProductUpdateRequest(payload, event);
+          if (productRetentionBusy) throw new ProductUpdateError('UPDATE_HANDOFF_IN_PROGRESS');
+          productRetentionBusy = true;
+          try {
+            await assertProductRetentionReady();
+            const adapter = productUpdateAdapter as WindowsProductUpdateAdapter;
+            const preview = await adapter.previewRetention();
+            await assertProductRetentionReady(preview);
+            return preview;
+          } finally { productRetentionBusy = false; }
+        },
+        nimi_product_retention_cleanup: async ({ payload, event }) => {
+          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).sort().join(',') !== 'consentApproved,versions'
+            || payload.consentApproved !== true || !Array.isArray(payload.versions) || payload.versions.length > 256
+            || payload.versions.some((value: unknown) => typeof value !== 'string') || productRetentionBusy
+            || !(productUpdateAdapter instanceof WindowsProductUpdateAdapter)) throw new ProductUpdateError('UPDATE_RETENTION_SELECTION_INVALID');
+          productRetentionBusy = true;
+          try {
+            await assertProductRetentionReady(productUpdateAdapter.retentionIdentity());
+            return await productUpdateAdapter.cleanupRetention(payload.versions as string[]);
+          } finally { productRetentionBusy = false; }
         },
         // @nimi-authority: rule.nimi.runtime.agent-participation.r197
         desktop_agent_reference_resolve: async ({ payload, event }) => {

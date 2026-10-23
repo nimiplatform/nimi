@@ -47,7 +47,7 @@
     "UPDATE_CHANNEL_MISMATCH": "This update is for another release channel. Update stopped.",
     "UPDATE_TARGET_UNSUPPORTED": "Updates are unavailable on this platform.",
     "UPDATE_CACHE_UNSAFE": "The update cache cannot be used safely. Update stopped.",
-    "UPDATE_DISK_SPACE_INSUFFICIENT": "There is not enough disk space to download the update.",
+    "UPDATE_DISK_SPACE_INSUFFICIENT": "There is not enough free space to download or extract this update. Protected versions remain in place.",
     "UPDATE_ASSET_SIZE_MISMATCH": "The downloaded package is incomplete or has an unexpected size.",
     "UPDATE_ASSET_DIGEST_MISMATCH": "The downloaded package failed integrity verification. Update stopped.",
     "UPDATE_INSTALLER_TRUST_FAILED": "The installer could not be verified. Update stopped.",
@@ -79,5 +79,27 @@
   "confirmTitle": "Restart and update Nimi?",
   "confirmBody": "Running apps and tasks will stop. Nimi will close, request system permission if needed, and return to Home. You can update later.",
   "reopen": "Safely restart Nimi",
-  "reopenRequired": "Nothing was installed. Restart the current version to recreate closed resources and resume work."
+  "reopenRequired": "Nothing was installed. Restart the current version to recreate closed resources and resume work.",
+  "retention": {
+    "open": "Review old versions",
+    "title": "Clean up old Nimi versions",
+    "refresh": "Refresh preview",
+    "confirm": "Delete {{count}} old versions",
+    "policy": "Keep the current version, one recent complete code version, and versions still in use. This does not enable rollback. Your account, app data, models and Runtime data are outside this cleanup.",
+    "working": "Checking or cleaning up versions. Keep this window open…",
+    "failed": "Cleanup could not be confirmed. Review the details and refresh the preview before trying again.",
+    "summary": "{{count}} older versions can be removed ({{size}} of logical files). Actual disk space released may differ.",
+    "empty": "No old versions are currently eligible for cleanup.",
+    "kept": "Keep",
+    "confirmation": "Confirming deletes only the versions shown as removable. Windows will ask for administrator permission. Each version is checked again; changed or busy versions stay in place.",
+    "removed": "Removed {{size}} of logical files.",
+    "retainedResult": "Retained or partially removed; {{size}} of logical files removed.",
+    "reasons": {
+      "current-or-newer": "Current or newer version.",
+      "current-service": "Referenced by the Runtime service.",
+      "retained-code-version": "Recent complete code version retained.",
+      "live-code": "Code from this version is still running.",
+      "unknown": "Not eligible: unknown, changed, unavailable or protected content."
+    }
+  }
 }

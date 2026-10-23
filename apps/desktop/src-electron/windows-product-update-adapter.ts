@@ -2,7 +2,7 @@ import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { lstat, readFile, readdir, rm } from 'node:fs/promises';
+import { lstat, readFile, readdir, rm, mkdtemp, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { ProductUpdateError, authenticateProductEnvelope, validateProductRelease, type ProductRelease } from '../../../config/product-update-contract.mjs';
 import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
@@ -11,6 +11,7 @@ import { writeOwnerPrivateAtomicJson } from './owner-private-atomic-json.js';
 import type { PreparedProductCandidate } from './product-update-installation.js';
 import type { DesktopShutdownReport } from './product-update-shutdown.js';
 import { projectProductActivation, type ProductActivationFacts } from './product-update-activation.js';
+import type { ProductRetentionPreview, ProductRetentionResult } from '../src/shell/shared/product-update.js';
 
 const execute = promisify(execFile);
 type Handoff = { envelope: unknown; packagePath: string; resultPath: string; helperPid: number; releaseId: string };
@@ -19,6 +20,8 @@ export class WindowsProductUpdateAdapter {
   private readonly pointer: string;
   private failedChild: ChildProcess | undefined;
   private abortedDirectory: string | undefined;
+  private retentionPreview: ProductRetentionPreview | undefined;
+  private cleaning = false;
   constructor(private readonly cacheRoot: string, private readonly production: boolean) { this.pointer = path.join(cacheRoot, 'handoff.json'); }
   private admittedHelper(): string {
     if (!this.production || process.platform !== 'win32' || process.arch !== 'x64' || !PRODUCT_UPDATE_POLICY.publicKey) throw new ProductUpdateError('UPDATE_INSTALL_NOT_READY');
@@ -28,12 +31,60 @@ export class WindowsProductUpdateAdapter {
     return result.value.helperPath;
   }
   async ready(): Promise<boolean> {
+    if (this.cleaning) return false;
     try {
       const output = await execute(this.admittedHelper(), ['--probe'], { timeout: 30_000, maxBuffer: 16 * 1024, windowsHide: true });
       const value = JSON.parse(output.stdout);
       return value.protocolVersion === 1 && value.productionTrusted === true && value.publicKeyConfigured === true && value.authorization === 'uac' && value.installer === 'nsis'
         && value.publicKeyFingerprint === createHash('sha256').update(PRODUCT_UPDATE_POLICY.publicKey!).digest('hex');
     } catch { return false; }
+  }
+  // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-013
+  async previewRetention(): Promise<ProductRetentionPreview> {
+    this.retentionPreview = undefined;
+    if (this.cleaning || await this.hasPending() || !await this.ready()) throw new ProductUpdateError('UPDATE_RETENTION_UNAVAILABLE');
+    const output = await execute(this.admittedHelper(), ['--retention-preview'], { timeout: 120_000, maxBuffer: 1024 * 1024, windowsHide: true });
+    const value = JSON.parse(output.stdout) as ProductRetentionPreview;
+    if (!value || typeof value.currentVersion !== 'string' || typeof value.runtimeVersion !== 'string'
+      || !Array.isArray(value.entries) || value.entries.length > 256
+      || value.entries.some(item => !item || typeof item.version !== 'string' || typeof item.path !== 'string'
+        || typeof item.identitySha256 !== 'string' || typeof item.directoryId !== 'string'
+        || !Number.isSafeInteger(item.logicalBytes) || item.logicalBytes < 0 || typeof item.eligible !== 'boolean'
+        || typeof item.complete !== 'boolean' || typeof item.reason !== 'string')) throw new ProductUpdateError('UPDATE_RETENTION_PREVIEW_INVALID');
+    this.retentionPreview = value;
+    return structuredClone(value);
+  }
+  retentionIdentity(): Pick<ProductRetentionPreview, 'currentVersion' | 'runtimeVersion'> {
+    if (!this.retentionPreview) throw new ProductUpdateError('UPDATE_RETENTION_PREVIEW_REQUIRED');
+    return { currentVersion: this.retentionPreview.currentVersion, runtimeVersion: this.retentionPreview.runtimeVersion };
+  }
+  async cleanupRetention(versions: string[]): Promise<ProductRetentionResult> {
+    const preview = this.retentionPreview;
+    if (!preview || this.cleaning || await this.hasPending() || !await this.ready()
+      || !versions.length || new Set(versions).size !== versions.length) throw new ProductUpdateError('UPDATE_RETENTION_PREVIEW_REQUIRED');
+    const targets = versions.map(version => preview.entries.find(entry => entry.version === version && entry.eligible));
+    if (targets.some(target => !target)) throw new ProductUpdateError('UPDATE_RETENTION_SELECTION_INVALID');
+    this.retentionPreview = undefined;
+    this.cleaning = true;
+    try {
+      await this.prepareCache();
+      const directory = await mkdtemp(path.join(this.cacheRoot, 'cleanup-'));
+      const jobPath = path.join(directory, 'job.json');
+      await writeOwnerPrivateAtomicJson(jobPath, { schema: 'nimi-product-cleanup/v1', parentPid: process.pid,
+        consentApproved: true, currentVersion: preview.currentVersion, targets }, 'product-retention');
+      // Do not time out and kill a helper after destructive work may have begun.
+      // Native authorization and the installer mutex own the operation lifetime.
+      const output = await execute(this.admittedHelper(), ['--cleanup', jobPath], { maxBuffer: 1024 * 1024, windowsHide: true });
+      const result = JSON.parse(output.stdout) as ProductRetentionResult;
+      if (!result || !Array.isArray(result.results) || result.results.length !== targets.length
+        || result.results.some(item => !versions.includes(item.version) || typeof item.removed !== 'boolean'
+          || !Number.isSafeInteger(item.deletedBytes) || item.deletedBytes < 0 || typeof item.reason !== 'string')) throw new ProductUpdateError('UPDATE_RETENTION_RESULT_UNAVAILABLE');
+      // Exact request/result files only. Failed/ambiguous handoffs retain their
+      // diagnostics; unknown directory members are never removed recursively.
+      await rm(jobPath).catch(() => undefined);
+      await rmdir(directory).catch(() => undefined);
+      return result;
+    } finally { this.cleaning = false; }
   }
   async prepareCache(): Promise<void> { await execute(this.admittedHelper(), ['--prepare-cache'], { timeout: 30_000, maxBuffer: 16 * 1024, windowsHide: true }); }
   async validatePrivateFile(file: string): Promise<void> { await execute(this.admittedHelper(), ['--verify-cache-file', file], { timeout: 30_000, maxBuffer: 16 * 1024, windowsHide: true }); }

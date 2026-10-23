@@ -11,13 +11,16 @@ export { verifyWindowsUnsignedInstaller } from '../../config/windows-product-ins
 export async function createWindowsProductIdentity({ root, version, sourceRevision, components, privateKey, publicKey = PRODUCT_UPDATE_POLICY.publicKey }) {
   if (!publicKey) throw new ProductUpdateError('UPDATE_TRUST_NOT_CONFIGURED');
   const files = {};
+  let logicalBytes = 0, entries = 1;
   async function visit(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const file = path.join(directory, entry.name), info = await lstat(file);
+      entries++;
       if (info.isSymbolicLink()) throw new ProductUpdateError('UPDATE_COHORT_INVALID');
       if (info.isDirectory()) { await visit(file); continue; }
       if (!info.isFile()) throw new ProductUpdateError('UPDATE_COHORT_INVALID');
       files[path.relative(root, file).split(path.sep).join('/')] = await hashProductFile(file);
+      logicalBytes += info.size;
     }
   }
   await visit(root);
@@ -26,13 +29,18 @@ export async function createWindowsProductIdentity({ root, version, sourceRevisi
   if (payload.length > PRODUCT_UPDATE_POLICY.maximumMetadataBytes) throw new ProductUpdateError('UPDATE_COHORT_INVALID');
   const key = createPrivateKey(privateKey);
   if (key.asymmetricKeyType !== 'ed25519' || createPublicKey(key).export({ type: 'spki', format: 'der' }).subarray(-32).toString('base64') !== publicKey) throw new ProductUpdateError('UPDATE_SIGNATURE_INVALID');
-  return { identity, envelope: { payload: payload.toString('base64'), signature: sign(null, payload, key).toString('base64') } };
+  const envelope = { payload: payload.toString('base64'), signature: sign(null, payload, key).toString('base64') };
+  // Build input embedded in the admitted NSIS bytes; no new installed identity
+  // field or persistent size ledger is needed for the extraction preflight.
+  return { identity, envelope, extraction: { logicalBytes: logicalBytes + Buffer.byteLength(JSON.stringify(envelope)) + 1, entries: entries + 1 } };
 }
 
-export function windowsNsisScript({ root, output, version }) {
+export function windowsNsisScript({ root, output, version, extraction }) {
   // NSIS is code, not a shell. All interpolation is constrained and dollars
   // and quotes are escaped as NSIS literals. The installer has no URL entry.
   if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:beta|rc)\.[1-9]\d*)?$/u.test(version)) throw new Error('Invalid version');
+  if (!Number.isSafeInteger(extraction?.logicalBytes) || extraction.logicalBytes <= 0
+    || !Number.isSafeInteger(extraction?.entries) || extraction.entries <= 0) throw new Error('Invalid extraction budget');
   const literal = (v) => {
     if (/[\r\n\0]/u.test(String(v))) throw new Error('Invalid installer path');
     return String(v).replaceAll('$', () => '$$').replaceAll('"', () => '$\\"');
@@ -92,10 +100,10 @@ Section
   File "${literal(path.join(root, 'NimiProductUpdater.exe'))}"
   File "${literal(path.join(root, 'nimi-product-identity.json'))}"
   StrCmp $5 "" standaloneprepare
-  ExecWait '"$0\\NimiProductUpdater.exe" --prepare ${version} "$5" $6' $2
+  ExecWait '"$0\\NimiProductUpdater.exe" --prepare ${version} ${extraction.logicalBytes} ${extraction.entries} "$5" $6' $2
   Goto prepared
   standaloneprepare:
-  ExecWait '"$0\\NimiProductUpdater.exe" --prepare ${version}' $2
+  ExecWait '"$0\\NimiProductUpdater.exe" --prepare ${version} ${extraction.logicalBytes} ${extraction.entries}' $2
   prepared:
   IntCmp $2 10 currentowner
   IntCmp $2 0 extract installfail installfail

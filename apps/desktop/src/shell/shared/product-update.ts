@@ -10,4 +10,16 @@ export type ProductUpdateStatus = Readonly<{
   checkAvailable: boolean;
   recoveryAction: 'none' | 'reopen-current';
   recoveryError: string | null;
+  maintenanceAvailable?: boolean;
+}>;
+
+export type ProductRetentionEntry = Readonly<{
+  version: string; path: string; identitySha256: string; directoryId: string;
+  logicalBytes: number; complete: boolean; eligible: boolean; reason: string;
+}>;
+export type ProductRetentionPreview = Readonly<{
+  currentVersion: string; runtimeVersion: string; entries: ProductRetentionEntry[];
+}>;
+export type ProductRetentionResult = Readonly<{
+  results: Array<{ version: string; deletedBytes: number; removed: boolean; reason: string }>;
 }>;

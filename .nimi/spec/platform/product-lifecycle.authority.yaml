@@ -1613,3 +1613,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
+  - id: rule.nimi.platform.product-lifecycle.p-supd-013
+    kind: rule
+    title: Windows product code retention and explicit cleanup
+    modality: must
+    statement: Platform-owned Windows product maintenance keeps the verified current cohort, the newest complete signed code version older than it, and every version referenced by the fixed SCM definition, live code, an unfinished installation or recovery; a retained code version is not rollback authorization or proof of past activation. Only an explicit Home maintenance action after current cohort, protected Runtime READY and Home readiness may preview older signed version directories under the fixed administrative Product root and request cleanup of the exact displayed versions, identities, directory identities and logical byte counts. Explicit confirmation and UAC precede deletion; the fixed updater takes the installer mutex, rechecks current ownership and references and the approved objects, and may only shrink the approved set. Unknown names, contents, reparse paths, changed objects, in-use files and unresolved references remain protected. Deletion uses held actual file objects and empty owned directories, never recursive deletion of an unvalidated tree; interrupted cleanup retains the signed identity and validates all remaining known bytes before a new preview and confirmation. Maintenance neither traverses nimi_data or service custody nor mutates service configuration, starts code, creates a recovery ledger or runs during ordinary startup or update checks. A cleanup failure or retained target reports its actual partial result independently of product activation and never triggers rollback. Before extracting a candidate the formal installer checks actual available space against its build-derived additional payload and allocation budget without counting prospective cleanup or existing files as free space.
+    condition: Whenever Windows product versions are retained, previewed, deleted or extracted.
+    failure: Refuse affected deletion or extraction, preserve protected and unknown objects, and report retained targets, completed deletions and the precise failure without claiming whole-product completion from maintenance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.home-surface
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.release-bundle

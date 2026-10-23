@@ -24,10 +24,17 @@ test('Home update UI preserves consent and recovery, and acknowledges current an
     releaseId: 'nimi/v0.3.0', downloadedBytes: 1, totalBytes: 1, checkedAt: null, reason: null, installationAvailable: false,
     checkAvailable: true, recoveryAction: 'none', recoveryError: null };
   const installs: string[] = [];
+  const cleanups: string[][] = [];
   let reopens = 0;
   const port = { status: async () => status, check: async () => status, cancel: async () => status, homeReady: async () => status,
     reopenCurrentVersion: async () => { reopens++; status = { ...status, recoveryError: 'UPDATE_REOPEN_BLOCKED' }; return status; },
-    install: async (id: string) => { installs.push(id); return status; } };
+    install: async (id: string) => { installs.push(id); return status; },
+    previewRetention: async () => ({ currentVersion: '0.4.0', runtimeVersion: '0.4.0', entries: [
+      { version: '0.1.0', path: 'C:/Program Files/Nimi/Product/0.1.0', identitySha256: 'a'.repeat(64), directoryId: 'volume:file', logicalBytes: 1024, eligible: true, complete: true, reason: 'obsolete' },
+      { version: '0.3.0', path: 'C:/Program Files/Nimi/Product/0.3.0', identitySha256: 'b'.repeat(64), directoryId: 'volume:other', logicalBytes: 2048, eligible: false, complete: true, reason: 'retained-code-version' },
+    ] }),
+    cleanupRetention: async (versions: string[]) => { cleanups.push(versions); return { results: [{ version: '0.1.0', removed: false, deletedBytes: 0, reason: 'UPDATE_RETENTION_IN_USE_OR_LOCKED' }] }; },
+  };
   const bindings = { app: { commands: { productUpdate: port } } } as DesktopCanonicalRendererBindings;
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['nimi-product-update'], status);
@@ -93,6 +100,21 @@ test('Home update UI preserves consent and recovery, and acknowledges current an
     await act(async () => button('OK', true).click());
     await act(async () => { client.setQueryData(['nimi-product-update'], { ...status }); await new Promise((resolve) => setTimeout(resolve, 1_000)); });
     assert.equal(dom.window.document.querySelector('[data-testid="product-update-dialog"]'), null);
+    status = { ...status, phase: 'current', target: 'windows-amd64', maintenanceAvailable: true };
+    await act(async () => { client.setQueryData(['nimi-product-update'], status); await new Promise((resolve) => setTimeout(resolve, 10)); });
+    await act(async () => button('Check from Help').click());
+    await act(async () => button(messages.retention.open).click());
+    assert.match(dom.window.document.body.textContent ?? '', /C:\/Program Files\/Nimi\/Product\/0.1.0/);
+    assert.deepEqual(cleanups, []);
+    const childDialog = [...dom.window.document.querySelectorAll('[role="dialog"]')].at(-1)!;
+    const dismiss = [...childDialog.querySelectorAll<HTMLButtonElement>('button')].find(item => item.textContent === messages.dismiss)!;
+    await act(async () => dismiss.click());
+    assert.deepEqual(cleanups, []);
+    await act(async () => button(messages.retention.open).click());
+    await act(async () => button('Delete 1 old versions').click());
+    assert.deepEqual(cleanups, [['0.1.0']]);
+    assert.match(dom.window.document.body.textContent ?? '', /Retained or partially removed/);
+    assert.match(dom.window.document.body.textContent ?? '', /UPDATE_RETENTION_IN_USE_OR_LOCKED/);
   } finally {
     await act(async () => root.unmount()); client.clear(); await new Promise((resolve) => setTimeout(resolve, 0)); dom.window.close();
     for (const [key, descriptor] of original) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
