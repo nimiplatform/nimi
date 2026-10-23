@@ -66,7 +66,9 @@ func TestProtectedLocalAppRPCServerSharesRootHandoffAdmission(t *testing.T) {
 	t.Cleanup(func() {
 		server.Stop()
 		_ = baseListener.Close()
-		<-serveDone
+		if err := <-serveDone; err != nil {
+			t.Errorf("server shutdown: %v", err)
+		}
 	})
 
 	clientConn, err := grpc.DialContext(

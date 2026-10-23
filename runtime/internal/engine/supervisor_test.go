@@ -451,7 +451,7 @@ func TestSupervisorStartAlreadyRunning(t *testing.T) {
 		t.Errorf("expected 'already running' error, got: %v", err)
 	}
 
-	<-errCh
+	_ = <-errCh // Join cleanup; this test asserts the operation state separately.
 }
 
 func TestSupervisorCrashRestart(t *testing.T) {

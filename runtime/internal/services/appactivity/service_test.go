@@ -315,7 +315,7 @@ func TestListingAcrossPagesKeepsBaselineAndSubscriptionClosesTheGap(t *testing.T
 	stream, cancel, done := harness.subscribe("acct-1", first.GetBaselineChangeSeq())
 	events := stream.waitFor(t, 2)
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 	if events[0].GetChangeSeq() != 102 || events[0].GetRecord().GetKey() != completedKey ||
 		events[0].GetRecord().GetTodoState() != runtimev1.AppActivityTodoState_APP_ACTIVITY_TODO_STATE_COMPLETED {
 		t.Fatalf("subscription must deliver the post-baseline completion first: %+v", events[0])
@@ -365,7 +365,7 @@ func TestSubscriptionReplaysInOrderAndExpiresPurgedCursors(t *testing.T) {
 	stream, cancel, done := harness.subscribe("acct-1", 0)
 	events := stream.waitFor(t, 3)
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 	// Replay never collapses A's first change into its later snapshot.
 	if events[0].GetChangeSeq() != 1 || events[0].GetRecord().GetRevision() != 1 || events[1].GetChangeSeq() != 2 || events[2].GetRecord().GetRevision() != 2 {
 		t.Fatalf("replay must deliver each committed image in order: %+v", events)
@@ -394,7 +394,7 @@ func TestSubscriptionReplaysInOrderAndExpiresPurgedCursors(t *testing.T) {
 	harness.put("acct-1", "subject-b", todo("b", 2, runtimev1.AppActivityTodoState_APP_ACTIVITY_TODO_STATE_OPEN))
 	fresh.waitFor(t, 1)
 	cancelFresh()
-	<-freshDone
+	_ = <-freshDone // Join cleanup; this test asserts the operation state separately.
 }
 
 // An idle subscription must be established before its first event, or the
@@ -475,7 +475,7 @@ func TestAgentAndAccountCleanupRemoveRuntimeOriginActivity(t *testing.T) {
 	stream, cancel, done := harness.subscribe("acct-1", runtimeRecord.GetChangeSeq())
 	events := stream.waitFor(t, 2)
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 	var sawRemove, sawCleared bool
 	for _, event := range events {
 		switch {
@@ -555,7 +555,7 @@ func TestAgentCleanupPurgesPayloadsOfRetentionRemovedRecords(t *testing.T) {
 	stream, cancel, done := harness.subscribe("acct-1", 2)
 	events := stream.waitFor(t, 1)
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 	if len(events) != 1 || events[0].GetKind() != runtimev1.AppActivityChangeKind_APP_ACTIVITY_CHANGE_KIND_REMOVE || events[0].GetRecord() != nil {
 		t.Fatalf("only the content-free remove stays replayable: %+v", events)
 	}

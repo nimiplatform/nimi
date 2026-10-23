@@ -47,7 +47,11 @@ fn package_root(fixture_root: &Path, kind: &str, asset_ref: &str) -> PathBuf {
 fn sha256_hex(content: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
 }
 
 fn resolve_payload(kind: &str, avatar_asset_ref: &str) -> AgentCenterAvatarAssetResolvePayload {
@@ -73,7 +77,11 @@ fn write_package(
     let digest = {
         let mut hasher = Sha256::new();
         hasher.update(entry_bytes);
-        format!("{:x}", hasher.finalize())
+        hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
     };
     let manifest = json!({
         "manifest_version": 1,

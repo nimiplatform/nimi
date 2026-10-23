@@ -661,6 +661,48 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unbound_carrier_refusals_remain_unavailable_in_the_bridge() {
+        // This carrier is explicitly unbound on every host. Do not ask the
+        // developer's actual SCM/launchd service to start during a unit test.
+        let carrier = nimi_shell_protected_local::LinuxUnixSocketCarrier::default();
+        for result in [
+            carrier.request_runtime_service_start(),
+            tauri::async_runtime::block_on(carrier.request_runtime_service_restart()),
+        ] {
+            let error = result.expect_err("unbound carrier must refuse lifecycle control");
+            assert_eq!(
+                error.reason_code(),
+                ProtectedCarrierReasonCode::ProtectedCarrierRequired,
+            );
+            let mapped = carrier_error(error);
+            assert!(mapped.contains("RUNTIME_BRIDGE_DAEMON_UNAVAILABLE"));
+            assert!(mapped.contains("protected-carrier-required"));
+        }
+        let status = carrier
+            .runtime_service_status()
+            .map(status_projection)
+            .unwrap_or_else(unavailable_status);
+        assert!(!status.running);
+        assert!(!status.managed);
+        assert_eq!(status.launch_mode, "INVALID");
+        assert!(status.last_error.unwrap().contains("protected-carrier-required"));
+    }
+
+    #[test]
+    fn admitted_start_pending_does_not_claim_a_running_runtime() {
+        let status = action_projection(RuntimeServiceActionOutcome {
+            state: RuntimeServiceState::StartPending,
+            release_id: None,
+            reason_code: None,
+            retryable: false,
+        });
+        assert!(!status.running);
+        assert!(status.managed);
+        assert_eq!(status.launch_mode, "PROTECTED_LOCAL");
+        assert!(status.version.is_none());
+    }
+
+    #[test]
     fn initial_control_open_retries_only_retryable_service_unavailable() {
         assert!(should_retry_initial_control_open(&NimiHostError::new(
             NimiHostErrorReasonCode::RuntimeServiceUnavailable,

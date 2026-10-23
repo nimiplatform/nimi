@@ -334,8 +334,8 @@ func TestTranscribeAgentVoiceInputCancelsPublishedJobAndObservesTerminalState(t 
 		}
 	case <-time.After(200 * time.Millisecond):
 		executor.releaseTerminal()
-		<-result
-		t.Fatal("TranscribeAgentVoiceInput synchronously waited for terminal cleanup")
+		err := <-result
+		t.Fatalf("TranscribeAgentVoiceInput synchronously waited for terminal cleanup: %v", err)
 	}
 	select {
 	case <-executor.terminalObserved:

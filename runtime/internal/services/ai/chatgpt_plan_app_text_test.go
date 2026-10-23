@@ -781,7 +781,7 @@ func TestChatGPTPlanMissingTerminalAndCancelNeverComplete(t *testing.T) {
 				}
 			}
 			select {
-			case <-done:
+			case _ = <-done: // Join cancellation; subsequent assertions inspect transport and state.
 			case <-time.After(5 * time.Second):
 				t.Fatal("request did not settle")
 			}

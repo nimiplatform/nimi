@@ -1,10 +1,10 @@
 {
   "name": "@nimiplatform/nimi",
   "private": true,
-  "packageManager": "pnpm@10.34.5",
+  "packageManager": "pnpm@10.34.7",
   "engines": {
-    "node": ">=24.0.0",
-    "pnpm": ">=10.0.0"
+    "node": ">=24.22.1 <25.0.0",
+    "pnpm": ">=10.34.7"
   },
   "scripts": {
     "build": "node scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",

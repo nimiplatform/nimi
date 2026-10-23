@@ -64,18 +64,15 @@ function runCommand(command, args, label) {
 }
 
 function signAndVerifyBlob(filePath) {
-  const signaturePath = `${filePath}.sig`;
-  const certificatePath = `${filePath}.pem`;
+  const bundlePath = `${filePath}.sigstore.json`;
 
   runCommand(
     cosignCommand,
     [
       'sign-blob',
       '--yes',
-      '--output-signature',
-      signaturePath,
-      '--output-certificate',
-      certificatePath,
+      '--bundle',
+      bundlePath,
       filePath,
     ],
     `cosign sign-blob ${path.basename(filePath)}`,
@@ -85,10 +82,8 @@ function signAndVerifyBlob(filePath) {
     cosignCommand,
     [
       'verify-blob',
-      '--certificate',
-      certificatePath,
-      '--signature',
-      signaturePath,
+      '--bundle',
+      bundlePath,
       '--certificate-identity-regexp',
       identityRegex,
       '--certificate-oidc-issuer',
@@ -98,7 +93,7 @@ function signAndVerifyBlob(filePath) {
     `cosign verify-blob ${path.basename(filePath)}`,
   );
 
-  return [signaturePath, certificatePath];
+  return [bundlePath];
 }
 
 function generateSbom(artifactPath) {
@@ -106,19 +101,11 @@ function generateSbom(artifactPath) {
   const outputDir = path.dirname(sbomPath);
   mkdirSync(outputDir, { recursive: true });
 
-  const scanArgs = ['scan', artifactPath, '-o', `spdx-json=${sbomPath}`];
-  const legacyArgs = [artifactPath, '-o', `spdx-json=${sbomPath}`];
-  const scanResult = spawnSync(syftCommand, scanArgs, {
-    env: process.env,
-    stdio: 'inherit',
-  });
-  if (scanResult.status !== 0) {
-    runCommand(
-      syftCommand,
-      legacyArgs,
-      `syft ${path.basename(artifactPath)}`,
-    );
-  }
+  runCommand(
+    syftCommand,
+    ['scan', artifactPath, '-o', `spdx-json=${sbomPath}`],
+    `syft scan ${path.basename(artifactPath)}`,
+  );
 
   return sbomPath;
 }

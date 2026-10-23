@@ -5,27 +5,27 @@ import { spawnSync } from 'node:child_process';
 const TOOL_CONFIGS = {
   'golangci-lint': {
     binary: 'golangci-lint',
-    module: 'github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2',
+    module: 'github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0',
     modulePath: 'github.com/golangci/golangci-lint/v2',
-    moduleVersion: 'v2.12.2',
+    moduleVersion: 'v2.15.0',
   },
   govulncheck: {
     binary: 'govulncheck',
-    module: 'golang.org/x/vuln/cmd/govulncheck@v1.3.0',
+    module: 'golang.org/x/vuln/cmd/govulncheck@v1.9.0',
     modulePath: 'golang.org/x/vuln',
-    moduleVersion: 'v1.3.0',
+    moduleVersion: 'v1.9.0',
   },
   cosign: {
     binary: 'cosign',
-    module: 'github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2',
-    modulePath: 'github.com/sigstore/cosign/v2',
-    moduleVersion: 'v2.6.2',
+    module: 'github.com/sigstore/cosign/v3/cmd/cosign@v3.1.4',
+    modulePath: 'github.com/sigstore/cosign/v3',
+    moduleVersion: 'v3.1.4',
   },
   syft: {
     binary: 'syft',
-    module: 'github.com/anchore/syft/cmd/syft@v1.42.2',
+    module: 'github.com/anchore/syft/cmd/syft@v1.55.0',
     modulePath: 'github.com/anchore/syft',
-    moduleVersion: 'v1.42.2',
+    moduleVersion: 'v1.55.0',
   },
 };
 

@@ -240,8 +240,8 @@ func TestCognitionMemoryStartupRestoresBarriersBeforeTrackedDerivedWorkAndCloseJ
 	// already admitted worker's actual return, including cancellation cleanup.
 	svc.triggerCognitionMemory(refs[0])
 	select {
-	case <-closed:
-		t.Fatal("Close returned before inference settled")
+	case err := <-closed:
+		t.Fatalf("Close returned before inference settled: %v", err)
 	default:
 	}
 	unblock()
@@ -261,9 +261,9 @@ func TestAccountTerminationRetrySharesMemoryCloseAdmission(t *testing.T) {
 	scheduled := make(chan error, 1)
 	go func() { svc.scheduleRealmAccountTerminationRetry(); scheduled <- nil }()
 	select {
-	case <-scheduled:
+	case err := <-scheduled:
 		svc.cognitionMemoryDrainMu.Unlock()
-		t.Fatal("retry admitted a shared WaitGroup worker outside Memory lifecycle admission")
+		t.Fatalf("retry admitted a shared WaitGroup worker outside Memory lifecycle admission: %v", err)
 	case <-time.After(25 * time.Millisecond):
 	}
 	closed := make(chan error, 1)

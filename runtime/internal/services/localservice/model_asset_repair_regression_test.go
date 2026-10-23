@@ -451,7 +451,7 @@ func TestRepairCancelledBundleMustReclaimPublishedUnreferencedObject(t *testing.
 	}
 	cancel()
 	select {
-	case <-done:
+	case _ = <-done: // Join cancellation; subsequent assertions inspect transport and state.
 	case <-time.After(5 * time.Second):
 		t.Fatal("cancelled executor did not exit")
 	}

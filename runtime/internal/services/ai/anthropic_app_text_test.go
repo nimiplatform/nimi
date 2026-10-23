@@ -211,7 +211,7 @@ func TestAnthropicAppCancellationClosesProviderTransportWithoutCompletingTools(t
 	}
 	cancel()
 	select {
-	case <-finished:
+	case _ = <-finished: // Join cancellation; subsequent assertions inspect transport and state.
 	case <-time.After(5 * time.Second):
 		t.Fatal("canceled consumer kept waiting")
 	}

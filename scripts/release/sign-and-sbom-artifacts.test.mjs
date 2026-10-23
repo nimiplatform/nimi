@@ -43,10 +43,9 @@ func main() {
   if len(args) < 1 { panic("missing command") }
   switch args[0] {
   case "sign-blob":
-    write(argument("--output-signature"), "signature")
-    write(argument("--output-certificate"), "certificate")
+    write(argument("--bundle"), "test bundle")
   case "verify-blob":
-    for _, key := range []string{"--signature", "--certificate"} {
+    for _, key := range []string{"--bundle"} {
       if _, err := os.Stat(argument(key)); err != nil { panic(err) }
     }
   default: panic("unexpected command")
@@ -72,6 +71,10 @@ func main() {
   });
   assert.equal(result.status, 0, result.stderr);
   const generated = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  assert.equal(generated.length, 5);
+  assert.deepEqual(generated, [
+    `${artifactPath}.spdx.json`,
+    `${artifactPath}.sigstore.json`,
+    `${artifactPath}.spdx.json.sigstore.json`,
+  ]);
   for (const filePath of generated) assert.equal(existsSync(filePath), true, filePath);
 });

@@ -202,7 +202,7 @@ func TestFeishuSocketTaskAdmissionAndACKAfterBufferCommit(t *testing.T) {
 				cancel()
 			}
 			select {
-			case <-done:
+			case _ = <-done: // Join cancellation; subsequent assertions inspect transport and state.
 			case <-time.After(3 * time.Second):
 				t.Fatal("stop did not drain bounded tasks")
 			}

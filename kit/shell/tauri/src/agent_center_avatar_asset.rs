@@ -148,7 +148,14 @@ fn sha256_file_hex(path: &Path) -> Result<(u64, String), String> {
         size += read as u64;
         hasher.update(&buffer[..read]);
     }
-    Ok((size, format!("{:x}", hasher.finalize())))
+    Ok((
+        size,
+        hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>(),
+    ))
 }
 
 fn resolve_admitted_data_root() -> Result<PathBuf, String> {
@@ -416,7 +423,7 @@ fn manifest_file(path: &str, content: &[u8], mime: &str) -> serde_json::Value {
     hasher.update(content);
     serde_json::json!({
         "path": path,
-        "sha256": format!("{:x}", hasher.finalize()),
+        "sha256": hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect::<String>(),
         "bytes": content.len(),
         "mime": mime
     })
@@ -511,7 +518,13 @@ fn validate_formal_presentation_asset(
     }
     let mut hasher = Sha256::new();
     hasher.update(&asset.content);
-    if format!("{:x}", hasher.finalize()) != asset.sha256 {
+    if hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
+        != asset.sha256
+    {
         return Err("formal Avatar presentation asset digest mismatch".to_string());
     }
     Ok(asset)

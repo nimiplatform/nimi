@@ -117,7 +117,7 @@ func TestMemoryDisableWaitsForOwnerEnsureBindAndCutsOffTheSameBank(t *testing.T)
 	if err := <-cutoffDone; err != nil {
 		t.Fatalf("disable after ensured owner bank: %v", err)
 	}
-	<-processDone
+	_ = <-processDone // Join cleanup; this test asserts the operation state separately.
 
 	current, err := svc.cognitionMemoryStore.BindingForAgent(context.Background(), localAgentRef)
 	if err != nil || current.Enabled || current.BindingRef == original.BindingRef || current.BankRef != barrier.bankRef || current.LifecycleRef == "" {
@@ -154,7 +154,7 @@ func TestAgentTerminationWaitsForOwnerEnsureBindAndDeletesTheSameBank(t *testing
 	if err := <-terminationDone; err != nil {
 		t.Fatalf("termination after ensured owner bank: %v", err)
 	}
-	<-processDone
+	_ = <-processDone // Join cleanup; this test asserts the operation state separately.
 
 	if _, err := owner.ListMemories(context.Background(), barrier.bankRef, true); !memoryv1.IsOutcome(err, memoryv1.OutcomeConflict) {
 		t.Fatalf("termination left the late owner-ensured bank readable: %v", err)

@@ -434,7 +434,7 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 	}
 
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 }
 
 func TestSubscribeRuntimeAgentMessagesRequiresProtectedCapability(t *testing.T) {

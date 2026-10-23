@@ -2,7 +2,7 @@
 
 import { spawnSync } from 'node:child_process';
 
-const ACTIONLINT_VERSION = 'v1.7.11';
+const ACTIONLINT_VERSION = 'v1.7.12';
 const ACTIONLINT_PACKAGE = `github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}`;
 
 function commandExists(command, args = ['--version']) {
@@ -19,8 +19,9 @@ function run(command, args) {
   process.exit(result.status ?? 1);
 }
 
-if (commandExists('actionlint', ['-version'])) {
-  process.stdout.write('[check-actionlint] using installed actionlint\n');
+const installed = spawnSync('actionlint', ['-version'], { encoding: 'utf8' });
+if (installed.status === 0 && installed.stdout.trim().split(/\s/u)[0] === ACTIONLINT_VERSION.slice(1)) {
+  process.stdout.write(`[check-actionlint] using installed actionlint ${ACTIONLINT_VERSION}\n`);
   run('actionlint', ['-color']);
 }
 

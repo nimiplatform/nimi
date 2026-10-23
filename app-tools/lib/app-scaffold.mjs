@@ -707,9 +707,9 @@ function buildCargoDependencies(profile, versions, capabilityResolution) {
     serde: { version: '1', features: ['derive'] },
     serde_json: '1',
     url: '2',
-    base64: '0.22',
-    dirs: '6',
-    time: '=0.3.47',
+    base64: '0.23',
+    dirs: '7',
+    time: '=0.3.55',
     'tauri-build': { version: '2', features: [] },
   };
   for (const [name, value] of Object.entries(capabilityResolution.cargoDependencies || {})) {

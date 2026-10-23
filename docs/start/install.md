@@ -2,7 +2,7 @@
 
 Setting up your Nimi development environment gives you everything you need to build local-first AI applications, manage native host interactions, and test end-to-end user workflows on your own machine.
 
-Always choose the App Tools version that matches your Nimi host and keep the dependency combination it generates. This source checkout declares App Tools 0.13.0, SDK 0.21.0, and Kit/native 0.21.0—note that these versions reflect the current source repository and do not imply those exact versions are published on npm.
+Always choose the App Tools version that matches your Nimi host and keep the dependency combination it generates. This source checkout declares App Tools 0.13.1, SDK 0.21.0, and Kit/native 0.21.0—note that these versions reflect the current source repository and do not imply those exact versions are published on npm.
 
 ---
 
@@ -10,8 +10,8 @@ Always choose the App Tools version that matches your Nimi host and keep the dep
 
 Ensure your development machine has the following tools installed:
 
-- **Node.js**: Node.js 24 or newer is required (`engines.node >= 24.0.0`).
-- **pnpm**: pnpm 10.34.5 (or compatible pnpm 10.x).
+- **Node.js**: Use Node.js 24.22.1 or a newer patch/minor release on the Node 24 LTS line.
+- **pnpm**: pnpm 10.34.7 (or compatible pnpm 10.x).
 - **C/C++ Build Tools** (optional): If compiling Kit's optional native extensions from source, macOS requires Xcode Command Line Tools, while Windows requires Visual Studio C++ build tools.
 
 Scaffolded app projects include project-local Nimi Coding (0.6.5). Running `pnpm install && pnpm run init` configures it automatically without requiring global binary installations.

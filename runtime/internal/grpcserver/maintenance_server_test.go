@@ -62,7 +62,9 @@ func TestMaintenanceServerServesOnlyTheBoundedSurfaceWithTheTypedReason(t *testi
 	t.Cleanup(func() {
 		maintenance.Stop(context.Background())
 		_ = baseListener.Close()
-		<-serveDone
+		if err := <-serveDone; err != nil {
+			t.Errorf("server shutdown: %v", err)
+		}
 	})
 	clientConn, err := grpc.NewClient(
 		"passthrough:///protected-maintenance-test",

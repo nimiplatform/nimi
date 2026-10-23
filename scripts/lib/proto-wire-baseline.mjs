@@ -190,7 +190,7 @@ export function resolveBuf({ env = process.env } = {}) {
 }
 
 export function requireBuf(buf) {
-  if (!buf) fail('buf is not installed; install it with `go install github.com/bufbuild/buf/cmd/buf@v1.70.0`');
+  if (!buf) fail('buf is not installed; install it with `go install github.com/bufbuild/buf/cmd/buf@v1.75.0`');
   return buf;
 }
 

@@ -73,8 +73,8 @@ func TestWriterReservationCancellationWaitsForOwnerCallback(t *testing.T) {
 	<-entered
 	cancel()
 	select {
-	case <-returned:
-		t.Fatal("owner returned while fenced work still running")
+	case err := <-returned:
+		t.Fatalf("owner returned while fenced work still running: %v", err)
 	case <-time.After(20 * time.Millisecond):
 	}
 	close(release)

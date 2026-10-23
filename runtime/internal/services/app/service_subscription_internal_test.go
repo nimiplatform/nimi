@@ -56,7 +56,7 @@ func TestSendAppMessageWithAck(t *testing.T) {
 	}
 
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 }
 
 func TestSubscribeAppMessagesRejectsCursorReplay(t *testing.T) {
@@ -160,7 +160,7 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	stream.mu.Unlock()
 
 	cancel()
-	<-done
+	_ = <-done // Join cleanup; this test asserts the operation state separately.
 }
 
 func TestSendAppMessageRejectsContextAppMismatch(t *testing.T) {

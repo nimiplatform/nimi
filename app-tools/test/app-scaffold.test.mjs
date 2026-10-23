@@ -473,7 +473,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.equal(tauri.build.devUrl, `http://127.0.0.1:${devPort}`);
     assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
     assert.ok(generated.read('src-tauri/Cargo.toml').includes(`nimi-shell-tauri = "${versions.nimiShellTauriVersion}"`));
-    assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.47"/);
+    assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.55"/);
     assert.match(generated.read('nimi.app.yaml'), /^app_access: \[\]$/m);
     assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope:|qualifier:|operation_id:|resource_ref:/);
 

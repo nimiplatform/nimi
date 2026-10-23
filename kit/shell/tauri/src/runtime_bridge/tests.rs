@@ -4,10 +4,9 @@ use base64::Engine;
 use prost::Message;
 
 use super::{
-    channel_invalidation_count, channel_pool::invalidation_observer_lock, current_daemon_status,
     invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
-    reset_channel_invalidation_count, restart_daemon_async, runtime_account_session_status,
-    runtime_bridge_unary, start_daemon_async, stream_event_name_with_namespace,
+    runtime_account_session_status,
+    runtime_bridge_unary, stream_event_name_with_namespace,
     with_runtime_bridge_host_hooks, with_runtime_bridge_host_hooks_async, RuntimeBridgeAppSession,
     RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
     RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
@@ -40,42 +39,6 @@ fn public_lifecycle_routes_do_not_delegate_to_legacy_daemon_manager() {
         assert!(
             !source.contains(&[legacy_prefix.as_str(), operation].concat()),
             "public Runtime lifecycle must use the protected-local service carrier, not {operation}",
-        );
-    }
-}
-
-#[test]
-fn public_lifecycle_controls_fail_closed_without_a_verified_runtime() {
-    let _observer = invalidation_observer_lock();
-    reset_channel_invalidation_count();
-
-    for result in [
-        tauri::async_runtime::block_on(start_daemon_async()),
-        tauri::async_runtime::block_on(restart_daemon_async()),
-    ] {
-        let error = result.expect_err("unbound protected carrier must fail closed");
-        assert!(error.contains("RUNTIME_BRIDGE_DAEMON_UNAVAILABLE"));
-        assert!(
-            error.contains("protected-carrier-required")
-                || error.contains("runtime-service-unavailable")
-                || error.contains("runtime-service-untrusted")
-                || error.contains("runtime-service-repair-required")
-        );
-    }
-
-    assert_eq!(channel_invalidation_count(), 0);
-    let status = current_daemon_status();
-    assert!(!status.running);
-    if status.managed {
-        assert_eq!(status.launch_mode, "PROTECTED_LOCAL");
-    } else {
-        assert_eq!(status.launch_mode, "INVALID");
-        let last_error = status.last_error.as_deref().unwrap_or_default();
-        assert!(
-            last_error.contains("protected-carrier-required")
-                || last_error.contains("runtime-service-unavailable")
-                || last_error.contains("runtime-service-untrusted")
-                || last_error.contains("runtime-service-repair-required")
         );
     }
 }

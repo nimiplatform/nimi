@@ -64,8 +64,8 @@ func TestLocalAppCommitSharedWriterOrdersActualLogout(t *testing.T) {
 	}()
 	<-started
 	select {
-	case <-loggedOut:
-		t.Fatal("logout overtook fenced publication")
+	case err := <-loggedOut:
+		t.Fatalf("logout overtook fenced publication: %v", err)
 	case <-time.After(20 * time.Millisecond):
 	}
 	close(release)

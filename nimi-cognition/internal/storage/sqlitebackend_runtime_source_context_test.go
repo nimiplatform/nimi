@@ -43,8 +43,8 @@ func TestRuntimeSourceReadDeadlineInterruptsConnectionWait(t *testing.T) {
 				}
 			case <-time.After(2 * time.Second):
 				_ = conn.Close()
-				<-done
-				t.Fatal("read ignored deadline while waiting for SQLite")
+				err := <-done
+				t.Fatalf("read ignored deadline while waiting for SQLite: %v", err)
 			}
 		})
 	}

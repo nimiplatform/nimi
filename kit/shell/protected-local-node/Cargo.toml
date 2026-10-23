@@ -18,7 +18,7 @@ macos-source-local-development = ["nimi-shell-protected-local/macos-source-local
 windows-source-local-development = ["nimi-shell-protected-local/windows-source-local-development"]
 
 [dependencies]
-base64 = "0.22"
+base64 = "0.23"
 napi = { version = "3", features = ["napi8", "tokio_rt", "serde-json"] }
 napi-derive = "3"
 nimi-shell-protected-local = { version = "0.10.0", path = "../protected-local" }

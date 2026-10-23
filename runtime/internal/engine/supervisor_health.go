@@ -34,7 +34,7 @@ func waitSupervisorHealthyOrExit(ctx context.Context, cfg EngineConfig, process 
 		// Cancel the in-flight health probe and reap its result so the
 		// goroutine does not leak.
 		cancelHealth()
-		<-healthResult
+		_ = <-healthResult // The process exit is the primary startup failure.
 		exitDetail := strings.TrimSpace(processExitErrorDetail(process.waitErr))
 		if exitDetail == "" {
 			exitDetail = "process exited during startup"

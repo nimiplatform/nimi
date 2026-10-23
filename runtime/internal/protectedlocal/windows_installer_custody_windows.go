@@ -19,7 +19,7 @@ func ProvisionWindowsProductCustody() error {
 	if err := windows.OpenProcessToken(windows.CurrentProcess(), windows.TOKEN_QUERY|windows.TOKEN_ADJUST_PRIVILEGES, &token); err != nil {
 		return fmt.Errorf("open installer token: %w", err)
 	}
-	defer token.Close()
+	defer func() { _ = token.Close() }()
 	if !token.IsElevated() {
 		return fmt.Errorf("elevated formal installer required")
 	}

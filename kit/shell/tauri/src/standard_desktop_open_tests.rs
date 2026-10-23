@@ -56,17 +56,25 @@ fn creator_trial_is_not_an_admitted_desktop_open_target() {
         "nimi.realm-world-studio",
         json!({ "intent": { "kind": "open-world-character-preview" } }),
     );
-    assert_eq!(result.expect_err("creator trial must not open").reason_code(), "desktop-open-target-unsupported");
+    assert_eq!(
+        result
+            .expect_err("creator trial must not open")
+            .reason_code(),
+        "desktop-open-target-unsupported"
+    );
 }
 
 #[test]
 fn integrations_navigation_accepts_no_management_or_platform_arguments() {
-    let accepted = compose_envelope_for_source("nimi.lab", json!({"intent":{"kind":"open-integrations"}})).expect("public Home navigation");
+    let accepted =
+        compose_envelope_for_source("nimi.lab", json!({"intent":{"kind":"open-integrations"}}))
+            .expect("public Home navigation");
     assert_eq!(accepted["intent"], json!({"kind":"open-integrations"}));
     for field in ["targetRef", "secret", "adapter", "accountId"] {
         let mut intent = json!({"kind":"open-integrations"});
         intent[field] = json!("injected");
-        let error = compose_envelope_for_source("nimi.lab", json!({"intent":intent})).expect_err("parameter-free target");
+        let error = compose_envelope_for_source("nimi.lab", json!({"intent":intent}))
+            .expect_err("parameter-free target");
         assert_eq!(error.reason_code(), "desktop-open-intent-invalid");
     }
 }
@@ -246,7 +254,7 @@ fn standard_desktop_open_apps_section_requires_an_app_and_exact_section() {
 fn read_golden_vectors() -> GoldenVectorTable {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../../scripts/testdata/desktop-open-intent-golden-vectors.yaml");
-    serde_yaml::from_str(
+    serde_saphyr::from_str(
         &std::fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display())),
     )
@@ -508,7 +516,9 @@ async fn activity_source_launch_posts_only_the_open_request_with_bridge_bearer_a
     assert_eq!(outcome, super::AppActivitySourceLaunch::Requested);
     let request = server.join().expect("launch fixture");
     assert!(request.starts_with("POST /v1/app-activity-source-launch HTTP/1.1\r\n"));
-    let (headers, body) = request.split_once("\r\n\r\n").expect("HTTP request framing");
+    let (headers, body) = request
+        .split_once("\r\n\r\n")
+        .expect("HTTP request framing");
     assert!(headers
         .to_ascii_lowercase()
         .contains("\r\nauthorization: bearer fixture-bridge-token"));

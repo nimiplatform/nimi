@@ -36,7 +36,9 @@ func dialTestTransport(t *testing.T, server *grpc.Server, listener net.Listener,
 	t.Cleanup(func() {
 		server.Stop()
 		_ = listener.Close()
-		<-serveDone
+		if err := <-serveDone; err != nil {
+			t.Errorf("server shutdown: %v", err)
+		}
 	})
 	clientConn, err := grpc.NewClient("passthrough:///protected-refusal-audit-test",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return dial() }),

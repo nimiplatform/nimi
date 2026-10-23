@@ -2,7 +2,7 @@
 
 配置好 Nimi 开发环境后，你就可以在本机开发和调试本地优先的 AI 应用、联调原生宿主交互，并运行端到端测试。
 
-开发时请选用与当前 Nimi 宿主匹配的 App Tools 版本，并沿用它生成的依赖组合。当前仓库源码声明的版本为 App Tools 0.13.0、SDK 0.21.0 与 Kit/native 0.21.0（源码中的版本声明不代表对应包已发布至 npm）。
+开发时请选用与当前 Nimi 宿主匹配的 App Tools 版本，并沿用它生成的依赖组合。当前仓库源码声明的版本为 App Tools 0.13.1、SDK 0.21.0 与 Kit/native 0.21.0（源码中的版本声明不代表对应包已发布至 npm）。
 
 ---
 
@@ -10,8 +10,8 @@
 
 开始前，请确认本机已安装以下工具：
 
-- **Node.js**：Node.js 24 或更高版本（`engines.node >= 24.0.0`）。
-- **pnpm**：推荐使用 pnpm 10.34.5（或兼容的 pnpm 10.x 版本）。
+- **Node.js**：使用 Node.js 24.22.1 或 Node 24 LTS 分支上更新的补丁/次版本。
+- **pnpm**：推荐使用 pnpm 10.34.7（或兼容的 pnpm 10.x 版本）。
 - **C/C++ 构建工具**（可选）：若需从源码编译 Kit 的可选原生扩展，macOS 请安装 Xcode Command Line Tools，Windows 请安装 Visual Studio C++ 生成工具。
 
 脚手架生成的 App 工程已内置项目级 Nimi Coding（0.6.5），执行 `pnpm install && pnpm run init` 即可自动完成初始化，无需全局安装。

@@ -170,7 +170,7 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) (returnErr err
 			_ = s.videoEngine.Cancel()
 		}
 		grpcServer.GracefulStop()
-		<-serveErrCh
+		_ = <-serveErrCh // GracefulStop has completed; preserve the caller's cancellation.
 		return ctx.Err()
 	case err := <-serveErrCh:
 		if err == nil {

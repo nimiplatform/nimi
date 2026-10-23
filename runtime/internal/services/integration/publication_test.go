@@ -106,8 +106,8 @@ func TestExternalReadSharedWriterOrdersAccountLogoutAndTerminalCommit(t *testing
 		loggedOut <- err
 	}()
 	select {
-	case <-loggedOut:
-		t.Fatal("logout overtook actual publication fence")
+	case err := <-loggedOut:
+		t.Fatalf("logout overtook actual publication fence: %v", err)
 	case <-time.After(20 * time.Millisecond):
 	}
 	close(release)

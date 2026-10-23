@@ -1,4 +1,3 @@
-use aes_gcm::aead::rand_core::{OsRng, RngCore};
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine as _;
 use chrono::{DateTime, Utc};
@@ -422,7 +421,7 @@ fn validate_request_id(value: &str) -> Result<String, DesktopOpenIntentHostParse
 
 fn generate_request_id() -> String {
     let mut bytes = [0_u8; 18];
-    OsRng.fill_bytes(&mut bytes);
+    getrandom::fill(&mut bytes).expect("operating system randomness is unavailable");
     format!("desktop-open-{}", URL_SAFE_NO_PAD.encode(bytes))
 }
 

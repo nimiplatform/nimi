@@ -111,7 +111,11 @@ fn read_bounded_material(
 fn material_digest(content: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
 }
 
 fn custody_ref(content: &[u8]) -> String {

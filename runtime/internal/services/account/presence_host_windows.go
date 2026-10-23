@@ -169,7 +169,7 @@ func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, ui
 		}
 	case <-ctx.Done():
 		_ = windows.TerminateProcess(process.Process, windowsHelloExitRejected)
-		<-waitResult
+		_ = <-waitResult // The canceled caller owns the result after helper termination.
 		return "", windowsHelloExitRejected, ctx.Err()
 	}
 

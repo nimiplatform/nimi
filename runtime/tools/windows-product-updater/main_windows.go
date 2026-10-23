@@ -99,7 +99,7 @@ func ordinaryUser() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer token.Close()
+	defer func() { _ = token.Close() }()
 	user, err := token.GetTokenUser()
 	if err != nil {
 		return "", err
@@ -123,14 +123,14 @@ func verifyCurrentService(root string, identity productrelease.Identity) error {
 	if err != nil {
 		return err
 	}
-	defer windows.CloseServiceHandle(managerHandle)
+	defer func() { _ = windows.CloseServiceHandle(managerHandle) }()
 	serviceName, _ := windows.UTF16PtrFromString(protectedlocal.WindowsProductionServiceName)
 	serviceHandle, err := windows.OpenService(managerHandle, serviceName, windows.SERVICE_QUERY_CONFIG|windows.SERVICE_QUERY_STATUS)
 	if err != nil {
 		return err
 	}
 	service := &mgr.Service{Name: protectedlocal.WindowsProductionServiceName, Handle: serviceHandle}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 	config, err := service.Config()
 	if err != nil {
 		return err
@@ -218,12 +218,12 @@ func apply(file string) error {
 	if mutex == 0 || (mutexErr != nil && mutexErr != windows.ERROR_ALREADY_EXISTS) {
 		return fmt.Errorf("UPDATE_HANDOFF_IN_PROGRESS")
 	}
-	defer windows.CloseHandle(mutex)
+	defer func() { _ = windows.CloseHandle(mutex) }()
 	owned, err := windows.WaitForSingleObject(mutex, 0)
 	if err != nil || (owned != windows.WAIT_OBJECT_0 && owned != windows.WAIT_ABANDONED) {
 		return fmt.Errorf("UPDATE_HANDOFF_IN_PROGRESS")
 	}
-	defer windows.ReleaseMutex(mutex)
+	defer func() { _ = windows.ReleaseMutex(mutex) }()
 	cache, err := fixedCache()
 	if err != nil {
 		return err
@@ -236,7 +236,7 @@ func apply(file string) error {
 	if err != nil {
 		return err
 	}
-	defer lockedJob.Close()
+	defer func() { _ = lockedJob.Close() }()
 	if err := verifyCacheFile(file); err != nil {
 		return err
 	}
@@ -268,7 +268,7 @@ func apply(file string) error {
 	if err != nil {
 		return err
 	}
-	defer windows.CloseHandle(parent)
+	defer func() { _ = windows.CloseHandle(parent) }()
 	parentPath, err := processPath(parent)
 	if err != nil || !strings.EqualFold(parentPath, filepath.Join(root, "Nimi.exe")) {
 		return fmt.Errorf("UPDATE_CALLER_UNTRUSTED")
@@ -277,7 +277,7 @@ func apply(file string) error {
 	if err := windows.OpenProcessToken(parent, windows.TOKEN_QUERY, &parentToken); err != nil {
 		return err
 	}
-	defer parentToken.Close()
+	defer func() { _ = parentToken.Close() }()
 	parentUser, err := parentToken.GetTokenUser()
 	if err != nil || parentUser.User.Sid.String() != userSID || parentToken.IsElevated() {
 		return fmt.Errorf("UPDATE_USER_CONTEXT_INVALID")
@@ -286,7 +286,7 @@ func apply(file string) error {
 	if err != nil {
 		return err
 	}
-	defer parentExecutable.Close()
+	defer func() { _ = parentExecutable.Close() }()
 	parentDigest, err := hashLocked(parentExecutable)
 	if err != nil || parentDigest != identity.Files["Nimi.exe"] {
 		return fmt.Errorf("UPDATE_CALLER_UNTRUSTED")
@@ -295,7 +295,7 @@ func apply(file string) error {
 	if err != nil {
 		return err
 	}
-	defer packageFile.Close()
+	defer func() { _ = packageFile.Close() }()
 	info, err := packageFile.Stat()
 	if err != nil || info.Size() != release.Asset.Size {
 		return fmt.Errorf("UPDATE_ASSET_DIGEST_MISMATCH")
@@ -392,7 +392,7 @@ func runInstaller(file, jobPath, requestHash string) (uint32, error) {
 	if info.Process == 0 {
 		return 0, fmt.Errorf("installer process unavailable")
 	}
-	defer windows.CloseHandle(info.Process)
+	defer func() { _ = windows.CloseHandle(info.Process) }()
 	if _, err := windows.WaitForSingleObject(info.Process, windows.INFINITE); err != nil {
 		return 0, err
 	}
@@ -415,7 +415,7 @@ func elevated() error {
 	if err != nil {
 		return err
 	}
-	defer token.Close()
+	defer func() { _ = token.Close() }()
 	if !token.IsElevated() {
 		return fmt.Errorf("UPDATE_AUTHORIZATION_REQUIRED")
 	}
@@ -560,7 +560,7 @@ func install(version, jobPath, requestHash string) error {
 	if err != nil {
 		return err
 	}
-	defer manager.Disconnect()
+	defer func() { _ = manager.Disconnect() }()
 	service, err := manager.OpenService(protectedlocal.WindowsProductionServiceName)
 	binaryPath, commandErr := runtimeServiceCommand(filepath.Join(root, "runtime", "nimi.exe"))
 	if commandErr != nil {
@@ -568,7 +568,7 @@ func install(version, jobPath, requestHash string) error {
 	}
 	config := mgr.Config{ServiceType: windows.SERVICE_WIN32_OWN_PROCESS, StartType: mgr.StartAutomatic, ErrorControl: mgr.ErrorNormal, DisplayName: "Nimi Runtime", ServiceStartName: "LocalSystem", BinaryPathName: binaryPath}
 	if err == nil {
-		defer service.Close()
+		defer func() { _ = service.Close() }()
 		prior, err := service.Config()
 		if err != nil {
 			return err
@@ -622,7 +622,7 @@ func install(version, jobPath, requestHash string) error {
 		if err != nil {
 			return err
 		}
-		defer service.Close()
+		defer func() { _ = service.Close() }()
 	} else {
 		return err
 	}
@@ -694,7 +694,7 @@ func verifyAuthorizedUpdate(version, file, expectedHash string, identity *produc
 	if err != nil {
 		return err
 	}
-	defer locked.Close()
+	defer func() { _ = locked.Close() }()
 	raw, err := io.ReadAll(io.LimitReader(locked, 128*1024+1))
 	if err != nil || len(raw) > 128*1024 {
 		return fmt.Errorf("UPDATE_HANDOFF_INVALID")
@@ -724,7 +724,7 @@ func verifyAuthorizedUpdate(version, file, expectedHash string, identity *produc
 	if err != nil {
 		return err
 	}
-	defer windows.CloseHandle(parent)
+	defer func() { _ = windows.CloseHandle(parent) }()
 	path, err := processPath(parent)
 	if err != nil || !strings.EqualFold(path, input.PackagePath) {
 		return fmt.Errorf("UPDATE_INSTALLER_TRUST_FAILED")
@@ -733,7 +733,7 @@ func verifyAuthorizedUpdate(version, file, expectedHash string, identity *produc
 	if err != nil {
 		return err
 	}
-	defer installer.Close()
+	defer func() { _ = installer.Close() }()
 	digest, err := hashLocked(installer)
 	if err != nil || digest != release.Asset.SHA256 {
 		return fmt.Errorf("UPDATE_ASSET_DIGEST_MISMATCH")
@@ -768,7 +768,7 @@ func parentPID() (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer windows.CloseHandle(snapshot)
+	defer func() { _ = windows.CloseHandle(snapshot) }()
 	entry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
 	err = windows.Process32First(snapshot, &entry)
 	for err == nil {

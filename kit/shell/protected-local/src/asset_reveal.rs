@@ -40,7 +40,12 @@ pub fn reveal_local_app_asset_target(
         }
         hasher.update(&buffer[..read]);
     }
-    if format!("sha256:{:x}", hasher.finalize()) != target.asset.sha256 {
+    let digest_hex: String = hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    if format!("sha256:{digest_hex}") != target.asset.sha256 {
         return Err(LocalAppOperationError::new(
             LocalAppReasonCode::IntegrityFailure,
             false,

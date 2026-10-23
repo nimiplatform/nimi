@@ -57,11 +57,11 @@ func candidateUse(root string, expected productrelease.Identity) (productrelease
 	if err != nil {
 		return productrelease.CandidateUse{}, err
 	}
-	defer manager.Disconnect()
+	defer func() { _ = manager.Disconnect() }()
 	service, err := manager.OpenService(protectedlocal.WindowsProductionServiceName)
 	use := productrelease.CandidateUse{}
 	if err == nil {
-		defer service.Close()
+		defer func() { _ = service.Close() }()
 		config, err := service.Config()
 		if err != nil {
 			return use, err
@@ -126,7 +126,7 @@ func candidateResourcesActive(root string, expected productrelease.Identity) (bo
 	if code != 0 {
 		return false, fmt.Errorf("query candidate holders: %d", code)
 	}
-	defer dll.NewProc("RmEndSession").Call(uintptr(session))
+	defer func() { _, _, _ = dll.NewProc("RmEndSession").Call(uintptr(session)) }()
 	code, _, _ = dll.NewProc("RmRegisterResources").Call(uintptr(session), uintptr(len(files)), uintptr(unsafe.Pointer(&files[0])), 0, 0, 0, 0)
 	runtime.KeepAlive(files)
 	if code != 0 {

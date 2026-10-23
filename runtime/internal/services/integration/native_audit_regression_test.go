@@ -37,9 +37,9 @@ func TestNativeReaderExitCannotCancelAcrossConcurrentJoin(t *testing.T) {
 	r := s.nativeReceivers[value.Public.TargetRef]
 	c.cancel() // read returns, but leaving must wait for the same owner as join
 	select {
-	case <-returned:
+	case err := <-returned:
 		s.mu.Unlock()
-		t.Fatal("last reader left without the connection owner lock")
+		t.Fatalf("last reader left without the connection owner lock: %v", err)
 	case <-time.After(30 * time.Millisecond):
 	}
 	feed.mu.Lock()
@@ -54,7 +54,7 @@ func TestNativeReaderExitCannotCancelAcrossConcurrentJoin(t *testing.T) {
 	feed.leases[other] = struct{}{}
 	feed.mu.Unlock()
 	s.mu.Unlock()
-	<-returned
+	_ = <-returned // Join cleanup; this test asserts the operation state separately.
 	s.mu.Lock()
 	feed.mu.Lock()
 	if feed.readers != 1 || r.ctx.Err() != nil {

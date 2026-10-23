@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -68,7 +69,10 @@ func TestFluxImageLoadUsesBothNamedEncoderSlots(t *testing.T) {
 	t.Cleanup(func() {
 		stop()
 		select {
-		case <-done:
+		case err := <-done:
+			if err != nil && !errors.Is(err, context.Canceled) {
+				t.Errorf("managed wrapper shutdown: %v", err)
+			}
 		case <-time.After(3 * time.Second):
 			t.Error("managed wrapper did not stop")
 		}

@@ -27,13 +27,13 @@
     "ai": "^7.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "4.0.24",
+    "@ai-sdk/provider": "4.0.33",
     "@nimiplatform/sdk": "workspace:*",
-    "@types/node": "24.19.1",
-    "ai": "7.0.130",
+    "@types/node": "24.19.2",
+    "ai": "7.0.150",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "scripts": {
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",

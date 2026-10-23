@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.22.1 <25.0.0"
   },
   "private": false,
   "repository": {
@@ -21,18 +21,18 @@
     "sdkVersion": "^0.21.0",
     "appToolsVersion": "^0.13.1",
     "nimicodingVersion": "0.6.5",
-    "aiSdkVersion": "^6.0.85",
+    "aiSdkVersion": "^7.0.150",
     "kitVersion": "^0.21.0",
-    "reactVersion": "^19.3.0",
-    "reactDomVersion": "^19.3.0",
-    "i18nextVersion": "^26.4.2",
-    "lucideReactVersion": "^1.51.0",
+    "reactVersion": "^19.3.1",
+    "reactDomVersion": "^19.3.1",
+    "i18nextVersion": "^26.5.6",
+    "lucideReactVersion": "^1.61.0",
     "tsxVersion": "^4.23.15",
     "typescriptVersion": "^6.0.3",
-    "nodeTypesVersion": "^24.19.1",
+    "nodeTypesVersion": "^24.19.2",
     "reactTypesVersion": "^19.3.0",
     "reactDomTypesVersion": "^19.3.0",
-    "viteVersion": "^8.3.3",
+    "viteVersion": "^8.3.5",
     "viteReactPluginVersion": "^6.1.2",
     "tailwindcssVersion": "^4.3.3",
     "tailwindcssViteVersion": "^4.3.3",
@@ -40,9 +40,9 @@
     "yamlVersion": "^2.9.1",
     "nimiShellTauriVersion": "0.10.0",
     "electronPackagerVersion": "^20.3.0",
-    "electronVersion": "^44.5.1",
+    "electronVersion": "^45.0.0",
     "esbuildVersion": "^0.28.2",
-    "packageManager": "pnpm@10.34.5"
+    "packageManager": "pnpm@10.34.7"
   },
   "bin": {
     "nimi-app": "./bin/nimi-app.mjs"
@@ -81,8 +81,8 @@
     }
   },
   "devDependencies": {
-    "@types/node": "24.19.1",
-    "vite": "8.3.3",
-    "i18next": "26.4.2"
+    "@types/node": "24.19.2",
+    "vite": "8.3.5",
+    "i18next": "26.5.6"
   }
 }

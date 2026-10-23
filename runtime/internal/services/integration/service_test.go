@@ -598,7 +598,7 @@ func TestIntegrationTelegramNewReaderWaitsForCanceledPollToDrain(t *testing.T) {
 	}
 	firstCancel()
 	select {
-	case <-firstDone:
+	case _ = <-firstDone: // Join cancellation; subsequent assertions inspect transport and state.
 	case <-time.After(2 * time.Second):
 		t.Fatal("reader did not cancel")
 	}
@@ -629,7 +629,7 @@ func TestIntegrationTelegramNewReaderWaitsForCanceledPollToDrain(t *testing.T) {
 	}
 	secondCancel()
 	select {
-	case <-secondDone:
+	case _ = <-secondDone: // Join cancellation; subsequent assertions inspect transport and state.
 	case <-time.After(2 * time.Second):
 		t.Fatal("second reader did not cancel")
 	}

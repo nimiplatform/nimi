@@ -199,7 +199,9 @@ func TestOpenCancellationAndTimeoutNeverReportOpened(t *testing.T) {
 		t.Fatalf("confirmation after the deadline must not be accepted")
 	}
 	cancelTimed()
-	<-timedDone
+	if err := receive(t, timedDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 }
 
 func TestOpenReportsUnavailableForUnopenableAndMissingSources(t *testing.T) {
@@ -213,7 +215,9 @@ func TestOpenReportsUnavailableForUnopenableAndMissingSources(t *testing.T) {
 	if result := receive(t, stream.events).GetResult(); result.GetReason() != runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE {
 		t.Fatalf("activity without object must be not-openable: %+v", result)
 	}
-	<-done
+	if err := receive(t, done); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 	withObject := harness.put("acct-1", "subject-a", todo("gone", 1, runtimev1.AppActivityTodoState_APP_ACTIVITY_TODO_STATE_OPEN)).GetRecord()
 	harness.registrations.set("subject-a", SourceFacts{AppID: "nimi.app-a", DisplayName: "App A", Active: false, SourceClass: SourceClassUserImported})
 	removed, cancelRemoved, removedDone := harness.open(withObject.GetActivityId(), 2)
@@ -221,7 +225,9 @@ func TestOpenReportsUnavailableForUnopenableAndMissingSources(t *testing.T) {
 	if result := receive(t, removed.events).GetResult(); result.GetReason() != runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE {
 		t.Fatalf("removed source must be unavailable: %+v", result)
 	}
-	<-removedDone
+	if err := receive(t, removedDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 	list, _ := harness.service.ListAppActivities(harness.ctx(localappop.OperationAppActivityList, "acct-1", "subject-b", 2), &runtimev1.ListAppActivitiesRequest{})
 	for _, record := range list.GetRecords() {
 		if record.GetActivityId() == withObject.GetActivityId() && record.GetSource().GetAvailable() {
@@ -233,7 +239,9 @@ func TestOpenReportsUnavailableForUnopenableAndMissingSources(t *testing.T) {
 	if result := receive(t, missing.events).GetResult(); result.GetReason() != runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE {
 		t.Fatalf("unknown activity must be unavailable: %+v", result)
 	}
-	<-missingDone
+	if err := receive(t, missingDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 }
 
 // fakeRevalidator re-admits a session unless it was revoked.
@@ -287,7 +295,9 @@ func TestOpenConfirmationRevalidatesTheConsumerSession(t *testing.T) {
 		t.Fatalf("confirmation for an expired consumer session must not be accepted")
 	}
 	expectOpenResult(t, expiring, runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_FAILED, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_CANCELED)
-	<-expiringDone
+	if err := receive(t, expiringDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 
 	// A revoked consumer session is rejected at completion.
 	revoked, cancelRevoked, revokedDone := harness.open(record.GetActivityId(), 3)
@@ -299,7 +309,9 @@ func TestOpenConfirmationRevalidatesTheConsumerSession(t *testing.T) {
 		t.Fatalf("confirmation for a revoked consumer session must not be accepted")
 	}
 	expectOpenResult(t, revoked, runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_FAILED, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_CANCELED)
-	<-revokedDone
+	if err := receive(t, revokedDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 
 	// A request whose consumer session was revoked before the source became
 	// ready is never delivered.
@@ -311,7 +323,9 @@ func TestOpenConfirmationRevalidatesTheConsumerSession(t *testing.T) {
 	cold, cancelCold := harness.sourceSubscribe("acct-1", 6)
 	defer cancelCold()
 	expectOpenResult(t, late, runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_FAILED, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_CANCELED)
-	<-lateDone
+	if err := receive(t, lateDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 	select {
 	case delivered := <-cold.deliveries:
 		t.Fatalf("a request of a lost consumer session must not be delivered: %+v", delivered)
@@ -339,7 +353,9 @@ func TestOpenConfirmationRevalidatesTheRecord(t *testing.T) {
 		t.Fatalf("confirmation for a removed record must not be accepted")
 	}
 	expectOpenResult(t, removed, runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE)
-	<-removedDone
+	if err := receive(t, removedDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 
 	// The record now points at another object than the delivered one.
 	moved := harness.put("acct-1", "subject-a", todo("moved", 1, runtimev1.AppActivityTodoState_APP_ACTIVITY_TODO_STATE_OPEN)).GetRecord()
@@ -354,7 +370,9 @@ func TestOpenConfirmationRevalidatesTheRecord(t *testing.T) {
 		t.Fatalf("confirmation for a stale object must not be accepted")
 	}
 	expectOpenResult(t, stale, runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE)
-	<-staleDone
+	if err := receive(t, staleDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 
 	// A source registration lost after delivery reports the source unavailable.
 	current := harness.put("acct-1", "subject-a", todo("source", 1, runtimev1.AppActivityTodoState_APP_ACTIVITY_TODO_STATE_OPEN)).GetRecord()
@@ -367,5 +385,7 @@ func TestOpenConfirmationRevalidatesTheRecord(t *testing.T) {
 		t.Fatalf("confirmation after source registration loss must not be accepted")
 	}
 	expectOpenResult(t, lost, runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE)
-	<-lostDone
+	if err := receive(t, lostDone); err != nil {
+		t.Fatalf("open stream must end quietly: %v", err)
+	}
 }
