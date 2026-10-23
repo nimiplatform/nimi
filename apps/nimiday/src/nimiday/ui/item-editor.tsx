@@ -20,6 +20,8 @@ import type { Importance, ItemKind, LifeItem, RemindRule, RepeatFreq } from '../
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { TimeField, timeFieldLabels } from './time-field.js';
 import { isEditorScheduleValid, nextScheduleMinute, updateEditorSchedule, type EditorSchedule } from './item-editor-schedule.js';
+import { ItemDecision } from './item-decision.js';
+import { OriginNote } from './common.js';
 
 type RemindChoice = 'none' | 'at-time' | '10' | '30' | '60' | '1440';
 
@@ -106,6 +108,7 @@ export function ItemEditor({
   const item = itemId ? state.items.find((entry) => entry.id === itemId) ?? null : null;
   const [form, setForm] = useState<FormState>(() => initialForm(item, draft, today));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingDecision, setEditingDecision] = useState(false);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
   const setSchedule = (patch: Partial<EditorSchedule>) => {
     const clock = new Date();
@@ -182,6 +185,24 @@ export function ItemEditor({
     clearValueAriaLabel: pickerCopy.clearDate,
   };
 
+  if (item?.decision && !editingDecision) return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent onClose={onClose} data-testid="nd-item-decision">
+        <DialogHeader><DialogTitle>{item.state === 'waiting' ? copy.items.waiting : copy.item.decisionRecord}</DialogTitle></DialogHeader>
+        <DialogBody>
+          <h3 className="nd-decision-question">{item.decision.question}</h3>
+          <div className="nd-faint"><OriginNote item={item} /></div>
+          {item.state === 'dropped' ? <p className="nd-faint">{copy.item.events.dropped}</p> : null}
+          <ItemDecision item={item} onFollowUp={onClose} />
+        </DialogBody>
+        <DialogFooter>
+          <Button tone="ghost" size="sm" onClick={() => setEditingDecision(true)}>{copy.item.editDetails}</Button>
+          <Button tone="secondary" size="sm" onClick={onClose}>{copy.common.close}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent onClose={onClose} data-testid="nd-item-editor">
@@ -197,14 +218,14 @@ export function ItemEditor({
             ) : null}
             <label className="nd-field">
               <span className="nd-field-label">{copy.item.title}</span>
-              <TextField
+              {item?.decision ? <p className="nd-decision-question">{item.decision.question}</p> : <TextField
                 value={form.title}
                 placeholder={copy.item.titlePlaceholder}
                 maxLength={200}
                 inputClassName="nd-item-editor-title"
                 onChange={(event) => set('title', event.target.value)}
                 onKeyDown={(event) => { if (event.key === 'Enter') save(); }}
-              />
+              />}
             </label>
             <div className="nd-field">
               <span className="nd-field-label">{copy.item.kind}</span>

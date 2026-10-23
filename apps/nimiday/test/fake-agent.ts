@@ -1,8 +1,8 @@
 // Test-only independent business execution port. Canonical chat is intentionally absent.
-import type { NimiLocalAppAgentWorkEvent, NimiLocalAppAgentWorkExecution, NimiLocalAppConversationMessage } from '@nimiplatform/sdk/app';
-type Reference = { agentHandle: string; displayName: string; avatarUrl: string | null; agentBinding?: string };
+import type { NimiLocalAppAgentHandle, NimiLocalAppAgentReference, NimiLocalAppAgentWorkClient, NimiLocalAppAgentWorkEvent, NimiLocalAppAgentWorkExecution, NimiLocalAppConversationMessage } from '@nimiplatform/sdk/app';
+type Reference = Pick<NimiLocalAppAgentReference, 'agentHandle' | 'displayName' | 'avatarUrl'> & Partial<Pick<NimiLocalAppAgentReference, 'agentBinding' | 'activityAgentRef'>>;
 export type FakeCall = { callId: string; turnId: string; name: string; argumentsJson: string };
-export function handle(suffix: string): string { return `agent_ref_${suffix.padEnd(43, 'x').slice(0, 43)}`; }
+export function handle(suffix: string): NimiLocalAppAgentHandle { return `agent_ref_${suffix.padEnd(43, 'x').slice(0, 43)}` as NimiLocalAppAgentHandle; }
 export function createFakeAgentClient(options: { references: Reference[]; withWork?: boolean; busy?: () => boolean; openFails?: () => boolean; openGate?: Promise<void> }) {
   let sequence = 0; let count = 0; let references = options.references; let interruptNotActive = false; let externalBusy = false;
   const executions = new Map<string, NimiLocalAppAgentWorkExecution>();
@@ -28,17 +28,17 @@ export function createFakeAgentClient(options: { references: Reference[]; withWo
       executions.set(id, execution); publish({ executionId: id, sequence: String(sequence), type: 'snapshot', execution });
     }
   };
-  const agentWork = {
-    listReferences: async () => { if (options.openGate) await options.openGate; if (options.openFails?.()) throw new Error('work references unavailable'); return references; },
+  const agentWork: NimiLocalAppAgentWorkClient = {
+    listReferences: async () => { if (options.openGate) await options.openGate; if (options.openFails?.()) throw new Error('work references unavailable'); return references.map(reference => ({ agentBinding: '', activityAgentRef: '', ...reference })); },
     status: async (input: { agentHandle: string }) => { requireHandle(input); return { busy: externalBusy || options.busy?.() || [...executions.values()].some(value => value.state === 'running'), ownExecutionId: [...executions.values()].find(value => value.state === 'running')?.executionId || null }; },
     start: async (input: Record<string, unknown>) => { requireHandle(input); if (externalBusy || options.busy?.()) throw Object.assign(new Error('busy'), { reasonCode: 'AGENT_BUSY' }); if (options.withWork === false) throw Object.assign(new Error('work unsupported'), { reasonCode: 'local-app-operation-unsupported' }); sent.push(input); const id = `turn_${++count}`; executions.set(id, { executionId: id, workId: String((input.work as { workId: string }).workId), state: 'running', outputText: '', reasonCode: '', message: '', sequence: String(++sequence) }); return { executionId: id }; },
     get: async (input: { agentHandle: string; executionId: string }) => { requireHandle(input); const value = executions.get(input.executionId); if (!value) throw new Error('execution missing'); return value; },
     listToolCalls: async (input: { executionId: string }) => pendingCalls.filter(call => call.turnId === input.executionId && !submitted.some(value => value.callId === call.callId)).map(call => ({ executionId: call.turnId, callId: call.callId, name: call.name, argumentsJson: call.argumentsJson })),
     submitToolResult: async (input: { callId: string; resultJson: string; isError: boolean }) => { submitted.push({ callId: input.callId, resultJson: input.resultJson, isError: input.isError }); return { callId: input.callId }; },
-    cancel: async (input: { executionId: string }) => { interrupts.push({ expectedTurnId: input.executionId }); if (interruptNotActive) throw new Error('execution-not-active'); push({ type: 'turn-interrupted', turnId: input.executionId, reason: 'cancelled' }); return executions.get(input.executionId); },
+    cancel: async (input: { executionId: string }) => { interrupts.push({ expectedTurnId: input.executionId }); if (interruptNotActive) throw new Error('execution-not-active'); push({ type: 'turn-interrupted', turnId: input.executionId, reason: 'cancelled' }); const execution = executions.get(input.executionId); if (!execution) throw new Error('execution missing'); return execution; },
     subscribe: async (input: { executionId: string }) => { const sub = { id: input.executionId, queue: [] as NimiLocalAppAgentWorkEvent[], closed: false, wake: undefined as (() => void) | undefined }; subscribers.add(sub); return { cancel: async () => { sub.closed = true; subscribers.delete(sub); sub.wake?.(); }, async *[Symbol.asyncIterator]() { while (!sub.closed) { const next = sub.queue.shift(); if (next) yield next; else await new Promise<void>(resolve => { sub.wake = resolve; }); } } }; },
   };
-  return { client: { agentWork } as never, anchor: '', sent, submitted, interrupts, setInterruptNotActive: (value: boolean) => { interruptNotActive = value; if (value) for (const [id, execution] of executions) executions.set(id, { ...execution, state: 'cancelled', reasonCode: 'cancelled' }); },
+  return { client: { agentWork }, anchor: '', sent, submitted, interrupts, setInterruptNotActive: (value: boolean) => { interruptNotActive = value; if (value) for (const [id, execution] of executions) executions.set(id, { ...execution, state: 'cancelled', reasonCode: 'cancelled' }); },
     setBusy: (value: boolean) => { externalBusy = value; },
     setExecutionState: (id: string, patch: Partial<NimiLocalAppAgentWorkExecution>) => { const value = executions.get(id); if (value) executions.set(id, { ...value, ...patch }); },
     endStream: () => { for (const sub of subscribers) { sub.closed = true; sub.wake?.(); } },

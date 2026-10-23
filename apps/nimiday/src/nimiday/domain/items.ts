@@ -192,7 +192,8 @@ export function dropItem(item: LifeItem, by: Actor, now: Date): LifeItem {
 export function reopenItem(item: LifeItem, by: Actor, now: Date): LifeItem {
   return {
     ...item,
-    state: item.decision && item.decision.choice === null ? 'waiting' : 'open',
+    state: item.decision ? 'waiting' : 'open',
+    decision: item.decision ? { ...item.decision, choice: null } : null,
     completedAt: null,
     remindedFor: null,
     updatedAt: now.toISOString(),

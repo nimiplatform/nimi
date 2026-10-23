@@ -313,7 +313,17 @@ export function linkedSource(link: SourceLink, changes: readonly SourceChange[])
 
 /** A NimiDay arrangement for another App's reminder: what to keep, so it can be found again. */
 export function sourceLinkFor(change: SourceChange): SourceLink {
-  return { appId: change.appId, appName: change.appName, activityId: change.id, objectKey: change.objectKey ?? null, title: change.title };
+  return { appId: change.appId, appName: change.appName, activityId: change.id, objectKey: change.objectKey ?? null, title: change.title,
+    contentSignature: sourceContentSignature(change) };
+}
+
+export function sourceViewKey(change: SourceChange): string {
+  return change.objectKey ? `object:${change.objectKey}` : `activity:${change.id}`;
+}
+
+export function sourceContentSignature(change: SourceChange): string {
+  // Shared reading/attention flags are not changes to the source's business content.
+  return JSON.stringify([change.title, change.summary, change.todoState]);
 }
 
 /** Followed, not set aside, one per business object, newest first. */
@@ -321,8 +331,9 @@ export function followedChanges(
   records: readonly ActivityRecordLike[],
   profile: DayProfile,
   circles: readonly CareCircle[],
+  includeHidden = false,
 ): SourceChange[] {
-  const hidden = new Set(profile.hiddenSourceIds);
+  const hidden = new Set(profile.sourceViews.filter(view => view.hidden).map(view => view.key));
   const newest = new Map<string, ActivityRecordLike>();
   const loose: ActivityRecordLike[] = [];
   for (const record of records) {
@@ -338,9 +349,9 @@ export function followedChanges(
   }
   const changes: SourceChange[] = [];
   for (const record of [...newest.values(), ...loose]) {
-    if (hidden.has(record.activityId)) continue;
     const change = toSourceChange(record, profile, circles);
     if (!change || !sourcePreferenceFor(profile, change.appId).enabled) continue;
+    if (!includeHidden && hidden.has(sourceViewKey(change))) continue;
     changes.push(change);
   }
   return changes.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0));

@@ -2,6 +2,26 @@ format: nimicoding.authority/v2
 owner: team.nimiday
 scope: nimiday.assistant
 units:
+  - id: rule.nimi.nimiday.assistant.source-attention-summary
+    kind: rule
+    title: Bound the Today source summary and preserve precise full-list access
+    modality: must
+    statement: Today shows at most three source attention units, one unresolved-association summary and one recent-unread-dynamics summary, without borrowing empty slots or growing with publisher count. Deduplicate stable business objects within their publishing registration; aggregate only records with the same verified source group, association, attention tier and handling reason, never by names or across registrations. Rank explicit needs-attention before ordinary open reminders, distribute equal-tier units across Apps and keep deterministic stable-identity order rather than promoting repeated updates. Do not infer deadlines or urgency from titles, publication times or recommendation windows. Always expose See all into Care's all-sources view, including unassociated records, with exact group and state entry filters, searchable App and object filters and access to arranged, snoozed, hidden and terminal records. Counts describe distinct loaded items, not cards or update events, and incomplete coverage is explicitly qualified. Recent dynamics include only unread non-action content from the past seven days; old open reminders never expire by age. Ordinary updates do not reshuffle a user's active reading session without an explicit refresh, while permission and terminal-state changes invalidate obsolete actions immediately.
+    condition: Whenever NimiDay presents other Apps' Activity in Today or its linked complete list.
+    failure: Preserve bounded summaries and reachable omitted items; show loading, unavailable or incomplete coverage instead of empty-success or fabricated totals.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
+  - id: rule.nimi.nimiday.assistant.source-attention-lifecycle
+    kind: rule
+    title: Separate source completion from local attention and reading state
+    modality: must
+    statement: Opening or acknowledging a source never completes it. Saved active Day arrangements remove duplicate arrangement prompts; deletion or ending of the arrangement, changed source content or source completion/cancellation requiring review of a still-active arrangement can restore a precise review prompt. Local review acknowledgement suppresses only that reviewed content and handling reason. Local snooze suppresses homepage presentation until the chosen time, and stable-object hide persists across ordinary revisions until explicit restore; neither mutates shared read state or source business. Terminal sources leave pending attention, except an unresolved impact on an active arrangement, and never return solely because a snooze expires. Local hide and snooze remain visible and reversible in the complete list. Association removes only the association prerequisite, never the source task. Source-follow preferences and ended-care scope remain effective. Presentation choices are persisted through normal App storage with failed saves exposed; no source mutation or success is inferred from a timer, opening, local completion or unavailable source.
+    condition: Whenever a user handles a source reminder or its linked Day arrangement.
+    failure: Retain the actual source state and expose unsaved or unavailable outcomes without false completion or lost access to locally suppressed items.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
   - id: rule.nimi.nimiday.assistant.child-source-addition
     kind: rule
     title: Add a shared child and its care association in one explicit action

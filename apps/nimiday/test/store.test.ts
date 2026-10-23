@@ -350,7 +350,7 @@ describe('sources', () => {
     const profile = {
       ...DEFAULT_PROFILE,
       sources: [{ appId: 'nimi.realm-world-studio', enabled: true, circleId: null }, { appId: 'nimi.parentos', enabled: false, circleId: null }],
-      hiddenSourceIds: ['act_9'],
+      sourceViews: [{ key: 'activity:act_9', hidden: true, snoozedUntil: null, reviewedSignature: null }],
     };
     const changes = followedChanges([
       record({}),

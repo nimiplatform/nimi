@@ -9,7 +9,7 @@ import { AgentAvatar, Card, Hint, RunStateChip } from './common.js';
 import { ItemRow } from './item-row.js';
 import { QuickCapture } from './quick-capture.js';
 import { TodayCareRuns } from './today-care-runs.js';
-import { SourceCoverageNote, SourceRow } from './source-row.js';
+import { SourceAttention, SourceCompactEntry } from './source-attention.js';
 import { useUi } from './ui-context.js';
 import './today-page.css';
 
@@ -35,9 +35,7 @@ export function TodayPage() {
   const desk = useDesk();
   const ui = useUi();
   const now = engineState.now;
-  const model = useMemo(() => buildToday(state, engineState.changes, now), [state, engineState.changes, now]);
-  const sourceMessages = [...model.reminders, ...model.changes];
-  const sourceMessagesTotal = model.remindersTotal + model.changesTotal;
+  const model = useMemo(() => buildToday(state, now), [state, now]);
   const agentName = desk.agent?.displayName ?? state.profile.appointment?.displayName ?? null;
   const morningSkill = useMemo(() => resolveSkills(language, state.skillOverrides, state.customSkills)
     .find((skill) => skill.id === MORNING_CARE_SKILL)!, [language, state.skillOverrides, state.customSkills]);
@@ -97,6 +95,7 @@ export function TodayPage() {
             </TodaySection>
           ) : null}
 
+          <SourceCompactEntry />
           <div className="nd-today-details">
             <TodaySection title={copy.today.schedule} className="nd-today-schedule" action={<Button tone="ghost" size="sm" className="nd-section-action" leadingIcon={<Plus size={16} aria-hidden="true" />} onClick={() => ui.newItem({ date: model.date })}>{copy.common.add}</Button>}>
               {model.timeline.length === 0 ? <div className="nd-today-empty"><span className="nd-today-empty-icon"><CalendarDays size={28} strokeWidth={1.5} aria-hidden="true" /></span><Hint>{copy.today.scheduleEmpty}</Hint><Button tone="secondary" size="sm" onClick={() => ui.newItem({ date: model.date })}>{copy.today.planSomething}</Button></div> : (
@@ -165,25 +164,7 @@ export function TodayPage() {
         </div>
 
         <aside className="nd-stack nd-today-rail" aria-label={copy.today.fromApps}>
-          <TodaySection
-            title={copy.today.fromApps}
-            action={engineState.activityStatus === 'ready' && sourceMessagesTotal > sourceMessages.length ? <button type="button" className="nd-link" onClick={() => navigate({ view: 'care' })}>{copy.today.seeAll}</button> : undefined}
-            testId="nd-source-messages"
-          >
-            {engineState.activityStatus === 'no-access' ? (
-              <>
-                <p className="nd-muted" style={{ margin: 0, fontSize: 13 }}>{copy.today.sourcesNoAccess}</p>
-                <p className="nd-faint" style={{ margin: '6px 0 0' }}>{copy.today.sourcesNoAccessBody}</p>
-              </>
-            ) : engineState.activityStatus === 'unavailable' ? (
-              <Hint>{copy.today.sourcesUnavailable}</Hint>
-            ) : sourceMessages.length === 0 ? <Hint>{copy.today.sourcesEmpty}</Hint> : (
-              <div className="nd-list">
-                {sourceMessages.map((change) => <SourceRow key={change.id} change={change} />)}
-              </div>
-            )}
-            <SourceCoverageNote />
-          </TodaySection>
+          <SourceAttention />
         </aside>
       </div>
     </div>

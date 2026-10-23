@@ -125,7 +125,9 @@ export function occurrencesBetween(
   limit = 62,
 ): LocalDate[] {
   const dates: LocalDate[] = [];
-  let cursor = current;
+  // Seek to the requested window before applying the output limit. A one-day
+  // agenda query must still find a repetition more than eight steps away.
+  let cursor = current < from ? alignToRepeat(repeat, from) : current;
   for (let step = 0; step < limit * 8 && dates.length < limit; step += 1) {
     if (cursor > to) break;
     if (cursor >= from) dates.push(cursor);

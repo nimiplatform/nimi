@@ -4,10 +4,11 @@ import { registerNimiElectronRuntimeBridge } from '../src/main/host.js';
 import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
-function setup(open?: () => Promise<{ streamId: string }>) {
+function setup(open?: () => Promise<{ streamId: string }>, activityOpen?: () => Promise<{ streamId: string }>) {
   const ipcMain = new FakeIpcMain();
   const aborted: string[] = [];
   const readsClosed: string[] = [];
+  const activitiesClosed: string[] = [];
   let next = 0;
   const host = {
     assetWriteOpen: open ?? (async () => ({ streamId: `write-${++next}` })),
@@ -15,6 +16,9 @@ function setup(open?: () => Promise<{ streamId: string }>) {
     assetWriteAbort: async ({ streamId }: { streamId: string }) => { aborted.push(streamId); return { closed: true }; },
     assetReadOpen: async () => ({ streamId: `read-${++next}` }),
     assetReadClose: async ({ streamId }: { streamId: string }) => { readsClosed.push(streamId); return { closed: true }; },
+    activitySubscribe: activityOpen ?? (async () => ({ streamId: `activity-${++next}` })),
+    activityOpenDeliveriesSubscribe: async () => ({ streamId: `delivery-${++next}` }),
+    activityStreamClose: async ({ streamId }: { streamId: string }) => { activitiesClosed.push(streamId); return { closed: true }; },
   } as unknown as NimiElectronLocalAppHost;
   const bridge = registerNimiElectronRuntimeBridge({
     appId: 'example.asset-app', runtimeEndpoint: '127.0.0.1:46371', allowedOrigins: ['http://localhost:1430'], ipcMain,
@@ -24,7 +28,7 @@ function setup(open?: () => Promise<{ streamId: string }>) {
   const call = (event: ReturnType<typeof createInvokeEvent>['event'], name: keyof typeof NIMI_STANDARD_SHELL_COMMANDS, payload: unknown) => (
     invokeBridge(ipcMain, event, { command: NIMI_STANDARD_SHELL_COMMANDS[name], payload: { payload } })
   );
-  return { bridge, aborted, readsClosed, call };
+  return { bridge, aborted, readsClosed, activitiesClosed, call };
 }
 
 describe('renderer asset stream lifetime', () => {
@@ -89,5 +93,58 @@ describe('renderer asset stream lifetime', () => {
     await Promise.resolve();
     expect(state.aborted).toEqual(['write-2']);
     expect(event.sender.listenerCount('did-start-navigation')).toBe(0);
+  });
+});
+
+describe('renderer activity subscription lifetime', () => {
+  it('releases all three views and open deliveries across repeated reloads without closing another window', async () => {
+    const state = setup();
+    const first = createInvokeEvent().event;
+    const second = createInvokeEvent().event;
+    try {
+      await state.call(second, 'local-app.activitySubscribe', { afterChangeSeq: '0' });
+      for (let reload = 0; reload < 24; reload++) {
+        for (let view = 0; view < 3; view++) await state.call(first, 'local-app.activitySubscribe', { afterChangeSeq: '0' });
+        await state.call(first, 'local-app.activityOpenRequestsSubscribe', {});
+        first.sender.emit('did-start-navigation', { isSameDocument: false, isMainFrame: true });
+        await Promise.resolve();
+        expect(state.activitiesClosed).toHaveLength((reload + 1) * 4);
+      }
+      expect(state.activitiesClosed).not.toContain('activity-1');
+      second.sender.emit('destroyed');
+      await Promise.resolve();
+      expect(state.activitiesClosed).toContain('activity-1');
+    } finally { state.bridge.unregister(); }
+  });
+
+  it('cancels an activity subscription that opens after its renderer has navigated away', async () => {
+    let finish!: (value: { streamId: string }) => void;
+    let started!: () => void;
+    const opening = new Promise<void>(resolve => { started = resolve; });
+    const state = setup(undefined, () => { started(); return new Promise(resolve => { finish = resolve; }); });
+    const event = createInvokeEvent().event;
+    try {
+      const result = state.call(event, 'local-app.activitySubscribe', { afterChangeSeq: '0' });
+      await opening;
+      event.sender.emit('did-start-navigation', { isSameDocument: false, isMainFrame: true });
+      finish({ streamId: 'late-activity' });
+      await expect(result).rejects.toMatchObject({ reasonCode: 'renderer-context-replaced' });
+      expect(state.activitiesClosed).toEqual(['late-activity']);
+    } finally { state.bridge.unregister(); }
+  });
+
+  it('keeps same-document subscriptions and forgets explicitly cancelled ones', async () => {
+    const state = setup();
+    const event = createInvokeEvent().event;
+    try {
+      await state.call(event, 'local-app.activitySubscribe', { afterChangeSeq: '0' });
+      event.sender.emit('did-start-navigation', { isSameDocument: true, isMainFrame: true });
+      await Promise.resolve();
+      expect(state.activitiesClosed).toEqual([]);
+      await state.call(event, 'local-app.activitySubscribe', { action: 'cancel', subscriptionId: 'activity-1' });
+      event.sender.emit('render-process-gone');
+      await Promise.resolve();
+      expect(state.activitiesClosed).toEqual(['activity-1']);
+    } finally { state.bridge.unregister(); }
   });
 });

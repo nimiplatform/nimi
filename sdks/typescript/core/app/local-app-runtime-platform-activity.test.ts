@@ -404,6 +404,32 @@ test('automatic listing retries keep the failure visible until recovery succeeds
   }
 });
 
+test('a non-retryable subscription failure reports unavailable and recovers only on explicit retry', async (context) => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const failure = Object.assign(new Error('resource-exhausted'), { retryable: false });
+  const source = fakeShell([() => ({ records: [recordJson(1)], nextPageToken: null, baselineChangeSeq: '1' })]);
+  let fail = true;
+  const activity = createNimiLocalAppActivityClient({ ...source.shell,
+    subscribe: async input => { if (fail) throw failure; return source.shell.subscribe(input); },
+  });
+  const view = createNimiAppActivityView({ activity, onUpdate: () => undefined });
+  try {
+    view.start();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(view.snapshot().status, 'unavailable');
+    assert.equal(view.snapshot().error, failure);
+    assert.deepEqual(view.snapshot().records, []);
+    context.mock.timers.tick(30_000);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(source.listCalls.length, 1);
+    fail = false;
+    view.relist();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(view.snapshot().status, 'ready');
+    assert.equal(view.snapshot().records.length, 1);
+  } finally { await view.stop(); }
+});
+
 test('an ended subscription recovers through a fresh baseline instead of replaying its cursor', async () => {
   const pushable = fakeShell([
     () => ({ records: [recordJson(1)], nextPageToken: null, baselineChangeSeq: '7' }),

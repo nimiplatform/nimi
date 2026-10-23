@@ -13,6 +13,7 @@ import { inQuietHours, type ReminderSettings } from '../domain/reminders.js';
 import { rhythmDue } from '../domain/rhythms.js';
 import { skillRunName, activeSkillRun, CHAT_SKILL, chatSkill, preparationAppointments, resolveSkills, VISIT_PREP_SKILL } from '../domain/skills.js';
 import { followedChanges, NIMIDAY_APP_ID, sourceApps, type ActivityRecordLike, type SourceApp, type SourceChange } from '../domain/sources.js';
+import type { SourceListTarget } from '../domain/source-attention.js';
 import { toLocalDate } from '../domain/time.js';
 import { asksToRecord } from '../domain/quick-capture.js';
 import { executeDayTool, notSavedResult } from '../domain/tools.js';
@@ -41,7 +42,7 @@ const RESTORING_PHASES: ReadonlySet<string> = new Set(['idle', 'loading', 'openi
 export type NavTarget =
   | { readonly view: 'today' }
   | { readonly view: 'items'; readonly itemId?: string }
-  | { readonly view: 'care'; readonly circleId?: string }
+  | { readonly view: 'care'; readonly circleId?: string; readonly sources?: SourceListTarget }
   | { readonly view: 'routines'; readonly runId?: string }
   | { readonly view: 'assistant' }
   | { readonly view: 'settings' }
@@ -51,6 +52,7 @@ export type EngineState = {
   readonly now: Date;
   readonly sessionStartedAt: Date;
   readonly changes: readonly SourceChange[];
+  readonly sourceChanges: readonly SourceChange[];
   readonly sourceApps: readonly SourceApp[];
   readonly activityStatus: ActivityStatus;
   readonly directoryStatus: ActivityStatus;
@@ -164,6 +166,7 @@ export function createDayEngine(deps: EngineDeps) {
     now: sessionStartedAt,
     sessionStartedAt,
     changes: [],
+    sourceChanges: [],
     sourceApps: [],
     activityStatus: 'idle',
     directoryStatus: 'idle',
@@ -219,6 +222,7 @@ export function createDayEngine(deps: EngineDeps) {
       activityCoverage: activity.coverage,
       activityHasMore: activity.hasMore,
       changes: followedChanges(records, data().profile, data().circles),
+      sourceChanges: followedChanges(records, data().profile, data().circles, true),
       sourceApps: withChildDirectory(sourceApps(records), directory),
     });
   };
@@ -1003,9 +1007,9 @@ export function createDayEngine(deps: EngineDeps) {
     },
     acknowledgeSource: async (change: SourceChange) => {
       const record = deps.activity.getState().records.find((candidate) => candidate.activityId === change.id);
-      if (record) await deps.activity.markRead(record);
+      if (!record) throw new Error('Source record is unavailable.');
+      await deps.activity.markRead(record);
     },
-    hideSource: (change: SourceChange) => deps.actions.hideSource(change.id),
     syncHomeNow: () => syncHome(),
   };
 }

@@ -1,5 +1,5 @@
 import { createDefaultRuntimeGrpcBridgeClient } from './grpc-client.js';
-import { createElectronLocalAppAssetStreamLifecycle } from './local-app-asset-stream-lifecycle.js';
+import { createElectronLocalAppStreamLifecycle } from './local-app-stream-lifecycle.js';
 import {
   rendererUrlsEqualExact,
   resolveBundledAvatarRendererUrl,
@@ -293,7 +293,7 @@ export function registerNimiElectronRuntimeBridge(
     });
   }
   const desktopStreams = new Map<string, RuntimeGrpcBridgeStream>();
-  const rendererAssetStreams = createElectronLocalAppAssetStreamLifecycle();
+  const rendererStreams = createElectronLocalAppStreamLifecycle();
   const desktopUnaries = new Map<string, ActiveRuntimeUnary>();
   const bundledAvatarStreamsBySender = new Map<object, Map<string, RuntimeGrpcBridgeStream>>();
   const bundledAvatarUnariesBySender = new Map<object, Map<string, ActiveRuntimeUnary>>();
@@ -402,9 +402,9 @@ export function registerNimiElectronRuntimeBridge(
     const effectiveStandardShellHost = rendererProfile.standardShellHost;
     const envelope = asRecord(message, 'Electron Runtime bridge message must be an object');
     const command = normalizeRequiredToken(envelope.command, 'command');
-    const assetOpening = rendererProfile.standardShellHost?.localAppHost
-      ? rendererAssetStreams.capture(event.sender, command) : undefined;
     const payload = asRecord(envelope.payload ?? {}, 'Electron Runtime bridge command ' + command + ' payload must be an object');
+    const streamOpening = rendererProfile.standardShellHost?.localAppHost
+      ? rendererStreams.capture(event.sender, command, payload.payload) : undefined;
     const commandHandler = rendererProfile.commandHandlers?.[command];
     const commandKind = classifyElectronHostCommand(command, Boolean(commandHandler));
     // Let the existing Host availability policy distinguish setup/repair RPCs
@@ -553,7 +553,7 @@ export function registerNimiElectronRuntimeBridge(
         ? <T>(operation: () => Promise<T>) => operation()
         : runDataRootOperation;
       return gate(() => inDocumentOrder(async () => {
-        const result = await rendererAssetStreams.run(assetOpening, localHost, command, standardPayload, () => dispatchElectronLocalAppCommand({
+        const result = await rendererStreams.run(streamOpening, localHost, command, standardPayload, () => dispatchElectronLocalAppCommand({
           host: localHost,
           payload: standardPayload,
           command,
@@ -722,7 +722,7 @@ export function registerNimiElectronRuntimeBridge(
       : {}),
     unregister: () => {
       input.standardShellHost?.chromeHost?.dispose();
-      rendererAssetStreams.dispose();
+      rendererStreams.dispose();
       input.ipcMain.removeHandler?.(invokeChannel);
       for (const stream of desktopStreams.values()) stream.cancel();
       cancelRuntimeUnaries(desktopUnaries, 'Electron Runtime bridge was unregistered during unary');

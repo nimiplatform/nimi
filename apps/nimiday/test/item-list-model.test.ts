@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { completeItem, createItem, dropItem, editItem } from '../src/nimiday/domain/items.js';
-import { completedItemEntries, matchesItemSearch } from '../src/nimiday/ui/item-list-model.js';
+import { completeItem, createItem, decideItem, dropItem, editItem, reopenItem } from '../src/nimiday/domain/items.js';
+import { completedItemEntries, matchesItemSearch, pendingItemGroups } from '../src/nimiday/ui/item-list-model.js';
+import { emptyState } from '../src/nimiday/domain/defaults.js';
 
 describe('finding items and completion records', () => {
   const now = new Date('2026-10-23T10:00:00+08:00');
@@ -29,5 +30,41 @@ describe('finding items and completion records', () => {
     expect(completedItemEntries([skipped])).toEqual([]);
     const items = Array.from({ length: 90 }, (_, i) => ({ ...completeItem(createItem({ title: `Done ${i}` }, { by: 'user' }, now), 'user', now), id: `item-${i}` }));
     expect(completedItemEntries(items)).toHaveLength(90);
+  });
+
+  it('keeps distant repetitions reachable and separates decisions and completed work from pending work', () => {
+    const future = createItem({ title: 'Annual checkup', date: '2027-07-01', repeat: { freq: 'yearly' } }, { by: 'user' }, now);
+    const today = createItem({ title: 'Today', date: '2026-10-23' }, { by: 'user' }, now);
+    const waiting = { ...make(), state: 'waiting' as const };
+    const done = completeItem(today, 'user', now);
+    const undated = createItem({ title: 'Plan later' }, { by: 'user' }, now);
+    const groups = pendingItemGroups({ ...emptyState('en', now), items: [future, waiting, done, undated] }, now);
+    expect(groups.pending.map(item => item.id)).toEqual([future.id, undated.id]);
+    expect(groups.later).toEqual([future]);
+    expect(groups.undated).toEqual([undated]);
+    expect(groups.days).toEqual([]);
+  });
+
+  it('shows a timed overdue occurrence once while retaining future repeat previews', () => {
+    const item = createItem({ title: 'Medicine', date: '2026-10-23', time: '09:00', repeat: { freq: 'daily' } }, { by: 'user' }, now);
+    const groups = pendingItemGroups({ ...emptyState('en', now), items: [item] }, now);
+    expect(groups.overdue).toEqual([item]);
+    expect(groups.days.some(day => day.date === '2026-10-23')).toBe(false);
+    expect(groups.days).toHaveLength(13);
+    expect(groups.days.every(day => day.entries.every(entry => entry.kind === 'item' && entry.projected))).toBe(true);
+  });
+
+  it('returns a decided or cancelled question to waiting, preserves its history and permits a different choice', () => {
+    const question = createItem({ title: 'Choose a plan', decision: { question: 'Which plan?', options: ['A', 'B'], choice: null } }, { by: 'user' }, now);
+    const decided = decideItem(question, 'A', now);
+    expect(completedItemEntries([decided])).toHaveLength(1);
+    for (const closed of [decided, dropItem(question, 'user', now)]) {
+      const reopened = reopenItem(closed, 'user', now);
+      expect(reopened).toMatchObject({ state: 'waiting', decision: { choice: null }, completedAt: null });
+      expect(reopened.history.slice(0, -1)).toEqual(closed.history);
+      expect(pendingItemGroups({ ...emptyState('en', now), items: [reopened] }, now).pending).toEqual([]);
+      expect(completedItemEntries([reopened])).toEqual([]);
+      expect(decideItem(reopened, 'B', now)).toMatchObject({ state: 'done', decision: { choice: 'B' } });
+    }
   });
 });

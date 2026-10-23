@@ -77,13 +77,14 @@ function SourceSettings({ app, hidden }: { readonly app: SourceApp; readonly hid
           {groups.map(({ group, name }) => <div key={group.key} className="nd-settings-row nd-settings-row--wrap" data-testid="nd-source-group">
             <div className="nd-setting-text">
               <span className="nd-setting-title">{name}</span>
+              {group.child && app.groups.some(other => other.key !== group.key && other.child?.childName === group.child?.childName)
+                ? <details className="nd-settings-group-detail"><summary>{copy.settings.sourceIdentity}</summary>
+                  <p>{copy.settings.childSourceIdentity(group.child.childId, group.child.sourceRef)}</p></details> : null}
               {!group.available ? <span className="nd-settings-warning">{copy.sources.sourceUnavailable}</span> : null}
-              <details className="nd-settings-group-detail">
-                <summary>{copy.settings.sourceExamples}</summary>
-                <p>{group.examples.join('、')}</p>
-                {group.child && app.groups.some(other => other.key !== group.key && other.child?.childName === group.child?.childName)
-                  ? <details><summary>{copy.settings.sourceIdentity}</summary><p>{copy.settings.childSourceIdentity(group.child.childId, group.child.sourceRef)}</p></details> : null}
-              </details>
+              {group.examples.length > 0 ? <details className="nd-settings-group-detail">
+                <summary>{parentos ? copy.settings.sourceChildExamples : copy.settings.sourceExamples}</summary>
+                <ul>{group.examples.map((example, index) => <li key={index}>{example}</li>)}</ul>
+              </details> : null}
             </div>
             <div className="nd-settings-source-select"><SelectField aria-label={group.child ? copy.settings.associateChild(group.child.childName) : `${app.appName} · ${name}`}
               value={selectedFor(group.key)} options={parentos ? childOptions : groupOptions}

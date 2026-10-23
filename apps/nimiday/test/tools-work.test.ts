@@ -165,7 +165,7 @@ describe('day tools', () => {
     }, context(state, [reminder]));
     expect(created.isError).toBe(false);
     const item = created.items!.find((entry) => entry.title === '带小米做 18 月龄体检')!;
-    expect(item.source).toEqual({ appId: 'nimi.parentos', appName: 'ParentOS', activityId: 'activity_checkup', objectKey: reminder.objectKey, title: '18 月龄体检' });
+    expect(item.source).toEqual({ appId: 'nimi.parentos', appName: 'ParentOS', activityId: 'activity_checkup', objectKey: reminder.objectKey, title: '18 月龄体检', contentSignature: '["18 月龄体检",null,"open"]' });
     expect((created.result as { created: { arrangesReminderFrom: unknown } }).created.arrangesReminderFrom).toEqual({ app: 'ParentOS', reminder: '18 月龄体检' });
     // Its later revision is still the same reminder; its own state stays with ParentOS.
     expect(linkedSource(item.source!, [{ ...reminder, id: 'activity_checkup_v2', todoState: 'completed' }])?.todoState).toBe('completed');
@@ -325,7 +325,7 @@ describe('day tools', () => {
     expect(state.notes.some((note) => note.title === '过敏')).toBe(true);
 
     // Today: not on the schedule or anywhere else on the page.
-    const model = buildToday(state, [], new Date('2026-09-24T08:00:00+08:00'));
+    const model = buildToday(state, new Date('2026-09-24T08:00:00+08:00'));
     expect(model.timeline.some((entry) => entry.kind === 'item' && entry.item.id === shot.id)).toBe(false);
     expect(model.attention.some((item) => item.id === shot.id)).toBe(false);
 

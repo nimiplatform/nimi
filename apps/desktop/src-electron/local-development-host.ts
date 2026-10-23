@@ -509,6 +509,18 @@ export class ElectronLocalDevelopmentHost {
       throw new Error('local-development-project-changed', { cause: error });
     }
     if (this.closing) throw new Error('local-development-owner-closing');
+    // Stop marks a run inactive before its Host, renderer and Runtime lease
+    // have finished closing. A new intent for that project must not overlap
+    // the old cleanup or reuse its renderer while it is being terminated.
+    for (const candidate of this.runs.values()) {
+      if (candidate.plan.appId === plan.appId
+        && comparableCanonicalProjectPath(candidate.plan.projectRoot) === comparableCanonicalProjectPath(plan.projectRoot)
+        && candidate.stopped
+        && (!candidate.stoppedCleanupComplete || candidate.pendingEndRunRegistrationHandle)) {
+        await this.stopRun(candidate, 'stopped');
+      }
+    }
+    if (this.closing) throw new Error('local-development-owner-closing');
     const activeRuns = [...this.runs.values()].filter((candidate) => (
       !candidate.stopped
       && (

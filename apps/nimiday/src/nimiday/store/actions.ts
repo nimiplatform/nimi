@@ -33,6 +33,7 @@ import type {
   SkillRun,
   SourceGroupPreference,
   SourcePreference,
+  SourceView,
 } from '../domain/types.js';
 import type { DayStore } from './day-store.js';
 
@@ -342,8 +343,13 @@ export function dayActions(store: DayStore, now: () => Date = () => new Date()) 
           ? current.sourceGroups.map((entry) => (entry.key === preference.key ? preference : entry))
           : [...current.sourceGroups, preference],
       })),
-    hideSource: (activityId: string) =>
-      profile((current) => ({ ...current, hiddenSourceIds: [...current.hiddenSourceIds, activityId].slice(-500) })),
+    // @nimi-authority: rule.nimi.nimiday.assistant.source-attention-lifecycle
+    setSourceView: (key: string, patch: Partial<Omit<SourceView, 'key'>>) =>
+      profile((current) => {
+        const previous = current.sourceViews.find(entry => entry.key === key)
+          ?? { key, hidden: false, snoozedUntil: null, reviewedSignature: null };
+        return { ...current, sourceViews: [...current.sourceViews.filter(entry => entry.key !== key), { ...previous, ...patch }] };
+      }),
   };
 }
 

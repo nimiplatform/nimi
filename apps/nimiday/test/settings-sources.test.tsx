@@ -92,3 +92,20 @@ it('shows denied access without editable cached source controls and can retry', 
     expect(context.retry).toHaveBeenCalledOnce();
   } finally { await act(async () => root.unmount()); container.remove(); }
 });
+
+it('distinguishes equal child names from different registrations even without reminder examples', async () => {
+  resetEngine();
+  context.engine.sourceApps = [{ ...parentos, groups: ['source-a', 'source-b'].map(sourceRef => ({
+    ...parentos.groups[0]!, key: `${sourceRef}\0child:one`, examples: [],
+    child: { sourceRef, childId: 'one', childName: 'Same name' },
+  })) }];
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(<SettingsSources />));
+    const groups = [...container.querySelectorAll('[data-testid="nd-source-group"]')];
+    expect(groups).toHaveLength(2);
+    expect(groups[0]!.textContent).toContain(copyFor('zh').settings.childSourceIdentity('one', 'source-a'));
+    expect(groups[1]!.textContent).toContain(copyFor('zh').settings.childSourceIdentity('one', 'source-b'));
+  } finally { await act(async () => root.unmount()); container.remove(); }
+});

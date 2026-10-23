@@ -186,9 +186,10 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
     generation += 1;
     state = new NimiAppActivityMergeState(filter);
     continuation = null;
-    current = { status: 'loading', complete: false, hasMore: false, error: current.error };
+    current = { status: current.error ? 'unavailable' : 'loading', complete: false, hasMore: false, error: current.error };
     void closeSubscription();
     publish();
+    if (current.error && extractNimiErrorFields(current.error).retryable === false) return;
     // Change cursors are not bound to an account, and an ended subscription
     // may belong to a session that was replaced by another account or a
     // restarted Runtime. Recovery therefore starts a fresh listing baseline
@@ -197,7 +198,7 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
     failures = openedAt !== undefined && Date.now() - openedAt >= 30_000 ? 1 : failures + 1;
     // A first expired cursor is an explicit relist requirement, not a fault.
     const delay = expired && failures === 1 ? 0 : Math.min(250 * 2 ** (failures - 1), 5_000);
-    scheduleRetry(() => startListing(), delay);
+    scheduleRetry(() => startListing({ background: current.error !== null }), delay);
   };
 
   // Merges continuation pages of one baseline until the step budget is spent;

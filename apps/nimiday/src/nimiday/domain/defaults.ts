@@ -14,7 +14,7 @@ export const DEFAULT_PROFILE: DayProfile = {
   onboarded: false,
   sources: [],
   sourceGroups: [],
-  hiddenSourceIds: [],
+  sourceViews: [],
   lastActiveAt: null,
 };
 

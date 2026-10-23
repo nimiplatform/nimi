@@ -1,6 +1,7 @@
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { NimiElectronLocalAppHostError, type NimiElectronLocalAppHost } from './local-app-host.js';
 import type { NimiElectronIpcMainInvokeEvent } from './types.js';
+import { dispatchElectronLocalAppCommand } from './local-app-commands.js';
 
 type Sender = NonNullable<NimiElectronIpcMainInvokeEvent['sender']>;
 type Entry = { readonly host: NimiElectronLocalAppHost; readonly id: string; readonly close: () => Promise<unknown> };
@@ -17,9 +18,13 @@ const terminalCommands = new Set<string>([
   NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteAbort'],
   NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'],
 ]);
+const activityCommands = new Set<string>([
+  NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'],
+  NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpenRequestsSubscribe'],
+]);
 
 /** Own only renderer-initiated transport streams; Node business services keep their own lifetime. */
-export function createElectronLocalAppAssetStreamLifecycle() {
+export function createElectronLocalAppStreamLifecycle() {
   const scopes = new Map<Sender, Scope>();
   let disposed = false;
   const invalidate = (scope: Scope) => {
@@ -63,9 +68,11 @@ export function createElectronLocalAppAssetStreamLifecycle() {
   };
 
   return {
-    capture(sender: Sender | undefined, command: string): Opening | undefined {
+    capture(sender: Sender | undefined, command: string, payload: unknown): Opening | undefined {
+      const action = payload && typeof payload === 'object' && 'action' in payload ? payload.action : undefined;
       if (command !== NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen']
-        && command !== NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen']) return undefined;
+        && command !== NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen']
+        && !(activityCommands.has(command) && action !== 'cancel' && action !== 'next')) return undefined;
       const scope = scopeFor(sender);
       return { scope, generation: scope.generation };
     },
@@ -78,14 +85,20 @@ export function createElectronLocalAppAssetStreamLifecycle() {
     ): Promise<unknown> {
       const write = command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen'];
       const read = command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen'];
-      if (write || read) {
+      const activity = activityCommands.has(command);
+      const activityOpen = activity && payload.action !== 'cancel' && payload.action !== 'next';
+      if (write || read || activityOpen) {
         if (!opening) throw new NimiElectronLocalAppHostError('electron-local-app-renderer-lifecycle-required', false);
         const { scope, generation } = opening;
         if (disposed || scope.closed || scope.generation !== generation) throw new NimiElectronLocalAppHostError('renderer-context-replaced', false);
         const result = await operation();
-        const id = result && typeof result === 'object' && 'streamId' in result ? result.streamId : undefined;
+        const id = result && typeof result === 'object'
+          ? activityOpen && 'subscriptionId' in result ? result.subscriptionId
+            : 'streamId' in result ? result.streamId : undefined : undefined;
         if (typeof id !== 'string' || !id) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
-        const entry: Entry = { host, id, close: () => write ? host.assetWriteAbort({ streamId: id }) : host.assetReadClose({ streamId: id }) };
+        const entry: Entry = { host, id, close: () => activityOpen
+          ? dispatchElectronLocalAppCommand({ host, command, payload: { action: 'cancel', subscriptionId: id } })
+          : write ? host.assetWriteAbort({ streamId: id }) : host.assetReadClose({ streamId: id }) };
         if (disposed || scope.closed || scope.generation !== generation) {
           await Promise.resolve().then(entry.close).catch(() => undefined);
           throw new NimiElectronLocalAppHostError('renderer-context-replaced', false);
@@ -93,11 +106,15 @@ export function createElectronLocalAppAssetStreamLifecycle() {
         scope.entries.add(entry);
         return result;
       }
+      let result: unknown;
       try {
-        return await operation();
+        result = await operation();
+        return result;
       } finally {
-        if (terminalCommands.has(command)) for (const scope of scopes.values()) for (const entry of scope.entries) {
-          if (entry.host === host && entry.id === payload.streamId) scope.entries.delete(entry);
+        const activityEnded = activity && (payload.action === 'cancel'
+          || (result !== null && typeof result === 'object' && 'completed' in result && result.completed === true));
+        if (terminalCommands.has(command) || activityEnded) for (const scope of scopes.values()) for (const entry of scope.entries) {
+          if (entry.host === host && entry.id === (activity ? payload.subscriptionId : payload.streamId)) scope.entries.delete(entry);
         }
       }
     },

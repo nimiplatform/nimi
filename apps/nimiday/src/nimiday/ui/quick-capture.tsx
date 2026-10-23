@@ -7,8 +7,9 @@ import { describeRepeat, formatWhen } from '../i18n/index.js';
 import { alignToRepeat, normalizeRepeat } from '../domain/recurrence.js';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { useUi } from './ui-context.js';
+import type { LifeItem } from '../domain/types.js';
 
-export function QuickCapture({ circleId = null }: { readonly circleId?: string | null }) {
+export function QuickCapture({ circleId = null, onCreated }: { readonly circleId?: string | null; readonly onCreated?: (item: LifeItem) => void }) {
   const { actions, copy } = useNimiDay();
   const { now } = useEngine();
   const { state } = useDayStore();
@@ -42,6 +43,7 @@ export function QuickCapture({ circleId = null }: { readonly circleId?: string |
       repeat: parsed.repeat,
     });
     setText('');
+    onCreated?.(item);
     nimiToast.show({
       tone: 'success',
       message: item.date ? copy.capture.addedWhen(item.title, formatWhen(copy, item, today)) : copy.capture.added(item.title),

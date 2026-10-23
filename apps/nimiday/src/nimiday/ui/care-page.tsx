@@ -13,12 +13,14 @@ import { SourceCoverageNote, SourceRow } from './source-row.js';
 import { useUi } from './ui-context.js';
 import { careChanges, careItems } from './care-summary.js';
 import { SourceChildAction } from './parentos-children.js';
+import { SourceBrowser } from './source-browser.js';
+import type { SourceListTarget } from '../domain/source-attention.js';
 
 type CareSection = 'changes' | 'items' | 'notes';
 const CHANGE_PREVIEW_COUNT = 6;
 
 // @nimi-authority: rule.nimi.nimiday.assistant.child-source-association
-export function CarePage({ circleId }: { readonly circleId?: string }) {
+export function CarePage({ circleId, sources }: { readonly circleId?: string; readonly sources?: SourceListTarget }) {
   const { copy, navigate } = useNimiDay();
   const { state } = useDayStore();
   const { changes, activityStatus } = useEngine();
@@ -46,6 +48,12 @@ export function CarePage({ circleId }: { readonly circleId?: string }) {
     setQuery('');
     pageRef.current?.scrollIntoView({ block: 'start' });
   };
+
+  if (sources) return <div className="nd-page nd-care-workspace" data-testid="nd-care">
+    <PageHead title={copy.care.title} sub={copy.care.updatesHint}
+      action={<button type="button" className="nd-link" onClick={() => navigate({ view: 'care' })}>{copy.care.people}</button>} />
+    <SourceBrowser key={JSON.stringify(sources)} target={sources} />
+  </div>;
 
   return (
     <div ref={pageRef} className="nd-page nd-care-workspace" data-testid="nd-care">
@@ -91,7 +99,7 @@ export function CarePage({ circleId }: { readonly circleId?: string }) {
           </div>
           <div id="care-panel" role="tabpanel" aria-labelledby={'care-tab-' + section} tabIndex={0} className="nd-care-panel">
             {section === 'changes' ? <>
-              <div className="nd-care-section-intro"><p>{copy.care.updatesHint}</p>{unread > 0 ? <span>{copy.care.unreadChanges(unread)}</span> : null}</div>
+              <div className="nd-care-section-intro"><p>{copy.care.updatesHint}</p>{unread > 0 ? <span>{copy.care.unreadChanges(unread)}</span> : null}<button type="button" className="nd-link" onClick={() => navigate({ view: 'care', sources: { mode: 'pending' } })}>{copy.sourceAttention.allSources}</button></div>
               {!circle && activityStatus !== 'no-access' && activityStatus !== 'unavailable' ? <UnassignedChanges pending={pending} unknown={unknown} other={other} /> : null}
               {activityStatus === 'no-access' ? <div className="nd-care-blank"><p>{copy.today.sourcesNoAccess}</p><p>{copy.today.sourcesNoAccessBody}</p></div>
                 : activityStatus === 'unavailable' ? <Hint>{copy.care.changesUnavailable}</Hint>

@@ -22,6 +22,7 @@ import {
 } from '../src-electron/local-development-host.js';
 import {
   readElectronAIConfigAllowedRoutes,
+  resolveElectronLocalDevelopmentPlan,
   type ElectronLocalDevelopmentPlan,
 } from '../src-electron/local-development-plan.js';
 import { resolveLocalDevelopmentElectronHostLaunch } from '../src-electron/local-development-host-arguments.js';
@@ -129,7 +130,70 @@ function activeRun() {
   };
 }
 
+function signal() {
+  let resolve!: () => void;
+  const promise = new Promise<void>(complete => { resolve = complete; });
+  return { promise, resolve };
+}
+
 describe('Desktop Electron local-development registration host', () => {
+  it('waits for the same project Stop to finish before a new launch and preserves cleanup failures', {
+    skip: process.platform !== 'win32', timeout: 10_000,
+  }, async () => {
+    const appRoot = path.resolve(import.meta.dirname, '../../nimiday');
+    const resolved = await resolveElectronLocalDevelopmentPlan(appRoot, 'nimi.day', 'electron');
+    for (const fails of [false, true]) {
+      const cleanupStarted = signal();
+      const releaseCleanup = signal();
+      const restartWaiting = signal();
+      const order: string[] = [];
+      const host = new ElectronLocalDevelopmentHost(control({
+        terminateHost: async () => {
+          cleanupStarted.resolve();
+          await releaseCleanup.promise;
+          if (fails) throw new Error('termination failed');
+          order.push('terminated');
+        },
+        endRun: async () => { order.push('released'); },
+      }), os.tmpdir());
+      const run = activeRun();
+      // Editable launch metadata must not let this project bypass its old cleanup.
+      run.plan = { ...resolved, displayName: `${resolved.displayName} before edit` };
+      const internal = host as unknown as {
+        runs: Map<string, typeof run>;
+        stopRun(candidate: typeof run, state: string): Promise<void>;
+        startIntent(appId: string, root: string, shell: string, cdp: undefined, managed: boolean, handle: string): Promise<unknown>;
+        startSupervisor(candidate: typeof run): void;
+      };
+      internal.runs.set(run.status.runId, run);
+      internal.startSupervisor = () => { order.push('started'); };
+      const stop = internal.stopRun.bind(internal);
+      const stopping = stop(run, 'stopped');
+      const stopResult = stopping.catch(error => error as Error);
+      await cleanupStarted.promise;
+      internal.stopRun = (old, state) => {
+        restartWaiting.resolve();
+        return stop(old, state);
+      };
+      const starting = internal.startIntent('nimi.day', appRoot, 'electron', undefined, true, HANDLE);
+      const startResult = starting.catch(error => error as Error);
+      try {
+        await restartWaiting.promise;
+        assert.deepEqual(order, [], 'the old Host still owns its process and lease');
+      } finally {
+        releaseCleanup.resolve();
+      }
+      if (fails) {
+        assert.match(String(await startResult), /local-development-process-cleanup-failed/u);
+        assert.deepEqual(order, [], 'failed cleanup admits no replacement or lease release');
+      } else {
+        await starting;
+        assert.deepEqual(order, ['terminated', 'released', 'started']);
+      }
+      await stopResult;
+    }
+  });
+
   it('reopens its real supervisor endpoint after another quit owner fails without restarting stopped Apps', async (context) => {
     const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-recovery-'));
     const host = new ElectronLocalDevelopmentHost(control({ listRegistrations: async () => [] }), home);

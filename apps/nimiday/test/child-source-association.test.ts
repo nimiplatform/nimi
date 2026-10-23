@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createCircle, DEFAULT_PROFILE } from '../src/nimiday/domain/defaults.js';
+import { createCircle, DEFAULT_PROFILE, emptyState } from '../src/nimiday/domain/defaults.js';
+import { buildSourceAttention, selectSourceEntries } from '../src/nimiday/domain/source-attention.js';
 import { parentOSChildIdentity, sourceApps, sourceGroupKey, toSourceChange, type ActivityRecordLike } from '../src/nimiday/domain/sources.js';
 import { createTestDayStore as createDayStore } from './persistence-fixture.js';
 import { dayActions } from '../src/nimiday/store/actions.js';
@@ -35,6 +36,16 @@ const profile = {
 };
 
 describe('ParentOS source and child association', () => {
+  it('keeps ended care out of Today even when active attribution has been cleared', () => {
+    const ended = { ...snow, status: 'ended' as const };
+    const change = toSourceChange(snowRecord, profile, [ended, zane])!;
+    expect(change.circleId).toBeNull();
+    const model = buildSourceAttention({ ...emptyState('zh', now), profile, circles: [ended, zane] }, [change], now);
+    expect(model.units).toHaveLength(0);
+    expect(model.association).toHaveLength(0);
+    expect(model.openCount).toBe(0);
+    expect(selectSourceEntries(model.entries, { mode: 'all' })).toHaveLength(1);
+  });
   it('repairs a profile write interrupted after the circle was stored without duplicating that child', async () => {
     const saved = new Map<string, unknown>();
     let failProfile = true;

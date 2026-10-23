@@ -5,10 +5,11 @@ import { linkedSource } from '../domain/sources.js';
 import { parseInstant, toLocalDate } from '../domain/time.js';
 import type { LifeItem, LocalDate, LocalTime } from '../domain/types.js';
 import { describeRepeat, formatDate, formatDay, formatInstant } from '../i18n/index.js';
-import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
+import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { CheckButton, Chip, MenuButton, OriginNote } from './common.js';
 import { openSourceWithFeedback } from './source-row.js';
 import { useUi } from './ui-context.js';
+import { ItemDecision } from './item-decision.js';
 
 export function ItemRow({
   item,
@@ -19,6 +20,8 @@ export function ItemRow({
   showDay = false,
   showFullDate = false,
   showSnooze = false,
+  showReschedule = false,
+  hideOverdue = false,
   layout = 'timeline',
 }: {
   readonly item: LifeItem;
@@ -29,10 +32,11 @@ export function ItemRow({
   readonly showDay?: boolean;
   readonly showFullDate?: boolean;
   readonly showSnooze?: boolean;
+  readonly showReschedule?: boolean;
+  readonly hideOverdue?: boolean;
   readonly layout?: 'timeline' | 'title-first';
 }) {
-  const { actions, copy, engine, navigate } = useNimiDay();
-  const desk = useDesk();
+  const { actions, copy, engine } = useNimiDay();
   const { now, changes } = useEngine();
   const { state } = useDayStore();
   const ui = useUi();
@@ -52,19 +56,24 @@ export function ItemRow({
     ? occurrenceDate ? formatDate(copy, occurrenceDate, today) : copy.time.noDate
     : showDay && occurrenceDate ? formatDay(copy, occurrenceDate, today) : null;
 
+  const reopen = () => {
+    actions.reopenItem(item.id);
+    if (item.decision) nimiToast.show({ tone: 'info', message: copy.item.reconsidered, durationMs: 6000 });
+  };
+
   return (
-    <div className="nd-row" data-layout={layout} data-done={done || closed} data-testid="nd-item-row">
-      {item.decision && item.state === 'waiting' ? (
+    <div className="nd-row" data-layout={layout} data-done={done || closed} data-decision={Boolean(item.decision)} data-item-id={item.id} data-testid="nd-item-row">
+      {item.decision ? (
         <span style={{ width: 20 }} aria-hidden="true" />
       ) : (
         <CheckButton
           checked={done || closed}
           disabled={done || projected}
-          label={done ? copy.today.done : closed ? copy.item.reopen : projected ? copy.today.projected : item.repeat ? copy.item.completeOccurrence : copy.item.complete}
+          label={done ? copy.today.done : closed ? copy.item.reopen : projected ? copy.items.repeatPreview : item.repeat ? copy.item.completeOccurrence : copy.item.complete}
           onClick={() => {
             if (done || projected) return;
             if (closed) {
-              actions.reopenItem(item.id);
+              reopen();
               return;
             }
             actions.completeItem(item.id);
@@ -95,7 +104,8 @@ export function ItemRow({
           ) : null}
           {circle ? <Chip tone="accent">{circle.status === 'ended' ? `${circle.name} · ${copy.care.endedTag}` : circle.name}</Chip> : null}
           {item.kind !== 'todo' ? <Chip>{copy.kinds.item[item.kind]}</Chip> : null}
-          {overdue ? <Chip tone="danger">{copy.today.overdue}</Chip> : null}
+          {overdue && !hideOverdue ? <Chip tone="danger">{copy.today.overdue}</Chip> : null}
+          {item.state === 'waiting' && !item.decision ? <Chip>{copy.items.waiting}</Chip> : null}
           {!done && item.state === 'dropped' ? <Chip>{item.repeat ? copy.item.repeatStopped : copy.item.events.dropped}</Chip> : null}
           {done ? <Chip tone="success">{copy.today.done}</Chip> : null}
           {item.source ? (
@@ -110,7 +120,7 @@ export function ItemRow({
           {item.repeat ? (
             <span className="nd-inline-actions" style={{ gap: 4 }}>
               <Repeat size={12} aria-hidden="true" />
-              {projected ? copy.today.projected : describeRepeat(copy, item.repeat)}
+              {projected ? copy.items.repeatPreview : describeRepeat(copy, item.repeat)}
             </span>
           ) : null}
           {item.place ? (
@@ -133,38 +143,11 @@ export function ItemRow({
           ) : null}
           <OriginNote item={item} />
         </div>
-        {item.decision && item.state === 'waiting' ? (
-          <div className="nd-inline-actions" style={{ marginTop: 8 }}>
-            {item.decision.options.map((option) => (
-              <Button key={option} size="sm" tone="secondary" onClick={() => {
-                const question = item.decision!.question;
-                actions.decide(item.id, option);
-                // A question the assistant left is answered back to the assistant, so it can carry on.
-                const agent = desk.phase === 'ready' ? desk.agent : null;
-                nimiToast.show({
-                  tone: 'success',
-                  message: copy.item.decidedToast(option),
-                  durationMs: 8000,
-                  ...(agent && item.origin.by === 'agent' ? {
-                    action: {
-                      label: copy.item.decisionFollowUpAction(agent.displayName),
-                      onClick: () => {
-                        void engine.chat(copy.item.decisionFollowUp(question, option)).then((result) => {
-                          if (result.ok) navigate({ view: 'assistant' });
-                          else nimiToast.show({ tone: 'warning', message: result.reason === 'busy' ? copy.assistant.busy(agent.displayName) : copy.assistant.sendFailed, durationMs: 5000 });
-                        });
-                      },
-                    },
-                  } : {}),
-                });
-              }}>{option}</Button>
-            ))}
-          </div>
-        ) : null}
-        {item.decision?.choice ? <div className="nd-faint" style={{ marginTop: 4 }}>{copy.item.decided(item.decision.choice)}</div> : null}
+        {item.decision ? <ItemDecision item={item} /> : null}
       </div>
       {!done && !projected ? (
         <div className="nd-row-actions">
+          {showReschedule && !closed ? <Button size="sm" tone="ghost" onClick={() => ui.openItem(item.id)}>{copy.items.reschedule}</Button> : null}
           {showSnooze && !closed ? (
             <MenuButton
               label={copy.snooze.label}
@@ -186,7 +169,7 @@ export function ItemRow({
               { id: 'edit', label: copy.common.edit, onSelect: () => ui.openItem(item.id) },
               !closed && item.repeat ? { id: 'skip', label: copy.item.skip, onSelect: () => actions.skipOccurrence(item.id) } : null,
               !closed ? { id: 'drop', label: item.repeat ? copy.item.stopRepeat : copy.item.drop, onSelect: () => actions.dropItem(item.id) } : null,
-              closed ? { id: 'reopen', label: copy.item.reopen, onSelect: () => actions.reopenItem(item.id) } : null,
+              closed ? { id: 'reopen', label: item.decision ? copy.item.reconsider : copy.item.reopen, onSelect: reopen } : null,
             ]}
           />
         </div>

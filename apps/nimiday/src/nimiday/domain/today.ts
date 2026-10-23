@@ -2,7 +2,6 @@ import { stillInCare } from './care.js';
 import { occurrencesBetween } from './recurrence.js';
 import { isActive, isOverdue } from './reminders.js';
 import { rhythmRunsOn } from './rhythms.js';
-import { attentionOrder, type SourceChange } from './sources.js';
 import { addDays, DAY_MS, HOUR_MS, parseInstant, toLocalDate } from './time.js';
 import type { DayState, LifeItem, LocalDate, LocalTime, Rhythm, SkillRun } from './types.js';
 
@@ -32,12 +31,6 @@ export type TodayModel = {
   readonly timeline: readonly TimelineEntry[];
   readonly waiting: readonly LifeItem[];
   readonly missed: readonly LifeItem[];
-  /** Reminders still open in other Apps: things to arrange or finish there. */
-  readonly reminders: readonly SourceChange[];
-  readonly remindersTotal: number;
-  /** Everything else other Apps shared lately: records and interpretations. */
-  readonly changes: readonly SourceChange[];
-  readonly changesTotal: number;
   readonly runs: readonly SkillRun[];
   readonly counts: {
     readonly overdue: number;
@@ -104,12 +97,10 @@ export function entriesForDay(state: DayState, date: LocalDate, runs: readonly S
 
 export function buildToday(
   allState: DayState,
-  allChanges: readonly SourceChange[],
   now: Date,
 ): TodayModel {
   const inCare = stillInCare(allState.circles);
   const state: DayState = { ...allState, items: allState.items.filter(inCare) };
-  const changes = allChanges.filter(inCare);
   const today = toLocalDate(now);
   const weekEnd = addDays(today, 7);
   const active = state.items.filter(isActive);
@@ -147,23 +138,12 @@ export function buildToday(
     latestSkill.add(run.skillId);
     return first || inMotion(run);
   });
-  // An open reminder stays in view however long ago its window began; other news
-  // is kept for a week, and a reminder already handled in its own App only while unread.
-  const recentChanges = changes.filter((change) => (change.nature === 'reminder' && change.todoState === 'open')
-    || (now.getTime() - Date.parse(change.occurredAt) < 7 * DAY_MS && (change.unread || change.todoState === null)));
-  const isOpenReminder = (change: SourceChange) => change.nature === 'reminder' && change.todoState === 'open';
-  const reminders = attentionOrder(recentChanges.filter(isOpenReminder));
-  const news = attentionOrder(recentChanges.filter((change) => !isOpenReminder(change)));
   return {
     date: today,
     attention,
     timeline: entriesForDay(state, today, state.runs),
     waiting: active.filter((item) => item.state === 'waiting'),
     missed,
-    reminders: reminders.slice(0, 5),
-    remindersTotal: reminders.length,
-    changes: news.slice(0, 5),
-    changesTotal: news.length,
     runs,
     counts: {
       overdue: active.filter((item) => isOverdue(item, now)).length,

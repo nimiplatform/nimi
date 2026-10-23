@@ -124,6 +124,7 @@ function sourceLink(value: unknown): { source?: LifeItem['source'] } {
       activityId: link.activityId,
       objectKey: strOrNull(link.objectKey),
       title: str(link.title),
+      contentSignature: strOrNull(link.contentSignature),
     },
   };
 }
@@ -325,7 +326,13 @@ export function normalizeProfile(value: unknown): DayProfile {
         ? { key: record.key, appId: record.appId, circleId: strOrNull(record.circleId) }
         : null;
     }).slice(-200),
-    hiddenSourceIds: stringList(raw.hiddenSourceIds).slice(-500),
+    sourceViews: list(raw.sourceViews, (entry) => {
+      const record = obj(entry);
+      return record && typeof record.key === 'string' && record.key
+        ? { key: record.key, hidden: bool(record.hidden, false),
+          snoozedUntil: typeof record.snoozedUntil === 'string' && Number.isFinite(Date.parse(record.snoozedUntil)) ? record.snoozedUntil : null,
+          reviewedSignature: strOrNull(record.reviewedSignature) } : null;
+    }),
     lastActiveAt: strOrNull(raw.lastActiveAt),
   };
 }

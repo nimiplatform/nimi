@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Button, nimiToast } from '@nimiplatform/kit/ui';
-import { linkedSource, PARENTOS_APP_ID, sourceLinkFor, type SourceChange } from '../domain/sources.js';
+import { linkedSource, PARENTOS_APP_ID, sourceLinkFor, sourceViewKey, type SourceChange } from '../domain/sources.js';
+import { sourceEntries } from '../domain/source-attention.js';
+import type { SourceView } from '../domain/types.js';
 import { isActive } from '../domain/reminders.js';
 import { toLocalDate } from '../domain/time.js';
 import { formatDay, timeAgo } from '../i18n/index.js';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { Chip, MenuButton } from './common.js';
 import { useUi } from './ui-context.js';
+import { saveFailureMessage } from './save-feedback.js';
 
 /**
  * Hand the user over to the App that owns a record, saying what happened.
@@ -31,10 +34,10 @@ export async function openSourceWithFeedback(
 export function SourceRow({ change, showCircle = true, presentation = 'default', associationInGroup = false }: {
   readonly change: SourceChange;
   readonly showCircle?: boolean;
-  readonly presentation?: 'default' | 'care';
+  readonly presentation?: 'default' | 'care' | 'summary';
   readonly associationInGroup?: boolean;
 }) {
-  const { engine, copy } = useNimiDay();
+  const { engine, copy, actions, store, navigate } = useNimiDay();
   const { now } = useEngine();
   const { state } = useDayStore();
   const ui = useUi();
@@ -43,6 +46,12 @@ export function SourceRow({ change, showCircle = true, presentation = 'default',
   const natureTone = change.nature === 'reminder' ? 'warning' : change.nature === 'interpretation' ? 'info' : undefined;
   // NimiDay's own arrangement for this reminder, if one is still active.
   const arranged = state.items.find((item) => isActive(item) && item.source && linkedSource(item.source, [change]) !== null) ?? null;
+  const entry = sourceEntries(state, [change], now)[0]!;
+  const saveView = async (patch: Partial<Omit<SourceView, 'key'>>) => {
+    actions.setSourceView(sourceViewKey(change), patch);
+    const saved = await store.persist();
+    nimiToast.show({ tone: saved.ok ? 'info' : 'warning', message: saved.ok ? copy.sourceAttention.saved : saveFailureMessage(copy, store.getSnapshot(), copy.sourceAttention.saveFailed), durationMs: 4000 });
+  };
 
   const open = async () => {
     setBusy(true);
@@ -65,14 +74,14 @@ export function SourceRow({ change, showCircle = true, presentation = 'default',
       <div className="nd-row-body">
         <span className="nd-row-title">{change.title}</span>
         {presentation === 'care' && change.unread ? <span className="nd-care-unread">{copy.care.unread}</span> : null}
-        {change.summary ? <div className="nd-faint" style={{ marginTop: 2 }}>{change.summary}</div> : null}
+        {change.summary && presentation !== 'summary' ? <div className="nd-faint" style={{ marginTop: 2 }}>{change.summary}</div> : null}
         <div className="nd-row-meta">
           {!associationInGroup ? <span>{change.appName}</span> : null}
-          {change.child && !associationInGroup && (presentation !== 'care' || !change.circleId) ? <span>{change.child.childName}</span> : null}
+          {change.child && !associationInGroup && (presentation !== 'care' || !change.circleId) && (presentation !== 'summary' || !circle) ? <span>{change.child.childName}</span> : null}
           {change.appId === PARENTOS_APP_ID && !change.circleId && !associationInGroup ? <Chip tone="warning">{copy.sources.unassociated}</Chip> : null}
-          <Chip tone={natureTone}>{copy.kinds.nature[change.nature]}</Chip>
+          {presentation !== 'summary' ? <Chip tone={natureTone}>{copy.kinds.nature[change.nature]}</Chip> : null}
           {circle ? <Chip tone="accent">{circle.name}</Chip> : null}
-          <span>{presentation === 'care' ? copy.care.sourceUpdated(timeAgo(copy, change.occurredAt, now)) : timeAgo(copy, change.occurredAt, now)}</span>
+          {presentation !== 'summary' ? <span>{presentation === 'care' ? copy.care.sourceUpdated(timeAgo(copy, change.occurredAt, now)) : timeAgo(copy, change.occurredAt, now)}</span> : null}
           {todoNote ? <Chip tone="success">{todoNote}</Chip> : null}
           {arranged ? (
             <Chip tone="accent">
@@ -82,15 +91,17 @@ export function SourceRow({ change, showCircle = true, presentation = 'default',
             </Chip>
           ) : null}
         </div>
+        {entry.reason ? <div className="nd-source-reason">{copy.sourceAttention.reasons[entry.reason]}</div> : null}
+        {entry.hidden ? <div className="nd-faint">{copy.sourceAttention.hidden}</div> : entry.snoozed ? <div className="nd-faint">{copy.sourceAttention.snoozedUntil(new Date(entry.view!.snoozedUntil!).toLocaleString())}</div> : null}
         {change.nature === 'interpretation' ? <div className="nd-faint" style={{ marginTop: 4 }}>{copy.sources.interpretationNote}</div> : null}
         {change.appId === PARENTOS_APP_ID && !change.child ? <div className="nd-faint">{copy.sources.childUnknown}</div> : null}
-        {presentation === 'care' && !change.sourceAvailable ? <div className="nd-muted">{copy.sources.sourceUnavailable}</div> : null}
+        {!change.sourceAvailable ? <div className="nd-muted">{copy.sources.sourceUnavailable}</div> : null}
       </div>
       <div className="nd-row-actions">
         {change.child && !change.circleId && change.sourceAvailable && !associationInGroup ? (
-          <Button size="sm" tone="ghost" onClick={() => ui.editCircle(null)}>{copy.sources.associateChild}</Button>
+          <Button size="sm" tone="ghost" onClick={() => navigate({ view: 'care', sources: { mode: 'association' } })}>{copy.sources.associateChild}</Button>
         ) : null}
-        {change.openable ? (
+        {arranged && (entry.reason === 'terminal' || entry.reason === 'changed') ? <Button size="sm" tone="ghost" onClick={() => ui.openItem(arranged.id)}>{copy.sources.seeArrangement}</Button> : change.openable ? (
           <Button size="sm" tone="ghost" loading={busy} onClick={() => { void open(); }}>
             {change.known === 'parentos-growth-record' && change.todoState === 'open'
               ? copy.sources.parentosAction
@@ -121,10 +132,18 @@ export function SourceRow({ change, showCircle = true, presentation = 'default',
               id: 'ack',
               label: copy.sources.ack,
               onSelect: () => {
-                void engine.acknowledgeSource(change).then(() => nimiToast.show({ tone: 'info', message: copy.sources.ackHint, durationMs: 3000 }));
+                void engine.acknowledgeSource(change).then(() => nimiToast.show({ tone: 'info', message: copy.sources.ackHint, durationMs: 3000 }))
+                  .catch(() => nimiToast.show({ tone: 'warning', message: copy.sourceAttention.saveFailed, durationMs: 4000 }));
               },
             } : null,
-            { id: 'hide', label: copy.sources.hide, onSelect: () => engine.hideSource(change) },
+            entry.reviewSignature && entry.reason ? { id: 'review', label: copy.sourceAttention.reviewed,
+              onSelect: () => { void saveView({ reviewedSignature: entry.reviewSignature }); } } : null,
+            entry.snoozed ? { id: 'resume', label: copy.sourceAttention.resume,
+              onSelect: () => { void saveView({ snoozedUntil: null }); } }
+              : change.todoState === 'open' || entry.reason ? { id: 'snooze', label: copy.sourceAttention.snooze,
+                onSelect: () => { void saveView({ snoozedUntil: new Date(now.getTime() + 60 * 60_000).toISOString() }); } } : null,
+            { id: 'hide', label: entry.hidden ? copy.sourceAttention.restore : copy.sourceAttention.hide,
+              onSelect: () => { void saveView({ hidden: !entry.hidden }); } },
           ]}
         />
       </div>

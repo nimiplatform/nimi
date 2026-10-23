@@ -126,6 +126,8 @@ export type SourceLink = {
   /** Stable key of the business object, to find its current state again. */
   readonly objectKey: string | null;
   readonly title: string;
+  /** Content captured when the user makes an arrangement; absent means not captured. */
+  readonly contentSignature?: string | null;
 };
 
 export type HandbookNote = {
@@ -330,9 +332,16 @@ export type DayProfile = {
   readonly onboarded: boolean;
   readonly sources: readonly SourcePreference[];
   readonly sourceGroups: readonly SourceGroupPreference[];
-  /** Activity ids the user set aside inside NimiDay (read state stays shared). */
-  readonly hiddenSourceIds: readonly string[];
+  /** App-local presentation decisions keyed by the source-qualified business object. */
+  readonly sourceViews: readonly SourceView[];
   readonly lastActiveAt: Instant | null;
+};
+
+export type SourceView = {
+  readonly key: string;
+  readonly hidden: boolean;
+  readonly snoozedUntil: Instant | null;
+  readonly reviewedSignature: string | null;
 };
 
 export type DayState = {

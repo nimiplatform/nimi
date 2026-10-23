@@ -1,4 +1,5 @@
 import { CalendarHeart, HeartHandshake, ListChecks, MessageCircle, Repeat2, Settings, Sun, type LucideIcon } from 'lucide-react';
+import { useLayoutEffect, useRef } from 'react';
 import { isOverdue } from '../domain/reminders.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
 import type { NavTarget } from '../platform/engine.js';
@@ -10,6 +11,7 @@ import { RoutinesPage } from './routines-page.js';
 import { SettingsPage } from './settings-page.js';
 import { FollowUpsPage } from './followups-page.js';
 import { TodayPage } from './today-page.js';
+import { saveFailureMessage } from './save-feedback.js';
 
 type View = NavTarget['view'];
 
@@ -28,7 +30,7 @@ function Page() {
     case 'today':
       return <TodayPage />;
     case 'care':
-      return <CarePage circleId={nav.circleId} />;
+      return <CarePage circleId={nav.circleId} sources={nav.sources} />;
     case 'items':
       return <ItemsPage focusItemId={nav.itemId} />;
     case 'routines':
@@ -44,6 +46,16 @@ function Page() {
 
 export function Shell() {
   const { copy, nav, navigate, desk: deskApi, store } = useNimiDay();
+  const mainRef = useRef<HTMLElement>(null);
+  const todayScroll = useRef(0);
+  const previousNav = useRef(nav);
+  useLayoutEffect(() => {
+    if (nav.view === 'care' && nav.sources) mainRef.current?.scrollTo({ top: 0 });
+    else if (nav.view === 'today' && previousNav.current.view === 'care' && previousNav.current.sources) {
+      mainRef.current?.scrollTo({ top: todayScroll.current });
+    }
+    previousNav.current = nav;
+  }, [nav]);
   const snapshot = useDayStore();
   const desk = useDesk();
   const { now } = useEngine();
@@ -100,7 +112,7 @@ export function Shell() {
           ))}
         </nav>
         <div className="nd-sidebar-foot">
-          {snapshot.saving === 'saving' ? (
+          {snapshot.saving !== 'error' && (snapshot.saving === 'saving' || snapshot.unsaved) ? (
             <span className="nd-save-state" role="status">{copy.common.saving}</span>
           ) : null}
           <button
@@ -117,14 +129,13 @@ export function Shell() {
           </button>
         </div>
       </aside>
-      <main className="nd-main" data-view={nav.view}>
+      <main ref={mainRef} className="nd-main" data-view={nav.view} onScroll={event => {
+        if (nav.view === 'today') todayScroll.current = event.currentTarget.scrollTop;
+      }}>
         {snapshot.saving === 'error' || snapshot.cleanupPending ? (
           <div className="nd-save-notice" data-tone={snapshot.saving === 'error' ? 'error' : 'pending'} role="status" data-testid={snapshot.saving === 'error' ? 'nd-save-failed' : 'nd-cleanup-pending'}>
             <p>{snapshot.saving === 'error'
-              ? snapshot.saveErrorKind === 'capacity' ? copy.common.saveCapacityFailed
-                : snapshot.saveErrorKind === 'invalid-data' ? copy.common.saveInvalidDataFailed
-                  : snapshot.saveErrorKind === 'uncertain' ? copy.common.saveUncertain
-                    : copy.common.saveFailed
+              ? saveFailureMessage(copy, snapshot)
               : snapshot.recoveryPending ? copy.common.recoveryPending : copy.common.cleanupPending}</p>
             {snapshot.recoveryRequired && snapshot.saving !== 'error' ? <p>{copy.common.cleanupReopen}</p> : null}
             {!snapshot.recoveryRequired ? <button type="button" className="nd-link" onClick={() => { void store.persist(); }}>{copy.common.retrySave}</button> : null}
