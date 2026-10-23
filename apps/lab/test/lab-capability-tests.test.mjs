@@ -1006,6 +1006,23 @@ test('unsupported media settings offer parameter correction instead of a blind r
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 
+test('missing local execution configuration leads to Home setup without retrying or changing the App target', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction, studioNonSuccessNeedsTargetReselection } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  const fake = fakeClient({ execute: () => { throw typedError('ai-local-configuration-not-configured'); } });
+  const result = await runLabCapability({ capabilityId: 'text.decide', prompt: '', parameters: decisionForm() }, ready(fake.client));
+  assert.equal(result.ok, false);
+  assert.equal(result.diagnostics.reasonCode, 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED');
+  assert.equal(studioNonSuccessNeedsTargetReselection(result.diagnostics), false);
+  assert.equal(studioNonSuccessReasonUserMessage(result.reason, t, result.capabilityId, result.diagnostics), t('NonSuccess.message.localConfigurationMissing'));
+  const action = studioNonSuccessReasonUserAction(result.reason, t, result.capabilityId, result.diagnostics);
+  assert.equal(action, t('NonSuccess.action.localConfigurationMissing'));
+  assert.match(action, /Nimi Home/u);
+  assert.notEqual(action, t('NonSuccess.action.runtimeCallFailed'));
+  assert.equal(fake.calls.execute.length, 1);
+});
+
 test('local loading failures offer input and setup checks', async () => {
   const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
   const { t } = await load('shell/i18n/index.js');

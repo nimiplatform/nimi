@@ -14,10 +14,14 @@ import type {
 } from './apps-install-intent.js';
 import { approvedCatalogTargetMatchesIntent, createAppsInstallIntentController } from './apps-install-intent.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
+import { useAppsPresentationCache } from './use-apps-presentation-cache.js';
 import {
   desktopAppsEntryKey,
   packageInfoKey,
   projectAppsPanel,
+  appPresentationKey,
+  mergeAppPresentation,
+  retainCurrentAppPresentation,
   summarizeAppAIConfig,
   type DesktopAppAIConfigReadOptions,
   type DesktopAppsCatalogProjection,
@@ -109,7 +113,7 @@ export function mergeAppsPanelProjection(
       const refreshedEntry = refreshedByKey.get(entry.identity.entryKey);
       const sameSelection = refreshedEntry && (entry.localDevelopment
         ? refreshedEntry.localDevelopment?.selector === entry.localDevelopment.selector
-          && refreshedEntry.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
+          && appPresentationKey(refreshedEntry) === appPresentationKey(entry)
         : packageInfoKey(refreshedEntry) === packageInfoKey(entry));
       return {
         ...entry,
@@ -190,6 +194,12 @@ export function createAppsPanelProjectionReloader(input: {
       previous: input.getCurrent(),
       refreshAIConfig,
       catalog,
+      background: true,
+      onEntry(entry, patch) {
+        if (disposed) return;
+        const next = mergeAppPresentation(input.getCurrent(), entry, patch);
+        if (next) input.commit(next);
+      },
       onInventory(next) {
         if (!disposed && latestRevision[lane] === revision && input.getCurrent()?.status !== 'loaded') input.commit(next);
       },
@@ -198,7 +208,7 @@ export function createAppsPanelProjectionReloader(input: {
         disposed
         || latestRevision[lane] !== revision
       ) return;
-      input.commit(mergeAppsPanelProjection(input.getCurrent(), next, lane));
+      input.commit(mergeAppsPanelProjection(input.getCurrent(), retainCurrentAppPresentation(input.getCurrent(), next), lane));
     }).finally(() => {
       if (inFlight[lane] === task) inFlight[lane] = null;
     });
@@ -242,6 +252,7 @@ export function visibleAppsActionError(failure: AppsActionFailure | null, detail
 }
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanelController {
+  const presentationCache = useAppsPresentationCache();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
@@ -286,6 +297,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       : queryClient.getQueryData<DesktopAppsCatalogProjection>(catalogKey),
     source: {
       ...liveBridge,
+      presentationCache,
       listApprovedCatalogTargets: deps.listApprovedCatalogTargets ? async () => {
         const targets = await queryClient.fetchQuery({
           queryKey: catalogKey,
@@ -309,7 +321,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       projectionRef.current = next;
       setProjection(next);
     },
-  }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, deps.readPackageInfo, liveBridge, queryClient, setProjection]);
+  }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, deps.readPackageInfo, liveBridge, queryClient, setProjection, presentationCache]);
   const reload = useCallback(
     (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
     [reloader],
@@ -438,9 +450,10 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
 
   const retryProjection = useCallback((): void => {
     setActionFailure(null);
+    presentationCache.retryFailures();
     void reload(true);
     void reloader.refreshCatalog();
-  }, [reload, reloader]);
+  }, [reload, reloader, presentationCache]);
 
   const acknowledgeAIConfigMutation = useCallback((
     entryKey: string,

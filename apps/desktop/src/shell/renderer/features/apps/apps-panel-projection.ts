@@ -9,6 +9,7 @@ import type {
   LocalDevelopmentRun,
 } from '../local-development/local-development-types.js';
 import type { InstalledAppRun } from '../../../shared/installed-app-types.js';
+import { AppsPresentationCache } from './apps-presentation-cache.js';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -55,6 +56,7 @@ export interface DesktopAppsCatalogProjection {
 }
 
 export interface DesktopAppsProjectionSource {
+  readonly presentationCache?: AppsPresentationCache;
   readPackageInfo?(request: GetAppPackageInfoRequest): Promise<AppPackageInfo>;
   listApprovedCatalogTargets?(): Promise<readonly ApprovedAppCatalogTarget[]>;
   listCommittedReleases(): Promise<readonly CommittedAppRelease[]>;
@@ -109,6 +111,46 @@ export type DesktopAppsPanelProjection =
     }
   | { readonly status: 'error'; readonly detail: string };
 
+export type AppsPresentationPatch = Partial<Pick<DesktopAppsEntry, 'iconUrl' | 'summary' | 'appInfo' | 'appInfoKey' | 'appInfoError' | 'aiConfigSummary'>>;
+
+export function appPresentationKey(entry: DesktopAppsEntry): string {
+  const dev = entry.localDevelopment;
+  return dev ? JSON.stringify([entry.identity.appId, dev.canonicalProjectRoot, dev.sourceGeneration, dev.declarationGeneration])
+    : packageInfoKey(entry);
+}
+
+export function mergeAppPresentation(current: DesktopAppsPanelProjection | null, selected: DesktopAppsEntry, patch: AppsPresentationPatch): DesktopAppsPanelProjection | null {
+  if (current?.status !== 'loaded') return current;
+  let changed = false;
+  const entries = current.entries.map(entry => {
+    if (entry.identity.entryKey !== selected.identity.entryKey || appPresentationKey(entry) !== appPresentationKey(selected)
+      || Object.entries(patch).every(([key, value]) => entry[key as keyof AppsPresentationPatch] === value)) return entry;
+    changed = true;
+    return { ...entry, ...patch };
+  });
+  return changed ? { ...current, entries } : current;
+}
+
+export function retainCurrentAppPresentation(current: DesktopAppsPanelProjection | null, next: DesktopAppsPanelProjection): DesktopAppsPanelProjection {
+  if (current?.status !== 'loaded' || next.status !== 'loaded') return next;
+  const currentByKey = new Map(current.entries.map(entry => [entry.identity.entryKey, entry]));
+  return { ...next, entries: next.entries.map(entry => {
+    const latest = currentByKey.get(entry.identity.entryKey);
+    return latest && appPresentationKey(latest) === appPresentationKey(entry) ? {
+      ...entry, iconUrl: latest.iconUrl, summary: latest.summary, appInfo: latest.appInfo,
+      appInfoKey: latest.appInfoKey, appInfoError: latest.appInfoError, aiConfigSummary: latest.aiConfigSummary,
+    } : entry;
+  }) };
+}
+
+const sourceCaches = new WeakMap<DesktopAppsProjectionSource, AppsPresentationCache>();
+function presentationCache(source: DesktopAppsProjectionSource): AppsPresentationCache {
+  if (source.presentationCache) return source.presentationCache;
+  let cache = sourceCaches.get(source);
+  if (!cache) { cache = new AppsPresentationCache(); sourceCaches.set(source, cache); }
+  return cache;
+}
+
 /** Home and Apps cards preserve their source identity; App-only intents must be unambiguous. */
 export function resolveRequestedAppDetailEntry(
   entries: readonly DesktopAppsEntry[],
@@ -131,6 +173,8 @@ export async function projectAppsPanel(
     readonly aiConfigReadTimeoutMs?: number;
     readonly catalog?: DesktopAppsCatalogProjection;
     readonly onInventory?: (projection: DesktopAppsPanelProjection) => void;
+    readonly background?: boolean;
+    readonly onEntry?: (entry: DesktopAppsEntry, patch: AppsPresentationPatch) => void;
   } = {},
 ): Promise<DesktopAppsPanelProjection> {
   if (
@@ -260,7 +304,7 @@ export async function projectAppsPanel(
       const previous = previousEntries.get(entry.identity.entryKey);
       if (!previous) return entry;
       const sameSelection = entry.localDevelopment
-        ? previous.localDevelopment?.selector === entry.localDevelopment.selector && previous.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
+        ? previous.localDevelopment?.selector === entry.localDevelopment.selector && appPresentationKey(previous) === appPresentationKey(entry)
         : packageInfoKey(entry) === previous.appInfoKey;
       return sameSelection ? { ...entry, iconUrl: previous.iconUrl, summary: previous.summary, appInfo: previous.appInfo, appInfoKey: previous.appInfoKey, appInfoError: previous.appInfoError, aiConfigSummary: previous.aiConfigSummary } : entry;
     }).sort((left, right) => (
@@ -270,28 +314,53 @@ export async function projectAppsPanel(
     // A catalog that cannot be read is shown as catalog status; it never marks
     // installed Apps as failed.
     const runtimeError = runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`;
-    options.onInventory?.({
+    const inventory: DesktopAppsPanelProjection = {
       status: 'loaded',
       entries: reconcileAppsEntries(previousEntries, mergedEntries),
       catalogStatus: catalogResult.status,
       runtimeError,
-    });
-    const entries = await projectEntriesBounded(mergedEntries, async (entry) => {
-      const information = await projectPackageInfo(entry, previousEntries.get(entry.identity.entryKey), source);
-      return {
-        ...entry,
-        ...information,
-        iconUrl: information.appInfo ? `data:image/png;base64,${information.appInfo.iconPngBase64}` : await projectAppIconUrl({
-          entry,
-          source,
-          previous: previousIconUrl(previousEntries.get(entry.identity.entryKey) ?? null, entry),
-        }),
-        summary: information.appInfo?.summary ?? await projectAppSummary({
-          entry,
-          source,
-          previous: previousSummary(previousEntries.get(entry.identity.entryKey) ?? null, entry),
-        }),
-        aiConfigSummary: appAccessForAIConfig(entry).includes('runtime.consume')
+    };
+    options.onInventory?.(inventory);
+    const enrich = async (): Promise<DesktopAppsPanelProjection> => {
+      const entries = [...inventory.entries];
+      const cache = presentationCache(source);
+      const content = entries.map((entry, index) => {
+        const publish = (patch: AppsPresentationPatch) => {
+          entries[index] = { ...entries[index]!, ...patch };
+          options.onEntry?.(entry, patch);
+        };
+        const dev = entry.localDevelopment;
+        if (dev) {
+          const key = appPresentationKey(entry);
+          // Icon and README are independent. Neither waits for the other.
+          return Promise.all([
+            source.readAppIcon ? cache.get(`icon:${key}`, () => source.readAppIcon!(dev.selector), {
+              maxAgeMs: 5 * 60_000, onCached: iconUrl => publish({ iconUrl }),
+            }).then(iconUrl => publish({ iconUrl })).catch(() => {}) : undefined,
+            source.readProjectReadme ? cache.get(`summary:${key}`, async () => {
+              const readme = await source.readProjectReadme!(dev.selector);
+              return readme.summary || deriveAppSummary(readme.content);
+            }, { maxAgeMs: 5 * 60_000, onCached: summary => publish({ summary }) })
+              .then(summary => publish({ summary })).catch(() => {}) : undefined,
+          ]);
+        }
+        if (!source.readPackageInfo || (!entry.committedRelease && !entry.catalogTarget)) return Promise.resolve();
+        const key = JSON.stringify([entry.identity.sourceClass, entry.identity.appId, entry.committedRelease?.releaseRef ?? packageInfoKey(entry)]);
+        const publishInfo = (appInfo: AppPackageInfo) => publish({
+          appInfo, appInfoKey: packageInfoKey(entry), appInfoError: null,
+          iconUrl: `data:image/png;base64,${appInfo.iconPngBase64}`, summary: appInfo.summary,
+        });
+        return cache.get(`package:${key}`, async () => {
+          const result = await projectPackageInfo(entry, previousEntries.get(entry.identity.entryKey), source);
+          if (!result.appInfo) throw new Error(result.appInfoError ?? 'App information is unavailable');
+          return result.appInfo;
+        }, { maxAgeMs: entry.committedRelease ? Infinity : 60_000, persist: Boolean(entry.committedRelease), onCached: publishInfo })
+          .then(publishInfo).catch(error => publish({ appInfoError: errorMessage(error) }));
+      });
+      // Configuration has its own bounded lane; slow AI reads cannot consume
+      // metadata slots or postpone an icon that has already arrived.
+      const configurations = projectEntriesBounded(mergedEntries, async (entry) => {
+        const aiConfigSummary = appAccessForAIConfig(entry).includes('runtime.consume')
           ? await projectAppAIConfigSummary({
               appId: entry.identity.appId,
               appAccess: appAccessForAIConfig(entry),
@@ -300,15 +369,21 @@ export async function projectAppsPanel(
               refresh: options.refreshAIConfig !== false,
               timeoutMs: options.aiConfigReadTimeoutMs ?? 10_000,
             })
-          : null,
-      };
-    });
-    return {
-      status: 'loaded',
-      entries: reconcileAppsEntries(previousEntries, entries),
-      catalogStatus: catalogResult.status,
-      runtimeError,
+          : null;
+        const index = mergedEntries.indexOf(entry);
+        entries[index] = { ...entries[index]!, aiConfigSummary };
+        if (options.refreshAIConfig !== false) options.onEntry?.(entry, { aiConfigSummary });
+      });
+      await Promise.all([...content, configurations]);
+      return { ...inventory, entries: reconcileAppsEntries(previousEntries, entries) };
     };
+    if (options.background) {
+      // Publish membership before any metadata callbacks (including warm-cache
+      // hits). The background task never holds the lifecycle reload lane.
+      setTimeout(() => { void enrich(); }, 0);
+      return inventory;
+    }
+    return await enrich();
   } catch (error) {
     return {
       status: 'error',
@@ -444,20 +519,6 @@ function appAccessForAIConfig(entry: DesktopAppsEntry): readonly string[] {
   return entry.committedRelease?.appAccess ?? [];
 }
 
-/**
- * Icon reads repeat only when the registration itself changed; an unchanged
- * registration reuses the previous projection, including a previous null.
- */
-function previousIconUrl(
-  previousEntry: DesktopAppsEntry | null,
-  entry: DesktopAppsEntry,
-): string | null | undefined {
-  if (!previousEntry) return undefined;
-  return previousEntry.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
-    ? previousEntry.iconUrl
-    : undefined;
-}
-
 export function packageInfoKey(entry: DesktopAppsEntry): string {
   return entry.committedRelease ? `installed:${bytesKey(entry.committedRelease.launchSelector)}:${entry.committedRelease.releaseRef}`
     : entry.catalogTarget ? `catalog:${bytesKey(entry.catalogTarget.approvedTargetSelector)}` : '';
@@ -481,51 +542,6 @@ async function projectPackageInfo(entry: DesktopAppsEntry, previous: DesktopApps
     return { appInfo: info, appInfoKey: key, appInfoError: null };
   } catch (error) {
     return { appInfo: null, appInfoKey: key, appInfoError: errorMessage(error) };
-  }
-}
-
-async function projectAppIconUrl(input: {
-  readonly entry: DesktopAppsEntry;
-  readonly source: DesktopAppsProjectionSource;
-  readonly previous: string | null | undefined;
-}): Promise<string | null> {
-  if (!input.entry.localDevelopment) return null;
-  if (input.previous != null) return input.previous;
-  if (!input.source.readAppIcon) return null;
-  try {
-    return await input.source.readAppIcon(input.entry.localDevelopment.selector);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Summary reads repeat only when the registration itself changed, exactly
- * like icon reads; an unchanged registration reuses the previous projection.
- */
-function previousSummary(
-  previousEntry: DesktopAppsEntry | null,
-  entry: DesktopAppsEntry,
-): string | null | undefined {
-  if (!previousEntry) return undefined;
-  return previousEntry.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
-    ? previousEntry.summary
-    : undefined;
-}
-
-async function projectAppSummary(input: {
-  readonly entry: DesktopAppsEntry;
-  readonly source: DesktopAppsProjectionSource;
-  readonly previous: string | null | undefined;
-}): Promise<string | null> {
-  if (!input.entry.localDevelopment) return null;
-  if (input.previous != null) return input.previous;
-  if (!input.source.readProjectReadme) return null;
-  try {
-    const readme = await input.source.readProjectReadme(input.entry.localDevelopment.selector);
-    return readme.summary || deriveAppSummary(readme.content);
-  } catch {
-    return null;
   }
 }
 

@@ -49,6 +49,7 @@ const MEDIA_OPTION_UNSUPPORTED_REASON_CODE = 'AI_MEDIA_OPTION_UNSUPPORTED';
 const MODALITY_UNSUPPORTED_REASON_CODE = 'AI_MODALITY_NOT_SUPPORTED';
 const MEDIA_CODEC_UNAVAILABLE_REASON_CODE = 'AI_MEDIA_CODEC_UNAVAILABLE';
 const LOCAL_LOAD_FAILED_REASON_CODE = 'AI_LOCAL_EXECUTION_LOAD_FAILED';
+const LOCAL_CONFIGURATION_MISSING_REASON_CODE = 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED';
 const CONTENT_FILTER_BLOCKED_REASON_CODE = 'AI_CONTENT_FILTER_BLOCKED';
 const VOICE_INPUT_INVALID_REASON_CODE = 'AI_VOICE_INPUT_INVALID';
 const VOICE_TARGET_MISMATCH_REASON_CODE = 'AI_VOICE_TARGET_MODEL_MISMATCH';
@@ -92,6 +93,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.textBehaviorUnsupported');
   if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.message.mediaCodecUnavailable');
   if (diagnostics?.reasonCode === LOCAL_LOAD_FAILED_REASON_CODE) return translate('NonSuccess.message.localLoadFailed');
+  if (diagnostics?.reasonCode === LOCAL_CONFIGURATION_MISSING_REASON_CODE) return translate('NonSuccess.message.localConfigurationMissing');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.geometryUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.mediaOptionUnsupported');
   if (diagnostics?.reasonCode === MODALITY_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.modalityUnsupported');
@@ -115,6 +117,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.textBehaviorUnsupported');
   if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.action.mediaCodecUnavailable');
   if (diagnostics?.reasonCode === LOCAL_LOAD_FAILED_REASON_CODE) return translate('NonSuccess.action.localLoadFailed');
+  if (diagnostics?.reasonCode === LOCAL_CONFIGURATION_MISSING_REASON_CODE) return translate('NonSuccess.action.localConfigurationMissing');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.chooseSupportedGeometry');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
   if (diagnostics?.reasonCode === MODALITY_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.modalityUnsupported');

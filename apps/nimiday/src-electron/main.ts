@@ -45,11 +45,12 @@ let followups: ReturnType<typeof import('./followup-host.js')['createDayFollowUp
 let dayStorage: ReturnType<typeof import('./day-storage-host.js')['createDayStorageHost']> | undefined;
 
 app.setName("NimiDay");
-app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
+const appUserModelId = app.isPackaged ? NATIVE_BUNDLE_IDENTIFIER : `${NATIVE_BUNDLE_IDENTIFIER}.dev`;
+app.setAppUserModelId(appUserModelId);
 // Complete Windows sender registration before any renderer can notify.
 try {
   await registerWindowsNotificationIdentity({
-    appUserModelId: NATIVE_BUNDLE_IDENTIFIER,
+    appUserModelId,
     displayName: app.getName(),
     iconPath: appIconPath,
   });
@@ -69,6 +70,7 @@ Menu.setApplicationMenu(Menu.buildFromTemplate([
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
+  app.dock?.setIcon(appIconPath);
   const { createDayFollowUpHost } = await import('./followup-host.js');
   const { createDayStorageHost } = await import('./day-storage-host.js');
   dayStorage = createDayStorageHost();

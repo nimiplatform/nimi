@@ -38,6 +38,7 @@
     "tailwindcssViteVersion": "^4.3.3",
     "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.1",
+    "pngjsVersion": "^7.0.0",
     "nimiShellTauriVersion": "0.10.0",
     "electronPackagerVersion": "^20.3.0",
     "electronVersion": "^45.0.0",
@@ -56,7 +57,7 @@
     "prepublishOnly": "pnpm run build",
     "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
     "test:large-archive": "node --test test/app-pack-large.test.mjs",
-    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs"
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",

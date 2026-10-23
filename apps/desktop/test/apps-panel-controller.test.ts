@@ -246,6 +246,8 @@ it('shows inventory on retry before project content loads, then fills in that co
   let current: DesktopAppsPanelProjection | null = { status: 'error', detail: 'previous inventory failure' };
   let firstPaint!: () => void;
   const painted = new Promise<void>((resolve) => { firstPaint = resolve; });
+  let contentPaint!: () => void;
+  const contentPainted = new Promise<void>(resolve => { contentPaint = resolve; });
   const reloader = createAppsPanelProjectionReloader({
     source: {
       listCommittedReleases: async () => [], listPackageJobs: async () => [], listRuns: async () => [],
@@ -259,13 +261,17 @@ it('shows inventory on retry before project content loads, then fills in that co
       readProjectReadme: async () => ({ content: '# Example\n\nReal project description.' }),
     },
     getCurrent: () => current,
-    commit: (next) => { current = next; firstPaint(); },
+    commit: (next) => {
+      current = next; firstPaint();
+      if (next.status === 'loaded' && next.entries[0]?.iconUrl && next.entries[0]?.summary) contentPaint();
+    },
   });
   const completed = reloader.reload();
   await Promise.race([painted, new Promise((_, reject) => setTimeout(() => reject(new Error('inventory waited for icon')), 200))]);
   assert.equal((current as DesktopAppsPanelProjection | null)?.status, 'loaded');
   finishIcon('data:image/png;base64,actual');
   await completed;
+  await Promise.race([contentPainted, new Promise((_, reject) => setTimeout(() => reject(new Error('content was not published')), 200))]);
   const loaded = current as DesktopAppsPanelProjection | null;
   assert.equal(loaded?.status, 'loaded');
   if (loaded?.status === 'loaded') {

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 
 export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone'];
 
@@ -79,6 +80,11 @@ export function buildDefaultStarterFiles(identity) {
       mutationClass: 'scaffold-managed glue',
     },
     {
+      path: 'scripts/app-icons.mjs',
+      content: readFileSync(new URL('./app-icons.mjs', import.meta.url), 'utf8'),
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
       path: 'scripts/clean-electron-production.mjs',
       content: DEFAULT_ELECTRON_PRODUCTION_CLEANER,
       mutationClass: 'scaffold-managed glue',
@@ -131,10 +137,12 @@ const DEFAULT_ELECTRON_PRELOAD = [
 
 const DEFAULT_ELECTRON_PRELOAD_BUNDLER = [
   "import { build } from 'esbuild';",
+  "import { prepareElectronIcons } from './app-icons.mjs';",
   "import path from 'node:path';",
   "import { fileURLToPath } from 'node:url';",
   '',
   "const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');",
+  'prepareElectronIcons(appRoot);',
   '',
   'await build({',
   "  entryPoints: [path.join(appRoot, 'src-electron/preload.cts')],",
@@ -167,6 +175,7 @@ function renderDefaultElectronProductionPackager(identity) {
     "import path from 'node:path';",
     "import { fileURLToPath } from 'node:url';",
     "import { packager } from '@electron/packager';",
+    "import { prepareElectronIcons } from './app-icons.mjs';",
     "import { build } from 'esbuild';",
     "import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';",
     '',
@@ -216,6 +225,7 @@ function renderDefaultElectronProductionPackager(identity) {
     'let packageCompleted = false;',
     '',
     'try {',
+    '  const icons = prepareElectronIcons(appRoot, { required: true });',
     '  await build({',
     "    entryPoints: [path.join(appRoot, 'src-electron/main.ts')],",
     "    outfile: path.join(appRoot, 'dist-electron/main.js'),",
@@ -247,6 +257,8 @@ function renderDefaultElectronProductionPackager(identity) {
     "  await cp(path.join(appRoot, 'dist'), path.join(productionSourceRoot, 'dist'), { recursive: true, force: false });",
     "  await copyFile(path.join(appRoot, 'dist-electron', 'main.js'), path.join(productionSourceRoot, 'dist-electron', 'main.js'));",
     "  await copyFile(path.join(appRoot, 'dist-electron', 'preload.cjs'), path.join(productionSourceRoot, 'dist-electron', 'preload.cjs'));",
+    "  await copyFile(icons.png, path.join(productionSourceRoot, 'dist-electron', 'app-icon.png'));",
+    "  await copyFile(icons.ico, path.join(productionSourceRoot, 'dist-electron', 'app-icon.ico'));",
     '  await installProductionDependencies(productionSourceRoot);',
     '',
     "  const productionManifestPath = path.join(productionSourceRoot, 'package.json');",
@@ -267,6 +279,7 @@ function renderDefaultElectronProductionPackager(identity) {
     '',
     '  const packagePaths = await packager({',
     '    dir: productionSourceRoot,',
+    '    icon: MACOS_BUILD ? icons.icns : icons.ico,',
     '    platform: NATIVE_PLATFORM,',
     '    arch: NATIVE_ARCH,',
     `    appBundleId: ${JSON.stringify(identity.tauriIdentifier)},`,
@@ -1335,6 +1348,7 @@ function renderDefaultTauriMain() {
 function renderDefaultElectronMain(identity) {
   return [
     "import path from 'node:path';",
+    "import { existsSync } from 'node:fs';",
     "import { fileURLToPath, pathToFileURL } from 'node:url';",
     "import { app, BrowserWindow, ipcMain, Menu, protocol, session, webContents } from 'electron';",
     "import { configureNimiElectronAppHostProfile } from '@nimiplatform/kit/shell/electron/host-profile';",
@@ -1367,6 +1381,9 @@ function renderDefaultElectronMain(identity) {
     '  && __NIMI_ELECTRON_PRODUCTION__;',
     "const currentDir = path.dirname(fileURLToPath(import.meta.url));",
     "const appRoot = path.resolve(currentDir, '..');",
+    "const appIconPath = path.join(currentDir, process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png');",
+    "if (IS_PRODUCTION_BUNDLE && !existsSync(appIconPath)) throw new Error('Packaged App icon is missing.');",
+    'const windowIcon = existsSync(appIconPath) ? appIconPath : undefined;',
     "const preloadPath = path.join(currentDir, 'preload.cjs');",
     "const productionRendererUrl = pathToFileURL(path.join(appRoot, 'dist', 'index.html')).toString();",
     'const developmentRendererUrl = readDevelopmentRendererUrl();',
@@ -1376,7 +1393,9 @@ function renderDefaultElectronMain(identity) {
     'let quitting = false;',
     '',
     `app.setName(${JSON.stringify(identity.appTitle)});`,
-    'app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);',
+    "if (process.platform === 'win32') {",
+    '  app.setAppUserModelId(IS_PRODUCTION_BUNDLE ? NATIVE_BUNDLE_IDENTIFIER : `ai.nimi.dev.apps.${APP_ID}`);',
+    '}',
     'const chromeHost = createNimiElectronAppChromeHost({',
     `  metadata: { name: ${JSON.stringify(identity.appTitle)}, version: ${JSON.stringify(identity.version)} },`,
     '  allowedRendererUrls, app,',
@@ -1385,6 +1404,7 @@ function renderDefaultElectronMain(identity) {
     'registerNimiElectronAppAssetProtocolScheme(protocol);',
     '',
     'void app.whenReady().then(async () => {',
+    '  if (windowIcon) app.dock?.setIcon(windowIcon);',
     '  registerNimiElectronAppBridge({',
     '    chromeHost,',
     '    appId: APP_ID,',
@@ -1426,6 +1446,7 @@ function renderDefaultElectronMain(identity) {
     '    minWidth: 360,',
     '    minHeight: 560,',
     `    title: ${JSON.stringify(identity.appTitle)},`,
+    '    icon: windowIcon,',
     '    autoHideMenuBar: true,',
     '    webPreferences: {',
     '      preload: preloadPath,',

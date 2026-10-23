@@ -244,7 +244,9 @@ let desktopStartupSettled = false;
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 if (process.platform === 'win32') {
-  app.setAppUserModelId(APP_ID);
+  // Explorer resolves matching installed shortcuts before the window icon.
+  // Keep the workspace Electron carrier separate from installed Home.
+  app.setAppUserModelId(ELECTRON_DEVELOPMENT_BUILD ? `${APP_ID}.dev` : APP_ID);
 }
 if (SOURCE_PER_USER_RUNTIME_D2) {
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -404,6 +406,9 @@ async function checkDesktopHomeProfileScope(
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
+    if (!app.isPackaged) {
+      app.dock?.setIcon(path.join(appRoot, 'assets', 'windows-icon.png'));
+    }
     const updateCacheRoot = process.platform === 'darwin'
       ? path.join(app.getPath('home'), 'Library', 'Caches', 'ai.nimi.product-update')
       : process.platform === 'win32' ? path.join(app.getPath('appData'), 'Nimi', 'product-updates') : path.join(app.getPath('userData'), 'product-updates');
@@ -1183,7 +1188,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     minHeight: 600,
     title: 'Nimi Home',
     icon: createDesktopIcon(),
-    // Register Windows taskbar identity and icon before Explorer sees the window.
+    // Apply the native icon before Explorer sees the window.
     show: process.platform !== 'win32',
     autoHideMenuBar: true,
     webPreferences: {
@@ -1198,7 +1203,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
   });
   mainWindow = window;
   homeChromeHost?.bindWindow(window);
-  if (process.platform === 'win32') {
+  if (process.platform === 'win32' && !ELECTRON_DEVELOPMENT_BUILD) {
     window.setAppDetails({
       appId: APP_ID,
       appIconPath: desktopIconPath(),

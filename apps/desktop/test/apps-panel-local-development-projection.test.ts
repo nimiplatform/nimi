@@ -314,7 +314,7 @@ it('reads portable information for the exact installed source and replaces it wi
   assert.equal(calls.length, 2);
 });
 
-it('keeps App information failures visible and retries the same catalog selection', async () => {
+it('keeps App information failures visible without retrying on every lifecycle poll', async () => {
   const target = catalogTarget();
   let attempts = 0;
   const source = {
@@ -334,7 +334,7 @@ it('keeps App information failures visible and retries the same catalog selectio
     assert.equal(first.entries[0]?.iconUrl, null);
   }
   await projectAppsPanel(source, { previous: first, catalog: { status: 'loaded', targets: [target] } });
-  assert.equal(attempts, 2);
+  assert.equal(attempts, 1);
 });
 
 describe('Desktop Apps projection structural sharing', () => {

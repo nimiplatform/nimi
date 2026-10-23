@@ -2,7 +2,8 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { PNG } from 'pngjs';
+import { readAppIcon, validateAppIcon } from './app-icons.mjs';
+export { validateAppIcon } from './app-icons.mjs';
 import { parse as parseYaml } from 'yaml';
 import { normalizeAppAccessItems } from './app-access-declaration.mjs';
 import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.mjs';
@@ -17,7 +18,6 @@ export const APP_INFO_FIELDS = Object.freeze([
 // Declaration fields that App Tools projects from nimi.app.yaml into the
 // archive declaration and that Registry compares against the candidate.
 export const APP_INFO_DECLARATION_FIELDS = Object.freeze(['app_id', 'display_name', 'version', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', SAFETY_PROFILE_FIELD]);
-const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 
 function text(value, label, max, multiline = false) {
   if (typeof value !== 'string' || !value.trim() || value.includes('\0')
@@ -39,33 +39,6 @@ function refs(value, label) {
     }
   }
   return entries;
-}
-
-export function validateAppIcon(bytes) {
-  if (!Buffer.isBuffer(bytes) || bytes.length > 512 * 1024 || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
-    throw new Error('App icon must be a PNG of at most 512 KiB');
-  }
-  let offset = 8;
-  let ended = false;
-  while (offset + 12 <= bytes.length) {
-    const length = bytes.readUInt32BE(offset);
-    const type = bytes.toString('ascii', offset + 4, offset + 8);
-    if (offset + length + 12 > bytes.length || type === 'acTL') throw new Error('App icon must be a complete static PNG');
-    if (offset === 8 && (type !== 'IHDR' || length !== 13)) throw new Error('App icon PNG header is invalid');
-    if (type === 'IHDR') {
-      const width = bytes.readUInt32BE(offset + 8);
-      const height = bytes.readUInt32BE(offset + 12);
-      if (width < 128 || width > 1024 || width !== height) throw new Error('App icon must be square, 128–1024 pixels');
-    }
-    offset += length + 12;
-    if (type === 'IEND') { ended = length === 0 && offset === bytes.length; break; }
-  }
-  if (!ended) throw new Error('App icon PNG is truncated or has trailing content');
-  const decoded = PNG.sync.read(bytes, { checkCRC: true });
-  for (let index = 3; index < decoded.data.length; index += 4) {
-    if (decoded.data[index] !== 0) return bytes;
-  }
-  throw new Error('App icon is fully transparent; supply actual App artwork');
 }
 
 function storage(value) {
@@ -156,7 +129,7 @@ export function readAppInfo(root, targetId) {
   const info = validateAppInfo({
     format: 'nimi.app-info/v1', app_id: manifest.app_id, version: manifest.version, target_id: targetId,
     display_name: manifest.display_name, summary: metadata.summary,
-    icon: { media_type: 'image/png', data_base64: validateAppIcon(resource(root, metadata.icon, 'icon', 512 * 1024)).toString('base64') },
+    icon: { media_type: 'image/png', data_base64: readAppIcon(root).toString('base64') },
     readme_markdown: metadata.readme === undefined ? '' : readText(metadata.readme, 'readme', 96 * 1024),
     release_notes_markdown: metadata.release_notes === undefined ? '' : readText(metadata.release_notes, 'release_notes', 32 * 1024),
     license: { identifier: pkg.license, text: readText('LICENSE', 'license', 128 * 1024) },

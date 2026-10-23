@@ -46,6 +46,10 @@ let resettingRenderer = false;
 let quitting = false;
 
 app.setName('Nimi Lab');
+if (process.platform === 'win32') {
+  // Separate each App and its development carrier in the Windows taskbar.
+  app.setAppUserModelId(`ai.nimi.apps.${APP_ID}${app.isPackaged ? '' : '.dev'}`);
+}
 configureLabElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 

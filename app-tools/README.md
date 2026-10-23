@@ -204,6 +204,10 @@ storage_policy:
 
 Scaffold `sync` preserves your author-edited `metadata`, requirement, and storage fields while continuing to validate managed identity and carrier fields.
 
+The generated Electron build uses `metadata.icon` for the native window, macOS Dock, and packaged executable/application icon. `build:electron` validates the PNG and derives PNG, multi-size ICO and ICNS resources under `dist-electron/`; production packaging includes the runtime resources and embeds the platform icon before signing. Custom repository-relative paths are supported. Rebuild after changing the image or its declaration. Development without artwork remains available with an explicit warning; invalid artwork fails the build, and production requires valid artwork. Removing or invalidating an image clears its old derived icons.
+
+Windows taskbar identity is `ai.nimi.dev.apps.<app_id>` for the generated development Host and `ai.nimi.apps.<app_id>` for a production bundle. Separate namespaces also avoid collisions with an App whose canonical ID ends in `.dev`. This does not change the canonical App ID or Runtime registration. Existing scaffold projects receive this managed Host/build logic through `sync`; adopted App-owned Hosts must implement the same behavior in their own code.
+
 ### Field & Asset Requirements
 All `metadata` file paths are relative to the App repository root:
 

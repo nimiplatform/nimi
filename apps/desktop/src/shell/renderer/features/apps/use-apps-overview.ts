@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
-import { projectAppsPanel, type DesktopAppsCatalogProjection, type DesktopAppsPanelProjection, type DesktopAppsProjectionSource } from './apps-panel-projection.js';
+import { useAppsPresentationCache } from './use-apps-presentation-cache.js';
+import { mergeAppPresentation, retainCurrentAppPresentation, projectAppsPanel, type DesktopAppsCatalogProjection, type DesktopAppsPanelProjection, type DesktopAppsProjectionSource } from './apps-panel-projection.js';
 
 const inventoryKey = ['desktop', 'apps-overview'] as const;
 
@@ -20,11 +21,16 @@ export function useAppsOverviewQuery(source: DesktopAppsProjectionSource, option
       return projectAppsPanel(source, {
         previous,
         refreshAIConfig: false,
+        background: true,
+        onEntry(entry, patch) {
+          if (signal.aborted) return;
+          client.setQueryData<DesktopAppsPanelProjection | null>(inventoryKey, current => mergeAppPresentation(current ?? null, entry, patch));
+        },
         catalog: { status: 'loading', targets: [] },
         onInventory: (projection) => {
           if (!signal.aborted && previous?.status !== 'loaded') client.setQueryData(inventoryKey, projection);
         },
-      });
+      }).then(next => retainCurrentAppPresentation(client.getQueryData<DesktopAppsPanelProjection>(inventoryKey) ?? null, next));
     },
   });
   const catalog = useQuery({
@@ -68,11 +74,13 @@ export function useAppsOverviewQuery(source: DesktopAppsProjectionSource, option
 
 /** Read-only reuse of the Apps inventory projection for Home and target choice. */
 export function useAppsOverview(options: { readonly enabled?: boolean } = {}) {
+  const presentationCache = useAppsPresentationCache();
   const sdk = useDesktopRendererSdk();
   const source = useMemo<DesktopAppsProjectionSource>(() => {
     const apps = sdk.machineProduct().apps;
     const liveBridge = createDesktopAppsLiveBridge();
     return {
+      presentationCache,
       listRegistrations: liveBridge.listRegistrations,
       listRuns: liveBridge.listRuns,
       listInstalledRuns: liveBridge.listInstalledRuns,
@@ -99,6 +107,6 @@ export function useAppsOverview(options: { readonly enabled?: boolean } = {}) {
         return r.info;
       },
     };
-  }, [sdk]);
+  }, [sdk, presentationCache]);
   return useAppsOverviewQuery(source, options);
 }

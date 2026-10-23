@@ -31,6 +31,7 @@ const APP_ID = 'nimi.go';
 const NATIVE_BUNDLE_IDENTIFIER = "ai.nimi.apps.nimi.go";
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
+const appIconPath = path.join(appRoot, 'assets', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const productionRendererUrl = pathToFileURL(path.join(appRoot, 'dist', 'index.html')).toString();
 const developmentRendererUrl = readDevelopmentRendererUrl();
@@ -41,7 +42,7 @@ let quitting = false;
 let workspace: Awaited<ReturnType<typeof import('./workspace-host.js')['createGoWorkspaceHost']>> | undefined;
 
 app.setName("NimiGo");
-app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
+app.setAppUserModelId(app.isPackaged ? NATIVE_BUNDLE_IDENTIFIER : `${NATIVE_BUNDLE_IDENTIFIER}.dev`);
 Menu.setApplicationMenu(Menu.buildFromTemplate([
   { label: 'NimiGo', submenu: [{ label: '打开工作空间', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 NimiGo', role: 'quit' }] },
   ...(process.platform === 'darwin' ? [
@@ -53,6 +54,7 @@ Menu.setApplicationMenu(Menu.buildFromTemplate([
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
+  app.dock?.setIcon(appIconPath);
   const { createGoWorkspaceHost } = await import('./workspace-host.js');
   workspace = createGoWorkspaceHost({ windowOpen: () => BrowserWindow.getAllWindows().length > 0, openWork: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } });
   registerNimiElectronAppBridge({
@@ -95,7 +97,7 @@ async function createMainWindow(): Promise<void> {
     minWidth: 360,
     minHeight: 560,
     title: "NimiGo",
-    icon: process.platform === 'win32' ? path.join(appRoot, 'assets', 'app-icon.ico') : undefined,
+    icon: appIconPath,
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,

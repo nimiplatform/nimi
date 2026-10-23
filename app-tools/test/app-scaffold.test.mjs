@@ -74,6 +74,7 @@ const versions = {
   esbuildVersion: '0.28.0-esbuild',
   typescriptVersion: '5.0.0',
   yamlVersion: '2.0.0-yaml',
+  pngjsVersion: '^7.0.0',
   packageManager: 'pnpm@10.32.1',
 };
 
@@ -551,7 +552,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronMain, /registerNimiElectronAppAssetProtocolScheme\(protocol\)/);
     assert.match(electronMain, /createNimiElectronAppChromeHost/);
     assert.match(electronMain, /chromeHost\.bindWindow\(window\)/);
-    assert.match(electronMain, /app\.setAppUserModelId\(NATIVE_BUNDLE_IDENTIFIER\)/);
+    assert.match(electronMain, /app\.setAppUserModelId\(IS_PRODUCTION_BUNDLE \? NATIVE_BUNDLE_IDENTIFIER : `ai\.nimi\.dev\.apps\.\$\{APP_ID\}`\)/);
     assert.match(electronMain, /declare const __NIMI_ELECTRON_PRODUCTION__: boolean/);
     assert.match(electronMain, /IS_PRODUCTION_BUNDLE && hasDevelopmentRendererArgument/);
     assert.match(electronMain, /production Electron bundle rejects --nimi-dev-renderer-url/);
@@ -3384,7 +3385,7 @@ test('generated Host destroys old renderer state on invalidation before creating
     setApplicationMenu() {},
   };
   await vm.runInNewContext(`(async () => {${source}})()`, {
-    path, fileURLToPath, app, BrowserWindow: Window, ipcMain: {}, Menu, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
+    path, fileURLToPath, existsSync: () => false, app, BrowserWindow: Window, ipcMain: {}, Menu, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
     configureNimiElectronAppHostProfile() {}, URL, process: { platform: 'win32', argv: [], stderr: { write() {} } },
     pathToFileURL,
     kitMain: {

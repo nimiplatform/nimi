@@ -44,6 +44,7 @@ export async function buildSupervisedAppElectronProduction({ repoRoot, consumer 
       }
     }
     await cp(path.join(appRoot, 'dist'), path.join(sourceRoot, 'dist'), { recursive: true });
+    await cp(path.join(appRoot, 'assets'), path.join(sourceRoot, 'assets'), { recursive: true });
     await realpath(path.join(sourceRoot, 'dist', 'index.html'));
     await mkdir(path.join(sourceRoot, 'dist-electron'));
     await build({

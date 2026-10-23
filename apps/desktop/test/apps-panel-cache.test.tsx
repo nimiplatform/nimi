@@ -15,10 +15,13 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
   const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
   const { useAppsPanelController } = await import('../src/shell/renderer/features/apps/apps-panel-controller.js');
   const { initI18n } = await import('../src/shell/renderer/i18n/index.js');
   await initI18n();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
   const counts = { icon: 0, readme: 0, info: 0, catalog: 0, inventory: 0 };
   let revision = 1;
   let present = true;
@@ -70,7 +73,7 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
   function Harness() { state = useAppsPanelController(deps); paints.push(state.projection); return null; }
   const root = createRoot(dom.window.document.getElementById('root')!);
   const show = async (visible: boolean) => {
-    await act(async () => { root.render(<QueryClientProvider client={client}>{visible ? <Harness /> : null}</QueryClientProvider>); });
+    await act(async () => { root.render(<AppStoreProvider store={store}><QueryClientProvider client={client}>{visible ? <Harness /> : null}</QueryClientProvider></AppStoreProvider>); });
   };
   const settle = async () => {
     for (let i = 0; i < 6; i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });

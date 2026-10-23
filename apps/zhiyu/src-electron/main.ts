@@ -54,6 +54,10 @@ let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 
 app.setName('织羽');
+if (process.platform === 'win32') {
+  // Separate each App and its development carrier in the Windows taskbar.
+  app.setAppUserModelId(`ai.nimi.apps.${APP_ID}${app.isPackaged ? '' : '.dev'}`);
+}
 configureZhiyuElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
@@ -83,6 +87,7 @@ const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = as
 };
 
 void app.whenReady().then(async () => {
+  app.dock?.setIcon(windowIconPath);
   registeredAppBridge = registerNimiElectronAppBridge({
     chromeHost,
     appId: APP_ID,
