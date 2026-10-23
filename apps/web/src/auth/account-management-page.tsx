@@ -9,6 +9,7 @@ import {
   prepareNimiRealmTwoFactor,
   unlinkNimiRealmOAuth,
   updateNimiRealmPassword,
+  type NimiRealmTwoFactorPrepareOutput,
 } from '@nimiplatform/sdk/realm';
 import { getGoogleClientId, requestGoogleIdToken } from '@nimiplatform/kit/auth';
 import { createWebBrowserRealm } from './browser-realm.js';
@@ -22,10 +23,13 @@ export function AccountManagementPage() {
   const [checking, setChecking] = useState(true);
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauthUri: string } | null>(null);
+  const [currentTwoFactorCode, setCurrentTwoFactorCode] = useState('');
+  const [twoFactorSetup, setTwoFactorSetup] = useState<NimiRealmTwoFactorPrepareOutput | null>(null);
+  const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const providers = new Set(Array.isArray(user?.oauthProviders) ? user.oauthProviders.map(String) : []);
+  const twoFactorEnabled = user?.isTwoFactorEnabled === true;
 
   const refresh = async () => {
     setUser(await loadWebCurrentAccount());
@@ -38,10 +42,14 @@ export function AccountManagementPage() {
       .finally(() => setChecking(false));
   }, [t]);
   const action = async (work: () => Promise<void>, success: string) => {
+    if (working) return;
+    setWorking(true);
     setError(null);
     setMessage(null);
     try { await work(); setMessage(success); await refresh(); } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason || t('Account.actionFailed')));
+    } finally {
+      setWorking(false);
     }
   };
 
@@ -71,18 +79,33 @@ export function AccountManagementPage() {
           <button type="submit">{t('Account.updatePassword')}</button>
         </form>
         <div className="web-account-actions">
-          <button type="button" onClick={() => void action(async () => {
-            const prepared = await prepareNimiRealmTwoFactor(createWebBrowserRealm());
+          {twoFactorEnabled ? <label>
+            {t('Account.currentTwoFaCode')}
+            <input inputMode="numeric" autoComplete="one-time-code" value={currentTwoFactorCode} onChange={(e) => setCurrentTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+          </label> : null}
+          <button type="button" disabled={working || (twoFactorEnabled && currentTwoFactorCode.length !== 6)} onClick={() => void action(async () => {
+            const prepared = await prepareNimiRealmTwoFactor(createWebBrowserRealm(), twoFactorEnabled ? { code: currentTwoFactorCode } : {});
             setTwoFactorSetup(prepared);
-          }, t('Account.twoFaPrepared'))}>{t('Account.prepareTwoFa')}</button>
-          {twoFactorSetup ? <p className="web-account-secret">{twoFactorSetup.secret}<br />{twoFactorSetup.otpauthUri}</p> : null}
-          <input inputMode="numeric" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={t('Account.twoFaCodePlaceholder')} />
-          <button type="button" onClick={() => void action(async () => {
-            await enableNimiRealmTwoFactor(createWebBrowserRealm(), { code: twoFactorCode });
-          }, t('Account.twoFaEnabled'))}>{t('Account.enableTwoFa')}</button>
-          <button type="button" onClick={() => void action(async () => {
-            await disableNimiRealmTwoFactor(createWebBrowserRealm(), { code: twoFactorCode });
-          }, t('Account.twoFaDisabled'))}>{t('Account.disableTwoFa')}</button>
+            setTwoFactorCode('');
+          }, t('Account.twoFaPrepared'))}>{t(twoFactorEnabled ? 'Account.replaceTwoFa' : 'Account.prepareTwoFa')}</button>
+          {twoFactorSetup ? <>
+            <p className="web-account-secret">{twoFactorSetup.secret}<br />{twoFactorSetup.otpauthUri}</p>
+            <label>{t('Account.newTwoFaCode')}
+              <input inputMode="numeric" autoComplete="one-time-code" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+            </label>
+            <button type="button" disabled={working || twoFactorCode.length !== 6} onClick={() => void action(async () => {
+              await enableNimiRealmTwoFactor(createWebBrowserRealm(), { challengeId: twoFactorSetup.challengeId, code: twoFactorCode });
+              setTwoFactorSetup(null);
+              setTwoFactorCode('');
+              setCurrentTwoFactorCode('');
+            }, t('Account.twoFaEnabled'))}>{t('Account.confirmTwoFa')}</button>
+          </> : null}
+          {twoFactorEnabled ? <button type="button" disabled={working || currentTwoFactorCode.length !== 6} onClick={() => void action(async () => {
+            await disableNimiRealmTwoFactor(createWebBrowserRealm(), { code: currentTwoFactorCode });
+            setTwoFactorSetup(null);
+            setTwoFactorCode('');
+            setCurrentTwoFactorCode('');
+          }, t('Account.twoFaDisabled'))}>{t('Account.disableTwoFa')}</button> : null}
         </div>
         <div className="web-account-actions">
           {providers.has(NIMI_REALM_OAUTH_PROVIDER.GOOGLE) ? (

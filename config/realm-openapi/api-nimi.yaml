@@ -192,6 +192,8 @@ components:
             - AUTH_INVALID_2FA_CODE
             - AUTH_2FA_NOT_ENABLED
             - AUTH_2FA_SETUP_EXPIRED
+            - AUTH_2FA_SETUP_UNAVAILABLE
+            - AUTH_2FA_STATE_CHANGED
             - AUTH_INVALID_WALLET_NONCE
             - AUTH_INVALID_WALLET_SIGNATURE
             - AUTH_WALLET_ADDRESS_REQUIRED
@@ -217,6 +219,7 @@ components:
             - AUTH_ACCOUNT_NOT_FOUND
             - ACCOUNT_DELETED
             - AUTH_ACCOUNT_TERMINAL_CONFLICT
+            - ADMIN_LAST_ACTIVE_REQUIRED
           type: string
         statusCode:
           enum:
@@ -3196,6 +3199,19 @@ components:
         - components
         - chunks
       type: object
+    Me2faEnableDto:
+      properties:
+        challengeId:
+          description: >-
+            One-time challenge returned by prepare in the same authenticated
+            session
+          type: string
+        code:
+          type: string
+      required:
+        - code
+        - challengeId
+      type: object
     Me2faOperationResultDto:
       properties:
         success:
@@ -3203,13 +3219,24 @@ components:
       required:
         - success
       type: object
+    Me2faPrepareDto:
+      properties:
+        code:
+          description: >-
+            Current authenticator code, required when replacing an enabled
+            factor
+          type: string
+      type: object
     Me2faPrepareResponseDto:
       properties:
+        challengeId:
+          type: string
         otpauthUri:
           type: string
         secret:
           type: string
       required:
+        - challengeId
         - secret
         - otpauthUri
       type: object
@@ -3566,6 +3593,8 @@ components:
             - AUTH_INVALID_2FA_CODE
             - AUTH_2FA_NOT_ENABLED
             - AUTH_2FA_SETUP_EXPIRED
+            - AUTH_2FA_SETUP_UNAVAILABLE
+            - AUTH_2FA_STATE_CHANGED
             - AUTH_INVALID_WALLET_NONCE
             - AUTH_INVALID_WALLET_SIGNATURE
             - AUTH_WALLET_ADDRESS_REQUIRED
@@ -3591,6 +3620,7 @@ components:
             - AUTH_ACCOUNT_NOT_FOUND
             - ACCOUNT_DELETED
             - AUTH_ACCOUNT_TERMINAL_CONFLICT
+            - ADMIN_LAST_ACTIVE_REQUIRED
           type: string
         statusCode:
           enum:
@@ -3791,11 +3821,15 @@ components:
       properties:
         email:
           type: string
+        emailOtpCode:
+          description: 6-digit OTP proving ownership of the registration email
+          type: string
         password:
           type: string
       required:
         - email
         - password
+        - emailOtpCode
       type: object
     PendingFriendRequestDto:
       properties:
@@ -8927,6 +8961,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Request email OTP
       tags:
         - Auth
@@ -9109,12 +9149,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
         '429':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Disable 2FA
@@ -9128,7 +9180,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Me2faVerifyDto'
+              $ref: '#/components/schemas/Me2faEnableDto'
         required: true
       responses:
         '200':
@@ -9155,12 +9207,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
         '429':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Enable 2FA
@@ -9170,6 +9234,12 @@ paths:
     post:
       operationId: prepare2Fa
       parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Me2faPrepareDto'
+        required: true
       responses:
         '200':
           content:
@@ -9195,12 +9265,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
         '429':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Prepare 2FA

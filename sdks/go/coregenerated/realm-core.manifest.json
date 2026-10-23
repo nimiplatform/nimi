@@ -1245,7 +1245,25 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema": {
             "kind": "ref",
             "ref": "#/components/schemas/AuthErrorDto",
@@ -1272,7 +1290,15 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
@@ -2409,10 +2435,10 @@
       "header_parameters": [],
       "request_schema": {
         "kind": "ref",
-        "ref": "#/components/schemas/Me2faVerifyDto",
-        "ref_name": "Me2faVerifyDto"
+        "ref": "#/components/schemas/Me2faEnableDto",
+        "ref_name": "Me2faEnableDto"
       },
-      "request_schema_ref": "#/components/schemas/Me2faVerifyDto",
+      "request_schema_ref": "#/components/schemas/Me2faEnableDto",
       "request_content_type": "application/json",
       "response_schemas": [
         {
@@ -2452,7 +2478,25 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema": {
             "kind": "ref",
             "ref": "#/components/schemas/AuthErrorDto",
@@ -2479,7 +2523,15 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
@@ -7223,10 +7275,12 @@
       "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "unknown"
+        "kind": "ref",
+        "ref": "#/components/schemas/Me2faPrepareDto",
+        "ref_name": "Me2faPrepareDto"
       },
-      "request_schema_ref": null,
-      "request_content_type": null,
+      "request_schema_ref": "#/components/schemas/Me2faPrepareDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -7265,7 +7319,25 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema": {
             "kind": "ref",
             "ref": "#/components/schemas/AuthErrorDto",
@@ -7292,7 +7364,15 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
@@ -7826,6 +7906,15 @@
             "ref_name": "AuthErrorDto"
           },
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
@@ -7839,6 +7928,10 @@
         },
         {
           "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
@@ -16276,7 +16369,13 @@
       "name": "MaterializationSegmentManifestV3Dto"
     },
     {
+      "name": "Me2faEnableDto"
+    },
+    {
       "name": "Me2faOperationResultDto"
+    },
+    {
+      "name": "Me2faPrepareDto"
     },
     {
       "name": "Me2faPrepareResponseDto"
@@ -17583,6 +17682,8 @@
                 "AUTH_INVALID_2FA_CODE",
                 "AUTH_2FA_NOT_ENABLED",
                 "AUTH_2FA_SETUP_EXPIRED",
+                "AUTH_2FA_SETUP_UNAVAILABLE",
+                "AUTH_2FA_STATE_CHANGED",
                 "AUTH_INVALID_WALLET_NONCE",
                 "AUTH_INVALID_WALLET_SIGNATURE",
                 "AUTH_WALLET_ADDRESS_REQUIRED",
@@ -17607,7 +17708,8 @@
                 "AUTH_SESSION_REVOCATION_UNAVAILABLE",
                 "AUTH_ACCOUNT_NOT_FOUND",
                 "ACCOUNT_DELETED",
-                "AUTH_ACCOUNT_TERMINAL_CONFLICT"
+                "AUTH_ACCOUNT_TERMINAL_CONFLICT",
+                "ADMIN_LAST_ACTIVE_REQUIRED"
               ],
               "type": "string"
             }
@@ -28847,6 +28949,48 @@
       }
     },
     {
+      "name": "Me2faEnableDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "challengeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "code",
+          "challengeId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "Me2faOperationResultDto",
       "schema": {
         "kind": "object",
@@ -28874,10 +29018,49 @@
       }
     },
     {
+      "name": "Me2faPrepareDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "code",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "Me2faPrepareResponseDto",
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "challengeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
           {
             "name": "otpauthUri",
             "required": true,
@@ -28908,6 +29091,7 @@
           }
         ],
         "required_properties": [
+          "challengeId",
           "secret",
           "otpauthUri"
         ],
@@ -30144,6 +30328,8 @@
                 "AUTH_INVALID_2FA_CODE",
                 "AUTH_2FA_NOT_ENABLED",
                 "AUTH_2FA_SETUP_EXPIRED",
+                "AUTH_2FA_SETUP_UNAVAILABLE",
+                "AUTH_2FA_STATE_CHANGED",
                 "AUTH_INVALID_WALLET_NONCE",
                 "AUTH_INVALID_WALLET_SIGNATURE",
                 "AUTH_WALLET_ADDRESS_REQUIRED",
@@ -30168,7 +30354,8 @@
                 "AUTH_SESSION_REVOCATION_UNAVAILABLE",
                 "AUTH_ACCOUNT_NOT_FOUND",
                 "ACCOUNT_DELETED",
-                "AUTH_ACCOUNT_TERMINAL_CONFLICT"
+                "AUTH_ACCOUNT_TERMINAL_CONFLICT",
+                "ADMIN_LAST_ACTIVE_REQUIRED"
               ],
               "type": "string"
             }
@@ -30705,6 +30892,20 @@
             }
           },
           {
+            "name": "emailOtpCode",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "password",
             "required": true,
             "schema": {
@@ -30721,7 +30922,8 @@
         ],
         "required_properties": [
           "email",
-          "password"
+          "password",
+          "emailOtpCode"
         ],
         "closed": false,
         "additional_properties": null

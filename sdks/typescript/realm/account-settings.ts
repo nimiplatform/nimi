@@ -1,7 +1,9 @@
 import type {
   CreatorEligibilityResponseDto,
   Me2faOperationResultDto,
+  Me2faPrepareDto,
   Me2faPrepareResponseDto,
+  Me2faEnableDto,
   Me2faVerifyDto,
   OAuthLoginDto,
   OAuthProvider,
@@ -21,7 +23,9 @@ export type NimiRealmUserNotificationSettings = UserNotificationSettingsDto;
 export type NimiRealmUpdateUserNotificationSettingsInput = UpdateUserNotificationSettingsDto;
 export type NimiRealmCreatorEligibility = CreatorEligibilityResponseDto;
 export type NimiRealmUpdatePasswordInput = UpdatePasswordRequestDto;
+export type NimiRealmTwoFactorPrepareInput = Me2faPrepareDto;
 export type NimiRealmTwoFactorPrepareOutput = Me2faPrepareResponseDto;
+export type NimiRealmTwoFactorEnableInput = Me2faEnableDto;
 export type NimiRealmTwoFactorVerifyInput = Me2faVerifyDto;
 export type NimiRealmOAuthLinkInput = OAuthLoginDto;
 
@@ -106,10 +110,11 @@ export async function updateNimiRealmPassword(
 
 export async function prepareNimiRealmTwoFactor(
   realm: NimiRealmAccountSettingsApi,
+  input: NimiRealmTwoFactorPrepareInput,
   options?: RealmTypedCallOptions,
 ): Promise<NimiRealmTwoFactorPrepareOutput> {
-  const response = await realm.auth.prepare2Fa({ path: {} }, options);
-  if (!response.secret || !response.otpauthUri) {
+  const response = await realm.auth.prepare2Fa({ path: {}, body: input }, options);
+  if (!response.challengeId || !response.secret || !response.otpauthUri) {
     throw accountSettingsError({
       reasonCode: 'SDK_REALM_TWO_FACTOR_RESPONSE_INVALID',
       message: 'Realm two-factor prepare response is malformed.',
@@ -121,7 +126,7 @@ export async function prepareNimiRealmTwoFactor(
 
 export async function enableNimiRealmTwoFactor(
   realm: NimiRealmAccountSettingsApi,
-  input: NimiRealmTwoFactorVerifyInput,
+  input: NimiRealmTwoFactorEnableInput,
   options?: RealmTypedCallOptions,
 ): Promise<NimiRealmTwoFactorView> {
   const response = await realm.auth.enable2Fa({ path: {}, body: input }, options);

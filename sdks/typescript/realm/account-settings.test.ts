@@ -49,7 +49,7 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
       },
       async prepare2Fa(request) {
         calls.push({ method: 'prepare2Fa', request });
-        return { secret: 'secret', otpauthUri: 'otpauth://nimi/test' };
+        return { challengeId: 'a'.repeat(64), secret: 'secret', otpauthUri: 'otpauth://nimi/test' };
       },
       async enable2Fa(request) {
         calls.push({ method: 'enable2Fa', request });
@@ -76,8 +76,8 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
   assert.equal((await updateNimiRealmUserNotificationSettings(realm, { channels: { email: false } })).channels?.email, false);
   assert.equal((await loadNimiRealmCreatorEligibility(realm)).isEligible, true);
   assert.deepEqual(await updateNimiRealmPassword(realm, { newPassword: 'next' }), { ok: true });
-  assert.equal((await prepareNimiRealmTwoFactor(realm)).secret, 'secret');
-  assert.deepEqual(await enableNimiRealmTwoFactor(realm, { code: '123456' }), { enabled: true, success: true });
+  assert.equal((await prepareNimiRealmTwoFactor(realm, { code: '654321' })).secret, 'secret');
+  assert.deepEqual(await enableNimiRealmTwoFactor(realm, { challengeId: 'a'.repeat(64), code: '123456' }), { enabled: true, success: true });
   assert.deepEqual(await disableNimiRealmTwoFactor(realm, { code: '654321' }), { enabled: false, success: true });
   assert.deepEqual(await linkNimiRealmOAuth(realm, {
     provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
@@ -102,6 +102,8 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
     path: {},
     body: { profileVisibility: 'FRIENDS' },
   });
+  assert.deepEqual(calls[6]?.request, { path: {}, body: { code: '654321' } });
+  assert.deepEqual(calls[7]?.request, { path: {}, body: { challengeId: 'a'.repeat(64), code: '123456' } });
   assert.deepEqual(calls[9]?.request, {
     path: {},
     body: {
@@ -125,7 +127,7 @@ test('Realm account/settings helpers fail closed on rejected two-factor operatio
     },
     auth: {
       async updatePassword() { return {}; },
-      async prepare2Fa() { return { secret: '', otpauthUri: '' }; },
+      async prepare2Fa() { return { challengeId: '', secret: '', otpauthUri: '' }; },
       async enable2Fa() { return { success: false }; },
       async disable2Fa() { return { success: false }; },
       async linkOauth() { return {}; },
@@ -134,11 +136,11 @@ test('Realm account/settings helpers fail closed on rejected two-factor operatio
   } as unknown as NimiRealmAccountSettingsApi;
 
   await assert.rejects(
-    () => prepareNimiRealmTwoFactor(realm),
+    () => prepareNimiRealmTwoFactor(realm, {}),
     (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_TWO_FACTOR_RESPONSE_INVALID',
   );
   await assert.rejects(
-    () => enableNimiRealmTwoFactor(realm, { code: '123456' }),
+    () => enableNimiRealmTwoFactor(realm, { challengeId: 'a'.repeat(64), code: '123456' }),
     (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_TWO_FACTOR_OPERATION_REJECTED',
   );
 });

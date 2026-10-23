@@ -16352,6 +16352,31 @@ func (value *MaterializationSegmentManifestV3Dto) UnmarshalJSON(data []byte) err
 	return nil
 }
 
+type Me2faEnableDto struct {
+	ChallengeId string `json:"challengeId"`
+	Code        string `json:"code"`
+}
+
+func (value *Me2faEnableDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Me2faEnableDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeId", false); err != nil {
+		return fmt.Errorf("decode Me2faEnableDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode Me2faEnableDto: %w", err)
+	}
+	type modelAlias Me2faEnableDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Me2faEnableDto: %w", err)
+	}
+	*value = Me2faEnableDto(decoded)
+	return nil
+}
+
 type Me2faOperationResultDto struct {
 	Success bool `json:"success"`
 }
@@ -16373,14 +16398,37 @@ func (value *Me2faOperationResultDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type Me2faPrepareDto struct {
+	Code string `json:"code,omitempty"`
+}
+
+func (value *Me2faPrepareDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Me2faPrepareDto: %w", err)
+	}
+
+	type modelAlias Me2faPrepareDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Me2faPrepareDto: %w", err)
+	}
+	*value = Me2faPrepareDto(decoded)
+	return nil
+}
+
 type Me2faPrepareResponseDto struct {
-	OtpauthUri string `json:"otpauthUri"`
-	Secret     string `json:"secret"`
+	ChallengeId string `json:"challengeId"`
+	OtpauthUri  string `json:"otpauthUri"`
+	Secret      string `json:"secret"`
 }
 
 func (value *Me2faPrepareResponseDto) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Me2faPrepareResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeId", false); err != nil {
 		return fmt.Errorf("decode Me2faPrepareResponseDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "otpauthUri", false); err != nil {
@@ -17129,8 +17177,9 @@ func (value *PasswordLoginDto) UnmarshalJSON(data []byte) error {
 }
 
 type PasswordRegisterDto struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email        string `json:"email"`
+	EmailOtpCode string `json:"emailOtpCode"`
+	Password     string `json:"password"`
 }
 
 func (value *PasswordRegisterDto) UnmarshalJSON(data []byte) error {
@@ -17139,6 +17188,9 @@ func (value *PasswordRegisterDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "email", false); err != nil {
+		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "emailOtpCode", false); err != nil {
 		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "password", false); err != nil {
@@ -24529,7 +24581,7 @@ type RealmEnable2FaOperationRequest struct {
 	Path    RealmEnable2FaOperationPath    `json:"path,omitempty"`
 	Query   RealmEnable2FaOperationQuery   `json:"query,omitempty"`
 	Headers RealmEnable2FaOperationHeaders `json:"headers,omitempty"`
-	Body    Me2faVerifyDto                 `json:"body,omitempty"`
+	Body    Me2faEnableDto                 `json:"body,omitempty"`
 }
 
 type RealmExploreControllerCheckStatusOperationPath struct {
@@ -25495,7 +25547,7 @@ type RealmPrepare2FaOperationRequest struct {
 	Path    RealmPrepare2FaOperationPath    `json:"path,omitempty"`
 	Query   RealmPrepare2FaOperationQuery   `json:"query,omitempty"`
 	Headers RealmPrepare2FaOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                        `json:"body,omitempty"`
+	Body    Me2faPrepareDto                 `json:"body,omitempty"`
 }
 
 type RealmPrepareBindWalletOperationPath struct {

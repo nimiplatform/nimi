@@ -17781,12 +17781,24 @@ pub struct MaterializationSegmentManifestV3Dto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct Me2faEnableDto {
+    pub challenge_id: String,
+    pub code: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Me2faOperationResultDto {
     pub success: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct Me2faPrepareDto {
+    pub code: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Me2faPrepareResponseDto {
+    pub challenge_id: String,
     pub otpauth_uri: String,
     pub secret: String,
 }
@@ -17978,6 +17990,7 @@ pub struct PasswordLoginDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PasswordRegisterDto {
     pub email: String,
+    pub email_otp_code: String,
     pub password: String,
 }
 
@@ -20044,29 +20057,6 @@ pub struct RealmGetMyTiersOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
-pub struct RealmPrepare2FaOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
-pub struct RealmPrepare2FaOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
-pub struct RealmPrepare2FaOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPrepare2FaOperationRequest {
-    pub path: RealmPrepare2FaOperationPath,
-    pub query: RealmPrepare2FaOperationQuery,
-    pub headers: RealmPrepare2FaOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanDmOperationPath {
 
 }
@@ -20540,35 +20530,6 @@ where
             vitality_score: object.get("vitalityScore").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "vitalityScore",
-            })?,
-        })
-    }
-
-    pub fn prepare2_fa(&self, request: RealmPrepare2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, RealmTypedClientError<T::Error>> {
-        let body = serde_json::to_vec(&serde_json::json!({
-            "path": request.path,
-            "query": request.query,
-            "headers": request.headers,
-            "body": serde_json::json!({}),
-        })).expect("Realm typed request JSON serialization cannot fail");
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "prepare2Fa".to_string(),
-            metadata,
-            body,
-            timeout,
-        }).map_err(RealmTypedClientError::Transport)?;
-        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
-            operation_id: "prepare2Fa",
-            field: "<body>",
-        })?;
-        Ok(Me2faPrepareResponseDto {
-            otpauth_uri: object.get("otpauthUri").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
-                operation_id: "prepare2Fa",
-                field: "otpauthUri",
-            })?,
-            secret: object.get("secret").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
-                operation_id: "prepare2Fa",
-                field: "secret",
             })?,
         })
     }
