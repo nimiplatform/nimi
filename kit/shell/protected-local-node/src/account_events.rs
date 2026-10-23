@@ -1,6 +1,7 @@
 use napi_derive::napi;
 use nimi_shell_protected_local::{
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest, NimiDesktopControl,
+    DesktopAccountSessionEvent, DesktopAccountSessionEventReceiver,
+    DesktopAccountSessionEventsRequest, NimiDesktopControl, NimiHostError,
 };
 use serde_json::json;
 use std::{
@@ -76,6 +77,30 @@ async fn close_account_event_stream(stream: SharedAccountEventStream) {
     // The close signal releases that guard; taking the receiver then closes the
     // sender and makes the tonic stream task drop its verified channel now.
     stream.receiver.lock().await.take();
+}
+
+async fn next_account_event(
+    stream: &AccountEventStream,
+) -> Result<Option<Result<DesktopAccountSessionEvent, NimiHostError>>, ()> {
+    let mut close_rx = stream.close_tx.subscribe();
+    if *close_rx.borrow() {
+        return Ok(None);
+    }
+    let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+        return Err(());
+    };
+    let Some(receiver) = receiver_slot.as_mut() else {
+        return Ok(None);
+    };
+    let next = tokio::select! {
+        biased;
+        changed = close_rx.changed() => { let _ = changed; None }
+        next = receiver.recv() => next,
+    };
+    // Error processing can wait for another transport retirement that already
+    // owns this stream. Release its receiver before entering that owner gate.
+    drop(receiver_slot);
+    Ok(next)
 }
 
 #[cfg(any(
@@ -214,23 +239,8 @@ pub async fn desktop_account_session_events_next(
     let Some(stream) = stream else {
         return NativeJsonOutcome::host_reason("not-found", false);
     };
-    let mut close_rx = stream.close_tx.subscribe();
-    if *close_rx.borrow() {
-        return NativeJsonOutcome::success(json!({ "completed": true }));
-    }
-    let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+    let Ok(next) = next_account_event(&stream).await else {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
-    };
-    let Some(receiver) = receiver_slot.as_mut() else {
-        return NativeJsonOutcome::success(json!({ "completed": true }));
-    };
-    let next = tokio::select! {
-        biased;
-        changed = close_rx.changed() => {
-            let _ = changed;
-            None
-        }
-        next = receiver.recv() => next,
     };
     match next {
         Some(Ok(event)) => NativeJsonOutcome::success(json!({
@@ -296,6 +306,57 @@ mod tests {
     use super::*;
 
     static ACCOUNT_EVENT_STREAM_TEST_LOCK: Mutex<()> = Mutex::const_new(());
+
+    #[tokio::test]
+    async fn an_error_next_does_not_hold_the_receiver_while_waiting_for_retirement() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(1);
+        let (close_tx, _) = watch::channel(false);
+        let stream = Arc::new(AccountEventStream {
+            receiver: Mutex::new(Some(receiver)),
+            close_tx,
+            control: None,
+        });
+        sender
+            .send(Err(NimiHostError::new(
+                nimi_shell_protected_local::NimiHostErrorReasonCode::RuntimeServiceUnavailable,
+                true,
+            )))
+            .await
+            .expect("queue the transport error");
+        let retirement_gate = Arc::new(Mutex::new(()));
+        let retiring_owner = retirement_gate.lock().await;
+        let error_received = Arc::new(tokio::sync::Notify::new());
+        let pending_next_cleanup = tokio::spawn({
+            let stream = Arc::clone(&stream);
+            let gate = Arc::clone(&retirement_gate);
+            let error_received = Arc::clone(&error_received);
+            async move {
+                assert!(matches!(
+                    next_account_event(&stream).await,
+                    Ok(Some(Err(_)))
+                ));
+                error_received.notify_one();
+                let _next_retirement = gate.lock().await;
+            }
+        });
+        error_received.notified().await;
+
+        // The current owner may already have drained this stream from the
+        // registry before Next tries to remove it and enter the owner gate.
+        tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            close_account_event_stream(stream),
+        )
+        .await
+        .expect(
+            "the first retirement must close the receiver without waiting for Next's retirement",
+        );
+        assert!(sender.is_closed());
+        drop(retiring_owner);
+        pending_next_cleanup
+            .await
+            .expect("the next retirement may now finish");
+    }
 
     #[tokio::test]
     async fn close_unblocks_a_pending_next_call() {

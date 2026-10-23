@@ -1,6 +1,6 @@
 import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { GlobalDownloadsProvider } from '../../features/runtime-config/global-downloads-context.js';
-import React, { Suspense, lazy, useEffect, useRef, type PropsWithChildren } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, useAppStoreApi, type AppTab } from '../providers/app-store';
 import {
@@ -12,6 +12,8 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { MainLayoutView } from './main-layout-view';
 import { AppsDownloadsProvider } from '../../features/apps/apps-downloads-context.js';
+import { SystemEntryProvider } from '../../features/system-entry/system-entry-provider.js';
+import { useHomeExecutionNotificationControls } from '../../features/home/execution-notices.js';
 
 const ChatRealtimeSyncHost = lazy(async () => {
   const mod = await import('../../features/realtime/use-chat-realtime-sync');
@@ -56,6 +58,15 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 
 export function MainLayout() {
   const navigation = useHomeNavigation();
+  const notifications = useHomeExecutionNotificationControls();
+  const [homeVisible, setHomeVisible] = useState(true);
+  const reading = useMemo(() => {
+    const open = async (homeSection: 'usage' | 'work'): Promise<void> => {
+      const result = await navigation.push({ id: 'home', homeSection });
+      if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected');
+    };
+    return { openUsage: () => open('usage'), openCurrentWork: () => open('work') };
+  }, [navigation]);
   const navigate = useNavigate();
   const bindings = useDesktopRendererBindings();
   const appStore = useAppStoreApi();
@@ -124,8 +135,9 @@ export function MainLayout() {
   };
 
   return (
-    <AppsDownloadsProvider>
-      <GlobalDownloadsProvider>
+    <AppsDownloadsProvider nativeVisible={homeVisible}>
+      <GlobalDownloadsProvider nativeVisible={homeVisible}>
+        <SystemEntryProvider notifications={notifications} reading={reading} onHomeVisibility={setHomeVisible}>
         <MainLayoutView
         activeTab={activeTab}
         authStatus={authStatus}
@@ -152,6 +164,7 @@ export function MainLayout() {
           <ScenarioJobStatusHost />
         </Suspense>
       </NonCriticalStartupBoundary>
+      </SystemEntryProvider>
     </GlobalDownloadsProvider>
     </AppsDownloadsProvider>
   );

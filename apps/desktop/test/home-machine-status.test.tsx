@@ -1,19 +1,30 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import React from 'react';
+import React, { act } from 'react';
+import { JSDOM } from 'jsdom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n';
 import {
   HOME_RESOURCE_WARN_PERCENT,
   HomeMachineStatusView,
+  HomeMachineStatus,
   homeRuntimeState,
   type HomeMachineStatusViewProps,
 } from '../src/shell/renderer/features/home/home-machine-status.js';
+import type { SystemEntryUsage } from '../src/shell/shared/system-entry-types.js';
+import { SystemEntryProviderContext, type SystemEntryContextValue } from '../src/shell/renderer/features/system-entry/system-entry-context.js';
+import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
+import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 
 (globalThis as { React?: typeof React }).React = React;
 
 const GB = 1024 ** 3;
+function usageProjection(overrides: Partial<SystemEntryUsage> = {}): SystemEntryUsage {
+  return { status: 'available', observedAt: '2026-10-23T03:00:00Z', periodLabel: '2026-10-23 · Asia/Shanghai',
+    attempts: '12', localAttempts: '8', cloudAttempts: '4', costs: [{ currency: 'USD', estimate: '0.42' }],
+    partial: false, note: 'Current account · this device', ...overrides };
+}
 
 function render(overrides: Partial<HomeMachineStatusViewProps> = {}): string {
   const props: HomeMachineStatusViewProps = {
@@ -31,22 +42,15 @@ function render(overrides: Partial<HomeMachineStatusViewProps> = {}): string {
         source: 'test',
       },
     },
-    usage: {
-      loading: false,
-      error: null,
-      pricingLoading: false,
-      totalRequests: 12,
-      totalEstimatedCost: 0.42,
-      costCurrency: 'USD',
-      hasUnpricedUsage: false,
-    },
+    usage: usageProjection(),
     onOpenDiagnostics: () => undefined,
+    onOpenUsage: () => undefined,
     ...overrides,
   };
   return renderToStaticMarkup(<HomeMachineStatusView {...props} />);
 }
 
-test('machine status strip shows runtime, three resource percentages, and today cost', async () => {
+test('machine status strip shows Runtime resources and shared real AI usage', async () => {
   await initI18n(); await changeLocale('en');
   const html = render();
   assert.match(html, /data-testid="home-machine-status"/);
@@ -55,8 +59,9 @@ test('machine status strip shows runtime, three resource percentages, and today 
   assert.match(html, /CPU<\/span><span[^>]*>7%/);
   assert.match(html, /Memory<\/span><span[^>]*>80%/);
   assert.match(html, /Disk<\/span><span[^>]*>49%/);
-  assert.match(html, /Today ~\$0\.42/);
-  assert.match(html, /12 req/);
+  assert.match(html, /12 recorded AI executions/);
+  assert.match(html, /Estimated 0\.42 USD/);
+  assert.doesNotMatch(html, /12 req/);
   assert.doesNotMatch(html, /data-warn=/);
   assert.doesNotMatch(html, /runtimeConfig\.overview\./);
 });
@@ -113,12 +118,13 @@ test('machine status strip degrades per source without hiding the others', async
   const html = render({
     runtime: 'unavailable',
     resources: { status: 'unavailable', snapshot: null },
-    usage: { loading: false, error: 'boom', pricingLoading: false, totalRequests: 0, totalEstimatedCost: null, costCurrency: 'USD', hasUnpricedUsage: false },
+    usage: usageProjection({ status: 'unavailable', attempts: null, localAttempts: null, cloudAttempts: null, costs: [], partial: true }),
   });
   assert.match(html, /data-state="unavailable"/);
   assert.match(html, /Runtime connection unavailable/);
   assert.match(html, /System resources unavailable/);
-  assert.match(html, /Today&#x27;s usage unavailable/);
+  assert.match(html, /Today&#x27;s AI usage unavailable/);
+  assert.doesNotMatch(html, /0 recorded AI executions/);
   assert.doesNotMatch(html, /title="Some models have unknown pricing"/);
   assert.doesNotMatch(html, /%<\/span>/);
 });
@@ -126,11 +132,12 @@ test('machine status strip degrades per source without hiding the others', async
 test('unpriced usage keeps the cost honest instead of showing zero', async () => {
   await initI18n(); await changeLocale('zh');
   const html = render({
-    usage: { loading: false, error: null, pricingLoading: false, totalRequests: 3, totalEstimatedCost: null, costCurrency: 'USD', hasUnpricedUsage: true },
+    usage: usageProjection({ status: 'partial', attempts: '3', costs: [], partial: true, note: '部分费用未知' }),
   });
-  assert.match(html, /今日预估 N\/A/);
-  assert.match(html, /title="部分模型定价未知"/);
-  assert.match(html, /3 次/);
+  assert.match(html, /费用暂无法估算/);
+  assert.match(html, /title="部分费用未知"/);
+  assert.match(html, /今日已记录 3 次 AI 执行/);
+  assert.match(html, /部分/);
 });
 
 test('homeRuntimeState maps health query states to the strip states', () => {
@@ -149,4 +156,48 @@ test('an unavailable data disk stays unknown while CPU and memory remain visible
   assert.match(html, /12%/);
   assert.match(html, /—/);
   assert.doesNotMatch(html, /data-warn="true"/);
+});
+
+test('Home hides its resource sampler and reads usage only from the shared provider', async () => {
+  await initI18n(); await changeLocale('en');
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, React, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  let loads = 0, openedUsage = 0;
+  const scheduled = new Set<() => void>();
+  const bindings = {
+    app: { commands: { systemResources: { load: async () => { loads += 1; return snapshotWith('normal').snapshot; } } } },
+    clock: { now: Date.now, schedule: (_delay: number, listener: (result: { ok: true }) => void) => {
+      const tick = () => listener({ ok: true }); scheduled.add(tick); return () => { scheduled.delete(tick); };
+    } },
+    sdk: { machineProduct: () => { throw new Error('Home must not read RPC Usage'); } },
+  } as unknown as DesktopCanonicalRendererBindings;
+  const renderVisible = async (homeVisible: boolean) => {
+    const context = { homeVisible, projection: { usage: usageProjection({ attempts: '9' }) } } as SystemEntryContextValue;
+    await act(async () => root.render(<DesktopRendererBindingProvider bindings={bindings}><SystemEntryProviderContext.Provider value={context}>
+      <HomeMachineStatus runtime="ready" onOpenDiagnostics={() => {}} onOpenUsage={() => { openedUsage += 1; }} />
+    </SystemEntryProviderContext.Provider></DesktopRendererBindingProvider>));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+  };
+  try {
+    await renderVisible(false);
+    assert.equal(loads, 0);
+    await renderVisible(true);
+    assert.equal(loads, 1); assert.equal(scheduled.size, 1);
+    assert.match(dom.window.document.body.textContent ?? '', /9 recorded AI executions/);
+    await act(async () => dom.window.document.querySelector<HTMLButtonElement>('[data-testid="home-machine-usage"]')!.click());
+    assert.equal(openedUsage, 1);
+    await renderVisible(false);
+    assert.equal(scheduled.size, 0);
+    assert.equal(loads, 1);
+  } finally {
+    await act(async () => root.unmount()); dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete (globalThis as Record<string, unknown>)[key];
+    }
+  }
 });

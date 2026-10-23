@@ -229,6 +229,11 @@ export function createDesktopInstalledAppHost(
   startObserving();
   return {
     resume(): void { closing = false; startObserving(); },
+    quitImpact(): readonly string[] {
+      return [...runs.values()]
+        .filter(run => run.pending || run.launchQueued || (run.launchId && !run.exitState))
+        .map(run => run.displayName || 'Installed App');
+    },
     /** Launches or focuses the exact installed registration selected by Runtime. */
     launchSelector: (selector: Uint8Array): Promise<unknown> => invoke('installed_app_launch', {
       payload: { launchSelector: [...selector] },

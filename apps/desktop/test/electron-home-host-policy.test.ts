@@ -22,6 +22,10 @@ test('Home setup/repair refuses model, business and activity work while retainin
   assert.equal((await policy({ ...base, command: 'runtime_account_invoke_realm_unary', realmMethodId: 'getMe' })).allow, true);
   assert.equal((await policy({ ...base, command: 'runtime_account_invoke_realm_unary', realmMethodId: 'createPost' })).allow, false);
   assert.equal((await policy({ ...base, command: 'installed_app_launch' })).allow, false);
+  for (const command of ['system_entry_context_get', 'system_entry_heartbeat', 'system_entry_action_result']) {
+    assert.equal((await policy({ ...base, command })).allow, true, 'the system entry can observe recovery and settle bounded navigation');
+  }
+  assert.equal((await policy({ ...base, command: 'system_entry_projection_publish' })).allow, false);
   allowed = true;
   assert.equal((await policy({ ...base, command: 'installed_app_launch' })).allow, true);
 });

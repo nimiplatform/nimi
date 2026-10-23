@@ -137,7 +137,7 @@ describe('Electron protected Desktop account host', () => {
       context,
     )).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
 
-    host.close();
+    host.closeRendererStreams();
     expect(close).toHaveBeenCalledTimes(4);
     await expect(host.invoke(
       'runtime_account_session_events_open',

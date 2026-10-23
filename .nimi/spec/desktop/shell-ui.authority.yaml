@@ -12,8 +12,8 @@ units:
     meaning: The Desktop Nimi Home shell is the current replaceable implementation of the Nimi Home Contract for product control, first-run and return-run state, Apps, LocalAgent conversation, health, account, settings, diagnostics, and explicit failure projection without becoming the owner of upstream truth.
   - id: definition.nimi.desktop.shell-ui.menu-bar
     kind: definition
-    title: Desktop menu-bar shell
-    meaning: The Desktop menu-bar shell is the macOS status-item entry, bounded fixed-service operational summary, navigation dispatch, window hide and restore behavior, and explicit Desktop quit surface; it consumes no periodic provider-health, freshness, or reusable capability-readiness projection.
+    title: Desktop system entry shell
+    meaning: The Desktop system entry is one macOS status item or Windows notification-area icon with a compact overview, native action menu, bounded owner projections, admitted navigation, recoverable window hiding and explicit Home quit; it owns presentation and native mechanics without owning Runtime lifetime, App work, billing, provider health or capability readiness.
   - id: definition.nimi.desktop.shell-ui.kit-consumption
     kind: definition
     title: Desktop Kit UI consumption surface
@@ -72,7 +72,7 @@ units:
     kind: rule
     title: Window controls are host-bounded
     modality: must
-    statement: Desktop enables title-bar drag only in its native Host through the standard start_window_drag shell capability or the shared Kit Electron chrome drag region with interactive exclusions and Host geometry; Web uses non-draggable content presentation and no native window command. Shared chrome remains visible outside authentication and business gates. The separate macOS status-item menu-bar shell remains gated by enableMenuBarShell and retains Desktop-owned hide, restore and quit semantics.
+    statement: Desktop enables title-bar drag only in its native Host through the standard start_window_drag shell capability or the shared Kit Electron chrome drag region with interactive exclusions and Host geometry; Web uses non-draggable content presentation and no native window command. Shared chrome remains visible outside authentication and business gates. The separate system-entry shell remains gated by enableMenuBarShell on supported macOS and Windows hosts and retains Desktop-owned hide, restore and quit semantics.
     condition: Whenever shell window controls are exposed.
     failure: Reject host-incompatible window actions and return an explicit unsupported or unavailable result.
     relations:
@@ -701,10 +701,10 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r062
     kind: rule
-    title: Menu bar is a macOS Desktop shell entry
+    title: System entry belongs to the current Home host
     modality: must
-    statement: When enableMenuBarShell is active on macOS, Desktop provides one status-item entry inside the Desktop process while retaining the Dock icon and main window and never changing to accessory-only activation.
-    condition: Whenever the macOS Desktop shell starts.
+    statement: On admitted macOS and Windows Home hosts, Desktop provides one system entry in its existing native process, retains the ordinary Dock or taskbar and main-window entry, and never becomes accessory-only or introduces a second native shell. Primary activation opens a compact overview and secondary activation opens the native menu with mutually exclusive focus handling; an unavailable system entry never authorizes hiding the last recoverable Home window.
+    condition: Whenever the Desktop system entry starts or changes availability.
     failure: Keep menu-bar behavior disabled on unsupported hosts and reject a separate Runtime or app process.
     relations:
       - type: applies_to
@@ -713,7 +713,7 @@ units:
     kind: rule
     title: Menu-bar status uses bounded operational facts
     modality: must
-    statement: The menu bar combines only fixed-service lifecycle status, window visibility, an in-flight user action, and the last actual operation update or typed error; it neither polls nor caches provider health, assigns healthy, unhealthy, or unknown provider state, applies a provider freshness window, or creates a parallel capability-readiness transport.
+    statement: The system entry projects independent admitted fixed-service status, window state, current user action, owner-published attention and downloads, existing work entry points, Runtime-owned current AI execution and current-account device usage. Source observation time and coverage stay distinct from transport liveness; an expired observation never becomes current because of a heartbeat. A failed optional source degrades only its section, no provider health or parallel capability-readiness state is created, and unknown or incomplete data never becomes a complete zero.
     condition: Whenever the menu bar renders or refreshes status.
     failure: Drop unsupported or stale operation detail and never create periodic provider or capability health truth.
     relations:
@@ -723,7 +723,7 @@ units:
     kind: rule
     title: Menu-bar structure and actions are closed
     modality: must
-    statement: The menu bar contains a state header, Open Nimi, AI Capabilities, Downloads, Cloud Services, Advanced and Diagnostics, Settings, Runtime and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no provider-health summary, stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
+    statement: The localized native menu exposes quick overview, Open Home, admitted recent chat and source-qualified App entry points, Downloads, AI Capabilities, current-account usage, Home notification preference, Settings or Support and explicit Quit Home. Runtime lifecycle actions remain in their existing verified recovery destinations; the menu exposes no arbitrary command, URL, endpoint, binary, process, provider health, model unload or global execution stop. Attention, current work, open Apps, requests and unread counts retain separate owner semantics.
     condition: Whenever Desktop builds the menu-bar menu.
     failure: Disable unsafe actions and route unverified or hung service state to signed repair.
     relations:
@@ -733,7 +733,7 @@ units:
     kind: rule
     title: Menu-bar navigation is event-dispatched
     modality: must
-    statement: Menu-bar navigation first shows and focuses the main window, emits menu-bar://open-tab with only Runtime AI-settings, model-library, cloud-services, or advanced-diagnostics destination selection or Settings selection, and lets renderer state apply the route without coupling native code to React instances.
+    statement: System-entry navigation restores or creates the admitted Home main window through its existing native owner and dispatches only a bounded typed destination through the single Home navigation controller. Current admission and source-qualified object authority are rechecked when an action executes, including a previously expanded menu; activity open remains the formal owner operation, and Runtime Agent activity acquires no Conversation open. A missing or failed renderer offers native recovery without replaying business actions or treating another small window as the Home main window.
     condition: Whenever a menu-bar navigation item is activated.
     failure: Reject invalid payloads and report navigation failure without mutating a React component directly.
     relations:
@@ -745,7 +745,7 @@ units:
     kind: rule
     title: Window close hide and explicit quit stay distinct
     modality: must
-    statement: With the macOS menu-bar shell enabled, CloseRequested hides the main window, Open Nimi restores and focuses it, and only explicit Quit Nimi or operating-system quit runs Desktop subscription and watcher cleanup and exits Desktop while leaving the Runtime service running.
+    statement: Closing the Home main window hides it only while an actual recoverable system entry exists. Explicit user quit serializes with App launch admission, explains the impact on installed and local-development Apps, Avatar and pending launches, clears quit intent on cancellation, and preserves recovery resources on critical stop failure. Ordinary Home quit leaves Runtime lifetime independent, while operating-system session end uses bounded native cleanup without an ordinary confirmation or a promise that Runtime survives the operating system; update and data-root handoff retain their stricter owner cleanup.
     condition: Whenever the main window closes or Desktop receives quit intent.
     failure: Reject close-as-quit, quit without cleanup, and Runtime service stop.
     relations:
@@ -1071,7 +1071,7 @@ units:
     kind: rule
     title: Menu-bar header states are closed
     modality: must
-    statement: The Desktop menu-bar state header is exactly running, degraded, starting, stopped, or unavailable.
+    statement: The Desktop fixed-service state header is exactly running, degraded, starting, stopped, or unavailable and remains distinct from account admission, observation availability, current work and model preparation; a running service does not prove every capability or execution is ready.
     condition: Whenever the menu bar projects its top-level state.
     failure: Reject an unknown or collapsed header state and preserve the applicable admitted state.
     relations:
@@ -1103,9 +1103,19 @@ units:
     kind: rule
     title: Home single navigation ownership
     modality: must
-    statement: Home adopts the single Kit navigation controller for all ordinary primary and secondary pages, profile/source/world details, conversation references, Home section, Apps entry/section, Settings section and Activity focus. UI links, notifications, Desktop Open, capability links and macOS status-item navigation all commit through it. Column highlight derives from current destination; writable global activeTab, navigationBackStack and duplicate detail-position fields are removed. Authentication access state is separate; account replacement clears old position history and pending work without restoring or replaying business actions.
+    statement: Home adopts the single Kit navigation controller for all ordinary primary and secondary pages, profile/source/world details, conversation references, Home section, Apps entry/section, Settings section and Activity focus. UI links, notifications, Desktop Open, capability links and system-entry navigation all commit through it. Column highlight derives from current destination; writable global activeTab, navigationBackStack and duplicate detail-position fields are removed. Authentication access state is separate; account replacement clears old position history and pending work without restoring or replaying business actions.
     condition: Whenever an App consumes standard Kit navigation or chrome.
     failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.system-entry-projection
+    kind: rule
+    title: System overview is an admitted transient projection
+    modality: must
+    statement: The compact system overview inherits current Product Control and Runtime account admission, exposes no ordinary account work while login or recovery gates deny it, and uses one Home-lifetime owner observer rather than one SDK observer per popup. Account replacement, relevant session or activation loss, lock, renderer failure or bounded observation-connection expiry clears or invalidates old summaries and dependent actions without terminating supervised App processes. Recovery requires a current-scope snapshot rather than a heartbeat or replay; native actual visibility controls expensive sampling while necessary Home readiness remains alive.
+    condition: Whenever Home publishes, displays or acts on a system overview.
+    failure: Clear stale sensitive projection and reject stale or inadmissible actions while preserving independently available recovery and source-local failures.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar

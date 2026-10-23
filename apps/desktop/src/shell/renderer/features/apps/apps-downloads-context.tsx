@@ -17,7 +17,9 @@ export type AppsDownloadsContextValue = AppsJobsSnapshot & {
 const AppsDownloadsContext = createContext<AppsDownloadsContextValue | null>(null);
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-009a
-export function AppsDownloadsProvider({ children }: PropsWithChildren) {
+export function AppsDownloadsProvider({ children, nativeVisible = true }: PropsWithChildren<{ nativeVisible?: boolean }>) {
+  const nativeVisibleRef = useRef(nativeVisible);
+  nativeVisibleRef.current = nativeVisible;
   const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
 
@@ -41,11 +43,12 @@ export function AppsDownloadsProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     setSnapshot(observer.getSnapshot());
     void observer.start();
-    const current = startDownloadPolling(() => observer.refresh(), () => observer.getSnapshot().jobs.some((job) => !packageJobIsTerminal(job)));
+    const current = startDownloadPolling(() => observer.refresh(), () => observer.getSnapshot().jobs.some((job) => !packageJobIsTerminal(job)), undefined, () => nativeVisibleRef.current);
     polling.current = current;
     return () => { polling.current = null; current.stop(); observer.dispose(); };
   }, [observer]);
   useEffect(() => { if (hasActiveJobs) polling.current?.wake(); }, [hasActiveJobs]);
+  useEffect(() => { if (nativeVisible) polling.current?.wake(); }, [nativeVisible]);
   return <AppsDownloadsContext.Provider value={{
     ...snapshot, observer, view, selectedJobId, selectJob, openDownloads, showLibrary,
   }}>{children}</AppsDownloadsContext.Provider>;

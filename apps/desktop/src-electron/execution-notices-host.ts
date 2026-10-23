@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { SystemEntryAdmission } from '../src/shell/shared/system-entry-types.js';
 
 export type DesktopExecutorObservation = Readonly<{
   key: string;
@@ -21,6 +22,7 @@ export type DesktopExecutionNotice = Readonly<{
 /** Host technical facts only. There is no business task, recovery or App open action. */
 export function createDesktopExecutionNoticesHost(input: {
   readonly supported: () => boolean;
+  readonly readAdmission: () => Promise<SystemEntryAdmission>;
   readonly notify: (title: string, body: string, outcome: (value: 'shown' | 'failed') => void) => void;
   readonly now?: () => number;
 }) {
@@ -28,6 +30,7 @@ export function createDesktopExecutionNoticesHost(input: {
   const scopes = new Map<string, { ref: string; interrupted: boolean }>();
   const notices: Array<{ key: string; value: DesktopExecutionNotice }> = [];
   let enabled = false;
+  let preferenceRevision = 0;
   let language: 'zh' | 'en' = 'zh';
   const observe = (observation: DesktopExecutorObservation) => {
     const previous = states.get(observation.key);
@@ -83,15 +86,25 @@ export function createDesktopExecutionNoticesHost(input: {
   const payload = (value: unknown) => exact(value, ['payload']).payload;
   return {
     observe,
-    disableNotifications: () => { enabled = false; },
+    disableNotifications: () => { preferenceRevision += 1; enabled = false; },
     commandHandlers: {
       desktop_execution_notices_list: ({ payload: request }: { readonly payload: unknown }) => {
         exact(request, []);
         return { notices: notices.map(entry => entry.value), systemSupported: input.supported() };
       },
-      desktop_execution_notices_preferences: ({ payload: request }: { readonly payload: unknown }) => {
-        const selected = exact(payload(request), ['enabled', 'language']);
-        if (typeof selected.enabled !== 'boolean' || (selected.language !== 'zh' && selected.language !== 'en')) throw new Error('desktop-execution-notice-input-invalid');
+      desktop_execution_notices_preferences: async ({ payload: request }: { readonly payload: unknown }) => {
+        const selected = exact(payload(request), ['enabled', 'language', 'generation']);
+        if (typeof selected.enabled !== 'boolean' || (selected.language !== 'zh' && selected.language !== 'en')
+          || typeof selected.generation !== 'string' || !selected.generation || selected.generation.length > 128) throw new Error('desktop-execution-notice-input-invalid');
+        const revision = ++preferenceRevision;
+        if (selected.enabled) {
+          const current = await input.readAdmission();
+          // A lock, scope invalidation or newer safe disable while the formal
+          // read was pending must also fence its otherwise valid old result.
+          if (revision !== preferenceRevision || current.state !== 'ready' || current.generation !== selected.generation) {
+            throw new Error('desktop-execution-notice-scope-changed');
+          }
+        }
         enabled = selected.enabled;
         language = selected.language;
         return { applied: true };

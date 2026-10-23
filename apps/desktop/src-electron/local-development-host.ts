@@ -54,6 +54,7 @@ const COMMANDS = new Set([
   'local_development_runs_list',
   'local_development_registration_remove',
   'local_development_registration_start',
+  'local_development_registration_focus',
   'local_development_run_stop',
   'local_development_project_readme',
   'local_development_project_icon',
@@ -154,6 +155,8 @@ export type DesktopElectronLocalDevelopmentHost = {
   readonly quiesceDataRoot: () => Promise<void>;
   /** Whether any development run is starting or running. */
   readonly hasActiveRuns: () => boolean;
+  readonly quitImpact: () => readonly string[];
+  readonly resumeAfterFailedShutdown: () => Promise<void>;
 };
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
@@ -179,6 +182,8 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
       ),
     ])),
     shutdown: () => host.shutdown(),
+    quitImpact: () => host.quitImpact(),
+    resumeAfterFailedShutdown: () => host.resumeAfterFailedShutdown(),
     startExactZhiyu: () => host.startExactZhiyu(),
     startRegistrationHandle: (registrationHandle) => host.startRegistrationHandle(registrationHandle),
     quiesceDataRoot: () => host.quiesceDataRoot(),
@@ -189,6 +194,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
 export class ElectronLocalDevelopmentHost {
   private readonly runs = new Map<string, RunContext>();
   private readonly registrationSelectors = new Map<string, string>();
+  private presentationRegistrations: ReturnType<NimiElectronLocalDevelopmentControl['listRegistrations']> | null = null;
   private readonly registrationRemovalSequences = new Map<string, number>();
   private registrationIntentSequence = 0;
   private launcherStartQueue: Promise<unknown> = Promise.resolve();
@@ -250,6 +256,7 @@ export class ElectronLocalDevelopmentHost {
     const exactPayload = exactNestedPayload(payload);
     if (command === 'local_development_registration_remove') return this.removeRegistration(exactPayload);
     if (command === 'local_development_registration_start') return this.startRegistration(exactPayload);
+    if (command === 'local_development_registration_focus') return this.focusRegistration(exactPayload);
     if (command === 'local_development_project_readme') return this.readProjectReadme(exactPayload);
     if (command === 'local_development_project_icon') return this.readProjectIcon(exactPayload);
     return this.stopRegistrationRun(exactPayload);
@@ -289,6 +296,20 @@ export class ElectronLocalDevelopmentHost {
       throw error;
     }
     return true;
+  }
+
+  quitImpact(): readonly string[] {
+    return [...this.runs.values()]
+      .filter(run => !run.stopped || !run.stoppedCleanupComplete)
+      .map(run => run.status.displayName);
+  }
+
+  async resumeAfterFailedShutdown(): Promise<void> {
+    if (this.shutdownPromise) await this.shutdownPromise.catch(() => undefined);
+    // Preserve surviving run ownership. Recovery never restarts stopped Apps.
+    if (!this.server?.listening) await this.start();
+    this.shutdownComplete = false;
+    this.closing = false;
   }
 
   async startExactZhiyu(): Promise<boolean> {
@@ -728,9 +749,12 @@ export class ElectronLocalDevelopmentHost {
   private async registeredProjectRoot(selectorValue: string): Promise<string> {
     const registrationHandle = this.registrationSelectors.get(selectorValue);
     if (!registrationHandle) throw new Error('local-development-registration-not-found');
-    const registration = (await this.control.listRegistrations())
+    // Concurrent artwork/README reads share one live ownership lookup. Do not
+    // retain a registration snapshot after the read or use it for App actions.
+    this.presentationRegistrations ??= this.control.listRegistrations().finally(() => { this.presentationRegistrations = null; });
+    const registration = (await this.presentationRegistrations)
       .find((candidate) => candidate.registrationHandle === registrationHandle);
-    if (!registration || registration.project.shell !== 'electron') {
+    if (!registration || registration.project.shell !== 'electron' || this.registrationSelectors.get(selectorValue) !== registrationHandle) {
       throw new Error('local-development-registration-not-found');
     }
     return registration.project.canonicalProjectRoot;
@@ -787,6 +811,24 @@ export class ElectronLocalDevelopmentHost {
     const stoppableRuns = matchingRuns.filter((run) => !run.stopped || !run.stoppedCleanupComplete);
     await Promise.all(stoppableRuns.map((run) => this.stopRun(run, 'stopped')));
     return { selector: selectorValue, stopped: true };
+  }
+
+  // @nimi-authority: rule.nimi.desktop.shell-ui.r065
+  private async focusRegistration(payload: Readonly<Record<string, unknown>>): Promise<ReturnType<typeof projectRun>> {
+    if (this.closing) throw new Error('local-development-owner-closing');
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-registration-not-found');
+    const registration = (await this.control.listRegistrations()).find(row => row.registrationHandle === registrationHandle);
+    if (this.closing || !registration || registration.project.shell !== 'electron'
+      || this.registrationSelectors.get(selectorValue) !== registrationHandle) throw new Error('local-development-registration-not-found');
+    const run = [...this.runs.values()].find(candidate => !candidate.stopped
+      && candidate.registrationHandle === registrationHandle && candidate.status.state === 'running');
+    if (!run) throw new Error('local-development-run-not-found');
+    await this.control.focusHost(run.supervisorRunId);
+    if (run.stopped || run.registrationHandle !== registrationHandle || run.status.state !== 'running') throw new Error('local-development-run-not-found');
+    return projectRun(run.status, selectorValue);
   }
 
   private startSupervisor(run: RunContext): void {

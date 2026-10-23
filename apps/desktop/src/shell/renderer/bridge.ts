@@ -19,7 +19,6 @@ import {
   restartRuntimeBridge,
   startRuntimeBridge,
   startWindowDrag,
-  syncMenuBarRuntimeHealth,
   pickProductDataRootDirectory,
   replaceProductDataRoot,
   replaceProductDataRootInMaintenance,
@@ -42,7 +41,6 @@ import type {
   OauthListenForCodePayload,
   OauthListenForCodeResult,
   RendererLogMessage,
-  MenuBarRuntimeHealthSyncPayload,
   RuntimeBridgeDaemonStatus,
   DesktopAccountSessionState,
   DesktopAccountSessionStatus,
@@ -65,7 +63,6 @@ export type {
   OauthListenForCodePayload,
   OauthListenForCodeResult,
   RendererLogMessage,
-  MenuBarRuntimeHealthSyncPayload,
   RuntimeBridgeDaemonStatus,
   DesktopAccountSessionState,
   DesktopAccountSessionStatus,
@@ -83,7 +80,7 @@ export type {
   DesktopStorageDirs,
 };
 
-export { logRendererEvent, syncMenuBarRuntimeHealth, toRendererLogMessage };
+export { logRendererEvent, toRendererLogMessage };
 
 export const desktopBridge = {
   hasElectronInvoke,
@@ -119,7 +116,6 @@ export const desktopBridge = {
   openExternalUrl,
   oauthListenForCode,
   focusMainWindow,
-  syncMenuBarRuntimeHealth,
   startWindowDrag,
   logRendererEvent,
 };

@@ -379,6 +379,18 @@ units:
     kind: definition
     title: Nimi personal AI overview
     meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, machine preparation and Runtime availability, with a Messages column and a Home-internal Message center that present, as one card family, App and Runtime Agent activity published through the App activity protocol, downloads, setup failures and App updates. Each section and message source consumes its existing owner projection independently; the presentation creates no new execution, billing, social, readiness, read, completion or publishing truth.
+  - id: rule.nimi.desktop.product-surfaces.home-system-activity
+    kind: rule
+    title: Home and its system entry share owner activity and AI usage
+    modality: must
+    statement: Home and its compact system entry share admitted attention, recent conversation and source-qualified open-App destinations, downloads, Runtime actual-execution summaries and current-account device AI usage without a second settings, task or billing manager. Current work, actual AI attempts, open Apps, pending todos and unread messages remain distinct; at most two attention and three current-work entries lead to the existing full Home destinations. The user local natural day is converted into a half-open interval, partial and unassociated data are explicit, currencies and estimate limits remain visible, and product AI usage never falls back to generic RPC Usage. Opening a source preserves its owner action and never implicitly marks read, completes a todo or replays work.
+    condition: Whenever Home composes or navigates from system activity or AI usage.
+    failure: Preserve current admission and source-local failures, reject fabricated totals or execution and expose only the currently admitted destination.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
   - id: definition.nimi.desktop.product-surfaces.home-message-preferences
     kind: definition
     title: Home message display preferences

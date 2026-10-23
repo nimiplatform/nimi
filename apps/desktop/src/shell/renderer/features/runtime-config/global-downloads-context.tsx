@@ -37,7 +37,9 @@ type GlobalDownloadsContextValue = {
 const GlobalDownloadsContext = createContext<GlobalDownloadsContextValue | null>(null);
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.global-downloads
-export function GlobalDownloadsProvider({ children }: PropsWithChildren) {
+export function GlobalDownloadsProvider({ children, nativeVisible = true }: PropsWithChildren<{ nativeVisible?: boolean }>) {
+  const nativeVisibleRef = useRef(nativeVisible);
+  nativeVisibleRef.current = nativeVisible;
   const bindings = useDesktopRendererBindings();
   const apps = useAppsDownloads();
   const queryClient = useQueryClient();
@@ -130,7 +132,7 @@ export function GlobalDownloadsProvider({ children }: PropsWithChildren) {
         if (active) setLoading(false);
       }
     };
-    const observer = startDownloadPolling(refresh, () => hasActiveJobs || pendingDownloads.current > 0);
+    const observer = startDownloadPolling(refresh, () => hasActiveJobs || pendingDownloads.current > 0, undefined, () => nativeVisibleRef.current);
     polling.current = observer;
     return () => {
       active = false;
@@ -138,6 +140,7 @@ export function GlobalDownloadsProvider({ children }: PropsWithChildren) {
       polling.current = null;
     };
   }, [bindings, local, queryClient]);
+  useEffect(() => { if (nativeVisible) polling.current?.wake(); }, [nativeVisible]);
   const refresh = useCallback(async () => {
     polling.current?.wake();
     await apps?.observer.refresh();

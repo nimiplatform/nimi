@@ -1,10 +1,11 @@
 import { Button } from '@nimiplatform/kit/ui';
 import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
-import { UsageWindow, type GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
+import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import { Coins } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatEstimatedCost, useUsageEstimate } from '../runtime-config/runtime-config-cost-estimator.js';
+import type { SystemEntryUsage } from '../../../shared/system-entry-types.js';
+import { useSystemEntry } from '../system-entry/system-entry-context.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import {
   useSystemResources,
@@ -12,10 +13,8 @@ import {
   type SystemResourceStatus,
 } from '../runtime-config/runtime-config-system-resources.js';
 
-// Home is a long-lived surface, so it polls slower than the diagnostics page
-// (5s / 15s there). Both hooks stop when Home unmounts on a tab switch.
+// Resource sampling is mounted only while the native Home window is visible.
 const HOME_RESOURCE_POLL_MS = 15_000;
-const HOME_USAGE_POLL_MS = 30_000;
 
 export type HomeRuntimeState = 'checking' | 'ready' | 'attention' | 'unavailable';
 
@@ -23,16 +22,9 @@ export type HomeMachineStatusViewProps = {
   runtime: HomeRuntimeState;
   capabilities?: ReactNode;
   resources: { status: SystemResourceStatus; snapshot: SystemResourceSnapshot | null };
-  usage: {
-    loading: boolean;
-    error: string | null;
-    pricingLoading: boolean;
-    totalRequests: number;
-    totalEstimatedCost: number | null;
-    costCurrency: string;
-    hasUnpricedUsage: boolean;
-  };
+  usage: SystemEntryUsage | null;
   onOpenDiagnostics: (pane: RuntimeAdvancedDiagnosticsPane) => void;
+  onOpenUsage: () => void;
 };
 
 export function homeRuntimeState(health: {
@@ -90,23 +82,21 @@ function ResourceValue({ label, percent, warn, note }: { label: string; percent:
 }
 
 /** Runtime, capability summary, resources, usage and diagnostics in one device-status strip. */
-export function HomeMachineStatusView({ runtime, capabilities, resources, usage, onOpenDiagnostics }: HomeMachineStatusViewProps) {
+export function HomeMachineStatusView({ runtime, capabilities, resources, usage, onOpenDiagnostics, onOpenUsage }: HomeMachineStatusViewProps) {
   const { t } = useTranslation();
   const snapshot = resources.snapshot;
   const cpu = roundPercent(snapshot?.cpuPercent ?? 0);
   const memory = roundPercent(snapshot ? percentOf(snapshot.memoryUsedBytes, snapshot.memoryTotalBytes) : 0);
   const disk = snapshot?.diskUsedBytes != null && snapshot.diskTotalBytes != null ? roundPercent(percentOf(snapshot.diskUsedBytes, snapshot.diskTotalBytes)) : null;
   const memoryPressure = snapshot?.memoryPressure ?? 'unknown';
-  const usageText = usage.error
-    ? t('runtimeConfig.overview.todayCostUnavailable')
-    : usage.loading && usage.totalRequests === 0
-      ? t('runtimeConfig.overview.todayCostPending')
-      : t('runtimeConfig.overview.todayCost', {
-          cost: usage.pricingLoading ? '…' : formatEstimatedCost(usage.totalEstimatedCost, usage.costCurrency),
-        });
-  const usageTitle = !usage.error && (usage.totalEstimatedCost === null || usage.hasUnpricedUsage)
-    ? t('runtimeConfig.overview.costTooltipUnknown')
-    : undefined;
+  const usageReady = usage && (usage.status === 'available' || usage.status === 'partial') && usage.attempts !== null;
+  const usageText = usageReady
+    ? t('runtimeConfig.systemEntry.todayRecorded', { value: usage.attempts })
+    : t(`runtimeConfig.systemEntry.${usage?.status === 'unavailable' ? 'usageUnavailableShort' : 'usageLoading'}`);
+  const costText = !usageReady ? null : usage.costs.length === 1
+    ? t('runtimeConfig.systemEntry.estimateWithCurrency', { amount: usage.costs[0]!.estimate, currency: usage.costs[0]!.currency })
+    : usage.costs.length > 1 ? t('runtimeConfig.systemEntry.currencyCount', { count: usage.costs.length })
+      : t('runtimeConfig.systemEntry.costUnknown');
   return (
     <section
       className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-[24px] bg-[var(--nimi-surface-panel)] px-2 py-1.5 shadow-[var(--nimi-home-card-elevation)]"
@@ -158,13 +148,14 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
       <button
         type="button"
         className={`${ITEM_CLASS} gap-1.5`}
-        onClick={() => onOpenDiagnostics('activity')}
+        onClick={onOpenUsage}
         data-testid="home-machine-usage"
-        title={usageTitle}
+        title={usage?.note}
       >
         <Coins size={14} strokeWidth={1.6} className="shrink-0" />
         <span className="truncate font-medium tabular-nums text-[var(--nimi-text-primary)]">{usageText}</span>
-        <span className="whitespace-nowrap tabular-nums">{t('runtimeConfig.overview.requestsShort', { count: usage.totalRequests })}</span>
+        {usageReady && usage.partial ? <span className="shrink-0 text-[var(--nimi-status-warning)]">{t('runtimeConfig.systemEntry.partial')}</span> : null}
+        {costText ? <span className="max-w-48 truncate tabular-nums">{costText}</span> : null}
       </button>
       <Button tone="ghost" size="sm" className="rounded-full" onClick={() => onOpenDiagnostics('services')}>
         {t('runtimeConfig.nav.advancedDiagnostics')}
@@ -173,25 +164,30 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
   );
 }
 
-/** Live wrapper used by Home; polls slower than the diagnostics page. */
+/** The hidden native Home mounts no resource sampler; AI reads stay shared. */
 export function HomeMachineStatus({
   runtime,
   capabilities,
   onOpenDiagnostics,
+  onOpenUsage,
 }: {
   runtime: HomeRuntimeState;
   capabilities?: ReactNode;
   onOpenDiagnostics: (pane: RuntimeAdvancedDiagnosticsPane) => void;
+  onOpenUsage: () => void;
 }) {
+  const { homeVisible, projection } = useSystemEntry();
+  if (!homeVisible) return null;
+  return <VisibleHomeMachineStatus runtime={runtime} capabilities={capabilities} usage={projection?.usage ?? null}
+    onOpenDiagnostics={onOpenDiagnostics} onOpenUsage={onOpenUsage} />;
+}
+
+function VisibleHomeMachineStatus(props: Omit<HomeMachineStatusViewProps, 'resources'>) {
   const resources = useSystemResources(HOME_RESOURCE_POLL_MS);
-  const usage = useUsageEstimate(UsageWindow.DAY, HOME_USAGE_POLL_MS);
   return (
     <HomeMachineStatusView
-      runtime={runtime}
-      capabilities={capabilities}
+      {...props}
       resources={{ status: resources.status, snapshot: resources.snapshot }}
-      usage={usage}
-      onOpenDiagnostics={onOpenDiagnostics}
     />
   );
 }

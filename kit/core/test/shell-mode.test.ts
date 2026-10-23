@@ -10,6 +10,7 @@ async function loadShellModeModule(): Promise<ShellModeModule> {
 describe('shell mode primitives', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.resetModules();
   });
 
@@ -73,5 +74,32 @@ describe('shell mode primitives', () => {
       enableMenuBarShell: true,
       enableRuntimeBootstrap: true,
     });
+  });
+
+  it('enables the system entry for Windows Electron using its platform hint', async () => {
+    vi.stubGlobal('window', { __NIMI_ELECTRON_RUNTIME__: { invoke: async () => null } });
+    vi.stubGlobal('navigator', { userAgentData: { platform: 'Windows' }, platform: 'Win32', userAgent: '' });
+    const { getShellFeatureFlags } = await loadShellModeModule();
+    expect(getShellFeatureFlags().enableMenuBarShell).toBe(true);
+    expect(getShellFeatureFlags().enableTitlebarDrag).toBe(false);
+  });
+
+  it.each([
+    ['ordinary browser', {}],
+    ['Tauri-only host', { __TAURI__: {} }],
+  ])('does not create a Windows system entry for an %s', async (_label, host) => {
+    vi.stubGlobal('window', host);
+    vi.stubGlobal('navigator', { platform: 'Win32', userAgent: 'Windows NT 10.0' });
+    const { getShellFeatureFlags } = await loadShellModeModule();
+    expect(getShellFeatureFlags().enableMenuBarShell).toBe(false);
+  });
+
+  it('keeps explicit Web mode free of a system entry even if an Electron hook exists', async () => {
+    vi.stubEnv('VITE_NIMI_SHELL_MODE', 'web');
+    vi.stubGlobal('window', { __NIMI_ELECTRON_RUNTIME__: { invoke: async () => null } });
+    vi.stubGlobal('navigator', { platform: 'MacIntel', userAgent: 'Mac OS X' });
+    const { getShellFeatureFlags } = await loadShellModeModule();
+    expect(getShellFeatureFlags().mode).toBe('web');
+    expect(getShellFeatureFlags().enableMenuBarShell).toBe(false);
   });
 });

@@ -43,17 +43,19 @@ function resolveShellModeFromEnv(): ShellMode {
   return hasTauriRuntime() || hasElectronRuntime() ? 'desktop' : 'web';
 }
 
-function isMacDesktopEnvironment(): boolean {
+function isSystemEntryPlatform(): boolean {
   if (typeof navigator === 'undefined') {
     return false;
   }
-  // Prefer User-Agent Client Hints when available; navigator.platform is kept only as a legacy fallback.
+  // These hints choose presentation only; the native Home host still verifies
+  // its actual platform before creating an entry or accepting any operation.
   const userAgentDataPlatform = (navigator as Navigator & {
     userAgentData?: { platform?: string };
   }).userAgentData?.platform;
   const platform = String(userAgentDataPlatform || navigator.platform || '').toLowerCase();
   const userAgent = String(navigator.userAgent || '').toLowerCase();
-  return platform.includes('mac') || userAgent.includes('mac os');
+  if (platform) return platform.startsWith('mac') || platform.startsWith('win');
+  return userAgent.includes('mac os') || userAgent.includes('windows nt');
 }
 
 let cachedFlags: ShellFeatureFlags | null = null;
@@ -67,7 +69,8 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
   const isDesktop = mode === 'desktop';
   const isTauriShell = hasTauriRuntime();
   const isElectronShell = hasElectronRuntime();
-  const enableMenuBarShell = (isTauriShell || isElectronShell) && isMacDesktopEnvironment();
+  // @nimi-authority: rule.nimi.desktop.shell-ui.r004
+  const enableMenuBarShell = isDesktop && isElectronShell && isSystemEntryPlatform();
 
   cachedFlags = {
     mode,

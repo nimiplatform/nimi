@@ -6,7 +6,7 @@ import { createDesktopExecutionNoticesHost } from '../src-electron/execution-not
 
 test('interruption drawer preserves failed removals, retries, updates counts, and keeps empty state open', async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
-  const host = createDesktopExecutionNoticesHost({ supported: () => false, notify: () => undefined });
+  const host = createDesktopExecutionNoticesHost({ readAdmission: async () => ({ generation: 'current-generation', state: 'ready' }), supported: () => false, notify: () => undefined });
   for (const key of ['a', 'b', 'c']) {
     host.observe({ key, displayName: `App ${key}`, state: 'running', executionScopeRef: 'scope-a' });
     host.observe({ key, displayName: `App ${key}`, state: 'stopped', intentional: true });

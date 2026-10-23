@@ -235,6 +235,7 @@ export default defineConfig(({ mode }) => {
       rolldownOptions: {
         input: {
           main: path.resolve(import.meta.dirname, 'src/shell/renderer/index.html'),
+          'system-entry': path.resolve(import.meta.dirname, 'src/shell/renderer/system-entry.html'),
         },
         output: {
           strictExecutionOrder: true,
@@ -278,8 +279,12 @@ export default defineConfig(({ mode }) => {
                 if (!id.includes('node_modules')) {
                   return undefined;
                 }
-                if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
-                  return 'vendor-misc';
+                if (/\/node_modules\/(react|react-dom|scheduler)\//u.test(normalizedId)) {
+                  return 'vendor-react';
+                }
+                // Keep the isolated overview outside the main shell's other libraries.
+                if (normalizedId.includes('/node_modules/lucide-react/')) {
+                  return 'vendor-icons';
                 }
                 if (id.includes('/react-router') || id.includes('/@remix-run/router/')) {
                   return 'vendor-router';

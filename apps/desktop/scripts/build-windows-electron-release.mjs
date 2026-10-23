@@ -206,6 +206,7 @@ async function stageApplicationSource(sourceRoot, packageVersion) {
       path.join(sourceRoot, 'dist-electron', 'local-development-process-guardian.js'),
     ),
     cp(path.join(desktopRoot, 'dist-electron', 'preload.cjs'), path.join(sourceRoot, 'dist-electron', 'preload.cjs')),
+    cp(path.join(desktopRoot, 'dist-electron', 'system-entry-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'system-entry-preload.cjs')),
   ]);
   await Promise.all([
     stageSharpRuntime(sourceRoot),

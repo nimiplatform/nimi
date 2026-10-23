@@ -61,6 +61,29 @@ async fn close_stream(stream: SharedStream) {
     stream.receiver.lock().await.take();
 }
 
+async fn next_stream_item<T>(
+    receiver: &Mutex<Option<tokio::sync::mpsc::Receiver<T>>>,
+    close_tx: &watch::Sender<bool>,
+) -> Result<Option<T>, ()> {
+    let mut close_rx = close_tx.subscribe();
+    // Close can win after Next clones the stream but before it subscribes.
+    // A new watch receiver considers the current value already seen.
+    if *close_rx.borrow() {
+        return Ok(None);
+    }
+    let Ok(mut receiver_slot) = receiver.try_lock() else {
+        return Err(());
+    };
+    let Some(receiver) = receiver_slot.as_mut() else {
+        return Ok(None);
+    };
+    Ok(tokio::select! {
+        biased;
+        changed = close_rx.changed() => { let _ = changed; None }
+        next = receiver.recv() => next,
+    })
+}
+
 #[cfg(not(any(
     feature = "macos-source-local-development",
     feature = "windows-source-local-development"
@@ -193,17 +216,8 @@ pub async fn desktop_bundled_avatar_stream_next(
     let Some(stream) = stream else {
         return next_error("not-found", false);
     };
-    let mut close_rx = stream.close_tx.subscribe();
-    let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+    let Ok(next) = next_stream_item(&stream.receiver, &stream.close_tx).await else {
         return next_error("runtime-service-untrusted", false);
-    };
-    let Some(receiver) = receiver_slot.as_mut() else {
-        return next_completed();
-    };
-    let next = tokio::select! {
-        biased;
-        changed = close_rx.changed() => { let _ = changed; None }
-        next = receiver.recv() => next,
     };
     match next {
         Some(Ok(bytes)) => NativeBundledAvatarStreamNextOutcome {
@@ -283,5 +297,52 @@ fn next_error_with_metadata(
         reason_code: Some(reason_code.into()),
         retryable: Some(retryable),
         reason_metadata: (!reason_metadata.is_empty()).then(|| json!(reason_metadata)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{future::Future, task::Poll, time::Duration};
+
+    #[tokio::test]
+    async fn close_before_next_subscribes_does_not_wait_for_another_signal() {
+        let (sender, receiver) = tokio::sync::mpsc::channel::<()>(1);
+        let receiver = Mutex::new(Some(receiver));
+        let (close_tx, _) = watch::channel(false);
+        close_tx.send_replace(true);
+
+        let next = tokio::time::timeout(
+            Duration::from_secs(1),
+            next_stream_item(&receiver, &close_tx),
+        )
+        .await
+        .expect("a close before subscription must complete Next")
+        .expect("only one Next owns this receiver");
+        assert!(next.is_none());
+        receiver.lock().await.take();
+        assert!(sender.is_closed());
+    }
+
+    #[tokio::test]
+    async fn close_releases_a_pending_next_and_its_receiver_lock() {
+        let (sender, receiver) = tokio::sync::mpsc::channel::<()>(1);
+        let receiver = Mutex::new(Some(receiver));
+        let (close_tx, _) = watch::channel(false);
+        let mut next = Box::pin(next_stream_item(&receiver, &close_tx));
+        std::future::poll_fn(|context| {
+            assert!(next.as_mut().poll(context).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+
+        close_tx.send_replace(true);
+        let (next, _) = tokio::time::timeout(Duration::from_secs(1), async {
+            tokio::join!(next, async { receiver.lock().await.take() })
+        })
+        .await
+        .expect("Close must finish after waking the pending Next");
+        assert!(next.expect("only one Next owns this receiver").is_none());
+        assert!(sender.is_closed());
     }
 }

@@ -6,6 +6,7 @@ test('download polling backs off when idle, wakes on focus and never overlaps re
   let wake = () => {};
   let timer: { callback: () => void; delay: number } | undefined;
   let active = false;
+  let nativeVisible = true;
   let calls = 0;
   let release: (() => void) | undefined;
   let block = false;
@@ -18,7 +19,7 @@ test('download polling backs off when idle, wakes on focus and never overlaps re
     cancel() { timer = undefined; },
     visible: () => true,
     onWake(callback) { wake = callback; return () => { wake = () => {}; }; },
-  });
+  }, () => nativeVisible);
   await settle();
   assert.equal(calls, 1);
   assert.equal(timer?.delay, 30_000);
@@ -27,17 +28,21 @@ test('download polling backs off when idle, wakes on focus and never overlaps re
   await settle();
   assert.equal(calls, 2);
   assert.equal(timer?.delay, 2_000);
+  nativeVisible = false;
+  wake();
+  await settle();
+  assert.equal(timer?.delay, 30_000, 'native hide wins even when Chromium still reports visible');
   block = true;
   timer?.callback();
   wake();
   wake();
-  assert.equal(calls, 3);
+  assert.equal(calls, 4);
   block = false;
   release?.();
   await settle();
   assert.equal(timer?.delay, 0);
   polling.stop();
   wake();
-  assert.equal(calls, 3);
+  assert.equal(calls, 4);
   assert.equal(timer, undefined);
 });

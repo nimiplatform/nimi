@@ -2,7 +2,7 @@ import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -130,6 +130,23 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('reopens its real supervisor endpoint after another quit owner fails without restarting stopped Apps', async (context) => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-recovery-'));
+    const host = new ElectronLocalDevelopmentHost(control({ listRegistrations: async () => [] }), home);
+    context.after(async () => { await host.shutdown(); await rm(home, { recursive: true, force: true }); });
+    const presencePath = path.join(home, '.nimi/run/desktop/local-development/presence.v1.json');
+    await host.start();
+    await host.shutdown();
+    await assert.rejects(readFile(presencePath), { code: 'ENOENT' });
+    await host.resumeAfterFailedShutdown();
+    const presence = JSON.parse(await readFile(presencePath, 'utf8')) as { endpoint: string };
+    assert.equal((await fetch(presence.endpoint)).status, 401, 'the same owner exposes a live, protected supervisor again');
+    assert.equal(await host.startRegistrationHandle('ff'.repeat(32)), false, 'new intent reaches current registration lookup after recovery');
+    assert.equal(host.hasActiveRuns(), false, 'recovery starts no stopped App');
+    await host.shutdown();
+    await assert.rejects(readFile(presencePath), { code: 'ENOENT' }, 'the recovered host must still close on the next quit');
+  });
+
   it('quits after confirmed process cleanup when only Runtime run release is unavailable', async (context) => {
     let terminated = 0;
     let ended = 0;
@@ -1851,6 +1868,34 @@ describe('Desktop local-development project icon', () => {
       })],
     });
   }
+
+  it('coalesces concurrent presentation ownership lookups without retaining a revoked registration', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-icon-coalescing-'));
+    try {
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes: [local]\nmetadata:\n  icon: icon.png\n');
+      await writeFile(path.join(projectRoot, 'icon.png'), PNG_BYTES);
+      await writeFile(path.join(projectRoot, 'README.md'), 'App description.');
+      const base = iconControl(projectRoot);
+      let calls = 0;
+      let revoked = false;
+      let finish!: () => void;
+      const gate = new Promise<void>(resolve => { finish = resolve; });
+      const host = new ElectronLocalDevelopmentHost({ ...base, listRegistrations: async () => {
+        calls++;
+        if (calls > 1 && !revoked) await gate;
+        return revoked ? [] : base.listRegistrations();
+      } }, '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+      const icon = host.invoke('local_development_project_icon', { payload: { selector: row!.selector } });
+      const readme = host.invoke('local_development_project_readme', { payload: { selector: row!.selector } });
+      assert.equal(calls, 2, 'one inventory read and one shared presentation lookup');
+      finish();
+      await Promise.all([icon, readme]);
+      revoked = true;
+      await assert.rejects(host.invoke('local_development_project_icon', { payload: { selector: row!.selector } }), /registration-not-found/);
+      assert.equal(calls, 3, 'the completed owner response was not retained');
+    } finally { await rm(projectRoot, { recursive: true, force: true }); }
+  });
 
   it('reads the declared PNG path and decodes the complete artwork', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-icon-test-'));

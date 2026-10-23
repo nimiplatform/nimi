@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button, InlineAlert, OverlayShell } from '@nimiplatform/kit/ui';
 import { ArrowRight, History } from 'lucide-react';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
+import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
+import {
+  changeExecutionNotificationPreferences,
+  EXECUTION_NOTIFICATION_MUTATION_SCOPE,
+  readExecutionNotificationPreferences,
+  type ExecutionNotificationPreferenceChange,
+  type ExecutionNotificationPreferences,
+} from './execution-notification-preferences.js';
 
-const PREFERENCES_PATH = 'execution-notices/preferences.v1.json';
 type Notice = {
   id: string; displayName: string; kind: 'stopped' | 'connection-unavailable' | 'scope-unavailable';
   occurredAt: string; availableNow: boolean | null; notification: 'disabled' | 'unsupported' | 'requested' | 'shown' | 'failed';
@@ -16,53 +23,180 @@ type Notice = {
 type NoticeSnapshot = { notices: readonly Notice[]; systemSupported: boolean };
 
 function useExecutionNotificationPreferences() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage?.startsWith('zh') ? 'zh' : 'en';
   const sdk = useDesktopRendererSdk();
-  const account = useAppStore(state => state.auth.user?.id ?? null);
-  const authenticated = useAppStore(state => state.auth.status === 'authenticated');
+  const store = useAppStoreApi();
+  const auth = useAppStore(state => state.auth);
+  const account = typeof auth.user?.id === 'string' && auth.user.id ? auth.user.id : null;
+  const authenticated = auth.status === 'authenticated' && account !== null;
+  const currentSdk = useRef(sdk);
+  currentSdk.current = sdk;
   const queryClient = useQueryClient();
-  const key = ['desktop-execution-notification-preferences', account] as const;
-  const query = useQuery({ queryKey: key, enabled: authenticated, retry: false, queryFn: async () => {
-    try {
-      const { value } = await sdk.appProduct().storage.readJson(PREFERENCES_PATH);
-      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Execution notification preferences are invalid');
-      const record = value as Record<string, unknown>;
-      if (record.version !== 1 || typeof record.systemEnabled !== 'boolean') throw new Error('Execution notification preferences are invalid');
-      return { systemEnabled: record.systemEnabled };
-    } catch (error) {
-      const code = error && typeof error === 'object' && 'reasonCode' in error ? error.reasonCode : '';
-      if (code === 'APP_STORAGE_ENTRY_NOT_FOUND') return { systemEnabled: true };
-      throw error;
+  const key = useMemo(() => ['desktop-execution-notification-preferences', account, auth.status, auth.sequence, language] as const,
+    [account, auth.status, auth.sequence, language]);
+  type AppliedPreferences = { preferences: ExecutionNotificationPreferences; pausedUntil: number };
+  type Intent = {
+    change?: ExecutionNotificationPreferenceChange;
+    account: string | null;
+    auth: typeof auth;
+    sdk: typeof sdk;
+    client: ReturnType<typeof sdk.appProduct> | null;
+    language: typeof language;
+    key: typeof key;
+    signal?: AbortSignal;
+  };
+  const assertCurrent = (intent: Omit<Intent, 'change'>): void => {
+    const live = store.getState().auth;
+    if (intent.signal?.aborted || live !== intent.auth || currentSdk.current !== intent.sdk
+      || (i18n.resolvedLanguage?.startsWith('zh') ? 'zh' : 'en') !== intent.language
+      || (intent.client !== null && (live.status !== 'authenticated' || live.user?.id !== intent.account
+        || currentSdk.current.appProduct() !== intent.client))) {
+      throw new Error('Execution notification preference scope changed');
     }
+  };
+  // Reads and writes share the same native effect owner. A background refetch
+  // cannot apply an old document after a newer Settings or system-entry action.
+  const mutation = useMutation({
+    mutationKey: [EXECUTION_NOTIFICATION_MUTATION_SCOPE],
+    scope: { id: EXECUTION_NOTIFICATION_MUTATION_SCOPE },
+    retry: false,
+    mutationFn: async (intent: Intent): Promise<AppliedPreferences> => {
+      assertCurrent(intent);
+      if (intent.change) {
+        await queryClient.cancelQueries({ queryKey: ['desktop-execution-notification-preferences', intent.account] });
+      }
+      // Capture the display generation before any account storage operation.
+      // Main still owns admission; a later generation must never authorize
+      // applying a document read under this one.
+      let generation = 'unavailable';
+      let contextFailure: unknown;
+      try {
+        generation = await invokeChecked(SYSTEM_ENTRY_HOME_COMMANDS.context, {}, value => {
+          if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('System entry context is unavailable');
+          const context = value as Record<string, unknown>;
+          if (context.state !== 'ready' || typeof context.generation !== 'string'
+            || !context.generation.trim() || context.generation.length > 128) {
+            throw new Error('System entry context is not ready');
+          }
+          return context.generation;
+        });
+      } catch (error) {
+        contextFailure = error;
+      }
+      assertCurrent(intent);
+      const preferences = intent.client === null ? { systemEnabled: false }
+        : intent.change
+          ? await changeExecutionNotificationPreferences(intent.client.storage, intent.change, () => assertCurrent(intent))
+          : await readExecutionNotificationPreferences(intent.client.storage);
+      assertCurrent(intent);
+      const pausedUntil = (preferences.pausedUntil ?? 0) > Date.now() ? preferences.pausedUntil! : 0;
+      const enabled = preferences.systemEnabled && pausedUntil === 0;
+      if (enabled && contextFailure) throw contextFailure;
+      await invokeChecked('desktop_execution_notices_preferences', {
+        payload: { enabled, language: intent.language, generation },
+      }, value => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)
+          || Object.keys(value).join('|') !== 'applied' || (value as { applied?: unknown }).applied !== true) {
+          throw new Error('Execution notification preference was not applied');
+        }
+        return value;
+      });
+      assertCurrent(intent);
+      return { preferences, pausedUntil };
+    },
+    onSuccess: (value, intent) => {
+      assertCurrent(intent);
+      queryClient.setQueryData(intent.key, value);
+    },
+  });
+  const query = useQuery({ queryKey: key, enabled: hasElectronInvoke(), retry: false, queryFn: ({ signal }) => {
+    const intent: Intent = { account, auth: store.getState().auth, sdk, client: authenticated ? sdk.appProduct() : null, language, key, signal };
+    return mutation.mutateAsync(intent);
   } });
-  const mutation = useMutation({ mutationFn: async (systemEnabled: boolean) => {
-    await sdk.appProduct().storage.writeJson(PREFERENCES_PATH, { version: 1, systemEnabled });
-    return { systemEnabled };
-  }, onSuccess: value => queryClient.setQueryData(key, value) });
-  return { query, mutation, authenticated };
+  const mutationStates = useMutationState({ filters: { mutationKey: [EXECUTION_NOTIFICATION_MUTATION_SCOPE] }, select: entry => {
+    const intent = entry.state.variables as Intent | undefined;
+    return intent?.account === account && intent.auth.status === auth.status && intent.auth.sequence === auth.sequence
+      && intent.language === language ? entry.state.status : null;
+  } });
+  const mutationFailed = mutationStates.filter(value => value !== null).at(-1) === 'error';
+  const busy = useIsMutating({ mutationKey: [EXECUTION_NOTIFICATION_MUTATION_SCOPE] }) > 0;
+  const activePause = useActiveNotificationPause(query.data?.pausedUntil);
+  const pauseExpired = Boolean(query.data?.pausedUntil && activePause === 0);
+  useEffect(() => {
+    if (pauseExpired) void query.refetch({ cancelRefetch: false });
+  }, [pauseExpired, query.refetch]);
+  const update = useCallback(async (change: ExecutionNotificationPreferenceChange): Promise<void> => {
+    const live = store.getState().auth;
+    if (!account || live.status !== 'authenticated' || live.user?.id !== account) {
+      throw new Error('Execution notification preferences require the current account');
+    }
+    const client = sdk.appProduct();
+    await mutation.mutateAsync({ change, account, auth: live, sdk, client, language, key });
+  }, [account, sdk, store, language, key, mutation.mutateAsync]);
+  const confirmed = query.data !== undefined && !query.isError && !mutationFailed && !pauseExpired && !busy;
+  return { query, update, busy, mutationFailed, authenticated, confirmed };
+}
+
+function useActiveNotificationPause(pausedUntil: number | undefined): number {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      const current = Date.now();
+      setNow(current);
+      if (pausedUntil && pausedUntil > current) timer = setTimeout(refresh, Math.min(pausedUntil - current, 2_147_483_647));
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [pausedUntil]);
+  return pausedUntil && pausedUntil > now ? pausedUntil : 0;
+}
+
+export type HomeExecutionNotificationControls = Readonly<{
+  enabled: boolean;
+  pausedUntil: number;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
+}>;
+
+export function useHomeExecutionNotificationControls(): HomeExecutionNotificationControls {
+  const { query, update, authenticated, confirmed } = useExecutionNotificationPreferences();
+  const enabled = authenticated && confirmed && query.data?.preferences.systemEnabled === true;
+  const pausedUntil = authenticated && confirmed ? query.data!.pausedUntil : 0;
+  const pause = useCallback(() => update({ kind: 'pause' }), [update]);
+  const resume = useCallback(() => update({ kind: 'resume' }), [update]);
+  return useMemo(() => ({ enabled, pausedUntil, pause, resume }), [enabled, pausedUntil, pause, resume]);
 }
 
 /** A display preference projection; no credential, consent or Runtime access is granted. */
 export function ExecutionNotificationPreferenceSync() {
-  const { i18n } = useTranslation();
-  const { query, authenticated } = useExecutionNotificationPreferences();
-  const enabled = authenticated && !query.isError && query.data?.systemEnabled === true;
-  const language = i18n.resolvedLanguage?.startsWith('zh') ? 'zh' : 'en';
-  useEffect(() => {
-    if (!hasElectronInvoke()) return;
-    void invokeChecked('desktop_execution_notices_preferences', { payload: { enabled, language } }, value => value).catch(() => undefined);
-    return () => { void invokeChecked('desktop_execution_notices_preferences', { payload: { enabled: false, language } }, value => value).catch(() => undefined); };
-  }, [enabled, language]);
+  useExecutionNotificationPreferences();
   return null;
 }
 
 export function ExecutionNotificationSetting() {
-  const { t } = useTranslation();
-  const { query, mutation } = useExecutionNotificationPreferences();
+  const { t, i18n } = useTranslation();
+  const { query, update, busy, mutationFailed, authenticated, confirmed } = useExecutionNotificationPreferences();
+  const pausedUntil = confirmed ? query.data!.pausedUntil : 0;
+  const canChange = authenticated && confirmed && !busy;
+  const change = (value: ExecutionNotificationPreferenceChange) => { void update(value).catch(() => undefined); };
   return <section className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" aria-label={t('Notifications.execution.title')}>
-    <label className="flex items-center justify-between gap-4"><span className="font-medium">{t('Notifications.execution.title')}</span><input type="checkbox" aria-label={t('Notifications.execution.title')} checked={query.data?.systemEnabled ?? false} disabled={!query.data || mutation.isPending} onChange={event => mutation.mutate(event.target.checked)} /></label>
+    <label className="flex items-center justify-between gap-4"><span className="font-medium">{t('Notifications.execution.title')}</span><input type="checkbox" aria-label={t('Notifications.execution.title')} checked={confirmed && query.data!.preferences.systemEnabled} disabled={!canChange} onChange={event => change({ kind: 'system', enabled: event.target.checked })} /></label>
     <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.execution.description')}</p>
     <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('Notifications.execution.osLimit')}</p>
-    {query.isError || mutation.isError ? <div role="status" className="mt-2 text-sm"><span>{t('Notifications.execution.failed')}</span><Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button></div> : null}
+    {pausedUntil ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm" role="status">
+      <span>{t('Notifications.execution.pausedUntil', { time: new Date(pausedUntil).toLocaleTimeString(i18n.resolvedLanguage, { hour: '2-digit', minute: '2-digit' }) })}</span>
+      <Button tone="ghost" size="sm" disabled={!canChange} onClick={() => change({ kind: 'resume' })}>{t('Notifications.execution.resume')}</Button>
+    </div> : null}
+    {query.isError || mutationFailed ? <div role="status" className="mt-2 text-sm"><span>{t('Notifications.execution.failed')}</span><Button tone="ghost" size="sm" disabled={busy} onClick={() => void query.refetch({ cancelRefetch: false })}>{t('Notifications.execution.retry')}</Button></div> : null}
   </section>;
 }
 

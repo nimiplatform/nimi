@@ -6,7 +6,7 @@ type PermissionSession = Pick<Session, 'setPermissionRequestHandler' | 'setPermi
 // input and writing to the clipboard. Any other permission, and any request
 // from a page that is not Nimi's own, is refused; Electron would otherwise
 // grant every request.
-export function installDesktopPermissionPolicy(session: PermissionSession, trustedOrigins: ReadonlySet<string>): void {
+export function installDesktopPermissionPolicy(session: PermissionSession, trustedOrigins: ReadonlySet<string>, deniedWebContents: ReadonlySet<number> = new Set()): void {
   const trusted = (url: string | undefined): boolean => {
     if (!url) return false;
     try {
@@ -18,6 +18,10 @@ export function installDesktopPermissionPolicy(session: PermissionSession, trust
     }
   };
   session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    if (webContents && deniedWebContents.has(webContents.id)) {
+      callback(false);
+      return;
+    }
     const url = details.requestingUrl || webContents?.getURL();
     if (!trusted(url)) {
       callback(false);
@@ -30,7 +34,8 @@ export function installDesktopPermissionPolicy(session: PermissionSession, trust
     }
     callback(permission === 'clipboard-sanitized-write');
   });
-  session.setPermissionCheckHandler((_webContents, permission, requestingOrigin, details) => {
+  session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    if (webContents && deniedWebContents.has(webContents.id)) return false;
     if (!trusted(requestingOrigin)) return false;
     if (permission === 'media') return (details as { mediaType?: string }).mediaType === 'audio';
     return permission === 'clipboard-sanitized-write';

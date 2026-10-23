@@ -37,7 +37,6 @@ import {
 } from './runtime-bridge/nimi-data-directory';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
-import { syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { setDesktopOpenIntentReady } from './runtime-bridge/desktop-open-intent';
 import {
   focusMainWindow,
@@ -63,10 +62,6 @@ export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nim
 export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 
 export type { DesktopStorageDirs } from './runtime-bridge/desktop-storage';
-
-export type {
-  MenuBarRuntimeHealthSyncPayload,
-} from './runtime-bridge/menu-bar';
 
 export type {
   RendererLogLevel,
@@ -126,6 +121,5 @@ export {
   focusMainWindow,
   openExternalUrl,
   startWindowDrag,
-  syncMenuBarRuntimeHealth,
   setDesktopOpenIntentReady,
 };

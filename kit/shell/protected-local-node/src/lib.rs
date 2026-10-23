@@ -6,10 +6,6 @@ use napi_derive::napi;
     feature = "windows-source-local-development"
 )))]
 use nimi_shell_protected_local::FixedRuntimeServiceControl;
-#[cfg(any(
-    feature = "macos-source-local-development",
-    feature = "windows-source-local-development"
-))]
 use nimi_shell_protected_local::NimiHostErrorReasonCode;
 use nimi_shell_protected_local::{
     BundledAvatarRuntimeRequest, DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
@@ -99,8 +95,10 @@ static LOCAL_APP_SESSION: Mutex<LocalAppSessionCache> = Mutex::const_new(LocalAp
     session: None,
     invalidated: None,
 });
-static DESKTOP_CONTROL: Mutex<Option<Arc<dyn NimiDesktopControl>>> = Mutex::const_new(None);
+static DESKTOP_CONTROL: LazyLock<Arc<Mutex<Option<Arc<dyn NimiDesktopControl>>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(None)));
 const FIRST_PARTY_UNARY_MAX_DURATION: Duration = Duration::from_secs(300);
+const DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT: Duration = Duration::from_secs(5);
 #[cfg(any(
     feature = "macos-source-local-development",
     feature = "windows-source-local-development"
@@ -555,6 +553,119 @@ mod first_party_unary_cancellation_tests {
             })
             .await;
         assert_eq!(release.value, Some(json!({ "released": true })));
+    }
+
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    #[tokio::test]
+    async fn renderer_cancel_cannot_interrupt_retirement_or_open_a_replacement_early() {
+        let _guard = CANCELLATION_TEST_LOCK.lock().await;
+        let dropped = Arc::new(AtomicBool::new(false));
+        let control = Arc::new(DropMarker(Arc::clone(&dropped)));
+        let old_control = Arc::downgrade(&control);
+        let slot = Arc::new(Mutex::new(Some(Arc::clone(&control))));
+        let started = Arc::new(Notify::new());
+        let release_retirement = Arc::new(Notify::new());
+        let request_id = "desktop-retirement-renderer-cancel";
+        let task = tokio::spawn(run_first_party_unary(request_id.to_owned(), {
+            let slot = Arc::clone(&slot);
+            let started = Arc::clone(&started);
+            let release_retirement = Arc::clone(&release_retirement);
+            async move {
+                retire_cached_desktop_control(slot, control, |control| async move {
+                    // The owner task must preserve the triggering unary's
+                    // exclusion from bulk peer cancellation.
+                    cancel_active_and_clear_completed_first_party_unaries().await;
+                    started.notify_one();
+                    release_retirement.notified().await;
+                    drop(control);
+                })
+                .await;
+                NativeBytesOutcome::error("runtime-service-unavailable", true)
+            }
+        }));
+        started.notified().await;
+        assert!(!task.is_finished());
+        assert!(!dropped.load(Ordering::SeqCst));
+
+        desktop_first_party_product_unary_cancel(NativeFirstPartyProductUnaryCancelInput {
+            request_id: request_id.to_owned(),
+        })
+        .await;
+        let canceled = tokio::time::timeout(Duration::from_secs(1), task)
+            .await
+            .expect("renderer cancellation must complete the caller")
+            .expect("unary caller task must join");
+        assert_eq!(
+            canceled.reason_code.as_deref(),
+            Some("runtime-request-canceled")
+        );
+        assert!(
+            old_control.upgrade().is_some(),
+            "the owner retains the retiring control"
+        );
+
+        let opened = Arc::new(AtomicBool::new(false));
+        let attempt = get_or_open_cached_desktop_control(
+            &slot,
+            Duration::from_millis(10),
+            || async {
+                opened.store(true, Ordering::SeqCst);
+                Ok(Arc::new(DropMarker(Arc::new(AtomicBool::new(false)))))
+            },
+        )
+        .await;
+        assert!(matches!(attempt, Err(ref error) if error.reason_code() == NimiHostErrorReasonCode::RuntimeServiceUnavailable));
+        assert!(
+            !opened.load(Ordering::SeqCst),
+            "a new open cannot bypass retirement"
+        );
+        assert!(
+            !dropped.load(Ordering::SeqCst),
+            "a waiting caller timeout cannot abort retirement"
+        );
+
+        release_retirement.notify_one();
+        let replacement = get_or_open_cached_desktop_control(
+            &slot,
+            Duration::from_secs(1),
+            || async {
+                opened.store(true, Ordering::SeqCst);
+                Ok(Arc::new(DropMarker(Arc::new(AtomicBool::new(false)))))
+            },
+        )
+        .await
+        .expect("a replacement may open after owner retirement finishes");
+        assert!(opened.load(Ordering::SeqCst));
+        assert!(dropped.load(Ordering::SeqCst));
+        assert!(old_control.upgrade().is_none());
+        assert!(slot
+            .lock()
+            .await
+            .as_ref()
+            .is_some_and(|cached| Arc::ptr_eq(cached, &replacement)));
+        desktop_first_party_product_unary_release(NativeFirstPartyProductUnaryCancelInput {
+            request_id: request_id.to_owned(),
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn delayed_failure_cannot_retire_a_replacement_control() {
+        let old = Arc::new(());
+        let replacement = Arc::new(());
+        let slot = Arc::new(Mutex::new(Some(Arc::clone(&replacement))));
+        retire_cached_desktop_control(Arc::clone(&slot), old, |_| async {
+            panic!("a delayed failure must not run retirement for the replacement");
+        })
+        .await;
+        assert!(slot
+            .lock()
+            .await
+            .as_ref()
+            .is_some_and(|cached| Arc::ptr_eq(cached, &replacement)));
     }
 
     #[tokio::test]
@@ -1327,7 +1438,12 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
     let mut reconnect_available = true;
     loop {
         let cached = {
-            let current = DESKTOP_CONTROL.lock().await;
+            let current = tokio::time::timeout(
+                DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT,
+                DESKTOP_CONTROL.lock(),
+            )
+            .await
+            .map_err(|_| desktop_control_unavailable())?;
             current.as_ref().cloned()
         };
         if let Some(control) = cached {
@@ -1366,7 +1482,12 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
     feature = "windows-source-local-development"
 )))]
 async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
-    let mut current = DESKTOP_CONTROL.lock().await;
+    let mut current = tokio::time::timeout(
+        DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT,
+        DESKTOP_CONTROL.lock(),
+    )
+    .await
+    .map_err(|_| desktop_control_unavailable())?;
     if let Some(control) = current.as_ref() {
         return Ok(control.clone());
     }
@@ -1393,20 +1514,24 @@ where
     F: FnOnce() -> Fut + Send,
     Fut: Future<Output = Result<T, NimiHostError>> + Send,
 {
-    // Source Runtime admits one active Desktop connection. Serialize the
-    // cache-miss open and re-check under the same lock so concurrent callers
-    // cannot create a second connection; bound the open while holding it.
-    let mut current = slot.lock().await;
-    if let Some(control) = current.as_ref() {
-        return Ok(control.clone());
-    }
-    let control = tokio::time::timeout(open_timeout, open())
-        .await
-        .map_err(|_| {
-            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true)
-        })??;
-    *current = Some(control.clone());
-    Ok(control)
+    // Retirement holds this same slot until its streams and transport are
+    // released. Bound the wait as well as opening; timing out a caller must
+    // not cancel the owner retirement or permit an overlapping connection.
+    tokio::time::timeout(open_timeout, async {
+        let mut current = slot.lock().await;
+        if let Some(control) = current.as_ref() {
+            return Ok(control.clone());
+        }
+        let control = open().await?;
+        *current = Some(control.clone());
+        Ok(control)
+    })
+    .await
+    .map_err(|_| desktop_control_unavailable())?
+}
+
+fn desktop_control_unavailable() -> NimiHostError {
+    NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true)
 }
 
 async fn clear_desktop_control_on_transport_reason(
@@ -1466,30 +1591,59 @@ fn invalidates_desktop_transport(reason_code: &str) -> bool {
 }
 
 async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
-    let removed = {
-        let mut current = DESKTOP_CONTROL.lock().await;
-        if current
-            .as_ref()
-            .is_some_and(|candidate| Arc::ptr_eq(candidate, control))
-        {
+    retire_cached_desktop_control(
+        Arc::clone(&DESKTOP_CONTROL),
+        Arc::clone(control),
+        |control| async move {
+            control.invalidate_cached_transport().await;
+            cancel_active_and_clear_completed_first_party_unaries().await;
+            account_events::close_account_event_streams_for_control(&control).await;
+            bundled_avatar_streams::close_bundled_avatar_streams_for_control(&control).await;
+            first_party_streams::close_first_party_product_streams_for_control(&control).await;
+        },
+    )
+    .await;
+}
+
+async fn retire_cached_desktop_control<T, F, Fut>(
+    slot: Arc<Mutex<Option<Arc<T>>>>,
+    control: Arc<T>,
+    retire: F,
+) where
+    T: ?Sized + Send + Sync + 'static,
+    F: FnOnce(Arc<T>) -> Fut + Send + 'static,
+    Fut: Future<Output = ()> + Send + 'static,
+{
+    let triggering_unary = CURRENT_FIRST_PARTY_UNARY_CANCELLATION
+        .try_with(Arc::clone)
+        .ok();
+    // A renderer cancellation may drop this caller while the cache is already
+    // empty. The short-lived owner task must finish draining the old streams;
+    // its strong control reference also keeps their Weak ownership matchable.
+    let retirement = tokio::spawn(async move {
+        let work = async move {
+            let mut current = slot.lock().await;
+            if !current
+                .as_ref()
+                .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
+            {
+                return; // A stale failure cannot retire a replacement.
+            }
             *current = None;
-            true
+            retire(control).await;
+            // Keep the slot locked through retirement. A new open cannot
+            // overtake cleanup and inherit or compete with the old transport.
+        };
+        if let Some(triggering_unary) = triggering_unary {
+            CURRENT_FIRST_PARTY_UNARY_CANCELLATION
+                .scope(triggering_unary, work)
+                .await;
         } else {
-            false
+            work.await;
         }
-    };
-    // A delayed failure from a stale pre-restart control must not invalidate a
-    // newer verified session already installed by another caller.
-    if removed {
-        // Remove only this control's lower carrier session. A validation retry
-        // may already have installed a replacement while stale stream cleanup
-        // was settling, so a process-global cache clear is not safe here.
-        control.invalidate_cached_transport().await;
-        cancel_active_and_clear_completed_first_party_unaries().await;
-        account_events::close_account_event_streams_for_control(control).await;
-        bundled_avatar_streams::close_bundled_avatar_streams_for_control(control).await;
-        first_party_streams::close_first_party_product_streams_for_control(control).await;
-    }
+    });
+    // Dropping a JoinHandle detaches the owner task; it does not abort it.
+    let _ = retirement.await;
 }
 
 #[cfg(test)]

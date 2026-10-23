@@ -23,6 +23,7 @@ export function startDownloadPolling(
   refresh: () => Promise<void>,
   hasActiveJobs: () => boolean,
   environment: PollingEnvironment = browserEnvironment,
+  nativeVisible: () => boolean = () => true,
 ): { stop: () => void; wake: () => void } {
   let disposed = false;
   let reading = false;
@@ -38,7 +39,7 @@ export function startDownloadPolling(
     finally {
       reading = false;
       if (!disposed) {
-        const delay = wakePending ? 0 : environment.visible() && hasActiveJobs() ? 2_000 : 30_000;
+        const delay = wakePending ? 0 : nativeVisible() && environment.visible() && hasActiveJobs() ? 2_000 : 30_000;
         wakePending = false;
         timer = environment.schedule(() => void poll(), delay);
       }

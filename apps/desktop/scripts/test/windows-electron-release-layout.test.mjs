@@ -80,6 +80,9 @@ test('Windows Electron ASAR inventory carries the current shell and rejects reti
     () => assertWindowsElectronAsarInventory(entries.filter((entry) => !entry.endsWith('local-development-process-guardian.js')), mainSource),
     /local-development-process-guardian\.js/u,
   );
+  for (const required of ['dist/system-entry.html', 'dist-electron/system-entry-preload.cjs']) {
+    assert.throws(() => assertWindowsElectronAsarInventory(entries.filter(entry => entry !== required), mainSource), /system-entry/u);
+  }
   assert.throws(
     () => assertWindowsElectronAsarInventory([
       ...entries,

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { mergeActivitySnapshots } from './home-app-activity-model.js';
-import { useHomeAppActivity, type HomeAppActivity } from './home-app-activity.js';
+import { useHomeAppActivity, type HomeAppActivity } from '../system-entry/system-entry-context.js';
 import { activityMessage, isHideableMessage, type HomeMessage, type HomeSystemItemMessage } from './home-messages-model.js';
 import { isHiddenFromHome, isSourceOffHome, useHomeMessagePreferences, type HomeMessagePreferences, type HomeMessagePreferencesController, type HomeMessagePreferencesStorage } from './home-messages-preferences.js';
 

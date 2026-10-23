@@ -14,7 +14,7 @@ export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoo
     cp(path.join(desktopRoot, 'dist'), path.join(desktopSource, 'dist'), { recursive: true, force: false }),
     cp(path.join(avatarRoot, 'dist'), path.join(desktopSource, 'avatar', 'dist'), { recursive: true, force: false }),
     cp(path.join(desktopRoot, 'assets'), path.join(desktopSource, 'assets'), { recursive: true, force: false }),
-    ...['main.js', 'chat-ai-store-worker.js', 'preload.cjs'].map((name) => (
+    ...['main.js', 'chat-ai-store-worker.js', 'preload.cjs', 'system-entry-preload.cjs'].map((name) => (
       cp(path.join(desktopRoot, 'dist-electron', name), path.join(desktopSource, 'dist-electron', name), { force: false })
     )),
     ...['index.cjs', 'nimi_shell_protected_local.node', 'package.json'].map((name) => (

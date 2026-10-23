@@ -326,7 +326,7 @@ export function registerNimiElectronRuntimeBridge(
     for (const stream of desktopStreams.values()) stream.cancel();
     desktopStreams.clear();
     cancelRuntimeUnaries(desktopUnaries, 'Desktop renderer was invalidated during Runtime unary');
-    desktopAccountHost?.close();
+    desktopAccountHost?.closeRendererStreams();
     await desktopFormalHostOwner?.invalidateResources();
   });
   const unsubscribeBundledAvatarInvalidation = input.bundledAvatarHost?.subscribeSenderInvalidation(async (sender) => {
@@ -688,6 +688,12 @@ export function registerNimiElectronRuntimeBridge(
 
   return {
     invokeChannel,
+    ...(desktopAccountHost ? {
+      readDesktopAccountSessionStatus: () => desktopAccountHost.readSessionStatus(),
+      subscribeDesktopAccountSessionProjection: (listener: Parameters<typeof desktopAccountHost.subscribeSessionProjection>[0]) => (
+        desktopAccountHost.subscribeSessionProjection(listener)
+      ),
+    } : {}),
     ...(bundledAvatarStandardShellHost?.localAppHost
       ? { bundledAvatarLocalAppHost: bundledAvatarStandardShellHost.localAppHost }
       : {}),

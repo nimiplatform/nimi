@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { activitySourceLabel, mergeActivitySnapshots } from '../home/home-app-activity-model.js';
-import { useHomeAppActivity } from '../home/home-app-activity.js';
+import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
 import {
   hasHiddenMessages,
   useHomeMessagePreferences,

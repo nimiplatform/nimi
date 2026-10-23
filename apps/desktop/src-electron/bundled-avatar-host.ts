@@ -1,4 +1,5 @@
 import { writeDesktopStderr } from './stderr-log.js';
+import { stopSystemEntryOwnedProcess, systemEntryOwnedProcessAlive } from './system-entry-owned-process.js';
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
@@ -103,6 +104,8 @@ export type DesktopElectronBundledAvatarHost = {
   readonly runtimeBridgeHost: NimiElectronBundledAvatarHost;
   readonly hostHandoff: (dispatch: DesktopAvatarHostHandoffDispatch) => Promise<AvatarHostHandoffResult>;
   readonly hasActiveInstances: () => boolean;
+  readonly hasUnclosedProcesses: () => boolean;
+  readonly quitImpact: () => Readonly<{ active: number; pending: boolean }>;
   readonly quiesceDataRoot: () => Promise<void>;
   readonly resumeDataRoot: () => void;
   readonly shutdown: () => Promise<void>;
@@ -1289,7 +1292,7 @@ export async function createDesktopElectronBundledAvatarHost(
     if (shutdownPromise) return shutdownPromise;
     shuttingDown = true;
     dataRootQuiesced = true;
-    shutdownPromise = (async () => {
+    const attempt = (async () => {
       await hostHandoff.closeAndWait(AVATAR_HOST_HANDOFF_SHUTDOWN_WAIT_MS);
       for (const [requestId, pending] of pendingPreviewRequests) {
         completePendingPreview(requestId, {
@@ -1317,12 +1320,15 @@ export async function createDesktopElectronBundledAvatarHost(
       powerMonitor.removeListener('lock-screen', handleHostSuspend);
       powerMonitor.removeListener('resume', handleHostResume);
       senderInvalidationListeners.clear();
-      if (devRendererProcess && devRendererProcess.exitCode === null) devRendererProcess.kill();
-      devRendererProcess = undefined;
+      const rendererProcess = devRendererProcess;
+      if (rendererProcess) await stopSystemEntryOwnedProcess(rendererProcess);
+      if (devRendererProcess === rendererProcess) devRendererProcess = undefined;
       await waitForAssetOperations();
       await assetHost.close();
     })();
-    return shutdownPromise;
+    const tracked = attempt.catch((error: unknown) => { if (shutdownPromise === tracked) shutdownPromise = null; throw error; });
+    shutdownPromise = tracked;
+    return tracked;
   };
 
   return {
@@ -1330,6 +1336,8 @@ export async function createDesktopElectronBundledAvatarHost(
     runtimeBridgeHost,
     hostHandoff,
     hasActiveInstances: () => [...windows.values()].some((record) => !record.window.isDestroyed()),
+    hasUnclosedProcesses: () => allWindowRecords().some(record => !record.window.isDestroyed()) || systemEntryOwnedProcessAlive(devRendererProcess),
+    quitImpact: () => ({ active: [...windows.values()].filter(record => !record.window.isDestroyed()).length, pending: pendingCandidates.size > 0 || pendingMaterializationLeases.size > 0 }),
     quiesceDataRoot: async () => {
       if (dataRootQuiesced) return;
       dataRootQuiesced = true;

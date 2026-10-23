@@ -29,6 +29,7 @@ import { HomeMessagesColumn } from './home-messages-column.js';
 import { useHomeMessages, type HomeMessages } from './home-messages-controller.js';
 import { systemMessage, type HomeMessageFilter, type HomeSystemItemMessage } from './home-messages-model.js';
 import { useHomeRowCapacity } from './use-home-row-capacity.js';
+import { HomeAIReadingEntries, SystemEntryDetails } from '../system-entry/system-entry-details.js';
 
 const HOME_APP_LIMIT = 8;
 // Tile geometry of the Home app buttons (w-[92px] + gap-1): only as many
@@ -96,7 +97,7 @@ export function NimiOverview() {
   const apps = useAppsOverview();
   const homeEntryDestination = useHomeDestination().homeSection ?? 'overview';
   const view = homeEntryDestination;
-  const setView = (homeSection: 'overview' | 'center' | 'integrations') => void navigation.push({ id: 'home', homeSection });
+  const setView = (homeSection: 'overview' | 'center' | 'integrations' | 'work' | 'usage') => void navigation.push({ id: 'home', homeSection });
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
   const [centerSource, setCenterSource] = useState<string | null>(null);
   const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
@@ -296,6 +297,7 @@ export function NimiOverview() {
       </div>
       <div className="min-w-0 xl:col-start-1 xl:row-start-2">
         <HomeAgentCard />
+        <HomeAIReadingEntries onOpenWork={() => setView('work')} onOpenUsage={() => setView('usage')} />
       </div>
       {messages ? (
         <HomeMessagesColumn
@@ -310,7 +312,7 @@ export function NimiOverview() {
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >
-        <HomeMachineStatus runtime={homeRuntimeState(health)} capabilities={status} onOpenDiagnostics={openDiagnostics} />
+        <HomeMachineStatus runtime={homeRuntimeState(health)} capabilities={status} onOpenDiagnostics={openDiagnostics} onOpenUsage={() => setView('usage')} />
         {messagesAccountKey ? (
           <HomeGettingStarted
             key={messagesAccountKey}
@@ -383,7 +385,9 @@ export function NimiOverview() {
     </div>
   );
 
-  const renderPage = (messages: HomeMessages | null) => view === 'integrations' ? (
+  const renderPage = (messages: HomeMessages | null) => view === 'work' || view === 'usage' ? (
+    <SystemEntryDetails section={view} onBack={() => setView('overview')} onSectionChange={setView} />
+  ) : view === 'integrations' ? (
     <IntegrationsPanel
       appIconUrls={iconUrls}
       onBack={() => navigation.push({ id: 'home', homeSection: 'overview' })}

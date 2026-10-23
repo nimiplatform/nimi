@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import {
   createElectronCapabilityUnavailableError,
@@ -13,6 +14,8 @@ import {
   type RuntimeGrpcBridgeClient,
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
+// Exercise the shipped CJS entry used by sandboxed Home, after `kit build`.
+const installCjsBridge: typeof installNimiElectronRuntimeBridge = createRequire(import.meta.url)('@nimiplatform/kit/shell/electron/preload-cjs').installNimiElectronRuntimeBridge;
 import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
@@ -34,7 +37,10 @@ import {
   withTempDir,
 } from './electron-shell-test-utils.js';
 
-describe('installNimiElectronRuntimeBridge', () => {
+describe.each([
+  ['ESM', installNimiElectronRuntimeBridge],
+  ['sandboxed CJS', installCjsBridge],
+] as const)('installNimiElectronRuntimeBridge %s', (_name, installNimiElectronRuntimeBridge) => {
   it('exposes only a narrowed invoke/listen API through contextBridge', async () => {
     const exposed = new Map<string, unknown>();
     const ipcEvents = new Map<string, (event: unknown, payload: unknown) => void>();
@@ -94,16 +100,16 @@ describe('installNimiElectronRuntimeBridge', () => {
     expect(openIntentEvents).toEqual([{ requestId: 'request-a' }]);
     unsubscribeOpenIntent();
 
-    const menuBarEvents: unknown[] = [];
-    const unsubscribeMenuBar = hook.listen('menu-bar://open-tab', (event) => {
-      menuBarEvents.push(event.payload);
-    });
-    ipcEvents.get('nimi:runtime:event:menu-bar://open-tab')?.({}, {
-      tab: 'runtime',
-      page: 'overview',
-    });
-    expect(menuBarEvents).toEqual([{ tab: 'runtime', page: 'overview' }]);
-    unsubscribeMenuBar();
+    for (const eventName of ['system-entry://action', 'system-entry://visibility']) {
+      const events: unknown[] = [];
+      const unsubscribe = hook.listen(eventName, event => events.push(event.payload));
+      ipcEvents.get(`nimi:runtime:event:${eventName}`)?.({}, { generation: 'current-generation' });
+      expect(events).toEqual([{ generation: 'current-generation' }]);
+      unsubscribe();
+      expect(ipcEvents.has(`nimi:runtime:event:${eventName}`)).toBe(false);
+      await expect(hook.invoke(eventName)).rejects.toThrow(/unsupported characters/u);
+    }
+    expect(() => hook.listen('menu-bar://open-tab', () => undefined)).toThrow(/unsupported characters/u);
     for (const eventName of ['avatar://host-suspend', 'avatar://agent-center-preview-request']) {
       const receivedAvatarEvents: unknown[] = [];
       const unsubscribeAvatar = hook.listen(eventName, (event) => receivedAvatarEvents.push(event.payload));

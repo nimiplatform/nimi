@@ -437,6 +437,10 @@ export type NimiElectronAppActivityOpenLaunchTarget = Readonly<{
 
 export type RegisteredNimiElectronRuntimeBridge = {
   readonly invokeChannel: string;
+  /** Main-only fresh projection from the Runtime-owned account carrier. */
+  readonly readDesktopAccountSessionStatus?: () => Promise<import('#nimi-shell-account-projection').DesktopAccountSessionStatus>;
+  /** Main-only observation; null invalidates a stale projection without inventing Account state. */
+  readonly subscribeDesktopAccountSessionProjection?: (listener: (projection: import('#nimi-shell-account-projection').DesktopAccountSessionStatus | null) => void) => () => void;
   /** Main-process-only canonical formal host used for Avatar dev bootstrap. */
   readonly bundledAvatarLocalAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
   /** Desktop-main-only private current Avatar target revalidation. */

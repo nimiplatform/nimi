@@ -280,3 +280,15 @@ units:
         target: definition.nimi.desktop.bridge-ipc.command-registration-plane
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-activity-open
+  - id: rule.nimi.desktop.bridge-ipc.system-entry-isolation
+    kind: rule
+    title: Compact overview has a dedicated narrow bridge
+    modality: must
+    statement: A compact Home overview renderer receives only current-scope display snapshots and bounded close, native-menu, Home destination, admitted source focus and shared Home-notification preference actions through a dedicated host bridge. The host validates the exact renderer and main frame, fixed trusted document and exact payload, denies browser privileges and arbitrary navigation, and never enrolls this renderer in the main Home management sender set or exposes SDK, credentials, session proof, generic invocation or data-root mutation. The native owner obtains current account and Product Control admission from their formal host operations; display generation is only a stale-view fence, never authorization, and every object action revalidates current admission even when its menu was opened earlier.
+    condition: Whenever a secondary Home system overview is created, supplied data or requests an action.
+    failure: Reject non-exact senders, unsupported payloads and stale or unauthorized actions; clear invalidated display without granting a fallback carrier.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
+      - type: applies_to
+        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier

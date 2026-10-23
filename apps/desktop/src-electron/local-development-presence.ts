@@ -40,6 +40,7 @@ export function createDesktopElectronLocalDevelopmentPresencePublisher(input: {
 class ElectronLocalDevelopmentPresencePublisher implements DesktopElectronLocalDevelopmentPresencePublisher {
   private readonly presencePath: string;
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  private heartbeatWrite: Promise<void> | undefined;
   private endpoint = '';
   private callerToken = '';
   private startedAt = '';
@@ -69,21 +70,37 @@ class ElectronLocalDevelopmentPresencePublisher implements DesktopElectronLocalD
     this.endpoint = endpoint;
     this.callerToken = callerToken;
     this.startedAt = this.now().toISOString();
-    await this.writePresence();
+    try {
+      await this.writePresence();
+    } catch (error) {
+      this.endpoint = '';
+      this.callerToken = '';
+      this.startedAt = '';
+      throw error;
+    }
     this.heartbeatTimer = setInterval(() => void this.heartbeat(), LOCAL_DEVELOPMENT_HEARTBEAT_INTERVAL_MS);
   }
 
   async heartbeat(): Promise<void> {
+    if (!this.endpoint || this.heartbeatWrite) return;
+    const write = this.writePresence();
+    this.heartbeatWrite = write;
     try {
-      await this.writePresence();
+      await write;
     } catch {
       this.report('presence heartbeat failed');
+    } finally {
+      if (this.heartbeatWrite === write) this.heartbeatWrite = undefined;
     }
   }
 
   async shutdown(): Promise<void> {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = undefined;
+    await this.heartbeatWrite?.catch(() => undefined);
+    this.endpoint = '';
+    this.callerToken = '';
+    this.startedAt = '';
     try {
       await rm(this.presencePath, { force: true });
     } catch {

@@ -7,7 +7,7 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { isOpenable } from './home-app-activity-model.js';
-import type { HomeMessageNotice } from './home-app-activity.js';
+import type { HomeMessageNotice } from '../system-entry/system-entry-context.js';
 import type { HomeMessagePlacement } from './home-messages-controller.js';
 import {
   isHideableMessage,

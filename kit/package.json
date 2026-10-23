@@ -28,6 +28,12 @@
     "dist/**"
   ],
   "type": "module",
+  "imports": {
+    "#nimi-shell-account-projection": {
+      "types": "./dist/shell/shared/runtime-account-projection.d.ts",
+      "default": "./dist/shell/shared/runtime-account-projection.js"
+    }
+  },
   "exports": {
     "./ui/app-chrome": {
       "types": "./dist/ui/app-chrome/index.d.ts",

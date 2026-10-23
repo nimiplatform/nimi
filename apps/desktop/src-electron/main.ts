@@ -24,6 +24,8 @@ import {
   Notification,
   nativeImage,
   protocol,
+  powerMonitor,
+  screen,
   session,
   shell,
   Tray,
@@ -111,21 +113,19 @@ import {
   type DesktopElectronConnectorAuthAcquisitionHost,
 } from './connector-auth-acquisition-host.js';
 import { createDesktopElectronRendererLogHost } from './renderer-log-host.js';
-import {
-  createDesktopElectronMenuBarHost,
-  type DesktopElectronMenuBarHost,
-  type MenuBarRuntimeStatus,
-} from './menu-bar-host.js';
+import { createDesktopSystemEntryHost, type DesktopSystemEntryHost } from './system-entry-host.js';
+import { createSystemEntryAdmission } from './system-entry-admission.js';
+import { createSystemEntryActionRelay } from './system-entry-action-relay.js';
+import { createDesktopQuitCoordinator } from './system-entry-quit-coordinator.js';
 import {
   createDesktopAppOriginProtocol,
   desktopRendererOrigin,
   NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES,
   NIMI_DESKTOP_APP_PROTOCOL_SCHEME,
 } from './app-origin-protocol.js';
-import {
-  MENU_BAR_OPEN_TAB_EVENT,
-  type MenuBarOpenTabPayload,
-} from '../src/shell/shared/menu-bar-types.js';
+import { SYSTEM_ENTRY_ACTION_EVENT, SYSTEM_ENTRY_HOME_COMMANDS, SYSTEM_ENTRY_VISIBILITY_EVENT, parseSystemEntryActionResult,
+  type SystemEntryAction, type SystemEntryActionContext, type SystemEntryActionDispatch,
+} from '../src/shell/shared/system-entry-types.js';
 
 const APP_ID = 'nimi.desktop';
 const ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
@@ -146,6 +146,7 @@ const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
+const systemEntryPreloadPath = path.join(currentDir, 'system-entry-preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistAvatarIndex = path.join(appRoot, 'avatar', 'dist', 'index.html');
 const appOriginProtocol = createDesktopAppOriginProtocol({
@@ -186,10 +187,17 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
   },
 });
 let mainWindow: BrowserWindow | undefined;
+let mainWindowCreation: Promise<BrowserWindow> | undefined;
+let mainWindowRecovery: Promise<void> | undefined;
+let mainRendererUnavailable = false;
+let mainRendererUnresponsive = false;
+let systemEntryRendererReady = false;
+const systemEntryDeniedWebContents = new Set<number>();
 const desktopSenderInvalidationListeners = new Set<() => void>();
 const systemNotices = new Set<Notification>();
 const executionNotices = createDesktopExecutionNoticesHost({
   supported: () => Notification.isSupported(),
+  readAdmission: async () => systemEntryAdmission?.read() ?? { generation: 'unavailable', state: 'unknown' },
   notify: (title, body, outcome) => {
     const notification = new Notification({ title, body });
     systemNotices.add(notification);
@@ -205,12 +213,20 @@ let installedAppHost: DesktopInstalledAppHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
 let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
-let menuBarHost: DesktopElectronMenuBarHost | undefined;
+let systemEntryHost: DesktopSystemEntryHost | undefined;
+let systemEntryAdmission: ReturnType<typeof createSystemEntryAdmission> | undefined;
+let systemEntryActionRelay: ReturnType<typeof createSystemEntryActionRelay> | undefined;
+let systemEntryAccountUnsubscribe: (() => void) | undefined;
+let systemEntryLocale: 'en' | 'zh' = 'en';
 let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let homeChromeHost: NimiElectronAppChromeHost | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
+let ownerQuitRequested = false;
+let systemSessionEnding = false;
+let entryUnavailableNoticeOpen = false;
+type DesktopRuntimeStatus = { readonly running: boolean; readonly managed: boolean; readonly launchMode: string; readonly version?: string; readonly lastError?: string };
 let productUpdateHost: DesktopProductUpdateHost | undefined;
 let productUpdateAdapter: MacOSProductUpdateAdapter | WindowsProductUpdateAdapter | undefined;
 let reconcileProductActivation: (() => Promise<void>) | undefined;
@@ -241,6 +257,27 @@ let maintenanceRelaunchRequested = false;
 // Until startup finished constructing its hosts, a requested relaunch waits
 // for startup's own checkpoint so shutdown sees every host it must dispose.
 let desktopStartupSettled = false;
+const desktopQuitCoordinator = createDesktopQuitCoordinator({
+  readImpact: async () => {
+    const view = await systemEntryHost?.snapshot();
+    const work = view?.observation === 'current' && view.admission.state === 'ready' ? view.projection?.work : undefined;
+    return {
+      installed: installedAppHost?.quitImpact() ?? [],
+      development: localDevelopmentHost?.quitImpact() ?? [],
+      avatar: bundledAvatarHost?.quitImpact() ?? { active: 0, pending: false },
+      observedWorkCount: work?.total ?? null,
+      workComplete: work?.status === 'available' && work.total !== null,
+    };
+  },
+  confirm: confirmDesktopUserQuit,
+  shutdown: prepareDesktopQuit,
+  finishQuit: async () => { quitCleanupComplete = true; await finishDesktopHomeProfileBeforeExit(); },
+  recoverAfterFailedQuit: recoverDesktopAfterFailedQuit,
+  phaseChanged: (phase) => {
+    systemEntryHost?.setQuitPending(phase !== 'idle');
+    if (phase === 'stopping' || phase === 'system-ending') systemEntryAdmission?.invalidate();
+  },
+});
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 if (process.platform === 'win32') {
@@ -250,7 +287,7 @@ if (process.platform === 'win32') {
 }
 if (SOURCE_PER_USER_RUNTIME_D2) {
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-    process.once(signal, () => app.quit());
+    process.once(signal, () => { ownerQuitRequested = true; app.quit(); });
   }
 }
 configureDesktopElectronChromiumRuntime();
@@ -352,6 +389,7 @@ function normalHomeWorkAllowed(): boolean {
 
 function desktopAppLaunchGate(gate: DesktopDataRootOperationGate): DesktopDataRootOperationGate {
   const requireNormalHomeWork = <T>(operation: () => Promise<T>) => async (): Promise<T> => {
+    if (desktopQuitCoordinator.isLaunchBlocked() || ownerQuitRequested || quitCleanup || systemSessionEnding) throw new Error('desktop-home-quit-in-progress');
     if (!normalHomeWorkAllowed()) throw new Error('desktop-home-profile-repair-required');
     return operation();
   };
@@ -406,6 +444,7 @@ async function checkDesktopHomeProfileScope(
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
+    systemEntryLocale = app.getLocale().startsWith('zh') ? 'zh' : 'en';
     if (!app.isPackaged) {
       app.dock?.setIcon(path.join(appRoot, 'assets', 'windows-icon.png'));
     }
@@ -431,6 +470,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         preflight: (candidate) => productUpdateAdapter!.preflight(candidate),
         shutdown: async () => {
           homeProfileWorkBlocked = true;
+          systemEntryAdmission?.invalidate();
           return shutdownBeforeQuit(true);
         },
         handoff: (candidate, report) => productUpdateAdapter!.handoff(candidate, report),
@@ -465,7 +505,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     installDesktopPermissionPolicy(session.defaultSession, new Set([
       ...allowedRendererOrigins(),
       desktopRendererOrigin(bundledAvatarRendererUrl),
-    ]));
+    ]), systemEntryDeniedWebContents);
     const dataRootOperationGate = createDesktopDataRootOperationGate();
     homeDataRootOperationGate = dataRootOperationGate;
     const appLaunchGate = desktopAppLaunchGate(dataRootOperationGate);
@@ -565,9 +605,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     if (await productUpdateAdapter.hasPending()) await reconcileProductActivation();
     const invokeRuntimeLifecycle = async (
       command: string,
-    ): Promise<MenuBarRuntimeStatus> => (
+    ): Promise<DesktopRuntimeStatus> => (
       await runtimeLifecycleHost.invoke(command, runtimeCommandNames)
-    ) as MenuBarRuntimeStatus;
+    ) as DesktopRuntimeStatus;
     if (!SOURCE_PER_USER_RUNTIME_D2 && !macOSProductionService) {
       runtimeMaintenance = await readDesktopRuntimeMaintenance(
         () => invokeRuntimeLifecycle(runtimeCommandNames.status),
@@ -578,6 +618,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       runtimeLifecycleProfile,
       restartRuntime: () => invokeRuntimeLifecycle(runtimeCommandNames.restart),
       quiesceHostDataRoot: async () => {
+        systemEntryAdmission?.invalidate();
         await localDevelopmentHost?.quiesceDataRoot();
         await installedAppHost?.shutdown();
         await bundledAvatarHost?.quiesceDataRoot();
@@ -680,30 +721,43 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
     });
     const rendererLogHost = createDesktopElectronRendererLogHost();
-    const restartRuntimeFromMenu = async (): Promise<MenuBarRuntimeStatus> => {
-      const status = await dataRootOperationGate.runRecovery(() => invokeRuntimeLifecycle(runtimeCommandNames.restart));
-      if (dataRootOperationGate.isClosed()) {
-        await productControlHost.recoverDataRootHandoff();
-      }
-      return status;
-    };
-    menuBarHost = createDesktopElectronMenuBarHost({
-      electron: { Menu, Tray },
-      icon: process.platform === 'darwin' ? createDesktopMenuBarIcon() : '',
-      runtimeLifecycleProfile,
-      lifecycle: {
-        status: () => invokeRuntimeLifecycle(runtimeCommandNames.status),
-        start: () => invokeRuntimeLifecycle(runtimeCommandNames.start),
-        restart: restartRuntimeFromMenu,
+    systemEntryActionRelay = createSystemEntryActionRelay({ send: emitDesktopSystemEntryAction });
+    systemEntryAdmission = createSystemEntryAdmission({
+      readAccount: async () => {
+        const read = registeredRuntimeBridge?.readDesktopAccountSessionStatus;
+        if (!read || !systemEntryAccountUnsubscribe) throw new Error('system-entry-account-unavailable');
+        return read();
       },
-      focusMainWindow: focusDesktopMainWindow,
-      hideMainWindow: hideDesktopMainWindow,
-      emitRendererEvent: emitDesktopMenuBarEvent,
-      quit: () => app.quit(),
+      readProduct: () => productControlHost.commandHandlers.product_control_record_get({ command: 'product_control_record_get', payload: {} }),
+      normalWorkAllowed: () => normalHomeWorkAllowed()
+        && !['stopping', 'committed', 'system-ending'].includes(desktopQuitCoordinator.phase())
+        && !ownerQuitRequested && !quitCleanup && !systemSessionEnding,
+      onInvalidated: () => {
+        executionNotices.disableNotifications();
+        systemEntryHost?.invalidate(); systemEntryActionRelay?.invalidate();
+      },
+      onScopeChanged: (previous) => {
+        if (previous.state === 'ready') executionNotices.disableNotifications();
+        systemEntryActionRelay?.invalidate();
+      },
+    });
+    systemEntryHost = createDesktopSystemEntryHost({
+      electron: { Menu, Tray, BrowserWindow, ipcMain, screen },
+      icon: process.platform === 'darwin' ? createDesktopMenuBarIcon() : createDesktopIcon(),
+      popup: { url: new URL('system-entry.html', rendererUrl || appOriginProtocol.rendererUrl('desktop')).href, preloadPath: systemEntryPreloadPath },
+      configurePopup: (window) => {
+        const id = window.webContents.id;
+        systemEntryDeniedWebContents.add(id);
+        window.webContents.once('destroyed', () => systemEntryDeniedWebContents.delete(id));
+      },
+      getAdmission: () => systemEntryAdmission!.read(),
+      executeAction: dispatchDesktopSystemEntryAction,
+      ensureHomeWindow: focusDesktopMainWindow,
+      hideHomeWindow: hideDesktopMainWindow,
+      requestQuit: () => desktopQuitCoordinator.requestUserQuit(),
+      locale: systemEntryLocale,
       reportError: (operation, error) => {
-        writeDesktopStderr(
-          `[desktop-menu-bar] ${normalizeText(operation) || 'operation'}:${desktopBootstrapFailureCode(error)}\n`,
-        );
+        writeDesktopStderr(`[desktop-system-entry] ${normalizeText(operation) || 'operation'}:${desktopBootstrapFailureCode(error)}\n`);
       },
     });
     bundledAvatarHost = await createDesktopElectronBundledAvatarHost({
@@ -833,6 +887,37 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       },
       commandHandlers: {
+        [SYSTEM_ENTRY_HOME_COMMANDS.context]: async ({ payload, event }) => {
+          assertSystemEntryHomeRequest(payload, event, false);
+          if (!systemEntryHost) throw new Error('system-entry-unavailable');
+          const context = await systemEntryHost.context();
+          assertSystemEntryHomeRequest(payload, event, false);
+          return context;
+        },
+        [SYSTEM_ENTRY_HOME_COMMANDS.publish]: async ({ payload, event }) => {
+          assertSystemEntryHomeRequest(payload, event, true);
+          if (!systemEntryHost) throw new Error('system-entry-unavailable');
+          await systemEntryHost.publish(payload.payload);
+          assertSystemEntryHomeRequest(payload, event, true);
+          systemEntryLocale = (payload.payload as { locale: 'en' | 'zh' }).locale;
+          systemEntryRendererReady = true;
+          return { accepted: true };
+        },
+        [SYSTEM_ENTRY_HOME_COMMANDS.heartbeat]: async ({ payload, event }) => {
+          assertSystemEntryHomeRequest(payload, event, true);
+          if (!systemEntryHost) throw new Error('system-entry-unavailable');
+          await systemEntryHost.heartbeat(payload.payload);
+          return { accepted: true };
+        },
+        [SYSTEM_ENTRY_HOME_COMMANDS.actionResult]: async ({ payload, event }) => {
+          assertSystemEntryHomeRequest(payload, event, true);
+          const result = parseSystemEntryActionResult(payload.payload);
+          const current = await systemEntryAdmission?.read();
+          assertSystemEntryHomeRequest(payload, event, true);
+          if (!current || current.generation !== result.generation || current.state !== 'ready' || !systemEntryActionRelay) throw new Error('system-entry-action-stale');
+          systemEntryActionRelay.settle(result);
+          return { accepted: true };
+        },
         // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-009
         nimi_product_update_status: async ({ payload, event }) => {
           assertProductUpdateRequest(payload, event);
@@ -922,7 +1007,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ...dataCleanupHost.commandHandlers,
         ...connectorAuthAcquisitionHost.commandHandlers,
         ...rendererLogHost.commandHandlers,
-        ...menuBarHost.commandHandlers,
         ...bundledAvatarHost.desktopCommandHandlers,
       },
       standardShellHost: {
@@ -953,6 +1037,14 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });
+    systemEntryAccountUnsubscribe = registeredRuntimeBridge.subscribeDesktopAccountSessionProjection?.((projection) => {
+      systemEntryAdmission?.observeAccount(projection);
+    });
+    powerMonitor.on('lock-screen', lockDesktopSystemEntry);
+    powerMonitor.on('unlock-screen', unlockDesktopSystemEntry);
+    powerMonitor.on('suspend', suspendDesktopSystemEntry);
+    powerMonitor.on('resume', resumeDesktopSystemEntry);
+    powerMonitor.on('shutdown', handleDesktopSystemSessionEnd);
 
     desktopStartupSettled = true;
     if (homeRelaunchRequested) {
@@ -1003,18 +1095,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         throw new Error('Avatar-only Electron dev launch did not create or focus an Avatar instance.');
       }
     } else {
-      if (menuBarHost.enabled) {
-        await menuBarHost.initialize();
+      if (systemEntryHost.enabled) {
+        try { await systemEntryHost.initialize(); }
+        catch (error) { writeDesktopStderr(`[desktop-system-entry] initialize:${desktopBootstrapFailureCode(error)}\n`); }
       }
       await createMainWindow();
     }
 
     app.on('activate', () => {
       if (AVATAR_ONLY_DEVELOPMENT_MODE) return;
-      if (BrowserWindow.getAllWindows().length === 0) {
-        void createMainWindow();
-        return;
-      }
       void focusDesktopMainWindow();
     });
   } catch (error: unknown) {
@@ -1054,10 +1143,18 @@ function configureDesktopElectronChromiumRuntime(): void {
 }
 
 app.on('window-all-closed', () => {
-  app.quit();
+  if (quitCleanupComplete || systemSessionEnding || !desktopStartupSettled || AVATAR_ONLY_DEVELOPMENT_MODE) {
+    ownerQuitRequested = true;
+    app.quit();
+    return;
+  }
+  if (!systemEntryHost?.hasRecoverableEntry()) {
+    void focusDesktopMainWindow().catch((error) => writeDesktopStderr(`[desktop-system-entry] restore:${desktopBootstrapFailureCode(error)}\n`));
+  }
 });
 
 app.on('before-quit', (event) => {
+  if (systemSessionEnding) return;
   if (productUpdateAdapter && !productUpdateAdapter.canSafelyReopen()) {
     event.preventDefault();
     dialog.showErrorBox('Nimi could not close safely', 'The canceled update helper has not stopped yet. Nimi remains open to prevent an unintended installation. Try closing Nimi again after it stops.');
@@ -1065,23 +1162,129 @@ app.on('before-quit', (event) => {
   }
   if (quitCleanupComplete) return;
   event.preventDefault();
-  quitCleanup ??= shutdownBeforeQuit()
-    .then(async () => {
+  if (ownerQuitRequested || homeRelaunchRequested || maintenanceRelaunchRequested || !desktopStartupSettled || AVATAR_ONLY_DEVELOPMENT_MODE) {
+    void prepareDesktopQuit().then(async () => {
       quitCleanupComplete = true;
       await finishDesktopHomeProfileBeforeExit();
-    })
-    .catch(() => {
-      quitCleanup = undefined;
-      productUpdateHost?.start();
-      // Home keeps its current profile; a later ordinary quit must not turn
-      // into this relaunch, and a later check may request it again.
-      homeRelaunchRequested = false;
-      dialog.showErrorBox(
-        'Nimi could not close safely',
-        'A supervised App or critical resource did not close cleanly. Nimi remains open so you can retry. An update cannot install until these resources close safely.',
-      );
-    });
+    }).catch(recoverDesktopAfterFailedQuit);
+    return;
+  }
+  void desktopQuitCoordinator.requestUserQuit().catch((error) => writeDesktopStderr(`[desktop-quit] ${desktopBootstrapFailureCode(error)}\n`));
 });
+
+function prepareDesktopQuit(): Promise<void> {
+  if (!quitCleanup) {
+    const cleanup = shutdownBeforeQuit().then(() => undefined);
+    const tracked = cleanup.catch((error: unknown) => { if (quitCleanup === tracked) quitCleanup = undefined; throw error; });
+    quitCleanup = tracked;
+  }
+  return quitCleanup;
+}
+
+async function recoverDesktopAfterFailedQuit(_error: unknown): Promise<void> {
+  ownerQuitRequested = false;
+  homeRelaunchRequested = false;
+  maintenanceRelaunchRequested = false;
+  installedAppHost?.resume();
+  try { await localDevelopmentHost?.resumeAfterFailedShutdown(); }
+  catch (error) { writeDesktopStderr(`[desktop-quit] supervisor-recovery:${desktopBootstrapFailureCode(error)}\n`); }
+  productUpdateHost?.start();
+  await focusDesktopMainWindow().catch((error) => writeDesktopStderr(`[desktop-quit] window-recovery:${desktopBootstrapFailureCode(error)}\n`));
+  dialog.showErrorBox(systemEntryLocale === 'zh' ? 'Nimi Home 尚未退出' : 'Nimi Home could not close',
+    systemEntryLocale === 'zh' ? '部分托管 App 或关键资源没有完成关闭。Home 已保留，请重试退出；已关闭的 App 不会自动重新启动。'
+      : 'A supervised App or critical resource did not close cleanly. Home remains available so you can retry. Apps that already closed will not restart automatically.');
+}
+
+async function confirmDesktopUserQuit(impact: { installed: readonly string[]; development: readonly string[]; avatar: Readonly<{ active: number; pending: boolean }>; observedWorkCount: number | null; workComplete: boolean }): Promise<boolean> {
+  const chinese = systemEntryLocale === 'zh';
+  const names = (items: readonly string[]) => items.slice(0, 6).map((name) => name.replace(/[\r\n\t]/gu, ' ').slice(0, 80)).join(', ');
+  const detail = chinese
+    ? [`已安装 App：${impact.installed.length}${impact.installed.length ? `（${names(impact.installed)}）` : ''}`,
+      `开发 App：${impact.development.length}${impact.development.length ? `（${names(impact.development)}）` : ''}`,
+      `Avatar：${impact.avatar.active}${impact.avatar.pending ? '，还有实例正在准备' : ''}`,
+      impact.workComplete ? `当前 AI 工作：${impact.observedWorkCount}`
+        : impact.observedWorkCount !== null ? `已记录 ${impact.observedWorkCount} 项 AI 工作；其余状态尚未完整确认。` : '当前 AI 工作状态尚未完整确认。',
+      '退出会关闭 Home 和以上托管 App（包括正在打开或等待清理的实例）；Home 中的在途请求可能中断。本地 AI 服务保持独立；已提交的远端工作不保证取消。'].join('\n')
+    : [`Installed Apps: ${impact.installed.length}${impact.installed.length ? ` (${names(impact.installed)})` : ''}`,
+      `Development Apps: ${impact.development.length}${impact.development.length ? ` (${names(impact.development)})` : ''}`,
+      `Avatars: ${impact.avatar.active}${impact.avatar.pending ? '; more are being prepared' : ''}`,
+      impact.workComplete ? `Current AI work: ${impact.observedWorkCount}`
+        : impact.observedWorkCount !== null ? `${impact.observedWorkCount} AI work items observed; other activity is not fully confirmed.` : 'Current AI activity is not fully confirmed.',
+      'Quitting closes Home and these supervised Apps, including instances opening or awaiting cleanup. In-flight Home requests may be interrupted. The local AI service has an independent lifetime; remote work already submitted may continue.'].join('\n');
+  const options: MessageBoxOptions = { type: 'question', title: chinese ? '退出 Nimi Home？' : 'Quit Nimi Home?',
+    message: chinese ? '退出会关闭由 Home 托管的 App。' : 'Quitting will close Home-supervised Apps.', detail,
+    buttons: chinese ? ['取消', '退出 Home'] : ['Cancel', 'Quit Home'], defaultId: 0, cancelId: 0, noLink: true };
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  const result = window ? await dialog.showMessageBox(window, options) : await dialog.showMessageBox(options);
+  return result.response === 1;
+}
+
+function assertSystemEntryHomeRequest(payload: Readonly<Record<string, unknown>>, event: NimiElectronIpcMainInvokeEvent, hasPayload: boolean): void {
+  if (!authorizeDesktopRendererSender(event) || Object.keys(payload).sort().join('|') !== (hasPayload ? 'payload' : '')) {
+    throw new Error('system-entry-home-request-rejected');
+  }
+}
+
+async function dispatchDesktopSystemEntryAction(action: SystemEntryAction, context: SystemEntryActionContext): Promise<void> {
+  const admission = await systemEntryAdmission?.read().catch(() => null);
+  if (!admission || admission.state !== 'ready') {
+    if (action.kind === 'home' || action.kind === 'support' || action.kind === 'refresh') {
+      await focusDesktopMainWindow();
+      return;
+    }
+    throw new Error('system-entry-admission-required');
+  }
+  if (context.generation !== admission.generation) {
+    await focusDesktopMainWindow();
+    throw new Error('system-entry-view-stale');
+  }
+  if (!mainWindow || mainWindow.isDestroyed() || mainRendererUnavailable || !systemEntryRendererReady) {
+    await focusDesktopMainWindow();
+    throw new Error('system-entry-view-stale');
+  }
+  if (!['focus-app', 'open-activity', 'pause-notifications', 'resume-notifications', 'refresh'].includes(action.kind)) {
+    await focusDesktopMainWindow();
+  }
+  if (!systemEntryActionRelay) throw new Error('system-entry-action-unavailable');
+  await systemEntryActionRelay.dispatch(action, context);
+}
+
+function emitDesktopSystemEntryAction(request: SystemEntryActionDispatch): void {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window || window.webContents.isDestroyed() || mainRendererUnavailable || !systemEntryRendererReady) throw new Error('system-entry-renderer-unavailable');
+  window.webContents.send(`${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${SYSTEM_ENTRY_ACTION_EVENT}`, request);
+}
+
+function publishDesktopHomeVisibility(): void {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  const homeVisible = Boolean(window && window.isVisible() && !window.isMinimized());
+  systemEntryHost?.setHomeVisibility(homeVisible);
+  const admission = systemEntryAdmission?.snapshot();
+  if (window && !window.webContents.isDestroyed() && admission) {
+    window.webContents.send(`${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${SYSTEM_ENTRY_VISIBILITY_EVENT}`, { generation: admission.generation, homeVisible });
+  }
+}
+
+function lockDesktopSystemEntry(): void { systemEntryAdmission?.setLocked(true); }
+function unlockDesktopSystemEntry(): void { systemEntryAdmission?.setLocked(false); }
+function suspendDesktopSystemEntry(): void { systemEntryAdmission?.invalidate(); }
+function resumeDesktopSystemEntry(): void { systemEntryAdmission?.invalidate(); publishDesktopHomeVisibility(); }
+
+function handleDesktopSystemSessionEnd(): void {
+  if (systemSessionEnding) return;
+  systemSessionEnding = true;
+  desktopQuitCoordinator.beginSystemEnd();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // The OS owns process termination. Best-effort cleanup is bounded and
+  // never invokes ordinary confirmation, service stop or a Home relaunch.
+  void Promise.race([
+    prepareDesktopQuit().catch((error) => writeDesktopStderr(`[desktop-session-end] ${desktopBootstrapFailureCode(error)}\n`)),
+    new Promise<void>((resolve) => { timer = setTimeout(resolve, 2_000); }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+    app.exit(0);
+  });
+}
 
 // Relaunch only after supervised Apps stopped. The original temporary
 // environment is restored first so the next Home never nests its bootstrap
@@ -1138,9 +1341,26 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   const openIntentHost = desktopOpenIntentHost;
   const avatarHost = bundledAvatarHost;
   const chatStoreHost = chatAiStoreHost;
-  const currentMenuBarHost = menuBarHost;
+  const currentSystemEntryHost = systemEntryHost;
   const connectorAuthHost = connectorAuthAcquisitionHost;
   const runtimeBridge = registeredRuntimeBridge;
+  const ordinaryDiagnostics: Array<{ operation: string; reason: string }> = [];
+  const stopAvatar = async (): Promise<void> => {
+    if (!avatarHost) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      if (forUpdate) await avatarHost.shutdown();
+      else await Promise.race([
+        avatarHost.shutdown(),
+        new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('avatar-resource-cleanup-timeout')), 25_000); }),
+      ]);
+    } catch (error) {
+      if (forUpdate || avatarHost.hasUnclosedProcesses()) throw error;
+      // Native processes are already confirmed closed. Ordinary exit may
+      // retain a resource-release diagnostic; update installation may not.
+      ordinaryDiagnostics.push({ operation: 'avatar-resources', reason: desktopBootstrapFailureCode(error) });
+    } finally { if (timer) clearTimeout(timer); }
+  };
   const steps = [
     { operation: 'product-update-download', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => productUpdateHost?.stop() },
     { operation: 'local-app-host', critical: true, timeoutMs: 30_000, run: () => localHost?.shutdown() },
@@ -1148,14 +1368,25 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
       forUpdate || homeRelaunchRequested || maintenanceRelaunchRequested ? 'required' : 'quit-after-process-exit',
     ) },
     { operation: 'formal-app-resources', critical: true, abortRemainingOnFailure: false, timeoutMs: DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS, run: () => runtimeBridge?.disposeFormalAppResources?.() },
-    { operation: 'avatar-host', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => avatarHost?.shutdown() },
+    { operation: 'avatar-host', critical: true, timeoutMs: 30_000, run: stopAvatar },
     { operation: 'chat-store', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => chatStoreHost?.close() },
+    { operation: 'system-entry-observation', critical: false, timeoutMs: 5_000, run: () => {
+      systemEntryAccountUnsubscribe?.(); systemEntryAccountUnsubscribe = undefined;
+      systemEntryAdmission?.invalidate(); systemEntryActionRelay?.invalidate();
+      systemEntryRendererReady = false;
+      powerMonitor.removeListener('lock-screen', lockDesktopSystemEntry);
+      powerMonitor.removeListener('unlock-screen', unlockDesktopSystemEntry);
+      powerMonitor.removeListener('suspend', suspendDesktopSystemEntry);
+      powerMonitor.removeListener('resume', resumeDesktopSystemEntry);
+      powerMonitor.removeListener('shutdown', handleDesktopSystemSessionEnd);
+    } },
     { operation: 'open-intent', critical: false, timeoutMs: 5_000, run: () => openIntentHost?.shutdown() },
     { operation: 'connector-auth', critical: false, timeoutMs: 5_000, run: () => connectorAuthHost?.shutdown() },
     { operation: 'runtime-bridge', critical: false, timeoutMs: 5_000, run: () => runtimeBridge?.unregister() },
-    { operation: 'menu-bar', critical: false, timeoutMs: 5_000, run: () => currentMenuBarHost?.dispose() },
+    { operation: 'system-entry', critical: false, timeoutMs: 5_000, run: () => currentSystemEntryHost?.dispose() },
   ];
-  const report = await runDesktopShutdownSteps(forUpdate ? steps.filter((step) => step.critical) : steps);
+  const result = await runDesktopShutdownSteps(forUpdate ? steps.filter((step) => step.critical) : steps);
+  const report: DesktopShutdownReport = { ...result, diagnostics: [...result.diagnostics, ...ordinaryDiagnostics] };
   for (const failure of [...report.criticalFailures, ...report.diagnostics]) {
     writeDesktopStderr(`[desktop-shutdown] ${failure.operation}:${failure.reason}\n`);
   }
@@ -1164,7 +1395,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   // CP-U2 installation must inspect criticalCleanupComplete independently of
   // this promise resolving or the process exiting. App stop failures still
   // retain their bridge and block ordinary quit to avoid orphan processes.
-  if (report.criticalFailures.some((failure) => ['local-app-host', 'installed-app-host'].includes(failure.operation))) {
+  if (report.criticalFailures.some((failure) => ['local-app-host', 'installed-app-host', 'avatar-host'].includes(failure.operation))) {
     throw new DesktopShutdownBlockedError(report);
   }
   if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;
@@ -1172,7 +1403,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   if (desktopOpenIntentHost === openIntentHost) desktopOpenIntentHost = undefined;
   if (bundledAvatarHost === avatarHost) bundledAvatarHost = undefined;
   if (chatAiStoreHost === chatStoreHost) chatAiStoreHost = undefined;
-  if (menuBarHost === currentMenuBarHost) menuBarHost = undefined;
+  if (systemEntryHost === currentSystemEntryHost) systemEntryHost = undefined;
   if (connectorAuthAcquisitionHost === connectorAuthHost) connectorAuthAcquisitionHost = undefined;
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
   return report;
@@ -1180,6 +1411,15 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-002
 async function createMainWindow(): Promise<BrowserWindow> {
+  if (mainWindowCreation) return mainWindowCreation;
+  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
+  const creating = buildMainWindow();
+  mainWindowCreation = creating;
+  try { return await creating; }
+  finally { if (mainWindowCreation === creating) mainWindowCreation = undefined; }
+}
+
+async function buildMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     ...createNimiElectronAppChromeWindowOptions(),
     width: 1440,
@@ -1210,23 +1450,42 @@ async function createMainWindow(): Promise<BrowserWindow> {
     });
   }
   window.on('close', (event) => {
-    if (!quitCleanupComplete && menuBarHost?.hideMainWindowOnClose()) {
-      event.preventDefault();
-      return;
-    }
-    if (!quitCleanupComplete) {
-      if (bundledAvatarHost?.hasActiveInstances()) {
-        event.preventDefault();
-        window.hide();
-        return;
-      }
-      event.preventDefault();
-      app.quit();
-    }
+    if (quitCleanupComplete || systemSessionEnding) return;
+    event.preventDefault();
+    if (systemEntryHost?.hideHomeWindowOnClose()) return;
+    if (desktopQuitCoordinator.isLaunchBlocked() || entryUnavailableNoticeOpen) return;
+    entryUnavailableNoticeOpen = true;
+    const chinese = systemEntryLocale === 'zh';
+    void dialog.showMessageBox(window, { type: 'info',
+      title: chinese ? 'Home 将保持打开' : 'Home will stay open',
+      message: chinese ? '系统入口暂不可用，关闭窗口后将无法从该入口恢复。' : 'The system entry is unavailable, so Home cannot be safely hidden.',
+      detail: chinese ? '可以继续使用 Home，或明确退出并关闭其托管的 App。' : 'You can continue using Home, or explicitly quit and close its supervised Apps.',
+      buttons: chinese ? ['继续使用', '退出 Home'] : ['Keep open', 'Quit Home'], defaultId: 0, cancelId: 0,
+    }).then((result) => { if (result.response === 1) return desktopQuitCoordinator.requestUserQuit(); return false; })
+      .catch((error) => writeDesktopStderr(`[desktop-close] ${desktopBootstrapFailureCode(error)}\n`))
+      .finally(() => { entryUnavailableNoticeOpen = false; });
   });
-  window.on('show', () => menuBarHost?.setWindowVisible(true));
-  window.on('hide', () => menuBarHost?.setWindowVisible(false));
+  window.on('show', publishDesktopHomeVisibility);
+  window.on('hide', publishDesktopHomeVisibility);
+  window.on('minimize', publishDesktopHomeVisibility);
+  window.on('restore', publishDesktopHomeVisibility);
+  window.on('session-end', handleDesktopSystemSessionEnd);
+  window.on('unresponsive', () => {
+    mainRendererUnavailable = true; mainRendererUnresponsive = true;
+    systemEntryAdmission?.invalidate();
+  });
+  window.on('responsive', () => { mainRendererUnresponsive = false; mainRendererUnavailable = false; });
+  window.webContents.on('render-process-gone', () => {
+    mainRendererUnavailable = true; systemEntryRendererReady = false;
+    systemEntryAdmission?.invalidate();
+  });
+  window.webContents.on('did-finish-load', () => {
+    mainRendererUnavailable = false; mainRendererUnresponsive = false;
+    publishDesktopHomeVisibility();
+  });
   const invalidateDesktopSender = () => {
+    systemEntryRendererReady = false;
+    systemEntryAdmission?.invalidate();
     homeChromeHost?.invalidateAll();
     executionNotices.disableNotifications();
     for (const listener of desktopSenderInvalidationListeners) listener();
@@ -1237,7 +1496,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     if (mainWindow === window) {
       mainWindow = undefined;
     }
-    menuBarHost?.setWindowVisible(false);
+    publishDesktopHomeVisibility();
   });
   secureDesktopWindow(window);
   if (process.platform === 'win32') window.show();
@@ -1394,9 +1653,27 @@ async function confirmDesktopDialog(payload: {
 
 // @nimi-authority: rule.nimi.desktop.bridge-ipc.r014
 async function focusDesktopMainWindow(): Promise<void> {
-  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
-  if (!window) {
-    return;
+  if (!desktopStartupSettled || AVATAR_ONLY_DEVELOPMENT_MODE || quitCleanupComplete || systemSessionEnding) return;
+  let window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (window?.webContents.isDestroyed()) {
+    window.destroy();
+    window = undefined;
+  }
+  if (!window) window = await createMainWindow();
+  if (mainWindowRecovery) await mainWindowRecovery;
+  else if (mainRendererUnavailable) {
+    const recoveringWindow = window;
+    const recovering = (async () => {
+      systemEntryRendererReady = false;
+      systemEntryAdmission?.invalidate();
+      if (mainRendererUnresponsive) recoveringWindow.webContents.forcefullyCrashRenderer();
+      await recoveringWindow.loadURL(rendererUrl || appOriginProtocol.rendererUrl('desktop'));
+      mainRendererUnavailable = false;
+      mainRendererUnresponsive = false;
+    })();
+    mainWindowRecovery = recovering;
+    try { await recovering; }
+    finally { if (mainWindowRecovery === recovering) mainWindowRecovery = undefined; }
   }
   if (window.isMinimized()) {
     window.restore();
@@ -1419,7 +1696,7 @@ async function focusDesktopMainWindow(): Promise<void> {
       window.focus();
     }
   }
-  menuBarHost?.setWindowVisible(true);
+  publishDesktopHomeVisibility();
 }
 
 function hideDesktopMainWindow(): void {
@@ -1435,20 +1712,6 @@ function emitDesktopOpenIntent(envelope: NimiDesktopOpenIntentEnvelope): void {
   window.webContents.send(
     `${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${DESKTOP_OPEN_INTENT_EVENT}`,
     envelope,
-  );
-}
-
-function emitDesktopMenuBarEvent(
-  eventName: typeof MENU_BAR_OPEN_TAB_EVENT,
-  payload: MenuBarOpenTabPayload,
-): void {
-  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
-  if (!window || window.webContents.isDestroyed()) {
-    throw new Error('desktop-menu-bar-renderer-not-ready');
-  }
-  window.webContents.send(
-    `${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${eventName}`,
-    payload,
   );
 }
 

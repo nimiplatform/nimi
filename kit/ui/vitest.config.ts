@@ -41,6 +41,7 @@ export default defineConfig({
       'tailwind-merge',
     ],
     alias: [
+      { find: '#nimi-shell-account-projection', replacement: path.resolve(import.meta.dirname, '../shell/shared/runtime-account-projection.ts') },
       { find: 'react/jsx-dev-runtime', replacement: path.resolve(import.meta.dirname, '../../apps/desktop/node_modules/react/jsx-dev-runtime.js') },
       { find: 'react/jsx-runtime', replacement: path.resolve(import.meta.dirname, '../../apps/desktop/node_modules/react/jsx-runtime.js') },
       { find: 'react-dom/server', replacement: path.resolve(import.meta.dirname, '../../apps/desktop/node_modules/react-dom/server.node.js') },

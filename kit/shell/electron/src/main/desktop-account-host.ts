@@ -2,6 +2,11 @@ import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-hos
 import { asRecord } from './paths.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import { NimiElectronShellHostError } from './types.js';
+import {
+  parseDesktopAccountSessionEvent,
+  parseDesktopAccountSessionStatus,
+  type DesktopAccountSessionStatus,
+} from '#nimi-shell-account-projection';
 
 const DESKTOP_ACCOUNT_COMMANDS = [
   'runtime_account_session_status',
@@ -14,6 +19,7 @@ const DESKTOP_ACCOUNT_COMMANDS = [
   'runtime_account_switch_account',
 ] as const;
 const MAX_ACCOUNT_EVENT_STREAMS = 4;
+const ACCOUNT_PROJECTION_RETRY_MS = 1_000;
 
 type DesktopAccountCommand = typeof DESKTOP_ACCOUNT_COMMANDS[number];
 type NativeJsonOutcome =
@@ -57,12 +63,26 @@ type AccountStreamState = {
   readonly streamId: string;
 };
 
+type AccountProjectionObserver = {
+  cancelled: boolean;
+  streamId?: string;
+  closeRequested?: boolean;
+};
+
+export type NimiElectronDesktopAccountSessionProjectionListener = (
+  projection: DesktopAccountSessionStatus | null,
+) => void;
+
 export type NimiElectronDesktopAccountHost = {
   readonly invoke: (
     command: DesktopAccountCommand,
     payload: Readonly<Record<string, unknown>>,
     context?: DesktopAccountStreamContext,
   ) => Promise<unknown>;
+  readonly readSessionStatus: () => Promise<DesktopAccountSessionStatus>;
+  /** Null means the observation is unavailable, not an Account state. */
+  readonly subscribeSessionProjection: (listener: NimiElectronDesktopAccountSessionProjectionListener) => () => void;
+  readonly closeRendererStreams: () => void;
   readonly close: () => void;
 };
 
@@ -70,6 +90,11 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
   private readonly streams = new Map<string, AccountStreamState>();
   private pendingStreamOpens = 0;
   private closeGeneration = 0;
+  private readonly projectionListeners = new Set<NimiElectronDesktopAccountSessionProjectionListener>();
+  private projectionObserver: AccountProjectionObserver | undefined;
+  private projectionRetry: ReturnType<typeof setTimeout> | undefined;
+  private currentProjection: DesktopAccountSessionStatus | null = null;
+  private closed = false;
 
   constructor(private readonly binding: NimiElectronDesktopAccountBinding) {}
 
@@ -78,6 +103,7 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
     payload: Readonly<Record<string, unknown>>,
     context?: DesktopAccountStreamContext,
   ): Promise<unknown> {
+    this.assertOpen(command);
     if (command === 'runtime_account_session_events_open') {
       return this.openEvents(payload, context);
     }
@@ -118,7 +144,25 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
     return outcome.value;
   }
 
-  close(): void {
+  // @nimi-authority: rule.nimi.desktop.bridge-ipc.system-entry-isolation
+  async readSessionStatus(): Promise<DesktopAccountSessionStatus> {
+    const value = await this.invoke('runtime_account_session_status', {});
+    this.assertOpen('runtime_account_session_status');
+    return parseDesktopAccountSessionStatus(value);
+  }
+
+  subscribeSessionProjection(listener: NimiElectronDesktopAccountSessionProjectionListener): () => void {
+    this.assertOpen('runtime_account_session_events_open');
+    this.projectionListeners.add(listener);
+    this.deliverProjection(listener, this.currentProjection);
+    this.ensureProjectionObserver();
+    return () => {
+      this.projectionListeners.delete(listener);
+      if (this.projectionListeners.size === 0) this.stopProjectionObserver();
+    };
+  }
+
+  closeRendererStreams(): void {
     this.closeGeneration += 1;
     for (const stream of this.streams.values()) {
       stream.cancelled = true;
@@ -126,6 +170,107 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
         .catch(() => undefined);
     }
     this.streams.clear();
+  }
+
+  close(): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.closeRendererStreams();
+    this.publishProjection(null);
+    this.projectionListeners.clear();
+    this.stopProjectionObserver();
+  }
+
+  private assertOpen(command: DesktopAccountCommand): void {
+    if (this.closed) throw desktopAccountError('protected-carrier-required', false, command);
+  }
+
+  private deliverProjection(listener: NimiElectronDesktopAccountSessionProjectionListener, projection: DesktopAccountSessionStatus | null): void {
+    // Each consumer receives a separate safe value; listener failure cannot own
+    // the native observation lifetime or prevent another consumer invalidating.
+    try { listener(projection ? parseDesktopAccountSessionStatus(projection) : null); } catch { /* consumer-owned failure */ }
+  }
+
+  private publishProjection(projection: DesktopAccountSessionStatus | null): void {
+    this.currentProjection = projection;
+    for (const listener of this.projectionListeners) this.deliverProjection(listener, projection);
+  }
+
+  private ensureProjectionObserver(): void {
+    if (this.closed || this.projectionListeners.size === 0 || this.projectionObserver || this.projectionRetry) return;
+    const observer: AccountProjectionObserver = { cancelled: false };
+    this.projectionObserver = observer;
+    void this.observeProjection(observer);
+  }
+
+  private stopProjectionObserver(): void {
+    if (this.projectionRetry) clearTimeout(this.projectionRetry);
+    this.projectionRetry = undefined;
+    const observer = this.projectionObserver;
+    this.projectionObserver = undefined;
+    this.currentProjection = null;
+    if (!observer) return;
+    observer.cancelled = true;
+    void this.closeProjectionStream(observer);
+  }
+
+  private async closeProjectionStream(observer: AccountProjectionObserver): Promise<void> {
+    if (!observer.streamId || observer.closeRequested) return;
+    observer.closeRequested = true;
+    await this.binding.desktopAccountSessionEventsClose({ streamId: observer.streamId }).catch(() => undefined);
+  }
+
+  private async observeProjection(observer: AccountProjectionObserver): Promise<void> {
+    const current = () => !this.closed && !observer.cancelled && this.projectionObserver === observer;
+    try {
+      if (this.streams.size + this.pendingStreamOpens >= MAX_ACCOUNT_EVENT_STREAMS) {
+        throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_session_events_open');
+      }
+      this.pendingStreamOpens += 1;
+      let outcome: NativeJsonOutcome;
+      try {
+        // Zero requests the owner's current replacement snapshot. A previous
+        // account or Runtime stream cursor never becomes rebind authority.
+        outcome = await this.binding.desktopAccountSessionEventsOpen({ afterSequence: '0' });
+      } finally {
+        this.pendingStreamOpens -= 1;
+      }
+      const opened = unwrapOutcome(outcome, 'runtime_account_session_events_open');
+      assertExactKeys(opened, ['streamId'], 'runtime_account_session_events_open result');
+      observer.streamId = boundedStreamId(opened.streamId);
+      if (!current()) return;
+      while (current()) {
+        const next = unwrapOutcome(
+          await this.binding.desktopAccountSessionEventsNext({ streamId: observer.streamId }),
+          'runtime_account_session_events_open',
+        );
+        if (!current()) return;
+        assertExactKeys(next, next.completed === true ? ['completed'] : ['completed', 'event'], 'runtime_account_session_events_open result');
+        if (typeof next.completed !== 'boolean') throw new Error('account observation completion is invalid');
+        if (next.completed) break;
+        const { deliveryKind: _deliveryKind, replayTruncated: _replayTruncated, ...projection } = parseDesktopAccountSessionEvent(next.event);
+        this.publishProjection(projection);
+      }
+    } catch {
+      // Observation failure does not manufacture an Account state. The native
+      // caller must make its own fresh status read before a protected action.
+    } finally {
+      const endedCurrentObserver = this.projectionObserver === observer;
+      if (endedCurrentObserver) {
+        this.projectionObserver = undefined;
+        this.publishProjection(null);
+      }
+      await this.closeProjectionStream(observer);
+      if (endedCurrentObserver) {
+        if (!this.closed && this.projectionListeners.size > 0 && !this.projectionObserver) {
+          this.projectionRetry = setTimeout(() => {
+            this.projectionRetry = undefined;
+            this.ensureProjectionObserver();
+          }, ACCOUNT_PROJECTION_RETRY_MS);
+          this.projectionRetry.unref?.();
+        }
+      }
+    }
   }
 
   private async openEvents(
@@ -137,7 +282,7 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
     if (!context?.sender?.send || !context.eventChannelPrefix) {
       throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_session_events_open');
     }
-    if (this.streams.size + this.pendingStreamOpens >= MAX_ACCOUNT_EVENT_STREAMS) {
+    if (this.streams.size + this.pendingStreamOpens + (this.projectionObserver?.streamId ? 1 : 0) >= MAX_ACCOUNT_EVENT_STREAMS) {
       throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_session_events_open');
     }
     this.pendingStreamOpens += 1;
@@ -252,17 +397,35 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
 
 class LazyElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
   private host: NimiElectronDesktopAccountHost | undefined;
+  private closed = false;
+
+  private currentHost(): NimiElectronDesktopAccountHost {
+    if (this.closed) throw desktopAccountError('protected-carrier-required', false, 'runtime_account_session_status');
+    return this.host ??= new ElectronDesktopAccountHost(loadPlatformBinding());
+  }
 
   invoke(
     command: DesktopAccountCommand,
     payload: Readonly<Record<string, unknown>>,
     context?: DesktopAccountStreamContext,
   ): Promise<unknown> {
-    this.host ??= new ElectronDesktopAccountHost(loadPlatformBinding());
-    return this.host.invoke(command, payload, context);
+    return this.currentHost().invoke(command, payload, context);
+  }
+
+  async readSessionStatus(): Promise<DesktopAccountSessionStatus> {
+    return this.currentHost().readSessionStatus();
+  }
+
+  subscribeSessionProjection(listener: NimiElectronDesktopAccountSessionProjectionListener): () => void {
+    return this.currentHost().subscribeSessionProjection(listener);
+  }
+
+  closeRendererStreams(): void {
+    this.host?.closeRendererStreams();
   }
 
   close(): void {
+    this.closed = true;
     this.host?.close();
     this.host = undefined;
   }

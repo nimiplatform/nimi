@@ -11,6 +11,16 @@ Account 2FA setup now sends the actual prepare body and requires the same-sessio
 
 ## Unreleased
 
+### Home system-entry account observation (0.x minor)
+
+The registered Desktop Electron bridge adds main-only `readDesktopAccountSessionStatus()` and `subscribeDesktopAccountSessionProjection(listener)` over the existing protected account owner. A `null` observation means the account stream is unavailable; native actions still require a fresh owner status and Product Control check. No generic account invocation or session proof is exposed.
+
+Host adapters that used `desktopAccountHost.close()` when replacing a renderer must use `closeRendererStreams()` instead. `close()` now ends the account host and its main observers permanently; bridge unregister owns that final close. The shared account projection parser and renderer-facing account operations retain their existing contracts. Use matching source-built Kit and Desktop; this is not a release of the published 0.21.0 package.
+
+The Home preload event allowlist hard-cuts `menu-bar://open-tab` to the closed `system-entry://action` and `system-entry://visibility` events. Rebuild the matching Desktop preload before restarting or reloading Home; the isolated overview keeps its separate narrow preload and receives no generic bridge.
+
+Native stream retirement remains host-owned when a renderer cancels its request. First-party and Avatar stream readers also observe a close that arrived before their next read, so an already closed stream cannot retain the old protected transport. Rebuild the matching native carrier for these lifecycle fixes.
+
 ### LocalAgent, Agent Center & Carrier Contracts (0.x Minor)
 
 These contract updates require matching source-built Runtime, SDK, native carrier, and Kit packages under the 0.x minor policy. They do not provide a legacy compatibility fallback or automatic data migration/cleanup, do not add new permissions, and do not imply a package release. Apps that only use AI Consume keep their existing contracts.

@@ -88,12 +88,11 @@ type windowsSourceDesktopListener struct {
 	raw    net.Listener
 	state  *WindowsRuntimeSecurityState
 
-	mu         sync.Mutex
-	active     *windowsSourceDesktopNetConn
-	activeDone chan struct{}
-	closed     bool
-	closeOnce  sync.Once
-	closeErr   error
+	mu        sync.Mutex
+	active    *windowsSourceDesktopNetConn
+	closed    bool
+	closeOnce sync.Once
+	closeErr  error
 }
 
 func (listener *windowsSourceDesktopListener) Accept() (net.Conn, error) {
@@ -101,22 +100,9 @@ func (listener *windowsSourceDesktopListener) Accept() (net.Conn, error) {
 		return nil, net.ErrClosed
 	}
 	for {
-		listener.mu.Lock()
-		if listener.closed {
-			listener.mu.Unlock()
+		if listener.isClosed() {
 			return nil, net.ErrClosed
 		}
-		if listener.active != nil {
-			done := listener.activeDone
-			listener.mu.Unlock()
-			select {
-			case <-done:
-				continue
-			case <-listener.ctx.Done():
-				return nil, net.ErrClosed
-			}
-		}
-		listener.mu.Unlock()
 		raw, err := listener.raw.Accept()
 		if err != nil {
 			if listener.isClosed() {
@@ -149,35 +135,56 @@ func (listener *windowsSourceDesktopListener) Accept() (net.Conn, error) {
 			continue
 		}
 		verified := &windowsSourceDesktopNetConn{Conn: raw, connection: connection, listener: listener}
-		if !listener.activate(verified) {
+		replaced, activated := listener.activate(verified)
+		if !activated {
 			connection.Revoke()
 			_ = raw.Close()
-			return nil, net.ErrClosed
+			continue
+		}
+		if replaced != nil {
+			// Revoke the old connection and every bound scope before handing the
+			// replacement to gRPC. No stream or business work crosses this edge.
+			replaced.connection.Revoke()
+			_ = replaced.closeTransport()
 		}
 		connection.onRevoke(func() { _ = verified.closeTransport() })
 		return verified, nil
 	}
 }
 
-func (listener *windowsSourceDesktopListener) activate(connection *windowsSourceDesktopNetConn) bool {
+// @nimi-authority: rule.nimi.runtime.protected-session.r027
+func (listener *windowsSourceDesktopListener) activate(connection *windowsSourceDesktopNetConn) (*windowsSourceDesktopNetConn, bool) {
 	listener.mu.Lock()
 	defer listener.mu.Unlock()
-	if listener.closed || listener.active != nil {
-		return false
+	if listener.closed || connection == nil || connection.connection == nil {
+		return nil, false
+	}
+	previous := listener.active
+	// An abandoned HTTP/2 channel may still own a live pipe and long-lived
+	// streams. Independently verify a new candidate before replacing only this
+	// exact OS process; another process never displaces the active Home host.
+	if previous != nil && !sameWindowsSourceDesktopProcess(previous, connection) {
+		return nil, false
 	}
 	listener.active = connection
-	listener.activeDone = make(chan struct{})
-	return true
+	return previous, true
+}
+
+func sameWindowsSourceDesktopProcess(left, right *windowsSourceDesktopNetConn) bool {
+	if left == nil || right == nil || left.connection == nil || right.connection == nil {
+		return false
+	}
+	leftPeer, leftPeerOK := left.connection.DirectDesktopPeer()
+	rightPeer, rightPeerOK := right.connection.DirectDesktopPeer()
+	leftProcess, leftProcessOK := left.connection.ClientProcess()
+	rightProcess, rightProcessOK := right.connection.ClientProcess()
+	return leftPeerOK && rightPeerOK && leftProcessOK && rightProcessOK && leftPeer == rightPeer && leftProcess == rightProcess
 }
 
 func (listener *windowsSourceDesktopListener) release(connection *windowsSourceDesktopNetConn) {
 	listener.mu.Lock()
 	if listener.active == connection {
 		listener.active = nil
-		if listener.activeDone != nil {
-			close(listener.activeDone)
-		}
-		listener.activeDone = nil
 	}
 	listener.mu.Unlock()
 }

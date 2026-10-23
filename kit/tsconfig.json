@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
+      "#nimi-shell-account-projection": ["./shell/shared/runtime-account-projection.ts"],
       "@nimiplatform/kit/ui": ["./ui/src/index.ts"],
       "@nimiplatform/kit/ui/*": ["./ui/src/*"],
       "@nimiplatform/kit/auth": ["./auth/src/index.ts"],
