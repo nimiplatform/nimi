@@ -18,12 +18,18 @@ const validPresence = {
   desktopAppId: 'nimi.desktop',
   desktopPid: 100,
   endpoint: 'http://127.0.0.1:43210',
+  callerToken: 'ab'.repeat(32),
   startedAt: '2026-07-16T07:59:00.000Z',
   lastHeartbeatAt: '2026-07-16T07:59:55.000Z',
 };
 
 test('presence validation accepts only the exact fresh loopback descriptor', () => {
   assert.equal(validateLocalDevelopmentPresence(validPresence, nowUnixMs).state, 'ok');
+  const { callerToken: _callerToken, ...missingCallerToken } = validPresence;
+  assert.equal(validateLocalDevelopmentPresence(missingCallerToken, nowUnixMs).state, 'error');
+  for (const callerToken of ['', 'ab'.repeat(31), 'AB'.repeat(32), 123]) {
+    assert.equal(validateLocalDevelopmentPresence({ ...validPresence, callerToken }, nowUnixMs).state, 'error');
+  }
   assert.equal(validateLocalDevelopmentPresence({ ...validPresence, token: 'forbidden' }, nowUnixMs).state, 'error');
   assert.equal(validateLocalDevelopmentPresence({ ...validPresence, endpoint: 'http://localhost:43210' }, nowUnixMs).state, 'error');
   assert.equal(validateLocalDevelopmentPresence({
@@ -140,6 +146,21 @@ test('Mac process inventory preserves executable paths and excludes the live Hom
   assert.deepEqual(findLegacyCarrierRows(rows, repo, 100).map((row) => row.processId), [200]);
   assert.equal(parseMacProcessRows(''), null);
   assert.equal(parseMacProcessRows('unavailable'), null);
+});
+
+test('Mac doctor recognizes authenticated Home presence without exposing its caller token', async () => {
+  const executable = path.resolve('node_modules/electron/dist/Electron.app/Contents/MacOS/Electron');
+  const report = await runDevDoctor({
+    platform: 'darwin', nowUnixMs,
+    probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
+    queryService: async () => ({ state: 'ok', reason: 'source-runtime-process-and-sockets-observed' }),
+    queryProcesses: async () => parseMacProcessRows(`100 1 ${executable}\n101 100 ${executable}\n200 1 ${executable}\n`),
+    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
+  });
+  assert.equal(report.tier1.find((row) => row.id === 'desktop-presence').state, 'ok');
+  assert.deepEqual(report.tier1.find((row) => row.id === 'legacy-carriers').processIds, [200]);
+  assert.equal(JSON.stringify(report).includes(validPresence.callerToken), false);
+  assert.equal(JSON.stringify(report).includes('callerToken'), false);
 });
 
 test('Mac source Runtime observation requires its supervisor and both process-owned sockets', async () => {

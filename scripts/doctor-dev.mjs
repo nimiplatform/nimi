@@ -22,7 +22,7 @@ const PRESENCE_MAX_AGE_MS = 12_000;
 
 export function validateLocalDevelopmentPresence(value, nowUnixMs = Date.now()) {
   const expectedKeys = [
-    'desktopAppId', 'desktopPid', 'endpoint', 'lastHeartbeatAt', 'schemaVersion', 'startedAt',
+    'callerToken', 'desktopAppId', 'desktopPid', 'endpoint', 'lastHeartbeatAt', 'schemaVersion', 'startedAt',
   ];
   if (!value || typeof value !== 'object' || Array.isArray(value)
     || Object.keys(value).sort().join('|') !== expectedKeys.sort().join('|')) {
@@ -36,6 +36,8 @@ export function validateLocalDevelopmentPresence(value, nowUnixMs = Date.now()) 
     || !Number.isSafeInteger(value.desktopPid)
     || value.desktopPid <= 0
     || !endpoint
+    || typeof value.callerToken !== 'string'
+    || !/^[0-9a-f]{64}$/u.test(value.callerToken)
     || !Number.isFinite(startedAtUnixMs)
     || !Number.isFinite(lastHeartbeatAtUnixMs)
     || startedAtUnixMs > lastHeartbeatAtUnixMs
