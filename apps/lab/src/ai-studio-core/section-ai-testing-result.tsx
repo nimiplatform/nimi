@@ -138,12 +138,14 @@ function TextStudioHistoryRecordResult({
   registration,
   record,
   canRegenerate,
+  canRestoreInputs,
   onRegenerate,
   onUseAsDraft,
 }: {
   registration: StudioCapabilityRegistration;
   record: StudioRunHistoryRecord;
   canRegenerate: boolean;
+  canRestoreInputs: boolean;
   onRegenerate: () => void;
   onUseAsDraft: (record: StudioRunHistoryRecord) => void;
 }) {
@@ -258,7 +260,7 @@ function TextStudioHistoryRecordResult({
           ) : null}
           {canUseAsDraft ? (
             <Tooltip content={t('StudioShell.useAsDraft')} placement="top">
-              <IconButton type="button" className="studio-result__action" onClick={() => onUseAsDraft(record)} aria-label={t('StudioShell.useAsDraft')} icon={<SquarePen size={16} aria-hidden="true" />} />
+              <IconButton type="button" className="studio-result__action" onClick={() => onUseAsDraft(record)} disabled={!canRestoreInputs} aria-label={t('StudioShell.useAsDraft')} icon={<SquarePen size={16} aria-hidden="true" />} />
             </Tooltip>
           ) : null}
           {canReplay ? (
@@ -413,6 +415,7 @@ export function TextStudioResultState({
   intentLabel,
   running,
   canRegenerate,
+  canRestoreInputs,
   regenerateHint,
   cancelRequested,
   streamingText,
@@ -431,6 +434,7 @@ export function TextStudioResultState({
   intentLabel: string;
   running: boolean;
   canRegenerate: boolean;
+  canRestoreInputs: boolean;
   regenerateHint?: string;
   cancelRequested: boolean;
   streamingText: string | null;
@@ -497,7 +501,7 @@ export function TextStudioResultState({
               />
             </>
           ) : activeRun.record ? (
-            <TextStudioHistoryRecordResult registration={registration} record={activeRun.record} canRegenerate={canRegenerate} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
+            <TextStudioHistoryRecordResult registration={registration} record={activeRun.record} canRegenerate={canRegenerate} canRestoreInputs={canRestoreInputs} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
           ) : null}
         </article>
       </div>

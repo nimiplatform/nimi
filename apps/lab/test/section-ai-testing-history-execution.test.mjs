@@ -634,7 +634,7 @@ test('saved separation range stays with its own submission across history, whole
   const host = { translate: (key, values) => key + (values ? JSON.stringify(values) : ''), locale: 'en', clock: { now: () => Date.now() },
     app: { projection: { projectRunTarget: () => draftTarget, runStatusLabel: status => status }, commands: {} }, sdk: {} };
   const props = { registration, activeRun: { prompt: '', context: '', record: record({ sourceRelativePath: 'saved.wav', startSeconds: 2, endSeconds: 9 }) },
-    admission: {}, intentLabel: 'Local', running: false, canRegenerate: false, cancelRequested: false,
+    admission: {}, intentLabel: 'Local', running: false, canRegenerate: false, canRestoreInputs: false, cancelRequested: false,
     streamingText: null, verboseConsole: false, composer: null, onCopy() {}, onDownload() {}, onRegenerate() {}, onUseAsDraft() {} };
   const container = document.getElementById('root');
   const renderer = createRoot(container);
@@ -768,6 +768,75 @@ test('ASR File history cannot borrow a newly selected file',async()=>{
  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
  const container=document.getElementById('root'),renderer=createRoot(container);
  try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[id]:parameters},setParameters:()=>{}}},createElement(SectionAITesting,props))))));const b=container.querySelector('button[aria-label="StudioShell.regenerate"]');assert.equal(b.disabled,true);await act(async()=>b.click());assert.equal(calls.length,0);assert.match(container.textContent,/StudioShell.historyInputsUnavailable/)}finally{await act(async()=>renderer.unmount())}
+});
+
+test('a live ASR file can be replayed without borrowing the draft or persisting its bytes', async () => {
+  const id = 'audio.transcribe', registration = labStudioComposition.getCapability(id);
+  const calls = [], records = [];
+  const target = { capabilityId:id, capabilityContract:id, section:'voice', source:'local', status:'configured',
+    canDispatch:true, intentLabel:'Local', detail:'configured', params:{}, paramsSummary:[], profileOrigin:null };
+  const originalBytes = new Uint8Array([1, 2, 3]);
+  let parameters = { audioFile:{name:'A.wav', mimeType:'audio/wav', sizeBytes:3, bytes:originalBytes},
+    mimeType:'audio/wav', language:'en', timestamps:true };
+  const host = {
+    appTitle:'Lab', translate:key=>key, locale:'en', clock:{now:()=>Date.now()},
+    app:{projection:{promptDraft:()=>({prompt:''}), projectRunTarget:()=>target, runStatusLabel:s=>s},
+      events:{subscribeAIConfigRefresh:()=>()=>{}},
+      commands:{savePromptDraft:async()=>{}, copyText:async()=>({ok:true}), exportText:async()=>({ok:false})}},
+    sdk:{aiConfig:{get:async()=>null}, runCapability:input=>{
+      const deferred = Promise.withResolvers(); calls.push({input,...deferred}); return deferred.promise;
+    }},
+  };
+  const props = {registration, registrations:[registration], runtime:{status:'connected',detail:'connected'},
+    lastResult:null, history:{}, historySelectionRequest:null, onSelectHistoryRun:()=>{},
+    onResult:async(result,prompt,runConfig)=>{
+      const record = createStudioRunHistoryRecord({result,prompt,runConfig,
+        runId:`live-asr-${records.length}`,createdAt:'2026-10-23T00:00:00Z'});
+      records.push(record); return record;
+    }, verboseConsole:false, draftPersistence:false};
+  const container = document.getElementById('root'), renderer = createRoot(container);
+  let instance = 0;
+  const render = () => renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},
+    createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[id]:parameters},setParameters:(_id,next)=>{parameters=next;render();}}},
+      createElement(SectionAITesting,{...props,key:instance})))));
+  const button = label => [...container.querySelectorAll('button')].find(x=>x.getAttribute('aria-label')===label);
+  const finish = index => calls[index].resolve({ok:false,capabilityId:id,reason:'runtime-call-failed',
+    message:'Unit test observes the submitted request; no inference is performed.',actionHint:''});
+  try {
+    await act(async()=>render());
+    await act(async()=>button(registration.profile.primaryLabelKey).click());
+    assert.equal(calls.length,1);
+    await act(async()=>finish(0));
+    assert.equal(records[0].runConfig.target.params.audioFile,'A.wav (3 bytes)');
+    assert.ok(!JSON.stringify(records[0]).includes('"bytes":'), 'history must not retain source bytes');
+    originalBytes[0] = 99;
+    parameters = {audioFile:{name:'B.wav',mimeType:'audio/wav',sizeBytes:2,bytes:new Uint8Array([8,9])},
+      mimeType:'audio/wav',language:'zh',timestamps:false};
+    await act(async()=>render());
+    assert.equal(button('StudioShell.regenerate').disabled,false, 'the current run still owns its source');
+    assert.ok(!container.textContent.includes('StudioShell.historyInputsUnavailable'));
+    target.canDispatch = false;
+    await act(async()=>render());
+    assert.equal(button('StudioShell.regenerate').disabled,true, 'replay observes the same admission gate as a new request');
+    target.canDispatch = true;
+    await act(async()=>render());
+    await act(async()=>button('StudioShell.regenerate').click());
+    assert.equal(calls.length,2);
+    assert.equal(calls[1].input.parameters.audioFile.name,'A.wav');
+    assert.deepEqual([...calls[1].input.parameters.audioFile.bytes],[1,2,3]);
+    assert.equal(calls[1].input.parameters.timestamps,true);
+    assert.equal(calls[1].input.parameters.language,'en');
+    assert.equal(parameters.audioFile.name,'B.wav');
+    await act(async()=>finish(1));
+    // Reopening persisted history after the component's lifetime still needs
+    // an explicit file selection; the current draft must not become its source.
+    instance++;
+    props.historySelectionRequest = {requestId:1,record:records[0]};
+    await act(async()=>render());
+    assert.equal(button('StudioShell.regenerate').disabled,true);
+    assert.equal(button('StudioShell.useAsDraft').disabled,true);
+    assert.match(container.textContent,/StudioShell.historyInputsUnavailable/);
+  } finally { await act(async()=>renderer.unmount()); }
 });
 
 test('parsed ASR URL history restores URL A and all saved controls while File B remains the current draft', async () => {

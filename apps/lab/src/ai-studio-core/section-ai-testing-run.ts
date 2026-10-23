@@ -18,10 +18,13 @@ import {
   TONE_OPTIONS,
 } from './studio-directives.js';
 import type { StudioTranslate } from './non-success-presentation.js';
+import type { StudioParameterValue } from './parameters.js';
 
 export type TextStudioActiveRun = {
   attachmentCount?: number;
   replayMedia?: StudioManagedArtifact;
+  // Latest submission's session-only input; history never stores these bytes.
+  submittedParameters?: StudioParameterValue;
   jobStatus?: 'queued' | 'running';
   id: string;
   prompt: string;

@@ -161,6 +161,7 @@ function TextStudioShell({
   // stays valid however the current parameters have changed since.
   const displayedRunParameters = useMemo(() => {
     if (!displayedRun || displayedRun.record?.status === 'unavailable' || displayedRun.record?.inputTruncated) return null;
+    if (displayedRun.submittedParameters) return displayedRun.submittedParameters;
     if (registration.parameters.restoreRecordedParameters) {
       return registration.parameters.restoreRecordedParameters(
         displayedRun.record?.runConfig?.target.params,
@@ -275,8 +276,12 @@ function TextStudioShell({
     const abortController = new AbortController();
     const observationController = new AbortController();
     const startedAt = rendererHost.clock.now();
+    // Capture the submitted file and controls independently of later draft edits.
+    // Persisted history still receives only the contract's summary below.
+    const submittedParameters = structuredClone(runEffectiveParameters);
     const pendingRun: TextStudioActiveRun = {
       attachmentCount,
+      submittedParameters,
       ...(replayTextMedia && savedTextMedia ? { replayMedia: savedTextMedia } : {}),
       id: `pending-${startedAt}`,
       prompt: displayPrompt || (runHasAlternativeInput ? '' : preset.prompt),
@@ -296,7 +301,7 @@ function TextStudioShell({
       promptStyle: profile.controls.includes('tone') || profile.controls.includes('length')
         ? effectiveTextStudioPromptStyle(runTarget) : null,
       context: nextContext, attachmentCount,
-      requestParameters: registration.parameters.summarize(runEffectiveParameters),
+      requestParameters: registration.parameters.summarize(submittedParameters),
     });
     try {
       let result: StudioCapabilityRunResult;
@@ -335,7 +340,7 @@ function TextStudioShell({
             if (runSeqRef.current === runSeq) setStreamingText(text);
           } : undefined,
           attachments: supportsMedia ? runAttachments : undefined,
-          parameters: runEffectiveParameters,
+          parameters: submittedParameters,
           signal: abortController.signal,
           observationSignal: observationController.signal,
           onObservation: response => {
@@ -374,7 +379,17 @@ function TextStudioShell({
         result,
         record,
       };
-      setSessionRuns((current) => ({ ...current, [finishedRun.id]: finishedRun }));
+      setSessionRuns((current) => {
+        // Retain source bytes only for the latest completed submission, not
+        // once per history entry throughout a long-running Studio session.
+        const next: Record<string, TextStudioActiveRun> = {};
+        for (const [id, previous] of Object.entries(current)) {
+          next[id] = { ...previous };
+          delete next[id].submittedParameters;
+        }
+        next[finishedRun.id] = finishedRun;
+        return next;
+      });
       setActiveRun(finishedRun);
     } catch (error) {
       if (runSeq !== runSeqRef.current) return;
@@ -448,7 +463,10 @@ function TextStudioShell({
 
   function useHistoryRunAsDraft(record: StudioRunHistoryRecord) {
     if (record.inputTruncated || record.status === 'unavailable') return;
-    if (registration.parameters.restoreRecordedParameters) {
+    const submittedParameters = sessionRuns[record.id]?.submittedParameters;
+    if (submittedParameters && parameterStore) {
+      parameterStore.setParameters(capability.id, structuredClone(submittedParameters));
+    } else if (registration.parameters.restoreRecordedParameters) {
       const snapshot = record.runConfig?.target.params;
       const restored = registration.parameters.restoreRecordedParameters(snapshot, record.result, record.prompt);
       if (!restored || !parameterStore) return;
@@ -588,7 +606,8 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
                 running={displayingExecution}
-                canRegenerate={!running && (capability.id !== 'vision.locate' || Boolean(savedTextMedia)) && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
+                canRestoreInputs={displayedRunParameters !== null}
+                canRegenerate={!running && runTarget.canDispatch && (capability.id !== 'vision.locate' || Boolean(savedTextMedia)) && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
                 regenerateHint={!running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable')
                   : !running && replayAssetsChecking ? t('StudioShell.historyInputsChecking')
                     : !running && (!displayedRunReplayable || !replayAssetsAvailable) ? t('StudioShell.historyInputsUnavailable') : undefined}
