@@ -1,0 +1,180 @@
+/* Settings shares the Today page's ambient-mesh backdrop and translucent card treatment. */
+.nd-main[data-view="settings"] { background: transparent; }
+
+.nd-settings-page { max-width: 880px; padding-top: 36px; }
+
+.nd-settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.nd-settings-heading h1 { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -.025em; }
+
+.nd-settings-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-full);
+  background: color-mix(in srgb, var(--nimi-surface-card) 72%, transparent);
+  color: var(--nimi-text-secondary);
+  font-size: 12px;
+}
+.nd-settings-save > svg { flex-shrink: 0; color: var(--nimi-status-success); }
+.nd-settings-save[data-state="saving"] > svg { color: var(--nimi-text-muted); animation: nd-settings-spin .9s linear infinite; }
+.nd-settings-save[data-error="true"] { color: var(--nimi-status-danger); background: var(--nimi-status-danger-soft-bg); border-color: var(--nimi-status-danger-soft-border); }
+.nd-settings-save[data-error="true"] > svg { color: var(--nimi-status-danger); }
+.nd-settings-save .nd-link { font-size: 12px; }
+@keyframes nd-settings-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .nd-settings-save[data-state="saving"] > svg { animation: none; } }
+
+.nd-settings-tabs {
+  display: flex;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 26px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--nimi-border-subtle);
+  background: var(--nimi-surface-canvas);
+}
+.nd-settings-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: -1px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--nimi-text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--nimi-motion-fast) var(--nimi-motion-ease-standard), border-color var(--nimi-motion-fast) var(--nimi-motion-ease-standard);
+}
+.nd-settings-tab > svg { opacity: .7; flex-shrink: 0; }
+.nd-settings-tab:hover { color: var(--nimi-text-primary); }
+.nd-settings-tab[aria-selected="true"] { color: var(--nimi-text-primary); font-weight: 600; border-bottom-color: var(--nimi-action-primary-bg); }
+.nd-settings-tab[aria-selected="true"] > svg { opacity: 1; color: var(--nimi-action-primary-bg); }
+.nd-settings-tab:focus-visible, .nd-settings-page summary:focus-visible { outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color); outline-offset: 4px; }
+
+.nd-settings-panel[hidden] { display: none; }
+.nd-settings-panel > .nd-settings-intro { margin: 0 0 22px; max-width: 620px; font-size: 14px; line-height: 1.7; color: var(--nimi-text-secondary); }
+
+/* Cards */
+.nd-settings-page .nd-settings-card {
+  padding: 20px 24px;
+  margin-bottom: 18px;
+  border-color: color-mix(in srgb, var(--nimi-surface-card) 65%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--nimi-surface-card) 82%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--nimi-text-primary) 5%, transparent);
+}
+.nd-settings-card-title { margin: 0 0 4px; font-size: 15px; font-weight: 650; }
+.nd-settings-card .nd-settings-row:last-child { border-bottom: 0; padding-bottom: 2px; }
+
+/* Rows inside cards and source bodies */
+.nd-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-width: 0; padding: 17px 0; border-bottom: 1px solid var(--nimi-border-subtle); }
+.nd-settings-row > .nd-setting-text { flex: 1; }
+.nd-settings-page .nd-setting-text { gap: 6px; }
+.nd-settings-page .nd-setting-title { line-height: 1.5; }
+.nd-settings-page .nd-setting-hint { font-size: 13px; line-height: 1.65; color: var(--nimi-text-secondary); }
+.nd-settings-row > button[role="switch"] { flex-shrink: 0; }
+.nd-settings-row--top { align-items: flex-start; }
+.nd-settings-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.nd-settings-times { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.nd-settings-times label { display: flex; align-items: center; gap: 10px; color: var(--nimi-text-secondary); font-size: 12px; }
+.nd-settings-feedback { margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: var(--nimi-text-secondary); }
+.nd-settings-warning { color: var(--nimi-status-warning-soft-text); font-size: 13px; line-height: 1.7; }
+
+/* Inline notes (runtime, privacy) rendered with kit InlineAlert */
+.nd-settings-note { margin-top: 18px; align-items: flex-start; line-height: 1.7; }
+.nd-settings-note strong { font-weight: 600; }
+.nd-settings-note p { margin: 4px 0 0; }
+.nd-settings-note details { margin-top: 4px; }
+
+/* Collapsible summaries: caret instead of the native marker */
+.nd-settings-page details > summary { display: inline-flex; align-items: center; gap: 7px; width: fit-content; cursor: pointer; font-size: 13px; line-height: 1.7; color: var(--nimi-text-secondary); list-style: none; }
+.nd-settings-page details > summary::-webkit-details-marker { display: none; }
+.nd-settings-page details > summary::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--nimi-motion-fast) var(--nimi-motion-ease-standard);
+}
+.nd-settings-page details[open] > summary::before { transform: rotate(45deg); }
+.nd-settings-page details > summary:hover { color: var(--nimi-text-primary); }
+
+/* Sources tab */
+.nd-settings-source-toolbar { align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.nd-settings-source-toolbar .nd-settings-intro { margin: 0; max-width: 560px; }
+.nd-settings-source-toolbar > button { flex-shrink: 0; gap: 6px; }
+.nd-settings-app-search { max-width: 400px; margin: 0 0 16px; }
+.nd-settings-source-list { display: grid; gap: 16px; }
+.nd-settings-page .nd-settings-source {
+  padding: 20px 24px;
+  border-color: color-mix(in srgb, var(--nimi-surface-card) 65%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--nimi-surface-card) 82%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--nimi-text-primary) 5%, transparent);
+}
+.nd-settings-source[hidden] { display: none; }
+.nd-settings-source-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.nd-settings-source-id { min-width: 0; }
+.nd-settings-source-head h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.nd-settings-source-meta { margin: 0; font-size: 12px; color: var(--nimi-text-secondary); }
+.nd-settings-follow { display: flex; align-items: center; gap: 10px; flex-shrink: 0; color: var(--nimi-text-secondary); font-size: 12px; }
+.nd-settings-follow > span[data-on="true"] { color: var(--nimi-action-primary-bg); font-weight: 500; }
+.nd-settings-source-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0 0; font-size: 13px; color: var(--nimi-text-secondary); }
+.nd-settings-source-issue { margin-top: 14px; }
+.nd-settings-source-details { margin: 14px -24px 0; border-top: 1px solid var(--nimi-border-subtle); }
+.nd-settings-source-details[open] { background: color-mix(in srgb, var(--nimi-surface-panel) 55%, transparent); border-radius: 0 0 20px 20px; }
+.nd-settings-page .nd-settings-source-details > summary { width: 100%; padding: 13px 24px; font-weight: 500; }
+.nd-settings-source-body { padding: 4px 24px 20px; }
+.nd-settings-source-body > .nd-settings-intro { font-size: 13px; margin-bottom: 12px; }
+.nd-settings-source-body > .nd-inline-actions { margin-bottom: 4px; }
+.nd-settings-source-body .nd-settings-row { padding: 14px 0; }
+.nd-settings-source-body .nd-settings-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.nd-settings-source-select { width: 220px; flex-shrink: 0; }
+.nd-settings-source-select > * { width: 100%; }
+.nd-settings-group-detail { margin-top: 4px; }
+.nd-settings-group-detail p { margin: 8px 0; overflow-wrap: anywhere; font-size: 12px; color: var(--nimi-text-secondary); }
+.nd-settings-source-body .nd-settings-source-search { margin: 14px 0; }
+.nd-settings-empty { padding: 24px 0; font-size: 14px; line-height: 1.7; color: var(--nimi-text-secondary); }
+
+/* Agent tab */
+.nd-settings-agent-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.nd-settings-agent { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.nd-settings-agent strong { font-size: 17px; font-weight: 600; }
+.nd-settings-agent .nd-faint { margin-top: 4px; }
+.nd-settings-agent-note { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--nimi-border-subtle); font-size: 13px; color: var(--nimi-text-secondary); line-height: 1.8; }
+.nd-settings-danger-row { margin-top: 10px; border-top: 1px solid var(--nimi-border-subtle); }
+.nd-settings-history { margin-top: 4px; }
+
+/* General tab */
+.nd-settings-about-heading { display: flex; align-items: center; gap: 10px; }
+.nd-settings-about-heading h2 { margin: 0; font-size: 15px; font-weight: 650; }
+.nd-settings-about p { margin: 10px 0 2px; font-size: 13px; line-height: 1.8; color: var(--nimi-text-secondary); }
+
+@media (max-width: 1000px) {
+  .nd-settings-page { padding: 28px 28px 48px; }
+  .nd-settings-source-select { width: 180px; }
+}
+@media (max-width: 580px) {
+  .nd-settings-page { padding: 22px 18px 40px; }
+  .nd-settings-heading { align-items: flex-start; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .nd-settings-tabs { margin-bottom: 20px; }
+  .nd-settings-tab { padding: 10px 10px; font-size: 13px; }
+  .nd-settings-row { gap: 16px; }
+  .nd-settings-row--wrap { flex-wrap: wrap; }
+  .nd-settings-row--wrap > .nd-setting-text { flex-basis: 100%; }
+  .nd-settings-row--wrap > .nd-settings-source-select { width: 100%; }
+  .nd-settings-source-head { gap: 12px; }
+  .nd-settings-follow > span { display: none; }
+  .nd-settings-times { gap: 12px; }
+}

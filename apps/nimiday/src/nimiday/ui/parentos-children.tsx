@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, SelectField } from '@nimiplatform/kit/ui';
+import { Button, SelectField, TextField } from '@nimiplatform/kit/ui';
+import { Check, Search } from 'lucide-react';
 import { useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { PARENTOS_APP_ID, sourceGroupFor, type SourceGroup } from '../domain/sources.js';
 import type { CareCircle } from '../domain/types.js';
@@ -50,9 +51,10 @@ export function SourceChildAction({ group, onAdded, contentLayer = 'popover' }: 
   return (
     <div className="nd-stack" style={{ gap: 8 }}>
       <div className="nd-inline-actions">
-        <Button tone="primary" size="sm" loading={busy} disabled={!usable || (linked && !error)} onClick={() => { void save(); }}>
-          {busy ? copy.common.saving : linked && !error ? copy.childSources.added : error && linked ? copy.common.retrySave : copy.childSources.add}
-        </Button>
+        {linked && !error && !busy ? <span className="nd-child-added"><Check size={14} aria-hidden="true" />{copy.childSources.added}</span>
+          : <Button tone="primary" size="sm" loading={busy} disabled={!usable} onClick={() => { void save(); }}>
+            {busy ? copy.common.saving : error && linked ? copy.common.retrySave : copy.childSources.add}
+          </Button>}
         {!linked && children.length > 0 ? <Button size="sm" tone="ghost" disabled={!usable || busy}
           onClick={() => setLinking(value => !value)}>{copy.childSources.existing}</Button> : null}
       </div>
@@ -77,7 +79,10 @@ export function ParentOSChildren({ onAdded, onSelect, selectedKeys = [], content
   const { copy, activity } = useNimiDay();
   const { state } = useDayStore();
   const { sourceApps, directoryStatus, childDirectory } = useEngine();
+  const [query, setQuery] = useState('');
   const groups = sourceApps.find(app => app.appId === PARENTOS_APP_ID)?.groups.filter(group => group.child) ?? [];
+  const search = query.trim().toLocaleLowerCase();
+  const matches = (group: SourceGroup) => !search || group.child!.childName.toLocaleLowerCase().includes(search);
   const loading = directoryStatus === 'loading' || directoryStatus === 'idle';
   const linked = (group: SourceGroup) => {
     const association = sourceGroupFor(state.profile, group.key);
@@ -85,34 +90,37 @@ export function ParentOSChildren({ onAdded, onSelect, selectedKeys = [], content
       circle.id === association.circleId && circle.kind === 'child' && circle.status !== 'ended');
   };
   return (
-    <section className="nd-stack" style={{ gap: 12 }} aria-label={copy.childSources.title} data-testid="nd-parentos-children">
-      <div>
+    <section className="nd-child-picker" aria-label={copy.childSources.title} data-testid="nd-parentos-children">
+      <div className="nd-child-picker-heading">
         <strong>{copy.childSources.title}</strong>
-        <p className="nd-muted" style={{ margin: '6px 0 0' }}>{copy.childSources.hint}</p>
+        <Button size="sm" tone="ghost" disabled={loading} onClick={() => activity.retry()}>{copy.childSources.refresh}</Button>
       </div>
+      <p className="nd-muted nd-child-picker-hint">{copy.childSources.hint}</p>
       {loading ? <p role="status">{copy.common.loading}</p>
         : directoryStatus === 'no-access' ? <p role="status">{copy.childSources.noAccess}</p>
         : directoryStatus === 'unavailable' ? <p role="status">{copy.childSources.unavailable}</p>
         : childDirectory.unavailable && groups.length === 0 ? <p role="status">{copy.sources.sourceUnavailable}</p>
         : groups.length === 0 ? <p role="status">{childDirectory.sources ? copy.childSources.emptyFamily : copy.childSources.empty}</p>
         : <>
-          {groups.every(linked) ? <p role="status">{copy.childSources.allAdded}</p> : null}
-          {groups.map(group => <div key={group.key} className="nd-child-source">
-            <strong>{group.child!.childName}</strong>
-            <span className="nd-faint">{copy.childSources.source}</span>
-            <details className="nd-faint">
+          <TextField type="search" aria-label={copy.childSources.search} placeholder={copy.childSources.search} value={query}
+            leading={<Search size={16} aria-hidden="true" />} onChange={event => setQuery(event.target.value)} />
+          {!groups.some(matches) ? <p className="nd-muted" role="status">{copy.settings.searchEmpty}</p> : null}
+          <div className="nd-child-picker-list">{groups.map(group => <div key={group.key} hidden={!matches(group)} className="nd-child-source">
+            <div className="nd-child-source-name"><strong>{group.child!.childName}</strong>
+            {groups.some(other => other.key !== group.key && other.child!.childName === group.child!.childName) ? <details className="nd-faint">
               <summary>{copy.settings.sourceIdentity}</summary>
               <p style={{ overflowWrap: 'anywhere' }}>{copy.settings.childSourceIdentity(group.child!.childId, group.child!.sourceRef)}</p>
-            </details>
+            </details> : null}</div>
             {onSelect ? <Button size="sm" disabled={!group.available || linked(group) || selectedKeys.includes(group.key)}
               onClick={() => onSelect(group)}>{linked(group) ? copy.childSources.added : selectedKeys.includes(group.key) ? copy.childSources.selected : copy.childSources.select}</Button>
               : <SourceChildAction group={group} onAdded={onAdded} contentLayer={contentLayer} />}
             {onSelect && !group.available ? <span className="nd-muted">{copy.sources.sourceUnavailable}</span> : null}
-          </div>)}
+          </div>)}</div>
         </>}
-      <p className="nd-faint" style={{ margin: 0 }}>{copy.childSources.coverage}</p>
-      {childDirectory.latestAt && directoryStatus === 'ready' ? <p className="nd-faint">{copy.childSources.updated(new Date(childDirectory.latestAt).toLocaleString())}</p> : null}
-      <Button size="sm" tone="secondary" disabled={loading} onClick={() => activity.retry()}>{copy.childSources.refresh}</Button>
+      {groups.length > 0 && directoryStatus === 'ready' ? <details className="nd-child-help">
+        <summary>{copy.childSources.missing}</summary>
+        <p className="nd-muted">{copy.childSources.coverage}</p>
+      </details> : null}
     </section>
   );
 }

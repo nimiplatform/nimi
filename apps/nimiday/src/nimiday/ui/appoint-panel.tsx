@@ -56,7 +56,6 @@ export function AppointPanel({ onDone, compact = false }: { readonly onDone?: ()
     return (
       <InlineAlert tone="warning" action={<Button size="sm" tone="secondary" onClick={() => { void deskApi.start(state.profile.appointment); }}>{copy.common.retry}</Button>}>
         {desk.unreachable ? copy.agent.unreachableBody(desk.unreachable.displayName) : copy.agent.unavailable}
-        {desk.error ? <details className="nd-faint"><summary>{copy.assistant.technical}</summary>{desk.error}</details> : null}
       </InlineAlert>
     );
   }
@@ -105,7 +104,7 @@ export function AppointPanel({ onDone, compact = false }: { readonly onDone?: ()
           </button>
         ))}
       </div>
-      {desk.error ? <details className="nd-faint"><summary>{copy.agent.appointFailed}</summary>{desk.error}</details> : null}
+      {desk.error ? <p className="nd-muted" role="alert">{copy.agent.appointFailed}</p> : null}
       <Button tone="primary" size="md" disabled={!chosen} loading={busy} onClick={() => { void appoint(); }}>
         {chosen ? copy.onboarding.appointCta(chosen.displayName) : copy.agent.appoint}
       </Button>
