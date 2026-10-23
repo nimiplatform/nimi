@@ -26,14 +26,29 @@ func (s *Service) triggerCognitionMemoryDerived(ref string) {
 	s.cognitionMemoryDrainMu.Unlock()
 	go func() {
 		defer s.cognitionMemoryWG.Done()
+		retries := 0
 		for {
-			if err := s.cognitionMemoryFacade.ResumeDerived(ctx, ref); err != nil && ctx.Err() == nil && s.logger != nil {
+			err := s.cognitionMemoryFacade.ResumeDerived(ctx, ref)
+			if err != nil && ctx.Err() == nil && s.logger != nil {
 				s.logger.Warn("Cognition Memory derived work remains pending", "local_agent_ref", ref, "error", err)
 			}
 			s.cognitionMemoryDrainMu.Lock()
 			if work.pending && ctx.Err() == nil {
 				work.pending = false
 				s.cognitionMemoryDrainMu.Unlock()
+				retries = 0
+				continue
+			}
+			s.cognitionMemoryDrainMu.Unlock()
+			if retryCognitionMemory(ctx, err, retries) {
+				retries++
+				continue
+			}
+			s.cognitionMemoryDrainMu.Lock()
+			if work.pending && ctx.Err() == nil {
+				work.pending = false
+				s.cognitionMemoryDrainMu.Unlock()
+				retries = 0
 				continue
 			}
 			if s.cognitionMemoryDerived[ref] == work {

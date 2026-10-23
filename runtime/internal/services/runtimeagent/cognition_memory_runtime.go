@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/oklog/ulid/v2"
@@ -162,8 +164,10 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 	s.cognitionMemoryDrainMu.Unlock()
 	go func() {
 		defer s.cognitionMemoryWG.Done()
+		retries := 0
 		for {
-			if err := s.processCognitionMemoryAgent(ctx, localAgentRef); err != nil {
+			err := s.processCognitionMemoryAgent(ctx, localAgentRef)
+			if err != nil {
 				if !errors.Is(err, cognitionmemory.ErrMemoryDisabled) && ctx.Err() == nil && s.logger != nil {
 					s.logger.Warn("Cognition Memory event processing failed", "local_agent_ref", localAgentRef, "error", err)
 				}
@@ -174,6 +178,20 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 			if s.cognitionMemoryDrainPending[localAgentRef] && ctx.Err() == nil {
 				delete(s.cognitionMemoryDrainPending, localAgentRef)
 				s.cognitionMemoryDrainMu.Unlock()
+				retries = 0
+				continue
+			}
+			s.cognitionMemoryDrainMu.Unlock()
+			if retryCognitionMemory(ctx, err, retries) {
+				retries++
+				continue
+			}
+			s.cognitionMemoryDrainMu.Lock()
+			// A trigger may have arrived while recovery was deciding to stop.
+			if s.cognitionMemoryDrainPending[localAgentRef] && ctx.Err() == nil {
+				delete(s.cognitionMemoryDrainPending, localAgentRef)
+				s.cognitionMemoryDrainMu.Unlock()
+				retries = 0
 				continue
 			}
 			delete(s.cognitionMemoryDrainPending, localAgentRef)
@@ -182,6 +200,33 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 			return
 		}
 	}()
+}
+
+// Recover only already-custodied Memory work. Every attempt re-enters the
+// existing authorization/cutoff checks; no conversation or business task is
+// replayed. Exhaustion leaves durable pending work for a later explicit trigger.
+func retryCognitionMemory(ctx context.Context, err error, retries int) bool {
+	if err == nil || retries >= 3 || ctx.Err() != nil ||
+		errors.Is(err, context.Canceled) ||
+		errors.Is(err, sql.ErrNoRows) || errors.Is(err, cognitionmemory.ErrMemoryDisabled) ||
+		errors.Is(err, cognitionmemory.ErrConflict) {
+		return false
+	}
+	// A dependency deadline can expire while this worker's lifecycle remains
+	// valid. Retry it; cancellation of the owning lifecycle above still stops.
+	for _, outcome := range []memoryv1.Outcome{memoryv1.OutcomeInvalid, memoryv1.OutcomeUnsupported, memoryv1.OutcomeRejected, memoryv1.OutcomeConflict} {
+		if memoryv1.IsOutcome(err, outcome) {
+			return false
+		}
+	}
+	timer := time.NewTimer(250 * time.Millisecond * time.Duration(1<<retries))
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }
 
 func (s *Service) processCognitionMemoryAgent(ctx context.Context, localAgentRef string) error {
