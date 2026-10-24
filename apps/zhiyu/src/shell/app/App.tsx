@@ -1,5 +1,6 @@
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from './navigation.js';
 import { isZhiyuAgentBusyReason } from './direct-local-app-submit-gate';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -12,6 +13,8 @@ import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
 import type { ZhiyuRuntimeAgentChatAttachment } from '../agent-chat/agent-conversation-state';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
+import type { ZhiyuAvatarLaunchFeedback } from '../avatar/avatar-launch-feedback';
+import type { ZhiyuAvatarLaunchResult } from '../avatar/avatar-launch-handoff';
 import type { ZhiyuCanonicalRendererBindings } from '../../renderer/contract';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-projection';
@@ -28,6 +31,13 @@ type PendingResourcePackPlacement = Readonly<{
   placementKey: string;
   conversationAnchorId: string;
   agentHandle: NimiLocalAppAgentHandle;
+}>;
+
+type AvatarSwitchConfirmation = Readonly<{
+  scope: string;
+  bindings: ZhiyuCanonicalRendererBindings;
+  isCurrent: () => boolean;
+  resolve: (confirmed: boolean) => void;
 }>;
 
 const subscribeNoop = () => () => undefined;
@@ -57,6 +67,30 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const currentScope = useRef(scopeKey);
   currentScope.current = scopeKey;
   useEffect(() => { setSubmitting(false); setSubmissionError(null); }, [scopeKey]);
+  const avatarScope = JSON.stringify([evidence.auth.accountId, selectedAgentHandle,
+    destination.conversationAnchorId, evidence.conversation.agentHandle, evidence.conversation.conversationAnchorId]);
+  const currentAvatarScope = useRef({ key: avatarScope, bindings });
+  currentAvatarScope.current = { key: avatarScope, bindings };
+  const avatarAttempt = useRef<object | null>(null);
+  const avatarSwitchConfirmationRef = useRef<AvatarSwitchConfirmation | null>(null);
+  const [avatarSwitchConfirmation, setAvatarSwitchConfirmation] = useState<AvatarSwitchConfirmation | null>(null);
+  const [avatarFeedback, setAvatarFeedback] = useState<{
+    scope: string; bindings: ZhiyuCanonicalRendererBindings; value: ZhiyuAvatarLaunchFeedback;
+  } | null>(null);
+  useLayoutEffect(() => {
+    setAvatarFeedback(null);
+    setAvatarSwitchConfirmation(null);
+    return () => {
+      avatarAttempt.current = null;
+      const confirmation = avatarSwitchConfirmationRef.current;
+      avatarSwitchConfirmationRef.current = null;
+      confirmation?.resolve(false);
+    };
+  }, [avatarScope, bindings]);
+  const visibleAvatarFeedback = avatarFeedback?.scope === avatarScope && avatarFeedback.bindings === bindings
+    ? avatarFeedback.value : null;
+  const visibleAvatarSwitchConfirmation = avatarSwitchConfirmation?.scope === avatarScope
+    && avatarSwitchConfirmation.bindings === bindings;
   const composerDraft = useMemo(() => {
     let text = draftByPartner.current.get(draftKey) ?? '';
     let revision = 0;
@@ -416,36 +450,59 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     setSelectedLocalAgentRefreshKey((current) => current + 1);
   }
 
+  function settleAvatarSwitchConfirmation(confirmed: boolean) {
+    const confirmation = avatarSwitchConfirmationRef.current;
+    if (!confirmation) return;
+    avatarSwitchConfirmationRef.current = null;
+    setAvatarSwitchConfirmation(null);
+    confirmation.resolve(confirmed && confirmation.isCurrent());
+  }
+
   async function handleAvatarLaunch() {
-    setEvidence((current) => ({
-      ...current,
-      avatar: {
-        ...current.avatar,
-        reasonCode: 'zhiyu-avatar-host-handoff-requested',
-        actionHint: 'wait_avatar_launch_handoff',
-        message: 'Requesting Avatar launch or focus through the common Host handoff port.',
-        hostHandoff: null,
-      },
-    }));
-    const result = await bindings.app.commands.launchAvatar({
-      evidence: renderEvidence,
-      action: avatarLaunchAction,
-    });
-    setEvidence((current) => ({
-      ...current,
-      avatar: {
-        ...current.avatar,
-        ready: result.state === 'opened' ? current.avatar.ready : false,
-        state: result.state === 'opened' ? current.avatar.state : 'blocked',
-        reasonCode: result.reasonCode,
-        actionHint: result.actionHint,
-        message: result.message,
-        hostHandoff: result.state === 'opened' ? result.handoff : null,
-      },
-    }));
+    if (avatarLaunchAction.state !== 'ready' || avatarAttempt.current) return;
+    const isScopeCurrent = () => {
+      const current = navigation.getSnapshot().current.destination;
+      return currentAvatarScope.current.key === avatarScope && currentAvatarScope.current.bindings === bindings
+        && current.agentHandle === destination.agentHandle
+        && current.conversationAnchorId === destination.conversationAnchorId;
+    };
+    if (!isScopeCurrent()) return;
+    const attempt = {};
+    avatarAttempt.current = attempt;
+    setAvatarFeedback({ scope: avatarScope, bindings, value: { state: 'pending' } });
+    let result: ZhiyuAvatarLaunchResult;
+    try {
+      result = await bindings.app.commands.launchAvatar({ evidence: renderEvidence, action: avatarLaunchAction,
+        confirmSwitch: () => {
+          const isCurrent = () => avatarAttempt.current === attempt && isScopeCurrent();
+          if (!isCurrent() || avatarSwitchConfirmationRef.current) return Promise.resolve(false);
+          return new Promise<boolean>(resolve => {
+            const confirmation = { scope: avatarScope, bindings, isCurrent, resolve };
+            avatarSwitchConfirmationRef.current = confirmation;
+            setAvatarSwitchConfirmation(confirmation);
+          }).then(confirmed => confirmed && isCurrent());
+        },
+      });
+    } catch (error) {
+      const fields = extractNimiErrorFields(error);
+      result = { state: 'blocked', reasonCode: fields.reasonCode || 'zhiyu-avatar-launch-failed',
+        actionHint: fields.actionHint || 'check_avatar_host_handoff',
+        message: error instanceof Error ? error.message : 'Avatar Host handoff failed.' };
+    }
+    if (avatarAttempt.current !== attempt || !isScopeCurrent()) return;
+    avatarAttempt.current = null;
+    setAvatarFeedback({ scope: avatarScope, bindings, value: { state: 'settled', result } });
+    if (result.state === 'opened') {
+      const opened = result;
+      setEvidence(current => isScopeCurrent() ? {
+        ...current, avatar: { ...current.avatar, reasonCode: opened.reasonCode,
+          actionHint: opened.actionHint, message: opened.message, hostHandoff: opened.handoff },
+      } : current);
+    }
   }
 
   return (
+    <>
     <ZhiyuAgentChatSurface
       evidence={renderEvidence}
       product={product}
@@ -478,6 +535,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       }}
       conversation={bindings.app.commands.conversation}
       avatarLaunchAction={avatarLaunchAction}
+      avatarLaunchFeedback={visibleAvatarFeedback}
+      onDismissAvatarLaunchFeedback={() => setAvatarFeedback(null)}
       agentCenterSession={agentCenterSession}
       resourcePackPresentation={resourcePackPresentation}
       resourcePackPlacementKey={readyResourcePackPlacementKey}
@@ -524,6 +583,17 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         void handleAvatarLaunch();
       }}
     />
+    <ConfirmDialog
+      open={visibleAvatarSwitchConfirmation}
+      title="切换桌面伙伴？"
+      message="桌面上已有另一位伙伴。要切换为当前选中的伙伴吗？"
+      confirmLabel="切换伙伴"
+      cancelLabel="取消"
+      confirmTone="primary"
+      onConfirm={() => settleAvatarSwitchConfirmation(true)}
+      onClose={() => settleAvatarSwitchConfirmation(false)}
+    />
+    </>
   );
 }
 

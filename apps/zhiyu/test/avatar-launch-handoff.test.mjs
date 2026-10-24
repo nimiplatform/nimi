@@ -206,6 +206,21 @@ test('Zhiyu switch cancellation keeps the current companion without resubmission
     state: 'blocked',
     reasonCode: 'zhiyu-avatar-switch-cancelled',
     actionHint: 'keep_current_companion',
-    message: 'Kept the current desktop companion.',
+    message: 'Cancelled the requested desktop companion switch.',
   });
+});
+
+test('Zhiyu fails closed without a source confirmation callback and never resubmits', async () => {
+  const evidence = readyEvidence();
+  let calls = 0;
+  const result = await launchZhiyuAvatar({ evidence, action: projectZhiyuAvatarLaunchAction(evidence), hostPort: {
+    async invoke() {
+      calls++;
+      return { command: 'launch', state: 'confirmation-required', avatarInstanceRef: null,
+        switchIntentRef: 'avatar_switch_once', committedPresentationRef: null, temporaryCustodyRef: null };
+    },
+  } });
+  assert.equal(calls, 1);
+  assert.equal(result.state, 'blocked');
+  assert.equal(result.reasonCode, 'zhiyu-avatar-switch-confirmation-unavailable');
 });

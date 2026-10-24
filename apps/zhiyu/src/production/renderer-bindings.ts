@@ -185,7 +185,7 @@ export function createZhiyuProductionBindings(
           await requestZhiyuDesktopOpenRuntimeSettings();
         },
         openDesktopSelectPartner: requestZhiyuDesktopOpenSelectPartner,
-        launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action, hostPort: avatarHostPort }),
+        launchAvatar: ({ evidence, action, confirmSwitch }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action, confirmSwitch, hostPort: avatarHostPort }),
         acknowledgeResourcePackPlacement: acknowledgeZhiyuResourcePackPlacement,
       }),
       events: Object.freeze({

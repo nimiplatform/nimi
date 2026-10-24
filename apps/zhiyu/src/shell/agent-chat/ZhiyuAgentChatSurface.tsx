@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
+import type { ZhiyuAvatarLaunchFeedback } from '../avatar/avatar-launch-feedback';
 import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
 import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
@@ -55,6 +56,7 @@ import {
   ComposerAgentCenterButton,
   ComposerAvatarButton,
   ComposerModeTools,
+  AvatarLaunchNotice,
   RuntimeChatFailureNotice,
 } from './ZhiyuAgentChatPieces';
 import {
@@ -94,6 +96,8 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onRegenerate: () => void;
   readonly conversation: () => import('@nimiplatform/sdk/app').NimiLocalAppConversationClient;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
+  readonly avatarLaunchFeedback?: ZhiyuAvatarLaunchFeedback | null;
+  readonly onDismissAvatarLaunchFeedback?: () => void;
   readonly agentCenterSession: AgentCenterSession | null;
   readonly resourcePackPresentation: ZhiyuResourcePackPresentationState;
   readonly resourcePackPlacementKey: string | null;
@@ -120,6 +124,8 @@ export function ZhiyuAgentChatSurface({
   onRetryDraftSave,
   composerState, interactionNotice, connectionStatus, pendingSubmission, onAcknowledgeSubmission, onRestoreSubmission, onSubmissionResolved, onRefreshConversation, onReloadImages, onRegenerate, conversation,
   avatarLaunchAction,
+  avatarLaunchFeedback,
+  onDismissAvatarLaunchFeedback,
   agentCenterSession,
   resourcePackPresentation,
   resourcePackPlacementKey,
@@ -520,11 +526,20 @@ export function ZhiyuAgentChatSurface({
                 messages={conversationMessagesForDisplay(evidence.chat.messages, primaryPartnerName)}
                 activeConversationId={evidence.conversation.conversationAnchorId}
                 agentName={primaryPartnerName}
-                bannerContent={evidence.chat.mediaReadError ? <div role="status" className="rounded-lg bg-[var(--nimi-surface-card)] px-3 py-2 text-sm">
+                bannerContent={avatarLaunchFeedback || evidence.chat.mediaReadError ? <div className="grid gap-2">
+                  {avatarLaunchFeedback ? <AvatarLaunchNotice
+                    feedback={avatarLaunchFeedback}
+                    onRetry={avatarLaunchAction.state === 'ready' ? onAvatarLaunch : undefined}
+                    onOpenAppearance={openAppearanceConfig}
+                    onOpenNimi={onDesktopOpenRuntimeSettings}
+                    onDismiss={onDismissAvatarLaunchFeedback}
+                  /> : null}
+                  {evidence.chat.mediaReadError ? <div role="status" className="rounded-lg bg-[var(--nimi-surface-card)] px-3 py-2 text-sm">
                   图片暂时无法加载，文字仍可使用。{' '}
                   <button type="button" className="underline" disabled={evidence.chat.mediaReadError === 'retrying'} onClick={onReloadImages}>
                     {evidence.chat.mediaReadError === 'retrying' ? '正在重新加载图片…' : '重新加载图片'}
                   </button>
+                  </div> : null}
                 </div> : undefined}
                 formatDateLabel={formatZhiyuTranscriptDateLabel}
                 emptyEyebrow={hasCurrentPartner ? '' : 'ZHIYU'}
@@ -606,6 +621,7 @@ export function ZhiyuAgentChatSurface({
                 toolbarSlot={(
                   <ComposerModeTools
                     avatarLaunchAction={avatarLaunchAction}
+                    avatarLaunchPending={avatarLaunchFeedback?.state === 'pending'}
                     onAvatarLaunch={onAvatarLaunch}
                     onOpenAppearance={openAppearanceConfig}
                     onOpenBehavior={openBehaviorConfig}

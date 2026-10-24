@@ -410,6 +410,49 @@
   pointer-events: auto;
 }
 
+.zhiyu-avatar-launch-notice {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-height: min(38vh, 280px);
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: 14px;
+  background: var(--nimi-surface-card);
+  color: var(--nimi-text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.zhiyu-avatar-launch-notice :where(p, strong) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.zhiyu-avatar-launch-notice__heading,
+.zhiyu-avatar-launch-notice__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.zhiyu-avatar-launch-notice__heading { justify-content: space-between; }
+.zhiyu-avatar-launch-notice__actions { flex-wrap: wrap; }
+.zhiyu-avatar-launch-notice button {
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--nimi-text-primary);
+}
+.zhiyu-avatar-launch-notice button:hover { background: var(--nimi-surface-active); }
+.zhiyu-avatar-launch-notice :where(button, summary):focus-visible {
+  outline: 2px solid var(--nimi-action-primary-bg);
+  outline-offset: 2px;
+}
+.zhiyu-avatar-launch-notice__actions button { text-decoration: underline; text-underline-offset: 3px; }
+.zhiyu-avatar-launch-notice summary { cursor: pointer; }
+.zhiyu-avatar-launch-notice details { min-width: 0; }
+
 .zhiyu-chat-canvas__canonical-composer[data-canonical-composer-root="true"],
 .zhiyu-chat-canvas__composer [data-chat-composer-surface="true"] {
   width: 100%;

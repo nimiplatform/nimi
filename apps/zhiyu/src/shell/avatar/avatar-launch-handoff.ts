@@ -5,7 +5,6 @@ import {
   type AvatarHostHandoffRequest,
   type AvatarHostHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
-import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
 
@@ -80,15 +79,19 @@ export async function launchZhiyuAvatar(
     let handoff = buildZhiyuAvatarLaunchHandoff(options);
     let result = await invokeAvatarHostHandoff(options.hostPort, handoff.request);
     if (handoff.request.command === 'launch' && result.state === 'confirmation-required') {
-      const confirmed = await (options.confirmSwitch
-        ? options.confirmSwitch()
-        : confirmZhiyuAvatarSwitch());
+      if (!options.confirmSwitch) {
+        throw Object.assign(new Error('Zhiyu Avatar switch requires confirmation in the source interface.'), {
+          reasonCode: 'zhiyu-avatar-switch-confirmation-unavailable',
+          actionHint: 'retry_avatar_host_handoff',
+        });
+      }
+      const confirmed = await options.confirmSwitch();
       if (!confirmed) {
         return {
           state: 'blocked',
           reasonCode: 'zhiyu-avatar-switch-cancelled',
           actionHint: 'keep_current_companion',
-          message: 'Kept the current desktop companion.',
+          message: 'Cancelled the requested desktop companion switch.',
         };
       }
       handoff = buildZhiyuAvatarLaunchHandoff({
@@ -129,15 +132,6 @@ export async function launchZhiyuAvatar(
         : 'Avatar Host handoff failed closed.',
     };
   }
-}
-
-async function confirmZhiyuAvatarSwitch(): Promise<boolean> {
-  const result = await confirmDialog({
-    title: 'Switch current companion?',
-    description: 'Another companion is already active. Switch the desktop companion to this Agent?',
-    level: 'warning',
-  });
-  return result.confirmed;
 }
 
 function requireText(value: unknown, field: string): string {

@@ -3,9 +3,11 @@ import {
   Lightbulb,
   SlidersHorizontal,
   UserRound,
+  X,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
+import { avatarLaunchRecovery, type ZhiyuAvatarLaunchFeedback } from '../avatar/avatar-launch-feedback';
 import { partnerInitial } from './ZhiyuAgentChatLabels';
 
 export function behaviorModeTitle(mode: 'off' | 'low' | 'medium' | 'high') {
@@ -67,11 +69,13 @@ export function ComposerAvatarButton({
 
 export function ComposerModeTools({
   avatarLaunchAction,
+  avatarLaunchPending = false,
   onAvatarLaunch,
   onOpenAppearance,
   onOpenBehavior,
 }: {
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
+  readonly avatarLaunchPending?: boolean;
   readonly onAvatarLaunch?: () => void;
   readonly onOpenAppearance: () => void;
   readonly onOpenBehavior: () => void;
@@ -81,8 +85,10 @@ export function ComposerModeTools({
     <>
       <button
         type="button"
-        aria-label={avatarReady ? '启动形象' : '配置形象'}
-        title={avatarReady ? '启动形象' : '配置形象'}
+        aria-label={avatarLaunchPending ? '正在打开形象' : avatarReady ? '启动形象' : '配置形象'}
+        title={avatarLaunchPending ? '正在打开形象' : avatarReady ? '启动形象' : '配置形象'}
+        disabled={avatarLaunchPending}
+        aria-busy={avatarLaunchPending}
         data-zhiyu-composer-tool="avatar"
         data-zhiyu-avatar-launch-entry={avatarLaunchAction.state}
         data-zhiyu-avatar-launch-reason={avatarLaunchAction.reasonCode}
@@ -106,6 +112,34 @@ export function ComposerModeTools({
       </button>
     </>
   );
+}
+
+export function AvatarLaunchNotice({ feedback, onRetry, onOpenAppearance, onOpenNimi, onDismiss }: {
+  readonly feedback: ZhiyuAvatarLaunchFeedback;
+  readonly onRetry?: () => void;
+  readonly onOpenAppearance: () => void;
+  readonly onOpenNimi: () => void;
+  readonly onDismiss?: () => void;
+}) {
+  const result = feedback.state === 'settled' ? feedback.result : null;
+  const cancelled = result?.reasonCode === 'zhiyu-avatar-switch-cancelled';
+  const failed = result?.state === 'blocked' && !cancelled;
+  const checkNimi = failed && avatarLaunchRecovery(result.reasonCode) === 'nimi';
+  const title = !result ? '正在打开伙伴形象…' : cancelled ? '已取消这次切换' : failed ? '未能打开伙伴形象' : '伙伴形象已打开';
+  return <section className="zhiyu-avatar-launch-notice" data-zhiyu-avatar-feedback={!result ? 'pending' : failed ? 'failed' : cancelled ? 'cancelled' : 'opened'}>
+    <div className="zhiyu-avatar-launch-notice__heading">
+      <strong role={failed ? 'alert' : 'status'}>{title}</strong>
+      {result && onDismiss ? <button type="button" aria-label="关闭形象提示" title="关闭形象提示" onClick={onDismiss}><X size={16} aria-hidden="true" /></button> : null}
+    </div>
+    {failed ? <>
+      <p>{checkNimi ? '请检查 Nimi 中的连接和登录状态，再重试。' : '可以检查伙伴的形象设置或下方诊断信息，再重试。'}</p>
+      <div className="zhiyu-avatar-launch-notice__actions">
+        {onRetry ? <button type="button" onClick={onRetry}>重试打开</button> : null}
+        <button type="button" onClick={checkNimi ? onOpenNimi : onOpenAppearance}>{checkNimi ? '检查 Nimi' : '形象设置'}</button>
+      </div>
+      <details><summary>技术详情</summary><p>{result.reasonCode}</p><p>{result.message}</p><p>{result.actionHint}</p></details>
+    </> : null}
+  </section>;
 }
 
 export function ComposerAgentCenterButton({

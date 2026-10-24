@@ -77,6 +77,7 @@ export interface ZhiyuRendererCommandPort {
   launchAvatar(input: {
     readonly evidence: ZhiyuEvidence;
     readonly action: ZhiyuAvatarLaunchAction;
+    readonly confirmSwitch: () => Promise<boolean>;
   }): Promise<ZhiyuAvatarLaunchResult>;
   acknowledgeResourcePackPlacement?(ack: ZhiyuResourcePackPlacementAck): void;
 }
