@@ -54,8 +54,11 @@ func (entry scenarioJobJournalEntry) empty() bool {
 // scenarioJobDurableState is what the durable document holds, so a mutation
 // writes only the rows that differ from it. Caller holds the store mutex.
 type scenarioJobDurableState struct {
-	jobs           map[string]struct{}
-	rowBytes       map[string]int64
+	jobs     map[string]struct{}
+	rowBytes map[string]int64
+	// Each immutable row owns its bytes; never retain a slice of a whole file,
+	// which could keep disposed content alive through another retained row.
+	encodedRows    map[string][]byte
 	changed        map[string]struct{}
 	idempotency    map[string]scenarioIdempotencyBinding
 	pendingCustody map[string]scenarioPendingCloudCustody
@@ -63,6 +66,12 @@ type scenarioJobDurableState struct {
 	baseBytes      int64
 	liveBytes      int64
 	fileIO         *scenarioJobFileIO
+	// Test observation after real encoding; it cannot supply replacement bytes.
+	// Output-equivalence tests alone cannot detect redundant retained-row encoding.
+	rowEncoded func(jobID string, bytes int)
+	// Successful content writes only, excluding filesystem metadata/flush IO.
+	// This distinguishes eliminated encoding from the required full rewrite.
+	contentWritten func(bytes int)
 	// removed reports that the journal still holds captured inputs of a Job
 	// that is no longer live; only a rewrite drops them from the disk.
 	removed bool
@@ -76,6 +85,7 @@ func newScenarioJobDurableState() scenarioJobDurableState {
 	return scenarioJobDurableState{
 		jobs:           make(map[string]struct{}),
 		rowBytes:       make(map[string]int64),
+		encodedRows:    make(map[string][]byte),
 		changed:        make(map[string]struct{}),
 		idempotency:    make(map[string]scenarioIdempotencyBinding),
 		pendingCustody: make(map[string]scenarioPendingCloudCustody),
@@ -90,6 +100,7 @@ func (s *scenarioJobStore) markDurableJobChangedLocked(jobID string) {
 	}
 	if id := strings.TrimSpace(jobID); id != "" {
 		s.durable.changed[id] = struct{}{}
+		delete(s.durable.encodedRows, id)
 	}
 }
 
@@ -169,7 +180,7 @@ func (s *scenarioJobStore) appendDurableChangesLocked() error {
 	if entry.empty() {
 		return nil
 	}
-	line, err := json.Marshal(entry)
+	line, err := encodeScenarioJobJournalEntry(entry)
 	if err != nil {
 		return fmt.Errorf("encode ScenarioJob store change: %w", err)
 	}
@@ -197,12 +208,12 @@ func (s *scenarioJobStore) appendDurableChangesLocked() error {
 	}
 	projectedBase += controlDelta
 	if removed || s.durable.fileBytes-s.durable.baseBytes+int64(len(line)) > max(projectedBase, scenarioJobStoreRewriteFloorBytes) {
-		return s.rewriteDurableStoreLocked()
+		return s.rewriteDurableStoreLocked(entry.Records...)
 	}
 	restored, err := appendScenarioJobStoreLine(s.durablePath, s.durable.fileBytes, line, s.durable.fileIO)
 	if errors.Is(err, errScenarioJobStoreDrift) {
 		// Memory holds every acknowledged mutation of this process.
-		return s.rewriteDurableStoreLocked()
+		return s.rewriteDurableStoreLocked(entry.Records...)
 	}
 	if err != nil {
 		if !restored {
@@ -210,12 +221,18 @@ func (s *scenarioJobStore) appendDurableChangesLocked() error {
 		}
 		return err
 	}
+	if s.durable.contentWritten != nil {
+		s.durable.contentWritten(len(line))
+	}
 	for _, row := range entry.Records {
 		s.durable.jobs[row.JobID] = struct{}{}
 		s.durable.rowBytes[row.JobID] = int64(len(row.Record))
+		s.durable.encodedRows[row.JobID] = row.Record
 	}
 	for _, id := range entry.DeletedJobs {
 		delete(s.durable.jobs, id)
+		delete(s.durable.rowBytes, id)
+		delete(s.durable.encodedRows, id)
 	}
 	for _, row := range entry.Idempotency {
 		s.durable.idempotency[row.ScopeKey] = scenarioIdempotencyBinding{jobID: row.JobID, boundAt: row.BoundAt}
@@ -321,13 +338,9 @@ func (s *scenarioJobStore) durableChangesLocked() (scenarioJobJournalEntry, bool
 			}
 			continue
 		}
-		row, err := scenarioJobDiskRecordFor(jobID, record, true)
+		raw, err := s.encodeDurableJobRowLocked(jobID, record, true)
 		if err != nil {
 			return entry, false, err
-		}
-		raw, err := json.Marshal(row)
-		if err != nil {
-			return entry, false, fmt.Errorf("encode scenario job %q: %w", jobID, err)
 		}
 		entry.Records = append(entry.Records, scenarioJobJournalRecord{JobID: jobID, Record: raw})
 	}
@@ -366,21 +379,37 @@ func (s *scenarioJobStore) durableChangesLocked() (scenarioJobJournalEntry, bool
 
 // rewriteDurableStoreLocked replaces the document with one base snapshot of
 // the live state, dropping superseded history and removed captured inputs.
-func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
+func (s *scenarioJobStore) rewriteDurableStoreLocked(changes ...scenarioJobJournalRecord) error {
 	jobIDs := make([]string, 0, len(s.jobs))
 	for jobID := range s.jobs {
 		jobIDs = append(jobIDs, jobID)
 	}
 	sort.Strings(jobIDs)
-	snapshot := scenarioJobDiskSnapshot{Version: scenarioJobDiskStoreVersion, RecoveryIncomplete: s.recoveryIncomplete, Records: make([]scenarioJobDiskRecord, 0, len(jobIDs))}
+	// Candidates belong only to this write attempt. A failed append/rewrite
+	// must not publish them to the cache: callers may roll back mutable records.
+	candidates := make(map[string][]byte, len(changes))
+	for _, row := range changes {
+		candidates[row.JobID] = row.Record
+	}
+	encodedRows := make(map[string][]byte, len(jobIDs))
+	rows := make([][]byte, 0, len(jobIDs))
+	snapshot := scenarioJobDiskSnapshot{Version: scenarioJobDiskStoreVersion, RecoveryIncomplete: s.recoveryIncomplete}
 	for _, jobID := range jobIDs {
 		_, durable := s.durable.jobs[jobID]
 		_, changed := s.durable.changed[jobID]
-		row, err := scenarioJobDiskRecordFor(jobID, s.jobs[jobID], changed || !durable)
-		if err != nil {
-			return err
+		raw := candidates[jobID]
+		if raw == nil && !changed {
+			raw = s.durable.encodedRows[jobID]
 		}
-		snapshot.Records = append(snapshot.Records, row)
+		if raw == nil {
+			var err error
+			raw, err = s.encodeDurableJobRowLocked(jobID, s.jobs[jobID], changed || !durable)
+			if err != nil {
+				return err
+			}
+		}
+		rows = append(rows, raw)
+		encodedRows[jobID] = raw
 	}
 	keys := make([]string, 0, len(s.idempotency))
 	for key := range s.idempotency {
@@ -403,7 +432,7 @@ func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
 		}
 		snapshot.PendingCustody = append(snapshot.PendingCustody, row)
 	}
-	raw, err := json.Marshal(snapshot)
+	raw, err := encodeScenarioJobSnapshot(snapshot, rows)
 	if err != nil {
 		return err
 	}
@@ -411,15 +440,15 @@ func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
 	if err := writeScenarioJobDocument(s.durablePath, raw); err != nil {
 		return err
 	}
+	if s.durable.contentWritten != nil {
+		s.durable.contentWritten(len(raw))
+	}
 	s.durable.jobs = make(map[string]struct{}, len(jobIDs))
 	s.durable.rowBytes = make(map[string]int64, len(jobIDs))
 	for i, jobID := range jobIDs {
-		encoded, err := json.Marshal(snapshot.Records[i])
-		if err != nil {
-			return err
-		}
-		s.durable.rowBytes[jobID] = int64(len(encoded))
+		s.durable.rowBytes[jobID] = int64(len(rows[i]))
 	}
+	s.durable.encodedRows = encodedRows
 	for _, jobID := range jobIDs {
 		s.durable.jobs[jobID] = struct{}{}
 	}
@@ -438,6 +467,21 @@ func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
 	s.durable.removed = false
 	s.durable.current = true
 	return nil
+}
+
+func (s *scenarioJobStore) encodeDurableJobRowLocked(jobID string, record *scenarioJobRecord, validate bool) ([]byte, error) {
+	row, err := scenarioJobDiskRecordFor(jobID, record, validate)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := json.Marshal(row)
+	if err != nil {
+		return nil, fmt.Errorf("encode scenario job %q: %w", jobID, err)
+	}
+	if s.durable.rowEncoded != nil {
+		s.durable.rowEncoded(jobID, len(raw))
+	}
+	return raw, nil
 }
 
 // scenarioJobDiskRecordFor encodes one live Job row. A row whose captured
