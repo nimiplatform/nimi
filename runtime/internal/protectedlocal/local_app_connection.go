@@ -165,9 +165,11 @@ func EstablishInstalledAppConnection(registrationHandle string, trustClass Local
 	return connection, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r017
 func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch, runtimeGeneration Identifier) (*LocalAppConnection, error) {
 	if !peer.valid() || !launch.valid() || launch.Process.PID == 0 || launch.BindDeadline.IsZero() ||
-		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID || runtimeGeneration == (Identifier{}) {
+		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID || runtimeGeneration == (Identifier{}) ||
+		launch.DesktopOwner == nil || !launch.DesktopOwner.VerifiedDesktopTransport() {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("direct local-app peer or launch is incomplete"))
 	}
 	directPeer := peer
@@ -188,6 +190,16 @@ func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppL
 		connection.installedDeclarationGeneration = launch.DeclarationGeneration
 	}
 	connection.live.Store(true)
+	// Consume removes the pending launch, not this owner relationship. Revoke
+	// waits for the child's session lock, so an entered CommitSession drains
+	// before Desktop owner replacement can complete. Closing the child first
+	// removes only its subscription and never the owner's run hook.
+	unsubscribe := launch.DesktopOwner.onRevoke(connection.Revoke)
+	connection.OnRevoke(unsubscribe)
+	if !connection.Live() {
+		connection.Revoke()
+		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("direct local-app owner was revoked during connection admission"))
+	}
 	return connection, nil
 }
 
@@ -213,21 +225,21 @@ func (connection *LocalAppConnection) RuntimeBootEpoch() Identifier {
 }
 
 func (connection *LocalAppConnection) DirectPeer() (DirectLocalAppPeer, bool) {
-	if connection == nil || connection.directPeer == nil || !connection.live.Load() {
+	if connection == nil || connection.directPeer == nil || !connection.Live() {
 		return DirectLocalAppPeer{}, false
 	}
 	return *connection.directPeer, true
 }
 
 func (connection *LocalAppConnection) DirectLaunch() (DirectLocalAppLaunch, bool) {
-	if connection == nil || connection.directLaunch == nil || !connection.live.Load() {
+	if connection == nil || connection.directLaunch == nil || !connection.Live() {
 		return DirectLocalAppLaunch{}, false
 	}
 	return *connection.directLaunch, true
 }
 
 func (connection *LocalAppConnection) InstalledRegistrationHandle() (string, bool) {
-	if connection == nil || !connection.live.Load() || !connection.trustClass.installed() || connection.installedRegistrationHandle == "" {
+	if connection == nil || !connection.Live() || !connection.trustClass.installed() || connection.installedRegistrationHandle == "" {
 		return "", false
 	}
 	return connection.installedRegistrationHandle, true
@@ -241,7 +253,12 @@ func (connection *LocalAppConnection) InstalledLaunchGenerations() (uint64, uint
 }
 
 func (connection *LocalAppConnection) Live() bool {
-	return connection != nil && connection.live.Load()
+	if connection == nil || !connection.live.Load() {
+		return false
+	}
+	// Owner revocation closes admission immediately, even when an earlier
+	// owner cleanup is still delaying this child's synchronous Revoke hook.
+	return connection.directLaunch == nil || connection.directLaunch.DesktopOwner.VerifiedDesktopTransport()
 }
 
 func (trustClass LocalAppTrustClass) valid() bool {
@@ -260,12 +277,12 @@ func (connection *LocalAppConnection) TrustClass() LocalAppTrustClass {
 }
 
 func (connection *LocalAppConnection) Origin() OriginContext {
-	if connection == nil || !connection.live.Load() || !connection.trustClass.valid() || connection.directPeer != nil {
+	if connection == nil || !connection.Live() || !connection.trustClass.valid() || connection.directPeer != nil {
 		return OriginContext{}
 	}
 	roles := make(map[OriginRole]struct{}, 1)
 	connection.sessionMu.RLock()
-	if !connection.live.Load() {
+	if !connection.Live() {
 		connection.sessionMu.RUnlock()
 		return OriginContext{}
 	}
@@ -286,7 +303,7 @@ func (connection *LocalAppConnection) BindDirectAuthorization() error {
 	}
 	connection.sessionMu.Lock()
 	defer connection.sessionMu.Unlock()
-	if !connection.live.Load() {
+	if !connection.Live() {
 		return fmt.Errorf("direct local-app connection is revoked")
 	}
 	if connection.directAuthorized {
@@ -302,30 +319,30 @@ func (connection *LocalAppConnection) DirectAuthorizationBound() bool {
 	}
 	connection.sessionMu.RLock()
 	defer connection.sessionMu.RUnlock()
-	return connection.live.Load() && connection.directAuthorized
+	return connection.Live() && connection.directAuthorized
 }
 
 func (connection *LocalAppConnection) BootstrapAllowed() bool {
-	if connection == nil || !connection.live.Load() {
+	if connection == nil || !connection.Live() {
 		return false
 	}
 	if connection.directPeer != nil {
 		connection.sessionMu.RLock()
 		defer connection.sessionMu.RUnlock()
-		return connection.live.Load() && connection.session == nil && !connection.directAuthorized
+		return connection.Live() && connection.session == nil && !connection.directAuthorized
 	}
 	origin := connection.Origin()
 	return origin.TransportClass == TransportLocalAppBootstrap && origin.HasRole(RoleLocalAppProcess)
 }
 
 func (connection *LocalAppConnection) ProtectedOperationAllowed() bool {
-	if connection == nil || !connection.live.Load() {
+	if connection == nil || !connection.Live() {
 		return false
 	}
 	if connection.directPeer != nil {
 		connection.sessionMu.RLock()
 		defer connection.sessionMu.RUnlock()
-		return connection.live.Load() && (connection.session != nil || connection.directAuthorized)
+		return connection.Live() && (connection.session != nil || connection.directAuthorized)
 	}
 	origin := connection.Origin()
 	return origin.TransportClass == TransportLocalAppHost && origin.HasRole(RoleLocalAppSession)
@@ -337,7 +354,7 @@ func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) 
 	}
 	connection.sessionMu.Lock()
 	defer connection.sessionMu.Unlock()
-	if !connection.live.Load() {
+	if !connection.Live() {
 		return fmt.Errorf("local-app connection is revoked")
 	}
 	if !connection.trustClass.valid() {
@@ -357,12 +374,12 @@ func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) 
 }
 
 func (connection *LocalAppConnection) Session() (LocalAppSessionHandle, bool) {
-	if connection == nil || !connection.live.Load() || !connection.trustClass.valid() {
+	if connection == nil || !connection.Live() || !connection.trustClass.valid() {
 		return LocalAppSessionHandle{}, false
 	}
 	connection.sessionMu.RLock()
 	defer connection.sessionMu.RUnlock()
-	if connection.session == nil || !connection.live.Load() {
+	if connection.session == nil || !connection.Live() {
 		return LocalAppSessionHandle{}, false
 	}
 	return *connection.session, true
@@ -377,7 +394,7 @@ func (connection *LocalAppConnection) SessionInvalidated(handle LocalAppSessionH
 	}
 	connection.sessionMu.RLock()
 	defer connection.sessionMu.RUnlock()
-	if !connection.live.Load() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
+	if !connection.Live() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
 		return nil, false
 	}
 	return connection.sessionInvalidated.done, true
@@ -394,7 +411,7 @@ func (connection *LocalAppConnection) CommitSession(sessionID Identifier, commit
 	}
 	connection.sessionMu.RLock()
 	defer connection.sessionMu.RUnlock()
-	if !connection.live.Load() || connection.session == nil || connection.session.SessionID != sessionID || connection.sessionInvalidated == nil {
+	if !connection.Live() || connection.session == nil || connection.session.SessionID != sessionID || connection.sessionInvalidated == nil {
 		return fmt.Errorf("local-app publication session is unavailable")
 	}
 	select {
@@ -442,7 +459,7 @@ func (connection *LocalAppConnection) BindSessionResource(handle LocalAppSession
 	}
 	connection.sessionMu.Lock()
 	defer connection.sessionMu.Unlock()
-	if !connection.live.Load() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
+	if !connection.Live() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
 		return false
 	}
 	select {
@@ -466,7 +483,7 @@ func (connection *LocalAppConnection) SessionOwnsResource(handle LocalAppSession
 	}
 	connection.sessionMu.RLock()
 	defer connection.sessionMu.RUnlock()
-	if !connection.live.Load() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
+	if !connection.Live() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
 		return false
 	}
 	select {
@@ -494,7 +511,7 @@ func (connection *LocalAppConnection) RotateSession(previous LocalAppSessionHand
 		return fmt.Errorf("local-app session rotation handles are incomplete")
 	}
 	connection.sessionMu.Lock()
-	if !connection.live.Load() || !connection.trustClass.valid() || connection.session == nil || *connection.session != previous {
+	if !connection.Live() || !connection.trustClass.valid() || connection.session == nil || *connection.session != previous {
 		connection.sessionMu.Unlock()
 		return fmt.Errorf("local-app session rotation lost its exact connection binding")
 	}

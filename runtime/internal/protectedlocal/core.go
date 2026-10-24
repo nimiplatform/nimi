@@ -184,6 +184,10 @@ type DesktopPeerIdentity struct {
 	AuditSession uint32
 }
 
+type connectionRevokeHook struct {
+	invoke func()
+}
+
 type Connection struct {
 	origin      OriginContext
 	client      ProcessTuple
@@ -197,7 +201,7 @@ type Connection struct {
 	livenessSignal    <-chan struct{}
 
 	revokeMu         sync.Mutex
-	revokeHooks      []func()
+	revokeHooks      []*connectionRevokeHook
 	boundRevokeHooks map[Identifier]func()
 
 	desktopSessionMu sync.RWMutex
@@ -445,7 +449,9 @@ func (connection *Connection) Revoke() {
 	}
 	connection.revokeMu.Lock()
 	hooks := make([]func(), 0, len(connection.revokeHooks)+len(connection.boundRevokeHooks))
-	hooks = append(hooks, connection.revokeHooks...)
+	for _, hook := range connection.revokeHooks {
+		hooks = append(hooks, hook.invoke)
+	}
 	for _, hook := range connection.boundRevokeHooks {
 		hooks = append(hooks, hook)
 	}
@@ -460,15 +466,36 @@ func (connection *Connection) Revoke() {
 	}
 }
 
-func (connection *Connection) onRevoke(hook func()) {
+// onRevoke returns an idempotent unsubscribe function so a child that closes
+// first is not retained by its longer-lived owner. A callback already selected
+// by Revoke may still run; lifecycle cleanup must remain idempotent.
+func (connection *Connection) onRevoke(hook func()) func() {
+	if connection == nil || hook == nil {
+		return func() {}
+	}
+	subscription := &connectionRevokeHook{invoke: hook}
 	connection.revokeMu.Lock()
 	if !connection.live.Load() {
 		connection.revokeMu.Unlock()
 		hook()
-		return
+		return func() {}
 	}
-	connection.revokeHooks = append(connection.revokeHooks, hook)
+	connection.revokeHooks = append(connection.revokeHooks, subscription)
 	connection.revokeMu.Unlock()
+	return func() {
+		connection.revokeMu.Lock()
+		defer connection.revokeMu.Unlock()
+		for index, current := range connection.revokeHooks {
+			if current != subscription {
+				continue
+			}
+			copy(connection.revokeHooks[index:], connection.revokeHooks[index+1:])
+			last := len(connection.revokeHooks) - 1
+			connection.revokeHooks[last] = nil
+			connection.revokeHooks = connection.revokeHooks[:last]
+			return
+		}
+	}
 }
 
 // BindRevocationHook keeps one replaceable hook for an exact Runtime-owned
