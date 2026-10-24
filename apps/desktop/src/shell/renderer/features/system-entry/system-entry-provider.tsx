@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useNimiTheme } from '@nimiplatform/kit/ui';
 import { hasElectronInvoke, listenShell } from '@nimiplatform/kit/shell/renderer/bridge';
 import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import {
@@ -42,6 +43,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
   const navigation = useHomeNavigation();
   const queryClient = useQueryClient();
   const { i18n } = useTranslation();
+  const { scheme: colorScheme } = useNimiTheme();
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id ?? ''));
   const authenticated = useAppStore((state) => state.auth.status === 'authenticated' || state.auth.status === 'refresh-pending');
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
@@ -188,7 +190,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
     const service = name === 'READY' ? 'running' : name === 'DEGRADED' ? 'degraded' : name === 'STARTING' ? 'starting' : name === 'STOPPED' ? 'stopped' : 'unavailable';
     const observed = [attention.observedAt, work.observedAt, appsSection.observedAt, recentSection.observedAt, projectedDownloads.section.observedAt,
       usage.observedAt, health.lastFetchedAt, health.lastStreamAt].filter((value): value is string => Boolean(value) && Number.isFinite(Date.parse(value!)));
-    const value = { generation: hostContext.generation, revision: 0, locale, service,
+    const value = { generation: hostContext.generation, revision: 0, locale, colorScheme, service,
       observedAt: observed.length ? new Date(Math.max(...observed.map(Date.parse))).toISOString() : new Date(0).toISOString(),
       attention: { ...attention, items: attention.items.slice(0, 2) }, work: { ...work, items: work.items.slice(0, 3) },
       recent: { ...recentSection, items: recentSection.items.slice(0, 5) }, apps: { ...appsSection, items: appsSection.items.slice(0, 8) },
@@ -196,7 +198,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
       notificationsEnabled: notifications.enabled, notificationsPausedUntil: notifications.pausedUntil };
     const { revision: _revision, ...validated } = parseSystemEntryProjection(value);
     return validated;
-  }, [scope, hostContext?.generation, hostContext?.state, locale, downloads?.transfers, downloads?.environments, downloads?.loading, downloads?.errors,
+  }, [scope, hostContext?.generation, hostContext?.state, locale, colorScheme, downloads?.transfers, downloads?.environments, downloads?.loading, downloads?.errors,
     appDownloads?.jobs, appDownloads?.status, activity.pending, activity.recent, activityOwner.observedAt, currentAI, apps.data, appsReadScope, apps.isError,
     apps.isPending, apps.dataUpdatedAt, recent.data, recent.isError, recent.isPending, recent.dataUpdatedAt, recentReadScope, agents.isError, agents.isPending,
     agentsReadScope, agentList.length, health, notifications.enabled, notifications.pausedUntil, timeZone]);

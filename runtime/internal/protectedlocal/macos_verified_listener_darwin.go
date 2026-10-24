@@ -190,13 +190,18 @@ func (listener *MacOSVerifiedDesktopListener) activate(connection *macOSVerified
 	return previous, true
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r027
 func sameMacOSDesktopPeer(left, right *macOSVerifiedDesktopNetConn) bool {
 	if left == nil || right == nil || left.connection == nil || right.connection == nil {
 		return false
 	}
 	leftPeer, leftOK := left.connection.DirectDesktopPeer()
 	rightPeer, rightOK := right.connection.DirectDesktopPeer()
-	return leftOK && rightOK && leftPeer == rightPeer
+	leftProcess, leftProcessOK := left.connection.ClientProcess()
+	rightProcess, rightProcessOK := right.connection.ClientProcess()
+	// PID and audit session alone do not distinguish a replaced process or
+	// changed executable evidence from the exact process admitted earlier.
+	return leftOK && rightOK && leftProcessOK && rightProcessOK && leftPeer == rightPeer && leftProcess == rightProcess
 }
 
 func (listener *MacOSVerifiedDesktopListener) release(connection *macOSVerifiedDesktopNetConn) {

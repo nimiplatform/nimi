@@ -1,6 +1,6 @@
 import type { NimiAppActivityOpenResult, NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import type { SystemEntryActionDispatch, SystemEntryContext, SystemEntryProjection } from '../../../shared/system-entry-types.js';
-import { isSystemEntryActionOffered } from '../../../shared/system-entry-types.js';
+import { isSystemEntryActionOffered, SYSTEM_ENTRY_ACTION_DISPATCH_MS } from '../../../shared/system-entry-types.js';
 import type { HomeNavigation, HomeDestination } from '../../app-shell/providers/home-navigation.js';
 import type { AppStoreState } from '../../app-shell/providers/store-types.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
@@ -40,7 +40,7 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
   now?: () => number;
 }): Promise<void> {
   const now = input.now ?? Date.now;
-  const deadline = now() + 14_000;
+  const deadline = now() + SYSTEM_ENTRY_ACTION_DISPATCH_MS;
   const navigationGeneration = input.navigation.getSnapshot().generation;
   const guard = (): void => {
     const context = input.context();
@@ -109,14 +109,16 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
       if (!entry || entry.run?.state !== 'running') throw new Error('system-entry-app-not-running');
       if (entry.localDevelopment) {
         const selector = entry.localDevelopment.selector;
-        await invokeChecked('local_development_registration_focus', { payload: { selector } }, (value) => {
+        if (action.source.kind !== 'local-development' || action.source.selector !== selector) throw new Error('system-entry-view-stale');
+        await invokeChecked('local_development_registration_focus', { payload: { selector, generation: request.generation, requestId: request.requestId } }, (value) => {
           if (!value || typeof value !== 'object' || (value as { state?: unknown }).state !== 'running'
             || (value as { selector?: unknown }).selector !== selector) throw new Error('system-entry-app-focus-failed');
           return value;
         });
       } else if (entry.committedRelease) {
         const selector = [...entry.committedRelease.launchSelector];
-        await invokeChecked('installed_app_focus', { payload: { launchSelector: selector } }, (value) => {
+        if (action.source.kind !== 'installed' || JSON.stringify(action.source.launchSelector) !== JSON.stringify(selector)) throw new Error('system-entry-view-stale');
+        await invokeChecked('installed_app_focus', { payload: { launchSelector: selector, generation: request.generation, requestId: request.requestId } }, (value) => {
           if (!value || typeof value !== 'object' || (value as { state?: unknown }).state !== 'running'
             || JSON.stringify((value as { launchSelector?: unknown }).launchSelector) !== JSON.stringify(selector)) throw new Error('system-entry-app-focus-failed');
           return value;

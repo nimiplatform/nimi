@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { SystemEntryAdmission, SystemEntryAdmissionState } from '../src/shell/shared/system-entry-types.js';
+import type { SystemEntryAdmission, SystemEntryAdmissionState, SystemEntryFocusSource } from '../src/shell/shared/system-entry-types.js';
 
 type AccountObservation = Readonly<{
   state: string;
@@ -10,6 +10,8 @@ type ProductObservation = Readonly<{
   record?: null | Readonly<{ dataRoot?: null | Readonly<{ status?: string; rootActivationId?: string | null }> }>;
   rootHandoff?: null | Readonly<{ disposition?: string; rootActivationId?: string }>;
 }>;
+
+export type SystemEntryFocusAuthorization = (generation: string, requestId: string, source: SystemEntryFocusSource) => Promise<() => void>;
 
 // @nimi-authority: rule.nimi.desktop.bridge-ipc.system-entry-isolation
 /** The random generation fences views. Only the two owner reads admit work. */
@@ -82,6 +84,17 @@ export function createSystemEntryAdmission(input: {
   };
   return {
     read, snapshot, invalidate, observeAccount,
+    async authorizeFocus(expectedGeneration: string): Promise<() => void> {
+      const fresh = await read();
+      const assertCurrent = () => {
+        if (fresh.state !== 'ready' || fresh.generation !== expectedGeneration
+          || state !== 'ready' || generation !== expectedGeneration || locked || !input.normalWorkAllowed()) {
+          throw new Error('system-entry-view-stale');
+        }
+      };
+      assertCurrent();
+      return assertCurrent;
+    },
     setLocked(value: boolean) { if (locked !== value) { locked = value; invalidate(); } },
   };
 }

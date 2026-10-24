@@ -1678,6 +1678,7 @@ mod desktop_transport_invalidation_tests {
             "local-app-presence-required",
             "local-app-presence-expired",
             "local-app-operation-unavailable",
+            "process-focus-failed",
             "LOCAL_APP_OPERATION_UNAVAILABLE",
             "LOCAL_APP_OWNER_UNAVAILABLE",
             "PRINCIPAL_UNAUTHORIZED",

@@ -59,8 +59,10 @@ export function projectSystemEntryApps(input: { projection: DesktopAppsPanelProj
       title: systemEntryDisplayText(entry.identity.displayName, 256, entry.identity.appId),
       detail: entry.run?.state === 'running' ? (input.locale === 'zh' ? '已打开' : 'Open')
         : entry.run?.state === 'stopping' ? (input.locale === 'zh' ? '正在关闭' : 'Closing') : (input.locale === 'zh' ? '正在打开' : 'Opening'),
-      action: entry.run?.state === 'running' && entry.identity.entryKey.length <= 512
-        ? { kind: 'focus-app', entryKey: entry.identity.entryKey } : { kind: 'apps' },
+      action: entry.run?.state === 'running' && entry.identity.entryKey.length <= 512 && (entry.localDevelopment || entry.committedRelease)
+        ? { kind: 'focus-app', entryKey: entry.identity.entryKey,
+          source: entry.localDevelopment ? { kind: 'local-development', selector: entry.localDevelopment.selector }
+            : { kind: 'installed', launchSelector: [...entry.committedRelease!.launchSelector] } } : { kind: 'apps' },
     })) };
 }
 

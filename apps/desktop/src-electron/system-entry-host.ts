@@ -79,6 +79,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
   let quitPending = false;
   let homeVisible = true;
   let locale: SystemEntryLocale = input.locale ?? 'en';
+  let colorScheme: SystemEntrySnapshot['colorScheme'] = null;
   let admission: SystemEntryAdmission = { generation: 'unavailable', state: 'unknown' };
   let projection: SystemEntryProjection | null = null;
   let revision = -1;
@@ -93,7 +94,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
   let lastDoubleClick = Number.NEGATIVE_INFINITY;
 
   const currentSnapshot = (): SystemEntrySnapshot => ({
-    admission: { ...admission }, revision: Math.max(0, revision), locale,
+    admission: { ...admission }, revision: Math.max(0, revision), locale, colorScheme,
     observation, homeVisible,
     projection: admission.state === 'ready' && observation === 'current' ? projection : null,
     actionError,
@@ -374,6 +375,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
       projection = value;
       revision = value.revision;
       locale = value.locale;
+      colorScheme = value.colorScheme;
       observation = 'current';
       actionError = null;
       receivedAt = now();

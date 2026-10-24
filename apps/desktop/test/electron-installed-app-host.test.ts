@@ -5,6 +5,72 @@ import { once } from 'node:events';
 import { NimiElectronInstalledAppError } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopInstalledAppHost } from '../src-electron/installed-app-host.js';
 import { runDesktopShutdownSteps } from '../src-electron/product-update-shutdown.js';
+import { createSystemEntryAdmission } from '../src-electron/system-entry-admission.js';
+
+test('installed system-entry focus rejects scope loss or Stop while fresh native admission is pending', async () => {
+  for (const change of ['invalidate', 'locked', 'stop'] as const) {
+    let blockRead = false, release!: () => void, entered!: () => void;
+    const reading = new Promise<void>(resolve => { entered = resolve; });
+    const admission = createSystemEntryAdmission({
+      readAccount: async () => ({ state: 'authenticated', accountProjection: { accountId: 'account', realmEnvironmentId: 'realm' } }),
+      readProduct: async () => {
+        if (blockRead) { entered(); await new Promise<void>(resolve => { release = resolve; }); }
+        return { state: 'ready_for_use', record: { dataRoot: { status: 'ready', rootActivationId: 'root' } }, rootHandoff: { disposition: 'active_current_process', rootActivationId: 'root' } };
+      },
+      normalWorkAllowed: () => true, onInvalidated() {},
+    });
+    const { generation } = await admission.read();
+    let running = false, launches = 0, focuses = 0;
+    const host = createDesktopInstalledAppHost({
+      async launch() { launches++; running = true; return { launchId: '17'.repeat(32), processId: 123, appId: 'example', version: '1' }; },
+      async status() { return { running, exitCode: running ? null : 0 }; },
+      async stop() { running = false; }, async end() {}, async focus() { focuses++; }, async completeUninstall() {},
+      async access() { return { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }; },
+    }, undefined, undefined, admission.authorizeFocus);
+    const ordinary = { payload: { launchSelector: [17] } };
+    const focus = { payload: { launchSelector: [17], generation, requestId: 'focus-request' } };
+    try {
+      await host.commandHandlers.installed_app_launch!({ payload: ordinary });
+      await assert.rejects(host.commandHandlers.installed_app_focus!({ payload: ordinary }), /installed-app-intent-invalid/);
+      blockRead = true;
+      const pending = host.commandHandlers.installed_app_focus!({ payload: focus });
+      await reading;
+      if (change === 'invalidate') admission.invalidate();
+      else if (change === 'locked') admission.setLocked(true);
+      else await host.commandHandlers.installed_app_stop!({ payload: ordinary });
+      release();
+      await assert.rejects(pending, change === 'stop' ? /installed-app-run-unavailable/ : /system-entry-view-stale/);
+      assert.equal(focuses, 0);
+      assert.equal(launches, 1);
+      if (change !== 'stop') {
+        blockRead = false; admission.setLocked(false);
+        const current = await admission.read();
+        await host.commandHandlers.installed_app_focus!({ payload: { payload: { launchSelector: [17], generation: current.generation, requestId: 'focus-request' } } });
+        assert.equal(focuses, 1);
+        assert.equal(launches, 1);
+      }
+    } finally { await host.shutdown(); }
+  }
+});
+
+test('installed focus does not acknowledge a still-running projection while uninstall owns the run', async () => {
+  let release!: () => void, entered!: () => void, focuses = 0;
+  const stopping = new Promise<void>(resolve => { entered = resolve; });
+  const host = createDesktopInstalledAppHost({
+    async launch() { return { launchId: '18'.repeat(32), processId: 123, appId: 'example', version: '1' }; },
+    async status() { return { running: true, exitCode: null }; },
+    async stop() { entered(); await new Promise<void>(resolve => { release = resolve; }); },
+    async end() {}, async focus() { focuses++; }, async completeUninstall() {},
+    async access() { return { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }; },
+  });
+  await host.commandHandlers.installed_app_launch!({ payload: { payload: { launchSelector: [18] } } });
+  const uninstall = host.commandHandlers.installed_app_uninstall!({ payload: { payload: { launchSelector: [18], jobId: [19] } } });
+  try {
+    await stopping;
+    await assert.rejects(host.commandHandlers.installed_app_focus!({ payload: { payload: { launchSelector: [18], generation: 'g', requestId: 'request' } } }), /installed-app-run-unavailable/);
+    assert.equal(focuses, 0);
+  } finally { release(); await uninstall; await host.shutdown(); }
+});
 
 test('ordinary quit stops a real child while offline lease cleanup stays pending and strict handoff still fails', async () => {
   const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore', windowsHide: true });
@@ -214,8 +280,14 @@ test('installed host keeps exact process, focus, stop and Access independent', a
       return { available: access, reasonCode: access ? 'ACTION_EXECUTED' : 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: access ? `execution_scope_${'A'.repeat(43)}` : '' };
     },
   };
-  const host = createDesktopInstalledAppHost(control);
-  const call = (command: string, payload = { payload: { launchSelector: selector } }) => host.commandHandlers[command]!({ payload });
+  const admission = createSystemEntryAdmission({
+    readAccount: async () => ({ state: 'authenticated', accountProjection: { accountId: 'account', realmEnvironmentId: 'realm' } }),
+    readProduct: async () => ({ state: 'ready_for_use', record: { dataRoot: { status: 'ready', rootActivationId: 'root' } }, rootHandoff: { disposition: 'active_current_process', rootActivationId: 'root' } }),
+    normalWorkAllowed: () => true, onInvalidated() {},
+  });
+  const { generation } = await admission.read();
+  const host = createDesktopInstalledAppHost(control, undefined, undefined, admission.authorizeFocus);
+  const call = (command: string, payload = { payload: { launchSelector: selector, ...(command === 'installed_app_focus' ? { generation, requestId: 'focus-request' } : {}) } }) => host.commandHandlers[command]!({ payload });
   let run = await call('installed_app_launch') as InstalledAppRun;
   assert.equal(run.state, 'running');
   assert.equal(run.accessAvailable, false);

@@ -34,6 +34,25 @@ test('owner invalidation fences a late gate read and rotates the display generat
   assert.equal(result.state, 'unknown');
 });
 
+test('focus admission rechecks the formal owner and its final synchronous fence rejects later invalidation', async () => {
+  let allowed = true;
+  const gate = createSystemEntryAdmission({ readProduct: async () => ready, readAccount: async () => account, normalWorkAllowed: () => allowed, onInvalidated() {} });
+  const first = await gate.read();
+  const assertCurrent = await gate.authorizeFocus(first.generation);
+  assert.doesNotThrow(assertCurrent);
+  allowed = false;
+  assert.throws(assertCurrent, /system-entry-view-stale/);
+  allowed = true;
+  gate.invalidate();
+  assert.throws(assertCurrent, /system-entry-view-stale/);
+  await assert.rejects(gate.authorizeFocus(first.generation), /system-entry-view-stale/);
+  const next = await gate.read();
+  const nextCurrent = await gate.authorizeFocus(next.generation);
+  gate.setLocked(true);
+  assert.throws(nextCurrent, /system-entry-view-stale/);
+  await assert.rejects(gate.authorizeFocus(next.generation), /system-entry-view-stale/);
+});
+
 test('navigation is acknowledged only by the current request and generation', async () => {
   let sent!: SystemEntryActionDispatch;
   const relay = createSystemEntryActionRelay({ send: value => { sent = value; } });

@@ -5,7 +5,7 @@ import { createSystemEntryPublisher, type SystemEntryProjectionDraft } from '../
 
 function draft(generation: string, label = 'first'): SystemEntryProjectionDraft {
   const section = { status: 'available' as const, observedAt: null, total: 0, items: [] };
-  return { generation, locale: 'en', observedAt: '2026-10-23T03:00:00.000Z', service: 'running',
+  return { generation, locale: 'en', colorScheme: 'light', observedAt: '2026-10-23T03:00:00.000Z', service: 'running',
     attention: section, work: section, recent: section, apps: section, downloads: section,
     usage: { status: 'available', observedAt: null, periodLabel: label, attempts: '0', localAttempts: '0', cloudAttempts: '0', costs: [], partial: false, note: '' },
     notificationsEnabled: true, notificationsPausedUntil: 0 };
@@ -65,5 +65,23 @@ test('temporary context read failure does not reset the revision in an unchanged
     publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
     fail = true; await publisher.refreshContext(); fail = false; await publisher.refreshContext(); publisher.update(); await flush();
     assert.deepEqual(calls, [1, 2]);
+  } finally { publisher.stop(); }
+});
+
+test('a Home color scheme change republishes even when business observations are unchanged', async () => {
+  let current = draft('a');
+  const calls: SystemEntryProjection[] = [];
+  const publisher = createSystemEntryPublisher({
+    readContext: async () => ({ generation: 'a', state: 'ready', homeVisible: true }),
+    heartbeat: async () => {}, publish: async value => { calls.push(value); }, draft: () => current,
+    onContext: () => {}, onPublished: () => {}, refreshSources: async () => {},
+  });
+  try {
+    publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+    current = { ...current, colorScheme: 'dark' }; publisher.update(); await flush();
+    current = { ...current, colorScheme: 'light' }; publisher.update(); await flush();
+    assert.deepEqual(calls.map(value => value.colorScheme), ['light', 'dark', 'light']);
+    assert.deepEqual(calls.map(value => value.revision), [1, 2, 3]);
+    assert.equal(calls[0]!.observedAt, calls[2]!.observedAt);
   } finally { publisher.stop(); }
 });

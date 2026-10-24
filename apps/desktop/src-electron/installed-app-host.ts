@@ -1,4 +1,6 @@
 import type { DesktopExecutorObservation } from './execution-notices-host.js';
+import type { SystemEntryFocusAuthorization } from './system-entry-admission.js';
+import { parseSystemEntryFocusContext } from '../src/shell/shared/system-entry-types.js';
 import { writeDesktopStderr } from './stderr-log.js';
 import {
   createNimiElectronInstalledAppControl,
@@ -21,6 +23,7 @@ export function createDesktopInstalledAppHost(
   control: NimiElectronInstalledAppControl = createNimiElectronInstalledAppControl(),
   operationGate: DesktopDataRootOperationGate = createDesktopDataRootOperationGate(),
   onExecutorChanged?: (value: DesktopExecutorObservation) => void,
+  authorizeSystemEntryFocus?: SystemEntryFocusAuthorization,
 ) {
   const runs = new Map<string, Run>();
   let closing = false;
@@ -92,7 +95,7 @@ export function createDesktopInstalledAppHost(
   };
   const invoke = async (command: typeof COMMANDS[number], payload: Readonly<Record<string, unknown>>): Promise<unknown> => {
     if (command === 'installed_app_runs_list') return Promise.all([...runs.values()].map(refresh));
-    const selector = parseSelector(payload, command === 'installed_app_uninstall');
+    const selector = parseSelector(payload, command);
     const key = Buffer.from(selector).toString('base64');
     let run = runs.get(key);
     if (command === 'installed_app_uninstall') {
@@ -204,9 +207,18 @@ export function createDesktopInstalledAppHost(
       return project(run);
     }
     if (!run?.launchId) throw new Error('installed-app-run-unavailable');
-    if (run.pending) return project(run);
+    if (run.pending) {
+      if (command === 'installed_app_focus') throw new Error('installed-app-run-unavailable');
+      return project(run);
+    }
     const id = run.launchId;
     if (command === 'installed_app_focus') {
+      if (!authorizeSystemEntryFocus) throw new Error('system-entry-admission-required');
+      const focusContext = payload.payload as { generation: unknown; requestId: unknown };
+      const { generation, requestId } = parseSystemEntryFocusContext({ generation: focusContext.generation, requestId: focusContext.requestId });
+      const assertCurrent = await authorizeSystemEntryFocus(generation, requestId, { kind: 'installed', launchSelector: [...selector] });
+      if (closing || run.stopRequested || run.pending || run.launchId !== id || runs.get(key) !== run || run.view.state !== 'running') throw new Error('installed-app-run-unavailable');
+      assertCurrent();
       await control.focus(id);
       run.view = { ...run.view, reasonCode: undefined, message: '' };
       return refresh(run);
@@ -282,10 +294,11 @@ export function createDesktopInstalledAppHost(
   };
 }
 
-function parseSelector(value: Readonly<Record<string, unknown>>, uninstall = false): Uint8Array {
+function parseSelector(value: Readonly<Record<string, unknown>>, command: typeof COMMANDS[number]): Uint8Array {
   const payload = value.payload;
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || Object.keys(payload).sort().join('|') !== (uninstall ? 'jobId|launchSelector' : 'launchSelector')) throw new Error('installed-app-intent-invalid');
-  if (uninstall) {
+  const keys = command === 'installed_app_uninstall' ? 'jobId|launchSelector' : command === 'installed_app_focus' ? 'generation|launchSelector|requestId' : 'launchSelector';
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || Object.keys(payload).sort().join('|') !== keys) throw new Error('installed-app-intent-invalid');
+  if (command === 'installed_app_uninstall') {
     const jobId = (payload as { jobId: unknown }).jobId;
     if (!Array.isArray(jobId) || jobId.length === 0 || jobId.length > 160 || jobId.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) throw new Error('installed-app-intent-invalid');
   }

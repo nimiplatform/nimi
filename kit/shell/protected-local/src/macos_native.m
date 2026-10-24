@@ -17,6 +17,7 @@
 #include <pwd.h>
 #include <signal.h>
 #include <spawn.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1022,12 +1023,61 @@ int nimi_macos_child_exit_code(uint32_t pid, uint32_t *output) {
     return 1;
 }
 
-int nimi_macos_focus_child(uint32_t pid) {
-    if (pid == 0) return EINVAL;
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
+static int nimi_macos_focus_child_on_main(uint32_t pid) {
     @autoreleasepool {
         NSRunningApplication *application = [NSRunningApplication runningApplicationWithProcessIdentifier:(pid_t)pid];
         if (application == nil || application.terminated) return ESRCH;
-        return [application activateWithOptions:NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps] ? 0 : EIO;
+        // Use the existing Electron application only. This carrier must never
+        // manufacture a second shell when called without an AppKit host.
+        if (NSApp == nil) return ESRCH;
+        NSRunningApplication *source = NSRunningApplication.currentApplication;
+        if (source == nil || source.terminated) return ESRCH;
+        const BOOL source_active = source.active;
+        const BOOL host_active = NSApp.active;
+        const BOOL target_active = application.active;
+        const BOOL target_hidden = application.hidden;
+        const NSInteger target_policy = application.activationPolicy;
+        BOOL accepted;
+        if (@available(macOS 14.0, *)) {
+            [NSApp yieldActivationToApplication:application];
+            accepted = [application activateFromApplication:source options:NSApplicationActivateAllWindows];
+        } else {
+            // macOS 13 remains supported; the ignoring-other-apps option has
+            // no effect on 14+, whose cooperative API is used above.
+            accepted = [application activateWithOptions:NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps];
+        }
+        const char *diagnostics = getenv("NIMI_PROTECTED_LOCAL_DIAGNOSTICS");
+        if (diagnostics != NULL && strcmp(diagnostics, "1") == 0) {
+            // Numeric observations only, captured before the request. An
+            // accepted request is not evidence of the target's final focus.
+            fprintf(stderr, "[protected-local macos-focus] source_active=%d host_active=%d target_active=%d target_hidden=%d target_policy=%ld accepted=%d\n",
+                source_active, host_active, target_active, target_hidden, (long)target_policy, accepted);
+        }
+        return accepted ? 0 : EIO;
+    }
+}
+
+int nimi_macos_focus_child(uint32_t pid) {
+    if (pid == 0) return EINVAL;
+    if (NSApp == nil) return ESRCH;
+    if (NSThread.isMainThread) return nimi_macos_focus_child_on_main(pid);
+    @autoreleasepool {
+        // NAPI invokes this from a worker while the exact owned process is
+        // retained. Bound the main-queue handoff and cancel unstarted work so
+        // an unresponsive host cannot focus a stale destination later.
+        const NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 2.0;
+        __block int result = ETIMEDOUT;
+        dispatch_block_t request = dispatch_block_create(0, ^{
+            if (NSProcessInfo.processInfo.systemUptime >= deadline) return;
+            result = nimi_macos_focus_child_on_main(pid);
+        });
+        dispatch_async(dispatch_get_main_queue(), request);
+        if (dispatch_block_wait(request, dispatch_time(DISPATCH_TIME_NOW, 2LL * NSEC_PER_SEC)) != 0) {
+            dispatch_block_cancel(request);
+            return ETIMEDOUT;
+        }
+        return result;
     }
 }
 

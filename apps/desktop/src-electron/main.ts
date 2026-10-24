@@ -114,7 +114,7 @@ import {
 } from './connector-auth-acquisition-host.js';
 import { createDesktopElectronRendererLogHost } from './renderer-log-host.js';
 import { createDesktopSystemEntryHost, type DesktopSystemEntryHost } from './system-entry-host.js';
-import { createSystemEntryAdmission } from './system-entry-admission.js';
+import { createSystemEntryAdmission, type SystemEntryFocusAuthorization } from './system-entry-admission.js';
 import { createSystemEntryActionRelay } from './system-entry-action-relay.js';
 import { createDesktopQuitCoordinator } from './system-entry-quit-coordinator.js';
 import {
@@ -511,12 +511,19 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     const dataRootOperationGate = createDesktopDataRootOperationGate();
     homeDataRootOperationGate = dataRootOperationGate;
     const appLaunchGate = desktopAppLaunchGate(dataRootOperationGate);
+    const authorizeSystemEntryFocus: SystemEntryFocusAuthorization = async (generation, requestId, source) => {
+      if (!systemEntryAdmission || !systemEntryActionRelay) throw new Error('system-entry-admission-required');
+      const claim = systemEntryActionRelay.prepareFocus(requestId, generation, source);
+      const assertCurrent = await systemEntryAdmission.authorizeFocus(generation);
+      return () => { assertCurrent(); claim(); };
+    };
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
+      authorizeSystemEntryFocus,
       operationGate: appLaunchGate,
       onExecutorChanged: executionNotices.observe,
     });
-    installedAppHost = createDesktopInstalledAppHost(undefined, appLaunchGate, executionNotices.observe);
+    installedAppHost = createDesktopInstalledAppHost(undefined, appLaunchGate, executionNotices.observe, authorizeSystemEntryFocus);
     const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
@@ -1252,7 +1259,20 @@ async function confirmDesktopUserQuit(impact: { installed: readonly string[]; de
   const options: MessageBoxOptions = { type: 'question', title: chinese ? '退出 Nimi Home？' : 'Quit Nimi Home?',
     message: chinese ? '退出会关闭由 Home 托管的 App。' : 'Quitting will close Home-supervised Apps.', detail,
     buttons: chinese ? ['取消', '退出 Home'] : ['Cancel', 'Quit Home'], defaultId: 0, cancelId: 0, noLink: true };
+  // A sheet on a hidden window is inaccessible; a standalone macOS dialog
+  // can merely bounce the Dock icon while the app is inactive. Explicit quit
+  // must restore the owner window before asking the user to confirm.
+  if (systemSessionEnding) return false;
   const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  // Keep native quit independent of a crashed/unresponsive renderer: do not
+  // await Home creation or loadURL just to make the confirmation actionable.
+  if (window) {
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.moveTop();
+    window.focus();
+  }
+  if (process.platform === 'darwin') app.focus({ steal: true });
   const result = window ? await dialog.showMessageBox(window, options) : await dialog.showMessageBox(options);
   return result.response === 1;
 }
@@ -1280,6 +1300,10 @@ async function dispatchDesktopSystemEntryAction(action: SystemEntryAction, conte
     await focusDesktopMainWindow();
     throw new Error('system-entry-view-stale');
   }
+  // macOS panels do not activate their owning application. Cooperative
+  // activation can only be yielded by the active owner; activate Home's
+  // application for this explicit action without showing its hidden window.
+  if (process.platform === 'darwin' && action.kind === 'focus-app') app.focus({ steal: true });
   if (!['focus-app', 'open-activity', 'pause-notifications', 'resume-notifications', 'refresh'].includes(action.kind)) {
     await focusDesktopMainWindow();
   }

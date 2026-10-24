@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
-import { AlertCircle, ArrowUpRight, Bell, BellOff, CheckCircle2, ChevronRight, Download, MoreHorizontal, RefreshCw, X } from 'lucide-react';
+// Keep the independent overview's development graph limited to its ten icons.
+// The package barrel prebundles the entire icon catalog into this renderer.
+import AlertCircle from 'lucide-react/dist/esm/icons/circle-alert.mjs';
+import ArrowUpRight from 'lucide-react/dist/esm/icons/arrow-up-right.mjs';
+import Bell from 'lucide-react/dist/esm/icons/bell.mjs';
+import BellOff from 'lucide-react/dist/esm/icons/bell-off.mjs';
+import CheckCircle2 from 'lucide-react/dist/esm/icons/circle-check.mjs';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right.mjs';
+import Download from 'lucide-react/dist/esm/icons/download.mjs';
+import MoreHorizontal from 'lucide-react/dist/esm/icons/ellipsis.mjs';
+import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.mjs';
+import X from 'lucide-react/dist/esm/icons/x.mjs';
 import type {
   SystemEntryAction,
   SystemEntryBridge,
@@ -112,6 +123,11 @@ export function SystemEntryApp() {
     return () => { alive = false; off(); };
   }, [bridge]);
   useEffect(() => { document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'; }, [locale]);
+  useEffect(() => {
+    // Home resolves both its explicit preference and system changes. The
+    // isolated overview receives only that display value, never its store.
+    document.documentElement.style.colorScheme = snapshot?.colorScheme ?? 'light dark';
+  }, [snapshot?.colorScheme]);
 
   const act = useCallback((action: SystemEntryAction) => {
     if (!bridge || busy) return;
@@ -123,7 +139,7 @@ export function SystemEntryApp() {
   }, [bridge, busy, snapshot]);
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
-    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled):not([hidden])')];
     const first = buttons[0], last = buttons.at(-1);
     if (!first || !last) return;
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

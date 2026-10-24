@@ -29,6 +29,9 @@ import { resolveLocalDevelopmentElectronHostLaunch } from '../src-electron/local
 import { createDesktopDataRootOperationGate } from '../src-electron/data-root-operation-gate.js';
 import { localDevelopmentCdpPort } from '../src-electron/local-development-host-protocol.js';
 import type { DesktopExecutorObservation } from '../src-electron/execution-notices-host.js';
+import { createSystemEntryAdmission } from '../src-electron/system-entry-admission.js';
+import { createSystemEntryActionRelay } from '../src-electron/system-entry-action-relay.js';
+import type { SystemEntryActionDispatch } from '../src/shell/shared/system-entry-types.js';
 
 const HANDLE = '11'.repeat(32);
 const SUPERVISOR = '22'.repeat(32);
@@ -365,6 +368,70 @@ describe('Desktop Electron local-development registration host', () => {
     run.status.state = 'preparing';
     assert.equal(await host.startRegistrationHandle(HANDLE), true);
     assert.deepEqual(focused, [SUPERVISOR], 'a pending launch has no focusable Host yet');
+  });
+
+  it('system-entry focus cannot survive account, lock or activation invalidation during registration listing', async () => {
+    for (const change of ['account', 'locked', 'activation'] as const) {
+      let accountId = 'account-a';
+      const admission = createSystemEntryAdmission({
+        readAccount: async () => ({ state: 'authenticated', accountProjection: { accountId, realmEnvironmentId: 'realm' } }),
+        readProduct: async () => ({ state: 'ready_for_use', record: { dataRoot: { status: 'ready', rootActivationId: 'root' } }, rootHandoff: { disposition: 'active_current_process', rootActivationId: 'root' } }),
+        normalWorkAllowed: () => true, onInvalidated() {},
+      });
+      const { generation } = await admission.read();
+      let release!: () => void, entered!: () => void;
+      const listing = new Promise<void>(resolve => { entered = resolve; });
+      let defer = true;
+      const focused: string[] = [];
+      const host = new ElectronLocalDevelopmentHost(control({
+        listRegistrations: async () => { if (defer) { entered(); await new Promise<void>(resolve => { release = resolve; }); } return [registration()]; },
+        focusHost: async id => { focused.push(id); },
+        launch: async () => { throw new Error('focus must not launch'); },
+      }), '/tmp', undefined, undefined, undefined, admission.authorizeFocus);
+      const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>>; registrationSelectors: Map<string, string> };
+      const run = activeRun();
+      internal.runs.set(run.status.runId, run);
+      internal.registrationSelectors.set('dev-project-example', HANDLE);
+      const request = { payload: { selector: 'dev-project-example', generation, requestId: 'focus-request' } };
+      const pending = host.invoke('local_development_registration_focus', request);
+      await listing;
+      if (change === 'account') { accountId = 'account-b'; admission.observeAccount({ state: 'authenticated', accountProjection: { accountId, realmEnvironmentId: 'realm' } }); }
+      else if (change === 'locked') admission.setLocked(true);
+      else admission.invalidate();
+      release();
+      await assert.rejects(pending, /system-entry-view-stale/);
+      assert.deepEqual(focused, [], change);
+      admission.setLocked(false); defer = false;
+      const current = await admission.read();
+      await host.invoke('local_development_registration_focus', { payload: { selector: 'dev-project-example', generation: current.generation, requestId: 'focus-request' } });
+      assert.deepEqual(focused, [SUPERVISOR]);
+      await assert.rejects(host.invoke('local_development_registration_focus', { payload: { selector: 'dev-project-example' } }));
+      run.stopped = true;
+      await assert.rejects(host.invoke('local_development_registration_focus', { payload: { selector: 'dev-project-example', generation: current.generation, requestId: 'focus-request' } }), /local-development-run-not-found/);
+      assert.deepEqual(focused, [SUPERVISOR]);
+    }
+  });
+
+  it('system-entry focus waiting for a registration read cannot execute after its relay deadline', async () => {
+    let sent!: SystemEntryActionDispatch;
+    const relay = createSystemEntryActionRelay({ send: value => { sent = value; }, timeoutMs: 15 });
+    const source = { kind: 'local-development' as const, selector: 'dev-project-example' };
+    const expired = assert.rejects(relay.dispatch({ kind: 'focus-app', entryKey: 'local_development:example:dev-project-example', source }, { generation: 'g', revision: 1 }), /action-unconfirmed/);
+    let release!: () => void, entered!: () => void, focuses = 0;
+    const listing = new Promise<void>(resolve => { entered = resolve; });
+    const host = new ElectronLocalDevelopmentHost(control({
+      listRegistrations: async () => { entered(); await new Promise<void>(resolve => { release = resolve; }); return [registration()]; },
+      focusHost: async () => { focuses++; }, launch: async () => { throw new Error('unexpected launch'); },
+    }), '/tmp', undefined, undefined, undefined, async (generation, requestId, actualSource) => relay.prepareFocus(requestId, generation, actualSource));
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>>; registrationSelectors: Map<string, string> };
+    const run = activeRun(); internal.runs.set(run.status.runId, run); internal.registrationSelectors.set(source.selector, HANDLE);
+    const pending = host.invoke('local_development_registration_focus', { payload: { selector: source.selector, generation: 'g', requestId: sent.requestId } });
+    await listing;
+    await new Promise(resolve => setTimeout(resolve, 25));
+    await expired;
+    release();
+    await assert.rejects(pending, /system-entry-action-stale/);
+    assert.equal(focuses, 0);
   });
 
   it('reports build launcher failures without exposing error payloads or requiring another supervisor', async () => {

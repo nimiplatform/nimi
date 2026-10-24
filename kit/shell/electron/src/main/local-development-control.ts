@@ -232,10 +232,14 @@ async function invokeNative(invoke: () => Promise<NativeJsonOutcome>, operation:
     }
     if (process.env.NIMI_PROTECTED_LOCAL_DIAGNOSTICS === '1') {
       const stage = isRecord(outcome.reasonMetadata) ? outcome.reasonMetadata.diagnostic_stage : undefined;
+      const errno = isRecord(outcome.reasonMetadata) ? outcome.reasonMetadata.native_errno : undefined;
+      const nativeErrno = typeof errno === 'string' && /^[1-9]\d{0,9}$/u.test(errno)
+        && Number(errno) <= 2_147_483_647 ? Number(errno) : undefined;
       console.warn('[protected-local development-control] failed', {
         operation,
         reasonCode: outcome.reasonCode,
         diagnosticStage: typeof stage === 'string' && /^[a-z][a-z0-9-]{0,95}$/u.test(stage) ? stage : 'none',
+        ...(nativeErrno === undefined ? {} : { nativeErrno }),
       });
     }
     throw controlError(outcome.reasonCode, outcome.retryable, operation);

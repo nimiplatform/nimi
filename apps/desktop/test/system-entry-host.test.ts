@@ -66,9 +66,9 @@ class TestWindow extends EventEmitter {
 function projection(generation = 'account-a', revision = 1): SystemEntryProjection {
   const empty = { status: 'available' as const, observedAt: '2026-10-23T03:00:00.000Z', total: 0, items: [] };
   return {
-    generation, revision, locale: 'en', observedAt: '2026-10-23T03:00:00.000Z', service: 'running',
+    generation, revision, locale: 'en', colorScheme: 'light', observedAt: '2026-10-23T03:00:00.000Z', service: 'running',
     attention: empty, work: empty, recent: empty,
-    apps: { ...empty, total: 1, items: [{ id: 'app-registration-1', title: 'Notes & Tasks', detail: 'Open', action: { kind: 'focus-app', entryKey: 'owned-entry-1' } }] },
+    apps: { ...empty, total: 1, items: [{ id: 'app-registration-1', title: 'Notes & Tasks', detail: 'Open', action: { kind: 'focus-app', entryKey: 'owned-entry-1', source: { kind: 'local-development', selector: 'dev-project-one' } } }] },
     downloads: empty,
     usage: { status: 'available', observedAt: empty.observedAt, periodLabel: 'Today', attempts: '0', localAttempts: '0', cloudAttempts: '0', costs: [], partial: false, note: '' },
     notificationsEnabled: true, notificationsPausedUntil: 0,
@@ -180,9 +180,9 @@ test('old native-menu actions and invented object identities fail current-scope 
     assert.equal(value.errors.includes('system-entry-action'), true);
     assert.equal(value.executed.length, 0);
     await value.host.publish(projection('account-b', 1));
-    await assert.rejects(value.host.act({ generation: 'account-b', revision: 1, action: { kind: 'focus-app', entryKey: 'invented-entry' } }), /system-entry-action-unavailable/);
+    await assert.rejects(value.host.act({ generation: 'account-b', revision: 1, action: { kind: 'focus-app', entryKey: 'invented-entry', source: { kind: 'local-development', selector: 'dev-project-one' } } }), /system-entry-action-unavailable/);
     assert.deepEqual(value.executed, []);
-    await value.host.act({ generation: 'account-b', revision: 1, action: { kind: 'focus-app', entryKey: 'owned-entry-1' } });
+    await value.host.act({ generation: 'account-b', revision: 1, action: { kind: 'focus-app', entryKey: 'owned-entry-1', source: { kind: 'local-development', selector: 'dev-project-one' } } });
     assert.equal(value.executed.length, 1);
   } finally { value.host.dispose(); }
 });
@@ -285,6 +285,26 @@ test('locale replacement rebuilds native commands and removes an already-open ol
     value.host.openMenu();
     assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-home')?.label, '打开 Nimi Home');
     assert.equal(value.tray().contextMenuCalls, 0);
+  } finally { value.host.dispose(); }
+});
+
+test('overview keeps the Home display scheme when private activity is invalidated', async () => {
+  const value = fixture('darwin');
+  try {
+    await value.host.initialize();
+    assert.equal((await value.host.snapshot()).colorScheme, null);
+    await value.host.publish({ ...projection(), colorScheme: 'dark' });
+    await value.host.openOverview();
+    assert.deepEqual(value.window().webContents.messages.at(-1)?.value, await value.host.snapshot());
+    assert.equal((await value.host.snapshot()).colorScheme, 'dark');
+    value.host.invalidate();
+    value.setAdmission({ generation: 'locked-generation', state: 'locked' });
+    const locked = await value.host.snapshot();
+    assert.equal(locked.projection, null);
+    assert.equal(locked.colorScheme, 'dark');
+    value.setAdmission({ generation: 'ready-generation', state: 'ready' });
+    await value.host.publish({ ...projection('ready-generation'), colorScheme: 'light' });
+    assert.equal((await value.host.snapshot()).colorScheme, 'light');
   } finally { value.host.dispose(); }
 });
 

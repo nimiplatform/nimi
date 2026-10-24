@@ -136,6 +136,19 @@ export default defineConfig(({ mode }) => {
       include: [
         'zustand',
         'zustand/traditional',
+        // The overview is opened after Home. With HMR disabled, discovering
+        // these only on its first open invalidates in-flight module URLs and
+        // leaves the independent renderer blank. Prepare its small graph now.
+        'lucide-react/dist/esm/icons/circle-alert.mjs',
+        'lucide-react/dist/esm/icons/arrow-up-right.mjs',
+        'lucide-react/dist/esm/icons/bell.mjs',
+        'lucide-react/dist/esm/icons/bell-off.mjs',
+        'lucide-react/dist/esm/icons/circle-check.mjs',
+        'lucide-react/dist/esm/icons/chevron-right.mjs',
+        'lucide-react/dist/esm/icons/download.mjs',
+        'lucide-react/dist/esm/icons/ellipsis.mjs',
+        'lucide-react/dist/esm/icons/refresh-cw.mjs',
+        'lucide-react/dist/esm/icons/x.mjs',
       ],
     },
     resolve: {

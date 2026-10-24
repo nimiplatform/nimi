@@ -17,6 +17,7 @@ export const SYSTEM_ENTRY_HOME_COMMANDS = Object.freeze({
 export const SYSTEM_ENTRY_ACTION_EVENT = 'system-entry://action';
 export const SYSTEM_ENTRY_VISIBILITY_EVENT = 'system-entry://visibility';
 export const SYSTEM_ENTRY_HEARTBEAT_MS = 10_000;
+export const SYSTEM_ENTRY_ACTION_DISPATCH_MS = 14_000;
 export const SYSTEM_ENTRY_LIVENESS_MS = 15_000;
 
 export type SystemEntryAdmissionState = 'ready' | 'login-required' | 'recovery-required' | 'unknown' | 'locked';
@@ -25,10 +26,14 @@ export type SystemEntryAdmission = Readonly<{
   state: SystemEntryAdmissionState;
 }>;
 export type SystemEntryLocale = 'zh' | 'en';
+export type SystemEntryColorScheme = 'light' | 'dark';
+export type SystemEntryFocusSource =
+  | Readonly<{ kind: 'local-development'; selector: string }>
+  | Readonly<{ kind: 'installed'; launchSelector: readonly number[] }>;
 export type SystemEntrySectionStatus = 'loading' | 'available' | 'partial' | 'unavailable';
 export type SystemEntryAction =
   | Readonly<{ kind: 'home' | 'messages' | 'activity' | 'usage' | 'downloads' | 'ai-capabilities' | 'apps' | 'settings' | 'notification-settings' | 'support' | 'chat' | 'pause-notifications' | 'resume-notifications' | 'refresh' | 'quit' }>
-  | Readonly<{ kind: 'focus-app'; entryKey: string }>
+  | Readonly<{ kind: 'focus-app'; entryKey: string; source: SystemEntryFocusSource }>
   | Readonly<{ kind: 'continue-chat'; localAgentRef: string }>
   | Readonly<{ kind: 'open-activity'; activityId: string }>;
 export type SystemEntryActionContext = Readonly<{ generation: string; revision: number }>;
@@ -62,6 +67,7 @@ export type SystemEntryProjection = Readonly<{
   generation: string;
   revision: number;
   locale: SystemEntryLocale;
+  colorScheme: SystemEntryColorScheme;
   observedAt: string;
   service: 'running' | 'degraded' | 'starting' | 'stopped' | 'unavailable';
   attention: SystemEntrySection;
@@ -77,6 +83,7 @@ export type SystemEntrySnapshot = Readonly<{
   admission: SystemEntryAdmission;
   revision: number;
   locale: SystemEntryLocale;
+  colorScheme: SystemEntryColorScheme | null;
   observation: 'waiting' | 'current' | 'unavailable';
   homeVisible: boolean;
   projection: SystemEntryProjection | null;
@@ -131,10 +138,24 @@ export function parseSystemEntryAction(value: unknown): SystemEntryAction {
     record(value, ['kind']);
     return { kind } as SystemEntryAction;
   }
-  if (kind === 'focus-app') return { kind, entryKey: text(record(value, ['kind', 'entryKey']).entryKey, 512) };
+  if (kind === 'focus-app') {
+    const item = record(value, ['kind', 'entryKey', 'source']);
+    return { kind, entryKey: text(item.entryKey, 512), source: parseSystemEntryFocusSource(item.source) };
+  }
   if (kind === 'continue-chat') return { kind, localAgentRef: text(record(value, ['kind', 'localAgentRef']).localAgentRef, 256) };
   if (kind === 'open-activity') return { kind, activityId: text(record(value, ['kind', 'activityId']).activityId, 256) };
   return fail();
+}
+
+export function parseSystemEntryFocusSource(value: unknown): SystemEntryFocusSource {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fail();
+  if ((value as { kind?: unknown }).kind === 'local-development') {
+    const source = record(value, ['kind', 'selector']);
+    return { kind: 'local-development', selector: text(source.selector, 512) };
+  }
+  const source = record(value, ['kind', 'launchSelector']);
+  if (source.kind !== 'installed' || !Array.isArray(source.launchSelector) || source.launchSelector.length === 0 || source.launchSelector.length > 160) return fail();
+  return { kind: 'installed', launchSelector: source.launchSelector.map(byte => { const value = integer(byte); if (value > 255) return fail(); return value; }) };
 }
 
 export function parseSystemEntryActionRequest(value: unknown): SystemEntryActionRequest {
@@ -145,6 +166,11 @@ export function parseSystemEntryActionRequest(value: unknown): SystemEntryAction
 export function parseSystemEntryHeartbeat(value: unknown): { generation: string } {
   const item = record(value, ['generation']);
   return { generation: text(item.generation, 128) };
+}
+
+export function parseSystemEntryFocusContext(value: unknown): { generation: string; requestId: string } {
+  const item = record(value, ['generation', 'requestId']);
+  return { generation: text(item.generation, 128), requestId: text(item.requestId, 128) };
 }
 
 export function parseSystemEntryActionDispatch(value: unknown): SystemEntryActionDispatch {
@@ -189,9 +215,9 @@ function usage(value: unknown): SystemEntryUsage {
 }
 
 export function parseSystemEntryProjection(value: unknown): SystemEntryProjection {
-  const item = record(value, ['generation', 'revision', 'locale', 'observedAt', 'service', 'attention', 'work', 'recent', 'apps', 'downloads', 'usage', 'notificationsEnabled', 'notificationsPausedUntil']);
-  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 131_072 || (item.locale !== 'zh' && item.locale !== 'en') || typeof item.notificationsEnabled !== 'boolean' || !['running', 'degraded', 'starting', 'stopped', 'unavailable'].includes(String(item.service))) fail();
-  return { generation: text(item.generation, 128), revision: integer(item.revision), locale: item.locale, observedAt: timestamp(item.observedAt), service: item.service as SystemEntryProjection['service'], attention: section(item.attention), work: section(item.work), recent: section(item.recent), apps: section(item.apps), downloads: section(item.downloads), usage: usage(item.usage), notificationsEnabled: item.notificationsEnabled, notificationsPausedUntil: integer(item.notificationsPausedUntil) };
+  const item = record(value, ['generation', 'revision', 'locale', 'colorScheme', 'observedAt', 'service', 'attention', 'work', 'recent', 'apps', 'downloads', 'usage', 'notificationsEnabled', 'notificationsPausedUntil']);
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 131_072 || (item.locale !== 'zh' && item.locale !== 'en') || (item.colorScheme !== 'light' && item.colorScheme !== 'dark') || typeof item.notificationsEnabled !== 'boolean' || !['running', 'degraded', 'starting', 'stopped', 'unavailable'].includes(String(item.service))) fail();
+  return { generation: text(item.generation, 128), revision: integer(item.revision), locale: item.locale, colorScheme: item.colorScheme, observedAt: timestamp(item.observedAt), service: item.service as SystemEntryProjection['service'], attention: section(item.attention), work: section(item.work), recent: section(item.recent), apps: section(item.apps), downloads: section(item.downloads), usage: usage(item.usage), notificationsEnabled: item.notificationsEnabled, notificationsPausedUntil: integer(item.notificationsPausedUntil) };
 }
 
 export function isSystemEntryActionOffered(projection: SystemEntryProjection | null, action: SystemEntryAction): boolean {

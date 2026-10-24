@@ -654,6 +654,36 @@ describe('Electron local-development protected control', () => {
     }
   });
 
+  it('keeps local focus refusal typed and logs only bounded native errno diagnostics', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      for (const [errno, expected] of [['3', 3], ['5', 5], ['0', undefined], ['-1', undefined],
+        ['2147483648', undefined], ['5 private detail', undefined], [5, undefined]]) {
+        const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
+          desktopFocusLocalDevelopmentHost: async () => ({
+            status: 'error', reasonCode: 'process-focus-failed', retryable: true,
+            reasonMetadata: { diagnostic_stage: 'process-focus-activation', native_errno: errno, privateField: 'hidden-detail' },
+          }),
+        }));
+        vi.stubEnv('NIMI_PROTECTED_LOCAL_DIAGNOSTICS', '1');
+        await expect(control.focusHost(supervisorRunId)).rejects.toMatchObject({
+          reasonCode: 'process-focus-failed', actionHint: 'retry_local_development_operation',
+        });
+        expect(log).toHaveBeenLastCalledWith('[protected-local development-control] failed', {
+          operation: 'focus_local_development_host', reasonCode: 'process-focus-failed', diagnosticStage: 'process-focus-activation',
+          ...(expected === undefined ? {} : { nativeErrno: expected }),
+        });
+        log.mockClear();
+        vi.stubEnv('NIMI_PROTECTED_LOCAL_DIAGNOSTICS', '0');
+        await expect(control.focusHost(supervisorRunId)).rejects.toMatchObject({ reasonCode: 'process-focus-failed' });
+        expect(log).not.toHaveBeenCalled();
+      }
+    } finally {
+      log.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('keeps scope comparison in private typed access and rejects malformed owner projections', async () => {
     const executionScopeRef = `execution_scope_${'A'.repeat(43)}`;
     const access = vi.fn(binding().desktopLocalDevelopmentRunAccess);

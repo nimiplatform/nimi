@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import type { DesktopSystemResourceSnapshot } from '../../renderer/system-resources-port.js';
+import { useSystemEntry } from '../system-entry/system-entry-context.js';
 
 export type SystemResourceSnapshot = DesktopSystemResourceSnapshot;
 export type SystemResourceStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'stale';
@@ -33,8 +34,10 @@ function toErrorMessage(error: unknown): string {
   return 'SYSTEM_RESOURCES_UNAVAILABLE';
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.system-entry-projection
 export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
   const bindings = useDesktopRendererBindings();
+  const { homeVisible } = useSystemEntry();
   const [state, setState] = useState<SystemResourceState>({
     status: 'idle',
     snapshot: null,
@@ -42,6 +45,7 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
   });
 
   useEffect(() => {
+    if (!homeVisible) return;
     let canceled = false;
     const load = async () => {
       setState((prev) => (
@@ -73,6 +77,7 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
 
     let cancelNext: (() => void) | null = null;
     const poll = async () => {
+      if (canceled) return;
       await load();
       if (canceled) return;
       cancelNext = bindings.clock.schedule(Math.max(1500, pollIntervalMs), (result) => {
@@ -95,7 +100,7 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
       cancelNext?.();
       cancelNext = null;
     };
-  }, [bindings, pollIntervalMs]);
+  }, [bindings, homeVisible, pollIntervalMs]);
 
   return state;
 }

@@ -186,15 +186,31 @@ impl SupervisedDevelopmentProcess {
         }
     }
 
+    // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
     pub(crate) fn focus(&self) -> Result<(), NimiHostError> {
         if !self.running() {
-            return Err(untrusted());
+            return Err(
+                NimiHostError::new(NimiHostErrorReasonCode::ProcessFocusFailed, false)
+                    .with_reason_metadata(std::collections::BTreeMap::from([(
+                        "diagnostic_stage".into(),
+                        "process-focus-liveness".into(),
+                    )])),
+            );
         }
         // SAFETY: focus is restricted to this live, retained child PID.
-        if unsafe { nimi_macos_focus_child(self.pid) } == 0 {
+        let status = unsafe { nimi_macos_focus_child(self.pid) };
+        if status == 0 {
             Ok(())
         } else {
-            Err(untrusted())
+            // OS window activation is local to this App; refusal says nothing
+            // about the independently verified Runtime transport.
+            Err(
+                NimiHostError::new(NimiHostErrorReasonCode::ProcessFocusFailed, true)
+                    .with_reason_metadata(std::collections::BTreeMap::from([
+                        ("diagnostic_stage".into(), "process-focus-activation".into()),
+                        ("native_errno".into(), status.to_string()),
+                    ])),
+            )
         }
     }
 
@@ -416,6 +432,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unavailable_child_focus_is_not_a_runtime_trust_failure() {
+        let process = SupervisedDevelopmentProcess {
+            pid: 0,
+            process_events: std::fs::File::open("/dev/null").unwrap().into(),
+            terminated: AtomicBool::new(true),
+        };
+        let error = process.focus().unwrap_err();
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::ProcessFocusFailed
+        );
+        assert!(!error.retryable());
+        assert_eq!(
+            error
+                .reason_metadata()
+                .get("diagnostic_stage")
+                .map(String::as_str),
+            Some("process-focus-liveness")
+        );
+    }
+
+    #[test]
     fn failed_termination_remains_retryable() {
         let process = SupervisedDevelopmentProcess {
             // Native termination rejects zero before attempting any signal.
@@ -513,6 +551,29 @@ mod tests {
         .unwrap();
         assert!(process.running());
         assert_eq!(process.exit_code().unwrap(), None);
+        // A suspended command-line child has no NSRunningApplication to
+        // activate. This real native refusal must leave Runtime trust intact
+        // and preserve the OS result without operating any product window.
+        let focus_error = process.focus().unwrap_err();
+        assert_eq!(
+            focus_error.reason_code(),
+            NimiHostErrorReasonCode::ProcessFocusFailed
+        );
+        assert!(focus_error.retryable());
+        assert_eq!(
+            focus_error
+                .reason_metadata()
+                .get("diagnostic_stage")
+                .map(String::as_str),
+            Some("process-focus-activation")
+        );
+        assert_eq!(
+            focus_error
+                .reason_metadata()
+                .get("native_errno")
+                .map(String::as_str),
+            Some(libc::ESRCH.to_string().as_str())
+        );
         process.resume().unwrap();
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
         loop {

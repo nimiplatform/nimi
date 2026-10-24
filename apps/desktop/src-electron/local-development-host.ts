@@ -1,4 +1,6 @@
 import type { DesktopExecutorObservation } from './execution-notices-host.js';
+import type { SystemEntryFocusAuthorization } from './system-entry-admission.js';
+import { parseSystemEntryFocusContext } from '../src/shell/shared/system-entry-types.js';
 import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -162,6 +164,7 @@ export type DesktopElectronLocalDevelopmentHost = {
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
 export async function createDesktopElectronLocalDevelopmentHost(input: {
   readonly homeDirectory: string;
+  readonly authorizeSystemEntryFocus: SystemEntryFocusAuthorization;
   readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void;
   readonly control?: NimiElectronLocalDevelopmentControl;
   readonly operationGate?: DesktopDataRootOperationGate;
@@ -172,6 +175,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
     input.operationGate ?? createDesktopDataRootOperationGate(),
     undefined,
     input.onExecutorChanged,
+    input.authorizeSystemEntryFocus,
   );
   await host.start();
   return {
@@ -214,6 +218,7 @@ export class ElectronLocalDevelopmentHost {
     private readonly operationGate: DesktopDataRootOperationGate = createDesktopDataRootOperationGate(),
     private readonly launcherLeaseMs = LAUNCHER_LEASE_MS,
     private readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void,
+    private readonly authorizeSystemEntryFocus?: SystemEntryFocusAuthorization,
   ) {
     this.presencePublisher = createDesktopElectronLocalDevelopmentPresencePublisher({ homeDirectory });
   }
@@ -828,16 +833,20 @@ export class ElectronLocalDevelopmentHost {
   // @nimi-authority: rule.nimi.desktop.shell-ui.r065
   private async focusRegistration(payload: Readonly<Record<string, unknown>>): Promise<ReturnType<typeof projectRun>> {
     if (this.closing) throw new Error('local-development-owner-closing');
-    const value = exact(payload, ['selector']);
+    const value = exact(payload, ['selector', 'generation', 'requestId']);
+    const { generation, requestId } = parseSystemEntryFocusContext({ generation: value.generation, requestId: value.requestId });
+    if (!this.authorizeSystemEntryFocus) throw new Error('system-entry-admission-required');
     const selectorValue = selector(value.selector, 'dev-project');
     const registrationHandle = this.registrationSelectors.get(selectorValue);
     if (!registrationHandle) throw new Error('local-development-registration-not-found');
     const registration = (await this.control.listRegistrations()).find(row => row.registrationHandle === registrationHandle);
+    const assertCurrent = await this.authorizeSystemEntryFocus(generation, requestId, { kind: 'local-development', selector: selectorValue });
     if (this.closing || !registration || registration.project.shell !== 'electron'
       || this.registrationSelectors.get(selectorValue) !== registrationHandle) throw new Error('local-development-registration-not-found');
     const run = [...this.runs.values()].find(candidate => !candidate.stopped
       && candidate.registrationHandle === registrationHandle && candidate.status.state === 'running');
     if (!run) throw new Error('local-development-run-not-found');
+    assertCurrent();
     await this.control.focusHost(run.supervisorRunId);
     if (run.stopped || run.registrationHandle !== registrationHandle || run.status.state !== 'running') throw new Error('local-development-run-not-found');
     return projectRun(run.status, selectorValue);

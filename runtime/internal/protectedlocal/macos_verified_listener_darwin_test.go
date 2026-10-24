@@ -31,6 +31,73 @@ func TestMacOSDesktopListenerReplacesOnlyTheSameVerifiedPeer(t *testing.T) {
 	}
 }
 
+func TestMacOSDesktopReplacementRequiresFullProcessIdentity(t *testing.T) {
+	peer := DesktopPeerIdentity{OS: OSMacOS, PID: 101, UID: 501, AuditSession: 7}
+	for name, mutate := range map[string]func(*ProcessTuple){
+		"creation marker":     func(value *ProcessTuple) { value.CreationMarker += "-changed" },
+		"login session":       func(value *ProcessTuple) { value.OSLoginSession += "-changed" },
+		"principal":           func(value *ProcessTuple) { value.SecurityPrincipal += "-changed" },
+		"executable identity": func(value *ProcessTuple) { value.CanonicalExecutableIdentity += "-changed" },
+		"executable path":     func(value *ProcessTuple) { value.CanonicalExecutablePath += "-changed" },
+		"digest":              func(value *ProcessTuple) { value.ExecutableDigest[1] ^= 1 },
+		"trust set":           func(value *ProcessTuple) { value.ExecutableTrustSetID += "-changed" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			listener := &MacOSVerifiedDesktopListener{}
+			current := testMacOSVerifiedDesktopConnection(t, listener, peer)
+			if _, ok := listener.activate(current); !ok {
+				t.Fatal("initial verified process was rejected")
+			}
+			activeDone := listener.activeDone
+			process, ok := current.connection.ClientProcess()
+			if !ok {
+				t.Fatal("current verified process has no complete identity")
+			}
+			mutate(&process)
+			candidate, err := newDirectDesktopConnectionWithClient(peer, process, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(candidate.Revoke)
+			if replaced, ok := listener.activate(&macOSVerifiedDesktopNetConn{connection: candidate, listener: listener}); ok || replaced != nil || listener.active != current {
+				t.Fatal("same PID and audit session hid a changed exact process identity")
+			}
+			select {
+			case <-activeDone:
+				t.Fatal("refused replacement changed the current connection lifetime")
+			default:
+			}
+		})
+	}
+}
+
+func TestMacOSDesktopReplacementRejectsMissingProcessProof(t *testing.T) {
+	peer := DesktopPeerIdentity{OS: OSMacOS, PID: 101, UID: 501, AuditSession: 7}
+	for _, missing := range []string{"current", "replacement", "both"} {
+		t.Run(missing, func(t *testing.T) {
+			listener := &MacOSVerifiedDesktopListener{}
+			current := testMacOSVerifiedDesktopConnection(t, listener, peer)
+			replacement := testMacOSVerifiedDesktopConnection(t, listener, peer)
+			withoutProof, err := newDirectDesktopConnection(peer, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(withoutProof.Revoke)
+			if missing != "replacement" {
+				current.connection = withoutProof
+			}
+			if missing != "current" {
+				replacement.connection = withoutProof
+			}
+			listener.active = current
+			listener.activeDone = make(chan struct{})
+			if replaced, ok := listener.activate(replacement); ok || replaced != nil || listener.active != current {
+				t.Fatal("minimal peer identity authorized replacement without complete process proof")
+			}
+		})
+	}
+}
+
 func TestMacOSDesktopProcessTupleRetainsVerifiedPeerEvidence(t *testing.T) {
 	snapshot := macOSProcessSnapshot{
 		pid: 101, euid: 501, ruid: 501,
@@ -67,7 +134,16 @@ func testMacOSVerifiedDesktopConnection(
 	peer DesktopPeerIdentity,
 ) *macOSVerifiedDesktopNetConn {
 	t.Helper()
-	connection, err := newDirectDesktopConnection(peer, nil)
+	connection, err := newDirectDesktopConnectionWithClient(peer, ProcessTuple{
+		OS: peer.OS, PID: peer.PID,
+		CreationMarker:              "macos-start:100:200:pidversion:9",
+		OSLoginSession:              "macos-audit-session:7",
+		SecurityPrincipal:           "macos-uid:501",
+		CanonicalExecutableIdentity: "macos-code:ai.nimi.apps.nimi.desktop:0123456789abcdef",
+		CanonicalExecutablePath:     "/Applications/Nimi.app/Contents/MacOS/Nimi",
+		ExecutableDigest:            Identifier{1},
+		ExecutableTrustSetID:        macOSDesktopSignedTrustSetID,
+	}, nil)
 	if err != nil {
 		t.Fatalf("create verified Desktop connection: %v", err)
 	}

@@ -559,7 +559,13 @@ impl NimiDesktopControl for MacOSDesktopControl {
             .map_err(|_| untrusted_host())?;
         processes
             .get(&supervisor_run_id)
-            .ok_or_else(untrusted_host)?
+            .ok_or_else(|| {
+                NimiHostError::new(NimiHostErrorReasonCode::ProcessFocusFailed, false)
+                    .with_reason_metadata(std::collections::BTreeMap::from([(
+                        "diagnostic_stage".into(),
+                        "process-focus-run-missing".into(),
+                    )]))
+            })?
             .process
             .focus()
     }
@@ -983,6 +989,31 @@ fn untrusted_host() -> NimiHostError {
 #[cfg(all(test, feature = "macos-source-local-development"))]
 mod source_local_development_readiness_tests {
     use super::*;
+
+    #[tokio::test]
+    async fn focus_after_local_run_removal_does_not_report_runtime_untrusted() {
+        // No RPC is sent: a local run may disappear after the renderer's list
+        // read, independently of the existing protected Runtime channel.
+        let control = MacOSDesktopControl {
+            channel: tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy(),
+            service_mode: RuntimeServiceMode::Ordinary,
+            development_processes: Arc::new(Mutex::new(HashMap::new())),
+            development_rebind_gate: Arc::new(AsyncMutex::new(())),
+        };
+        let error = control.focus_local_development_host([19; 32]).unwrap_err();
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::ProcessFocusFailed
+        );
+        assert!(!error.retryable());
+        assert_eq!(
+            error
+                .reason_metadata()
+                .get("diagnostic_stage")
+                .map(String::as_str),
+            Some("process-focus-run-missing")
+        );
+    }
 
     #[tokio::test]
     async fn process_wide_rebind_gate_serializes_supervisor_renewals() {
