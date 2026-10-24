@@ -16,7 +16,7 @@ func TestSpacyTransformerPlansIndependentCPUTorchEnvironment(t *testing.T) {
 	if !ok || pack != "local-nlp-transformer" || consumer != engine.TextAnnotationTrfConsumerID {
 		t.Fatalf("transformer environment target: %q %q %v", pack, consumer, ok)
 	}
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
 	venv := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonVenv)
 	packages := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
 	torch := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
@@ -38,7 +38,7 @@ func TestSpacyTransformerPlansIndependentCPUTorchEnvironment(t *testing.T) {
 		UpdatedAt: "2026-09-28T00:00:00Z",
 	}
 	svc.mu.Unlock()
-	refreshed := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+	refreshed := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
 	refreshedTorch := findLocalEnvironmentDependency(t, refreshed, localEnvironmentFamilyPythonTorchWheel)
 	if refreshedTorch.State == localEnvironmentStateUnsupported || refreshed.State == localEnvironmentStateUnsupported {
 		t.Fatalf("an old unsupported job masked the current supported transformer plan: %+v", refreshedTorch)

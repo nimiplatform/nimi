@@ -27,7 +27,7 @@ type localVoiceExecutionResolver struct {
 	selections map[string]*localexecution.SelectedLocalExecution
 }
 
-func (r *localVoiceExecutionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+func (r *localVoiceExecutionResolver) ProjectSelectedLocalLoadout(_ context.Context, contract string) (localexecution.LoadoutOption, bool, error) {
 	return selectedLoadoutOptionForTest(r.selections[contract])
 }
 

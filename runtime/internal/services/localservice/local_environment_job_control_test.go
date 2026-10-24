@@ -350,7 +350,7 @@ func TestPrepareLocalEnvironmentPlanApplyStartsFreshLlamaAcquisitionAfterSourceF
 func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeAudioCPPAfterCUDAReady(t *testing.T) {
 	svc := newTestService(t)
 	consumer := audioCppCUDAConsumerID
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID: "local-music-native", ConsumerScope: consumer,
 		HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
 	})
@@ -848,7 +848,7 @@ func TestNativeLlamaDependencyPlanAndMaterializerUseExactConfiguredVersion(t *te
 	if err := svc.SetLlamaEngineVersion("b9999"); err != nil {
 		t.Fatal(err)
 	}
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID: "local-text", ConsumerScope: "llama.cpp.metal", HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir(),
 	})
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
@@ -955,7 +955,7 @@ func TestRepairPythonPackageSetMarksCanonicalSourceAcrossRestart(t *testing.T) {
 
 func nativeSDCPPPlanDependencyForTest(t *testing.T, svc *Service, consumer string, profile *runtimev1.LocalDeviceProfile) localEnvironmentPlanDependency {
 	t.Helper()
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   consumer,
 		HostProfile:     profile,
@@ -999,7 +999,7 @@ func TestStartLocalEnvironmentDependencyJobFailsClosedForAmbiguousConsumerContra
 	svc := newTestService(t)
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
-	cudaPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	cudaPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   stableDiffusionCUDAConsumerID,
 		HostProfile:     profile,
@@ -1093,7 +1093,7 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 
 func TestStartNativeAudioCppDependencyJobPromotesExactOfficialCLISelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-music-native",
 		ConsumerScope:   audioCppCUDAConsumerID,
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -1140,7 +1140,7 @@ func TestStartNativeAudioCppDependencyJobPromotesExactOfficialCLISelectedSource(
 
 func TestStartCUDA13DependencyJobPromotesIndependentAudioCppSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-music-native",
 		ConsumerScope:   audioCppCUDAConsumerID,
 		HostProfile:     localEnvironmentNvidiaProfile(),

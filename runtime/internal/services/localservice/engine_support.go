@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -125,7 +126,7 @@ func managedRuntimeEngineForAsset(
 	kind runtimev1.LocalAssetKind,
 ) string {
 	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
-		selection := canonicalSupervisedImageSelectionForAsset(engineName, capabilities, kind, collectDeviceProfile())
+		selection := canonicalSupervisedImageSelectionForAsset(engineName, capabilities, kind, collectDeviceProfile(context.Background()))
 		if resolved := managedRuntimeEngineForSelection(selection); strings.TrimSpace(resolved) != "" {
 			return resolved
 		}

@@ -78,7 +78,7 @@ const catalogKey = ['desktop', 'apps-panel-catalog'] as const;
 const catalogRefreshMs = 60_000;
 
 export interface AppsPanelProjectionReloader {
-  reload(refreshAIConfig?: boolean): Promise<void>;
+  reload(refreshAIConfig?: boolean, supersedeAIConfig?: boolean): Promise<void>;
   refreshCatalog(): Promise<void>;
   dispose(): void;
 }
@@ -183,11 +183,15 @@ export function createAppsPanelProjectionReloader(input: {
     lifecycle: 0,
     'ai-config': 0,
   };
-  const reload = (refreshAIConfig = true): Promise<void> => {
+  const requests: Record<AppsPanelReloadLane, AbortController | null> = { lifecycle: null, 'ai-config': null };
+  const reload = (refreshAIConfig = true, supersedeAIConfig = false): Promise<void> => {
     if (disposed) return Promise.resolve();
     const lane: AppsPanelReloadLane = refreshAIConfig ? 'ai-config' : 'lifecycle';
     const existing = inFlight[lane];
-    if (existing) return existing;
+    if (existing && !(refreshAIConfig && supersedeAIConfig)) return existing;
+    requests[lane]?.abort('desktop-apps-projection-superseded');
+    const request = new AbortController();
+    requests[lane] = request;
     const revision = latestRevision[lane] + 1;
     latestRevision[lane] = revision;
     const task = projectAppsPanel(input.source, {
@@ -195,8 +199,9 @@ export function createAppsPanelProjectionReloader(input: {
       refreshAIConfig,
       catalog,
       background: true,
+      signal: request.signal,
       onEntry(entry, patch) {
-        if (disposed) return;
+        if (disposed || request.signal.aborted || latestRevision[lane] !== revision) return;
         const next = mergeAppPresentation(input.getCurrent(), entry, patch);
         if (next) input.commit(next);
       },
@@ -211,6 +216,7 @@ export function createAppsPanelProjectionReloader(input: {
       input.commit(mergeAppsPanelProjection(input.getCurrent(), retainCurrentAppPresentation(input.getCurrent(), next), lane));
     }).finally(() => {
       if (inFlight[lane] === task) inFlight[lane] = null;
+      if (requests[lane] === request) requests[lane] = null;
     });
     inFlight[lane] = task;
     return task;
@@ -234,6 +240,8 @@ export function createAppsPanelProjectionReloader(input: {
     },
     dispose() {
       disposed = true;
+      requests.lifecycle?.abort('desktop-apps-projection-disposed');
+      requests['ai-config']?.abort('desktop-apps-projection-disposed');
     },
   });
 }
@@ -323,7 +331,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     },
   }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, deps.readPackageInfo, liveBridge, queryClient, setProjection, presentationCache]);
   const reload = useCallback(
-    (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
+    (refreshAIConfig = true, supersedeAIConfig = false): Promise<void> => reloader.reload(refreshAIConfig, supersedeAIConfig),
     [reloader],
   );
   const installIntentController = useMemo(() => deps.startInstall
@@ -451,7 +459,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   const retryProjection = useCallback((): void => {
     setActionFailure(null);
     presentationCache.retryFailures();
-    void reload(true);
+    void reload(true, true);
     void reloader.refreshCatalog();
   }, [reload, reloader, presentationCache]);
 
@@ -464,7 +472,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       projectionRef.current = acknowledged;
       setProjection(acknowledged);
     }
-    void reload(true);
+    void reload(true, true);
   }, [reload, setProjection]);
 
   const confirmInstall = useCallback((): void => {

@@ -194,6 +194,7 @@ async fn invoke_inner(
     Ok(response.into_inner())
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r011
 pub(crate) fn runtime_status_error(
     status: tonic::Status,
     bundled_avatar: bool,
@@ -214,7 +215,10 @@ pub(crate) fn runtime_status_error(
         Some(reason) => DesktopUnaryError::new(reason, retryable)
             .with_reason_metadata(crate::grpc_status::desktop_runtime_reason_metadata(&status)),
         None => match status.code() {
-            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
+            // Runtime may cancel one admitted request without losing the
+            // verified shared channel. Match the stream carrier's scope.
+            tonic::Code::Cancelled => DesktopUnaryError::new("runtime-request-canceled", retryable),
+            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded => {
                 DesktopUnaryError::new("runtime-service-unavailable", retryable)
             }
             _ => DesktopUnaryError::new(
@@ -231,6 +235,69 @@ mod tests {
     use super::*;
 
     #[test]
+    fn bare_unary_cancellation_is_request_scoped() {
+        for bundled_avatar in [false, true] {
+            let error = runtime_status_error(
+                tonic::Status::cancelled("private canceled request"),
+                bundled_avatar,
+            );
+            assert_eq!(error.reason_code(), "runtime-request-canceled");
+            assert!(error.retryable());
+            assert!(error.reason_metadata().is_empty());
+        }
+    }
+
+    #[test]
+    fn canceled_status_keeps_explicit_runtime_owner_or_origin_reason() {
+        use prost::Message;
+
+        #[derive(Clone, PartialEq, Message)]
+        struct ErrorInfo {
+            #[prost(string, tag = "1")]
+            reason: String,
+            #[prost(string, tag = "2")]
+            domain: String,
+        }
+        #[derive(Clone, PartialEq, Message)]
+        struct StatusDetails {
+            #[prost(int32, tag = "1")]
+            code: i32,
+            #[prost(message, repeated, tag = "3")]
+            details: Vec<prost_types::Any>,
+        }
+
+        for reason in [
+            "LOCAL_APP_OPERATION_UNAVAILABLE",
+            "PROTECTED_ORIGIN_ROLE_MISMATCH",
+        ] {
+            let details = StatusDetails {
+                code: tonic::Code::Cancelled as i32,
+                details: vec![prost_types::Any {
+                    type_url: "type.googleapis.com/google.rpc.ErrorInfo".to_string(),
+                    value: ErrorInfo {
+                        reason: reason.to_string(),
+                        domain: "nimi.runtime.v1".to_string(),
+                    }
+                    .encode_to_vec(),
+                }],
+            }
+            .encode_to_vec();
+            for bundled_avatar in [false, true] {
+                let error = runtime_status_error(
+                    tonic::Status::with_details(
+                        tonic::Code::Cancelled,
+                        "private owner failure",
+                        details.clone().into(),
+                    ),
+                    bundled_avatar,
+                );
+                assert_eq!(error.reason_code(), reason);
+                assert!(error.reason_metadata().is_empty());
+            }
+        }
+    }
+
+    #[test]
     fn missing_typed_owner_reason_keeps_transport_fail_closed() {
         for code in [tonic::Code::InvalidArgument, tonic::Code::Internal] {
             let error = runtime_status_error(tonic::Status::new(code, "private failure"), false);
@@ -244,11 +311,7 @@ mod tests {
                 .values()
                 .any(|value| value.contains("private")));
         }
-        for code in [
-            tonic::Code::Unavailable,
-            tonic::Code::DeadlineExceeded,
-            tonic::Code::Cancelled,
-        ] {
+        for code in [tonic::Code::Unavailable, tonic::Code::DeadlineExceeded] {
             let error = runtime_status_error(tonic::Status::new(code, "private failure"), false);
             assert_eq!(error.reason_code(), "runtime-service-unavailable");
             assert!(error.retryable());

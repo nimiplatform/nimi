@@ -47,7 +47,12 @@ pub(crate) async fn get_developer_mode_status(
     )
     .await?
     .into_inner();
-    developer_mode_projection(response.state, response.revision, response.reason_code)
+    developer_mode_projection(response.state, response.revision, response.reason_code).map_err(
+        |error| {
+            diagnose_developer_mode_status("response-projection", None);
+            error
+        },
+    )
 }
 
 fn developer_mode_status_request() -> tonic::Request<GetDeveloperModeStatusRequest> {
@@ -62,8 +67,23 @@ where
 {
     tokio::time::timeout(timeout, future)
         .await
-        .map_err(|_| NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true))?
-        .map_err(host_error_from_status)
+        .map_err(|_| {
+            diagnose_developer_mode_status("local-deadline", None);
+            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true)
+        })?
+        .map_err(|status| {
+            diagnose_developer_mode_status("grpc-status", Some(status.code()));
+            host_error_from_status(status)
+        })
+}
+
+fn diagnose_developer_mode_status(phase: &'static str, code: Option<tonic::Code>) {
+    if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        let code = code.map_or_else(|| "none".to_string(), |code| (code as i32).to_string());
+        eprintln!("[protected-local desktop-readiness] method=GetDeveloperModeStatus phase={phase} grpc_status_code={code}");
+    }
 }
 
 pub(crate) async fn set_developer_mode(
@@ -637,6 +657,19 @@ mod tests {
             NimiHostErrorReasonCode::RuntimeServiceUnavailable
         );
         assert!(error.retryable());
+    }
+
+    #[tokio::test]
+    async fn developer_mode_rpc_failure_keeps_its_original_error_classification() {
+        let error = await_developer_mode_status(
+            Duration::from_secs(1),
+            async { Err::<(), _>(tonic::Status::unavailable("private-status-body")) },
+        )
+        .await
+        .expect_err("RPC failure must remain unavailable");
+        assert_eq!(error.reason_code(), NimiHostErrorReasonCode::RuntimeServiceUnavailable);
+        assert!(error.retryable());
+        assert!(error.reason_metadata().is_empty());
     }
 
     #[test]

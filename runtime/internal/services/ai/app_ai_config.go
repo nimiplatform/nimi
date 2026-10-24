@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -29,6 +30,9 @@ type appAIConfigCaller struct {
 // First-party protected callers retain an exact consistency assertion. Account
 // and App identity always come from Runtime-attached caller truth.
 func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAIConfigRequest) (*runtimev1.GetAppAIConfigResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	caller, err := authenticatedAppAIConfigCaller(ctx)
 	if err != nil {
 		return nil, err
@@ -46,6 +50,9 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
 	config, revision, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return nil, status.FromContextError(contextErr).Err()
+	}
 	if err != nil {
 		return nil, appAIConfigStoreError(err)
 	}
@@ -53,6 +60,9 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
 	}
 	effective := s.projectAppAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		config = portableLocalAppAIConfigProjection(config)
 	}

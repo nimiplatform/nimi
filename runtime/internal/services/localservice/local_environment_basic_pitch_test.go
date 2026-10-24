@@ -21,7 +21,7 @@ func TestBasicPitchEnvironmentPlanBindsExactNativeCPUProfile(t *testing.T) {
 			if !ok || pack != "local-music-notes" || consumer != engine.BasicPitchConsumerID {
 				t.Fatal("Basic Pitch environment target is unavailable", pack, consumer)
 			}
-			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+			plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
 			identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, host.Os+"/"+host.Arch, "cpu")
 			if err != nil || plan.State == localEnvironmentStateUnsupported {
 				t.Fatal("native CPU plan is unsupported", err, plan)

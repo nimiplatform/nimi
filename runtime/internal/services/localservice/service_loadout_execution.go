@@ -20,17 +20,26 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (localexecution.LoadoutOption, bool, error) {
+func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityContract string) (localexecution.LoadoutOption, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return localexecution.LoadoutOption{}, false, err
+	}
 	capabilityContract = strings.TrimSpace(capabilityContract)
 	if s == nil || capabilityContract == "" {
 		return localexecution.LoadoutOption{}, false, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "capability contract is required", nil)
 	}
 	s.loadoutMutationMu.Lock()
 	defer s.loadoutMutationMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return localexecution.LoadoutOption{}, false, err
+	}
 	s.mu.RLock()
 	selection := cloneLoadoutSelection(s.loadoutSelections[capabilityContract])
 	loadout := cloneLoadout(s.loadouts[selection.GetLoadoutId()])
 	s.mu.RUnlock()
+	if err := ctx.Err(); err != nil {
+		return localexecution.LoadoutOption{}, false, err
+	}
 	if selection == nil || strings.TrimSpace(selection.GetLoadoutId()) == "" {
 		return localexecution.LoadoutOption{}, false, nil
 	}
@@ -41,7 +50,10 @@ func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (locale
 			Reasons:         []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND},
 		}, true, nil
 	}
-	loadout, validation := s.deriveCurrentLoadoutProjection(loadout)
+	loadout, validation, err := s.deriveCurrentLoadoutProjection(ctx, loadout)
+	if err != nil {
+		return localexecution.LoadoutOption{}, false, err
+	}
 	implementation, _ := proto.Clone(loadout.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
 	option := localexecution.LoadoutOption{
 		LoadoutID: loadout.GetLoadoutId(), DisplayName: loadout.GetDisplayName(),
@@ -56,9 +68,15 @@ func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (locale
 	// Project the same current environment contract the owner setup flow uses,
 	// without entering admission or hashing model payloads.
 	if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
-		profile := collectDeviceProfile()
+		profile := collectDeviceProfile(ctx)
+		if err := ctx.Err(); err != nil {
+			return localexecution.LoadoutOption{}, false, err
+		}
 		if pack, consumer, supported := localEnvironmentTargetForDriver(validation.driver, localEnvironmentHostProfileFromDeviceProfile(profile)); supported {
-			gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{ConsumerID: consumer, PackID: pack, HostProfile: profile})
+			gate, err := s.resolveLocalEnvironmentConsumerActivationGate(ctx, localEnvironmentConsumerActivationGateRequest{ConsumerID: consumer, PackID: pack, HostProfile: profile})
+			if err != nil {
+				return localexecution.LoadoutOption{}, false, err
+			}
 			if gate.State != localEnvironmentActivationStateReady {
 				option.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 				option.Reasons = append(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
@@ -88,6 +106,9 @@ func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (locale
 			}
 		}
 		option.TextBehaviorIdentity = identity
+	}
+	if err := ctx.Err(); err != nil {
+		return localexecution.LoadoutOption{}, false, err
 	}
 	return option, true, nil
 }
@@ -143,10 +164,13 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 	if err != nil {
 		return nil, err
 	}
-	validation := s.validateLoadoutForJobAdmission(ctx, pass, loadout, driver, requirements)
+	validation, validationErr := s.validateLoadoutForJobAdmission(ctx, pass, loadout, driver, requirements)
 	// A caller that ended during verification is not byte drift.
 	if err := ctx.Err(); err != nil {
 		return nil, admissionContextError(err)
+	}
+	if validationErr != nil {
+		return nil, validationErr
 	}
 	if validation.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		for _, reason := range validation.reasons {
@@ -367,7 +391,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 	}
 	var required []requiredDependency
 	// One live device profile serves every dependency lookup of this admission.
-	profile := collectDeviceProfile()
+	profile := collectDeviceProfile(context.Background())
 	host := localEnvironmentHostProfileFromDeviceProfile(profile)
 	switch typed := driver.(type) {
 	case capabilitydriver.Qwen3ASRDriver, capabilitydriver.Qwen3ASRTransformersDriver, capabilitydriver.Qwen3ASRAlignedDriver:

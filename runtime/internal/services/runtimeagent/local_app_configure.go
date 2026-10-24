@@ -32,6 +32,9 @@ func authorizedLocalAppSharedAIConfig(ctx context.Context, operation accountserv
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010b
 func (s *Service) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest) (*runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -40,12 +43,18 @@ func (s *Service) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *
 		return nil, err
 	}
 	config, revision, found, err := s.readSharedLocalAgentAIConfig(ctx, decision.AccountID)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return nil, status.FromContextError(contextErr).Err()
+	}
 	if err != nil {
 		return nil, err
 	}
 	var effective []*runtimev1.AIConfigEffectiveSelection
 	if found {
 		effective = s.projectSharedAIConfigEffectiveSelections(ctx, decision.AccountID, config)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
 	}
 	return &runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse{
 		Projection: localAppSharedAIConfigProjection(config, revision, effective),
@@ -66,9 +75,13 @@ func (s *Service) OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	effective := s.projectSharedAIConfigEffectiveSelections(ctx, decision.AccountID, config)
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	response := &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigResponse{
 		Projection: localAppSharedAIConfigProjection(
-			config, revision, s.projectSharedAIConfigEffectiveSelections(ctx, decision.AccountID, config),
+			config, revision, effective,
 		),
 		Committed: committed,
 	}
@@ -92,7 +105,7 @@ func (s *Service) ListLocalAppSharedLocalAgentAIConfigOptions(
 	response := &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse{}
 	switch query := req.GetQuery().(type) {
 	case *runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts:
-		options, truncated, err := s.listSharedAIConfigLocalOptions(query.LocalLoadouts)
+		options, truncated, err := s.listSharedAIConfigLocalOptions(ctx, query.LocalLoadouts)
 		if err != nil {
 			return nil, err
 		}

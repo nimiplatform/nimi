@@ -53,7 +53,7 @@ func (stub *recordingMachineLocalExecutionResolver) ResolveSelectedLocalExecutio
 	return stub.machineLocalExecutionResolverStub.ResolveSelectedLocalExecution(capabilityContract)
 }
 
-func (stub machineLocalExecutionResolverStub) ProjectSelectedLocalLoadout(capabilityContract string) (localexecution.LoadoutOption, bool, error) {
+func (stub machineLocalExecutionResolverStub) ProjectSelectedLocalLoadout(_ context.Context, capabilityContract string) (localexecution.LoadoutOption, bool, error) {
 	selected, err := stub.ResolveSelectedLocalExecution(capabilityContract)
 	if err != nil {
 		return localexecution.LoadoutOption{}, false, err

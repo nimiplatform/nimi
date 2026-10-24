@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -58,7 +59,7 @@ func TestRecipeSlotOfferCarriesRuntimeOwnedInstalledModelAssetID(t *testing.T) {
 		Entry:        offer.entryPath,
 		Files:        files,
 	}
-	projected, err := svc.projectRecipeSlotOffers([]string{variantID}, collectDeviceProfile(), nil)
+	projected, err := svc.projectRecipeSlotOffers([]string{variantID}, collectDeviceProfile(context.Background()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

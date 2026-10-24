@@ -19,7 +19,7 @@ func TestResolveLocalVisionPlanUsesOneExactProfile(t *testing.T) {
 			svc := newLocalEnvironmentTestService(t)
 			defer svc.Close()
 			svc.SetEngineManager(&mockEngineManager{})
-			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.VisionLocateConsumerID, HostProfile: target.host, RuntimeDataRoot: svc.runtimeDataRoot})
+			plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.VisionLocateConsumerID, HostProfile: target.host, RuntimeDataRoot: svc.runtimeDataRoot})
 			if plan.State == localEnvironmentStateUnsupported {
 				t.Fatalf("Locate plan is unsupported: %+v", plan)
 			}
@@ -49,8 +49,8 @@ func TestGroundingDinoVisionPlanKeepsItsOwnProfileAndCUDAConsumer(t *testing.T) 
 	defer svc.Close()
 	svc.SetEngineManager(&mockEngineManager{})
 	host := localEnvironmentNvidiaProfile()
-	grounding := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.GroundingDinoConsumerID, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
-	locate := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.VisionLocateConsumerID, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+	grounding := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.GroundingDinoConsumerID, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+	locate := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.VisionLocateConsumerID, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
 	groundingProfile := findLocalEnvironmentDependency(t, grounding, localEnvironmentFamilyPythonPackageSet)
 	locateProfile := findLocalEnvironmentDependency(t, locate, localEnvironmentFamilyPythonPackageSet)
 	if groundingProfile.ConsumerScope != engine.GroundingDinoConsumerID || groundingProfile.DependencyID == locateProfile.DependencyID {

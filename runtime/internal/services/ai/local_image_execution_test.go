@@ -51,7 +51,7 @@ type capabilityLocalExecutionResolver struct {
 	selections map[string]*localexecution.SelectedLocalExecution
 }
 
-func (r *capabilityLocalExecutionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+func (r *capabilityLocalExecutionResolver) ProjectSelectedLocalLoadout(_ context.Context, contract string) (localexecution.LoadoutOption, bool, error) {
 	return selectedLoadoutOptionForTest(r.selections[contract])
 }
 

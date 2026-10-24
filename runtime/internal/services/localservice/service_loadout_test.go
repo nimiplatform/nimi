@@ -61,7 +61,7 @@ func TestLoadoutPrepareCommitSelectAndResolveEmbeddingModelAsset(t *testing.T) {
 	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 		t.Fatal(err)
 	}
-	projected, found, err := svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract)
+	projected, found, err := svc.ProjectSelectedLocalLoadout(context.Background(), capabilitydriver.TextEmbedCapabilityContract)
 	if err != nil || !found || projected.LoadoutID != committed.GetLoadoutId() {
 		t.Fatalf("selected Loadout projection = %+v found=%v err=%v", projected, found, err)
 	}
@@ -514,7 +514,7 @@ func TestLoadoutJobAdmissionReusesOnlyAHeldVerificationWhileProjectionUsesCache(
 	if hashCalls != declaredFileCount {
 		t.Fatalf("second projection reread payloads: calls=%d", hashCalls)
 	}
-	if _, found, err := svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract); err != nil || !found {
+	if _, found, err := svc.ProjectSelectedLocalLoadout(context.Background(), capabilitydriver.TextEmbedCapabilityContract); err != nil || !found {
 		t.Fatalf("AIConfig selected projection: found=%v err=%v", found, err)
 	}
 	if hashCalls != declaredFileCount {
@@ -761,14 +761,14 @@ func TestSelectedLoadoutProjectionBlocksMissingEnvironmentWithValidModels(t *tes
 	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 		t.Fatal(err)
 	}
-	option, found, err := svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract)
+	option, found, err := svc.ProjectSelectedLocalLoadout(context.Background(), capabilitydriver.TextEmbedCapabilityContract)
 	if err != nil || !found || option.ValidationState != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		t.Fatalf("prepared environment projection: %+v %v", option, err)
 	}
 	svc.mu.Lock()
 	svc.localEnvironmentSelectedSources = nil
 	svc.mu.Unlock()
-	option, found, err = svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract)
+	option, found, err = svc.ProjectSelectedLocalLoadout(context.Background(), capabilitydriver.TextEmbedCapabilityContract)
 	if err != nil || !found || option.ValidationState != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED || !slices.Contains(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED) {
 		t.Fatalf("missing dependency reported ready with valid models: %+v %v", option, err)
 	}
@@ -1288,7 +1288,10 @@ func TestCopiedDataRootReopensModelAssetAndLoadoutIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("project copied Loadout: %v", err)
 	}
-	validation := reopened.validateLoadoutForJobAdmission(context.Background(), admissionPass{}, reopenedLoadout, driver, requirements)
+	validation, validationErr := reopened.validateLoadoutForJobAdmission(context.Background(), admissionPass{}, reopenedLoadout, driver, requirements)
+	if validationErr != nil {
+		t.Fatal(validationErr)
+	}
 	if validation.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED || len(validation.axes) != 1 || validation.axes[0].templateIdentity != "" || validation.axes[0].contextWindow != 8192 {
 		t.Fatalf("copied Loadout exact binding = %+v", validation)
 	}
@@ -1565,13 +1568,16 @@ func TestLoadoutBlockedValidationDominatesLaterUnresolvedAxis(t *testing.T) {
 		{RequirementId: "blocked"},
 		{RequirementId: "unresolved"},
 	}
-	result := svc.validateLoadoutWithAxisResolver(loadout, capabilitydriver.LlamaTextDriver{}, requirements,
-		func(_ *runtimev1.Loadout, _ capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, _ *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
+	result, validationErr := svc.validateLoadoutWithAxisResolver(context.Background(), loadout, capabilitydriver.LlamaTextDriver{}, requirements,
+		func(_ *runtimev1.Loadout, _ capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, _ *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
 			if requirement.GetRequirementId() == "blocked" {
-				return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND
+				return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND, nil
 			}
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, nil
 		})
+	if validationErr != nil {
+		t.Fatal(validationErr)
+	}
 	if result.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
 		t.Fatalf("validation state = %s, reasons=%v", result.state, result.reasons)
 	}
@@ -1822,7 +1828,7 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 	_, recommendedOnHost := svc.localProviderCatalog.RecommendVariantForHost(
 		rawQwenAudioCpp.SlotMetadata[0].RecommendedVariantIDs,
-		collectDeviceProfile(),
+		collectDeviceProfile(context.Background()),
 	)
 	projectedOffers := qwenAudioCpp.GetSlots()[0].GetOffers()
 	if recommendedOnHost {
@@ -2004,7 +2010,7 @@ func loadoutEmbeddingFixture(t *testing.T) (*Service, *runtimev1.ModelAssetRecor
 
 func seedLlamaSelectedSourcesForLoadoutTest(t *testing.T, svc *Service, root string, driver capabilitydriver.Driver) {
 	t.Helper()
-	profile := localEnvironmentHostProfileFromDeviceProfile(collectDeviceProfile())
+	profile := localEnvironmentHostProfileFromDeviceProfile(collectDeviceProfile(context.Background()))
 	_, consumer, ok := localEnvironmentTargetForDriver(driver, profile)
 	if ok {
 		nativeRoot := filepath.Join(root, "environments", "llama", engine.DefaultLlamaConfig().Version)
@@ -2030,7 +2036,7 @@ func seedLlamaSelectedSourcesForLoadoutTest(t *testing.T, svc *Service, root str
 
 func seedStableDiffusionSelectedSourcesForLoadoutTest(t *testing.T, svc *Service, root string) {
 	t.Helper()
-	profile := localEnvironmentHostProfileFromDeviceProfile(collectDeviceProfile())
+	profile := localEnvironmentHostProfileFromDeviceProfile(collectDeviceProfile(context.Background()))
 	_, consumer, ok := localEnvironmentTargetForDriver(capabilitydriver.StableDiffusionImageDriver{}, profile)
 	if !ok {
 		return

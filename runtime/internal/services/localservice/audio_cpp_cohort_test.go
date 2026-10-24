@@ -11,7 +11,7 @@ func TestAudioCppEnvironmentPlanDoesNotAdvertiseRetiredCohortAsReady(t *testing.
 	svc := newLocalEnvironmentTestService(t)
 	defer svc.Close()
 	req := localEnvironmentPlanRequest{PackID: "local-music-native", ConsumerScope: audioCppCUDAConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: t.TempDir()}
-	plan := svc.resolveLocalEnvironmentPlan(req)
+	plan := resolveEnvironmentPlanForTest(t, svc, req)
 	for _, family := range []string{localEnvironmentFamilyNativeAudioCPP, localEnvironmentFamilyCUDA} {
 		dep := findLocalEnvironmentDependency(t, plan, family)
 		record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
@@ -22,7 +22,7 @@ func TestAudioCppEnvironmentPlanDoesNotAdvertiseRetiredCohortAsReady(t *testing.
 		writeSelectedSourceLocalArtifactsForTest(t, record)
 		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 	}
-	plan = svc.resolveLocalEnvironmentPlan(req)
+	plan = resolveEnvironmentPlanForTest(t, svc, req)
 	for _, family := range []string{localEnvironmentFamilyNativeAudioCPP, localEnvironmentFamilyCUDA} {
 		dep := findLocalEnvironmentDependency(t, plan, family)
 		if dep.State != localEnvironmentStateRepairRequired || dep.SelectedSourceRecordID != "retired-"+family || dep.Detail == "" {

@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -206,7 +207,10 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 	}
 }
 
-func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) localEnvironmentPlan {
+func (s *Service) resolveLocalEnvironmentPlan(ctx context.Context, req localEnvironmentPlanRequest) (localEnvironmentPlan, error) {
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
+	}
 	packID := strings.TrimSpace(req.PackID)
 	def, ok := localComputePackByID(packID)
 	if !ok {
@@ -216,13 +220,19 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 			CloudOnlyImpact: "none",
 			State:           localEnvironmentStateUnsupported,
 			ReasonCode:      "LOCAL_ENVIRONMENT_PACK_UNSUPPORTED",
-		}
+		}, nil
 	}
 	if strings.TrimSpace(req.ConsumerScope) == audioCppInflectTTSConsumerID {
 		def.RequiredDependencyFamilies = append(def.RequiredDependencyFamilies, localEnvironmentFamilyESpeakNG)
 	}
 
-	profile := hostProfileOrCollected(req.HostProfile)
+	profile := cloneDeviceProfile(req.HostProfile)
+	if profile == nil {
+		profile = collectDeviceProfile(ctx)
+	}
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
+	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(profile)
 	runtimeDataRoot := strings.TrimSpace(req.RuntimeDataRoot)
 	if runtimeDataRoot == "" {
@@ -234,7 +244,14 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	}
 	platformTuple := localEnvironmentPlatformTuple(hostState)
 
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
+	}
 	s.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		s.mu.Unlock()
+		return localEnvironmentPlan{}, err
+	}
 	if s.localEnvironmentHostProfiles == nil {
 		s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState)
 	}
@@ -248,6 +265,9 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
+		if err := ctx.Err(); err != nil {
+			return localEnvironmentPlan{}, err
+		}
 		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
 		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope); ok {
 			dependencies = append(dependencies, resolved...)
@@ -256,6 +276,9 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
+		if err := ctx.Err(); err != nil {
+			return localEnvironmentPlan{}, err
+		}
 		required := localEnvironmentOptionalDependencyRequiredForConsumer(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
 		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
 		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope); ok {
@@ -265,7 +288,13 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope))
 	}
 	for i := range dependencies {
+		if err := ctx.Err(); err != nil {
+			return localEnvironmentPlan{}, err
+		}
 		dependencies[i] = s.resolveLocalEnvironmentPlanDependencyJobProjection(dependencies[i])
+	}
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
 	}
 	s.rememberLocalEnvironmentPlanDependencyContracts(dependencies)
 
@@ -293,7 +322,10 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		CandidateRevision:          strings.TrimSpace(req.CandidateRevision),
 	}
 	plan.PlanID = localEnvironmentPlanIdentity(plan)
-	return plan
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
+	}
+	return plan, nil
 }
 
 // localEnvironmentPlanIdentity binds the plan to the candidate execution

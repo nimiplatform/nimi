@@ -12,7 +12,7 @@ func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) 
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 
-	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+	gate := resolveEnvironmentGateForTest(t, svc, localEnvironmentConsumerActivationGateRequest{
 		ConsumerID: "speech.qwen3-tts.python",
 		PackID:     "local-speech",
 	})
@@ -37,7 +37,7 @@ func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 	}
 	markLocalEnvironmentPlanReadyForTest(t, svc, req)
 
-	gate := svc.resolveLocalEnvironmentConsumerActivationGate(req)
+	gate := resolveEnvironmentGateForTest(t, svc, req)
 
 	if gate.State != localEnvironmentActivationStateReady {
 		t.Fatalf("gate state = %q, want ready; detail=%q", gate.State, gate.Detail)
@@ -50,7 +50,7 @@ func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 func TestLocalEnvironmentActivationGateUsesConsumerPackOverCallerPackProjection(t *testing.T) {
 	svc := newTestService(t)
 
-	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+	gate := resolveEnvironmentGateForTest(t, svc, localEnvironmentConsumerActivationGateRequest{
 		ConsumerID: "speech.qwen3-tts.python",
 		PackID:     "local-gpu-support",
 	})
@@ -78,7 +78,7 @@ func TestLocalEnvironmentActivationGateBlocksRepairRequiredSourceRecord(t *testi
 	}
 	_, _, _ = svc.markLocalEnvironmentDependencyRepairRequired(deps[0].EnvironmentKey, "repair required for test")
 
-	gate := svc.resolveLocalEnvironmentConsumerActivationGate(req)
+	gate := resolveEnvironmentGateForTest(t, svc, req)
 
 	if gate.State != localEnvironmentActivationStateRepairRequired {
 		t.Fatalf("gate state = %q, want repair_required; detail=%q", gate.State, gate.Detail)
@@ -88,7 +88,7 @@ func TestLocalEnvironmentActivationGateBlocksRepairRequiredSourceRecord(t *testi
 func TestLocalEnvironmentActivationGateBlocksUnsupportedCUDA(t *testing.T) {
 	svc := newTestService(t)
 
-	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+	gate := resolveEnvironmentGateForTest(t, svc, localEnvironmentConsumerActivationGateRequest{
 		ConsumerID: stableDiffusionCUDAConsumerID,
 		PackID:     "local-gpu-support",
 	})
@@ -147,7 +147,7 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 				ConsumerID: "speech.qwen3-tts.python",
 				PackID:     "local-speech",
 			}
-			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+			plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 				PackID:        req.PackID,
 				ConsumerScope: req.ConsumerID,
 			})
@@ -168,7 +168,7 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 			}
 			svc.mu.Unlock()
 
-			gate := svc.resolveLocalEnvironmentConsumerActivationGate(req)
+			gate := resolveEnvironmentGateForTest(t, svc, req)
 
 			if gate.State != tc.wantState {
 				t.Fatalf("gate state = %q, want %q; detail=%q", gate.State, tc.wantState, gate.Detail)
@@ -187,7 +187,7 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 	if packID == "" {
 		packID = requirement.PackID
 	}
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          packID,
 		ConsumerScope:   req.ConsumerID,
 		HostProfile:     req.HostProfile,

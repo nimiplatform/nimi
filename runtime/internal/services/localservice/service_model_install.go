@@ -106,7 +106,7 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 		Endpoint: "", ProviderHints: cloneProviderHints(catalogItem.GetProviderHints()),
 		Entry: strings.TrimSpace(catalogItem.GetEntry()), Files: append([]string(nil), catalogItem.GetFiles()...),
 		License: defaultString(catalogItem.GetLicense(), "unknown"), Hashes: cloneStringMap(catalogItem.GetHashes()),
-		Warnings:   modelAssetInstallPlanWarnings(catalogItem.GetHostRequirements(), collectDeviceProfile()),
+		Warnings:   modelAssetInstallPlanWarnings(catalogItem.GetHostRequirements(), collectDeviceProfile(context.Background())),
 		ReasonCode: "ACTION_EXECUTED", EngineConfig: nil, TotalSizeBytes: catalogItem.GetTotalSizeBytes(),
 		SourceProvenance: catalogItem.GetSourceProvenance(), ModelType: catalogItem.GetModelType(), OfferRef: offerRef,
 	}

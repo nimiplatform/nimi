@@ -15,7 +15,7 @@ func TestVeVo2MacConfirmedPreparationStartsFreshWithoutRewritingFailedJob(t *tes
 		t.Run(scenario, func(t *testing.T) {
 			svc := newLocalEnvironmentTestService(t)
 			defer svc.Close()
-			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-music-native-cpu",
+			plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-music-native-cpu",
 				ConsumerScope: audioCppVeVo2CPUConsumerID, HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir()})
 			dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP)
 			dep.State = localEnvironmentStateFailed
@@ -124,7 +124,7 @@ func TestVeVo2MacPlanAndCaptureHaveOnlyVerifiedNativeSource(t *testing.T) {
 	if !ok || consumer != audioCppVeVo2CPUConsumerID {
 		t.Fatal("Mac conversion target is not CPU")
 	}
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir()})
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir()})
 	if len(plan.Dependencies) != 1 || plan.Dependencies[0].DependencyFamily != localEnvironmentFamilyNativeAudioCPP || plan.Dependencies[0].State == localEnvironmentStateUnsupported {
 		t.Fatalf("CPU plan has wrong dependencies: %+v", plan)
 	}
@@ -137,7 +137,7 @@ func TestVeVo2MacPlanAndCaptureHaveOnlyVerifiedNativeSource(t *testing.T) {
 	if err != nil || len(sources) != 1 || sources[0].ConsumerScope != consumer || sources[0].SelectedSourceRecordID != "mac-audio" || manager.verifyEngineBinaryDependencyCalls != 1 {
 		t.Fatalf("capture=%+v err=%v", sources, err)
 	}
-	wrong := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-music-native", ConsumerScope: audioCppCUDAConsumerID, HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir()})
+	wrong := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-music-native", ConsumerScope: audioCppCUDAConsumerID, HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir()})
 	if wrong.State != localEnvironmentStateUnsupported {
 		t.Fatal("Mac package admitted a CUDA route")
 	}

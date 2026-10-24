@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -83,6 +84,9 @@ func (s *Service) projectSharedAIConfigEffectiveSelections(
 ) []*runtimev1.AIConfigEffectiveSelection {
 	result := make([]*runtimev1.AIConfigEffectiveSelection, 0, len(config.GetCapabilities()))
 	for _, capability := range config.GetCapabilities() {
+		if ctx.Err() != nil {
+			return result
+		}
 		if cloud := capability.GetCloud(); cloud != nil {
 			result = append(result, s.projectSharedCloudEffectiveSelection(ctx, accountNamespace, capability.GetCapabilityContract(), cloud))
 			continue
@@ -98,7 +102,10 @@ func (s *Service) projectSharedAIConfigEffectiveSelections(
 			result = append(result, selection)
 			continue
 		}
-		option, found, err := s.localExecution.ProjectSelectedLocalLoadout(capability.GetCapabilityContract())
+		option, found, err := s.localExecution.ProjectSelectedLocalLoadout(ctx, capability.GetCapabilityContract())
+		if ctx.Err() != nil {
+			return result
+		}
 		if err != nil {
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 			if reason, ok := grpcerr.ExtractReasonCode(err); ok {
@@ -201,6 +208,7 @@ func (s *Service) projectSharedCloudEffectiveSelection(
 }
 
 func (s *Service) listSharedAIConfigLocalOptions(
+	ctx context.Context,
 	query *runtimev1.AIConfigLocalLoadoutOptionsQuery,
 ) ([]*runtimev1.AIConfigLocalResourceProjection, bool, error) {
 	if query == nil || strings.TrimSpace(query.GetCapabilityContract()) == "" ||
@@ -211,7 +219,10 @@ func (s *Service) listSharedAIConfigLocalOptions(
 	if s == nil || s.localExecution == nil {
 		return nil, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE)
 	}
-	option, found, err := s.localExecution.ProjectSelectedLocalLoadout(query.GetCapabilityContract())
+	option, found, err := s.localExecution.ProjectSelectedLocalLoadout(ctx, query.GetCapabilityContract())
+	if ctx.Err() != nil {
+		return nil, false, status.FromContextError(ctx.Err()).Err()
+	}
 	if err != nil {
 		return nil, false, err
 	}

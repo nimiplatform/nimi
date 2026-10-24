@@ -23,6 +23,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/modelassetintegrity"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -144,7 +145,7 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 	if request != nil {
 		contract = strings.TrimSpace(request.GetCapabilityContract())
 	}
-	hostProfile := collectDeviceProfile()
+	hostProfile := collectDeviceProfile(context.Background())
 	items := make([]*runtimev1.LoadoutRecipeDescriptor, 0)
 	for _, recipe := range s.localProviderCatalog.LoadoutRecipes() {
 		if contract != "" && recipe.CapabilityContract != contract {
@@ -567,9 +568,15 @@ func capabilityCategories(capabilities []string) []string {
 	return marketCategoriesForCatalogItem(item)
 }
 
-func (s *Service) GetMachineLoadouts(_ context.Context, _ *runtimev1.GetMachineLoadoutsRequest) (*runtimev1.GetMachineLoadoutsResponse, error) {
+func (s *Service) GetMachineLoadouts(ctx context.Context, _ *runtimev1.GetMachineLoadoutsRequest) (*runtimev1.GetMachineLoadoutsResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	s.loadoutMutationMu.Lock()
 	defer s.loadoutMutationMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	s.mu.RLock()
 	stored := make([]*runtimev1.Loadout, 0, len(s.loadouts))
 	for _, loadout := range s.loadouts {
@@ -581,9 +588,16 @@ func (s *Service) GetMachineLoadouts(_ context.Context, _ *runtimev1.GetMachineL
 	}
 	selectionRevisions := cloneStringMap(s.loadoutSelectionRevisions)
 	s.mu.RUnlock()
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	rows := make([]*runtimev1.Loadout, 0, len(stored))
 	for _, loadout := range stored {
-		rows = append(rows, s.deriveCurrentLoadout(loadout))
+		row, err := s.deriveCurrentLoadout(ctx, loadout)
+		if err != nil {
+			return nil, status.FromContextError(err).Err()
+		}
+		rows = append(rows, row)
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].GetLoadoutId() < rows[j].GetLoadoutId() })
 	sort.Slice(selections, func(i, j int) bool {
@@ -601,23 +615,39 @@ func (s *Service) GetMachineLoadouts(_ context.Context, _ *runtimev1.GetMachineL
 			}
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	return &runtimev1.GetMachineLoadoutsResponse{Aggregate: &runtimev1.MachineLoadouts{Loadouts: rows, Selections: selections, SelectionRevisions: selectionRevisions}}, nil
 }
 
-func (s *Service) GetLoadout(_ context.Context, request *runtimev1.GetLoadoutRequest) (*runtimev1.GetLoadoutResponse, error) {
+func (s *Service) GetLoadout(ctx context.Context, request *runtimev1.GetLoadoutRequest) (*runtimev1.GetLoadoutResponse, error) {
 	loadoutID := strings.TrimSpace(request.GetLoadoutId())
 	if loadoutID == "" {
 		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "loadout_id is required", nil)
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	s.loadoutMutationMu.Lock()
 	defer s.loadoutMutationMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	s.mu.RLock()
 	stored := cloneLoadout(s.loadouts[loadoutID])
 	s.mu.RUnlock()
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	if stored == nil {
 		return nil, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "Loadout was not found", map[string]string{"loadout_id": loadoutID})
 	}
-	return &runtimev1.GetLoadoutResponse{Loadout: s.deriveCurrentLoadout(stored)}, nil
+	projected, err := s.deriveCurrentLoadout(ctx, stored)
+	if err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
+	return &runtimev1.GetLoadoutResponse{Loadout: projected}, nil
 }
 
 func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.PrepareLoadoutRequest) (*runtimev1.PrepareLoadoutResponse, error) {
@@ -731,7 +761,10 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 	if len(inputs) != 0 {
 		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "model_axes reference a slot outside the Driver projection", nil)
 	}
-	validation := s.validateLoadoutCurrent(proposal, driver, requirements)
+	validation, validationErr := s.validateLoadoutCurrent(ctx, proposal, driver, requirements)
+	if validationErr != nil {
+		return nil, status.FromContextError(validationErr).Err()
+	}
 	applyLoadoutValidation(proposal, validation)
 	for _, axis := range proposal.GetModelAxes() {
 		if axis.GetModelAssetId() != "" && !axis.GetRecipeCompatible() {
@@ -788,7 +821,10 @@ func (s *Service) CommitLoadout(ctx context.Context, request *runtimev1.CommitLo
 	if err != nil {
 		return nil, err
 	}
-	validation := s.validateLoadoutCurrent(held.proposal, driver, requirements)
+	validation, validationErr := s.validateLoadoutCurrent(ctx, held.proposal, driver, requirements)
+	if validationErr != nil {
+		return nil, status.FromContextError(validationErr).Err()
+	}
 	applyLoadoutValidation(held.proposal, validation)
 	for _, axis := range held.proposal.GetModelAxes() {
 		if axis.GetModelAssetId() != "" && !axis.GetRecipeCompatible() {
@@ -896,7 +932,10 @@ func (s *Service) SelectLoadout(_ context.Context, request *runtimev1.SelectLoad
 		if err != nil {
 			return nil, err
 		}
-		validation := s.validateLoadoutCurrent(loadout, driver, requirements)
+		validation, validationErr := s.validateLoadoutCurrent(context.Background(), loadout, driver, requirements)
+		if validationErr != nil {
+			return nil, status.FromContextError(validationErr).Err()
+		}
 		applyLoadoutValidation(loadout, validation)
 		if validation.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 			return nil, loadoutValidationError(validation, loadoutID)
@@ -1081,25 +1120,30 @@ func normalizeProjectedLoadoutRequirements(requirements []*runtimev1.LocalCapabi
 	return nil
 }
 
-type loadoutModelAxisResolver func(*runtimev1.Loadout, capabilitydriver.Driver, *runtimev1.LocalCapabilityRequirement, *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode)
+type loadoutModelAxisResolver func(*runtimev1.Loadout, capabilitydriver.Driver, *runtimev1.LocalCapabilityRequirement, *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error)
 
 type loadoutFileSHA256Resolver func(string, os.FileInfo, string) (string, error)
 
-func (s *Service) validateLoadoutCurrent(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) loadoutValidationResult {
-	return s.validateLoadoutWithAxisResolver(loadout, driver, requirements, s.resolveLoadoutModelAxis)
+func (s *Service) validateLoadoutCurrent(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) (loadoutValidationResult, error) {
+	return s.validateLoadoutWithAxisResolver(ctx, loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
+		return s.resolveLoadoutModelAxis(ctx, loadout, driver, requirement, axis)
+	})
 }
 
 // validateLoadoutForJobAdmission is intentionally separate from projection
 // validation: its axis resolver verifies every declared payload for admission
 // and never trusts the projection cache. pass carries the verifications this
 // admission made before the locks; a caller whose ctx ends stops it.
-func (s *Service) validateLoadoutForJobAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) loadoutValidationResult {
-	return s.validateLoadoutWithAxisResolver(loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
+func (s *Service) validateLoadoutForJobAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) (loadoutValidationResult, error) {
+	return s.validateLoadoutWithAxisResolver(ctx, loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
 		return s.resolveLoadoutModelAxisForAdmission(ctx, pass, loadout, driver, requirement, axis)
 	})
 }
 
-func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement, resolveAxis loadoutModelAxisResolver) loadoutValidationResult {
+func (s *Service) validateLoadoutWithAxisResolver(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement, resolveAxis loadoutModelAxisResolver) (loadoutValidationResult, error) {
+	if err := ctx.Err(); err != nil {
+		return loadoutValidationResult{}, err
+	}
 	result := loadoutValidationResult{
 		state:        runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
 		axisReasons:  make(map[string][]runtimev1.ReasonCode, len(requirements)),
@@ -1109,7 +1153,7 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 	if loadout == nil || driver == nil || len(requirements) == 0 {
 		result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 		result.reasons = append(result.reasons, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE)
-		return result
+		return result, nil
 	}
 	axisBySlot := make(map[string]*runtimev1.LoadoutModelAxis, len(loadout.GetModelAxes()))
 	for _, axis := range loadout.GetModelAxes() {
@@ -1118,6 +1162,9 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 		}
 	}
 	for _, requirement := range requirements {
+		if err := ctx.Err(); err != nil {
+			return loadoutValidationResult{}, err
+		}
 		slotID := requirement.GetRequirementId()
 		axis := axisBySlot[slotID]
 		if axis == nil {
@@ -1143,7 +1190,13 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 			result.axisReasons[slotID] = appendReasonCode(result.axisReasons[slotID], runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED)
 			continue
 		}
-		resolved, reason := resolveAxis(loadout, driver, requirement, axis)
+		resolved, reason, err := resolveAxis(loadout, driver, requirement, axis)
+		if err != nil {
+			return loadoutValidationResult{}, err
+		}
+		if err := ctx.Err(); err != nil {
+			return loadoutValidationResult{}, err
+		}
 		if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 			result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 			result.reasons = appendReasonCode(result.reasons, reason)
@@ -1151,6 +1204,9 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 			continue
 		}
 		result.axes = append(result.axes, resolved)
+	}
+	if err := ctx.Err(); err != nil {
+		return loadoutValidationResult{}, err
 	}
 	if result.state == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		bindings := make([]*runtimev1.ModelAssetExactBinding, 0, len(result.axes))
@@ -1165,7 +1221,7 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 		}
 	}
 	result.configuredFeatures = deriveConfiguredLoadoutFeatures(loadout.GetImplementationSupportedFeatures(), requirements, result)
-	return result
+	return result, ctx.Err()
 }
 
 func deriveConfiguredLoadoutFeatures(implementationFeatures []string, requirements []*runtimev1.LocalCapabilityRequirement, validation loadoutValidationResult) []string {
@@ -1204,33 +1260,38 @@ func deriveConfiguredLoadoutFeatures(implementationFeatures []string, requiremen
 	return configured
 }
 
-func (s *Service) resolveLoadoutModelAxis(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
-	return s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, s.cachedFileSHA256)
+func (s *Service) resolveLoadoutModelAxis(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
+	return s.resolveLoadoutModelAxisWithHasher(ctx, loadout, driver, requirement, axis, func(path string, info os.FileInfo, generation string) (string, error) {
+		return s.cachedFileSHA256(ctx, path, info, generation)
+	})
 }
 
-func (s *Service) resolveLoadoutModelAxisForAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
-	resolved, reason := s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, func(path string, info os.FileInfo, generationDigest string) (string, error) {
+func (s *Service) resolveLoadoutModelAxisForAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
+	resolved, reason, err := s.resolveLoadoutModelAxisWithHasher(ctx, loadout, driver, requirement, axis, func(path string, info os.FileInfo, generationDigest string) (string, error) {
 		return s.admitPayloadLocked(ctx, pass, path, info, generationDigest)
 	})
+	if err != nil {
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err
+	}
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		return resolvedLoadoutAxis{}, reason
+		return resolvedLoadoutAxis{}, reason, nil
 	}
 	if err := modelassetintegrity.ValidateDeclaredPayloadSet(resolved.bundleDir, resolved.declaredFiles); err != nil {
-		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH, nil
 	}
-	return resolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	return resolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, nil
 }
 
-func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis, fileSHA256 loadoutFileSHA256Resolver) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
+func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis, fileSHA256 loadoutFileSHA256Resolver) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
 	s.mu.RLock()
 	asset := cloneModelAsset(s.modelAssets[axis.GetModelAssetId()])
 	directory := s.modelAssetDirectories[axis.GetModelAssetId()]
 	s.mu.RUnlock()
 	if asset == nil || directory == "" {
-		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND, nil
 	}
 	if asset.GetContentId() != axis.GetExpectedContentId() || normalizeVerifiedContentID(axis.GetExpectedContentId()) != axis.GetExpectedContentId() {
-		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH, nil
 	}
 	files := make([]*runtimev1.ModelAssetFile, 0, len(asset.GetFiles()))
 	declaredFiles := make([]string, 0, len(asset.GetFiles()))
@@ -1239,22 +1300,28 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 	entrySHA, entryPath := "", ""
 	contentMismatch := false
 	for _, declared := range asset.GetFiles() {
+		if err := ctx.Err(); err != nil {
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err
+		}
 		if declared == nil || !safeModelAssetRelativePath(declared.GetRelativePath()) {
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH, nil
 		}
 		absolute := filepath.Join(directory, filepath.FromSlash(declared.GetRelativePath()))
 		if !pathWithinBase(directory, absolute, false) {
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH, nil
 		}
 		info, err := os.Lstat(absolute)
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH, nil
 		}
 		if info.Size() != declared.GetSizeBytes() {
 			contentMismatch = true
 		}
 		generationDigest := modelAssetFileVerificationGeneration(asset, declared)
 		digest, err := fileSHA256(absolute, info, generationDigest)
+		if contextErr := ctx.Err(); contextErr != nil {
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, contextErr
+		}
 		if err != nil {
 			contentMismatch = true
 			continue
@@ -1269,7 +1336,7 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 			RelativePath: declared.GetRelativePath(), Entry: declared.GetRelativePath() == asset.GetEntry(),
 		})
 		if !ok {
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED, nil
 		}
 		opened, openErr := os.Open(absolute)
 		if openErr != nil {
@@ -1282,16 +1349,19 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 			probe, readErr = structured.ProbeModelAsset(capabilitydriver.ModelAssetFormatProbeInput{
 				RecipeID: loadout.GetRecipeId(), RequirementID: requirement.GetRequirementId(),
 				RelativePath: declared.GetRelativePath(), Entry: declared.GetRelativePath() == asset.GetEntry(),
-			}, opened, info.Size())
+			}, projectionReaderAt{ctx: ctx, reader: opened}, info.Size())
 			if len(probe) > capabilitydriver.MaxAssetFormatProbeBytes {
 				readErr = fmt.Errorf("structured ModelAsset probe exceeds its bound")
 			}
 		} else {
-			probe, readErr = io.ReadAll(io.LimitReader(opened, probeLimit))
+			probe, readErr = io.ReadAll(io.LimitReader(projectionReader{ctx: ctx, reader: opened}, probeLimit))
 		}
 		closeErr := opened.Close()
+		if err := ctx.Err(); err != nil {
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err
+		}
 		if _, structured := driver.(capabilitydriver.ModelAssetStructuredProbeDriver); structured && readErr != nil && closeErr == nil {
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED, nil
 		}
 		if readErr != nil || closeErr != nil {
 			contentMismatch = true
@@ -1305,22 +1375,28 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 		}
 	}
 	if contentMismatch || modelAssetContentID(files) != axis.GetExpectedContentId() || entrySHA == "" || entryPath == "" {
-		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH, nil
 	}
 	binding := &runtimev1.ModelAssetExactBinding{RequirementId: requirement.GetRequirementId(), ModelAssetId: asset.GetModelAssetId(), VerifiedContentId: asset.GetContentId(), EntrySha256: entrySHA}
+	if err := ctx.Err(); err != nil {
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err
+	}
 	projection, reason := driver.ProjectModelAssetBinding(capabilitydriver.ModelAssetBindingInput{
 		RecipeID: loadout.GetRecipeId(), Requirement: cloneLocalCapabilityRequirement(requirement), Binding: cloneModelAssetExactBinding(binding),
 		Entry: entryFact, Files: projectionFiles,
 	})
+	if err := ctx.Err(); err != nil {
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err
+	}
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED
+		return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED, nil
 	}
 	return resolvedLoadoutAxis{
 		slot: cloneLoadoutAxis(axis), requirement: cloneLocalCapabilityRequirement(requirement), binding: binding, descriptor: projection.Descriptor,
 		absolutePath: filepath.Clean(entryPath), bundleDir: filepath.Clean(directory), declaredFiles: append([]string(nil), declaredFiles...),
 		entrySHA256: entrySHA, contextWindow: projection.ModelContextWindowTokens, embeddingDimension: projection.EmbeddingDimension,
 		templateIdentity: projection.TemplateIdentity, embeddingInputProtocol: projection.EmbeddingInputProtocol,
-	}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, nil
 }
 
 func modelAssetFormatProbeLimit(driver capabilitydriver.Driver, input capabilitydriver.ModelAssetFormatProbeInput) (int64, bool) {
@@ -1397,25 +1473,31 @@ func applyValidatedLoadoutTextBehaviors(loadout *runtimev1.Loadout, validation l
 	loadout.TextBehaviors = cloneTextBehaviorCapabilityProjections(behaviors)
 }
 
-func (s *Service) deriveCurrentLoadout(stored *runtimev1.Loadout) *runtimev1.Loadout {
-	loadout, _ := s.deriveCurrentLoadoutProjection(stored)
-	return loadout
+func (s *Service) deriveCurrentLoadout(ctx context.Context, stored *runtimev1.Loadout) (*runtimev1.Loadout, error) {
+	loadout, _, err := s.deriveCurrentLoadoutProjection(ctx, stored)
+	return loadout, err
 }
 
-func (s *Service) deriveCurrentLoadoutProjection(stored *runtimev1.Loadout) (*runtimev1.Loadout, loadoutValidationResult) {
+func (s *Service) deriveCurrentLoadoutProjection(ctx context.Context, stored *runtimev1.Loadout) (*runtimev1.Loadout, loadoutValidationResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, loadoutValidationResult{}, err
+	}
 	loadout := cloneLoadout(stored)
 	if loadout == nil {
-		return nil, loadoutValidationResult{}
+		return nil, loadoutValidationResult{}, nil
 	}
 	driver, requirements, err := s.projectStoredLoadout(loadout)
 	if err != nil {
 		loadout.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 		loadout.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE}
-		return loadout, loadoutValidationResult{}
+		return loadout, loadoutValidationResult{}, nil
 	}
-	validation := s.validateLoadoutCurrent(loadout, driver, requirements)
+	validation, validationErr := s.validateLoadoutCurrent(ctx, loadout, driver, requirements)
+	if validationErr != nil {
+		return nil, loadoutValidationResult{}, validationErr
+	}
 	applyLoadoutValidation(loadout, validation)
-	return loadout, validation
+	return loadout, validation, nil
 }
 
 func validateStoredLoadout(loadout *runtimev1.Loadout) error {

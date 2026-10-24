@@ -45,7 +45,7 @@ type sharedAIConfigLocalResolver struct{}
 
 type missingSharedLoadoutProjectionResolver struct{}
 
-func (missingSharedLoadoutProjectionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+func (missingSharedLoadoutProjectionResolver) ProjectSelectedLocalLoadout(_ context.Context, contract string) (localexecution.LoadoutOption, bool, error) {
 	return localexecution.LoadoutOption{
 		LoadoutID: "loadout-deleted", CapabilityContract: contract,
 		ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED,
@@ -61,7 +61,7 @@ func (missingSharedLoadoutProjectionResolver) ResolveLocalExecution(string, stri
 	return nil, nil
 }
 
-func (sharedAIConfigLocalResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+func (sharedAIConfigLocalResolver) ProjectSelectedLocalLoadout(_ context.Context, contract string) (localexecution.LoadoutOption, bool, error) {
 	selected, err := (sharedAIConfigLocalResolver{}).ResolveSelectedLocalExecution(contract)
 	if err != nil {
 		return localexecution.LoadoutOption{}, false, err

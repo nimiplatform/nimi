@@ -13,6 +13,9 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 	ctx context.Context,
 	req *runtimev1.GetSharedLocalAgentAIConfigRequest,
 ) (*runtimev1.GetSharedLocalAgentAIConfigResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "get shared LocalAgent AIConfig request is required")
 	}
@@ -21,6 +24,9 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 		return nil, err
 	}
 	config, revision, found, err := s.readSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return nil, status.FromContextError(contextErr).Err()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +35,13 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 			Revision: revision, Participation: projectLocalAgentCapabilityParticipation(),
 		}, nil
 	}
+	effective := s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	return &runtimev1.GetSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision,
-		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config),
+		EffectiveSelections: effective,
 		Participation:       projectLocalAgentCapabilityParticipation(),
 	}, nil
 }
@@ -53,9 +63,13 @@ func (s *Service) OverwriteSharedLocalAgentAIConfig(
 	if err != nil {
 		return nil, err
 	}
+	effective := s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	response := &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision, Committed: committed,
-		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config),
+		EffectiveSelections: effective,
 		Participation:       projectLocalAgentCapabilityParticipation(),
 	}
 	if !committed {
@@ -78,7 +92,7 @@ func (s *Service) ListSharedLocalAgentAIConfigOptions(
 	response := &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse{}
 	switch query := req.GetQuery().(type) {
 	case *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_LocalLoadouts:
-		options, truncated, err := s.listSharedAIConfigLocalOptions(query.LocalLoadouts)
+		options, truncated, err := s.listSharedAIConfigLocalOptions(ctx, query.LocalLoadouts)
 		if err != nil {
 			return nil, err
 		}

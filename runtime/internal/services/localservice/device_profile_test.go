@@ -106,7 +106,7 @@ func TestProbePythonProfileSkipsWindowsStoreAlias(t *testing.T) {
 		return exec.CommandContext(ctx, commandName, commandArgs("echo Python 3.13.0")...)
 	}
 
-	profile := probePythonProfile()
+	profile := probePythonProfile(context.Background())
 	if !profile.GetAvailable() {
 		t.Fatalf("expected python profile to be available: %#v", profile)
 	}
@@ -139,7 +139,7 @@ func TestProbePythonProfileFailsClosedWhenCommandFails(t *testing.T) {
 		return exec.CommandContext(ctx, "sh", "-c", "exit 1")
 	}
 
-	profile := probePythonProfile()
+	profile := probePythonProfile(context.Background())
 	if profile.GetAvailable() {
 		t.Fatalf("failed Python probe must not report available: %#v", profile)
 	}
@@ -254,7 +254,7 @@ func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
 		return exec.CommandContext(ctx, shellName, shellArgs...)
 	}
 
-	caps := probeGPUCapabilities()
+	caps := probeGPUCapabilities(context.Background())
 	if caps.profile.GetAvailable() || caps.driverVisible {
 		t.Fatalf("timed-out nvidia-smi probe must fail closed, got %+v", caps)
 	}
@@ -263,7 +263,7 @@ func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
 func TestNPUReadyRequiresAdmittedAvailability(t *testing.T) {
 	t.Setenv("NIMI_NPU_READY", "true")
 
-	profile := collectDeviceProfile()
+	profile := collectDeviceProfile(context.Background())
 	if profile.GetNpu().GetAvailable() || profile.GetNpu().GetReady() {
 		t.Fatalf("NIMI_NPU_READY without NIMI_NPU_AVAILABLE must fail closed: %#v", profile.GetNpu())
 	}
@@ -275,7 +275,7 @@ func TestNPUAdmittedAvailabilityAndReadiness(t *testing.T) {
 	t.Setenv("NIMI_NPU_VENDOR", "admitted-npu")
 	t.Setenv("NIMI_NPU_RUNTIME", "admitted-runtime")
 
-	profile := collectDeviceProfile()
+	profile := collectDeviceProfile(context.Background())
 	if !profile.GetNpu().GetAvailable() || !profile.GetNpu().GetReady() {
 		t.Fatalf("admitted NPU env should project available/ready: %#v", profile.GetNpu())
 	}

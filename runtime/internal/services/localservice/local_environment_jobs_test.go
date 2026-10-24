@@ -355,7 +355,7 @@ func TestLocalEnvironmentDependencyJobRepairRequiredBlocksPlan(t *testing.T) {
 	if _, ok, _ := svc.markLocalEnvironmentDependencyRepairRequired(req.EnvironmentKey, "hash_mismatch"); !ok {
 		t.Fatalf("mark repair required failed")
 	}
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -1048,7 +1048,7 @@ func localEnvironmentJobRequestForTest(t *testing.T, svc *Service) localEnvironm
 
 func localEnvironmentJobRequestForTestWithRoot(t *testing.T, svc *Service, runtimeDataRoot string) localEnvironmentDependencyJobRequest {
 	t.Helper()
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),

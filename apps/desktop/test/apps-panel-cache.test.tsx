@@ -6,6 +6,7 @@ import type { ApprovedAppCatalogTarget } from '@nimiplatform/sdk/runtime/wire-ty
 import type { AppsPanelController, AppsPanelControllerDeps } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
 import type { DesktopAppsPanelProjection } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 import type { LocalDevelopmentRegistration } from '../src/shell/renderer/features/local-development/local-development-types.js';
+import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 
 test('Apps remount reuses artwork and catalog, refreshes local changes, and respects session cache clearing', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
@@ -29,9 +30,13 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
   let catalogGate: Promise<void> = Promise.resolve();
   let catalogFails = false;
   let catalogVersion = '1.0.0';
+  let aiEligible = false;
+  const aiReadSignals: AbortSignal[] = [];
+  const emptyAIConfig: NimiAIConfigSnapshot = { config: { capabilities: [] }, revision: '2', effectiveSelections: [] };
+  let aiRead: () => Promise<NimiAIConfigSnapshot> = async () => emptyAIConfig;
   const registration = (): LocalDevelopmentRegistration => ({
     selector: 'project-example', appId: 'example.local', displayName: 'Local app',
-    canonicalProjectRoot: '/example', shell: 'electron', appAccess: [], aiConfigAllowedRoutes: [],
+    canonicalProjectRoot: '/example', shell: 'electron', appAccess: aiEligible ? ['runtime.consume'] : [], aiConfigAllowedRoutes: [],
     capabilityContractRefs: [], sourceGeneration: revision, declarationGeneration: 1,
     registeredAtUnixMs: 1, updatedAtUnixMs: revision,
   });
@@ -45,6 +50,7 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
       stopRun: async () => {}, removeRegistration: async () => {},
     }),
     listCommittedReleases: async () => [], listPackageJobs: async () => [], cancelPackageJob: async () => {},
+    readAppAIConfig: async (_appId, options) => { aiReadSignals.push(options.signal); return aiRead(); },
     listApprovedCatalogTargets: async () => {
       counts.catalog++;
       await catalogGate;
@@ -138,6 +144,31 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
     await act(async () => state.retryProjection()); await settle();
     assert.equal(loaded().catalogStatus, 'loaded');
     assert.equal(loaded().entries.length, 1, 'a successful retry restores the catalog');
+
+    await show(false); present = true; aiEligible = true;
+    let rejectOldAI!: (error: Error) => void;
+    aiRead = () => new Promise((_resolve, reject) => { rejectOldAI = reject; });
+    await show(true); await settle();
+    const beforeMutation = aiReadSignals.length;
+    assert.equal(beforeMutation, 1);
+    const localEntryKey = loaded().entries.find(entry => entry.localDevelopment)!.identity.entryKey;
+    aiRead = async () => emptyAIConfig;
+    await act(async () => state.acknowledgeAIConfigMutation(localEntryKey, { outcome: 'committed', config: { capabilities: [] }, revision: '2' }));
+    await settle();
+    assert.equal(aiReadSignals.length, beforeMutation + 1, 'saving configuration supersedes the pending read');
+    assert.equal(aiReadSignals[0]?.aborted, true);
+    rejectOldAI(Error('Late pre-save read failure')); await settle();
+    assert.equal(loaded().entries.find(entry => entry.localDevelopment)?.aiConfigSummary?.healthPosture, 'healthy');
+
+    aiRead = () => new Promise((_resolve, reject) => { rejectOldAI = reject; });
+    await act(async () => state.retryProjection()); await settle();
+    const pendingRetry = aiReadSignals.at(-1)!;
+    aiRead = async () => emptyAIConfig;
+    await act(async () => state.retryProjection()); await settle();
+    assert.equal(pendingRetry.aborted, true, 'explicit retry supersedes the previous read instead of reusing it');
+    rejectOldAI(Error('Late pre-retry read failure')); await settle();
+    assert.equal(loaded().entries.find(entry => entry.localDevelopment)?.aiConfigSummary?.healthPosture, 'healthy');
+
     await show(false); client.clear();
     inventoryGate = new Promise(() => {});
     paints.length = 0;

@@ -26,7 +26,7 @@ func TestResolveLocalDecisionPlanUsesOneExactProfilePerAcceleratorPlane(t *testi
 			if !ok || pack != localDecisionPackID || consumer != engine.TextDecisionConsumerID {
 				t.Fatalf("Laya environment target: %q %q %v", pack, consumer, ok)
 			}
-			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: target.host, RuntimeDataRoot: svc.runtimeDataRoot})
+			plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: pack, ConsumerScope: consumer, HostProfile: target.host, RuntimeDataRoot: svc.runtimeDataRoot})
 			if plan.State == localEnvironmentStateUnsupported || plan.ProductLabel != "Decisions" {
 				t.Fatalf("decision plan: %+v", plan)
 			}

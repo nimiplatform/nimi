@@ -113,7 +113,10 @@ func TestWhisperDiarizationActualLoadoutAndScenarioJob(t *testing.T) {
 		for _, axis := range axes {
 			candidate.ModelAxes = append(candidate.ModelAxes, &runtimev1.LoadoutModelAxis{SlotId: axis.SlotId, ModelAssetId: axis.ModelAssetId, ExpectedContentId: axis.ExpectedContentId})
 		}
-		validation := svc.validateLoadoutCurrent(candidate, driver, requirements)
+		validation, validationErr := svc.validateLoadoutCurrent(context.Background(), candidate, driver, requirements)
+		if validationErr != nil {
+			t.Fatal(validationErr)
+		}
 		t.Logf("actual admission reasons=%v axes=%v", validation.reasons, validation.axisReasons)
 		t.Fatal(err)
 	}

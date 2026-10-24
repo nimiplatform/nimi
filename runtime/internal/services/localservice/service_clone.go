@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"strings"
 	"time"
 	"unicode"
@@ -86,7 +87,7 @@ func hostProfileOrCollected(input *runtimev1.LocalDeviceProfile) *runtimev1.Loca
 	if profile := cloneDeviceProfile(input); profile != nil {
 		return profile
 	}
-	return collectDeviceProfile()
+	return collectDeviceProfile(context.Background())
 }
 
 func cloneProviderHints(input *runtimev1.LocalProviderHints) *runtimev1.LocalProviderHints {

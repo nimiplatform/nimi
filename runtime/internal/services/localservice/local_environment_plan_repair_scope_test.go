@@ -105,7 +105,7 @@ func TestPlanApplyRetriesCancelledConsumerWithoutRepairingAnotherConsumerSource(
 			}
 		}
 	}
-	current, err := svc.resolveLocalEnvironmentPlanForApply(resolution)
+	current, err := svc.resolveLocalEnvironmentPlanForApply(context.Background(), resolution)
 	if err != nil {
 		t.Fatal(err)
 	}

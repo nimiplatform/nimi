@@ -104,7 +104,7 @@ type TextBehaviorIdentity struct {
 // machine selection; exact resolution remains available only for Runtime
 // inputs that already captured one immutable Loadout identity.
 type Resolver interface {
-	ProjectSelectedLocalLoadout(capabilityContract string) (LoadoutOption, bool, error)
+	ProjectSelectedLocalLoadout(ctx context.Context, capabilityContract string) (LoadoutOption, bool, error)
 	ResolveSelectedLocalExecution(capabilityContract string) (*SelectedLocalExecution, error)
 	ResolveLocalExecution(capabilityContract string, loadoutRef string) (*SelectedLocalExecution, error)
 }

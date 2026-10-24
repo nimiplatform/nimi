@@ -214,7 +214,10 @@ func (s *Service) restoreVerifiedModelAssetGeneration(asset *runtimev1.ModelAsse
 	s.mu.Unlock()
 }
 
-func (s *Service) cachedFileSHA256(path string, info os.FileInfo, generationDigest string) (string, error) {
+func (s *Service) cachedFileSHA256(ctx context.Context, path string, info os.FileInfo, generationDigest string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	if info == nil {
 		var err error
 		info, err = os.Stat(path)
@@ -233,7 +236,7 @@ func (s *Service) cachedFileSHA256(path string, info os.FileInfo, generationDige
 		cached.generationDigest == generation && strings.TrimSpace(cached.sha256) != "" {
 		return cached.sha256, nil
 	}
-	return s.freshFileSHA256(cacheKey, info, generation)
+	return s.freshFileSHA256Context(ctx, cacheKey, info, generation, nil)
 }
 
 // freshFileSHA256 deliberately bypasses entryHashCache: it rereads the payload

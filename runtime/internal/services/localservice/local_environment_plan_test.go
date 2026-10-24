@@ -83,7 +83,7 @@ func TestResolveLocalEnvironmentPlanDefaultRuntimeDataRootUsesServiceDataRootIde
 
 	modelsRoot := svc.resolvedLocalModelsPath()
 	dataRoot := filepath.Dir(modelsRoot)
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:        "local-text",
 		ConsumerScope: "llama.cpp.cuda",
 		HostProfile:   localEnvironmentNvidiaProfile(),
@@ -109,13 +109,13 @@ func TestResolveLocalEnvironmentPlanRejectsRetiredMediaPipelinePacks(t *testing.
 	} {
 		request.HostProfile = localEnvironmentNvidiaProfile()
 		request.RuntimeDataRoot = svc.runtimeDataRoot
-		plan := svc.resolveLocalEnvironmentPlan(request)
+		plan := resolveEnvironmentPlanForTest(t, svc, request)
 		if plan.State != localEnvironmentStateUnsupported || plan.ReasonCode != "LOCAL_ENVIRONMENT_PACK_UNSUPPORTED" || len(plan.Dependencies) != 0 {
 			t.Fatalf("retired media pipeline pack %s = %+v, want unsupported without dependencies", request.PackID, plan)
 		}
 	}
 	for _, consumer := range []string{"media.diffusers.cpu", "media.diffusers.cuda", "media.video-python.cpu", "media.video-python.cuda"} {
-		gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+		gate := resolveEnvironmentGateForTest(t, svc, localEnvironmentConsumerActivationGateRequest{
 			ConsumerID:      consumer,
 			HostProfile:     localEnvironmentNvidiaProfile(),
 			RuntimeDataRoot: svc.runtimeDataRoot,
@@ -162,7 +162,7 @@ func TestResolveLocalSpeechPlanIncludesHostAppropriateTorchWheel(t *testing.T) {
 			defer func() { svc.Close() }()
 			svc.SetEngineManager(&mockEngineManager{})
 
-			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+			plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 				PackID:          "local-speech",
 				ConsumerScope:   "speech.qwen3-tts.python",
 				HostProfile:     test.profile,
@@ -190,7 +190,7 @@ func TestResolveLocalSpeechPlanProjectsRuntimeOwnedCapabilityConfirmation(t *tes
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "speech.qwen3-tts.python",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -252,7 +252,7 @@ func TestResolveLocalSpeechTorchWheelIdentityUsesExactWheelSourceAndExcludesCons
 		svc := newLocalEnvironmentTestService(t)
 		defer func() { svc.Close() }()
 		svc.SetEngineManager(&mockEngineManager{})
-		plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 			PackID:          "local-speech",
 			ConsumerScope:   consumer,
 			HostProfile:     profile,
@@ -299,7 +299,7 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 	}
 	installProfileEvidence := func(t *testing.T, consumer string, activationArtifact string) (localEnvironmentPlanDependency, localEnvironmentPlanDependency, string) {
 		t.Helper()
-		plan := svc.resolveLocalEnvironmentPlan(requestFor(consumer))
+		plan := resolveEnvironmentPlanForTest(t, svc, requestFor(consumer))
 		packageDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
 		profileIdentity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, plan.PlatformTuple, "cuda")
 		if err != nil {
@@ -372,15 +372,15 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 		t.Fatal("transition native ASR profile consumption to repair_required")
 	}
 
-	nativeAfterLoss := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(nativeASRConsumer)), localEnvironmentFamilyPythonPackageSet)
+	nativeAfterLoss := findLocalEnvironmentDependency(t, resolveEnvironmentPlanForTest(t, svc, requestFor(nativeASRConsumer)), localEnvironmentFamilyPythonPackageSet)
 	if nativeAfterLoss.State != localEnvironmentStateRepairRequired {
 		t.Fatalf("native ASR profile consumption = %+v, want repair_required after its own evidence is removed", nativeAfterLoss)
 	}
-	transformersStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(transformersASRConsumer)), localEnvironmentFamilyPythonPackageSet)
+	transformersStillReady := findLocalEnvironmentDependency(t, resolveEnvironmentPlanForTest(t, svc, requestFor(transformersASRConsumer)), localEnvironmentFamilyPythonPackageSet)
 	if transformersStillReady.State != localEnvironmentStateReadyManaged || transformersStillReady.CanonicalRoot != transformersProfileRoot {
 		t.Fatalf("transformers ASR profile consumption = %+v, want ready evidence at its root %q", transformersStillReady, transformersProfileRoot)
 	}
-	torchStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(transformersASRConsumer)), localEnvironmentFamilyPythonTorchWheel)
+	torchStillReady := findLocalEnvironmentDependency(t, resolveEnvironmentPlanForTest(t, svc, requestFor(transformersASRConsumer)), localEnvironmentFamilyPythonTorchWheel)
 	if torchStillReady.State != localEnvironmentStateReadyManaged || torchStillReady.CanonicalRoot != packageCacheRoot {
 		t.Fatalf("canonical Torch source = %+v, want ready shared package cache %q", torchStillReady, packageCacheRoot)
 	}
@@ -397,7 +397,7 @@ func TestResolveLocalSpeechTorchWheelRejectsStaleWheelLock(t *testing.T) {
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: runtimeDataRoot,
 	}
-	plan := svc.resolveLocalEnvironmentPlan(request)
+	plan := resolveEnvironmentPlanForTest(t, svc, request)
 	torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
 	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  torchDep.DependencyFamily,
@@ -412,7 +412,7 @@ func TestResolveLocalSpeechTorchWheelRejectsStaleWheelLock(t *testing.T) {
 	writeSelectedSourceLocalArtifactsForTest(t, record)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 
-	torchDep = findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(request), localEnvironmentFamilyPythonTorchWheel)
+	torchDep = findLocalEnvironmentDependency(t, resolveEnvironmentPlanForTest(t, svc, request), localEnvironmentFamilyPythonTorchWheel)
 	if torchDep.State != localEnvironmentStateRepairRequired || torchDep.Detail != "LOCAL_ENVIRONMENT_TORCH_WHEEL_LOCK_DRIFT" {
 		t.Fatalf("Torch dependency = %+v, want repair_required lock drift", torchDep)
 	}
@@ -423,7 +423,7 @@ func TestResolveLocalEnvironmentPlanNativeImageExcludesPythonManagedFamilies(t *
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   stableDiffusionCUDAConsumerID,
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -450,7 +450,7 @@ func TestResolveLocalEnvironmentPlanAudioCppRequiresNativePackageAndCUDA13Only(t
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-music-native",
 		ConsumerScope:   "audio.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -524,7 +524,7 @@ func TestQwenAudioCppEnvironmentPlanUsesSameNativeSourcesWithoutPython(t *testin
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-speech-native", ConsumerScope: audioCppQwen3TTSCUDAConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data")})
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-speech-native", ConsumerScope: audioCppQwen3TTSCUDAConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data")})
 	if dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP); !dep.Required || dep.DependencyID != "audio.cpp.package" {
 		t.Fatalf("Qwen audio.cpp package dependency=%+v", dep)
 	}
@@ -540,7 +540,7 @@ func TestQwenAudioCppEnvironmentPlanUsesSameNativeSourcesWithoutPython(t *testin
 
 func TestInflectAudioCppEnvironmentPlanAddsExactESpeakDependency(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-speech-native", ConsumerScope: audioCppInflectTTSConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data")})
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{PackID: "local-speech-native", ConsumerScope: audioCppInflectTTSConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data")})
 	if len(plan.Dependencies) != 3 {
 		t.Fatalf("Inflect plan=%+v", plan)
 	}
@@ -559,7 +559,7 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -575,7 +575,7 @@ func TestResolveLocalEnvironmentPlanPromotesFirstRunNvidiaCUDAToRequired(t *test
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "first-run",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -599,7 +599,7 @@ func TestResolveLocalEnvironmentPlanUsesMetalConsumerForAppleSiliconFirstRun(t *
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
@@ -628,7 +628,7 @@ func TestResolveLocalEnvironmentPlanUsesEngineCUDASelectionWhenDetailedFirstRunP
 		},
 	})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:        "local-text",
 		ConsumerScope: "first-run",
 		HostProfile: &runtimev1.LocalDeviceProfile{
@@ -664,7 +664,7 @@ func TestResolveLocalEnvironmentPlanKeepsFirstRunCUDAOptionalWhenEngineSelection
 		},
 	})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:        "local-text",
 		ConsumerScope: "first-run",
 		HostProfile: &runtimev1.LocalDeviceProfile{
@@ -690,7 +690,7 @@ func TestResolveLocalEnvironmentPlanKeepsMetalConsumerCUDAOptional(t *testing.T)
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.metal",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
@@ -708,7 +708,7 @@ func TestResolveLocalEnvironmentPlanRequiresCUDAForCUDAConsumer(t *testing.T) {
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -735,7 +735,7 @@ func TestResolveLocalEnvironmentPlanRequiresMaterializerForReadyManagedCUDAProje
 		},
 	})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-gpu-support",
 		ConsumerScope:   "desktop.local-model-center",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -773,7 +773,7 @@ func TestResolveLocalEnvironmentPlanProjectsCUDARepairRequired(t *testing.T) {
 		},
 	})
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-gpu-support",
 		ConsumerScope:   "desktop.local-model-center",
 		HostProfile:     localEnvironmentNvidiaProfile(),
@@ -802,7 +802,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -830,7 +830,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 		t.Fatalf("restore service: %v", err)
 	}
 	defer func() { restored.Close() }()
-	restoredPlan := restored.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	restoredPlan := resolveEnvironmentPlanForTest(t, restored, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -851,7 +851,7 @@ func TestResolveLocalEnvironmentPlanRejectsLinuxTTSPythonProfile(t *testing.T) {
 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentCPUProfileForTest()
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "speech.qwen3-tts.python",
 		HostProfile:     profile,
@@ -866,7 +866,7 @@ func TestResolveLocalEnvironmentPlanRejectsLinuxTransformersASRPythonProfile(t *
 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentCPUProfileForTest()
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "speech.qwen3-asr-transformers.python",
 		HostProfile:     profile,
@@ -881,7 +881,7 @@ func TestResolveLocalEnvironmentPlanRejectsAllLinuxSpeechPythonProfiles(t *testi
 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	consumer := "speech.qwen3-tts.python"
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   consumer,
 		HostProfile:     localEnvironmentCPUProfileForTest(),
@@ -924,7 +924,7 @@ func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvid
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -942,7 +942,7 @@ func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvid
 		},
 	})
 
-	stalePlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	stalePlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -963,7 +963,7 @@ func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -981,7 +981,7 @@ func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 		},
 	}))
 
-	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	repairPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -1002,7 +1002,7 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -1023,7 +1023,7 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 		t.Fatalf("failed to transition job")
 	}
 
-	failedPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	failedPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     profile,
@@ -1047,7 +1047,7 @@ func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentAppleSilicon128GBProfile()
 
-	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	metalPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   "stable-diffusion.cpp.metal",
 		HostProfile:     profile,
@@ -1065,7 +1065,7 @@ func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t 
 	writeSelectedSourceLocalArtifactsForTest(t, record)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 
-	unknownPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	unknownPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   "stable-diffusion.cpp.unknown",
 		HostProfile:     profile,
@@ -1089,7 +1089,7 @@ func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *te
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentAppleSilicon128GBProfile()
 
-	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	metalPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   "stable-diffusion.cpp.metal",
 		HostProfile:     profile,
@@ -1110,7 +1110,7 @@ func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *te
 		t.Fatalf("failed to transition unknown job")
 	}
 
-	nextMetalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	nextMetalPlan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:          "local-image-native",
 		ConsumerScope:   "stable-diffusion.cpp.metal",
 		HostProfile:     profile,
@@ -1126,7 +1126,7 @@ func TestResolveLocalEnvironmentPlanUnknownPackUnsupported(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan := resolveEnvironmentPlanForTest(t, svc, localEnvironmentPlanRequest{
 		PackID:      "missing-pack",
 		HostProfile: localEnvironmentNvidiaProfile(),
 	})

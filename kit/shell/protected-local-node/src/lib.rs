@@ -1417,13 +1417,20 @@ where
     F: FnOnce(Arc<dyn NimiDesktopControl>) -> Fut,
     Fut: std::future::Future<Output = Result<JsonValue, NimiHostError>>,
 {
+    // Compiler-generated closure identity is static code information, never
+    // a captured request value or a caller-supplied operation label.
+    let operation_name = std::any::type_name::<F>();
     let control = match current_or_open_desktop_control().await {
         Ok(control) => control,
-        Err(error) => return NativeJsonOutcome::host_error(error),
+        Err(error) => {
+            diagnose_desktop_host_failure(operation_name, "acquire-control", &error);
+            return NativeJsonOutcome::host_error(error);
+        }
     };
     match operation(control.clone()).await {
         Ok(value) => NativeJsonOutcome::success(value),
         Err(error) => {
+            diagnose_desktop_host_failure(operation_name, "operation", &error);
             clear_desktop_control_on_host_failure(&control, &error).await;
             NativeJsonOutcome::host_error(error)
         }
@@ -1438,18 +1445,29 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
     let mut reconnect_available = true;
     loop {
         let cached = {
-            let current = tokio::time::timeout(
-                DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT,
-                DESKTOP_CONTROL.lock(),
-            )
-            .await
-            .map_err(|_| desktop_control_unavailable())?;
+            let current =
+                tokio::time::timeout(DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT, DESKTOP_CONTROL.lock())
+                    .await
+                    .map_err(|_| {
+                        let error = desktop_control_unavailable();
+                        diagnose_desktop_host_failure(
+                            "current_or_open_desktop_control",
+                            "cache-lock-deadline",
+                            &error,
+                        );
+                        error
+                    })?;
             current.as_ref().cloned()
         };
         if let Some(control) = cached {
             match control.verify_runtime_serving().await {
                 Ok(()) => return Ok(control),
                 Err(error) => {
+                    diagnose_desktop_host_failure(
+                        "current_or_open_desktop_control",
+                        "readiness",
+                        &error,
+                    );
                     let reconnect = reconnect_available
                         && invalidates_desktop_transport(error.reason_code().as_str());
                     clear_desktop_control_on_host_failure(&control, &error).await;
@@ -1482,12 +1500,18 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
     feature = "windows-source-local-development"
 )))]
 async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
-    let mut current = tokio::time::timeout(
-        DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT,
-        DESKTOP_CONTROL.lock(),
-    )
-    .await
-    .map_err(|_| desktop_control_unavailable())?;
+    let mut current =
+        tokio::time::timeout(DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT, DESKTOP_CONTROL.lock())
+            .await
+            .map_err(|_| {
+                let error = desktop_control_unavailable();
+                diagnose_desktop_host_failure(
+                    "current_or_open_desktop_control",
+                    "cache-lock-deadline",
+                    &error,
+                );
+                error
+            })?;
     if let Some(control) = current.as_ref() {
         return Ok(control.clone());
     }
@@ -1527,7 +1551,15 @@ where
         Ok(control)
     })
     .await
-    .map_err(|_| desktop_control_unavailable())?
+    .map_err(|_| {
+        let error = desktop_control_unavailable();
+        diagnose_desktop_host_failure(
+            "get_or_open_cached_desktop_control",
+            "cache-open-deadline",
+            &error,
+        );
+        error
+    })?
 }
 
 fn desktop_control_unavailable() -> NimiHostError {
@@ -1539,22 +1571,59 @@ async fn clear_desktop_control_on_transport_reason(
     reason_code: &str,
     reason_metadata: &std::collections::BTreeMap<String, String>,
 ) {
-    if !invalidates_desktop_transport(reason_code) {
-        return;
-    }
-    diagnose_desktop_transport_invalidation("product-call", reason_code, reason_metadata);
-    clear_desktop_control(control).await;
+    retire_desktop_control_on_transport_failure(
+        "product-call",
+        reason_code,
+        reason_metadata,
+        || clear_desktop_control(control),
+    )
+    .await;
 }
 
-async fn clear_desktop_control_on_host_failure(
-    control: &Arc<dyn NimiDesktopControl>,
-    error: &NimiHostError,
-) {
-    if !invalidates_desktop_transport(error.reason_code().as_str()) {
-        return;
+#[track_caller]
+fn clear_desktop_control_on_host_failure<'a>(
+    control: &'a Arc<dyn NimiDesktopControl>,
+    error: &'a NimiHostError,
+) -> impl Future<Output = ()> + 'a {
+    // Capture the synchronous callsite before creating the future: an async
+    // track_caller function would report the poller rather than its caller.
+    let caller = std::panic::Location::caller();
+    async move {
+        if invalidates_desktop_transport(error.reason_code().as_str())
+            && desktop_diagnostics_enabled()
+        {
+            eprintln!(
+                "[protected-local desktop-control] host-invalidation-site file={} line={}",
+                caller.file(),
+                caller.line()
+            );
+        }
+        retire_desktop_control_on_transport_failure(
+            "host-call",
+            error.reason_code().as_str(),
+            error.reason_metadata(),
+            || clear_desktop_control(control),
+        )
+        .await;
     }
-    diagnose_desktop_transport_invalidation("host-call", error.reason_code().as_str(), error.reason_metadata());
-    clear_desktop_control(control).await;
+}
+
+// Both native result families use the same gate before touching the cache or
+// its streams. Keep ordinary request cancellation out of owner retirement.
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r011
+async fn retire_desktop_control_on_transport_failure<F, Fut>(
+    family: &'static str,
+    reason_code: &str,
+    reason_metadata: &std::collections::BTreeMap<String, String>,
+    retire: F,
+) where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = ()>,
+{
+    if invalidates_desktop_transport(reason_code) {
+        diagnose_desktop_transport_invalidation(family, reason_code, reason_metadata);
+        retire().await;
+    }
 }
 
 fn diagnose_desktop_transport_invalidation(
@@ -1562,19 +1631,50 @@ fn diagnose_desktop_transport_invalidation(
     reason_code: &str,
     reason_metadata: &std::collections::BTreeMap<String, String>,
 ) {
-    if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
-        != Some(std::ffi::OsStr::new("1"))
-    {
+    if !desktop_diagnostics_enabled() {
         return;
     }
     // Callers pass only an admitted transport reason. Project the numeric
     // status, never the status message or other Runtime error metadata.
-    let status = reason_metadata
+    let status = diagnostic_grpc_status(reason_metadata);
+    eprintln!("[protected-local desktop-control] invalidate family={family} reason={reason_code} grpc_status_code={status}");
+}
+
+fn desktop_diagnostics_enabled() -> bool {
+    std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+}
+
+fn diagnostic_grpc_status(reason_metadata: &std::collections::BTreeMap<String, String>) -> String {
+    reason_metadata
         .get("grpc_status_code")
         .and_then(|value| value.parse::<u8>().ok())
         .filter(|value| *value <= 16)
-        .map_or_else(|| "none".to_string(), |value| value.to_string());
-    eprintln!("[protected-local desktop-control] invalidate family={family} reason={reason_code} grpc_status_code={status}");
+        .map_or_else(|| "none".to_string(), |value| value.to_string())
+}
+
+fn desktop_host_failure_diagnostic(
+    operation: &'static str,
+    phase: &'static str,
+    error: &NimiHostError,
+) -> String {
+    format!(
+        "[protected-local desktop-control] host-failure operation={operation} phase={phase} reason={} retryable={} grpc_status_code={}",
+        error.reason_code().as_str(), error.retryable(), diagnostic_grpc_status(error.reason_metadata()),
+    )
+}
+
+fn diagnose_desktop_host_failure(
+    operation: &'static str,
+    phase: &'static str,
+    error: &NimiHostError,
+) {
+    if desktop_diagnostics_enabled() {
+        eprintln!(
+            "{}",
+            desktop_host_failure_diagnostic(operation, phase, error)
+        );
+    }
 }
 
 fn invalidates_desktop_transport(reason_code: &str) -> bool {
@@ -1648,7 +1748,93 @@ async fn retire_cached_desktop_control<T, F, Fut>(
 
 #[cfg(test)]
 mod desktop_transport_invalidation_tests {
-    use super::invalidates_desktop_transport;
+    use super::{
+        desktop_host_failure_diagnostic, invalidates_desktop_transport,
+        retire_cached_desktop_control, retire_desktop_control_on_transport_failure,
+    };
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+    use tokio::sync::Mutex;
+
+    #[test]
+    fn host_diagnostic_contains_only_static_site_and_bounded_numeric_status() {
+        use nimi_shell_protected_local::{NimiHostError, NimiHostErrorReasonCode};
+        use std::collections::BTreeMap;
+
+        for (raw_code, expected) in [
+            ("14", "14"),
+            ("1", "1"),
+            ("17", "none"),
+            ("-1", "none"),
+            ("13\nprivate-status-body", "none"),
+        ] {
+            let error =
+                NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true)
+                    .with_reason_metadata(BTreeMap::from([
+                        ("grpc_status_code".to_string(), raw_code.to_string()),
+                        (
+                            "diagnostic_stage".to_string(),
+                            "private-request-value".to_string(),
+                        ),
+                        ("detail".to_string(), "private-status-body".to_string()),
+                    ]));
+            let line =
+                desktop_host_failure_diagnostic("static_host_operation", "readiness", &error);
+            assert!(line.contains("operation=static_host_operation phase=readiness"));
+            assert!(line.ends_with(&format!("grpc_status_code={expected}")));
+            assert!(!line.contains("private-"));
+            assert!(!line.contains("diagnostic_stage"));
+            assert!(!line.contains('\n'));
+        }
+    }
+
+    #[tokio::test]
+    async fn request_cancel_keeps_cached_owner_while_unavailable_retires_it() {
+        for family in ["product-call", "host-call"] {
+            let control = Arc::new(());
+            let slot = Arc::new(Mutex::new(Some(Arc::clone(&control))));
+            let retired = Arc::new(AtomicBool::new(false));
+            for reason in ["runtime-request-canceled", "runtime-service-unavailable"] {
+                let retiring_slot = Arc::clone(&slot);
+                let retiring_control = Arc::clone(&control);
+                let retired_marker = Arc::clone(&retired);
+                retire_desktop_control_on_transport_failure(
+                    family,
+                    reason,
+                    &Default::default(),
+                    move || async move {
+                        retire_cached_desktop_control(
+                            retiring_slot,
+                            retiring_control,
+                            move |_| async move {
+                                retired_marker.store(true, Ordering::SeqCst);
+                            },
+                        )
+                        .await;
+                    },
+                )
+                .await;
+                if reason == "runtime-request-canceled" {
+                    assert!(
+                        !retired.load(Ordering::SeqCst),
+                        "cancellation must not touch owner streams/transport"
+                    );
+                    assert!(slot
+                        .lock()
+                        .await
+                        .as_ref()
+                        .is_some_and(|cached| Arc::ptr_eq(cached, &control)));
+                }
+            }
+            assert!(retired.load(Ordering::SeqCst));
+            assert!(
+                slot.lock().await.is_none(),
+                "a real transport failure still retires the exact cache entry"
+            );
+        }
+    }
 
     #[test]
     fn invalidates_only_transport_or_verified_origin_failures() {

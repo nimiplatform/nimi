@@ -60,13 +60,16 @@ func (s *Service) deviceProfileSnapshot() *runtimev1.LocalDeviceProfile {
 	if s.deviceProfileCached != nil && time.Since(s.deviceProfileCachedAt) < deviceProfileCacheTTL {
 		return s.deviceProfileCached
 	}
-	profile := collectDeviceProfile()
+	profile := collectDeviceProfile(context.Background())
 	s.deviceProfileCached = profile
 	s.deviceProfileCachedAt = time.Now()
 	return profile
 }
 
-func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
+func collectDeviceProfile(ctx context.Context, extraPorts ...int32) *runtimev1.LocalDeviceProfile {
+	if ctx.Err() != nil {
+		return nil
+	}
 	// K-DEV-006: default probe ports are the K-LENG-005 engine default ports.
 	// Source them from the runtime engine default configs (the same authoritative
 	// default-port surface the daemon/supervisor uses) rather than a divergent
@@ -91,6 +94,9 @@ func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
 	sort.Slice(ports, func(i, j int) bool { return ports[i] < ports[j] })
 	probedPorts := make([]*runtimev1.LocalPortAvailability, 0, len(ports))
 	for _, port := range ports {
+		if ctx.Err() != nil {
+			return nil
+		}
 		probedPorts = append(probedPorts, &runtimev1.LocalPortAvailability{
 			Port:      port,
 			Available: portAvailable(int(port)),
@@ -98,12 +104,23 @@ func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
 	}
 
 	totalRAM, availableRAM := localRuntimeProbeRAM()
+	if ctx.Err() != nil {
+		return nil
+	}
+	gpu := probeGPUProfile(ctx)
+	if ctx.Err() != nil {
+		return nil
+	}
+	python := probePythonProfile(ctx)
+	if ctx.Err() != nil {
+		return nil
+	}
 
 	return &runtimev1.LocalDeviceProfile{
 		Os:                localRuntimeGOOS,
 		Arch:              localRuntimeGOARCH,
-		Gpu:               probeGPUProfile(),
-		Python:            probePythonProfile(),
+		Gpu:               gpu,
+		Python:            python,
 		Npu:               probeNPUProfile(),
 		DiskFreeBytes:     probeDiskFreeBytes(),
 		Ports:             probedPorts,
@@ -112,8 +129,8 @@ func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
 	}
 }
 
-func probeGPUProfile() *runtimev1.LocalGpuProfile {
-	return probeGPUCapabilities().profile
+func probeGPUProfile(ctx context.Context) *runtimev1.LocalGpuProfile {
+	return probeGPUCapabilities(ctx).profile
 }
 
 type gpuProbeCapabilities struct {
@@ -121,10 +138,13 @@ type gpuProbeCapabilities struct {
 	driverVisible bool
 }
 
-func probeGPUCapabilities() gpuProbeCapabilities {
+func probeGPUCapabilities(ctx context.Context) gpuProbeCapabilities {
+	if ctx.Err() != nil {
+		return gpuProbeCapabilities{}
+	}
 	if _, err := localRuntimeLookPath("nvidia-smi"); err == nil {
 		// K-DEV-002: query name, memory.total, memory.free in one call.
-		output, runErr := localRuntimeCommandOutputWithTimeout(localRuntimeGPUProbeTimeout, "nvidia-smi",
+		output, runErr := localRuntimeCommandOutputWithTimeout(ctx, localRuntimeGPUProbeTimeout, "nvidia-smi",
 			"--query-gpu=name,memory.total,memory.free",
 			"--format=csv,noheader,nounits")
 		if runErr == nil {
@@ -143,8 +163,11 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 		}
 	}
 
+	if ctx.Err() != nil {
+		return gpuProbeCapabilities{}
+	}
 	if strings.EqualFold(localRuntimeGOOS, "darwin") && strings.EqualFold(localRuntimeGOARCH, "arm64") {
-		output, runErr := localRuntimeCommandOutputWithTimeout(1500*time.Millisecond, "sysctl", "-n", "machdep.cpu.brand_string")
+		output, runErr := localRuntimeCommandOutputWithTimeout(ctx, 1500*time.Millisecond, "sysctl", "-n", "machdep.cpu.brand_string")
 		model := strings.TrimSpace(string(output))
 		if runErr == nil || model != "" {
 			// K-DEV-002: Apple unified memory means VRAM = host RAM.
@@ -172,7 +195,10 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	}
 }
 
-func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, args ...string) ([]byte, error) {
+func localRuntimeCommandOutputWithTimeout(parent context.Context, timeout time.Duration, name string, args ...string) ([]byte, error) {
+	if err := parent.Err(); err != nil {
+		return nil, err
+	}
 	// Snapshot the hook before starting the worker. A timed-out command may keep
 	// unwinding after this function returns; retaining the per-call runner keeps
 	// that goroutine independent from test cleanup (or any later hook change).
@@ -183,7 +209,7 @@ func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, ar
 	if timeout <= 0 {
 		timeout = time.Second
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	result := make(chan struct {
 		output []byte
@@ -230,8 +256,11 @@ func parseNvidiaSmiOutput(output string) (name string, totalBytes int64, freeByt
 	return name, totalMiB * 1024 * 1024, freeMiB * 1024 * 1024
 }
 
-func probePythonProfile() *runtimev1.LocalPythonProfile {
+func probePythonProfile(parent context.Context) *runtimev1.LocalPythonProfile {
 	for _, candidate := range pythonProbeCandidates() {
+		if parent.Err() != nil {
+			return nil
+		}
 		name := candidate.name
 		path, err := localRuntimeLookPath(name)
 		if err != nil {
@@ -241,7 +270,10 @@ func probePythonProfile() *runtimev1.LocalPythonProfile {
 			continue
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+		if parent.Err() != nil {
+			return nil
+		}
+		ctx, cancel := context.WithTimeout(parent, 1500*time.Millisecond)
 		output, runErr := localRuntimeCommand(ctx, path, candidate.args...).CombinedOutput()
 		cancel()
 		if runErr != nil {

@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"fmt"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"strings"
@@ -49,7 +50,10 @@ type localEnvironmentConsumerRequirement struct {
 	PackID     string
 }
 
-func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnvironmentConsumerActivationGateRequest) localEnvironmentConsumerActivationGate {
+func (s *Service) resolveLocalEnvironmentConsumerActivationGate(ctx context.Context, req localEnvironmentConsumerActivationGateRequest) (localEnvironmentConsumerActivationGate, error) {
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentConsumerActivationGate{}, err
+	}
 	consumerID := strings.TrimSpace(req.ConsumerID)
 	requirement, ok := localEnvironmentConsumerRequirementByID(consumerID)
 	if !ok {
@@ -58,16 +62,19 @@ func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnviron
 			State:      localEnvironmentActivationStateUnsupported,
 			ReasonCode: localEnvironmentActivationReasonConsumerUnsupported,
 			Detail:     "local environment consumer is unsupported: " + consumerID,
-		}
+		}, nil
 	}
 	packID := requirement.PackID
 
-	plan := s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	plan, err := s.resolveLocalEnvironmentPlan(ctx, localEnvironmentPlanRequest{
 		PackID:          packID,
 		ConsumerScope:   consumerID,
 		HostProfile:     req.HostProfile,
 		RuntimeDataRoot: req.RuntimeDataRoot,
 	})
+	if err != nil {
+		return localEnvironmentConsumerActivationGate{}, err
+	}
 	gate := localEnvironmentConsumerActivationGate{
 		ConsumerID:   consumerID,
 		PackID:       plan.PackID,
@@ -77,6 +84,9 @@ func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnviron
 		Dependencies: make([]localEnvironmentPlanDependency, 0, len(plan.Dependencies)),
 	}
 	for _, dep := range plan.Dependencies {
+		if err := ctx.Err(); err != nil {
+			return localEnvironmentConsumerActivationGate{}, err
+		}
 		dep = s.resolveLocalEnvironmentActivationDependency(dep, consumerID)
 		gate.Dependencies = append(gate.Dependencies, dep)
 		if dep.Required && localEnvironmentDependencyBlocksActivation(dep.State) {
@@ -84,11 +94,11 @@ func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnviron
 		}
 	}
 	if len(gate.BlockingDependencies) == 0 {
-		return gate
+		return gate, ctx.Err()
 	}
 	gate.State, gate.ReasonCode = localEnvironmentActivationBlockState(gate.BlockingDependencies)
 	gate.Detail = localEnvironmentActivationBlockDetail(gate.BlockingDependencies)
-	return gate
+	return gate, ctx.Err()
 }
 
 func (s *Service) resolveLocalEnvironmentActivationDependency(dep localEnvironmentPlanDependency, consumerID string) localEnvironmentPlanDependency {

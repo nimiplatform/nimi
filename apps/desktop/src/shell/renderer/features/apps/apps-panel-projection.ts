@@ -174,6 +174,7 @@ export async function projectAppsPanel(
     readonly catalog?: DesktopAppsCatalogProjection;
     readonly onInventory?: (projection: DesktopAppsPanelProjection) => void;
     readonly background?: boolean;
+    readonly signal?: AbortSignal;
     readonly onEntry?: (entry: DesktopAppsEntry, patch: AppsPresentationPatch) => void;
   } = {},
 ): Promise<DesktopAppsPanelProjection> {
@@ -188,6 +189,7 @@ export async function projectAppsPanel(
   }
 
   try {
+    options.signal?.throwIfAborted();
     const runtimeRequest = Promise.all([
       source.listCommittedReleases(),
       source.listPackageJobs(),
@@ -202,6 +204,7 @@ export async function projectAppsPanel(
       runtimeRequest,
       source.listInstalledRuns?.() ?? Promise.resolve([] as readonly InstalledAppRun[]),
     ]);
+    options.signal?.throwIfAborted();
     const previousEntries = options.previous?.status === 'loaded'
       ? new Map(options.previous.entries.map((entry) => [entry.identity.entryKey, entry]))
       : new Map<string, DesktopAppsEntry>();
@@ -322,10 +325,12 @@ export async function projectAppsPanel(
     };
     options.onInventory?.(inventory);
     const enrich = async (): Promise<DesktopAppsPanelProjection> => {
+      if (options.signal?.aborted) return inventory;
       const entries = [...inventory.entries];
       const cache = presentationCache(source);
       const content = entries.map((entry, index) => {
         const publish = (patch: AppsPresentationPatch) => {
+          if (options.signal?.aborted) return;
           entries[index] = { ...entries[index]!, ...patch };
           options.onEntry?.(entry, patch);
         };
@@ -368,20 +373,23 @@ export async function projectAppsPanel(
               previous: previousEntries.get(entry.identity.entryKey)?.aiConfigSummary ?? null,
               refresh: options.refreshAIConfig !== false,
               timeoutMs: options.aiConfigReadTimeoutMs ?? 10_000,
+              signal: options.signal,
             })
           : null;
+        if (options.signal?.aborted) return;
         const index = mergedEntries.indexOf(entry);
         entries[index] = { ...entries[index]!, aiConfigSummary };
         if (options.refreshAIConfig !== false) options.onEntry?.(entry, { aiConfigSummary });
-      });
-      await Promise.all([...content, configurations]);
+      }, options.signal);
+      // Background artwork remains independent, while the caller's AI lane
+      // stays occupied until every requested configuration read has settled.
+      await Promise.all([...(options.background ? [] : content), configurations]);
       return { ...inventory, entries: reconcileAppsEntries(previousEntries, entries) };
     };
     if (options.background) {
       // Publish membership before any metadata callbacks (including warm-cache
-      // hits). The background task never holds the lifecycle reload lane.
-      setTimeout(() => { void enrich(); }, 0);
-      return inventory;
+      // hits). Slow artwork never holds a lifecycle or configuration reload.
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
     }
     return await enrich();
   } catch (error) {
@@ -601,11 +609,12 @@ function isNonProseReadmeLine(line: string): boolean {
 async function projectEntriesBounded<TInput, TOutput>(
   input: readonly TInput[],
   project: (value: TInput) => Promise<TOutput>,
+  signal?: AbortSignal,
 ): Promise<readonly TOutput[]> {
   const output = new Array<TOutput>(input.length);
   let cursor = 0;
   const worker = async () => {
-    while (cursor < input.length) {
+    while (cursor < input.length && !signal?.aborted) {
       const index = cursor;
       cursor += 1;
       output[index] = await project(input[index]!);
@@ -625,13 +634,23 @@ async function projectAppAIConfigSummary(input: {
   readonly previous: DesktopAppAIConfigSummary | null;
   readonly refresh: boolean;
   readonly timeoutMs: number;
+  readonly signal?: AbortSignal;
 }): Promise<DesktopAppAIConfigSummary | null> {
   if (!input.appAccess.includes('runtime.consume')) return null;
   if (!input.refresh) return input.previous;
+  if (input.signal?.aborted) return input.previous;
   if (!input.source.readAppAIConfig) return unavailableAIConfigSummary();
   const controller = new AbortController();
   let timeout: ReturnType<typeof setTimeout> | undefined;
+  let abortRead: (() => void) | undefined;
   try {
+    const cancelled = new Promise<never>((_resolve, reject) => {
+      abortRead = () => {
+        controller.abort(input.signal?.reason);
+        reject(input.signal?.reason ?? new DOMException('Apps projection cancelled', 'AbortError'));
+      };
+      input.signal?.addEventListener('abort', abortRead, { once: true });
+    });
     const timedOut = new Promise<never>((_resolve, reject) => {
       timeout = setTimeout(() => {
         controller.abort('desktop-app-ai-config-summary-timeout');
@@ -644,12 +663,14 @@ async function projectAppAIConfigSummary(input: {
         signal: controller.signal,
       }),
       timedOut,
+      cancelled,
     ]);
     return summarizeAppAIConfig(snapshot);
   } catch {
-    return unavailableAIConfigSummary(input.previous);
+    return input.signal?.aborted ? input.previous : unavailableAIConfigSummary(input.previous);
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);
+    if (abortRead) input.signal?.removeEventListener('abort', abortRead);
   }
 }
 

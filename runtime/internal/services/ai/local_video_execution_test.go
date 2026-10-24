@@ -182,7 +182,7 @@ type countingLocalExecutionResolver struct {
 	calls      int
 }
 
-func (r *countingLocalExecutionResolver) ProjectSelectedLocalLoadout(string) (localexecution.LoadoutOption, bool, error) {
+func (r *countingLocalExecutionResolver) ProjectSelectedLocalLoadout(context.Context, string) (localexecution.LoadoutOption, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.err != nil {

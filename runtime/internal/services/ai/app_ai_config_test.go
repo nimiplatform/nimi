@@ -32,7 +32,7 @@ func (store failingAppAIConfigStore) Overwrite(context.Context, string, string, 
 	return nil, "", false, store.err
 }
 
-func (missingLoadoutProjectionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
+func (missingLoadoutProjectionResolver) ProjectSelectedLocalLoadout(_ context.Context, contract string) (localexecution.LoadoutOption, bool, error) {
 	return localexecution.LoadoutOption{
 		LoadoutID: "loadout-deleted", CapabilityContract: contract,
 		ValidationState: runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED,

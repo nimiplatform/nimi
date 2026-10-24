@@ -34,7 +34,7 @@ func newConcurrentCaptureLocalExecutionResolver(selection *localexecution.Select
 	}
 }
 
-func (r *concurrentCaptureLocalExecutionResolver) ProjectSelectedLocalLoadout(string) (localexecution.LoadoutOption, bool, error) {
+func (r *concurrentCaptureLocalExecutionResolver) ProjectSelectedLocalLoadout(context.Context, string) (localexecution.LoadoutOption, bool, error) {
 	return selectedLoadoutOptionForTest(r.selection)
 }
 

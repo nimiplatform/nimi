@@ -8,11 +8,15 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (*runtimev1.ResolveLocalEnvironmentPlanResponse, error) {
-	plan, err := s.resolveLocalEnvironmentPlanResolution(req)
+func (s *Service) ResolveLocalEnvironmentPlan(ctx context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (*runtimev1.ResolveLocalEnvironmentPlanResponse, error) {
+	plan, err := s.resolveLocalEnvironmentPlanResolution(ctx, req)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, status.FromContextError(ctx.Err()).Err()
+		}
 		return nil, err
 	}
 	return &runtimev1.ResolveLocalEnvironmentPlanResponse{
@@ -21,7 +25,10 @@ func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.
 }
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r118
-func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
+func (s *Service) resolveLocalEnvironmentPlanResolution(ctx context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
+	}
 	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
 	if err != nil {
 		return localEnvironmentPlan{}, err
@@ -32,7 +39,7 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 		if capabilityContract != "" || candidateLoadoutID != "" {
 			return localEnvironmentPlan{}, localEnvironmentJobControlError(codes.InvalidArgument, "media codec resolution cannot select a capability or Loadout", "choose_one_environment_target")
 		}
-		return s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "media-codec", ConsumerScope: "media-codec", HostProfile: req.GetHostProfile(), RuntimeDataRoot: runtimeDataRoot}), nil
+		return s.resolveLocalEnvironmentPlan(ctx, localEnvironmentPlanRequest{PackID: "media-codec", ConsumerScope: "media-codec", HostProfile: req.GetHostProfile(), RuntimeDataRoot: runtimeDataRoot})
 	}
 
 	var loadout *runtimev1.Loadout
@@ -46,6 +53,9 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 		s.mu.RLock()
 		loadout = cloneLoadout(s.loadouts[candidateLoadoutID])
 		s.mu.RUnlock()
+		if err := ctx.Err(); err != nil {
+			return localEnvironmentPlan{}, err
+		}
 		if loadout == nil {
 			return localEnvironmentPlan{}, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "candidate Loadout was not found", map[string]string{"loadout_id": candidateLoadoutID})
 		}
@@ -64,6 +74,9 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 			loadout = cloneLoadout(s.loadouts[selection.GetLoadoutId()])
 		}
 		s.mu.RUnlock()
+		if err := ctx.Err(); err != nil {
+			return localEnvironmentPlan{}, err
+		}
 		if selection == nil {
 			return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the local environment capability", map[string]string{"capability_contract": capabilityContract})
 		}
@@ -79,7 +92,13 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 		return localEnvironmentPlan{}, err
 	}
 
-	hostProfile := hostProfileOrCollected(req.GetHostProfile())
+	hostProfile := cloneDeviceProfile(req.GetHostProfile())
+	if hostProfile == nil {
+		hostProfile = collectDeviceProfile(ctx)
+	}
+	if err := ctx.Err(); err != nil {
+		return localEnvironmentPlan{}, err
+	}
 	packID, consumerScope, ok := localEnvironmentTargetForDriver(driver, localEnvironmentHostProfileFromDeviceProfile(hostProfile))
 	if !ok {
 		identity := capabilitydriver.IdentityFromProto(loadout.GetImplementation())
@@ -89,14 +108,14 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 			"driver_dialect":      identity.DriverDialect,
 		})
 	}
-	return s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+	return s.resolveLocalEnvironmentPlan(ctx, localEnvironmentPlanRequest{
 		PackID:             packID,
 		ConsumerScope:      consumerScope,
 		HostProfile:        hostProfile,
 		RuntimeDataRoot:    runtimeDataRoot,
 		CandidateLoadoutID: candidateLoadoutID,
 		CandidateRevision:  candidateRevision,
-	}), nil
+	})
 }
 
 func (s *Service) ListLocalEnvironmentSelectedSources(_ context.Context, req *runtimev1.ListLocalEnvironmentSelectedSourcesRequest) (*runtimev1.ListLocalEnvironmentSelectedSourcesResponse, error) {
@@ -163,17 +182,26 @@ func (s *Service) ListLocalEnvironmentDependencyJobs(_ context.Context, req *run
 	return &runtimev1.ListLocalEnvironmentDependencyJobsResponse{Jobs: out}, nil
 }
 
-func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *runtimev1.ResolveLocalEnvironmentActivationGateRequest) (*runtimev1.ResolveLocalEnvironmentActivationGateResponse, error) {
+func (s *Service) ResolveLocalEnvironmentActivationGate(ctx context.Context, req *runtimev1.ResolveLocalEnvironmentActivationGateRequest) (*runtimev1.ResolveLocalEnvironmentActivationGateResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
 	if err != nil {
 		return nil, err
 	}
-	gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+	gate, gateErr := s.resolveLocalEnvironmentConsumerActivationGate(ctx, localEnvironmentConsumerActivationGateRequest{
 		ConsumerID:      req.GetConsumerId(),
 		PackID:          req.GetPackId(),
 		HostProfile:     req.GetHostProfile(),
 		RuntimeDataRoot: runtimeDataRoot,
 	})
+	if gateErr != nil {
+		if ctx.Err() != nil {
+			return nil, status.FromContextError(ctx.Err()).Err()
+		}
+		return nil, gateErr
+	}
 	return &runtimev1.ResolveLocalEnvironmentActivationGateResponse{
 		Gate: localEnvironmentActivationGateToProto(gate),
 	}, nil

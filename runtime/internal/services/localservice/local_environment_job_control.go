@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type localEnvironmentPlanApplyActionKind string
@@ -77,7 +78,7 @@ func (s *Service) ApplyLocalEnvironmentPlan(ctx context.Context, req *runtimev1.
 	if resolution == nil {
 		return nil, localEnvironmentJobControlError(codes.InvalidArgument, "local environment plan apply requires the original plan resolution input", "refresh_local_environment_plan")
 	}
-	plan, err := s.resolveLocalEnvironmentPlanForApply(resolution)
+	plan, err := s.resolveLocalEnvironmentPlanForApply(ctx, resolution)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func (s *Service) ApplyLocalEnvironmentPlan(ctx context.Context, req *runtimev1.
 		}
 	}
 
-	current, err := s.resolveLocalEnvironmentPlanForApply(resolution)
+	current, err := s.resolveLocalEnvironmentPlanForApply(ctx, resolution)
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +161,12 @@ func (s *Service) ApplyLocalEnvironmentPlan(ctx context.Context, req *runtimev1.
 	}, nil
 }
 
-func (s *Service) resolveLocalEnvironmentPlanForApply(req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
-	return s.resolveLocalEnvironmentPlanResolution(req)
+func (s *Service) resolveLocalEnvironmentPlanForApply(ctx context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
+	plan, err := s.resolveLocalEnvironmentPlanResolution(ctx, req)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return localEnvironmentPlan{}, status.FromContextError(contextErr).Err()
+	}
+	return plan, err
 }
 
 func localEnvironmentPlanHasCompleteConfirmation(plan localEnvironmentPlan) bool {
