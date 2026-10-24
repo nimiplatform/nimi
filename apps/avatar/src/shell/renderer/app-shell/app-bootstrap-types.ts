@@ -54,5 +54,6 @@ export type BootstrapHandle = {
     waitForPresentationReady: AvatarPresentationReadinessGate,
   ): Promise<void>;
   commitInitialPresentation(): Promise<void>;
+  abortPendingLaunch(): Promise<void>;
   shutdown(): Promise<void>;
 };

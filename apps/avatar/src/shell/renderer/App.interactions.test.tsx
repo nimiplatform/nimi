@@ -152,6 +152,7 @@ function createBootstrapHandle(input: {
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
     interruptConversationTurn: vi.fn(async () => undefined),
     sendConversationText: vi.fn(async () => ({ turnId: 'turn-01' })),
+    abortPendingLaunch: vi.fn(async () => {}),
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
 }

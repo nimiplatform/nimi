@@ -12,6 +12,7 @@ import type { AgentDataDriver } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import type { BootstrapHandle } from './app-bootstrap-types.js';
+import { createAvatarPendingLaunchAbort } from './pending-launch-abort.js';
 import { useAvatarStore } from './app-store.js';
 import {
   errorMessage,
@@ -44,7 +45,8 @@ export type { BootstrapHandle } from './app-bootstrap-types.js';
  * must be opened by the protected Desktop carrier in A1; renderer code must
  * not reconstruct a first-party Runtime identity or request credentials.
  */
-export async function bootstrapAvatar(): Promise<BootstrapHandle> {
+export async function bootstrapAvatar(options: { signal?: AbortSignal } = {}): Promise<BootstrapHandle> {
+  const pendingLaunch = createAvatarPendingLaunchAbort(options.signal);
   detectDeviceTier();
   let driver: AgentDataDriver | null = null;
   let carrier: AvatarRuntimeCarrier | null = null;
@@ -81,6 +83,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       return;
     }
     cleanedUp = true;
+    pendingLaunch.close();
     unsubscribeStatus();
     unsubscribeBundle();
     activeVoiceCapture?.cancel();
@@ -120,6 +123,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       activateCommittedPresentation(input, waitForPresentationReady)
     ),
     commitInitialPresentation: () => commitInitialPresentation(),
+    abortPendingLaunch: () => pendingLaunch.abort(),
     async shutdown() {
       await cleanup();
     },
@@ -155,6 +159,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         return buildHandle();
       }
       const launchContext = await waitForAvatarLaunchContext(5_000);
+      pendingLaunch.bind(launchContext);
       useAvatarStore.getState().setLaunchContext(launchContext);
       let runtime: NimiLocalAppClient | null = null;
       const avatarInstanceId = launchContext.avatarInstanceId || `desktop-avatar-${ulid()}`;
@@ -183,6 +188,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
                 agentHandle,
                 conversationAnchorId: launchContext.conversationAnchorId,
               });
+              pendingLaunch.bind({ agentHandle, conversationAnchorId: launchContext.conversationAnchorId });
               const state = useAvatarStore.getState();
               if (state.consume.avatarInstanceId !== avatarInstanceId
                 || state.consume.conversationAnchorId !== launchContext.conversationAnchorId) {
@@ -221,6 +227,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           worldId: '',
         });
         if (!presentationSnapshot.profile?.avatarAssetRef || !presentationSnapshot.presentationRevision) {
+          void pendingLaunch.abort();
           const reason = 'runtime_agent_avatar_asset_missing_test_data';
           useAvatarStore.getState().setModelError(
             'The selected Runtime Agent has no admitted Live2D or VRM presentation asset.',
@@ -374,6 +381,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         });
         activateCommittedPresentation = presentationSwap.activate;
       } catch (error) {
+        // The bootstrap attempt has ended, even when the underlying reason
+        // permits a later retry. Do not hold the source behind driver cleanup.
+        void pendingLaunch.abort();
         carrier?.shutdown();
         carrier = null;
         if (driver) {
@@ -442,6 +452,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         () => activeDriver.start(),
       );
     } catch (error) {
+      void pendingLaunch.abort();
       recordDriverStartFailure(error);
       carrier?.shutdown();
       carrier = null;
@@ -457,6 +468,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
     return buildHandle();
   } catch (error) {
+    void pendingLaunch.abort();
     console.error('[avatar:bootstrap] startup failed', error);
     await cleanup();
     throw error;

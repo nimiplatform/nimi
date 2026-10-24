@@ -20,13 +20,18 @@ const electronMockUrl = `data:text/javascript,${encodeURIComponent(`
       this.visible = false;
       this.focused = false;
       this.listeners = new Map();
+      this.webListeners = new Map();
       const mainFrame = { url: 'file:///avatar/index.html' };
       this.webContents = {
         mainFrame,
         isDestroyed: () => this.destroyed,
         setWindowOpenHandler() {},
         once: (event, listener) => this.onceWebContents(event, listener),
-        on: () => {},
+        on: (event, listener) => {
+          const listeners = this.webListeners.get(event) ?? [];
+          listeners.push(listener);
+          this.webListeners.set(event, listeners);
+        },
         send: (event) => browserWindowOps.push(['event', event]),
         setAudioMuted: (muted) => browserWindowOps.push(['audio', muted]),
       };
@@ -49,6 +54,9 @@ const electronMockUrl = `data:text/javascript,${encodeURIComponent(`
       const listeners = this.listeners.get(event) ?? [];
       this.listeners.set(event, listeners.filter((entry) => !entry.once));
       for (const entry of listeners) entry.listener();
+    }
+    emitWebContents(event, ...args) {
+      for (const listener of this.webListeners.get(event) ?? []) listener(...args);
     }
     async loadURL() { this.didFinishLoad?.(); }
     isDestroyed() { return this.destroyed; }
@@ -170,6 +178,7 @@ type BundledAvatarLifecycleTestOptions = Readonly<{
     conversationAnchorId: string;
   }>) => Promise<string>;
   revalidateFormalPresentationForMaterialization?: () => Promise<void>;
+  revalidateCurrentAvatarHostTarget?: (ref: string) => Promise<string>;
   onRegisterReadableFile?: () => void;
   appPrivateDataRoot?: string;
 }>;
@@ -216,7 +225,7 @@ async function createBundledAvatarHostForLifecycleTest(
       options.revalidateFormalPresentationForMaterialization ?? (async () => {}),
     resolveFormalAvatarHostTarget:
       options.resolveFormalAvatarHostTarget ?? (async () => `avatar_target_${'f'.repeat(43)}`),
-    async revalidateCurrentAvatarHostTarget() { throw new Error('not-used'); },
+    revalidateCurrentAvatarHostTarget: options.revalidateCurrentAvatarHostTarget ?? (async () => { throw new Error('not-used'); }),
   });
 }
 
@@ -634,6 +643,219 @@ test('initial launch commit failure destroys the hidden candidate without making
   assert.equal(window.isDestroyed(), true);
   assert.equal(host.hasActiveInstances(), false);
   await host.shutdown();
+});
+
+function avatarWindowCall(
+  host: Awaited<ReturnType<typeof createBundledAvatarHostForLifecycleTest>>,
+  window: import('electron').BrowserWindow,
+  command: string,
+  payload: Record<string, unknown>,
+) {
+  const handler = host.runtimeBridgeHost.commandHandlers?.[command];
+  assert.ok(handler, command);
+  return handler({ command, payload, event: { sender: window.webContents, senderFrame: window.webContents.mainFrame },
+    appId: 'nimi.avatar', runtimeEndpoint: 'protected-test', sendEvent() {} });
+}
+
+async function pendingAvatarForAbortTest(
+  host: Awaited<ReturnType<typeof createBundledAvatarHostForLifecycleTest>>,
+  instanceId: string,
+  avatarHostTargetRef = `avatar_target_${'f'.repeat(43)}`,
+  switchIntentRef: string | null = null,
+) {
+  const electron = await import('electron') as unknown as typeof import('electron') & {
+    BrowserWindow: typeof import('electron').BrowserWindow & { instances: import('electron').BrowserWindow[] };
+  };
+  const count = electron.BrowserWindow.instances.length;
+  const launch = host.hostHandoff({ sourceApp: 'nimi.desktop', avatarHostTargetRef,
+    request: { command: 'launch', target: { agentHandle: SOURCE_APP_AGENT_HANDLE, conversationAnchorId: `anchor-${instanceId}`,
+      avatarInstanceId: instanceId, launchSource: 'desktop-test', switchIntentRef, committedPresentationRef: null, temporaryCustodyRef: null } } });
+  void launch.catch(() => undefined);
+  while (electron.BrowserWindow.instances.length === count) await new Promise<void>(resolve => setImmediate(resolve));
+  const window = electron.BrowserWindow.instances.at(-1)!;
+  const binding = { agentHandle: AGENT_HANDLE, conversationAnchorId: `anchor-${instanceId}` };
+  return { window, launch, binding, call: (command: string, payload: Record<string, unknown>) => avatarWindowCall(host, window, command, payload) };
+}
+
+async function resolveAbortTestLease(pending: Awaited<ReturnType<typeof pendingAvatarForAbortTest>>, agentHandle = AGENT_HANDLE) {
+  return await pending.call('nimi_avatar_resolve_agent_center_avatar_asset', { payload: {
+    agentHandle, avatarAssetRef: AVATAR_ASSET_REF, backendKind: 'vrm', presentationRevision: 'revision-current',
+  } }) as { materializationLeaseRef: string; materializationRef: string };
+}
+
+function commitAbortTestLease(
+  pending: Awaited<ReturnType<typeof pendingAvatarForAbortTest>>,
+  lease: Awaited<ReturnType<typeof resolveAbortTestLease>>,
+) {
+  return pending.call('nimi_avatar_commit_materialization_lease', {
+    materializationLeaseRef: lease.materializationLeaseRef, materializationRef: lease.materializationRef,
+    avatarAssetRef: AVATAR_ASSET_REF, backendKind: 'vrm', presentationRevision: 'revision-current' });
+}
+
+test('scoped abort rejects a pending switch once, preserves the old companion, and cannot affect its later replacement', { timeout: 3000 }, async () => {
+  const host = await createBundledAvatarHostForLifecycleTest({ revalidateCurrentAvatarHostTarget: async ref => ref });
+  const old = await launchBundledAvatarHostForLifecycleTest(host, 'abort-old-active');
+  const nextTarget = `avatar_target_${'g'.repeat(43)}`;
+  const confirmation = () => host.hostHandoff({ sourceApp: 'nimi.desktop', avatarHostTargetRef: nextTarget,
+    request: { command: 'launch', target: { agentHandle: SOURCE_APP_AGENT_HANDLE, conversationAnchorId: 'anchor-new',
+      avatarInstanceId: null, launchSource: 'desktop-test', switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null } } });
+  try {
+    assert.deepEqual(await avatarWindowCall(host, old, 'nimi_avatar_abort_pending_launch', {
+      agentHandle: AGENT_HANDLE, conversationAnchorId: 'anchor-abort-old-active',
+    }), { accepted: false });
+    const intent = await confirmation();
+    const pending = await pendingAvatarForAbortTest(host, 'abort-failed-switch', nextTarget, intent.switchIntentRef);
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', { ...pending.binding, agentHandle: SOURCE_APP_AGENT_HANDLE }), { accepted: false });
+    await assert.rejects(async () => pending.call('nimi_avatar_abort_pending_launch', { ...pending.binding, phase: 'failed' }), /unexpected|unknown|payload|keys/iu);
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: true });
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: false });
+    const presence = await host.hostHandoff({ sourceApp: 'nimi.desktop', avatarHostTargetRef: nextTarget,
+      request: { command: 'presence', target: { agentHandle: SOURCE_APP_AGENT_HANDLE, conversationAnchorId: null,
+        avatarInstanceId: null, launchSource: 'desktop-test', switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null } } });
+    assert.equal(presence.state, 'non-matching');
+    await assert.rejects(pending.launch, /pending-launch-aborted/u);
+    assert.equal(old.isVisible(), true);
+    assert.equal(old.isDestroyed(), false);
+    assert.equal(pending.window.isDestroyed(), true);
+
+    const freshIntent = await confirmation();
+    const replacement = await pendingAvatarForAbortTest(host, 'abort-fresh-switch', nextTarget, freshIntent.switchIntentRef);
+    await commitAbortTestLease(replacement, await resolveAbortTestLease(replacement));
+    await replacement.launch;
+    assert.equal(replacement.window.isVisible(), true);
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: false });
+    assert.equal(replacement.window.isDestroyed(), false);
+  } finally { await host.shutdown(); }
+});
+
+test('scoped abort interrupts loading even after ready was resolved, before promotion can run', { timeout: 2000 }, async t => {
+  const { BrowserWindow } = await import('electron');
+  let finishLoad!: () => void;
+  const gate = new Promise<void>(resolve => { finishLoad = resolve; });
+  t.mock.method(BrowserWindow.prototype, 'loadURL', async () => { await gate; });
+  const host = await createBundledAvatarHostForLifecycleTest();
+  try {
+    const pending = await pendingAvatarForAbortTest(host, 'abort-ready-before-load');
+    const lease = await resolveAbortTestLease(pending);
+    await commitAbortTestLease(pending, lease);
+    assert.equal(pending.window.isVisible(), false);
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: true });
+    // This must settle without releasing the still-pending loadURL promise.
+    await assert.rejects(pending.launch, /pending-launch-aborted/u);
+    finishLoad();
+    await assert.rejects(async () => commitAbortTestLease(pending, lease), /invalidated|unbound|stale/u);
+    assert.equal(pending.window.isDestroyed(), true);
+    assert.equal(host.hasActiveInstances(), false);
+  } finally { finishLoad(); await host.shutdown(); }
+});
+
+test('candidate abort fences an in-flight final revalidation and releases only its own shared materialization hold', { timeout: 3000 }, async () => {
+  let revalidations = 0;
+  let enter!: () => void;
+  let finish!: () => void;
+  const entered = new Promise<void>(resolve => { enter = resolve; });
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  let registrations = 0;
+  const host = await createBundledAvatarHostForLifecycleTest({
+    revalidateCurrentAvatarHostTarget: async ref => ref,
+    onRegisterReadableFile: () => { registrations++; },
+    revalidateFormalPresentationForMaterialization: async () => { if (++revalidations === 4) { enter(); await gate; } },
+  });
+  const old = await launchBundledAvatarHostForLifecycleTest(host, 'abort-shared-old');
+  const target = `avatar_target_${'g'.repeat(43)}`;
+  try {
+    const intent = await host.hostHandoff({ sourceApp: 'nimi.desktop', avatarHostTargetRef: target,
+      request: { command: 'launch', target: { agentHandle: SOURCE_APP_AGENT_HANDLE, conversationAnchorId: null,
+        avatarInstanceId: null, launchSource: 'desktop-test', switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null } } });
+    const pending = await pendingAvatarForAbortTest(host, 'abort-shared-pending', target, intent.switchIntentRef);
+    const lease = await resolveAbortTestLease(pending);
+    assert.deepEqual(await avatarWindowCall(host, old, 'nimi_avatar_release_materialization_lease', { materializationLeaseRef: lease.materializationLeaseRef }), { accepted: false });
+    const commit = assert.rejects(async () => commitAbortTestLease(pending, lease), /materialization-binding-stale/u);
+    await entered;
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: true });
+    await assert.rejects(pending.launch, /pending-launch-aborted/u);
+    finish(); await commit;
+    const beforeReuse = registrations;
+    const reused = await avatarWindowCall(host, old, 'nimi_avatar_resolve_agent_center_avatar_asset', { payload: {
+      agentHandle: AGENT_HANDLE, avatarAssetRef: AVATAR_ASSET_REF, backendKind: 'vrm', presentationRevision: 'revision-current',
+    } }) as { materializationLeaseRef: string };
+    assert.equal(registrations, beforeReuse, 'a double release would drop the old active materialization');
+    assert.deepEqual(await avatarWindowCall(host, old, 'nimi_avatar_release_materialization_lease', { materializationLeaseRef: reused.materializationLeaseRef }), { accepted: true });
+    assert.equal(old.isVisible(), true);
+    assert.equal(old.isDestroyed(), false);
+  } finally { finish(); await host.shutdown(); }
+});
+
+test('pre-ready binding refresh survives the old scope commit and ignores its late abort', { timeout: 3000 }, async () => {
+  let count = 0;
+  let enter!: () => void;
+  let finish!: () => void;
+  const entered = new Promise<void>(resolve => { enter = resolve; });
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  const nextAgent = `agent_ref_${'h'.repeat(43)}`;
+  const host = await createBundledAvatarHostForLifecycleTest({
+    resolveFormalAvatarHostTarget: async () => `avatar_target_${'g'.repeat(43)}`,
+    revalidateFormalPresentationForMaterialization: async () => { if (++count === 2) { enter(); await gate; } },
+  });
+  try {
+    const pending = await pendingAvatarForAbortTest(host, 'abort-pre-ready-refresh');
+    const lease = await resolveAbortTestLease(pending);
+    const commit = assert.rejects(async () => commitAbortTestLease(pending, lease), /materialization-binding-stale/u);
+    await entered;
+    assert.deepEqual(await pending.call('nimi_avatar_refresh_host_binding', { ...pending.binding, agentHandle: nextAgent }), { accepted: true });
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: false });
+    finish(); await commit;
+    assert.equal(pending.window.isDestroyed(), false);
+    await commitAbortTestLease(pending, await resolveAbortTestLease(pending, nextAgent));
+    await pending.launch;
+    assert.equal(pending.window.isVisible(), true);
+  } finally { finish(); await host.shutdown(); }
+});
+
+test('binding refresh after ready cannot promote the old binding while URL load is pending', { timeout: 2000 }, async t => {
+  const { BrowserWindow } = await import('electron');
+  let finishLoad!: () => void;
+  const gate = new Promise<void>(resolve => { finishLoad = resolve; });
+  t.mock.method(BrowserWindow.prototype, 'loadURL', async () => { await gate; });
+  const host = await createBundledAvatarHostForLifecycleTest({ resolveFormalAvatarHostTarget: async () => `avatar_target_${'g'.repeat(43)}` });
+  try {
+    const pending = await pendingAvatarForAbortTest(host, 'abort-ready-refresh');
+    await commitAbortTestLease(pending, await resolveAbortTestLease(pending));
+    await assert.rejects(async () => pending.call('nimi_avatar_refresh_host_binding', { ...pending.binding, agentHandle: `agent_ref_${'h'.repeat(43)}` }), /binding-changed-after-ready/u);
+    await assert.rejects(pending.launch, /binding-changed-after-ready/u);
+    assert.equal(host.hasActiveInstances(), false);
+  } finally { finishLoad(); await host.shutdown(); }
+});
+
+for (const failure of ['preload', 'closed'] as const) test(`${failure} interrupts a still-loading candidate without awaiting readiness timeout`, { timeout: 2000 }, async t => {
+  const { BrowserWindow } = await import('electron');
+  let finishLoad!: () => void;
+  const gate = new Promise<void>(resolve => { finishLoad = resolve; });
+  t.mock.method(BrowserWindow.prototype, 'loadURL', async () => { await gate; });
+  const host = await createBundledAvatarHostForLifecycleTest();
+  try {
+    const pending = await pendingAvatarForAbortTest(host, `abort-${failure}`);
+    if (failure === 'closed') pending.window.destroy();
+    else (pending.window as unknown as { emitWebContents: (event: string, ...args: unknown[]) => void }).emitWebContents('preload-error', {}, '/test/preload.js', new Error('test loader error'));
+    await assert.rejects(pending.launch, failure === 'closed' ? /candidate-closed/u : /candidate-preload-failed/u);
+    assert.equal(pending.window.isDestroyed(), true);
+    assert.equal(host.hasActiveInstances(), false);
+    assert.deepEqual(await pending.call('nimi_avatar_abort_pending_launch', pending.binding), { accepted: false });
+  } finally { finishLoad(); await host.shutdown(); }
+});
+
+test('readiness timeout permanently fences the candidate and its late ready commit', { timeout: 2000 }, async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const host = await createBundledAvatarHostForLifecycleTest();
+  try {
+    const pending = await pendingAvatarForAbortTest(host, 'abort-timeout');
+    const lease = await resolveAbortTestLease(pending);
+    t.mock.timers.tick(15_000);
+    await assert.rejects(pending.launch, /candidate-presentation-timeout/u);
+    await assert.rejects(async () => commitAbortTestLease(pending, lease), /invalidated|unbound|stale/u);
+    assert.equal(pending.window.isDestroyed(), true);
+    assert.equal(host.hasActiveInstances(), false);
+  } finally { await host.shutdown(); }
 });
 
 test('Stop Companion destroys its window when sender invalidation rejects', async () => {

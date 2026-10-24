@@ -21,7 +21,7 @@ import {
 } from './avatar-scale-state.js';
 import { readAvatarShellSettings } from './settings-state.js';
 
-const bootstrapAvatarMock = vi.fn<() => Promise<BootstrapHandle>>();
+const bootstrapAvatarMock = vi.fn<(options?: { signal?: AbortSignal }) => Promise<BootstrapHandle>>();
 const setIgnoreCursorEventsMock = vi.fn();
 const constrainWindowToVisibleAreaMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
@@ -47,7 +47,7 @@ function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): Ava
 }
 
 vi.mock('./app-shell/app-bootstrap.js', () => ({
-  bootstrapAvatar: () => bootstrapAvatarMock(),
+  bootstrapAvatar: (options?: { signal?: AbortSignal }) => bootstrapAvatarMock(options),
 }));
 
 vi.mock('./app-shell/avatar-host-bridge.js', () => ({
@@ -132,6 +132,7 @@ function createBootstrapHandle(input: {
   onSurfaceMount?: () => void;
   onSurfaceUnmount?: () => void;
   presentationReadyGate?: Promise<void>;
+  capturePresentationListener?: (listener: (state: BackendPresentationState) => void) => void;
 } = {}): BootstrapHandle {
   const projection = input.projection;
   let surfaceMountCount = 0;
@@ -166,6 +167,7 @@ function createBootstrapHandle(input: {
                 ?? READY_PRESENTATION_STATE;
               useEffect(() => {
                 let active = true;
+                if (props.onPresentationStateChange) input.capturePresentationListener?.(props.onPresentationStateChange);
                 const publish = () => {
                   if (active) props.onPresentationStateChange?.(presentationState);
                 };
@@ -207,6 +209,7 @@ function createBootstrapHandle(input: {
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
     interruptConversationTurn: vi.fn(async () => undefined),
     sendConversationText: vi.fn(async () => ({ turnId: 'turn-01' })),
+    abortPendingLaunch: vi.fn(async () => {}),
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
 }
@@ -361,6 +364,68 @@ afterEach(() => {
 });
 
 describe('App composition state machine', () => {
+  it('abandons a terminal initial attempt once and ignores its late ready', async () => {
+    let publish!: (state: BackendPresentationState) => void;
+    const handle = createBootstrapHandle({
+      projection: createBackendProjection(), presentationState: { kind: 'loading' },
+      capturePresentationListener: listener => { publish = listener; },
+    });
+    Object.assign(handle.carrier!, { committedPresentationSelection: {
+      avatarAssetRef: 'vrm_aaaaaaaaaaaa', backendKind: 'vrm', presentationRevision: 'revision-1', previewMaterialRef: 'material-1',
+    } });
+    handle.commitInitialPresentation = vi.fn(async () => {});
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => seedReadyState());
+    await waitFor(() => expect(publish).toBeTypeOf('function'));
+    act(() => { publish({ kind: 'unavailable', reason: 'load failed' }); });
+    act(() => { publish({ kind: 'unavailable', reason: 'duplicate failure' }); publish({ kind: 'ready' }); });
+    expect(handle.abortPendingLaunch).toHaveBeenCalledTimes(1);
+    expect(handle.commitInitialPresentation).not.toHaveBeenCalled();
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state')).toBe('unavailable');
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('false');
+  });
+
+  it('does not turn a failed initial attempt ready when its in-flight commit finishes', async () => {
+    let publish!: (state: BackendPresentationState) => void;
+    const commit = createDeferred<void>();
+    const handle = createBootstrapHandle({
+      projection: createBackendProjection(), presentationState: { kind: 'loading' },
+      capturePresentationListener: listener => { publish = listener; },
+    });
+    Object.assign(handle.carrier!, { committedPresentationSelection: {
+      avatarAssetRef: 'vrm_aaaaaaaaaaaa', backendKind: 'vrm', presentationRevision: 'revision-1', previewMaterialRef: 'material-1',
+    } });
+    handle.commitInitialPresentation = vi.fn(() => commit.promise);
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => seedReadyState());
+    await waitFor(() => expect(publish).toBeTypeOf('function'));
+    act(() => publish({ kind: 'ready' }));
+    expect(handle.commitInitialPresentation).toHaveBeenCalledTimes(1);
+    act(() => publish({ kind: 'unavailable', reason: 'render lost before acknowledgement' }));
+    await act(async () => { commit.resolve(); await commit.promise; });
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state')).toBe('unavailable');
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('false');
+  });
+
+  it('ignores callbacks from a closed bootstrap after a fresh App becomes ready', async () => {
+    let oldPublish!: (state: BackendPresentationState) => void;
+    const old = createBootstrapHandle({ projection: createBackendProjection(),
+      capturePresentationListener: listener => { oldPublish = listener; } });
+    const current = createBootstrapHandle({ projection: createBackendProjection() });
+    bootstrapAvatarMock.mockResolvedValueOnce(old).mockResolvedValueOnce(current);
+    const view = render(<App />);
+    act(() => seedReadyState());
+    await waitFor(() => expect(oldPublish).toBeTypeOf('function'));
+    view.unmount();
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true'));
+    act(() => oldPublish({ kind: 'unavailable', reason: 'old closed backend' }));
+    expect(old.abortPendingLaunch).not.toHaveBeenCalled();
+    expect(current.abortPendingLaunch).not.toHaveBeenCalled();
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true');
+  });
   it('mounts degraded-surface (loading variant) before bootstrap completes', async () => {
     const deferred = createDeferred<BootstrapHandle>();
     bootstrapAvatarMock.mockReturnValue(deferred.promise);
@@ -538,6 +603,24 @@ describe('App composition state machine', () => {
       expect(initialHandle.shutdown).toHaveBeenCalledTimes(1);
       expect(bootstrapAvatarMock).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('cancels the current restart scope when unmounted before bootstrap settles', async () => {
+    const initial = createBootstrapHandle();
+    const replacement = createBootstrapHandle();
+    const pending = createDeferred<BootstrapHandle>();
+    bootstrapAvatarMock.mockResolvedValueOnce(initial).mockReturnValueOnce(pending.promise);
+    const view = render(<App />);
+    act(() => seedDegradedRuntime());
+    await waitFor(() => expect(screen.getByTestId('avatar-degraded-restart')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('avatar-degraded-restart'));
+    await waitFor(() => expect(bootstrapAvatarMock).toHaveBeenCalledTimes(2));
+    const signal = bootstrapAvatarMock.mock.calls[1]?.[0]?.signal;
+    expect(signal?.aborted).toBe(false);
+    view.unmount();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => { pending.resolve(replacement); await pending.promise; });
+    expect(replacement.shutdown).toHaveBeenCalledTimes(1);
   });
 
   it('keeps staged promotion mounted when the unavailable current carrier is restarted', async () => {

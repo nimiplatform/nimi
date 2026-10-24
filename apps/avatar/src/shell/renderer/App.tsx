@@ -146,6 +146,9 @@ export function App() {
   const initialLeaseCommitInFlightRef = useRef<string | null>(null);
   const committedLeasePresentationRef = useRef<string | null>(null);
   const activeBootstrapHandleRef = useRef<BootstrapHandle | null>(null);
+  const bootstrapScopeRef = useRef<AbortController | null>(null);
+  const failedPresentationAttemptRef = useRef<string | null>(null);
+  const currentPresentationAttemptRef = useRef<string | null>(null);
   const bootstrapRestartInFlightRef = useRef(false);
   const appMountedRef = useRef(false);
 
@@ -182,6 +185,7 @@ export function App() {
   );
   const productCompositionReady = composition.ready && consume.authority === 'runtime';
   const presentationReady = productCompositionReady && backendPresentation.kind === 'ready';
+  currentPresentationAttemptRef.current = carrierPresentationAttemptKey(bootstrapHandle?.carrier, presentationRecovery);
 
   useEffect(() => {
     // Fixture rendering is a development-only visual preview. Keeping the
@@ -194,7 +198,9 @@ export function App() {
   useEffect(() => {
     appMountedRef.current = true;
     let cancelled = false;
-    bootstrapAvatar()
+    const scope = new AbortController();
+    bootstrapScopeRef.current = scope;
+    bootstrapAvatar({ signal: scope.signal })
       .then((h) => {
         if (cancelled) {
           void h.shutdown();
@@ -210,6 +216,9 @@ export function App() {
       });
     return () => {
       cancelled = true;
+      scope.abort();
+      bootstrapScopeRef.current?.abort();
+      bootstrapScopeRef.current = null;
       appMountedRef.current = false;
       const staged = stagedPresentationRef.current;
       if (staged && !staged.settled.value) {
@@ -353,6 +362,18 @@ export function App() {
   });
 
   const handleBackendPresentationState = useCallback((state: BackendPresentationState): void => {
+    if (!bootstrapHandle || activeBootstrapHandleRef.current !== bootstrapHandle) return;
+    const attemptKey = carrierPresentationAttemptKey(bootstrapHandle.carrier, presentationRecovery);
+    if (currentPresentationAttemptRef.current !== attemptKey) return;
+    if (state.kind === 'unavailable') {
+      if (attemptKey && failedPresentationAttemptRef.current === attemptKey) return;
+      failedPresentationAttemptRef.current = attemptKey;
+      void bootstrapHandle.abortPendingLaunch();
+    } else if (attemptKey && failedPresentationAttemptRef.current === attemptKey) {
+      // A final unavailable result cannot be undone by a late ready/loading
+      // callback. An explicit local restart creates a new presentation key.
+      return;
+    }
     if (!productCompositionReady
       || state.kind !== 'ready'
       || !bootstrapHandle?.carrier?.committedPresentationSelection) {
@@ -372,16 +393,22 @@ export function App() {
       setBackendPresentation(state);
       return;
     }
-    if (initialLeaseCommitInFlightRef.current === presentationKey) return;
-    initialLeaseCommitInFlightRef.current = presentationKey;
+    const commitKey = attemptKey ?? presentationKey;
+    if (initialLeaseCommitInFlightRef.current === commitKey) return;
+    initialLeaseCommitInFlightRef.current = commitKey;
     void commitInitialPresentation().then(() => {
-      initialLeaseCommitInFlightRef.current = null;
+      if (initialLeaseCommitInFlightRef.current === commitKey) initialLeaseCommitInFlightRef.current = null;
+      if (activeBootstrapHandleRef.current !== bootstrapHandle
+        || currentPresentationAttemptRef.current !== attemptKey
+        || failedPresentationAttemptRef.current === attemptKey) return;
       if (carrierPresentationKey(bootstrapHandle.carrier) !== presentationKey) return;
       committedLeasePresentationRef.current = presentationKey;
       backendPresentationRef.current = state;
       setBackendPresentation(state);
     }).catch((error: unknown) => {
-      initialLeaseCommitInFlightRef.current = null;
+      if (initialLeaseCommitInFlightRef.current === commitKey) initialLeaseCommitInFlightRef.current = null;
+      if (activeBootstrapHandleRef.current !== bootstrapHandle
+        || currentPresentationAttemptRef.current !== attemptKey) return;
       if (carrierPresentationKey(bootstrapHandle.carrier) !== presentationKey) return;
       const unavailable: BackendPresentationState = {
         kind: 'unavailable',
@@ -389,8 +416,10 @@ export function App() {
       };
       backendPresentationRef.current = unavailable;
       setBackendPresentation(unavailable);
+      failedPresentationAttemptRef.current = attemptKey;
+      void bootstrapHandle.abortPendingLaunch();
     });
-  }, [bootstrapHandle, productCompositionReady]);
+  }, [bootstrapHandle, productCompositionReady, presentationRecovery]);
 
   const handleStagedPresentationState = useCallback((state: BackendPresentationState): void => {
     const staged = stagedPresentationRef.current;
@@ -784,6 +813,9 @@ export function App() {
   const restartBootstrap = useCallback((): void => {
     if (bootstrapRestartInFlightRef.current) return;
     bootstrapRestartInFlightRef.current = true;
+    bootstrapScopeRef.current?.abort();
+    const scope = new AbortController();
+    bootstrapScopeRef.current = scope;
     dismissTransientSurfaces('composition_change');
     cancelLocalVoice();
     voiceCaptionsSuppressedRef.current = true;
@@ -809,13 +841,14 @@ export function App() {
     setStagedPresentation(null);
     initialLeaseCommitInFlightRef.current = null;
     committedLeasePresentationRef.current = null;
+    failedPresentationAttemptRef.current = null;
 
     void (async () => {
       try {
         await previousHandle?.shutdown();
-        if (!appMountedRef.current) return;
-        const nextHandle = await bootstrapAvatar();
-        if (!appMountedRef.current) {
+        if (!appMountedRef.current || scope.signal.aborted || bootstrapScopeRef.current !== scope) return;
+        const nextHandle = await bootstrapAvatar({ signal: scope.signal });
+        if (!appMountedRef.current || scope.signal.aborted || bootstrapScopeRef.current !== scope) {
           await nextHandle.shutdown();
           return;
         }
@@ -823,7 +856,9 @@ export function App() {
         setBootstrapHandle(nextHandle);
         setBootstrapComplete(true);
       } catch (error: unknown) {
-        if (appMountedRef.current) setBootstrapError(toErrorMessage(error));
+        if (appMountedRef.current && !scope.signal.aborted && bootstrapScopeRef.current === scope) {
+          setBootstrapError(toErrorMessage(error));
+        }
       } finally {
         bootstrapRestartInFlightRef.current = false;
       }

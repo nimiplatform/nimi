@@ -42,6 +42,7 @@ const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview
 const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
 const AVATAR_MATERIALIZATION_COMMIT_COMMAND = 'nimi_avatar_commit_materialization_lease';
 const AVATAR_MATERIALIZATION_RELEASE_COMMAND = 'nimi_avatar_release_materialization_lease';
+const AVATAR_ABORT_PENDING_LAUNCH_COMMAND = 'nimi_avatar_abort_pending_launch';
 const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 15_000;
 const AVATAR_SWITCH_INTENT_TTL_MS = 30_000;
 const AVATAR_HOST_HANDOFF_SHUTDOWN_WAIT_MS = 2_500;
@@ -76,6 +77,7 @@ type AvatarWindowRecord = {
   committedPresentationRef: string | null;
   temporaryCustodyRef: string | null;
   activePresentation: AvatarActivePresentation | null;
+  candidateFailure: Error | null;
   previewEpoch: number;
   senderInvalidation: Promise<void> | null;
   senderInvalidationWait: Promise<void> | null;
@@ -222,6 +224,7 @@ export async function createDesktopElectronBundledAvatarHost(
   const retiringWindows = new Set<AvatarWindowRecord>();
   const pendingCandidateReadiness = new Map<AvatarWindowRecord, Readonly<{
     promise: Promise<AvatarActivePresentation>;
+    failure: Promise<never>;
     resolve: (presentation: AvatarActivePresentation) => void;
     reject: (error: Error) => void;
     settled: () => boolean;
@@ -369,6 +372,20 @@ export async function createDesktopElectronBundledAvatarHost(
     });
   };
 
+  // This is a Host-owned launch decision, not a renderer lifecycle projection.
+  // The fence remains authoritative even if readiness was already resolved.
+  const failPendingCandidate = (record: AvatarWindowRecord, error: Error): boolean => {
+    if (!pendingCandidates.has(record) || record.candidateFailure) return false;
+    record.candidateFailure = error;
+    invalidatePreviewProjection(record, 'Avatar pending launch was abandoned.');
+    pendingCandidateReadiness.get(record)?.reject(error);
+    record.senderInvalidation ??= invalidateSender(record.sender);
+    // Cleanup is still tracked on this record and observed by discard/close.
+    void record.senderInvalidation.catch(() => undefined);
+    releaseRecordMaterialization(record);
+    return true;
+  };
+
   const createWindow = async (
     launchContext: AvatarLaunchHandoffPayload,
     avatarHostTargetRef: string,
@@ -403,6 +420,7 @@ export async function createDesktopElectronBundledAvatarHost(
       committedPresentationRef: null,
       temporaryCustodyRef: null,
       activePresentation: null,
+      candidateFailure: null,
       previewEpoch: 0,
       senderInvalidation: null,
       senderInvalidationWait: null,
@@ -414,6 +432,7 @@ export async function createDesktopElectronBundledAvatarHost(
       const readiness = createDesktopAvatarCandidateReadiness();
       pendingCandidateReadiness.set(windowRecord, readiness);
       void readiness.promise.catch(() => undefined);
+      void readiness.failure.catch(() => undefined);
     } else {
       windows.set(avatarInstanceId, windowRecord);
     }
@@ -424,16 +443,13 @@ export async function createDesktopElectronBundledAvatarHost(
       return windowRecord.senderInvalidation;
     };
     const releaseWindow = (): void => {
+      failPendingCandidate(windowRecord, new Error('desktop-avatar-pending-candidate-closed'));
       for (const [instanceId, current] of windows) {
         if (current.window === window) windows.delete(instanceId);
       }
       pendingCandidates.delete(windowRecord);
       retiringWindows.delete(windowRecord);
-      const candidateReadiness = pendingCandidateReadiness.get(windowRecord);
       pendingCandidateReadiness.delete(windowRecord);
-      if (candidateReadiness && !candidateReadiness.settled()) {
-        candidateReadiness.reject(new Error('desktop-avatar-pending-candidate-closed'));
-      }
       invalidatePreviewProjection(
         windowRecord,
         'Avatar preview renderer window closed before projection completed.',
@@ -454,6 +470,7 @@ export async function createDesktopElectronBundledAvatarHost(
     });
     window.webContents.on('preload-error', (_event, _path, error) => {
       writeDesktopStderr(`[desktop:avatar] preload failed: ${error.message}\n`);
+      failPendingCandidate(windowRecord, new Error('desktop-avatar-pending-candidate-preload-failed'));
     });
     window.webContents.on('render-process-gone', () => {
       if (!window.isDestroyed()) window.destroy();
@@ -463,15 +480,22 @@ export async function createDesktopElectronBundledAvatarHost(
       releaseWindow();
     });
     let loadTimer: ReturnType<typeof setTimeout> | undefined;
+    const candidateFailure = pendingCandidateReadiness.get(windowRecord)?.failure;
     try {
       await Promise.race([
         window.loadURL(rendererUrl),
+        ...(candidateFailure ? [candidateFailure] : []),
         new Promise<never>((_resolve, reject) => {
-          loadTimer = setTimeout(() => reject(new Error('desktop-avatar-renderer-load-timeout')), 30_000);
+          loadTimer = setTimeout(() => {
+            const error = new Error('desktop-avatar-renderer-load-timeout');
+            failPendingCandidate(windowRecord, error);
+            reject(error);
+          }, 30_000);
           loadTimer.unref?.();
         }),
       ]);
       assertAvatarHostOpen();
+      if (windowRecord.candidateFailure) throw windowRecord.candidateFailure;
     } catch (error) {
       if (!window.isDestroyed()) window.destroy();
       throw error;
@@ -492,13 +516,17 @@ export async function createDesktopElectronBundledAvatarHost(
     try {
       const presentation = await Promise.race([
         readiness.promise,
+        readiness.failure,
         new Promise<never>((_resolve, reject) => {
           timer = setTimeout(() => {
-            reject(new Error('desktop-avatar-pending-candidate-presentation-timeout'));
+            const error = new Error('desktop-avatar-pending-candidate-presentation-timeout');
+            failPendingCandidate(record, error);
+            reject(record.candidateFailure ?? error);
           }, AVATAR_PENDING_CANDIDATE_READY_TIMEOUT_MS);
           timer.unref?.();
         }),
       ]);
+      if (record.candidateFailure) throw record.candidateFailure;
       if (!pendingCandidates.has(record)
         || record.window.isDestroyed()
         || record.activePresentation !== presentation) {
@@ -519,6 +547,7 @@ export async function createDesktopElectronBundledAvatarHost(
 
   const validatePendingCandidate = (record: AvatarWindowRecord): void => {
     assertAvatarHostOpen();
+    if (record.candidateFailure) throw record.candidateFailure;
     const avatarInstanceId = requiredText(record.launchContext.avatarInstanceId, 'avatarInstanceId');
     if (!pendingCandidates.has(record)
       || record.window.isDestroyed()
@@ -769,6 +798,13 @@ export async function createDesktopElectronBundledAvatarHost(
       }
       if (record.avatarHostTargetRef !== avatarHostTargetRef
         || record.launchContext.agentHandle !== agentHandle) {
+        // A ready result belongs to its exact binding. Normal pre-ready
+        // session refresh remains allowed, but cannot recycle an old ready.
+        if (pendingCandidates.has(record) && record.activePresentation) {
+          const error = new Error('desktop-avatar-pending-candidate-binding-changed-after-ready');
+          failPendingCandidate(record, error);
+          throw error;
+        }
         invalidatePreviewProjection(
           record,
           'Avatar Host binding changed before preview projection completed.',
@@ -782,6 +818,24 @@ export async function createDesktopElectronBundledAvatarHost(
         });
       }
       return { accepted: true };
+    },
+    [AVATAR_ABORT_PENDING_LAUNCH_COMMAND]: ({ payload, event }) => {
+      assertOnlyKeys(payload, ['agentHandle', 'conversationAnchorId'], AVATAR_ABORT_PENDING_LAUNCH_COMMAND);
+      const agentHandle = requiredAgentHandle(payload.agentHandle, 'agentHandle');
+      const conversationAnchorId = requiredText(payload.conversationAnchorId, 'conversationAnchorId');
+      let record: AvatarWindowRecord;
+      try {
+        record = recordForSender(asElectronEvent(event));
+      } catch {
+        return { accepted: false };
+      }
+      if (!pendingCandidates.has(record)
+        || record.window.isDestroyed()
+        || record.launchContext.agentHandle !== agentHandle
+        || record.launchContext.conversationAnchorId !== conversationAnchorId) {
+        return { accepted: false };
+      }
+      return { accepted: failPendingCandidate(record, new Error('desktop-avatar-pending-launch-aborted')) };
     },
     nimi_avatar_quit_app: async ({ payload, event }) => {
       requireEmptyPayload(payload, 'nimi_avatar_quit_app');
@@ -937,11 +991,15 @@ export async function createDesktopElectronBundledAvatarHost(
       if (!lease || lease.record !== record) {
         throw new Error('desktop-bundled-avatar-materialization-lease-stale');
       }
-      const rejectCandidate = async (reason: string): Promise<never> => {
-        const candidateReadiness = pendingCandidateReadiness.get(record);
-        if (candidateReadiness && !candidateReadiness.settled()) {
-          candidateReadiness.reject(new Error(reason));
+      const failCurrentCandidate = (error: Error): void => {
+        // An older scope's final revalidation may settle after a legitimate
+        // pre-ready refresh. It may release its lease, never abort the new scope.
+        if (desktopAvatarMaterializationWindowBindingMatches(record, lease.binding, windows, pendingCandidates)) {
+          failPendingCandidate(record, error);
         }
+      };
+      const rejectCandidate = async (reason: string): Promise<never> => {
+        failCurrentCandidate(new Error(reason));
         await releasePendingMaterializationLease(materializationLeaseRef, lease).catch(() => undefined);
         throw new Error(reason);
       };
@@ -949,10 +1007,7 @@ export async function createDesktopElectronBundledAvatarHost(
       try {
         commit = parseDesktopAvatarMaterializationCommit(payload);
       } catch (error) {
-        const candidateReadiness = pendingCandidateReadiness.get(record);
-        if (candidateReadiness && !candidateReadiness.settled()) {
-          candidateReadiness.reject(error instanceof Error ? error : new Error(String(error)));
-        }
+        failCurrentCandidate(error instanceof Error ? error : new Error(String(error)));
         await releasePendingMaterializationLease(materializationLeaseRef, lease).catch(() => undefined);
         throw error;
       }
@@ -1017,12 +1072,7 @@ export async function createDesktopElectronBundledAvatarHost(
           }
         },
         release: async () => {
-          const candidateReadiness = pendingCandidateReadiness.get(record);
-          if (candidateReadiness && !candidateReadiness.settled()) {
-            candidateReadiness.reject(new Error(
-              'desktop-avatar-pending-candidate-presentation-revalidation-failed',
-            ));
-          }
+          failCurrentCandidate(new Error('desktop-avatar-pending-candidate-presentation-revalidation-failed'));
           await releasePendingMaterializationLease(materializationLeaseRef, lease).catch(() => undefined);
         },
         staleReason: 'desktop-bundled-avatar-materialization-binding-stale',
@@ -1250,7 +1300,7 @@ export async function createDesktopElectronBundledAvatarHost(
         const avatarHostTargetRef = requiredAvatarHostTargetRef(rawDispatch.avatarHostTargetRef);
         requiredSourceApp(rawDispatch.sourceApp);
         const pending = [...pendingCandidates].find((candidate) => (
-          !candidate.window.isDestroyed() && candidate.avatarHostTargetRef === avatarHostTargetRef
+          !candidate.window.isDestroyed() && !candidate.candidateFailure && candidate.avatarHostTargetRef === avatarHostTargetRef
         ));
         if (pending) {
           return parseAvatarHostHandoffResult({
@@ -1275,7 +1325,7 @@ export async function createDesktopElectronBundledAvatarHost(
             temporaryCustodyRef: active.temporaryCustodyRef,
           }, request.command);
         }
-        if (pendingCandidates.size > 0 || windows.size > 0) {
+        if ([...pendingCandidates].some((candidate) => !candidate.window.isDestroyed() && !candidate.candidateFailure) || windows.size > 0) {
           return avatarHandoffNonPresentResult(request.command, 'non-matching');
         }
         return avatarHandoffNonPresentResult(request.command, 'absent');
@@ -1500,6 +1550,7 @@ export async function commitDesktopAvatarMaterializationCandidate(input: Readonl
 
 function createDesktopAvatarCandidateReadiness(): Readonly<{
   promise: Promise<AvatarActivePresentation>;
+  failure: Promise<never>;
   resolve: (presentation: AvatarActivePresentation) => void;
   reject: (error: Error) => void;
   settled: () => boolean;
@@ -1507,18 +1558,22 @@ function createDesktopAvatarCandidateReadiness(): Readonly<{
   let settled = false;
   let resolvePromise!: (presentation: AvatarActivePresentation) => void;
   let rejectPromise!: (error: Error) => void;
+  let rejectFailure!: (error: Error) => void;
   const promise = new Promise<AvatarActivePresentation>((resolve, reject) => {
     resolvePromise = resolve;
     rejectPromise = reject;
   });
+  const failure = new Promise<never>((_resolve, reject) => { rejectFailure = reject; });
   return Object.freeze({
     promise,
+    failure,
     resolve(presentation) {
       if (settled) return;
       settled = true;
       resolvePromise(presentation);
     },
     reject(error) {
+      rejectFailure(error);
       if (settled) return;
       settled = true;
       rejectPromise(error);
@@ -2051,6 +2106,8 @@ export function desktopAvatarMaterializationWindowBindingMatches(
   const registered = windows.get(binding.avatarInstanceId) === record
     || pendingCandidates.has(record);
   return registered
+    && !record.candidateFailure
+    && !record.senderInvalidation
     && !record.window.isDestroyed()
     && !record.window.webContents.isDestroyed()
     && record.window === binding.window
