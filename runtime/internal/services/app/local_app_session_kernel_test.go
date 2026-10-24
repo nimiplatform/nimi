@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -550,6 +551,10 @@ type localAppSessionFixture struct {
 }
 
 func newLocalAppSessionFixture(t testing.TB, domains []string, extraOptions ...Option) localAppSessionFixture {
+	return newLocalAppSessionFixtureAtProject(t, domains, "", extraOptions...)
+}
+
+func newLocalAppSessionFixtureAtProject(t testing.TB, domains []string, projectRoot string, extraOptions ...Option) localAppSessionFixture {
 	t.Helper()
 	ctx := context.Background()
 	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
@@ -573,6 +578,14 @@ func newLocalAppSessionFixture(t testing.TB, domains []string, extraOptions ...O
 		ShellKind: 1, RawDeclaration: append([]string(nil), domains...),
 		HostExecutableDigest: "host-digest-1",
 	}
+	if projectRoot != "" {
+		input.ProjectRoot = projectRoot
+		input.ManifestPath = filepath.Join(projectRoot, "nimi.app.yaml")
+		input.SourceRef, err = localDevelopmentCanonicalProjectFileID(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	registration, err := kernel.Registrations().RegisterDevelopment(ctx, input)
 	if err != nil {
 		t.Fatal(err)
@@ -588,6 +601,9 @@ func newLocalAppSessionFixture(t testing.TB, domains []string, extraOptions ...O
 		OSLoginSession: "session-test-login", SecurityPrincipal: "session-test-user",
 		CanonicalExecutableIdentity: "session-test-host", ExecutableDigest: localAppSessionTestIdentifier(0x42),
 		ExecutableTrustSetID: "session-test-trust",
+	}
+	if projectRoot != "" {
+		process.CanonicalExecutablePath = localDevelopmentProjectHostAliasPath(projectRoot, runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON)
 	}
 	liveness := &localAppSessionTestLiveness{revoked: make(chan struct{})}
 	connection, err := protectedlocal.EstablishLocalAppConnection(ctx, localAppSessionTestVerifier{peer: protectedlocal.VerifiedLocalAppLaunchPeer{

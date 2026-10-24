@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"slices"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
@@ -45,12 +46,37 @@ func (s *Service) GetLocalDevelopmentRunAccess(ctx context.Context, req *runtime
 	}
 	s.localAppSessionMu.RLock()
 	owned, foreign := false, false
-	for _, session := range s.localAppSessions {
+	var ownedHosts []string
+	var observedScopes []localDevelopmentObservedScope
+	for connection, session := range s.localAppSessions {
 		if session.registrationHandle != registrationHandle || session.supervisorRunID != runID {
 			continue
 		}
 		if session.desktopOwner == owner {
 			owned = true
+			if !connection.ProtectedOperationAllowed() {
+				continue
+			}
+			invalidated, current := connection.SessionInvalidated(session.handle)
+			if !current || !s.now().UTC().Before(session.expiresAt) {
+				continue
+			}
+			select {
+			case <-invalidated:
+				continue
+			default:
+			}
+			select {
+			case <-session.accountInvalidated:
+				continue
+			default:
+			}
+			observedScopes = append(observedScopes, localDevelopmentObservedScope{connection, session.handle})
+			host := connection.Process().CanonicalExecutablePath
+			if launch, direct := connection.DirectLaunch(); direct {
+				host = launch.HostExecutablePath
+			}
+			ownedHosts = append(ownedHosts, host)
 		} else if session.desktopOwner != nil && session.desktopOwner.VerifiedDesktopTransport() {
 			foreign = true
 		}
@@ -62,7 +88,73 @@ func (s *Service) GetLocalDevelopmentRunAccess(ctx context.Context, req *runtime
 	available, scopeRef, reason := s.localAppRunAccess(ctx, owner, func(session localAppRuntimeSession) bool {
 		return session.registrationHandle == registrationHandle && session.supervisorRunID == runID
 	})
+	if s.perUserRuntimeRebind && available {
+		if reason := checkObservedLocalDevelopmentRunInputs(observedScopes, func() (bool, error) {
+			return localDevelopmentRunInputsCurrent(registration, ownedHosts)
+		}); reason != runtimev1.ReasonCode_ACTION_EXECUTED {
+			return &runtimev1.GetLocalDevelopmentRunAccessResponse{ReasonCode: reason}, nil
+		}
+	}
 	return &runtimev1.GetLocalDevelopmentRunAccessResponse{Available: available, ReasonCode: reason, ExecutionScopeRef: scopeRef}, nil
+}
+
+type localDevelopmentObservedScope struct {
+	connection *protectedlocal.LocalAppConnection
+	handle     protectedlocal.LocalAppSessionHandle
+}
+
+func checkObservedLocalDevelopmentRunInputs(scopes []localDevelopmentObservedScope, readInputs func() (bool, error)) runtimev1.ReasonCode {
+	current, err := readInputs()
+	if err != nil {
+		return runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE
+	}
+	if current {
+		return runtimev1.ReasonCode_ACTION_EXECUTED
+	}
+	invalidated := false
+	for _, scope := range scopes {
+		// Captured before I/O: a late observation cannot select and invalidate
+		// a replacement handle that became current while inputs were read.
+		invalidated = scope.connection.InvalidateSession(scope.handle) || invalidated
+	}
+	if !invalidated {
+		return runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE
+	}
+	return runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED
+}
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r017
+// Source supervision must still notice mutable declarations before reporting
+// an existing scope as current. This reads the owner inputs, never hashes the
+// executable or publishes a registration. A difference ends the old scope;
+// the existing Prepare/Rebind path performs the full source/process admission.
+func localDevelopmentRunInputsCurrent(registration localappkernel.Registration, ownedHosts []string) (bool, error) {
+	project, err := resolveLocalDevelopmentProject(registration.ProjectRoot, registration.AppID, runtimev1.LocalDevelopmentShellKind(registration.ShellKind))
+	if err != nil {
+		return false, err
+	}
+	if project.ProjectRoot != registration.ProjectRoot || project.ManifestPath != registration.ManifestPath ||
+		project.AppID != registration.AppID || int32(project.ShellKind) != registration.ShellKind ||
+		!slices.Equal(project.RawAppAccess, registration.RawDeclaration) {
+		return false, nil
+	}
+	identity, err := localDevelopmentCanonicalProjectFileID(project.ProjectRoot)
+	if err != nil {
+		return false, err
+	}
+	if identity != registration.SourceRef {
+		return false, nil
+	}
+	host, err := localDevelopmentHostExecutable(project)
+	if err != nil {
+		return false, err
+	}
+	for _, expected := range ownedHosts {
+		if !sameLocalDevelopmentFile(host, expected) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // This reads the existing session owner and validates Base admission. It does

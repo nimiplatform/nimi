@@ -808,13 +808,22 @@ async fn rebind_supervised_development_processes(
     channel: Channel,
     registry: SupervisedDevelopmentRegistry,
     gate: Arc<AsyncMutex<()>>,
+    observe_current_scope: bool,
 ) -> Result<(), ProtectedCarrierError> {
     let _renewal = gate.lock().await;
     let running = live_supervised_development_rebind_candidates(&registry)?;
     for (run_id, request, process_id) in running {
-        if let Err(error) =
-            crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
-                .await
+        let access = crate::LocalDevelopmentRunAccessRequest {
+            registration_handle: request.registration_handle,
+            supervisor_run_id: request.supervisor_run_id,
+        };
+        if let Err(error) = maintain_development_launch_witness(
+            observe_current_scope,
+            crate::windows_local_development::get_developer_mode_status(channel.clone()),
+            crate::windows_local_development::run_access(channel.clone(), access),
+            crate::windows_local_development::rebind_host(channel.clone(), request, process_id),
+        )
+        .await
         {
             if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
                 continue;
@@ -823,6 +832,277 @@ async fn rebind_supervised_development_processes(
         }
     }
     Ok(())
+}
+
+// @nimi-authority: rule.nimi.runtime.app-surface.run-access-scope-projection
+// This observation can only avoid creating an unused reconnect witness. It
+// never creates a session, grants App access or resumes business work. A new
+// Desktop/Runtime connection still runs the complete verified rebind without
+// consulting the former connection's scope. Futures not selected here are
+// never polled, so an unconfirmed observation cannot trigger launch effects.
+#[cfg(feature = "windows-source-local-development")]
+async fn maintain_development_launch_witness<Mode, Access, Rebind>(
+    observe_current_scope: bool,
+    mode: Mode,
+    access: Access,
+    rebind: Rebind,
+) -> Result<(), NimiHostError>
+where
+    Mode: Future<Output = Result<DeveloperModeStatus, NimiHostError>>,
+    Access: Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>>,
+    Rebind: Future<Output = Result<(), NimiHostError>>,
+{
+    if observe_current_scope {
+        // Prepare used to enforce this on every health cycle. Preserve the
+        // same current owner gate before skipping that expensive operation.
+        match mode.await?.state {
+            crate::DeveloperModeState::Enabled => {}
+            crate::DeveloperModeState::Disabled => {
+                return Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled,
+                    false,
+                ));
+            }
+            crate::DeveloperModeState::Unavailable => {
+                return Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                    true,
+                ));
+            }
+        }
+        let current = access.await?;
+        if current.available || current.reason_code != "LOCAL_APP_SESSION_REVOKED" {
+            // In particular, OWNER_UNAVAILABLE preserves uncertainty. It is
+            // not revocation and cannot authorize a replacement launch.
+            return Ok(());
+        }
+    }
+    rebind.await
+}
+
+#[cfg(all(test, feature = "windows-source-local-development"))]
+mod current_scope_witness_tests {
+    use super::*;
+    use std::cell::Cell;
+
+    async fn enabled_mode() -> Result<DeveloperModeStatus, NimiHostError> {
+        Ok(DeveloperModeStatus {
+            state: crate::DeveloperModeState::Enabled,
+            revision: 1,
+        })
+    }
+
+    fn observed(
+        available: bool,
+        reason_code: &str,
+        scope: &str,
+    ) -> crate::LocalDevelopmentRunAccess {
+        crate::LocalDevelopmentRunAccess {
+            available,
+            reason_code: reason_code.to_string(),
+            execution_scope_ref: scope.to_string(),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stable_scope_observation_skips_unused_launch_and_is_not_cached() {
+        let observations = Cell::new(0);
+        let rebinds = Cell::new(0);
+        for access in [
+            observed(true, "ACTION_EXECUTED", "execution_scope_first"),
+            observed(true, "ACTION_EXECUTED", "execution_scope_first"),
+            observed(false, "LOCAL_APP_SESSION_REVOKED", ""),
+            observed(
+                true,
+                "ACTION_EXECUTED",
+                "execution_scope_after_account_change",
+            ),
+        ] {
+            maintain_development_launch_witness(
+                true,
+                enabled_mode(),
+                async {
+                    observations.set(observations.get() + 1);
+                    Ok(access)
+                },
+                async {
+                    rebinds.set(rebinds.get() + 1);
+                    Ok(())
+                },
+            )
+            .await
+            .unwrap();
+        }
+        assert_eq!(
+            observations.get(),
+            4,
+            "every listing must consult the current Runtime owner"
+        );
+        assert_eq!(
+            rebinds.get(),
+            1,
+            "only the missing live scope needs a fresh launch witness"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn unconfirmed_owner_is_not_treated_as_scope_revocation() {
+        let rebinds = Cell::new(0);
+        maintain_development_launch_witness(
+            true,
+            enabled_mode(),
+            async { Ok(observed(false, "LOCAL_APP_OWNER_UNAVAILABLE", "")) },
+            async {
+                rebinds.set(rebinds.get() + 1);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(rebinds.get(), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn observation_failure_does_not_prepare_or_rebind_a_process() {
+        let rebinds = Cell::new(0);
+        let result = maintain_development_launch_witness(
+            true,
+            enabled_mode(),
+            async {
+                Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::RuntimeServiceUnavailable,
+                    true,
+                ))
+            },
+            async {
+                rebinds.set(rebinds.get() + 1);
+                Ok(())
+            },
+        )
+        .await;
+        let error = result.unwrap_err();
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        );
+        assert!(error.retryable());
+        assert_eq!(rebinds.get(), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn new_transport_rebinds_without_trusting_or_querying_an_old_scope() {
+        let observations = Cell::new(0);
+        let rebinds = Cell::new(0);
+        maintain_development_launch_witness(
+            false,
+            async { panic!("new transport must use the full Prepare gate") },
+            async {
+                observations.set(observations.get() + 1);
+                Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+                    false,
+                ))
+            },
+            async {
+                rebinds.set(rebinds.get() + 1);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            observations.get(),
+            0,
+            "new owner may have no bound run hook yet"
+        );
+        assert_eq!(rebinds.get(), 1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_fresh_launch_is_not_reported_as_success_or_retried_here() {
+        let rebinds = Cell::new(0);
+        let result = maintain_development_launch_witness(
+            true,
+            enabled_mode(),
+            async { Ok(observed(false, "LOCAL_APP_SESSION_REVOKED", "")) },
+            async {
+                rebinds.set(rebinds.get() + 1);
+                Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+                    false,
+                ))
+            },
+        )
+        .await;
+        assert_eq!(
+            result.unwrap_err().reason_code(),
+            NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired
+        );
+        assert_eq!(rebinds.get(), 1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn disabled_or_unavailable_developer_mode_blocks_the_active_scope_shortcut() {
+        for (state, reason, retryable) in [
+            (
+                crate::DeveloperModeState::Disabled,
+                NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled,
+                false,
+            ),
+            (
+                crate::DeveloperModeState::Unavailable,
+                NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                true,
+            ),
+        ] {
+            let probes = Cell::new(0);
+            let rebinds = Cell::new(0);
+            let error = maintain_development_launch_witness(
+                true,
+                async { Ok(DeveloperModeStatus { state, revision: 2 }) },
+                async {
+                    probes.set(probes.get() + 1);
+                    Ok(observed(
+                        true,
+                        "ACTION_EXECUTED",
+                        "execution_scope_existing",
+                    ))
+                },
+                async {
+                    rebinds.set(rebinds.get() + 1);
+                    Ok(())
+                },
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(error.reason_code(), reason);
+            assert_eq!(error.retryable(), retryable);
+            assert_eq!(probes.get(), 0);
+            assert_eq!(rebinds.get(), 0);
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_developer_mode_read_does_not_consult_old_scope_or_rebind() {
+        let error = maintain_development_launch_witness(
+            true,
+            async {
+                Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::RuntimeServiceUnavailable,
+                    true,
+                ))
+            },
+            async { panic!("unknown mode must not consult a scope projection") },
+            async { panic!("unknown mode must not prepare a launch") },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        );
+        assert!(error.retryable());
+    }
 }
 
 #[cfg(feature = "windows-source-local-development")]
@@ -882,7 +1162,7 @@ mod terminal_witness_tests {
         })])));
         // The real renewal order reads candidates before Desktop polls status.
         assert!(live_supervised_development_rebind_candidates(&registry).unwrap().is_empty());
-        rebind_supervised_development_processes(tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy(), registry.clone(), Arc::new(AsyncMutex::new(()))).await.unwrap();
+        rebind_supervised_development_processes(tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy(), registry.clone(), Arc::new(AsyncMutex::new(())), true).await.unwrap();
         assert!(discard_stale_supervised_development_rebind(&registry, run_id, pid).unwrap());
         assert_eq!(registry.lock().unwrap().get(&run_id).unwrap().process.exit_code().unwrap(), Some(75));
         drop(registry.lock().unwrap().remove(&run_id));
@@ -911,17 +1191,17 @@ async fn verify_source_local_development_runtime_readiness(
         })
 }
 
-// Mirrors the macOS carrier: the supervisor health poll reaches this listing
-// on every cycle, so renewing here keeps a live one-shot rebind witness for
-// each still-running supervised Host after Runtime loss. Every renewal
-// re-verifies the exact live process; the one-shot Consume check is unchanged.
+// The supervisor health poll reaches this listing on every cycle. A current
+// Runtime-admitted scope needs no spare one-shot launch witness. After that
+// scope ends, retain the full prepare/rebind path and its original deadlines
+// so a quiet Host can reconnect even long after Runtime recovery.
 #[cfg(feature = "windows-source-local-development")]
 async fn renew_supervised_development_rebinds(
     channel: Channel,
     registry: SupervisedDevelopmentRegistry,
     gate: Arc<AsyncMutex<()>>,
 ) -> Result<(), NimiHostError> {
-    rebind_supervised_development_processes(channel, registry, gate)
+    rebind_supervised_development_processes(channel, registry, gate, true)
         .await
         .map_err(|error| {
             NimiHostError::new(
@@ -1017,13 +1297,13 @@ async fn shared_verified_desktop_runtime_session(
         return validate_before_caching_source_session(
             desktop_runtime_session_cache(),
             |cached| async move {
-                let session = match cached {
-                    Some(session) if session._runtime_peer.running() => session,
+                let (session, observe_current_scope) = match cached {
+                    Some(session) if session._runtime_peer.running() => (session, true),
                     Some(_) => {
                         diagnose_desktop_session("cached-runtime-peer-exited");
-                        open_source_desktop_runtime_session().await?
+                        (open_source_desktop_runtime_session().await?, false)
                     }
-                    None => open_source_desktop_runtime_session().await?,
+                    None => (open_source_desktop_runtime_session().await?, false),
                 };
                 // A maintenance Runtime serves no development rebind or
                 // readiness roundtrip; its typed mode was read on open.
@@ -1033,6 +1313,7 @@ async fn shared_verified_desktop_runtime_session(
                         session.channel.clone(),
                         development_processes,
                         development_rebind_gate(),
+                        observe_current_scope,
                     )
                     .await?;
                     verify_source_local_development_runtime_readiness(session.channel.clone())

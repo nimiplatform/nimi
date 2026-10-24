@@ -28,6 +28,11 @@ func runAccessDesktop(t *testing.T, seed byte) (context.Context, *protectedlocal
 func runAccessFixture(t *testing.T, options ...Option) (localAppSessionFixture, context.Context, *runtimev1.GetLocalDevelopmentRunAccessRequest) {
 	t.Helper()
 	f := newLocalAppSessionFixture(t, nil, options...)
+	return bindRunAccessFixture(t, f)
+}
+
+func bindRunAccessFixture(t *testing.T, f localAppSessionFixture) (localAppSessionFixture, context.Context, *runtimev1.GetLocalDevelopmentRunAccessRequest) {
+	t.Helper()
 	ctx, owner := runAccessDesktop(t, 0x61)
 	run := localAppSessionTestIdentifier(0x62)
 	if err := owner.BindRevocationHook(run, func() {}); err != nil {
