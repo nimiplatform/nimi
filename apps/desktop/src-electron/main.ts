@@ -1508,7 +1508,11 @@ async function buildMainWindow(): Promise<BrowserWindow> {
   if (process.platform === 'win32' && !ELECTRON_DEVELOPMENT_BUILD) {
     window.setAppDetails({
       appId: APP_ID,
-      appIconPath: desktopIconPath(),
+      // Keep the installed taskbar icon, name and relaunch target together.
+      appIconPath: process.execPath,
+      appIconIndex: 0,
+      relaunchCommand: `"${process.execPath}"`,
+      relaunchDisplayName: app.getName(),
     });
   }
   window.on('close', (event) => {

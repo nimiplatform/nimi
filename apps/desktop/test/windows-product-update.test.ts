@@ -1,13 +1,33 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createProductUpdateTestHost } from './helpers/product-update-test-cache.js';
-import { WindowsProductUpdateAdapter } from '../src-electron/windows-product-update-adapter.js';
+import { WindowsProductUpdateAdapter, admittedWindowsHelperPath } from '../src-electron/windows-product-update-adapter.js';
 import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
 import { verifyWindowsUnsignedInstaller } from '../../../config/windows-product-installer.mjs';
 import { signedProductFixture } from '../../install-gateway/test/product-release-fixture.mjs';
+
+test('Windows helper comparison accepts actual case variants and rejects other cohorts or roles', { skip: process.platform !== 'win32' }, async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-helper-case-'));
+  try {
+    const cohort = path.join(root, 'Product', '0.2.5-rc.8');
+    await mkdir(cohort, { recursive: true });
+    const helper = path.join(cohort, 'NimiProductUpdater.exe');
+    const home = path.join(cohort, 'Nimi.exe');
+    await writeFile(helper, 'helper path fixture');
+    await writeFile(home, 'home path fixture');
+    const expected = await realpath(helper);
+    assert.equal(admittedWindowsHelperPath(helper, home.toLowerCase()), expected);
+    assert.equal(admittedWindowsHelperPath(helper.toUpperCase(), home), expected);
+    const other = path.join(root, 'Other.exe');
+    await writeFile(other, 'helper path fixture');
+    assert.throws(() => admittedWindowsHelperPath(other, home), /UPDATE_INSTALL_NOT_READY/);
+    assert.throws(() => admittedWindowsHelperPath(helper, path.join(root, '0.2.5-rc.9', 'Nimi.exe')), /UPDATE_INSTALL_NOT_READY/);
+    assert.throws(() => admittedWindowsHelperPath(path.join(cohort, 'Missing.exe'), home), /UPDATE_INSTALL_NOT_READY/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 test('Windows controller verifies PE fixture bytes, projects prepared without install readiness and refuses consent', async () => {
   const bytes = Buffer.alloc(1024); bytes.writeUInt16LE(0x5a4d,0); bytes.writeUInt32LE(128,0x3c); bytes.writeUInt32LE(0x4550,128); bytes.writeUInt16LE(0x14c,132); bytes.writeUInt16LE(0x10b,152); bytes.writeUInt32LE(16,244);

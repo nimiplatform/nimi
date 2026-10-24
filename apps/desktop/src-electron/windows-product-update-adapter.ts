@@ -2,6 +2,7 @@ import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { realpathSync } from 'node:fs';
 import { lstat, readFile, readdir, rm, mkdtemp, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { ProductUpdateError, authenticateProductEnvelope, validateProductRelease, type ProductRelease } from '../../../config/product-update-contract.mjs';
@@ -15,6 +16,18 @@ import type { ProductRetentionPreview, ProductRetentionResult } from '../src/she
 
 const execute = promisify(execFile);
 type Handoff = { envelope: unknown; packagePath: string; resultPath: string; helperPid: number; releaseId: string };
+
+// Native admission owns fixed-root, ACL and signed-inventory verification.
+// Compare actual paths here: process.execPath preserves launch-time casing.
+export function admittedWindowsHelperPath(helperPath: string, executable: string): string {
+  try {
+    const actual = realpathSync.native(helperPath);
+    const expected = realpathSync.native(path.join(path.dirname(executable), 'NimiProductUpdater.exe'));
+    if (actual === expected) return actual;
+  } catch { /* missing or inaccessible paths are not admitted */ }
+  throw new ProductUpdateError('UPDATE_INSTALL_NOT_READY');
+}
+
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-012
 export class WindowsProductUpdateAdapter {
   private readonly pointer: string;
@@ -27,8 +40,8 @@ export class WindowsProductUpdateAdapter {
     if (!this.production || process.platform !== 'win32' || process.arch !== 'x64' || !PRODUCT_UPDATE_POLICY.publicKey) throw new ProductUpdateError('UPDATE_INSTALL_NOT_READY');
     const binding = createRequire(import.meta.url)('@nimiplatform/kit-protected-local-win32-x64') as { windowsProductUpdateHost?: () => { status: string; value?: { helperPath?: string; publicKey?: string } } };
     const result = binding.windowsProductUpdateHost?.();
-    if (result?.status !== 'ok' || result.value?.publicKey !== PRODUCT_UPDATE_POLICY.publicKey || result.value.helperPath !== path.join(path.dirname(process.execPath), 'NimiProductUpdater.exe')) throw new ProductUpdateError('UPDATE_INSTALL_NOT_READY');
-    return result.value.helperPath;
+    if (result?.status !== 'ok' || result.value?.publicKey !== PRODUCT_UPDATE_POLICY.publicKey || typeof result.value.helperPath !== 'string') throw new ProductUpdateError('UPDATE_INSTALL_NOT_READY');
+    return admittedWindowsHelperPath(result.value.helperPath, process.execPath);
   }
   async ready(): Promise<boolean> {
     if (this.cleaning) return false;
