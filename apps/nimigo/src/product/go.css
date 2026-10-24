@@ -18,3 +18,5 @@
 
 .go-connection-option span{min-width:0;overflow-wrap:anywhere}.go-connection-option small{display:block;font-size:10px;color:var(--go-muted)}.go-connection-option:has(input:checked){color:var(--go-ink)}
 .go-ready-card .go-run-boundary{font-size:11px;line-height:1.8;max-width:410px;margin:0 auto 18px}.go-version-reference{padding:12px 24px;display:grid;gap:7px;border-bottom:1px solid var(--nimi-border-subtle);font-size:11px}.go-version-reference>div{display:flex;align-items:center;justify-content:space-between;gap:12px}.go-version-reference small,.go-version-reference summary{font-size:10px;color:var(--nimi-text-muted)}.go-version-reference summary{cursor:pointer}.go-version-reference code{display:block;margin-top:7px;overflow-wrap:anywhere;user-select:text}
+.go-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+.go-pagination > span { margin-right: auto; font-size: 13px; color: var(--go-muted, #697586); }

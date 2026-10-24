@@ -1,7 +1,8 @@
 import type { NimiAppActivityRecord } from '@nimiplatform/sdk';
 import type { Skill, Work } from './model';
 
-export function nextWorkAction(work: Work): string {
+type ActionWork = Pick<Work, 'status'> & { queuedInput?: { sequence: number } };
+export function nextWorkAction(work: ActionWork): string {
   if (work.status === 'needs-input') return '回答搭档的问题';
   if (work.status === 'uncertain') return '核对执行结果';
   if (work.status === 'failed') return '查看问题并重试';
@@ -11,7 +12,7 @@ export function nextWorkAction(work: Work): string {
   return work.status === 'complete' ? '查看与使用成果' : '查看进展';
 }
 
-export function attentionWorks(works: readonly Work[]): Work[] {
+export function attentionWorks<T extends ActionWork & Pick<Work, 'archived' | 'updatedAt'>>(works: readonly T[]): T[] {
   const rank: Partial<Record<Work['status'], number>> = { 'needs-input': 0, uncertain: 1, failed: 2, draft: 3, review: 4 };
   return works.filter(work => !work.archived && ((work.status !== 'draft' && rank[work.status] !== undefined) || (work.status === 'draft' && work.queuedInput)))
     .sort((a, b) => (rank[a.status] ?? 4) - (rank[b.status] ?? 4) || b.updatedAt.localeCompare(a.updatedAt));

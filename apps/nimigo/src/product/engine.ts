@@ -454,7 +454,7 @@ export class GoEngine {
     let recorded = false;
     await this.run(pending.workId, `对问题「${pending.question}」的回答：${reply}`, undefined, () => {
       recorded = true;
-      if (this.pending.get(workId) === pending) this.pending.delete(workId);
+      if (this.pending.get(workId) === pending) { this.pending.delete(workId); this.changed(); }
       onRecorded?.();
     });
     if (!recorded) throw new Error(this.error || '回答尚未被记录，请重试。');
@@ -481,6 +481,7 @@ export class GoEngine {
       await this.modifyWork(pending.workId, w => { w.history.push({ id: uuid(), at: now(), text: result, kind: 'source-update' }); }, check);
     }
     this.pending.delete(workId);
+    this.changed();
     await this.run(pending.workId, result);
   }
   async refreshWorkStatus(workId: string): Promise<boolean> {

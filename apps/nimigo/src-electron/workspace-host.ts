@@ -1,6 +1,6 @@
 import type { NimiElectronAppBusinessServices, NimiElectronCommandHandler } from '@nimiplatform/kit/shell/electron/main';
 import { GoEngine } from '../src/product/engine.js';
-import type { GoSnapshot } from '../src/product/host-client.js';
+import { GoWorkspaceProjection, WORKSPACE_CHANGED, type WorkspaceSyncRequest } from '../src/product/workspace-projection.js';
 import type { Material, Routine, Skill, Work } from '../src/product/model.js';
 
 // @nimi-authority: rule.nimi.nimigo.workbench.background-delivery
@@ -8,10 +8,18 @@ export function createGoWorkspaceHost(options: { windowOpen: () => boolean; open
   let services: NimiElectronAppBusinessServices | undefined;
   let generation = 0;
   let engine: GoEngine | undefined;
+  let projection: GoWorkspaceProjection | undefined;
+  let unsubscribe: (() => void) | undefined;
+  let notify: (() => void) | undefined;
   const current = async () => {
     const expected = generation;
     if (!services) throw new Error('NimiGo Host 尚未就绪');
-    const value = engine ??= new GoEngine(services, options.windowOpen, options.openWork);
+    if (!engine) {
+      engine = new GoEngine(services, options.windowOpen, options.openWork);
+      projection = new GoWorkspaceProjection(engine, generation);
+      unsubscribe = engine.subscribe(() => { try { notify?.(); } catch { notify = undefined; } });
+    }
+    const value = engine;
     await value.initialize();
     if (expected !== generation) throw new Error('执行范围已变更');
     return value;
@@ -28,10 +36,14 @@ export function createGoWorkspaceHost(options: { windowOpen: () => boolean; open
   };
   const text = (value: unknown) => { if (typeof value !== 'string') throw new Error('缺少操作参数'); return value; };
   const handlers: Record<string, NimiElectronCommandHandler> = {
-    'nimigo.workspace.snapshot': async () => {
-      const value = await current();
-      const snapshot: GoSnapshot = { workspace: value.workspace, works: value.works, agents: value.agents, activities: value.activities, activitySourceRef: value.activitySourceRef, activityNextPage: value.activityNextPage, activityLoading: value.activityLoading, worlds: value.worlds, active: value.active, pending: [...value.pending.values()], error: value.error, agentError: value.agentError, ready: value.ready, selectedWork: value.selectedWork, selectionVersion: value.selectionVersion, integrationTargets: value.integrationTargets };
-      return snapshot;
+    'nimigo.workspace.sync': async ({ payload, sendEvent }) => {
+      const expected = generation;
+      await current();
+      if (expected !== generation) throw new Error('执行范围已变更');
+      // Events carry no business state or authority: the current renderer reads
+      // through the same guarded command after invalidation, including on reopen.
+      notify = sendEvent ? () => { if (expected === generation) sendEvent(WORKSPACE_CHANGED, null); } : undefined;
+      return projection!.sync(payload as unknown as WorkspaceSyncRequest);
     },
     'nimigo.agents.refresh': command(value => value.refreshAgents()),
     'nimigo.agent.assign': command((value, a) => value.assign(text(a[0]))),
@@ -70,5 +82,5 @@ export function createGoWorkspaceHost(options: { windowOpen: () => boolean; open
     'nimigo.project.source': command((value, a) => value.modifyWorkspace(w => { const project = w.projects.find(p => p.id === a[0]); if (!project) throw new Error('项目不存在'); project.sourceRef = text(a[1]) || undefined; })),
     'nimigo.work.save-reply': command(async (value, a) => { const work = value.getWork(text(a[0])); const reply = [...(work.messages || [])].reverse().find(message => message.role === 'assistant'); if (!reply) throw new Error('没有完整的业务回复'); await value.saveDeliverable(work.id, work.title, reply.parts.map(part => part.text).join('\n'), 'user'); await value.modifyWork(work.id, w => { w.status = 'complete'; w.error = undefined; }); }),
   };
-  return { handlers, windowClosed: () => engine?.windowClosed(), bind: (value: NimiElectronAppBusinessServices) => { services = value; }, invalidate: () => { generation++; engine?.dispose(); engine = undefined; services = undefined; } };
+  return { handlers, windowClosed: () => { notify = undefined; engine?.windowClosed(); }, bind: (value: NimiElectronAppBusinessServices) => { services = value; }, invalidate: () => { generation++; notify = undefined; unsubscribe?.(); unsubscribe = undefined; engine?.dispose(); engine = undefined; projection = undefined; services = undefined; } };
 }

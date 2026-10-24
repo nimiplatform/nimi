@@ -72,7 +72,7 @@ export function deliveredWorkStatus(work: Work, executionId: string): 'complete'
     || work.history.some(event => event.kind === 'source-update' && event.executionId === executionId) ? 'complete' : 'review';
 }
 
-export function workCanEdit(work: Work): boolean {
+export function workCanEdit(work: Pick<Work, 'status'>): boolean {
   return !['queued', 'running', 'needs-input', 'uncertain'].includes(work.status);
 }
 
