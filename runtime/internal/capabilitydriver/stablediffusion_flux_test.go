@@ -34,7 +34,7 @@ func TestFluxSchnellModelContractsAndIndependentAxes(t *testing.T) {
 	}
 	project := func(index int, path string, probe []byte) runtimev1.LocalCapabilityReason {
 		t.Helper()
-		_, why := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+		_, why := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
 			RecipeID: StableDiffusionFluxSchnellRecipeID, Requirement: requirements[index],
 			Binding: &runtimev1.ModelAssetExactBinding{RequirementId: requirements[index].RequirementId, ModelAssetId: "asset", VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("a", 64)},
 			Entry:   ModelAssetFileFact{RelativePath: path, SizeBytes: 1 << 30, FormatProbe: probe},

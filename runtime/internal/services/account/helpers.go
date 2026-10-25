@@ -211,11 +211,12 @@ func cloneAccountSessionSnapshot(in *runtimev1.AccountSessionSnapshot) *runtimev
 		return nil
 	}
 	return &runtimev1.AccountSessionSnapshot{
-		Sequence:          in.GetSequence(),
-		State:             in.GetState(),
-		ReasonCode:        in.GetReasonCode(),
-		AccountReasonCode: in.GetAccountReasonCode(),
-		AccountProjection: cloneProjection(in.GetAccountProjection()),
+		Sequence:              in.GetSequence(),
+		State:                 in.GetState(),
+		ReasonCode:            in.GetReasonCode(),
+		AccountReasonCode:     in.GetAccountReasonCode(),
+		AccountProjection:     cloneProjection(in.GetAccountProjection()),
+		AuthorizationRevision: in.GetAuthorizationRevision(),
 	}
 }
 

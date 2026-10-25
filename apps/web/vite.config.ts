@@ -78,12 +78,6 @@ function chunkName(id: string): string | undefined {
     return 'vendor-three';
   }
 
-  const isNimiSdk =
-    normalized.includes('/node_modules/@nimiplatform/sdk/')
-    || normalized.startsWith(`${repoRootNormalized}/sdks/typescript/`);
-  if (isNimiSdk) {
-    return 'vendor-nimi-sdk';
-  }
   const isNimiKit =
     normalized.includes('/node_modules/@nimiplatform/kit/')
     || normalized.startsWith(`${repoRootNormalized}/kit/`);
@@ -150,6 +144,16 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: true,
       rolldownOptions: {
+        treeshake: {
+          // This source barrel contains only re-exports. Web Auth uses its
+          // Realm/error exports; unused Runtime families need no initialization.
+          // Keep this local to Web and this exact barrel, not the whole SDK.
+          moduleSideEffects: [{
+            test: /[/\\]kit[/\\]core[/\\]src[/\\]sdk-contract\.ts$/u,
+            external: false,
+            sideEffects: false,
+          }],
+        },
         input: {
           main: path.resolve(import.meta.dirname, 'index.html'),
           download: path.resolve(import.meta.dirname, 'download.html'),

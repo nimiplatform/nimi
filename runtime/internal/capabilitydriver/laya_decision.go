@@ -98,17 +98,14 @@ func (LayaDriver) ProjectRecipe(recipeID string, options *structpb.Struct, featu
 	}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-// ModelAssetFormatProbeBytes bounds the verified prefixes Runtime exposes:
-// complete small JSON configurations, the safetensors header of the entry,
-// and presence-only prefixes for everything else.
+// ModelAssetFormatProbeBytes declares the existing file budgets at Runtime's
+// probe seam. The structured probe reads only content this Driver consumes.
 func (LayaDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
 	if input.Entry {
 		return MaxAssetFormatProbeBytes
 	}
-	for _, name := range []string{layaAgentConfigFile, layaEncoderConfigFile, layaTokenizerConfigFile} {
-		if input.RelativePath == name || strings.HasSuffix(input.RelativePath, "/"+name) {
-			return layaConfigProbeBytes
-		}
+	if layaConfigProbePath(input.RelativePath) {
+		return layaConfigProbeBytes
 	}
 	return 4096
 }
@@ -171,6 +168,12 @@ func (driver LayaDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) 
 			return ModelAssetBindingProjection{}, invalid
 		}
 		facts[name] = fact
+	}
+	for _, name := range []string{layaAgentConfigFile, layaEncoderConfigFile, layaTokenizerConfigFile} {
+		fact := facts[name]
+		if fact.SizeBytes > layaConfigProbeBytes || int64(len(fact.FormatProbe)) != fact.SizeBytes {
+			return ModelAssetBindingProjection{}, invalid
+		}
 	}
 	var agent layaAgentConfig
 	if json.Unmarshal(facts[layaAgentConfigFile].FormatProbe, &agent) != nil || strings.TrimSpace(agent.Encoder) == "" ||

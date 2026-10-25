@@ -59,7 +59,7 @@ func TestStableDiffusionProjectsTextEncoderFromBoundedGGUFMetadata(t *testing.T)
 	}
 	contentDigest := strings.Repeat("a", 64)
 	entryDigest := strings.Repeat("b", 64)
-	projection, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+	projection, reason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
 		RecipeID:    "z-image",
 		Requirement: requirements[1],
 		Binding: &runtimev1.ModelAssetExactBinding{

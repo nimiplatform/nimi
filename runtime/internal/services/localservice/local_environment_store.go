@@ -1,9 +1,11 @@
 package localservice
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"strings"
 	"time"
@@ -88,16 +90,21 @@ func localEnvironmentHostProfileFromDeviceProfile(profile *runtimev1.LocalDevice
 	return state
 }
 
-func (s *Service) rememberLocalEnvironmentPlanDependencyContracts(deps []localEnvironmentPlanDependency) {
+// @nimi-authority: rule.nimi.runtime.local-compute.r071
+func (s *Service) rememberLocalEnvironmentPlanDependencyContracts(ctx context.Context, deps []localEnvironmentPlanDependency) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if len(deps) == 0 {
-		return
+		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.localEnvironmentPlanDependencyContracts == nil {
-		s.localEnvironmentPlanDependencyContracts = make(map[string]localEnvironmentPlanDependencyContractState)
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
+	next := s.localEnvironmentPlanDependencyContracts
 	changed := false
 	for _, dep := range deps {
 		key := localEnvironmentPlanDependencyContractKey(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
@@ -111,20 +118,36 @@ func (s *Service) rememberLocalEnvironmentPlanDependencyContracts(deps []localEn
 			ConsumerScope:    strings.TrimSpace(dep.ConsumerScope),
 			RecordedAt:       now,
 		}
-		if existing, ok := s.localEnvironmentPlanDependencyContracts[key]; ok &&
+		if existing, ok := next[key]; ok &&
+			existing.EnvironmentKey == record.EnvironmentKey &&
 			existing.DependencyFamily == record.DependencyFamily &&
 			existing.DependencyID == record.DependencyID &&
 			existing.ConsumerScope == record.ConsumerScope {
 			continue
 		}
-		s.localEnvironmentPlanDependencyContracts[key] = record
-		changed = true
+		if !changed {
+			next = maps.Clone(s.localEnvironmentPlanDependencyContracts)
+			if next == nil {
+				next = make(map[string]localEnvironmentPlanDependencyContractState)
+			}
+			changed = true
+		}
+		next[key] = record
 	}
 	if changed {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		// Start/Retry use these exact contracts. A failed write must not make a
+		// later read mistake unpublished entries for a durable baseline.
+		previous := s.localEnvironmentPlanDependencyContracts
+		s.localEnvironmentPlanDependencyContracts = next
 		if err := s.persistStateLocked(); err != nil {
-			s.logger.Error("persist local environment plan dependency contracts", "error", err)
+			s.localEnvironmentPlanDependencyContracts = previous
+			return fmt.Errorf("persist local environment plan dependency contracts: %w", err)
 		}
 	}
+	return nil
 }
 
 func (s *Service) localEnvironmentPlanDependencyContract(environmentKey string, dependencyFamily string, dependencyID string, consumerScope string) (localEnvironmentPlanDependencyContractState, bool) {

@@ -1,5 +1,93 @@
 use super::*;
 
+fn account_snapshot_for_revision(
+    state: AccountSessionState,
+    revision: &str,
+) -> AccountSessionSnapshot {
+    AccountSessionSnapshot {
+        sequence: 1,
+        state: state as i32,
+        authorization_revision: revision.to_string(),
+        reason_code: ACTION_EXECUTED,
+        account_reason_code: ACTION_EXECUTED,
+        account_projection: matches!(
+            state,
+            AccountSessionState::Authenticated | AccountSessionState::RefreshPending
+        )
+        .then(|| AccountProjection {
+            account_id: "account-fixture".to_string(),
+            display_name: "Fixture".to_string(),
+            realm_environment_id: "realm-fixture".to_string(),
+            workspace_memberships: Vec::new(),
+        }),
+        audit_diagnostic: None,
+    }
+}
+
+#[test]
+fn account_authorization_revision_is_exact_bounded_and_state_scoped() {
+    for revision in [
+        "".to_string(),
+        " leading".to_string(),
+        "trailing ".to_string(),
+        "nul\0value".to_string(),
+        "x".repeat(65),
+        "界".repeat(22),
+    ] {
+        assert!(project_snapshot(account_snapshot_for_revision(
+            AccountSessionState::Authenticated,
+            &revision
+        ))
+        .is_err());
+    }
+    for revision in ["Exact-Mixed_Case".to_string(), "é".repeat(32)] {
+        let snapshot = account_snapshot_for_revision(AccountSessionState::Authenticated, &revision);
+        assert_eq!(
+            project_snapshot(snapshot.clone())
+                .unwrap()
+                .authorization_revision,
+            revision
+        );
+        let event = project_event(AccountSessionEvent {
+            sequence: 1,
+            event_type: AccountEventType::AccountStatus as i32,
+            delivery_kind: AccountSessionDeliveryKind::Live as i32,
+            snapshot: Some(snapshot),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(event.authorization_revision, revision);
+    }
+    for revision in ["", "unchanged"] {
+        assert_eq!(
+            project_snapshot(account_snapshot_for_revision(
+                AccountSessionState::RefreshPending,
+                revision
+            ))
+            .unwrap()
+            .authorization_revision,
+            revision
+        );
+    }
+    for state in [
+        AccountSessionState::Anonymous,
+        AccountSessionState::LoginPending,
+        AccountSessionState::Expired,
+        AccountSessionState::ReauthRequired,
+        AccountSessionState::Switching,
+        AccountSessionState::LoggingOut,
+        AccountSessionState::Unavailable,
+    ] {
+        assert_eq!(
+            project_snapshot(account_snapshot_for_revision(state, ""))
+                .unwrap()
+                .authorization_revision,
+            ""
+        );
+        assert!(project_snapshot(account_snapshot_for_revision(state, "stale")).is_err());
+    }
+}
+
 #[test]
 fn account_status_request_binds_host_owned_caller_and_metadata() {
     let request = build_request(DesktopAccountSessionStatusRequest {
@@ -128,6 +216,7 @@ fn projects_the_initial_zero_sequence_snapshot() {
         event_type: AccountEventType::AccountStatus as i32,
         delivery_kind: AccountSessionDeliveryKind::Snapshot as i32,
         snapshot: Some(AccountSessionSnapshot {
+            authorization_revision: String::new(),
             sequence: 0,
             state: AccountSessionState::Anonymous as i32,
             reason_code: ACTION_EXECUTED,
@@ -154,6 +243,7 @@ fn rejects_unknown_account_event_enums() {
         event_type: AccountEventType::AccountStatus as i32,
         delivery_kind: AccountSessionDeliveryKind::Snapshot as i32,
         snapshot: Some(AccountSessionSnapshot {
+            authorization_revision: String::new(),
             sequence: 1,
             state: AccountSessionState::Anonymous as i32,
             reason_code: ACTION_EXECUTED,
@@ -180,6 +270,7 @@ fn rejects_unknown_account_event_enums() {
         event_type: AccountEventType::Unspecified as i32,
         delivery_kind: AccountSessionDeliveryKind::Snapshot as i32,
         snapshot: Some(AccountSessionSnapshot {
+            authorization_revision: String::new(),
             sequence: 1,
             state: AccountSessionState::Anonymous as i32,
             reason_code: ACTION_EXECUTED,
@@ -203,6 +294,7 @@ fn projects_only_renderer_safe_account_fields() {
         account_reason_code: ACTION_EXECUTED,
         accepted: true,
         snapshot: Some(AccountSessionSnapshot {
+            authorization_revision: "opaque-revision-1".to_string(),
             sequence: 17,
             state: AccountSessionState::Authenticated as i32,
             reason_code: ACTION_EXECUTED,
@@ -248,6 +340,7 @@ fn rejects_inert_or_incomplete_account_responses() {
             account_reason_code: ACTION_EXECUTED,
             accepted: true,
             snapshot: Some(AccountSessionSnapshot {
+                authorization_revision: String::new(),
                 sequence: 1,
                 state: AccountSessionState::Unspecified as i32,
                 reason_code: ACTION_EXECUTED,
@@ -263,13 +356,23 @@ fn rejects_inert_or_incomplete_account_responses() {
 
 #[test]
 fn audit_diagnostic_preserves_committed_account_state() {
- let snapshot = AccountSessionSnapshot {
-  sequence: 1, state: AccountSessionState::Anonymous as i32,
-  reason_code: ACTION_EXECUTED, account_reason_code: ACTION_EXECUTED,
-  account_projection: None,
-  audit_diagnostic: Some(crate::generated::ErrorInfo { reason_code: ReasonCode::AuditResultUnrecorded as i32, action_hint:"inspect_runtime_audit".into(), message:"Change committed.".into() }),
- };
- let result = project_snapshot(snapshot).unwrap();
- assert_eq!(result.state, DesktopAccountSessionState::Anonymous);
- assert_eq!(result.audit_diagnostic.unwrap().reason_code, ReasonCode::AuditResultUnrecorded as i32);
+    let snapshot = AccountSessionSnapshot {
+        authorization_revision: String::new(),
+        sequence: 1,
+        state: AccountSessionState::Anonymous as i32,
+        reason_code: ACTION_EXECUTED,
+        account_reason_code: ACTION_EXECUTED,
+        account_projection: None,
+        audit_diagnostic: Some(crate::generated::ErrorInfo {
+            reason_code: ReasonCode::AuditResultUnrecorded as i32,
+            action_hint: "inspect_runtime_audit".into(),
+            message: "Change committed.".into(),
+        }),
+    };
+    let result = project_snapshot(snapshot).unwrap();
+    assert_eq!(result.state, DesktopAccountSessionState::Anonymous);
+    assert_eq!(
+        result.audit_diagnostic.unwrap().reason_code,
+        ReasonCode::AuditResultUnrecorded as i32
+    );
 }

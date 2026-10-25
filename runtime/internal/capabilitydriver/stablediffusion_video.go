@@ -294,23 +294,8 @@ func stableDiffusionVideoSlotFormatValid(requirementID, format string, probe []b
 		if len(probe) < 4 || !bytes.Equal(probe[:4], []byte("GGUF")) {
 			return false
 		}
-		switch requirementID {
-		case StableDiffusionVideoFL2VARequirementID, StableDiffusionVideoRef2VARequirementID:
-			// The real FL2VA and Ref2VA files share these H3 DiT tensors. Their
-			// time_embedder versus adaln_t_table difference is a DiT variant marker,
-			// not a task-family marker, and neither file contains a reference tensor
-			// name. Therefore content can reject non-H3/wrong-kind files but cannot
-			// distinguish these two declared route bindings.
-			return probeContainsAll(probe,
-				"blocks.0.adaln_proj.linear.",
-				"condition_proj.",
-				"audio_patch_proj.",
-			)
-		case StableDiffusionVideoEncoderRequirementID:
-			return bytes.Contains(probe, []byte("visual.deepstack_merger_list."))
-		default:
-			return false
-		}
+		signatures := stableDiffusionVideoGGUFSignatures(requirementID)
+		return len(signatures) > 0 && probeContainsAll(probe, signatures...)
 	case "safetensors":
 		if len(probe) < 10 {
 			return false
@@ -339,6 +324,19 @@ func stableDiffusionVideoSlotFormatValid(requirementID, format string, probe []b
 		}
 	default:
 		return false
+	}
+}
+
+// The two DiT routes deliberately share markers. Slot/binding identity still
+// belongs to the original requirement and combination contract.
+func stableDiffusionVideoGGUFSignatures(requirementID string) []string {
+	switch requirementID {
+	case StableDiffusionVideoFL2VARequirementID, StableDiffusionVideoRef2VARequirementID:
+		return []string{"blocks.0.adaln_proj.linear.", "condition_proj.", "audio_patch_proj."}
+	case StableDiffusionVideoEncoderRequirementID:
+		return []string{"visual.deepstack_merger_list."}
+	default:
+		return nil
 	}
 }
 

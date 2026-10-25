@@ -1,7 +1,6 @@
 package capabilitydriver
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -11,7 +10,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -93,48 +91,25 @@ func (LlamaEmbedDriver) recipeModelArchitectures(recipeID string, slotID string)
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
-	probe := input.Entry.FormatProbe
-	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(probe) < 4 || len(probe) > MaxDriverAssetFormatProbeBytes || !bytes.Equal(probe[:4], []byte("GGUF")) {
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	facts, err := decodeLlamaGGUFProbe(input)
+	invalid := runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	if err != nil || facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING || facts.TemplateIdentity != "" ||
+		!contains(driver.recipeModelArchitectures(input.RecipeID, EmbeddingGGUFRequirementID), facts.Architecture) ||
+		facts.EmbeddingDimension <= 0 || uint64(facts.EmbeddingDimension) > uint64(^uint32(0)>>1) {
+		return ModelAssetBindingProjection{}, invalid
 	}
-	summary, err := ggufmeta.InspectEmbeddingMetadata(bytes.NewReader(probe))
-	if err != nil || !contains(driver.recipeModelArchitectures(input.RecipeID, EmbeddingGGUFRequirementID), ggufmeta.LLMDetectedArchitecture(summary)) {
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	protocol := EmbeddingInputNativeV1
+	if facts.Architecture == "nomic-bert" {
+		protocol = EmbeddingInputNomicV1
 	}
-	architecture := ggufmeta.LLMDetectedArchitecture(summary)
-	if input.RecipeID == LlamaQwen3EmbedRecipeID {
-		pooling, valid := summary.Uint64Value("qwen3.pooling_type")
-		if !valid || pooling != 3 {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
+	if facts.EmbeddingInputProtocol != protocol {
+		return ModelAssetBindingProjection{}, invalid
 	}
-	dimension, ok := summary.Uint64Value(architecture + ".embedding_length")
-	if !ok || dimension == 0 || dimension > uint64(^uint32(0)>>1) {
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-	}
-	// The admitted dialect does not support rank pooling or reduced/projected
-	// output heads. Those need a separately reviewed Model Contract.
-	if summary.HasKey(architecture + ".embedding_length_out") {
-		output, valid := summary.Uint64Value(architecture + ".embedding_length_out")
-		if !valid || output != dimension {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-	}
-	if summary.HasKey(architecture + ".pooling_type") {
-		pooling, valid := summary.Uint64Value(architecture + ".pooling_type")
-		if !valid || pooling < 1 || pooling > 3 {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-	}
-	contextWindow, _ := ggufmeta.LLMContextLength(summary)
 	projection, reason := validatedModelAssetBindingProjection(input, ModelAssetDescriptor{
-		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, Engine: "llama", ArtifactRoles: []string{"embedding"}, FormatProbe: probe,
-	}, contextWindow, driver.ValidateBinding)
-	projection.EmbeddingDimension = int(dimension)
-	projection.EmbeddingInputProtocol = EmbeddingInputNativeV1
-	if architecture == "nomic-bert" {
-		projection.EmbeddingInputProtocol = EmbeddingInputNomicV1
-	}
+		Kind: facts.Kind, Engine: "llama", ArtifactRoles: []string{"embedding"}, FormatProbe: input.Entry.FormatProbe,
+	}, facts.ContextWindow, driver.ValidateBinding)
+	projection.EmbeddingDimension = facts.EmbeddingDimension
+	projection.EmbeddingInputProtocol = protocol
 	return projection, reason
 }
 

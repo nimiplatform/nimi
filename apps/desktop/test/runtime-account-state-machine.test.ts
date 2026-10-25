@@ -29,6 +29,7 @@ function status(
     state,
     reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
     accountReasonCode: AccountReasonCode.ACTION_EXECUTED,
+    authorizationRevision: state === 'authenticated' || state === 'refresh-pending' ? 'authorization-a' : '',
     ...(state === 'authenticated' || state === 'refresh-pending'
       || state === 'switching' || state === 'logging-out'
       ? { accountProjection }
@@ -102,6 +103,7 @@ describe('Desktop Runtime account state machine', () => {
     for (const state of states) {
       const projection = projectRuntimeAccountAuthState(status(state), currentUser);
       assert.equal(projection.status, state);
+      assert.equal(projection.authorizationRevision, state === 'authenticated' || state === 'refresh-pending' ? 'authorization-a' : '');
       if (state === 'authenticated') {
         assert.equal(projection.user?.id, 'account-1');
       } else if (state === 'refresh-pending' || state === 'switching' || state === 'logging-out') {

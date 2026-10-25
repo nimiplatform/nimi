@@ -153,3 +153,18 @@ test('a successful call with an unbound projection does not admit Home', async (
     assert.deepEqual(fixture.business, []);
   } finally { await fixture.close(); }
 });
+
+test('Account authorization continuity cannot turn an independently failed App session into ready', async () => {
+  const fixture = await setup();
+  try {
+    await act(async () => fixture.probes[0]!.reject({ reasonCode: 'local-app-snapshot-unavailable' }));
+    await act(async () => fixture.store.setState(state => ({ auth: {
+      ...state.auth, authorizationRevision: 'same-account-authorization', status: 'refresh-pending',
+    } })));
+    await act(async () => fixture.store.setState(state => ({ auth: { ...state.auth, status: 'authenticated' } })));
+    assert.equal(fixture.handle().status, 'failed');
+    assert.equal(fixture.handle().reasonCode, 'local-app-snapshot-unavailable');
+    assert.equal(fixture.probes.length, 1);
+    assert.deepEqual(fixture.business, []);
+  } finally { await fixture.close(); }
+});

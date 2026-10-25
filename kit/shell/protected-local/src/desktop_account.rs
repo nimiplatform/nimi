@@ -142,6 +142,7 @@ pub struct DesktopAccountProjection {
 pub struct DesktopAccountSessionStatus {
     pub sequence: u64,
     pub state: DesktopAccountSessionState,
+    pub authorization_revision: String,
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,
@@ -153,6 +154,7 @@ pub struct DesktopAccountSessionEvent {
     pub sequence: u64,
     pub delivery_kind: DesktopAccountSessionDeliveryKind,
     pub state: DesktopAccountSessionState,
+    pub authorization_revision: String,
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,

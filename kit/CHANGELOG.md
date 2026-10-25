@@ -4,6 +4,8 @@
 
 ## Unreleased — Realm launch hard cut (0.x minor)
 
+Desktop Account status and event projections now require the Runtime-owned `authorizationRevision` equality value. Use matching Runtime, native carrier, SDK, and Kit builds: authenticated snapshots require a nonempty revision, refresh-pending may carry an empty revision, and other states require an empty revision. Consumers compare the exact opaque value without treating it as authority or a credential. Missing fields are rejected; ordinary Local App auth/currentUser and account mutation responses are unchanged.
+
 Use matching source-built Realm, SDK, Kit and Desktop. Realm Post/feed, user/Post search and recommendations are deferred: their generated operations, handwritten SDK helpers, offline replay and Desktop Activity entry are removed. Explore retains World and Persona catalogs and source actions; exact-handle friend requests use `social.addFriendByHandle`, while full profile reads retain their separate privacy checks. Ordinary friendship, direct messaging and presence remain supported. `open-explore` accepts only `worlds` or `personas`; `activity`/`view-activity` reject. No compatibility route or automatic user-data migration is provided. This changes the next unreleased minor, not the published 0.21.0 package.
 
 Account 2FA setup now sends the actual prepare body and requires the same-session `challengeId` when enabling; callers must retain the prepare response until successful enable.

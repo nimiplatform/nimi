@@ -44,7 +44,7 @@ func TestLlamaDriversProjectBoundedGGUFIdentityBeforeTruncatedMetadata(t *testin
 			digest := strings.Repeat("a", 64)
 			entryDigest := strings.Repeat("b", 64)
 			probe := boundedLLMGGUFProbeWithTruncatedTokenizer(t, test.architecture, 262144)
-			projection, reason := test.driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+			projection, reason := projectLlamaBindingForTest(test.driver, ModelAssetBindingInput{
 				RecipeID:    test.recipeID,
 				Requirement: requirements[0],
 				Binding: &runtimev1.ModelAssetExactBinding{

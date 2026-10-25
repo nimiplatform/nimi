@@ -254,7 +254,16 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     // promise while a native unary is still queued on the old connection.
     await waitForFormalCarrierSettlement();
     await runBoundedFormalHostOperation(async (signal) => {
-      projectFormalSession(await runtime.rebindLocalAppSession({}, { signal }));
+      try {
+        await formalCall(async () => projectFormalSession(await runtime.rebindLocalAppSession({}, { signal })));
+      } catch (error) {
+        if (!(error instanceof NimiElectronLocalAppHostError) || error.reasonCode !== 'revoked') throw error;
+        // A replacement verified carrier has no previous App binding to
+        // Rebind. Revoked is not proof of bootstrap: ask Runtime's existing
+        // Open admission, which still rejects a revoked or unauthorized Host.
+        // Old resources and native calls have already been fenced and drained.
+        projectFormalSession(await runtime.openLocalAppSession({}, { signal }));
+      }
     });
   };
 

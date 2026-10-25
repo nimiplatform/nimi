@@ -123,10 +123,17 @@ func sharedAcceleratorDependencySpecForID(raw string) (sharedAcceleratorDependen
 func (m *Manager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) SharedAcceleratorDependencyStatus {
 	normalizedID := NormalizeSharedAcceleratorDependencyID(dependencyID)
 	spec, supported := sharedAcceleratorDependencySpecForID(normalizedID)
+	// Identity, eligibility and system-source diagnostics use one current
+	// observation. The next resolver call probes independently again.
+	var gpuVendor string
+	var driverVisible bool
+	if currentGOOS() == "windows" && currentGOARCH() == "amd64" {
+		gpuVendor, driverVisible = detectHostGPU()
+	}
 	status := SharedAcceleratorDependencyStatus{
 		DependencyID:      normalizedID,
 		Version:           spec.Version,
-		HostProfileID:     currentHostAcceleratorProfileID(),
+		HostProfileID:     currentHostAcceleratorProfileID(gpuVendor),
 		ConsumerID:        strings.TrimSpace(consumerID),
 		RequiredArtifacts: append([]string(nil), spec.RequiredArtifacts...),
 	}
@@ -136,13 +143,13 @@ func (m *Manager) ResolveSharedAcceleratorDependency(dependencyID string, consum
 		status.Detail = "unsupported shared accelerator dependency"
 		return status
 	}
-	if currentGOOS() != "windows" || currentGOARCH() != "amd64" || !strings.EqualFold(detectLocalGPUVendor(), "nvidia") {
+	if currentGOOS() != "windows" || currentGOARCH() != "amd64" || !strings.EqualFold(gpuVendor, "nvidia") {
 		status.State = SharedAcceleratorDependencyUnsupported
 		status.Source = "unavailable"
 		status.Detail = "host accelerator profile does not admit Windows NVIDIA CUDA dependency"
 		return status
 	}
-	if systemRoot, ok, detail := verifiedSystemNVIDIACUDARuntimeRootForSpec(spec); ok {
+	if systemRoot, ok, detail := verifiedSystemNVIDIACUDARuntimeRootForSpec(spec, func() (string, bool) { return gpuVendor, driverVisible }); ok {
 		status.State = SharedAcceleratorDependencyReadySystem
 		status.Source = "compatible_system"
 		status.CanonicalRoot = systemRoot
@@ -245,8 +252,8 @@ func (m *Manager) SharedAcceleratorDependencyProcessEnv(dependencyID string) (ma
 	}, nil
 }
 
-func currentHostAcceleratorProfileID() string {
-	if currentGOOS() == "windows" && currentGOARCH() == "amd64" && strings.EqualFold(detectLocalGPUVendor(), "nvidia") {
+func currentHostAcceleratorProfileID(gpuVendor string) string {
+	if currentGOOS() == "windows" && currentGOARCH() == "amd64" && strings.EqualFold(gpuVendor, "nvidia") {
 		return "windows-amd64-nvidia-cuda"
 	}
 	if currentGOOS() == "darwin" && currentGOARCH() == "arm64" {
@@ -297,10 +304,10 @@ func verifiedManagedNVIDIACUDARuntimeRootForSpec(dependenciesPath string, spec s
 
 func verifiedSystemNVIDIACUDARuntimeRoot() (string, bool, string) {
 	spec, _ := sharedAcceleratorDependencySpecForID(NVIDIACUDAUserSpaceRuntimeDependencyID)
-	return verifiedSystemNVIDIACUDARuntimeRootForSpec(spec)
+	return verifiedSystemNVIDIACUDARuntimeRootForSpec(spec, detectHostGPU)
 }
 
-func verifiedSystemNVIDIACUDARuntimeRootForSpec(spec sharedAcceleratorDependencySpec) (string, bool, string) {
+func verifiedSystemNVIDIACUDARuntimeRootForSpec(spec sharedAcceleratorDependencySpec, probeGPU func() (string, bool)) (string, bool, string) {
 	if currentGOOS() != "windows" {
 		return "", false, ""
 	}
@@ -309,7 +316,7 @@ func verifiedSystemNVIDIACUDARuntimeRootForSpec(spec sharedAcceleratorDependency
 			return canonicalRoot, false, "system CUDA user-space runtime candidates exist but runtime lacks admitted version, driver compatibility, and source identity proof"
 		}
 	}
-	if vendor, driverVisible := detectHostGPU(); driverVisible && strings.EqualFold(vendor, "nvidia") {
+	if vendor, driverVisible := probeGPU(); driverVisible && strings.EqualFold(vendor, "nvidia") {
 		return "", false, "NVIDIA driver is visible but runtime lacks admitted CUDA user-space source identity proof"
 	}
 	return "", false, ""

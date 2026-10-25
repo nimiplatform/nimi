@@ -226,6 +226,57 @@ test('environment plan resolution forwards the saved candidate selector and proj
   await assert.rejects(client.resolveEnvironmentPlan({ mediaCodec: true, capabilityContract: 'music.generate' } as never), /cannot select/);
 });
 
+test('a fresh device projection is forwarded only by read-only environment resolution', async () => {
+  const controller = new AbortController();
+  const profile = {
+    os: 'windows', arch: 'amd64', totalRamBytes: '137438953472', availableRamBytes: '0', diskFreeBytes: '0',
+    ports: [{ port: 1234, available: false }],
+    gpu: { available: true, vendor: 'nvidia', model: 'test GPU', totalVramBytes: '25769803776', availableVramBytes: '0', memoryModel: 1 },
+    python: { available: true, version: '3.12' },
+    npu: { available: false, ready: false, vendor: '', runtime: '', detail: 'not detected' },
+  };
+  const plan = {
+    planId: 'plan', packId: 'pack', productLabel: '', hostProfileId: 'host', platformTuple: 'windows/amd64',
+    runtimeDataRoot: '', consumerScope: '', cloudOnlyImpact: '', state: 'needs_confirmation', reasonCode: '',
+    dependencies: [], requiredDependencyFamilies: [], aggregateSizeKnown: false, aggregateSizeBytes: '0',
+    storageCategories: [], sourceOwners: [], noSystemMutation: true, candidateLoadoutId: '', candidateRevision: '',
+  };
+  const requests: Record<string, unknown>[] = [];
+  const local = {
+    async collectDeviceProfile(_request: unknown, options: { signal: AbortSignal }) {
+      assert.equal(options.signal, controller.signal);
+      return { profile };
+    },
+    async resolveLocalEnvironmentPlan(request: Record<string, unknown>, options: { signal: AbortSignal }) {
+      assert.equal(options.signal, controller.signal);
+      requests.push(request);
+      return { plan };
+    },
+    async applyLocalEnvironmentPlan(request: { resolution: Record<string, unknown> }) {
+      requests.push(request.resolution);
+      return { plan, jobs: [] };
+    },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local, callOptions: { signal: controller.signal } });
+  const captured = await client.collectDeviceProfile();
+  // A variable may contain extra fields even when Apply's public type does not.
+  const resolution = { capabilityContract: 'text.generate', hostProfile: captured };
+  await client.resolveEnvironmentPlan(resolution);
+  assert.deepEqual(requests[0]?.hostProfile, profile, 'preserve unavailable zero counters and typed GPU memory model');
+  assert.notEqual(requests[0]?.hostProfile, captured, 'wire conversion must not mutate the captured SDK projection');
+  await client.applyEnvironmentPlan({ resolution, expectedPlanId: 'plan', confirmed: true }, { caller: 'core' });
+  assert.equal('hostProfile' in requests[1]!, false, 'Apply must ask Runtime to collect its own current facts');
+  assert.equal(captured.gpu.memoryModel, 'discrete');
+  assert.equal(captured.availableRamBytes, 0);
+  for (const [memoryModel, wire] of [['unified', 2], [undefined, 0]] as const) {
+    await client.resolveEnvironmentPlan({ ...resolution, hostProfile: { ...captured, gpu: { ...captured.gpu, memoryModel } } });
+    assert.equal((requests.at(-1)?.hostProfile as typeof profile).gpu.memoryModel, wire);
+  }
+  const count = requests.length;
+  await assert.rejects(client.resolveEnvironmentPlan({ ...resolution, hostProfile: { ...captured, totalRamBytes: NaN } }), /byte counters/);
+  assert.equal(requests.length, count, 'invalid snapshot must not be sent as invented zero capacity');
+});
+
 test('transfer projections carry plan identity and install returns its transfer session', async () => {
   const summary = {
     installSessionId: 'session_1', assetId: 'model_01', sessionKind: 'download', phase: 'downloading',

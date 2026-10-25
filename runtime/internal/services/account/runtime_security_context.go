@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/oklog/ulid/v2"
 )
 
 // AuthenticatedRuntimeSecurityContext returns the account identity and its
@@ -80,6 +81,26 @@ func (s *Service) authenticatedRuntimeGenerationLocked() (*runtimev1.AccountProj
 	return projection, generation, invalidated, true
 }
 
+// projectedAccountAuthorizationLocked reports continuity without advancing a
+// fence or changing the refresh state machine. Sample expiry once so a status
+// read cannot pair authenticated state with an already expired revision.
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
+func (s *Service) projectedAccountAuthorizationLocked() (runtimev1.AccountSessionState, string) {
+	state := s.state
+	expired := s.accountMaterialExpiredLocked()
+	if state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && expired {
+		state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
+	}
+	liveState := state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
+	if !liveState || expired || !s.authenticatedRuntimeIdentity ||
+		s.accountGeneration == 0 || s.accountGenerationInvalidated == nil || s.projection == nil ||
+		strings.TrimSpace(s.projection.GetAccountId()) == "" || strings.TrimSpace(s.projection.GetRealmEnvironmentId()) == "" {
+		return state, ""
+	}
+	return state, s.authorizationRevision
+}
+
 func (s *Service) installAuthenticatedRuntimeIdentityLocked(material AccountMaterial) bool {
 	accountID := strings.TrimSpace(material.AccountID)
 	realmEnvironmentID := strings.TrimSpace(material.RealmEnvironmentID)
@@ -140,5 +161,8 @@ func (s *Service) advanceAccountGenerationLocked() bool {
 	}
 	s.accountGeneration++
 	s.accountGenerationInvalidated = make(chan struct{})
+	// This non-authorizing label is never persisted or accepted as input. A new
+	// Runtime gets a new label even when its numeric generation starts at one.
+	s.authorizationRevision = ulid.Make().String()
 	return s.accountGeneration != 0
 }

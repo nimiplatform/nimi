@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,6 +36,7 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 			Revision: revision, Participation: projectLocalAgentCapabilityParticipation(),
 		}, nil
 	}
+	ctx = localexecution.WithReadProjection(ctx)
 	effective := s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
 	if err := ctx.Err(); err != nil {
 		return nil, status.FromContextError(err).Err()

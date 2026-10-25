@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 )
@@ -568,7 +569,18 @@ func skipValue(reader io.Reader, valueType ValueType) error {
 	case ValueTypeUint64, ValueTypeInt64, ValueTypeFloat64:
 		return skipBytes(reader, 8)
 	case ValueTypeString:
-		_, err := readGGUFString(reader)
+		var length uint64
+		if err := binary.Read(reader, binary.LittleEndian, &length); err != nil {
+			return err
+		}
+		if length > maxMetadataStringBytes {
+			return fmt.Errorf("metadata string too large: %d bytes", length)
+		}
+		n, err := discardMetadataBytes(reader, int64(length))
+		// Match readGGUFString's ReadFull failure for a partial string.
+		if err == io.EOF && n > 0 {
+			return io.ErrUnexpectedEOF
+		}
 		return err
 	case ValueTypeArray:
 		elementType, err := readValueType(reader)
@@ -582,6 +594,15 @@ func skipValue(reader io.Reader, valueType ValueType) error {
 		if err := binary.Read(reader, binary.LittleEndian, &length); err != nil {
 			return err
 		}
+		if width := fixedMetadataValueBytes(elementType); width != 0 {
+			if length > math.MaxInt64/width {
+				return fmt.Errorf("gguf metadata array byte length overflows")
+			}
+			return skipBytes(reader, int64(length*width))
+		}
+		if elementType == ValueTypeString {
+			return skipStringArray(reader, length)
+		}
 		for i := uint64(0); i < length; i++ {
 			if err := skipValue(reader, elementType); err != nil {
 				return err
@@ -593,10 +614,77 @@ func skipValue(reader io.Reader, valueType ValueType) error {
 	}
 }
 
+// Token/merge arrays may contain hundreds of thousands of strings. Reuse one
+// length buffer instead of binary.Read allocating one for every element. Each
+// length and readable body boundary is still checked, in the original order.
+func skipStringArray(reader io.Reader, count uint64) error {
+	var header [8]byte
+	for i := uint64(0); i < count; i++ {
+		if _, err := io.ReadFull(reader, header[:]); err != nil {
+			return err
+		}
+		length := binary.LittleEndian.Uint64(header[:])
+		if length > maxMetadataStringBytes {
+			return fmt.Errorf("metadata string too large: %d bytes", length)
+		}
+		n, err := discardMetadataBytes(reader, int64(length))
+		if err == io.EOF && n > 0 {
+			err = io.ErrUnexpectedEOF
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func skipBytes(reader io.Reader, size int64) error {
 	if size <= 0 {
 		return nil
 	}
-	_, err := io.CopyN(io.Discard, reader, size)
+	_, err := discardMetadataBytes(reader, size)
 	return err
+}
+
+func fixedMetadataValueBytes(valueType ValueType) uint64 {
+	switch valueType {
+	case ValueTypeUint8, ValueTypeInt8, ValueTypeBool:
+		return 1
+	case ValueTypeUint16, ValueTypeInt16:
+		return 2
+	case ValueTypeUint32, ValueTypeInt32, ValueTypeFloat32:
+		return 4
+	case ValueTypeUint64, ValueTypeInt64, ValueTypeFloat64:
+		return 8
+	default:
+		return 0
+	}
+}
+
+func discardMetadataBytes(reader io.Reader, size int64) (int64, error) {
+	if size <= 0 {
+		return 0, nil
+	}
+	// The Driver parses a bounded in-memory prefix. Skip only when the reader
+	// exposes its actual remaining length; a general Seeker can pass EOF.
+	if bounded, ok := reader.(interface {
+		Len() int
+		Seek(int64, int) (int64, error)
+	}); ok {
+		remaining := int64(bounded.Len())
+		if remaining < 0 {
+			return 0, fmt.Errorf("invalid remaining gguf metadata length")
+		}
+		consumed := min(size, remaining)
+		if consumed > 0 {
+			if _, err := bounded.Seek(consumed, io.SeekCurrent); err != nil {
+				return 0, err
+			}
+		}
+		if consumed != size {
+			return consumed, io.EOF
+		}
+		return consumed, nil
+	}
+	return io.CopyN(io.Discard, reader, size)
 }

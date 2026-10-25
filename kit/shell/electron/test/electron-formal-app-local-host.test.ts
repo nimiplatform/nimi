@@ -89,6 +89,178 @@ function control(profile: 'desktop' | 'avatar') {
 }
 
 describe('Electron formal App local host', () => {
+  it.each(['desktop', 'avatar'] as const)('bootstraps a fresh verified %s carrier after failed old recovery without replaying business', async (profile) => {
+    const calls: string[] = [];
+    let carrierAvailable = true;
+    let bound = false;
+    let rejectBusiness = false;
+    let businessCalls = 0;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const ready = () => OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+      state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+      currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+    }));
+    // Model the existing Runtime contract: a newly verified carrier permits
+    // initial Open, while Rebind requires its own previous bound session.
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      calls.push(input.methodId);
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        businessCalls++;
+        if (rejectBusiness) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+        return new Uint8Array();
+      }
+      if (!carrierAvailable) throw new NimiElectronDesktopControlHostError('runtime-service-unavailable', true);
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        if (!bound) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+        return ready();
+      }
+      if (input.methodId.endsWith('/OpenLocalAppSession')) { bound = true; return ready(); }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      const oldWrite = await owner.host.assetWriteOpen({ relativePath: 'old-scope.txt' });
+      await owner.host.assetWriteChunk({ streamId: oldWrite.streamId, bodyChunk: Uint8Array.from([1]) });
+      carrierAvailable = false;
+      rejectBusiness = true;
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      expect(businessCalls).toBe(1);
+      carrierAvailable = true;
+      bound = false;
+      await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      expect(calls.filter(method => method.endsWith('/RebindLocalAppSession'))).toHaveLength(2);
+      expect(calls.filter(method => method.endsWith('/OpenLocalAppSession'))).toHaveLength(3);
+      expect(businessCalls).toBe(1);
+      await expect(owner.host.assetWriteChunk({ streamId: oldWrite.streamId, bodyChunk: Uint8Array.from([2]) }))
+        .rejects.toMatchObject({ reasonCode: 'not-found' });
+      rejectBusiness = false;
+      await expect(owner.host.agentReferenceList()).resolves.toEqual([]);
+      expect(businessCalls).toBe(2);
+    } finally { await owner.dispose(); warn.mockRestore(); }
+  });
+
+  it.each([
+    { name: 'actual revocation', rebind: 'LOCAL_APP_SESSION_REVOKED', open: 'LOCAL_APP_SESSION_REVOKED', expected: 'revoked', opens: 2 },
+    { name: 'permission refusal at Rebind', rebind: 'LOCAL_APP_ACCESS_DENIED', open: undefined, expected: 'local-app-access-denied', opens: 0 },
+    { name: 'permission refusal at Open', rebind: 'LOCAL_APP_SESSION_REVOKED', open: 'LOCAL_APP_ACCESS_DENIED', expected: 'local-app-access-denied', opens: 2 },
+    { name: 'unclassified revoked text', rebind: undefined, open: undefined, expected: 'runtime-service-untrusted', opens: 0 },
+  ])('keeps $name closed during technical recovery', async ({ rebind, open, expected, opens }) => {
+    let openCalls = 0, businessCalls = 0;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        businessCalls++;
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        if (rebind) throw new NimiElectronDesktopControlHostError(rebind, false);
+        throw new Error('revoked text must not be interpreted as bootstrap evidence');
+      }
+      if (input.methodId.endsWith('/OpenLocalAppSession')) {
+        openCalls++;
+        if (open) throw new NimiElectronDesktopControlHostError(open, false);
+        throw new Error('Open must not run after this denial');
+      }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile: 'desktop', appId: 'nimi.desktop', control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await expect(owner.host.sessionStatus()).rejects.toMatchObject({ reasonCode: expected });
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      expect(openCalls).toBe(opens);
+      expect(businessCalls).toBe(1);
+    } finally { await owner.dispose(); warn.mockRestore(); }
+  });
+
+  it.each(['desktop', 'avatar'] as const)('does not Open a replacement %s scope until the old native unary settles', async (profile) => {
+    let finishOld!: (value: Uint8Array) => void;
+    let businessCalls = 0, renewCalls = 0, rebindCalls = 0, openCalls = 0;
+    const ready = () => OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+      state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+      currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+    }));
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        if (++businessCalls === 1) return new Promise<Uint8Array>(resolve => { finishOld = resolve; });
+        return new Uint8Array();
+      }
+      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+        renewCalls++;
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        rebindCalls++;
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/OpenLocalAppSession')) { openCalls++; return ready(); }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      const oldRead = expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await vi.waitFor(() => expect(finishOld).toBeTypeOf('function'));
+      const renewal = expect(owner.host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      expect(renewCalls).toBe(1);
+      expect(rebindCalls).toBe(0);
+      expect(openCalls).toBe(0);
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      finishOld(new Uint8Array());
+      await oldRead;
+      await renewal;
+      expect(rebindCalls).toBe(1);
+      expect(openCalls).toBe(1);
+      expect(businessCalls).toBe(1);
+      await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      expect(openCalls).toBe(2);
+      await expect(owner.host.agentReferenceList()).resolves.toEqual([]);
+      expect(businessCalls).toBe(2);
+    } finally { finishOld?.(new Uint8Array()); await owner.dispose(); }
+  });
+
+  it('retries a denied initial Open only when a later technical status asks again', async () => {
+    let permitOpen = false, openCalls = 0, businessCalls = 0;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        businessCalls++;
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession')) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      if (input.methodId.endsWith('/OpenLocalAppSession')) {
+        openCalls++;
+        if (!permitOpen) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+        return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+          state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+          currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+        }));
+      }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile: 'desktop', appId: 'nimi.desktop', control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await expect(owner.host.sessionStatus()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      expect(openCalls).toBe(2);
+      permitOpen = true;
+      await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      expect(openCalls).toBe(4);
+      expect(businessCalls).toBe(1);
+    } finally { await owner.dispose(); warn.mockRestore(); }
+  });
+
   it.each(['agent', 'ai'] as const)('decodes %s microphone frame JSON before the typed SDK call', async (kind) => {
     const frame = Array.from({ length: 4_800 }, (_, i) => i % 256);
     const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {

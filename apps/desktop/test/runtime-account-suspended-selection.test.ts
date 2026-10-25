@@ -9,7 +9,9 @@ function store() {
 }
 
 function projection(status: RuntimeAccountAuthProjection['status'], accountId?: string): RuntimeAccountAuthProjection {
-  return { status, sequence: '1', reasonCode: 0, accountReasonCode: 0, user: accountId ? { id: accountId } : null };
+  return { status, sequence: '1', reasonCode: 0, accountReasonCode: 0,
+    authorizationRevision: status === 'authenticated' || status === 'refresh-pending' ? 'authorization-a' : '',
+    user: accountId ? { id: accountId } : null };
 }
 
 function openPartner(app: ReturnType<typeof store>) {
@@ -17,6 +19,26 @@ function openPartner(app: ReturnType<typeof store>) {
   app.getState().setAgentConversationTargetSnapshot({ agentHandle, conversationAnchorId: 'anchor-a', displayName: 'Partner', handle: '', avatarUrl: null, worldId: null, worldName: null, bio: null, ownershipType: null, greeting: null, builtinDocsContext: null });
   void app.navigation.push({ id: 'chat', chat: { mode: 'agent', agentHandle, conversationAnchorId: 'anchor-a', targetId: agentHandle } });
 }
+
+test('Account authorization continuity is projected exactly and display setters cannot mint it', () => {
+  const app = store();
+  const user = { id: 'account-a', realmEnvironmentId: 'realm-a' };
+  app.getState().applyRuntimeAccountProjection({ ...projection('authenticated', 'account-a'), user, authorizationRevision: 'owner-revision-a' });
+  assert.equal(app.getState().auth.authorizationRevision, 'owner-revision-a');
+  app.getState().setAuthSession({ ...user, displayName: 'Updated profile' });
+  assert.equal(app.getState().auth.authorizationRevision, 'owner-revision-a');
+  app.getState().setAuthSession({ id: 'account-b', realmEnvironmentId: 'realm-a' });
+  assert.equal(app.getState().auth.authorizationRevision, '');
+  app.getState().applyRuntimeAccountProjection({ ...projection('refresh-pending', 'account-a'), user, authorizationRevision: 'owner-revision-a' });
+  assert.equal(app.getState().auth.authorizationRevision, 'owner-revision-a');
+  app.getState().setAuthBootstrapping();
+  assert.equal(app.getState().auth.authorizationRevision, '');
+  app.getState().applyRuntimeAccountProjection({ ...projection('authenticated', 'account-a'), user, authorizationRevision: 'owner-revision-a' });
+  app.getState().clearAuthSession();
+  assert.equal(app.getState().auth.authorizationRevision, '');
+  app.getState().setAuthSession(user);
+  assert.equal(app.getState().auth.authorizationRevision, '');
+});
 
 test('an unproven account clears page history and retains proven business references only for the same account', () => {
   const app = store();

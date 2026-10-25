@@ -3,7 +3,6 @@
 package capabilitydriver
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -17,7 +16,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
-	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -317,46 +315,15 @@ func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAss
 	}
 	switch format {
 	case "gguf":
-		_, familyConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_families")
-		_, architectureConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architectures")
-		_, architectureFamilyConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architecture_families")
-		var summary ggufmeta.Summary
-		var err error
-		tensorContract, tensorConstrained := stableDiffusionRequirementConstraintString(requirement, "tensor_contract")
-		if !tensorConstrained && !familyConstrained && (architectureConstrained || architectureFamilyConstrained) {
-			summary, err = ggufmeta.InspectLLMMetadata(bytes.NewReader(input.Entry.FormatProbe))
-		} else {
-			summary, err = ggufmeta.Inspect(bytes.NewReader(input.Entry.FormatProbe))
-		}
-		if err != nil {
+		facts, err := decodeSDImageGGUFProbe(input.Entry.FormatProbe)
+		if err != nil || facts.RecipeID != input.RecipeID {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
-		if tensorConstrained && !stableDiffusionGGUFTensorContractValid(tensorContract, summary) {
+		family, valid := sdGGUFRequirementFamily(requirement, facts)
+		if !valid {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
-		architecture := ggufmeta.LLMDetectedArchitecture(summary)
-		if expected, exists := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architectures"); exists && !contains(expected, architecture) {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-		if expected, exists := stableDiffusionRequirementConstraintStrings(requirement, "gguf_families"); exists && !stableDiffusionGGUFFamilyMatches(summary, expected) {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-		if expected, exists := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architecture_families"); exists {
-			detected := stableDiffusionGGUFArchitectureFamily(architecture)
-			if !contains(expected, detected) {
-				return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-			}
-			descriptor.Family = detected
-		}
-		if family, exists := stableDiffusionRequirementConstraintString(requirement, "model_family"); exists {
-			descriptor.Family = family
-		} else if descriptor.Family == "" {
-			families, exists := stableDiffusionRequirementConstraintStrings(requirement, "compatible_families")
-			if !exists || len(families) != 1 {
-				return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-			}
-			descriptor.Family = families[0]
-		}
+		descriptor.Family = family
 	case "safetensors":
 		contract, ok := stableDiffusionRequirementConstraintString(requirement, "tensor_contract")
 		if !ok {
@@ -371,20 +338,6 @@ func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAss
 		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
 	return validatedModelAssetBindingProjection(input, descriptor, 0, driver.ValidateBinding)
-}
-
-func stableDiffusionGGUFFamilyMatches(summary ggufmeta.Summary, expected []string) bool {
-	if contains(expected, ggufmeta.StableDiffusionDetectedFamily(summary)) {
-		return true
-	}
-	for _, signature := range ggufmeta.StableDiffusionTensorSignaturesPresent(summary) {
-		for _, family := range expected {
-			if strings.HasPrefix(signature, family+":") {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func stableDiffusionGGUFArchitectureFamily(architecture string) string {
@@ -683,8 +636,19 @@ func stableDiffusionAssetCompatible(requirement *runtimev1.LocalCapabilityRequir
 	if role, exists := stableDiffusionRequirementConstraintString(requirement, "artifact_role"); exists && !contains(asset.ArtifactRoles, role) {
 		return false
 	}
-	if format, exists := stableDiffusionRequirementConstraintString(requirement, "format"); exists && !stableDiffusionImageFormatValid(format, asset.FormatProbe) {
-		return false
+	if format, exists := stableDiffusionRequirementConstraintString(requirement, "format"); exists {
+		if format == "gguf" {
+			facts, err := decodeSDImageGGUFProbe(asset.FormatProbe)
+			if err != nil {
+				return false
+			}
+			family, valid := sdGGUFRequirementFamily(requirement, facts)
+			if !valid || family != asset.Family {
+				return false
+			}
+		} else if !stableDiffusionImageFormatValid(format, asset.FormatProbe) {
+			return false
+		}
 	}
 	return true
 }
@@ -767,7 +731,8 @@ func stableDiffusionImageFormatValid(format string, probe []byte) bool {
 	}
 	switch format {
 	case "gguf":
-		return len(probe) >= 4 && bytes.Equal(probe[:4], []byte("GGUF"))
+		_, err := decodeSDImageGGUFProbe(probe)
+		return err == nil
 	case "safetensors":
 		if len(probe) < 10 {
 			return false

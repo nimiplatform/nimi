@@ -84,14 +84,16 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
 
-  const inventory = useCapabilityInventory();
+  const destination = useHomeDestination();
+  const position = destination.runtime;
+  const inventoryEnabled = destination.id === 'diagnostics'
+    || destination.id === 'runtime' && (position?.page ?? 'aiSettings') === 'aiSettings';
+  const inventory = useCapabilityInventory({ enabled: inventoryEnabled });
   const library = useRuntimeModelLibrary();
   const store = getRuntimeSetupTaskStore();
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
-  const destination = useHomeDestination();
   const entryKey = useHomeEntryKey();
-  const position = destination.runtime;
   const capability = position?.capabilityContract ?? null;
   const section = position?.section ?? 'overview';
   const modelConfiguration = position?.loadoutId && capability ? { loadoutId: position.loadoutId, capability } : null;
@@ -552,6 +554,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 focusedTask.draft?.profileUseId ? (
                   <RuntimeProfileTaskView
                     key={focusedTask.draft.profileUseId}
+                    inventoryEnabled={inventoryEnabled}
                     useId={focusedTask.draft.profileUseId}
                     store={store}
                     ports={ports}

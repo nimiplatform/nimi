@@ -468,6 +468,7 @@ fn project_response(
     project_snapshot(response.snapshot.ok_or_else(untrusted)?)
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 fn project_snapshot(
     snapshot: AccountSessionSnapshot,
 ) -> Result<DesktopAccountSessionStatus, NimiHostError> {
@@ -491,9 +492,22 @@ fn project_snapshot(
     if state == DesktopAccountSessionState::Authenticated && account_projection.is_none() {
         return Err(untrusted());
     }
+    let authorization_revision = snapshot.authorization_revision;
+    if authorization_revision.len() > 64
+        || authorization_revision != authorization_revision.trim()
+        || authorization_revision.contains('\0')
+        || (state == DesktopAccountSessionState::Authenticated && authorization_revision.is_empty())
+        || (!matches!(
+            state,
+            DesktopAccountSessionState::Authenticated | DesktopAccountSessionState::RefreshPending
+        ) && !authorization_revision.is_empty())
+    {
+        return Err(untrusted());
+    }
     Ok(DesktopAccountSessionStatus {
         sequence: snapshot.sequence,
         state,
+        authorization_revision,
         reason_code: snapshot.reason_code,
         account_reason_code: snapshot.account_reason_code,
         account_projection,
@@ -527,6 +541,7 @@ fn project_event(event: AccountSessionEvent) -> Result<DesktopAccountSessionEven
         sequence: status.sequence,
         delivery_kind,
         state: status.state,
+        authorization_revision: status.authorization_revision,
         reason_code: status.reason_code,
         account_reason_code: status.account_reason_code,
         account_projection: status.account_projection,

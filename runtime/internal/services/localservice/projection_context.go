@@ -25,6 +25,9 @@ type projectionReaderAt struct {
 	reader io.ReaderAt
 }
 
+// Buffered format readers must keep the cancellation fence on window hits.
+func (r projectionReaderAt) ContextErr() error { return r.ctx.Err() }
+
 func (r projectionReaderAt) ReadAt(p []byte, offset int64) (int, error) {
 	if err := r.ctx.Err(); err != nil {
 		return 0, err

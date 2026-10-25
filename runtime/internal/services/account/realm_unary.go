@@ -423,9 +423,15 @@ func (s *Service) realmUnaryAccessToken(ctx context.Context, _ *runtimev1.Accoun
 	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
 		!s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))
+	cause := accountRefreshNearExpiryAccess
+	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED {
+		cause = accountRefreshExpiredAccess
+	} else if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING {
+		cause = accountRefreshPendingAccess
+	}
 	s.mu.RUnlock()
 	if needsRefresh {
-		refresh, err := s.refreshAccountSessionInternal(ctx, false)
+		refresh, err := s.refreshAccountSessionForRejectedToken(ctx, false, "", cause)
 		if err != nil {
 			return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, false, err
 		}

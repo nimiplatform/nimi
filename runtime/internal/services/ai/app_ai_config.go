@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -59,6 +60,7 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if !found {
 		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
 	}
+	ctx = localexecution.WithReadProjection(ctx)
 	effective := s.projectAppAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
 	if err := ctx.Err(); err != nil {
 		return nil, status.FromContextError(err).Err()

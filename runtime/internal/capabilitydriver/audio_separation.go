@@ -175,6 +175,11 @@ type AudioSeparateInvocationDriver interface {
 
 type DemucsDriver struct{}
 
+// The Demucs format predicate consumes only the ZIP local-header magic.
+// Exact binding and full payload verification remain separate requirements.
+// @nimi-authority: rule.nimi.runtime.ai-provider.demucs-local-separation
+func (DemucsDriver) ModelAssetFormatProbeBytes(ModelAssetFormatProbeInput) int64 { return 4 }
+
 func (DemucsDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string { return nil }
 
 func (DemucsDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {

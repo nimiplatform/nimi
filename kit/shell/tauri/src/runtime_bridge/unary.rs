@@ -464,6 +464,7 @@ mod tests {
             snapshot: Some(generated::AccountSessionSnapshot {
                 sequence: 7,
                 state: generated::AccountSessionState::Authenticated as i32,
+                authorization_revision: "opaque-revision-1".to_string(),
                 reason_code: generated::ReasonCode::ActionExecuted as i32,
                 account_reason_code: generated::AccountReasonCode::ActionExecuted as i32,
                 account_projection: None,

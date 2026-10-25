@@ -460,6 +460,9 @@ func (s *Service) accountMaterialExpiredLocked() bool {
 func (s *Service) recoverFromCustody(ctx context.Context) {
 	s.identityMutationMu.Lock()
 	defer s.identityMutationMu.Unlock()
+	s.mu.RLock()
+	beforeState, beforeRevision := s.projectedAccountAuthorizationLocked()
+	s.mu.RUnlock()
 	var auditSubjectID string
 	recordRecovery := true
 	defer func() {
@@ -475,6 +478,7 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		} else {
 			s.emitRejectedAudit(ctx, "account.custody.rejected", auditSubjectID, commonReason(reason), reason, "")
 		}
+		s.logAccountAuthorizationTransition(accountRefreshRestore, beforeState, beforeRevision, authenticated)
 	}()
 	material, err := s.custody.Load(ctx, s.partition)
 	if err != nil {

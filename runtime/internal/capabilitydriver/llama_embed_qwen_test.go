@@ -43,14 +43,14 @@ func TestQwen3EmbeddingModelContractRequiresLastPooling(t *testing.T) {
 	digest := strings.Repeat("a", 64)
 	binding := &runtimev1.ModelAssetExactBinding{RequirementId: EmbeddingGGUFRequirementID, ModelAssetId: "qwen-asset",
 		VerifiedContentId: "sha256:" + digest, EntrySha256: digest}
-	projection, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{RecipeID: LlamaQwen3EmbedRecipeID,
+	projection, reason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{RecipeID: LlamaQwen3EmbedRecipeID,
 		Requirement: requirements[0], Binding: binding,
 		Entry: ModelAssetFileFact{RelativePath: "qwen3.gguf", SizeBytes: 639150592, FormatProbe: qwen3EmbeddingGGUFProbe(t, 3)}})
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || projection.EmbeddingDimension != 1024 || projection.ModelContextWindowTokens != 32768 {
 		t.Fatalf("Qwen last-pooling projection=%+v reason=%v", projection, reason)
 	}
 	for _, pooling := range []uint32{0, 1, 2} {
-		_, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{RecipeID: LlamaQwen3EmbedRecipeID,
+		_, reason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{RecipeID: LlamaQwen3EmbedRecipeID,
 			Requirement: requirements[0], Binding: binding,
 			Entry: ModelAssetFileFact{RelativePath: "qwen3.gguf", SizeBytes: 639150592, FormatProbe: qwen3EmbeddingGGUFProbe(t, pooling)}})
 		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
@@ -58,7 +58,7 @@ func TestQwen3EmbeddingModelContractRequiresLastPooling(t *testing.T) {
 		}
 	}
 	generic, _ := driver.ProjectRecipe(LlamaEmbedGGUFRecipeID, nil, nil)
-	if _, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{RecipeID: LlamaEmbedGGUFRecipeID,
+	if _, reason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{RecipeID: LlamaEmbedGGUFRecipeID,
 		Requirement: generic[0], Binding: binding,
 		Entry: ModelAssetFileFact{RelativePath: "qwen3.gguf", SizeBytes: 639150592, FormatProbe: qwen3EmbeddingGGUFProbe(t, 3)}}); reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		t.Fatal("generic embedding recipe still admitted Qwen3 without its versioned pooling contract")

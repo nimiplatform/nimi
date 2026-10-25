@@ -2484,12 +2484,13 @@ type AccountSessionEvent struct {
 }
 
 type AccountSessionSnapshot struct {
-	Sequence          uint64              `json:"sequence,omitempty"`
-	State             AccountSessionState `json:"state,omitempty"`
-	ReasonCode        ReasonCode          `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode   `json:"account_reason_code,omitempty"`
-	AccountProjection *AccountProjection  `json:"account_projection,omitempty"`
-	AuditDiagnostic   *ErrorInfo          `json:"audit_diagnostic,omitempty"`
+	Sequence              uint64              `json:"sequence,omitempty"`
+	State                 AccountSessionState `json:"state,omitempty"`
+	ReasonCode            ReasonCode          `json:"reason_code,omitempty"`
+	AccountReasonCode     AccountReasonCode   `json:"account_reason_code,omitempty"`
+	AccountProjection     *AccountProjection  `json:"account_projection,omitempty"`
+	AuditDiagnostic       *ErrorInfo          `json:"audit_diagnostic,omitempty"`
+	AuthorizationRevision string              `json:"authorization_revision,omitempty"`
 }
 
 type Ack struct {

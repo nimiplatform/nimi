@@ -26,6 +26,7 @@ import { useRuntimeSetupTasks, type RuntimeSetupTaskStore } from './runtime-setu
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r026
 export function RuntimeProfileTaskView(props: {
+  readonly inventoryEnabled: boolean;
   readonly useId: string;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
@@ -37,7 +38,7 @@ export function RuntimeProfileTaskView(props: {
 }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
-  const inventory = useCapabilityInventory();
+  const inventory = useCapabilityInventory({ enabled: props.inventoryEnabled });
   const ownerLabel = (appId?: string) =>
     appId === sdk.appId() ? 'Nimi Chat' : (appId ?? t('runtimeConfig.setupTask.sourceLocalAgent'));
   const snapshot = useRuntimeSetupTasks(props.store);

@@ -49,7 +49,7 @@ func layaBindingInput(t *testing.T, prefix string, mutate func(map[string][]byte
 		Binding: &runtimev1.ModelAssetExactBinding{RequirementId: LayaModelSlot, ModelAssetId: "asset-laya", VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("b", 64)},
 	}
 	for name, content := range files {
-		fact := ModelAssetFileFact{RelativePath: prefix + name, SizeBytes: int64(len(content)) + 1, FormatProbe: content}
+		fact := ModelAssetFileFact{RelativePath: prefix + name, SizeBytes: int64(len(content)), FormatProbe: content}
 		if name == "model.safetensors" {
 			input.Entry = fact
 		}

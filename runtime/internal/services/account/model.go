@@ -215,6 +215,7 @@ type Service struct {
 	material                     AccountMaterial
 	accountGeneration            uint64
 	accountGenerationInvalidated chan struct{}
+	authorizationRevision        string
 	authenticatedRuntimeIdentity bool
 	loginAttempts                map[string]loginAttemptRecord
 	// @nimi-authority: rule.nimi.runtime.protected-session.r031

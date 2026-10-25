@@ -1,12 +1,13 @@
 import {
+  createNimiRuntimeLocalEnvironmentClient,
   type NimiLoadoutRecipe,
   type NimiMachineLoadouts,
   type NimiRuntimeLocalEnvironmentPlan,
 } from '@nimiplatform/sdk/runtime';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { useRuntimeSetupTasks, type RuntimeSetupTask } from './runtime-setup-task-store.js';
 import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library.js';
 import { LOADOUT_ENVIRONMENT_KEY, loadoutPreparationStatus } from './runtime-local-model-status.js';
@@ -84,42 +85,129 @@ export function capabilityPreparationState(input: {
 
 export type CapabilityAttentionReason = 'setup-task' | 'configuration' | 'unsupported' | 'environment';
 
-export function useCapabilityInventory() {
-  const sdk = useDesktopRendererSdk();
-  const environment = useRuntimeConfigLocalEnvironmentClient();
+/** The persistent Downloads owner observes setup changes once for all screens. */
+export function useRuntimeCapabilityInvalidation() {
   const queryClient = useQueryClient();
   const tasks = useRuntimeSetupTasks();
   const revision = tasks.tasks
     .map((task) => `${task.taskId}:${task.status}:${task.candidateRevisionBaseline ?? ''}`)
     .join('|');
+  const previousRevision = useRef(revision);
+  useEffect(() => {
+    if (previousRevision.current === revision) return;
+    previousRevision.current = revision;
+    logRendererEvent({ area: 'runtime-capability-inventory', message: 'action:capability-inventory:invalidate',
+      details: { cause: 'setup-revision', taskCount: tasks.tasks.length, atUnixMs: Date.now() } });
+    void queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY });
+    void queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY });
+    void queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY });
+  }, [queryClient, revision]);
+}
+
+export function useCapabilityInventory(options: { readonly enabled?: boolean } = {}) {
+  const sdk = useDesktopRendererSdk();
+  const queryClient = useQueryClient();
+  const tasks = useRuntimeSetupTasks();
+  const enabled = options.enabled !== false;
   const query = useQuery({
     queryKey: CAPABILITY_INVENTORY_KEY,
-    queryFn: async (): Promise<CapabilityInventory> => {
-      const loadouts = sdk.machineProduct().local.loadouts;
-      const [aggregate, recipes] = await Promise.all([loadouts.get(), loadouts.listRecipes()]);
-      const capabilities = [...new Set(aggregate.selections.map((item) => item.capabilityContract))];
-      const plans = await Promise.allSettled(
-        capabilities.map((capabilityContract) => environment.resolveEnvironmentPlan({ capabilityContract })),
-      );
-      return {
-        aggregate,
-        recipes,
-        environments: Object.fromEntries(
-          capabilities.map((capability, index) => {
-            const plan = plans[index]!;
-            return [capability, plan.status === 'fulfilled' ? plan.value : undefined];
-          }),
-        ),
+    enabled,
+    queryFn: async ({ signal }): Promise<CapabilityInventory> => {
+      const flowId = createRendererFlowId('capability-inventory');
+      const startedAt = performance.now();
+      const initial = queryClient.getQueryState(CAPABILITY_INVENTORY_KEY);
+      const hasData = initial?.data !== undefined;
+      const dataAgeMs = hasData && initial?.dataUpdatedAt ? Math.max(0, Date.now() - initial.dataUpdatedAt) : null;
+      const fetchFailureCount = initial?.fetchFailureCount ?? 0;
+      let stage: 'base' | 'plans' = 'base';
+      let outcome: 'success' | 'failed' = 'failed';
+      let planCount = 0, plansStarted = 0;
+      let plansFulfilled: number | null = null, plansRejected: number | null = null;
+      let hostProfileAvailable: boolean | null = null;
+      const log = (event: 'start' | 'base-ready' | 'abort' | 'settled') => {
+        const current = queryClient.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
+        logRendererEvent({ area: 'runtime-capability-inventory', message: `phase:capability-inventory:${event}`, flowId,
+          costMs: Math.max(0, performance.now() - startedAt),
+          details: { atUnixMs: Date.now(), hasData, dataAgeMs, fetchFailureCount, stage,
+            active: current?.isActive() ?? false, observerCount: current?.getObserversCount() ?? 0,
+            planCount, plansStarted, plansFulfilled, plansRejected, hostProfileAvailable,
+            ...(event === 'settled' ? { outcome: signal.aborted ? 'aborted' : outcome } : {}),
+          },
+        });
       };
+      const onAbort = () => log('abort');
+      log('start');
+      signal.addEventListener('abort', onAbort, { once: true });
+      if (signal.aborted) onAbort();
+      try {
+        signal.throwIfAborted();
+        const loadouts = sdk.machineProduct().local.loadouts;
+        const environment = createNimiRuntimeLocalEnvironmentClient({ local: () => sdk.localEnvironmentRpc(), callOptions: { signal } });
+        const [aggregate, recipes] = await Promise.all([loadouts.get({ signal }), loadouts.listRecipes('', { signal })]);
+        signal.throwIfAborted();
+        const capabilities = [...new Set(aggregate.selections.map((item) => item.capabilityContract))];
+        planCount = capabilities.length;
+        log('base-ready');
+        stage = 'plans';
+        // One fresh Runtime observation belongs to this read only. Apply/Job
+        // admission collects its own current facts, never this UI snapshot.
+        const hostProfile = capabilities.length > 0
+          ? await environment.collectDeviceProfile().catch(() => undefined)
+          : undefined;
+        signal.throwIfAborted();
+        hostProfileAvailable = capabilities.length > 0 ? !!hostProfile : null;
+        if (capabilities.length > 0 && !hostProfile) {
+          plansFulfilled = 0;
+          plansRejected = 0;
+          outcome = 'success';
+          return { aggregate, recipes, environments: Object.fromEntries(capabilities.map(capability => [capability, undefined])) };
+        }
+        const plans = await Promise.allSettled(
+          capabilities.map((capabilityContract) => {
+            signal.throwIfAborted();
+            plansStarted++;
+            return environment.resolveEnvironmentPlan({ capabilityContract, hostProfile });
+          }),
+        );
+        plansFulfilled = plans.filter(plan => plan.status === 'fulfilled').length;
+        plansRejected = plans.length - plansFulfilled;
+        signal.throwIfAborted();
+        outcome = 'success';
+        return {
+          aggregate,
+          recipes,
+          environments: Object.fromEntries(
+            capabilities.map((capability, index) => {
+              const plan = plans[index]!;
+              return [capability, plan.status === 'fulfilled' ? plan.value : undefined];
+            }),
+          ),
+        };
+      } finally {
+        signal.removeEventListener('abort', onAbort);
+        log('settled');
+      }
     },
     staleTime: 15_000,
     refetchOnWindowFocus: true,
   });
   useEffect(() => {
-    void queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY });
-    void queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY });
-    void queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY });
-  }, [queryClient, revision]);
+    const cancelWhenUnobserved = () => queueMicrotask(() => {
+      // Keep-alive pages retain disabled observers. Recheck after the whole
+      // navigation commit so another visible consumer can keep its shared read.
+      const current = queryClient.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
+      if (current && !current.isActive() && current.state.fetchStatus !== 'idle') {
+        void queryClient.cancelQueries({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
+      }
+    });
+    if (!enabled) cancelWhenUnobserved();
+    return cancelWhenUnobserved;
+  }, [enabled, queryClient, query.fetchStatus]);
+  const refetch = useCallback((...args: Parameters<typeof query.refetch>) => {
+    logRendererEvent({ area: 'runtime-capability-inventory', message: 'action:capability-inventory:explicit-refetch',
+      details: { atUnixMs: Date.now() } });
+    return query.refetch(...args);
+  }, [query.refetch]);
   const capabilities = useMemo(
     () =>
       [
@@ -136,5 +224,5 @@ export function useCapabilityInventory() {
       }),
     [query.data],
   );
-  return { ...query, capabilities, tasks: tasks.tasks };
+  return { ...query, refetch, capabilities, tasks: tasks.tasks };
 }

@@ -131,6 +131,14 @@ func TestLlamaGemma4FormatProbeBudgetIsScopedToTheExactMainEntry(t *testing.T) {
 				RecipeID: LlamaGemma4RecipeID, RequirementID: CompanionMMProjRequirementID,
 				RelativePath: "mmproj.gguf", Entry: true,
 			},
+			want: 4,
+		},
+		{
+			name: "Qwen projector retains full metadata contract",
+			input: ModelAssetFormatProbeInput{
+				RecipeID: LlamaQwen35VisionRecipeID, RequirementID: CompanionMMProjRequirementID,
+				RelativePath: "mmproj.gguf", Entry: true,
+			},
 			want: MaxAssetFormatProbeBytes,
 		},
 		{
@@ -173,7 +181,7 @@ func TestLlamaGemma4BindingCapturesTemplateBeyondGenericProbePrefix(t *testing.T
 		RequirementId: MainGGUFRequirementID, ModelAssetId: "gemma",
 		VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("b", 64),
 	}
-	projection, gotReason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+	projection, gotReason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
 		RecipeID: LlamaGemma4RecipeID, Requirement: requirements[0], Binding: binding,
 		Entry: ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: int64(len(probe)), FormatProbe: probe},
 	})
@@ -201,7 +209,7 @@ func TestLlamaBindingProjectionCarriesExactOptionalChatTemplateIdentity(t *testi
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			probe := llamaGGUFProbeForTest(t, test.template)
-			projection, gotReason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+			projection, gotReason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
 				RecipeID: LlamaGemma4RecipeID, Requirement: requirements[0], Binding: binding,
 				Entry: ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: int64(len(probe)), FormatProbe: probe},
 			})

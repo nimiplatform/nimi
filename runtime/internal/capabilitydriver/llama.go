@@ -1,7 +1,6 @@
 package capabilitydriver
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,7 +12,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/proto"
@@ -26,6 +24,12 @@ const inputImageFeature = "input.image"
 type LlamaTextDriver struct{}
 
 func (LlamaTextDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
+	// Gemma's projector format predicate consumes only magic. Qwen projectors
+	// still inspect their full tensor/metadata contract through the old budget.
+	if input.RecipeID == LlamaGemma4RecipeID && input.RequirementID == CompanionMMProjRequirementID && input.Entry &&
+		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
+		return 4
+	}
 	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || qwen35Recipe(input.RecipeID)) &&
 		input.RequirementID == MainGGUFRequirementID && input.Entry &&
 		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
@@ -207,51 +211,32 @@ func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) 
 }
 
 func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
-	probe := input.Entry.FormatProbe
-	probeLimit := driver.ModelAssetFormatProbeBytes(ModelAssetFormatProbeInput{
-		RecipeID: input.RecipeID, RequirementID: input.Requirement.GetRequirementId(),
-		RelativePath: input.Entry.RelativePath, Entry: true,
-	})
-	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(probe) < 4 || int64(len(probe)) > probeLimit || !bytes.Equal(probe[:4], []byte("GGUF")) {
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	facts, err := decodeLlamaGGUFProbe(input)
+	invalid := runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	if err != nil || facts.EmbeddingDimension != 0 || facts.EmbeddingInputProtocol != "" {
+		return ModelAssetBindingProjection{}, invalid
 	}
-	descriptor := ModelAssetDescriptor{Engine: "llama", FormatProbe: probe}
-	var contextWindow uint64
-	var templateIdentity string
+	descriptor := ModelAssetDescriptor{Engine: "llama", FormatProbe: input.Entry.FormatProbe}
 	switch input.Requirement.GetRequirementId() {
 	case MainGGUFRequirementID:
-		var summary ggufmeta.Summary
-		var err error
-		if qwen35Recipe(input.RecipeID) {
-			summary, err = ggufmeta.Inspect(bytes.NewReader(probe))
-			if err == nil && !qwen35BaseTextModelContract(summary) {
-				err = fmt.Errorf("qwen35 4B Model Contract mismatch")
-			}
-		} else {
-			summary, err = ggufmeta.InspectLLMMetadataWithChatTemplate(bytes.NewReader(probe))
+		if facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT || !contains(driver.recipeModelArchitectures(input.RecipeID, MainGGUFRequirementID), facts.Architecture) {
+			return ModelAssetBindingProjection{}, invalid
 		}
-		if err != nil || !contains(driver.recipeModelArchitectures(input.RecipeID, MainGGUFRequirementID), ggufmeta.LLMDetectedArchitecture(summary)) {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-		contextWindow, _ = ggufmeta.LLMContextLength(summary)
-		templateIdentity, _ = ggufmeta.LLMChatTemplateIdentity(summary)
-		descriptor.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
-		descriptor.ArtifactRoles = []string{"llm"}
+		descriptor.Kind, descriptor.ArtifactRoles = facts.Kind, []string{"llm"}
 	case CompanionMMProjRequirementID:
-		if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID {
-			summary, inspectErr := ggufmeta.Inspect(bytes.NewReader(probe))
-			if inspectErr != nil || !qwen35ProjectorModelContract(summary) {
-				return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-			}
+		if facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY || facts.ContextWindow != 0 || facts.TemplateIdentity != "" {
+			return ModelAssetBindingProjection{}, invalid
 		}
-		descriptor.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
-		descriptor.ArtifactRoles = []string{"mmproj"}
+		if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID && facts.Architecture != "clip" {
+			return ModelAssetBindingProjection{}, invalid
+		}
+		descriptor.Kind, descriptor.ArtifactRoles = facts.Kind, []string{"mmproj"}
 	default:
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		return ModelAssetBindingProjection{}, invalid
 	}
-	projection, reason := validatedModelAssetBindingProjection(input, descriptor, contextWindow, driver.ValidateBinding)
+	projection, reason := validatedModelAssetBindingProjection(input, descriptor, facts.ContextWindow, driver.ValidateBinding)
 	if reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		projection.TemplateIdentity = templateIdentity
+		projection.TemplateIdentity = facts.TemplateIdentity
 	}
 	return projection, reason
 }

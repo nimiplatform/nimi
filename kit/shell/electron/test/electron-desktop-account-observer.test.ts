@@ -10,6 +10,7 @@ type NativeOutcome = Awaited<ReturnType<NimiElectronDesktopAccountBinding['deskt
 
 const projection = (sequence = '1'): DesktopAccountSessionStatus => ({
   sequence, state: 'authenticated', reasonCode: 1, accountReasonCode: 1,
+  authorizationRevision: 'opaque-revision-1',
   accountProjection: { accountId: 'account-1', displayName: 'Nimi User', realmEnvironmentId: 'realm-1' },
 });
 const eventOutcome = (sequence = '1'): NativeOutcome => ({

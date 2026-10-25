@@ -92,10 +92,11 @@ export function NimiOverview() {
 
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
-  const inventory = useCapabilityInventory();
+  const destination = useHomeDestination();
+  const inventory = useCapabilityInventory({ enabled: destination.id === 'home' });
   const downloads = useGlobalDownloads();
   const apps = useAppsOverview();
-  const homeEntryDestination = useHomeDestination().homeSection ?? 'overview';
+  const homeEntryDestination = destination.homeSection ?? 'overview';
   const view = homeEntryDestination;
   const setView = (homeSection: 'overview' | 'center' | 'integrations' | 'work' | 'usage') => void navigation.push({ id: 'home', homeSection });
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');

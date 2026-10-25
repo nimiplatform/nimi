@@ -64,6 +64,7 @@ export function projectRuntimeAccountAuthState(
     sequence: status.sequence,
     reasonCode: status.reasonCode,
     accountReasonCode: status.accountReasonCode,
+    authorizationRevision: status.authorizationRevision,
     user: status.state === 'authenticated'
       ? projectedUser
       : retainUser

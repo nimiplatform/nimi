@@ -794,14 +794,7 @@ pub async fn desktop_account_session_status() -> NativeJsonOutcome {
         })
         .await
     {
-        Ok(status) => NativeJsonOutcome::success(json!({
-            "sequence": status.sequence.to_string(),
-            "state": status.state.as_str(),
-            "reasonCode": status.reason_code,
-            "accountReasonCode": status.account_reason_code,
-            "accountProjection": status.account_projection.map(project_account_projection),
-            "auditDiagnostic": status.audit_diagnostic.map(project_account_audit),
-        })),
+        Ok(status) => NativeJsonOutcome::success(project_account_session_status(status)),
         Err(error) => {
             clear_desktop_control_on_host_failure(&control, &error).await;
             NativeJsonOutcome::host_error(error)

@@ -5,6 +5,7 @@ import { Download, RefreshCw } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
+import { useHomeDestination } from '../../app-shell/providers/app-store.js';
 
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { formatBytes } from '../../components/download-format.js';
@@ -129,7 +130,9 @@ export function GlobalDownloadsView() {
 
   const store = getRuntimeSetupTaskStore();
   const snapshot = useRuntimeSetupTasks(store);
-  const inventory = useCapabilityInventory();
+  const destination = useHomeDestination();
+  const [appDetails, setAppDetails] = useState(false);
+  const inventory = useCapabilityInventory({ enabled: destination.id === 'downloads' && !appDetails });
   const modelLibrary = useRuntimeModelLibrary();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -140,7 +143,6 @@ export function GlobalDownloadsView() {
     else void action(cancel);
   };
   const [lane, setLane] = useState<DownloadsLane>('active');
-  const [appDetails, setAppDetails] = useState(false);
   const handledSelection = useRef(0);
   const [focusedTransferId, setFocusedTransferId] = useState('');
   const refreshDownloads = downloads?.refresh;

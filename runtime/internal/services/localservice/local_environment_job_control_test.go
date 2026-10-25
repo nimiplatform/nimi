@@ -206,7 +206,7 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsUnpromotedRepairAndPrerequisite
 			SourceKind:       localEnvironmentSourceManaged,
 		},
 	}
-	svc.rememberLocalEnvironmentPlanDependencyContracts(dependencies)
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), dependencies)
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["historical-repair"] = localEnvironmentDependencyJobState{
 		JobID:               "historical-repair",
@@ -254,7 +254,7 @@ func TestPrepareLocalEnvironmentPlanApplyRejectsCurrentNonRetryableFailureBefore
 		State:            localEnvironmentStateFailed,
 		SourceKind:       localEnvironmentSourceManaged,
 	}
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{dependency})
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency})
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["current-failed"] = localEnvironmentDependencyJobState{
 		JobID:               "current-failed",
@@ -293,7 +293,7 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeSDCPPAfterCUDAReady
 		SourceKind:        localEnvironmentSourceManaged,
 		SelectedConsumers: []string{consumer},
 	})
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{dependency})
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency})
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["failed-before-cuda-ready"] = localEnvironmentDependencyJobState{
 		JobID:               "failed-before-cuda-ready",
@@ -327,7 +327,7 @@ func TestPrepareLocalEnvironmentPlanApplyStartsFreshLlamaAcquisitionAfterSourceF
 		DependencyFamily: localEnvironmentFamilyNativeLlama, DependencyID: "llama.cpp.package",
 		ConsumerScope: "llama.cpp.cuda", State: localEnvironmentStateFailed, SourceKind: localEnvironmentSourceManaged, Required: true,
 	}
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{dep})
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dep})
 	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cudaUserSpaceRuntimeDependencyID,
 		Version: engine.NVIDIACUDAUserSpaceRuntimeVersion, EnvironmentKey: "accelerator.cuda.runtime|current-llama-cuda",
@@ -361,7 +361,7 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeAudioCPPAfterCUDARe
 		EnvironmentKey: "accelerator.cuda.runtime|ready-after-audio-cpp-failure", SourceKind: localEnvironmentSourceManaged,
 		SelectedConsumers: []string{consumer},
 	})
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{dependency})
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency})
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["failed-audio-cpp-package"] = localEnvironmentDependencyJobState{
 		JobID: "failed-audio-cpp-package", EnvironmentKey: dependency.EnvironmentKey,
@@ -431,7 +431,7 @@ func TestStartLocalEnvironmentDependencyProfileJobRequiresExactRememberedPlanCon
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			svc := newTestService(t)
-			svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+			svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 				EnvironmentKey:   environmentKey,
 				DependencyFamily: localEnvironmentFamilyPythonPackageSet,
 				DependencyID:     dependencyID,
@@ -1008,7 +1008,7 @@ func TestStartLocalEnvironmentDependencyJobFailsClosedForAmbiguousConsumerContra
 	cudaDep := findLocalEnvironmentDependency(t, cudaPlan, localEnvironmentFamilyNativeSDCPP)
 	cpuDep := cudaDep
 	cpuDep.ConsumerScope = "stable-diffusion.cpp.cpu"
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{cpuDep})
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{cpuDep})
 
 	_, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   cudaDep.EnvironmentKey,

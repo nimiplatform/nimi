@@ -1,9 +1,10 @@
 import {
+  type LocalDeviceProfile as GeneratedLocalDeviceProfile,
   type ResolveLocalEnvironmentPlanRequest,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { toNimiRuntimeProtoStruct } from './runtime-agent-values';
-import { toNimiRuntimeLocalAssetKindRequestValue } from './local-asset-vocabulary';
+import { toNimiRuntimeLocalAssetKindRequestValue, toNimiRuntimeLocalGpuMemoryModelRequestValue } from './local-asset-vocabulary';
 import {
   projectNimiRuntimeFactoryProfileRecommendation,
   projectNimiRuntimeFeaturedModelAssets,
@@ -27,6 +28,7 @@ import type {
   NimiRuntimeLocalEnvironmentClient,
   NimiRuntimeLocalEnvironmentClientOptions,
   NimiRuntimeLocalEnvironmentPlanInput,
+  NimiRuntimeLocalDeviceProfile,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeLocalWriteOptions,
 } from './runtime-local-environment-client-types';
@@ -80,6 +82,21 @@ function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
     mediaCodec: input.mediaCodec === true,
     runtimeDataRoot: normalizeText(input.runtimeDataRoot),
     candidateLoadoutId: normalizeText(input.candidateLoadoutId),
+  };
+}
+
+function toGeneratedReadHostProfile(profile: NimiRuntimeLocalDeviceProfile): GeneratedLocalDeviceProfile {
+  const bytes = (value: number) => {
+    if (!Number.isSafeInteger(value) || value < 0) throw new Error('Device profile byte counters must be non-negative safe integers.');
+    return String(value);
+  };
+  return {
+    os: profile.os, arch: profile.arch,
+    totalRamBytes: bytes(profile.totalRamBytes), availableRamBytes: bytes(profile.availableRamBytes),
+    diskFreeBytes: bytes(profile.diskFreeBytes), ports: profile.ports.map(port => ({ ...port })),
+    gpu: { ...profile.gpu, totalVramBytes: bytes(profile.gpu.totalVramBytes), availableVramBytes: bytes(profile.gpu.availableVramBytes),
+      memoryModel: toNimiRuntimeLocalGpuMemoryModelRequestValue(profile.gpu.memoryModel) },
+    python: { ...profile.python }, npu: { ...profile.npu },
   };
 }
 
@@ -375,7 +392,10 @@ export function createNimiRuntimeLocalEnvironmentClient(
     },
     async resolveEnvironmentPlan(input) {
       const response = await resolveLocal().resolveLocalEnvironmentPlan(
-        toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(input),
+        {
+          ...toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(input),
+          ...(input.hostProfile ? { hostProfile: toGeneratedReadHostProfile(input.hostProfile) } : {}),
+        },
         defaultCallOptions,
       );
       return projectRequiredLocal(

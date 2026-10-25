@@ -35,6 +35,7 @@ function project(store: ReturnType<typeof createStore>, status: 'authenticated' 
     sequence: '1',
     reasonCode: 0,
     accountReasonCode: 0,
+    authorizationRevision: '',
   });
 }
 

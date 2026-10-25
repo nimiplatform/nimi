@@ -401,6 +401,7 @@ class AccountSessionSnapshot:
     account_reason_code: AccountReasonCode | None = None
     account_projection: AccountProjection | None = None
     audit_diagnostic: ErrorInfo | None = None
+    authorization_revision: str | None = None
 
 @dataclass(frozen=True)
 class Ack:

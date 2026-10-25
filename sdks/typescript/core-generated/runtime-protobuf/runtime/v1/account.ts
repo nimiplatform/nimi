@@ -90,6 +90,16 @@ export interface AccountSessionSnapshot {
      * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 6
      */
     auditDiagnostic?: ErrorInfo;
+    /**
+     * Opaque observation-continuity label, never an authorization proof or input
+     * selector. Trimmed, exact, NUL-free UTF-8 of at most 64 bytes; nonempty only while the
+     * current Runtime-owned account authorization is live. Routine unexpired
+     * same-identity refresh preserves it; expiry, identity replacement, or a new
+     * Runtime lifetime cannot reuse it. This is not an App bootstrap field.
+     *
+     * @generated from protobuf field: string authorization_revision = 7
+     */
+    authorizationRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AccountCaller
@@ -1122,7 +1132,8 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
             { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
             { no: 5, name: "account_projection", kind: "message", T: () => AccountProjection },
-            { no: 6, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
+            { no: 6, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo },
+            { no: 7, name: "authorization_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AccountSessionSnapshot>): AccountSessionSnapshot {
@@ -1131,6 +1142,7 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
         message.state = 0;
         message.reasonCode = 0;
         message.accountReasonCode = 0;
+        message.authorizationRevision = "";
         if (value !== undefined)
             reflectionMergePartial<AccountSessionSnapshot>(this, message, value);
         return message;
@@ -1157,6 +1169,9 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
                     break;
                 case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 6:
                     message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
+                case /* string authorization_revision */ 7:
+                    message.authorizationRevision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1188,6 +1203,9 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
         /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 6; */
         if (message.auditDiagnostic)
             ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string authorization_revision = 7; */
+        if (message.authorizationRevision !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.authorizationRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

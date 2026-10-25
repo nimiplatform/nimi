@@ -20,11 +20,11 @@ func (s *Service) refreshAccountSessionAfterUnauthorized(
 	ctx context.Context,
 	rejectedAccessToken string,
 ) (*refreshAccountSessionResult, error) {
-	return s.refreshAccountSessionForRejectedToken(ctx, true, rejectedAccessToken)
+	return s.refreshAccountSessionForRejectedToken(ctx, true, rejectedAccessToken, accountRefreshRealmUnauthorized)
 }
 
 func (s *Service) refreshAccountSessionInternal(ctx context.Context, force bool) (*refreshAccountSessionResult, error) {
-	return s.refreshAccountSessionForRejectedToken(ctx, force, "")
+	return s.refreshAccountSessionForRejectedToken(ctx, force, "", accountRefreshInternal)
 }
 
 // @nimi-authority: rule.nimi.runtime.protected-session.r030
@@ -33,8 +33,11 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 	ctx context.Context,
 	force bool,
 	rejectedAccessToken string,
+	cause accountRefreshCause,
 ) (result *refreshAccountSessionResult, err error) {
 	var auditSubjectID string
+	var beforeState runtimev1.AccountSessionState
+	var beforeRevision string
 	refreshAttempted := false
 	mutationLocked := false
 	defer func() {
@@ -43,6 +46,9 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 		}
 		if refreshAttempted && result != nil && !result.accepted && result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
 			s.emitRejectedAudit(ctx, "account.refresh.failed", auditSubjectID, result.reasonCode, result.accountReasonCode, "")
+		}
+		if refreshAttempted {
+			s.logAccountAuthorizationTransition(cause, beforeState, beforeRevision, result != nil && result.accepted)
 		}
 	}()
 	s.identityMutationMu.Lock()
@@ -57,6 +63,7 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 		return &refreshAccountSessionResult{accepted: false, state: state, reasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	current := s.material
+	beforeState, beforeRevision = s.projectedAccountAuthorizationLocked()
 	if rejected := strings.TrimSpace(rejectedAccessToken); rejected != "" &&
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
 		strings.TrimSpace(current.AccessToken) != "" && strings.TrimSpace(current.AccessToken) != rejected {

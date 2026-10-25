@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -255,10 +256,10 @@ func (s *Service) resolveLocalEnvironmentPlan(ctx context.Context, req localEnvi
 	if s.localEnvironmentHostProfiles == nil {
 		s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState)
 	}
+	// This is the latest observation, not durable activation or admission
+	// evidence. Real state mutations may include it in their existing snapshot;
+	// merely refreshing SavedAt must not rewrite the complete local state.
 	s.localEnvironmentHostProfiles[hostState.HostProfileID] = hostState
-	if err := s.persistStateLocked(); err != nil {
-		s.logger.Error("persist local environment host profile", "host_profile_id", hostState.HostProfileID, "error", err)
-	}
 	s.mu.Unlock()
 
 	firstRunLlamaCUDARequired := s.localEnvironmentFirstRunLlamaCUDARequired(def, hostState, consumerScope)
@@ -296,7 +297,13 @@ func (s *Service) resolveLocalEnvironmentPlan(ctx context.Context, req localEnvi
 	if err := ctx.Err(); err != nil {
 		return localEnvironmentPlan{}, err
 	}
-	s.rememberLocalEnvironmentPlanDependencyContracts(dependencies)
+	if err := s.rememberLocalEnvironmentPlanDependencyContracts(ctx, dependencies); err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return localEnvironmentPlan{}, contextErr
+		}
+		s.logger.Error("persist local environment plan dependency contracts", "error", err)
+		return localEnvironmentPlan{}, localEnvironmentJobControlError(codes.Internal, "local environment plan dependency contracts could not be persisted", "refresh_local_environment_plan")
+	}
 
 	state, reasonCode := localEnvironmentPlanState(dependencies)
 	requiredFamilies, aggregateSizeKnown, aggregateSizeBytes, storageCategories, sourceOwners := localEnvironmentPlanConfirmationProjection(dependencies)

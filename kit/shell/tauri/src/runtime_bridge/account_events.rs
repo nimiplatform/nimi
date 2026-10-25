@@ -56,6 +56,7 @@ struct AccountEventProjection {
     sequence: String,
     delivery_kind: &'static str,
     state: &'static str,
+    authorization_revision: String,
     reason_code: i32,
     account_reason_code: i32,
     account_projection: Option<AccountProjection>,
@@ -206,6 +207,7 @@ fn project_event(event: DesktopAccountSessionEvent) -> AccountEventProjection {
         sequence: event.sequence.to_string(),
         delivery_kind: event.delivery_kind.as_str(),
         state: event.state.as_str(),
+        authorization_revision: event.authorization_revision,
         reason_code: event.reason_code,
         account_reason_code: event.account_reason_code,
         account_projection: event.account_projection.map(project_account),
@@ -252,6 +254,24 @@ fn valid_stream_id(value: &str) -> Result<&str, String> {
 #[cfg(test)]
 mod tests {
     use super::{parse_sequence, valid_stream_id};
+
+    #[test]
+    fn account_event_preserves_authorization_revision_without_normalizing() {
+        let event = nimi_shell_protected_local::DesktopAccountSessionEvent {
+            sequence: 1,
+            delivery_kind: nimi_shell_protected_local::DesktopAccountSessionDeliveryKind::Live,
+            state: nimi_shell_protected_local::DesktopAccountSessionState::RefreshPending,
+            authorization_revision: "Exact-Revision".to_string(),
+            reason_code: 1,
+            account_reason_code: 1,
+            account_projection: None,
+            replay_truncated: false,
+            audit_diagnostic: None,
+        };
+        let projected = serde_json::to_value(super::project_event(event)).unwrap();
+        assert_eq!(projected["authorizationRevision"], "Exact-Revision");
+        assert!(projected.get("generation").is_none());
+    }
 
     #[test]
     fn sequence_is_canonical_uint64() {

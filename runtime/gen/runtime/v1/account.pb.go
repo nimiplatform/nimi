@@ -752,8 +752,14 @@ type AccountSessionSnapshot struct {
 	AccountReasonCode AccountReasonCode      `protobuf:"varint,4,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
 	AccountProjection *AccountProjection     `protobuf:"bytes,5,opt,name=account_projection,json=accountProjection,proto3" json:"account_projection,omitempty"`
 	AuditDiagnostic   *ErrorInfo             `protobuf:"bytes,6,opt,name=audit_diagnostic,json=auditDiagnostic,proto3" json:"audit_diagnostic,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Opaque observation-continuity label, never an authorization proof or input
+	// selector. Trimmed, exact, NUL-free UTF-8 of at most 64 bytes; nonempty only while the
+	// current Runtime-owned account authorization is live. Routine unexpired
+	// same-identity refresh preserves it; expiry, identity replacement, or a new
+	// Runtime lifetime cannot reuse it. This is not an App bootstrap field.
+	AuthorizationRevision string `protobuf:"bytes,7,opt,name=authorization_revision,json=authorizationRevision,proto3" json:"authorization_revision,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *AccountSessionSnapshot) Reset() {
@@ -826,6 +832,13 @@ func (x *AccountSessionSnapshot) GetAuditDiagnostic() *ErrorInfo {
 		return x.AuditDiagnostic
 	}
 	return nil
+}
+
+func (x *AccountSessionSnapshot) GetAuthorizationRevision() string {
+	if x != nil {
+		return x.AuthorizationRevision
+	}
+	return ""
 }
 
 type AccountCaller struct {
@@ -2236,7 +2249,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x120\n" +
 	"\x14realm_environment_id\x18\x03 \x01(\tR\x12realmEnvironmentId\x12c\n" +
-	"\x15workspace_memberships\x18\x04 \x03(\v2..nimi.runtime.v1.WorkspaceMembershipProjectionR\x14workspaceMemberships\"\x9c\x03\n" +
+	"\x15workspace_memberships\x18\x04 \x03(\v2..nimi.runtime.v1.WorkspaceMembershipProjectionR\x14workspaceMemberships\"\xd3\x03\n" +
 	"\x16AccountSessionSnapshot\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12:\n" +
 	"\x05state\x18\x02 \x01(\x0e2$.nimi.runtime.v1.AccountSessionStateR\x05state\x12<\n" +
@@ -2244,7 +2257,8 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12Q\n" +
 	"\x12account_projection\x18\x05 \x01(\v2\".nimi.runtime.v1.AccountProjectionR\x11accountProjection\x12E\n" +
-	"\x10audit_diagnostic\x18\x06 \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\xba\x02\n" +
+	"\x10audit_diagnostic\x18\x06 \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\x125\n" +
+	"\x16authorization_revision\x18\a \x01(\tR\x15authorizationRevision\"\xba\x02\n" +
 	"\rAccountCaller\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fapp_instance_id\x18\x02 \x01(\tR\rappInstanceId\x12\x1b\n" +

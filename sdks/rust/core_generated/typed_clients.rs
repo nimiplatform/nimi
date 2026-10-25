@@ -4876,6 +4876,7 @@ pub struct AccountSessionSnapshot {
     pub account_reason_code: Option<AccountReasonCode>,
     pub account_projection: Option<Box<AccountProjection>>,
     pub audit_diagnostic: Option<Box<ErrorInfo>>,
+    pub authorization_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]

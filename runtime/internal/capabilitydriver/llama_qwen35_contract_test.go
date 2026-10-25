@@ -122,7 +122,7 @@ func TestQwen35FourBBaseTextModelContractBindsOnlyExplicitMainAsset(t *testing.T
 		RequirementId: MainGGUFRequirementID, ModelAssetId: "qwen-asset",
 		VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("a", 64),
 	}
-	projection, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+	projection, reason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
 		RecipeID: LlamaQwen35RecipeID, Requirement: requirements[0], Binding: binding,
 		Entry: ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: int64(len(probe)), FormatProbe: probe},
 	})
@@ -187,7 +187,7 @@ func TestQwen35FourBProjectorRequiresTheExactVerifiedPair(t *testing.T) {
 		VerifiedContentId: Qwen35Q4ContentID, EntrySha256: Qwen35Q4EntrySHA256}
 	projector := &runtimev1.ModelAssetExactBinding{RequirementId: CompanionMMProjRequirementID, ModelAssetId: "projector",
 		VerifiedContentId: Qwen35Q4ProjectorContentID, EntrySha256: strings.TrimPrefix(Qwen35Q4ProjectorContentID, "sha256:")}
-	projected, reason := driver.ProjectModelAssetBinding(ModelAssetBindingInput{
+	projected, reason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
 		RecipeID: LlamaQwen35VisionRecipeID, Requirement: requirements[1], Binding: projector,
 		Entry: ModelAssetFileFact{RelativePath: "mmproj-F16.gguf", SizeBytes: int64(len(probe)), FormatProbe: probe},
 	})

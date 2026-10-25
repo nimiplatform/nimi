@@ -17,6 +17,7 @@ func (s *Service) rebuildRefreshTimerLocked() {
 		s.refreshTimer = nil
 	}
 	var delay time.Duration
+	cause := accountRefreshScheduled
 	replayRealmDeletion := false
 	switch s.state {
 	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED:
@@ -42,6 +43,7 @@ func (s *Service) rebuildRefreshTimerLocked() {
 			attempt = 5
 		}
 		delay = time.Second * time.Duration(1<<attempt)
+		cause = accountRefreshScheduledRetry
 	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
 		runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED:
 		if s.realmAccountDeletedObserver == nil || s.material.pendingRealmDeletion == nil {
@@ -59,6 +61,9 @@ func (s *Service) rebuildRefreshTimerLocked() {
 	default:
 		return
 	}
+	if !replayRealmDeletion && s.logger != nil {
+		s.logger.Info("runtime account refresh scheduled", "cause", string(cause), "state", s.state.String(), "delay_ms", delay.Milliseconds())
+	}
 	s.refreshTimer = time.AfterFunc(delay, func() {
 		if replayRealmDeletion {
 			if err := s.replayPendingRealmAccountDeletedResult(context.Background()); err != nil && s.logger != nil {
@@ -66,7 +71,7 @@ func (s *Service) rebuildRefreshTimerLocked() {
 			}
 			return
 		}
-		result, err := s.refreshAccountSessionInternal(context.Background(), false)
+		result, err := s.refreshAccountSessionForRejectedToken(context.Background(), false, "", cause)
 		if err != nil && s.logger != nil {
 			s.logger.Warn("runtime account scheduled refresh failed", "error", err)
 			return

@@ -155,6 +155,12 @@ message AccountSessionSnapshot {
   AccountReasonCode account_reason_code = 4;
   AccountProjection account_projection = 5;
   ErrorInfo audit_diagnostic = 6;
+  // Opaque observation-continuity label, never an authorization proof or input
+  // selector. Trimmed, exact, NUL-free UTF-8 of at most 64 bytes; nonempty only while the
+  // current Runtime-owned account authorization is live. Routine unexpired
+  // same-identity refresh preserves it; expiry, identity replacement, or a new
+  // Runtime lifetime cannot reuse it. This is not an App bootstrap field.
+  string authorization_revision = 7;
 }
 
 message AccountCaller {

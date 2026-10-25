@@ -335,6 +335,12 @@ export type NimiRuntimeLocalEnvironmentPlanInput = {
 } & ({ readonly capabilityContract: string; readonly candidateLoadoutId?: string; readonly mediaCodec?: never }
   | { readonly mediaCodec: true; readonly capabilityContract?: never; readonly candidateLoadoutId?: never });
 
+export type NimiRuntimeLocalEnvironmentPlanResolveInput = NimiRuntimeLocalEnvironmentPlanInput & {
+  /** Fresh collectDeviceProfile result shared within one read pass only.
+   * Omit to collect in Runtime. Apply always rechecks the current host. */
+  readonly hostProfile?: NimiRuntimeLocalDeviceProfile;
+};
+
 export interface NimiRuntimeLocalEnvironmentPlanApplyInput {
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
   readonly expectedPlanId: string;
@@ -428,7 +434,7 @@ export interface NimiRuntimeLocalEnvironmentClient {
     options?: NimiRuntimeLocalTransferWatchOptions,
   ): Promise<() => void>;
   collectDeviceProfile(input?: { readonly extraPorts?: readonly number[] }): Promise<NimiRuntimeLocalDeviceProfile>;
-  resolveEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanInput): Promise<NimiRuntimeLocalEnvironmentPlan>;
+  resolveEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanResolveInput): Promise<NimiRuntimeLocalEnvironmentPlan>;
   applyEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanApplyInput, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalEnvironmentPlanApplyResult>;
   listEnvironmentDependencyJobs(input?: { readonly environmentKey?: string; readonly state?: string }):

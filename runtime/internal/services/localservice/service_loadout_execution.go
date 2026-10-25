@@ -50,7 +50,7 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 			Reasons:         []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND},
 		}, true, nil
 	}
-	loadout, validation, err := s.deriveCurrentLoadoutProjection(ctx, loadout)
+	loadout, validation, err := s.deriveCurrentLoadoutProjection(ctx, loadout, nil)
 	if err != nil {
 		return localexecution.LoadoutOption{}, false, err
 	}
@@ -68,8 +68,11 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 	// Project the same current environment contract the owner setup flow uses,
 	// without entering admission or hashing model payloads.
 	if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
-		profile := collectDeviceProfile(ctx)
-		if err := ctx.Err(); err != nil {
+		profile, err := localexecution.ReadProjectionDeviceProfile(ctx, func(ctx context.Context) (*runtimev1.LocalDeviceProfile, error) {
+			profile := collectDeviceProfile(ctx)
+			return profile, ctx.Err()
+		})
+		if err != nil {
 			return localexecution.LoadoutOption{}, false, err
 		}
 		if pack, consumer, supported := localEnvironmentTargetForDriver(validation.driver, localEnvironmentHostProfileFromDeviceProfile(profile)); supported {

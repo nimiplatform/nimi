@@ -86,13 +86,15 @@ func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason ru
 }
 
 func (s *Service) snapshotLocked(sequence uint64, reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionSnapshot {
+	state, authorizationRevision := s.projectedAccountAuthorizationLocked()
 	return &runtimev1.AccountSessionSnapshot{
-		Sequence:          sequence,
-		State:             s.state,
-		ReasonCode:        commonReason(reason),
-		AccountReasonCode: reason,
-		AccountProjection: cloneProjection(s.projection),
-		AuditDiagnostic:   s.auditDiagnostic,
+		Sequence:              sequence,
+		State:                 state,
+		ReasonCode:            commonReason(reason),
+		AccountReasonCode:     reason,
+		AccountProjection:     cloneProjection(s.projection),
+		AuditDiagnostic:       s.auditDiagnostic,
+		AuthorizationRevision: authorizationRevision,
 	}
 }
 

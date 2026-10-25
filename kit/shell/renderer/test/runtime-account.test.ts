@@ -13,6 +13,7 @@ import {
   switchRuntimeAccount,
 } from '../src/bridge/index.js';
 import { resolveTauriInvokePayload } from '../src/bridge/tauri-api.js';
+import { getRuntimeAccountSessionStatusResponse } from '../src/bridge/runtime-account.js';
 
 type RuntimeAccountTestGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: {
@@ -31,6 +32,36 @@ afterEach(() => {
 });
 
 describe('protected Desktop account status', () => {
+  it('requires an exact bounded Runtime authorization revision only in live states', () => {
+    const base = {
+      sequence: '1', state: 'authenticated', reasonCode: 1, accountReasonCode: 1,
+      accountProjection: { accountId: 'account-fixture', displayName: 'Fixture', realmEnvironmentId: 'realm-fixture' },
+    };
+    for (const authorizationRevision of [undefined, null, 1, '', ' leading', 'trailing ', 'nul\0value', 'x'.repeat(65), '界'.repeat(22)]) {
+      expect(() => parseDesktopAccountSessionStatus({ ...base, authorizationRevision })).toThrow(/authorizationRevision/);
+    }
+    for (const authorizationRevision of ['Exact-Mixed_Case', 'é'.repeat(32)]) {
+      expect(parseDesktopAccountSessionStatus({ ...base, authorizationRevision }).authorizationRevision).toBe(authorizationRevision);
+      expect(parseDesktopAccountSessionEvent({ ...base, authorizationRevision, deliveryKind: 'live', replayTruncated: false }).authorizationRevision).toBe(authorizationRevision);
+    }
+    expect(parseDesktopAccountSessionStatus({ ...base, state: 'refresh-pending', authorizationRevision: '' }).authorizationRevision).toBe('');
+    expect(parseDesktopAccountSessionStatus({ ...base, state: 'refresh-pending', authorizationRevision: 'unchanged' }).authorizationRevision).toBe('unchanged');
+    for (const state of ['anonymous', 'login-pending', 'expired', 'reauth-required', 'switching', 'logging-out', 'unavailable']) {
+      expect(parseDesktopAccountSessionStatus({ ...base, state, accountProjection: undefined, authorizationRevision: '' }).authorizationRevision).toBe('');
+      expect(() => parseDesktopAccountSessionStatus({ ...base, state, accountProjection: undefined, authorizationRevision: 'stale' })).toThrow(/authorizationRevision/);
+      expect(() => parseDesktopAccountSessionStatus({ ...base, state, accountProjection: undefined })).toThrow(/authorizationRevision/);
+    }
+    expect(() => parseDesktopAccountSessionEvent({ ...base, deliveryKind: 'live', replayTruncated: false })).toThrow(/authorizationRevision/);
+  });
+
+  it('preserves the revision in the generated Account snapshot mapping', async () => {
+    testGlobal.__NIMI_TAURI_TEST__ = { invoke: async () => ({
+      sequence: '3', state: 'authenticated', authorizationRevision: 'Exact-Revision', reasonCode: 1, accountReasonCode: 1,
+      accountProjection: { accountId: 'account-fixture', displayName: 'Fixture', realmEnvironmentId: 'realm-fixture' },
+    }) };
+    expect((await getRuntimeAccountSessionStatusResponse()).snapshot?.authorizationRevision).toBe('Exact-Revision');
+  });
+
   it('adapts the shared account stream payload to the exact Tauri command ABI', () => {
     expect(resolveTauriInvokePayload(
       'runtime_account_session_events_open',
@@ -51,6 +82,7 @@ describe('protected Desktop account status', () => {
         return {
           sequence: '7',
           state: 'authenticated',
+          authorizationRevision: 'opaque-revision-1',
           reasonCode: 1,
           accountReasonCode: 1,
           accountProjection: {
@@ -65,6 +97,7 @@ describe('protected Desktop account status', () => {
     await expect(getRuntimeAccountSessionStatus()).resolves.toEqual({
       sequence: '7',
       state: 'authenticated',
+      authorizationRevision: 'opaque-revision-1',
       reasonCode: 1,
       accountReasonCode: 1,
       accountProjection: {
@@ -79,12 +112,13 @@ describe('protected Desktop account status', () => {
   });
 
   it('rejects unknown states, missing authenticated projection, and protected material', () => {
-    const base = { sequence: '7', reasonCode: 1, accountReasonCode: 1 };
+    const base = { sequence: '7', authorizationRevision: '', reasonCode: 1, accountReasonCode: 1 };
     expect(() => parseDesktopAccountSessionStatus({ ...base, state: 'forged' })).toThrow(/unsupported state/);
     expect(() => parseDesktopAccountSessionStatus({ ...base, state: 'authenticated' })).toThrow(/requires accountProjection/);
     expect(() => parseDesktopAccountSessionStatus({
       ...base,
       state: 'authenticated',
+      authorizationRevision: 'opaque-revision-1',
       accountProjection: {
         accountId: 'account-1',
         displayName: 'Nimi User',
@@ -102,6 +136,7 @@ describe('protected Desktop account status', () => {
     expect(() => parseDesktopAccountSessionStatus({
       ...base,
       state: 'authenticated',
+      authorizationRevision: 'opaque-revision-1',
       accountProjection: {
         accountId: 42,
         displayName: 'Nimi User',
@@ -136,6 +171,7 @@ describe('protected Desktop account status', () => {
                 sequence: '9',
                 deliveryKind: 'snapshot',
                 state: 'authenticated',
+                authorizationRevision: 'opaque-revision-1',
                 reasonCode: 1,
                 accountReasonCode: 1,
                 accountProjection: {
@@ -162,6 +198,7 @@ describe('protected Desktop account status', () => {
       sequence: '9',
       deliveryKind: 'snapshot',
       state: 'authenticated',
+      authorizationRevision: 'opaque-revision-1',
       reasonCode: 1,
       accountReasonCode: 1,
       accountProjection: {
@@ -182,6 +219,7 @@ describe('protected Desktop account status', () => {
       sequence: '10',
       deliveryKind: 'live',
       state: 'authenticated',
+      authorizationRevision: 'opaque-revision-1',
       reasonCode: 1,
       accountReasonCode: 1,
       accountProjection: { accountId: 'account-1', displayName: '', realmEnvironmentId: '' },
@@ -512,7 +550,7 @@ describe('protected Desktop account status', () => {
 
 it('preserves an unrecorded audit diagnostic without changing the committed account state', () => {
   const auditDiagnostic = { reasonCode: 769, actionHint: 'inspect_runtime_audit', message: 'The change committed.' };
-  const parsed = parseDesktopAccountSessionStatus({ sequence: '1', state: 'anonymous', reasonCode: 1, accountReasonCode: 1, accountProjection: null, auditDiagnostic });
+  const parsed = parseDesktopAccountSessionStatus({ sequence: '1', state: 'anonymous', authorizationRevision: '', reasonCode: 1, accountReasonCode: 1, accountProjection: null, auditDiagnostic });
   expect(parsed.state).toBe('anonymous');
   expect(parsed.auditDiagnostic).toEqual(auditDiagnostic);
   expect(() => parseDesktopAccountSessionStatus({ ...parsed, auditDiagnostic: { ...auditDiagnostic, reasonCode: 100 } })).toThrow();

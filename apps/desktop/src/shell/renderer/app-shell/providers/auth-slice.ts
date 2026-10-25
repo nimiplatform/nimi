@@ -33,12 +33,14 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
       sequence: '0',
       reasonCode: 0,
       accountReasonCode: 0,
+      authorizationRevision: '',
     },
     setAuthBootstrapping: () =>
       set((state) => ({
         auth: {
           ...state.auth,
           status: 'bootstrapping',
+          authorizationRevision: '',
         },
       })),
     applyRuntimeAccountProjection: (projection) =>
@@ -49,6 +51,8 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           sequence: projection.sequence,
           reasonCode: projection.reasonCode,
           accountReasonCode: projection.accountReasonCode,
+          authorizationRevision: projection.status === 'authenticated' || projection.status === 'refresh-pending'
+            ? projection.authorizationRevision : '',
           ...(projection.status === 'unavailable' && projection.failureDetail
             ? { failureDetail: projection.failureDetail }
             : {}),
@@ -92,11 +96,14 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
     setAuthSession: (user) =>
       set((state) => ({
         auth: state.auth.status === 'authenticated'
-          ? { ...state.auth, user }
+          ? { ...state.auth, user, authorizationRevision: Boolean(accountIdOf(user)) && user?.id === state.auth.user?.id
+              && typeof user?.realmEnvironmentId === 'string' && Boolean(user.realmEnvironmentId)
+              && user.realmEnvironmentId === state.auth.user?.realmEnvironmentId ? state.auth.authorizationRevision : '' }
           : {
               ...state.auth,
               status: 'authenticated',
               user,
+              authorizationRevision: '',
             },
       })),
     clearAuthSession: () =>
@@ -108,6 +115,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           sequence: state.auth.sequence,
           reasonCode: state.auth.reasonCode,
           accountReasonCode: state.auth.accountReasonCode,
+          authorizationRevision: '',
         },
         chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
         viewModeBySourceTarget: {

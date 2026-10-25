@@ -1,4 +1,6 @@
 import { startDownloadPolling } from './download-polling.js';
+import { reconcileDownloadPhases, type DownloadPhaseSnapshot } from './download-phase-snapshot.js';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalTransferSessionSummary,
@@ -18,7 +20,7 @@ import {
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAppsDownloads } from '../apps/apps-downloads-context.js';
 import { packageJobIsTerminal } from '../apps/apps-downloads-observer.js';
-import { CAPABILITY_INVENTORY_KEY } from './runtime-capability-inventory.js';
+import { CAPABILITY_INVENTORY_KEY, useRuntimeCapabilityInvalidation } from './runtime-capability-inventory.js';
 import { LOADOUT_ENVIRONMENT_KEY } from './runtime-local-model-status.js';
 import { createRuntimeConfigLocalEnvironmentClient, RuntimeDownloadActivityContext } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
@@ -38,12 +40,13 @@ const GlobalDownloadsContext = createContext<GlobalDownloadsContextValue | null>
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.global-downloads
 export function GlobalDownloadsProvider({ children, nativeVisible = true }: PropsWithChildren<{ nativeVisible?: boolean }>) {
+  useRuntimeCapabilityInvalidation();
   const nativeVisibleRef = useRef(nativeVisible);
   nativeVisibleRef.current = nativeVisible;
   const bindings = useDesktopRendererBindings();
   const apps = useAppsDownloads();
   const queryClient = useQueryClient();
-  const phaseSignature = useRef('');
+  const phaseSnapshot = useRef<DownloadPhaseSnapshot | undefined>(undefined);
   const local = useMemo(
     () => createRuntimeConfigLocalEnvironmentClient(() => bindings.sdk.localEnvironmentRpc()),
     [bindings],
@@ -108,22 +111,36 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
         else failures.push(String(results[0].reason));
         if (results[1].status === 'fulfilled') { const items = results[1].value; setEnvironments((previous) => replaceEqualDeep(previous, items)); }
         else failures.push(String(results[1].reason));
-        const signature = results
-          .map((result) =>
-            result.status === 'fulfilled'
-              ? result.value
-                  .map((item) => `${'jobId' in item ? item.jobId : item.installSessionId}:${item.state}`)
-                  .join('|')
-              : 'unavailable',
-          )
-          .join(';');
-        if (phaseSignature.current && phaseSignature.current !== signature) {
+        const phases = reconcileDownloadPhases(phaseSnapshot.current, {
+          activation: before,
+          transfers: results[0].status === 'fulfilled'
+            ? results[0].value.map(item => ({ id: item.installSessionId, state: item.state })) : undefined,
+          environments: results[1].status === 'fulfilled'
+            ? results[1].value.map(item => ({ id: item.jobId, state: item.state })) : undefined,
+        });
+        phaseSnapshot.current = phases.snapshot;
+        if (phases.invalidate) {
           void queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY });
           void queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY });
           void queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY });
           void queryClient.invalidateQueries({ queryKey: ['desktop', 'apps-overview'] });
+          logRendererEvent({
+            level: 'info',
+            area: 'renderer-bootstrap',
+            message: 'runtime-config:downloads:invalidate',
+            details: {
+              reason: 'download-phase-changed',
+              transferCount: results[0].status === 'fulfilled' ? results[0].value.length : null,
+              environmentCount: results[1].status === 'fulfilled' ? results[1].value.length : null,
+              transfersSucceeded: results[0].status === 'fulfilled',
+              environmentsSucceeded: results[1].status === 'fulfilled',
+              activationChanged: phases.activationChanged,
+              transfersChanged: phases.transfersChanged,
+              environmentsChanged: phases.environmentsChanged,
+              recoveredUnknown: phases.recoveredUnknown,
+            },
+          });
         }
-        phaseSignature.current = signature;
         setErrors((previous) => replaceEqualDeep(previous, failures));
       } catch (error) {
         if (active) setErrors((previous) => replaceEqualDeep(previous, [error instanceof Error ? error.message : String(error)]));

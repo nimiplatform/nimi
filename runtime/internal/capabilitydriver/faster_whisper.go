@@ -86,10 +86,24 @@ func (FasterWhisperDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, sou
 	if size <= 0 {
 		return nil, fmt.Errorf("empty Whisper model file")
 	}
-	length := min(size, int64(MaxAssetFormatProbeBytes))
-	data := make([]byte, length)
-	_, err := source.ReadAt(data, 0)
-	return data, err
+	if !input.Entry {
+		return nil, nil
+	}
+	if input.RequirementID != Qwen3ASRModelRequirementID || path.Base(input.RelativePath) != "model.bin" {
+		return nil, fmt.Errorf("Whisper probe requires its exact CT2 or ONNX entry")
+	}
+	const headerBytes = 6 + len("WhisperSpec\x00") + 8
+	if size < int64(headerBytes) {
+		return nil, fmt.Errorf("Whisper CT2 header is truncated")
+	}
+	data := make([]byte, headerBytes)
+	if _, err := source.ReadAt(data, 0); err != nil {
+		return nil, err
+	}
+	if !whisperCT2Header(data) {
+		return nil, fmt.Errorf("Whisper CT2 header is invalid")
+	}
+	return data, nil
 }
 
 func whisperCT2Header(probe []byte) bool {

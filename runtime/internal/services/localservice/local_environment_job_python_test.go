@@ -153,7 +153,7 @@ func rememberPythonProfileJobContractForTest(svc *Service, family string, consum
 }
 
 func rememberPythonDependencyJobContractForTest(svc *Service, family string, dependencyID string, environmentKey string, consumer string) {
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: family,
 		DependencyID:     dependencyID,
@@ -820,7 +820,7 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 
 	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: torchConsumer,
 	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
@@ -857,7 +857,7 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 
 	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
-	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: torchConsumer,
 	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{

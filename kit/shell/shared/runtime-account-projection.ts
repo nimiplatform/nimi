@@ -39,6 +39,8 @@ export type DesktopAccountSessionStatus = {
   auditDiagnostic?: DesktopAccountAuditDiagnostic;
   sequence: string;
   state: DesktopAccountSessionState;
+  /** Runtime-owned opaque equality value; never authority or a credential. */
+  authorizationRevision: string;
   reasonCode: RuntimeReasonCode;
   accountReasonCode: AccountReasonCode;
   accountProjection?: DesktopAccountProjection;
@@ -152,11 +154,13 @@ export function parseSafeAccountProjection(
   };
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccountSessionStatus {
   const record = assertRecord(value, 'runtime_account_session_status returned invalid payload');
   assertExactKeys(record, [
     'sequence',
     'state',
+    'authorizationRevision',
     'reasonCode',
     'auditDiagnostic',
     'accountReasonCode',
@@ -179,10 +183,20 @@ export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccount
   if (state === 'authenticated' && !accountProjection) {
     throw new Error('runtime_account_session_status authenticated state requires accountProjection');
   }
+  const authorizationRevision = parseString(record.authorizationRevision, 'authorizationRevision', 'runtime_account_session_status');
+  if (authorizationRevision.length > 64
+    || authorizationRevision !== authorizationRevision.trim()
+    || authorizationRevision.includes('\0')
+    || new TextEncoder().encode(authorizationRevision).byteLength > 64
+    || (state === 'authenticated' && authorizationRevision.length === 0)
+    || (state !== 'authenticated' && state !== 'refresh-pending' && authorizationRevision.length !== 0)) {
+    throw new Error('runtime_account_session_status authorizationRevision is invalid for its state');
+  }
   return {
     ...(record.auditDiagnostic == null ? {} : { auditDiagnostic: parseAccountAuditDiagnostic(record.auditDiagnostic) }),
     sequence,
     state,
+    authorizationRevision,
     reasonCode: parseKnownEnumInteger(
       record.reasonCode,
       'reasonCode',
@@ -206,6 +220,7 @@ export function parseDesktopAccountSessionEvent(value: unknown): DesktopAccountS
     'sequence',
     'deliveryKind',
     'state',
+    'authorizationRevision',
     'reasonCode',
     'auditDiagnostic',
     'accountReasonCode',
@@ -224,6 +239,7 @@ export function parseDesktopAccountSessionEvent(value: unknown): DesktopAccountS
   const status = parseDesktopAccountSessionStatus({
     sequence: record.sequence,
     state: record.state,
+    authorizationRevision: record.authorizationRevision,
     reasonCode: record.reasonCode,
     accountReasonCode: record.accountReasonCode,
     auditDiagnostic: record.auditDiagnostic,

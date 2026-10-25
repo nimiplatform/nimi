@@ -36,12 +36,27 @@ pub(super) fn project_account_projection(projection: DesktopAccountProjection) -
     })
 }
 
+pub(super) fn project_account_session_status(
+    status: nimi_shell_protected_local::DesktopAccountSessionStatus,
+) -> JsonValue {
+    json!({
+        "sequence": status.sequence.to_string(),
+        "state": status.state.as_str(),
+        "authorizationRevision": status.authorization_revision,
+        "reasonCode": status.reason_code,
+        "accountReasonCode": status.account_reason_code,
+        "accountProjection": status.account_projection.map(project_account_projection),
+        "auditDiagnostic": status.audit_diagnostic.map(project_account_audit),
+    })
+}
+
 pub(super) fn project_account_session_event(event: DesktopAccountSessionEvent) -> JsonValue {
     json!({
         "auditDiagnostic": event.audit_diagnostic.map(project_account_audit),
         "sequence": event.sequence.to_string(),
         "deliveryKind": event.delivery_kind.as_str(),
         "state": event.state.as_str(),
+        "authorizationRevision": event.authorization_revision,
         "reasonCode": event.reason_code,
         "accountReasonCode": event.account_reason_code,
         "accountProjection": event.account_projection.map(project_account_projection),
@@ -329,6 +344,53 @@ fn project_reason_metadata(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn account_status_and_event_preserve_the_exact_authorization_revision() {
+        use nimi_shell_protected_local::{
+            DesktopAccountSessionDeliveryKind, DesktopAccountSessionState, DesktopAccountSessionStatus,
+        };
+        for (state, revision) in [
+            (DesktopAccountSessionState::Authenticated, "Exact-Revision"),
+            (DesktopAccountSessionState::RefreshPending, ""),
+            (DesktopAccountSessionState::Expired, ""),
+        ] {
+            let status = DesktopAccountSessionStatus {
+                sequence: 1,
+                state,
+                authorization_revision: revision.to_string(),
+                reason_code: 1,
+                account_reason_code: 1,
+                account_projection: (state == DesktopAccountSessionState::Authenticated).then(|| {
+                    DesktopAccountProjection {
+                        account_id: "account-fixture".into(),
+                        display_name: "Fixture".into(),
+                        realm_environment_id: "realm-fixture".into(),
+                    }
+                }),
+                audit_diagnostic: None,
+            };
+            let event = DesktopAccountSessionEvent {
+                sequence: status.sequence,
+                delivery_kind: DesktopAccountSessionDeliveryKind::Live,
+                state,
+                authorization_revision: status.authorization_revision.clone(),
+                reason_code: status.reason_code,
+                account_reason_code: status.account_reason_code,
+                account_projection: status.account_projection.clone(),
+                replay_truncated: false,
+                audit_diagnostic: None,
+            };
+            let status_json = super::project_account_session_status(status);
+            let event_json = super::project_account_session_event(event);
+            assert_eq!(status_json["authorizationRevision"], revision);
+            assert_eq!(event_json["authorizationRevision"], revision);
+            for forbidden in ["token", "principal", "generation", "bootEpoch"] {
+                assert!(status_json.get(forbidden).is_none());
+                assert!(event_json.get(forbidden).is_none());
+            }
+        }
+    }
+
     #[test]
     fn admitted_runtime_version_projects_release_without_promoting_source() {
         let release=super::project_verified_runtime_release(nimi_shell_protected_local::RuntimeServiceMode::Ordinary,Some("0.3.0".to_string()));

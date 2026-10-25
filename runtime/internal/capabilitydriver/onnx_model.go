@@ -32,6 +32,9 @@ func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("empty ONNX model")
 	}
+	// This window belongs only to this probe of the already opened source.
+	// It neither caches metadata across requests nor supplies integrity proof.
+	source = newModelAssetProbeReaderAt(source, size, 4096)
 	model := onnxModel{Opsets: map[string]uint64{}, Metadata: map[string]string{}}
 	domains, operators := map[string]bool{}, map[string]bool{}
 	graphs := 0

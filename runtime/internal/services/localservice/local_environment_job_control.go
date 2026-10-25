@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type localEnvironmentPlanApplyActionKind string
@@ -161,8 +162,13 @@ func (s *Service) ApplyLocalEnvironmentPlan(ctx context.Context, req *runtimev1.
 	}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r118
 func (s *Service) resolveLocalEnvironmentPlanForApply(ctx context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
-	plan, err := s.resolveLocalEnvironmentPlanResolution(ctx, req)
+	// A read-only preview may share a caller's fresh observation. Confirmation
+	// must collect this host again without mutating the caller's resolution.
+	resolution := proto.Clone(req).(*runtimev1.ResolveLocalEnvironmentPlanRequest)
+	resolution.HostProfile = nil
+	plan, err := s.resolveLocalEnvironmentPlanResolution(ctx, resolution)
 	if contextErr := ctx.Err(); contextErr != nil {
 		return localEnvironmentPlan{}, status.FromContextError(contextErr).Err()
 	}

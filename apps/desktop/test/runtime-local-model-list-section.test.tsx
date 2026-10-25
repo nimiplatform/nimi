@@ -7,7 +7,8 @@ import { I18nextProvider } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 import { AppStoreProvider, useHomeDestination } from '../src/shell/renderer/app-shell/providers/app-store.js';
-import { homeRuntimeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
+import { homeRuntimeDestination, type HomeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
+import { CAPABILITY_INVENTORY_KEY } from '../src/shell/renderer/features/runtime-config/runtime-capability-inventory.js';
 import runtimeConfigEn from '../src/shell/renderer/locales/en/46-runtimeConfig.json';
 import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context.js';
@@ -61,7 +62,8 @@ const recipe = {
 };
 
 function createFakeSdk(incompleteExamples = false, multipleVersions = false, savedProfile = false) {
-  const calls: { loadoutWrites: string[]; rpc: string[]; environmentPlans: string[]; profileDeletes: string[] } = { loadoutWrites: [], rpc: [], environmentPlans: [], profileDeletes: [] };
+  const calls: { loadoutWrites: string[]; rpc: string[]; environmentPlans: string[]; profileDeletes: string[]; inventorySignals: AbortSignal[] } = { loadoutWrites: [], rpc: [], environmentPlans: [], profileDeletes: [], inventorySignals: [] };
+  let inventoryGate: Promise<void> = Promise.resolve();
   const failedChecks = new Set(['L-failing']);
   const dependencyStates = new Map([['L-custom', 'needs_confirmation']]);
   const imageLoadout = {
@@ -97,7 +99,10 @@ function createFakeSdk(incompleteExamples = false, multipleVersions = false, sav
     }
   }
   const loadouts = new Proxy({
-    get: async () => aggregate,
+    get: async (options?: { signal?: AbortSignal }) => {
+      if (options?.signal) { calls.inventorySignals.push(options.signal); await inventoryGate; }
+      return aggregate;
+    },
     listRecipes: async (capability?: string) => [choiceRecipe, imageRecipe].filter((item) => !capability || item.capabilityContract === capability),
   }, {
     get(target, key) {
@@ -111,6 +116,11 @@ function createFakeSdk(incompleteExamples = false, multipleVersions = false, sav
     listModelAssets: async () => ({ assets: [wireAsset('gemma-q4', 'c1', 'gemma-4-e2b-it-Q4_K_M.gguf'), wireAsset('mystery', 'c-mystery', 'mystery.safetensors'), wireAsset('image-model', 'c-image', 'image.gguf'), wireAsset('encoder', 'c-encoder', 'encoder.gguf')], nextPageToken: '' }),
     listVerifiedAssets: async () => ({ assets: [], nextPageToken: '' }),
     listLocalEnvironmentDependencyJobs: async () => ({ jobs: [] }),
+    collectDeviceProfile: async () => ({ profile: {
+      os: 'windows', arch: 'amd64', totalRamBytes: '0', availableRamBytes: '0', diskFreeBytes: '0', ports: [],
+      gpu: { available: false, vendor: '', model: '', totalVramBytes: '0', availableVramBytes: '0', memoryModel: 0 },
+      python: { available: false, version: '' }, npu: { available: false, ready: false, vendor: '', runtime: '', detail: '' },
+    } }),
     resolveLocalEnvironmentPlan: async (request: { capabilityContract: string; candidateLoadoutId: string }) => {
       calls.environmentPlans.push(request.candidateLoadoutId);
       if (failedChecks.has(request.candidateLoadoutId)) throw new Error('runtime unavailable');
@@ -147,7 +157,9 @@ function createFakeSdk(incompleteExamples = false, multipleVersions = false, sav
     accountRuntime: () => ({ auth: {} }),
     withRuntimeProtectedScopes: async (_scopes: unknown, run: () => unknown) => run(),
   };
-  return { sdk, calls, failedChecks, dependencyStates };
+  return { sdk, calls, failedChecks, dependencyStates,
+    holdInventoryReads() { let release!: () => void; inventoryGate = new Promise(resolve => { release = resolve; }); return release; },
+  };
 }
 
 async function withHome(run: (ui: {
@@ -158,6 +170,10 @@ async function withHome(run: (ui: {
   setDependencyState: (loadoutId: string, state: string) => void;
   recheck: (loadoutId: string) => Promise<void>;
   focusedTask: () => RuntimeSetupTask | undefined;
+  navigate: (destination: HomeDestination) => Promise<void>;
+  inventoryState: () => { active: boolean; observers: number };
+  holdInventoryReads: () => () => void;
+  refreshInventory: () => Promise<void>;
   back: () => Promise<void>;
   forward: () => Promise<void>;
   click: (selector: string) => Promise<void>;
@@ -189,7 +205,7 @@ async function withHome(run: (ui: {
     React, IS_REACT_ACT_ENVIRONMENT: true,
     ...(options.multipleVersions ? { __NIMI_TAURI_TEST__: { invoke: async (command: string) => {
       assert.equal(command, 'runtime_account_session_status');
-      return { sequence: '1', state: 'authenticated', reasonCode: 1, accountReasonCode: 1,
+      return { sequence: '1', state: 'authenticated', reasonCode: 1, accountReasonCode: 1, authorizationRevision: 'authorization-test',
         accountProjection: { accountId: 'test-account', displayName: 'Test', realmEnvironmentId: 'test' } };
     } } } : {}),
   };
@@ -225,7 +241,7 @@ async function withHome(run: (ui: {
   store.navigation.reset(homeRuntimeDestination(diagnosticsInitiallyOpen ? 'advancedDiagnostics' : 'aiSettings', {
     ...(setupTask ? { setupTaskId: setupTask.taskId } : {}),
   }));
-  const { sdk, calls, failedChecks, dependencyStates } = createFakeSdk(incompleteExamples, options.multipleVersions, options.savedProfile);
+  const { sdk, calls, failedChecks, dependencyStates, holdInventoryReads } = createFakeSdk(incompleteExamples, options.multipleVersions, options.savedProfile);
   const bindings = { app: { commands: {} }, sdk } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   const noop = () => undefined;
@@ -284,6 +300,13 @@ async function withHome(run: (ui: {
     await run({
       document: dom.window.document,
       calls,
+      navigate: async destination => { await act(async () => { await store.navigation.push(destination); }); },
+      inventoryState: () => {
+        const query = queryClient.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
+        return { active: query?.isActive() ?? false, observers: query?.getObserversCount() ?? 0 };
+      },
+      holdInventoryReads,
+      refreshInventory: async () => { await act(async () => { void queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true }); }); },
       focusedTask: () => setupTask ? taskStore.getTask(setupTask.taskId) : undefined,
       back: async () => { await act(async () => { await store.navigation.back(); }); },
       forward: async () => { await act(async () => { await store.navigation.forward(); }); },
@@ -316,6 +339,56 @@ async function withHome(run: (ui: {
     }
   }
 }
+
+test('the retained AI workspace stops inventory reads on Cloud and Apps while diagnostics keeps its visible capability rail', async () => {
+  await withHome(async ui => {
+    await ui.waitFor('[data-testid="ai-capability:text.generate"]');
+    assert.equal(ui.inventoryState().active, true);
+    const before = ui.calls.inventorySignals.length;
+    const release = ui.holdInventoryReads();
+    try {
+      await ui.refreshInventory();
+      await ui.waitFor('[data-testid="ai-capabilities-workspace"]', () => ui.calls.inventorySignals.length > before);
+      const pending = ui.calls.inventorySignals.at(-1)!;
+      await ui.navigate({ id: 'cloud' });
+      assert.ok(ui.document.querySelector('[data-testid="ai-capabilities-workspace"]'), 'the existing workspace remains mounted');
+      assert.equal(ui.inventoryState().active, false);
+      assert.equal(ui.inventoryState().observers, 1);
+      assert.equal(pending.aborted, true);
+      await ui.navigate({ id: 'apps' });
+      assert.equal(ui.inventoryState().active, false);
+      await act(async () => release());
+      await ui.navigate({ id: 'runtime' });
+      await ui.waitFor('[data-testid="ai-capability:text.generate"]', () => ui.calls.inventorySignals.length > before + 1);
+      assert.equal(ui.inventoryState().active, true, 'the default runtime page is AI Capabilities');
+      await ui.navigate({ id: 'diagnostics' });
+      await ui.waitFor('[data-testid="diagnostics-test-content"]');
+      assert.equal(ui.inventoryState().active, true, 'diagnostics still renders the live capability rail');
+      await ui.navigate(homeRuntimeDestination('modelLibrary'));
+      assert.equal(ui.inventoryState().active, false);
+      assert.deepEqual(ui.calls.loadoutWrites, []);
+    } finally { release(); }
+  });
+});
+
+test('Profile inventory follows its AI workspace without discarding the setup task or its choices', async () => {
+  await withHome(async ui => {
+    await ui.waitFor('[data-testid="ai-profile-use-review"]');
+    assert.equal(ui.inventoryState().observers, 2);
+    const task = ui.focusedTask()!;
+    const choices = task.draft?.reviewChoices;
+    await ui.navigate({ id: 'cloud' });
+    assert.equal(ui.inventoryState().active, false);
+    assert.equal(ui.focusedTask()?.taskId, task.taskId);
+    assert.deepEqual(ui.focusedTask()?.draft?.reviewChoices, choices);
+    await ui.back();
+    await ui.waitFor('[data-testid="ai-profile-use-review"]');
+    assert.equal(ui.inventoryState().active, true);
+    assert.equal(ui.inventoryState().observers, 2);
+    assert.equal(ui.focusedTask()?.status, task.status);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { setupTask: 'profile' });
+});
 
 test('returning from a profile item keeps its task and choices in the enclosing review', async () => {
   await withHome(async (ui) => {
@@ -507,7 +580,7 @@ test('the home lists on-device models, expands with read-only candidate checks, 
 
     assert.deepEqual(ui.calls.loadoutWrites, []);
     const rpcMethods = [...new Set(ui.calls.rpc)].sort();
-    assert.deepEqual(rpcMethods.filter((name) => !['listModelAssets', 'listVerifiedAssets', 'resolveLocalEnvironmentPlan', 'listLocalEnvironmentDependencyJobs', 'then'].includes(name)), [], `only read RPCs are allowed, saw ${rpcMethods.join(', ')}`);
+    assert.deepEqual(rpcMethods.filter((name) => !['listModelAssets', 'listVerifiedAssets', 'collectDeviceProfile', 'resolveLocalEnvironmentPlan', 'listLocalEnvironmentDependencyJobs', 'then'].includes(name)), [], `only read RPCs are allowed, saw ${rpcMethods.join(', ')}`);
   });
 });
 

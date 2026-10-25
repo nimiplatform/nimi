@@ -140,14 +140,23 @@ func (s *Service) restoreLoadouts() error {
 	return nil
 }
 
-func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListLoadoutRecipesRequest) (*runtimev1.ListLoadoutRecipesResponse, error) {
+func (s *Service) ListLoadoutRecipes(ctx context.Context, request *runtimev1.ListLoadoutRecipesRequest) (*runtimev1.ListLoadoutRecipesResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	contract := ""
 	if request != nil {
 		contract = strings.TrimSpace(request.GetCapabilityContract())
 	}
-	hostProfile := collectDeviceProfile(context.Background())
+	hostProfile := collectDeviceProfile(ctx)
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
 	items := make([]*runtimev1.LoadoutRecipeDescriptor, 0)
 	for _, recipe := range s.localProviderCatalog.LoadoutRecipes() {
+		if err := ctx.Err(); err != nil {
+			return nil, status.FromContextError(err).Err()
+		}
 		if contract != "" && recipe.CapabilityContract != contract {
 			continue
 		}
@@ -577,6 +586,9 @@ func (s *Service) GetMachineLoadouts(ctx context.Context, _ *runtimev1.GetMachin
 	if err := ctx.Err(); err != nil {
 		return nil, status.FromContextError(err).Err()
 	}
+	// Capture format facts once for this serial read, never in an incoming
+	// context or Service cache that a mutation/admission could later consume.
+	probePass := newModelProbeReadPass()
 	s.mu.RLock()
 	stored := make([]*runtimev1.Loadout, 0, len(s.loadouts))
 	for _, loadout := range s.loadouts {
@@ -593,7 +605,7 @@ func (s *Service) GetMachineLoadouts(ctx context.Context, _ *runtimev1.GetMachin
 	}
 	rows := make([]*runtimev1.Loadout, 0, len(stored))
 	for _, loadout := range stored {
-		row, err := s.deriveCurrentLoadout(ctx, loadout)
+		row, _, err := s.deriveCurrentLoadoutProjection(ctx, loadout, probePass)
 		if err != nil {
 			return nil, status.FromContextError(err).Err()
 		}
@@ -1126,7 +1138,7 @@ type loadoutFileSHA256Resolver func(string, os.FileInfo, string) (string, error)
 
 func (s *Service) validateLoadoutCurrent(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) (loadoutValidationResult, error) {
 	return s.validateLoadoutWithAxisResolver(ctx, loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
-		return s.resolveLoadoutModelAxis(ctx, loadout, driver, requirement, axis)
+		return s.resolveLoadoutModelAxis(ctx, loadout, driver, requirement, axis, nil)
 	})
 }
 
@@ -1260,14 +1272,15 @@ func deriveConfiguredLoadoutFeatures(implementationFeatures []string, requiremen
 	return configured
 }
 
-func (s *Service) resolveLoadoutModelAxis(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
-	return s.resolveLoadoutModelAxisWithHasher(ctx, loadout, driver, requirement, axis, func(path string, info os.FileInfo, generation string) (string, error) {
+func (s *Service) resolveLoadoutModelAxis(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis, probePass *modelProbeReadPass) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
+	return s.resolveLoadoutModelAxisWithHasher(ctx, loadout, driver, requirement, axis, probePass, func(path string, info os.FileInfo, generation string) (string, error) {
 		return s.cachedFileSHA256(ctx, path, info, generation)
 	})
 }
 
 func (s *Service) resolveLoadoutModelAxisForAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
-	resolved, reason, err := s.resolveLoadoutModelAxisWithHasher(ctx, loadout, driver, requirement, axis, func(path string, info os.FileInfo, generationDigest string) (string, error) {
+	// Admission never consumes display-read facts, even with an inherited context.
+	resolved, reason, err := s.resolveLoadoutModelAxisWithHasher(ctx, loadout, driver, requirement, axis, nil, func(path string, info os.FileInfo, generationDigest string) (string, error) {
 		return s.admitPayloadLocked(ctx, pass, path, info, generationDigest)
 	})
 	if err != nil {
@@ -1282,7 +1295,7 @@ func (s *Service) resolveLoadoutModelAxisForAdmission(ctx context.Context, pass 
 	return resolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, nil
 }
 
-func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis, fileSHA256 loadoutFileSHA256Resolver) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
+func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis, probePass *modelProbeReadPass, fileSHA256 loadoutFileSHA256Resolver) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
 	s.mu.RLock()
 	asset := cloneModelAsset(s.modelAssets[axis.GetModelAssetId()])
 	directory := s.modelAssetDirectories[axis.GetModelAssetId()]
@@ -1331,10 +1344,11 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout
 		}
 		files = append(files, &runtimev1.ModelAssetFile{RelativePath: declared.GetRelativePath(), Sha256: digest, SizeBytes: info.Size(), NonExecutableContent: declared.GetNonExecutableContent()})
 		declaredFiles = append(declaredFiles, declared.GetRelativePath())
-		probeLimit, ok := modelAssetFormatProbeLimit(driver, capabilitydriver.ModelAssetFormatProbeInput{
+		probeInput := capabilitydriver.ModelAssetFormatProbeInput{
 			RecipeID: loadout.GetRecipeId(), RequirementID: requirement.GetRequirementId(),
 			RelativePath: declared.GetRelativePath(), Entry: declared.GetRelativePath() == asset.GetEntry(),
-		})
+		}
+		probeLimit, ok := modelAssetFormatProbeLimit(driver, probeInput)
 		if !ok {
 			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED, nil
 		}
@@ -1343,18 +1357,34 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout
 			contentMismatch = true
 			continue
 		}
-		var probe []byte
+		key := modelProbePassKey{
+			contract: loadout.GetCapabilityContract(), implementation: capabilitydriver.IdentityFromProto(loadout.GetImplementation()),
+			recipeRevision: loadout.GetRecipeRevision(), assetID: asset.GetModelAssetId(), path: absolute,
+			generation: generationDigest, digest: digest, input: probeInput, limit: probeLimit,
+		}
+		var beforeProbe os.FileInfo
+		if probePass != nil {
+			beforeProbe, err = opened.Stat()
+			if err != nil || !beforeProbe.Mode().IsRegular() || beforeProbe.Size() != info.Size() ||
+				beforeProbe.Mode() != info.Mode() || !beforeProbe.ModTime().Equal(info.ModTime()) {
+				_ = opened.Close()
+				contentMismatch = true
+				continue
+			}
+		}
+		probe, reused := probePass.get(key, beforeProbe)
 		var readErr error
-		if structured, ok := driver.(capabilitydriver.ModelAssetStructuredProbeDriver); ok {
-			probe, readErr = structured.ProbeModelAsset(capabilitydriver.ModelAssetFormatProbeInput{
-				RecipeID: loadout.GetRecipeId(), RequirementID: requirement.GetRequirementId(),
-				RelativePath: declared.GetRelativePath(), Entry: declared.GetRelativePath() == asset.GetEntry(),
-			}, projectionReaderAt{ctx: ctx, reader: opened}, info.Size())
+		if structured, ok := driver.(capabilitydriver.ModelAssetStructuredProbeDriver); ok && !reused {
+			probe, readErr = structured.ProbeModelAsset(probeInput, projectionReaderAt{ctx: ctx, reader: opened}, info.Size())
 			if len(probe) > capabilitydriver.MaxAssetFormatProbeBytes {
 				readErr = fmt.Errorf("structured ModelAsset probe exceeds its bound")
 			}
-		} else {
+		} else if !reused {
 			probe, readErr = io.ReadAll(io.LimitReader(projectionReader{ctx: ctx, reader: opened}, probeLimit))
+		}
+		var afterProbe os.FileInfo
+		if probePass != nil {
+			afterProbe, _ = opened.Stat()
 		}
 		closeErr := opened.Close()
 		if err := ctx.Err(); err != nil {
@@ -1366,6 +1396,15 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout
 		if readErr != nil || closeErr != nil {
 			contentMismatch = true
 			continue
+		}
+		if probePass != nil {
+			if !sameModelProbeFile(beforeProbe, afterProbe) {
+				contentMismatch = true
+				continue
+			}
+			if !reused && !contentMismatch {
+				probePass.put(key, afterProbe, probe)
+			}
 		}
 		fact := capabilitydriver.ModelAssetFileFact{RelativePath: declared.GetRelativePath(), SizeBytes: info.Size(), FormatProbe: probe}
 		projectionFiles = append(projectionFiles, fact)
@@ -1474,11 +1513,11 @@ func applyValidatedLoadoutTextBehaviors(loadout *runtimev1.Loadout, validation l
 }
 
 func (s *Service) deriveCurrentLoadout(ctx context.Context, stored *runtimev1.Loadout) (*runtimev1.Loadout, error) {
-	loadout, _, err := s.deriveCurrentLoadoutProjection(ctx, stored)
+	loadout, _, err := s.deriveCurrentLoadoutProjection(ctx, stored, nil)
 	return loadout, err
 }
 
-func (s *Service) deriveCurrentLoadoutProjection(ctx context.Context, stored *runtimev1.Loadout) (*runtimev1.Loadout, loadoutValidationResult, error) {
+func (s *Service) deriveCurrentLoadoutProjection(ctx context.Context, stored *runtimev1.Loadout, probePass *modelProbeReadPass) (*runtimev1.Loadout, loadoutValidationResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, loadoutValidationResult{}, err
 	}
@@ -1492,7 +1531,9 @@ func (s *Service) deriveCurrentLoadoutProjection(ctx context.Context, stored *ru
 		loadout.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE}
 		return loadout, loadoutValidationResult{}, nil
 	}
-	validation, validationErr := s.validateLoadoutCurrent(ctx, loadout, driver, requirements)
+	validation, validationErr := s.validateLoadoutWithAxisResolver(ctx, loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
+		return s.resolveLoadoutModelAxis(ctx, loadout, driver, requirement, axis, probePass)
+	})
 	if validationErr != nil {
 		return nil, loadoutValidationResult{}, validationErr
 	}

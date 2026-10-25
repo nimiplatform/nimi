@@ -2278,6 +2278,13 @@ pub struct AccountSessionSnapshot {
     pub account_projection: ::core::option::Option<AccountProjection>,
     #[prost(message, optional, tag = "6")]
     pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
+    /// Opaque observation-continuity label, never an authorization proof or input
+    /// selector. Trimmed, exact, NUL-free UTF-8 of at most 64 bytes; nonempty only while the
+    /// current Runtime-owned account authorization is live. Routine unexpired
+    /// same-identity refresh preserves it; expiry, identity replacement, or a new
+    /// Runtime lifetime cannot reuse it. This is not an App bootstrap field.
+    #[prost(string, tag = "7")]
+    pub authorization_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AccountCaller {

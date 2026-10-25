@@ -20,6 +20,10 @@ func TestPlanApplyRetriesCancelledConsumerWithoutRepairingAnotherConsumerSource(
 	ctx := context.Background()
 	svc := newTestService(t)
 	defer svc.Close()
+	// Preview and Apply observe the same controlled host. A supplied profile
+	// is not an Apply-time override of newTestService's default Apple host.
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	setNvidiaGPUProbeForTest(t, true)
 	svc.SetEngineManager(&mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
 		DependencyID: cudaUserSpaceRuntimeDependencyID,
 		State:        engine.SharedAcceleratorDependencyFailed,
@@ -33,7 +37,7 @@ func TestPlanApplyRetriesCancelledConsumerWithoutRepairingAnotherConsumerSource(
 	})
 	resolution := &runtimev1.ResolveLocalEnvironmentPlanRequest{
 		CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
-		HostProfile:        localEnvironmentNvidiaProfile(),
+		HostProfile:        collectDeviceProfile(ctx),
 	}
 	initial, err := svc.ResolveLocalEnvironmentPlan(ctx, resolution)
 	if err != nil {
@@ -137,6 +141,8 @@ func TestPlanApplyPreparesNewConsumerOfRepairRequiredSharedSource(t *testing.T) 
 			ctx := context.Background()
 			svc := newTestService(t)
 			defer svc.Close()
+			setLocalRuntimePlatformForTest(t, "windows", "amd64")
+			setNvidiaGPUProbeForTest(t, true)
 			release := make(chan struct{})
 			defer func() {
 				if release != nil {
@@ -167,7 +173,7 @@ func TestPlanApplyPreparesNewConsumerOfRepairRequiredSharedSource(t *testing.T) 
 			selectEnvironmentLoadoutForTest(t, svc, capabilitydriver.TextEmbedCapabilityContract, capabilitydriver.LlamaEmbedGGUFRecipeID, capabilitydriver.Identity{
 				ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect,
 			})
-			resolution := &runtimev1.ResolveLocalEnvironmentPlanRequest{CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, HostProfile: localEnvironmentNvidiaProfile()}
+			resolution := &runtimev1.ResolveLocalEnvironmentPlanRequest{CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, HostProfile: collectDeviceProfile(ctx)}
 			initial, err := svc.ResolveLocalEnvironmentPlan(ctx, resolution)
 			if err != nil {
 				t.Fatal(err)
