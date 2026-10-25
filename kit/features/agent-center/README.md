@@ -108,7 +108,10 @@ Each mounted `AgentCenter` consumes exactly one `AgentCenterSession`. The sessio
 
 `createAppAgentCenterSession({ handle, client, conversationAnchorId, hostMechanics, resourcePackTargetController })` binds the SDK-owned nominal `NimiLocalAppAgentHandle` directly to the canonical `NimiLocalAppAgentConfigureClient`:
 
-- Its first read must successfully load the bounded `manager.snapshot` together with shared AIConfig, autonomy, presentation, and Memory before product actions become available.
+- Its first read can publish a read-only overview after the bounded Manager, autonomy, presentation, and Memory observations settle. `snapshot.reads` identifies published `pending`, `loaded`, or `failed` observations; it is display metadata, not authorization. Pending shared AIConfig shows local loading instead of not-configured state. Initial `phase` and every mutation stay gated until the complete read settles, including presentation synchronization and reference-voice observation.
+- Owner action coverage and each domain's result then determine availability: a failed domain remains unavailable without turning healthy independent domains into failures. Refreshing an already loaded session preserves the existing phase and editor tree until fresh owner facts are adopted; it does not re-enter the initial loading screen or clear drafts for unchanged owner data.
+- A pending initial subscription read is not repeated by another subscriber. Explicit refreshes, reopened loaded centers, and later Conversation changes still request fresh owner facts.
+- Reference voice observation may reuse presentation, shared AIConfig, and VoiceAsset-list promises from that same read. Voice creation and its final binding check always read current owners independently; observation reuse never authorizes a mutation.
 - Shared AIConfig reads and overwrites carry no Agent handle; Manager, autonomy, presentation, and Memory use the same current handle.
 - Kit does not revalidate SDK enum or numeric inputs, reconstruct raw LocalAgent or account identity, or expose a permission-request lifecycle.
 - Typed owner and operation failures keep their exact Agent Center availability reason and route recovery through retry or the host-provided Runtime owner-surface handoff.

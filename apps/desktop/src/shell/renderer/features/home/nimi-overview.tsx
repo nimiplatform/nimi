@@ -312,18 +312,6 @@ export function NimiOverview() {
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >
-        {messagesAccountKey ? (
-          <HomeGettingStarted
-            key={messagesAccountKey}
-            accountKey={messagesAccountKey}
-            textPreparation={inventory.isPending ? 'unknown' : textPreparation.state}
-            onOpenAI={() => void navigation.push({ id: 'runtime' })}
-            onOpenCloud={() => void navigation.push({ id: 'cloud' })}
-            onOpenChat={openChat}
-            onExplore={() => void navigation.push({ id: 'explore' })}
-            onOpenApps={() => void navigation.push({ id: 'apps' })}
-          />
-        ) : null}
           <section className="flex flex-col gap-3 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-apps">
             <SectionHeader
               title={t('runtimeConfig.overview.apps')}
@@ -378,6 +366,18 @@ export function NimiOverview() {
               <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.noApps')}</p>
             ) : null}
           </section>
+        {messagesAccountKey ? (
+          <HomeGettingStarted
+            key={messagesAccountKey}
+            accountKey={messagesAccountKey}
+            textPreparation={inventory.isPending ? 'unknown' : textPreparation.state}
+            onOpenAI={() => void navigation.push({ id: 'runtime' })}
+            onOpenCloud={() => void navigation.push({ id: 'cloud' })}
+            onOpenChat={openChat}
+            onExplore={() => void navigation.push({ id: 'explore' })}
+            onOpenApps={() => void navigation.push({ id: 'apps' })}
+          />
+        ) : null}
         <HomeIntegrationsCard appIconUrls={iconUrls} onOpen={openIntegrations} />
         </ScrollArea>
       </div>

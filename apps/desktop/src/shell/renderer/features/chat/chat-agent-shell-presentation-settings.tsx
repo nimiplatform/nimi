@@ -1,6 +1,6 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AgentCenter, type AgentCenterI18n, type AgentCenterPlacementActions } from '@nimiplatform/kit/features/agent-center';
 
@@ -43,8 +43,27 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     t: (key, values) => input.t(key, values) as string,
   }), [i18n, input.t]);
   useEffect(() => {
-    void input.messages.length;
-    void input.runtimeAgentCenterAdapter?.refresh();
+    const session = input.runtimeAgentCenterAdapter;
+    // The canonical subscription owns the first read. Reopening an already
+    // loaded center still revalidates settings changed in another surface.
+    if (session && session.getSnapshot().phase !== 'loading') void session.refresh();
+  }, [input.runtimeAgentCenterAdapter]);
+  const observedContext = useRef<{
+    session: typeof input.runtimeAgentCenterAdapter;
+    anchor: typeof input.activeConversationAnchorId;
+    messageCount: number;
+  } | null>(null);
+  useEffect(() => {
+    const current = { session: input.runtimeAgentCenterAdapter,
+      anchor: input.activeConversationAnchorId, messageCount: input.messages.length };
+    const previous = observedContext.current;
+    observedContext.current = current;
+    // A later committed turn may change Manager context. Keep that fresh read
+    // even while another read is pending; only the redundant mount is omitted.
+    if (previous && previous.session === current.session
+      && (previous.anchor !== current.anchor || previous.messageCount !== current.messageCount)) {
+      void current.session?.refresh();
+    }
   }, [input.activeConversationAnchorId, input.messages.length, input.runtimeAgentCenterAdapter]);
   const placementActions = useMemo<AgentCenterPlacementActions>(() => {
     const openSetup = (capabilityContract: string, creation = false) => {

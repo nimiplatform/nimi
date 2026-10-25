@@ -1,8 +1,10 @@
 import { createAgentReferenceVoiceController, type AgentReferenceVoiceController } from './reference-voice.js';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   asNimiError,
   type NimiSharedLocalAgentAIConfigOptionsQuery,
   type NimiSharedLocalAgentAIConfigOptionsResult,
+  type NimiSharedLocalAgentAIConfigSnapshot,
   type NimiAIConfigSnapshot,
   type NimiSharedLocalAgentAIConfigOverwriteResult,
   type NimiSharedLocalAgentCapabilityParticipation,
@@ -52,6 +54,7 @@ import type {
   AgentCenterProductAction,
   AgentCenterSession,
   AgentCenterSnapshot,
+  AgentCenterReadProgress,
   AgentCenterState,
   AgentCenterStateInput,
 } from './types.js';
@@ -149,9 +152,20 @@ type SharedAIConfigRead = {
 
 type SessionReadResult = {
   readonly state: AgentCenterStateInput;
+  readonly reads: AgentCenterReadProgress;
   readonly availability: AgentCenterActionAvailabilityProjection;
   readonly errors: readonly string[];
 };
+
+const PENDING_READS: AgentCenterReadProgress = Object.freeze({
+  manager: 'pending', sharedAIConfig: 'pending', autonomy: 'pending', presentation: 'pending', memory: 'pending',
+});
+const FAILED_READS: AgentCenterReadProgress = Object.freeze({
+  manager: 'failed', sharedAIConfig: 'failed', autonomy: 'failed', presentation: 'failed', memory: 'failed',
+});
+function readProgress(result: PromiseSettledResult<unknown>): 'loaded' | 'failed' {
+  return result.status === 'fulfilled' ? 'loaded' : 'failed';
+}
 
 type MutationRunResult<T> = {
   readonly result: T;
@@ -193,7 +207,7 @@ interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   readonly resourcePackTargetController: AgentCenterResourcePackTargetController | null;
   readonly resourcePackPlacement: AgentCenterResourcePackPlacementAdapter | null;
-  read(): Promise<SessionReadResult>;
+  read(onOverview?: (read: SessionReadResult) => void): Promise<SessionReadResult>;
   readManager(): Promise<AgentCenterAppManagerSnapshot>;
   readSharedAIConfig(): Promise<SharedAIConfigRead>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
@@ -347,6 +361,7 @@ class ManagerSession {
   #listeners = new Set<() => void>();
   #lifecycleEpoch = 0;
   #refreshToken = 0;
+  #pendingRefreshes = 0;
   #mutationTokens: Record<MutationDomain, number> = {
     'shared-ai-config': 0,
     'conversation-context': 0,
@@ -366,6 +381,7 @@ class ManagerSession {
   ) {
     this.#snapshot = {
       phase: 'loading',
+      reads: PENDING_READS,
       state: stateWithAvailability({}, allUnavailable('unknown')),
       availability: allUnavailable('unknown'),
       error: null,
@@ -483,6 +499,7 @@ class ManagerSession {
     const availability = allUnavailable('owner-rejected');
     this.#set({
       phase: 'degraded',
+      reads: FAILED_READS,
       state: stateWithAvailability(this.#snapshot.state, availability),
       availability,
       error: 'Agent Center session was invalidated after its account, session, or Agent handle changed.',
@@ -500,7 +517,7 @@ class ManagerSession {
       return () => undefined;
     }
     this.#listeners.add(listener);
-    if (this.#listeners.size === 1) {
+    if (this.#listeners.size === 1 && (this.#snapshot.phase !== 'loading' || this.#pendingRefreshes === 0)) {
       void this.refresh();
     }
     return () => {
@@ -510,15 +527,26 @@ class ManagerSession {
 
   async refresh(): Promise<void> {
     this.#assertActive();
+    this.#pendingRefreshes += 1;
     const lifecycleEpoch = this.#lifecycleEpoch;
     const refreshToken = ++this.#refreshToken;
     this.#memoryPageToken += 1;
     const stateVersion = this.#stateVersion;
+    const firstRead = this.#snapshot.phase === 'loading';
     try {
-      const read = await this.transport.read();
+      const read = await this.transport.read(firstRead ? (overview) => {
+        if (!this.#isCurrentRefresh(lifecycleEpoch, refreshToken, stateVersion)) return;
+        // Early facts are read-only. Keep the original initial mutation gate
+        // until the full read settles; a pending model owner is not absence.
+        const availability = allUnavailable('unknown');
+        const state = stateWithAvailability(overview.state, availability);
+        this.#set({ phase: 'loading', reads: overview.reads, availability, error: null,
+          state: { ...state, runtimeStatus: 'loading', statusTone: 'loading', baseTextConfigurationDetail: null } });
+      } : undefined);
       if (!this.#isCurrentRefresh(lifecycleEpoch, refreshToken, stateVersion)) return;
       this.#set({
         phase: read.errors.length > 0 ? 'degraded' : 'ready',
+        reads: read.reads,
         state: stateWithAvailability(read.state, read.availability),
         availability: read.availability,
         error: read.errors[0] ?? null,
@@ -528,10 +556,13 @@ class ManagerSession {
       const availability = allUnavailable(unavailableReasonFromError(error));
       this.#set({
         phase: 'degraded',
+        reads: FAILED_READS,
         state: stateWithAvailability(this.#snapshot.state, availability),
         availability,
         error: errorMessage(error),
       });
+    } finally {
+      this.#pendingRefreshes -= 1;
     }
   }
 
@@ -922,6 +953,7 @@ class ManagerSession {
     });
     this.#set({
       phase: 'degraded',
+      reads: this.#snapshot.reads,
       state: stateWithAvailability(this.#snapshot.state, availability),
       availability,
       error: errorMessage(error),
@@ -935,6 +967,7 @@ class ManagerSession {
     });
     this.#set({
       phase: 'degraded',
+      reads: this.#snapshot.reads,
       state: stateWithAvailability({
         ...this.#snapshot.state,
         appearance: {
@@ -1030,9 +1063,9 @@ export function createAppAgentCenterSession(
     }
   };
 
-  const readCustomVoiceCatalog = async (): Promise<VoiceCatalogRead> => {
+  const readCustomVoiceCatalog = async (pending?: Promise<NimiSharedLocalAgentAIConfigOptionsResult>): Promise<VoiceCatalogRead> => {
     try {
-      const result = await input.client.sharedAIConfig.listOptions({ kind: 'voice-assets' });
+      const result = await (pending ?? input.client.sharedAIConfig.listOptions({ kind: 'voice-assets' }));
       if (result.kind !== 'voice-assets') throw new Error('Shared LocalAgent VoiceAsset options mismatch.');
       const options = result.options.map((asset) => ({
         reference: `voice_asset_id:${asset.voiceAssetId}` as const,
@@ -1052,8 +1085,8 @@ export function createAppAgentCenterSession(
     }
   };
 
-  const readVoiceCatalog = async (): Promise<AgentCenterVoiceCatalogProjection> => {
-    const [preset, custom] = await Promise.all([readPresetVoiceCatalog(), readCustomVoiceCatalog()]);
+  const readVoiceCatalog = async (customPending?: Promise<NimiSharedLocalAgentAIConfigOptionsResult>): Promise<AgentCenterVoiceCatalogProjection> => {
+    const [preset, custom] = await Promise.all([readPresetVoiceCatalog(), readCustomVoiceCatalog(customPending)]);
     const sources = Object.freeze({ preset: preset.source, custom: custom.source });
     const seen = new Set<string>();
     const options = [...preset.options, ...custom.options].filter((option) => {
@@ -1208,9 +1241,9 @@ export function createAppAgentCenterSession(
     }
   };
 
-  const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
+  const readSharedAIConfig = async (pending?: Promise<NimiSharedLocalAgentAIConfigSnapshot>): Promise<SharedAIConfigRead> => {
     try {
-      const snapshot = await input.client.sharedAIConfig.get();
+      const snapshot = await (pending ?? input.client.sharedAIConfig.get());
       return {
         sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
         effectiveSelections: projectAIConfigEffectiveSelections(snapshot),
@@ -1222,19 +1255,62 @@ export function createAppAgentCenterSession(
     }
   };
 
-  const read = async (): Promise<SessionReadResult> => {
-    const [sharedRead, autonomyRead, presentationRead, voiceRead, memoryRead, managerRead] = await Promise.allSettled([
-      readSharedAIConfig(),
-      input.client.autonomy.snapshot({ agentHandle: handle }),
-      input.client.presentation.snapshot({ agentHandle: handle }),
-      readVoiceCatalog(),
-      input.client.memory.inspect({ agentHandle: handle, limit: 100 }),
-      input.client.manager.snapshot({
-        agentHandle: handle,
-        ...(input.conversationAnchorId ? { conversationAnchorId: input.conversationAnchorId } : {}),
-      }),
-      referenceVoice?.refresh(),
+  const read = async (onOverview?: (read: SessionReadResult) => void): Promise<SessionReadResult> => {
+    const traceId = createRendererFlowId('agent-center-read');
+    const readPart = async <T>(part: string, operation: () => Promise<T>): Promise<T> => {
+      const started = performance.now();
+      let outcome = 'failed';
+      try {
+        const result = await operation();
+        outcome = 'success';
+        return result;
+      } finally {
+        // Existing bounded telemetry, with no Agent identity, payload, or error content.
+        logRendererEvent({ area: 'agent-center', message: 'phase:read-part:settled', traceId,
+          costMs: performance.now() - started, details: { part, outcome } });
+      }
+    };
+    // These owner reads belong only to this refresh. Voice observation can use
+    // the same replies; explicit mutations and subsequent refreshes cannot.
+    const sharedPending = Promise.resolve().then(() => input.client.sharedAIConfig.get());
+    const presentationPending = Promise.resolve().then(() => input.client.presentation.snapshot({ agentHandle: handle }));
+    const voiceAssetsPending = Promise.resolve().then(() => input.client.sharedAIConfig.listOptions({ kind: 'voice-assets' }));
+    const autonomyObserved = readPart('autonomy', () => input.client.autonomy.snapshot({ agentHandle: handle }));
+    const presentationObserved = readPart('presentation', () => presentationPending);
+    const memoryObserved = readPart('memory', () => input.client.memory.inspect({ agentHandle: handle, limit: 100 }));
+    const managerObserved = readPart('manager', () => input.client.manager.snapshot({
+      agentHandle: handle,
+      ...(input.conversationAnchorId ? { conversationAnchorId: input.conversationAnchorId } : {}),
+    }));
+    const overviewPending = onOverview
+      ? Promise.allSettled([autonomyObserved, presentationObserved, memoryObserved, managerObserved]).then(async ([autonomy, appearance, memory, owner]) => {
+        const current = appearance.status === 'fulfilled' ? await adoptObservedPresentation(appearance.value) : null;
+        onOverview({
+          state: {
+            ...(autonomy.status === 'fulfilled' ? { autonomy: projectAppAutonomy(autonomy.value) } : {}),
+            ...(owner.status === 'fulfilled' ? { manager: owner.value } : {}),
+            ...(memory.status === 'fulfilled' ? { cognitionMemory: memory.value } : {}),
+            ...(current ? { appearance: projectAppAppearance(current, undefined,
+              Boolean(input.hostMechanics?.selectAvatar), Boolean(input.hostMechanics?.selectBackground),
+              targetSnapshot(), input.resourcePackPlacement?.availability ?? RESOURCE_PACK_PLACEMENT_UNAVAILABLE) } : {}),
+          },
+          reads: Object.freeze({ sharedAIConfig: 'pending', autonomy: readProgress(autonomy),
+            presentation: readProgress(appearance), memory: readProgress(memory), manager: readProgress(owner) }),
+          availability: allUnavailable('unknown'), errors: [],
+        });
+      })
+      : Promise.resolve();
+    const [sharedRead, autonomyRead, presentationRead, voiceRead, memoryRead, managerRead, , overviewRead] = await Promise.allSettled([
+      readPart('shared-ai-config', () => readSharedAIConfig(sharedPending)),
+      autonomyObserved,
+      presentationObserved,
+      readPart('voice-catalog', () => readVoiceCatalog(voiceAssetsPending)),
+      memoryObserved,
+      managerObserved,
+      readPart('reference-voice', async () => { await referenceVoice?.refresh({ presentation: presentationPending, shared: sharedPending, voiceAssets: voiceAssetsPending }); }),
+      overviewPending,
     ]);
+    if (overviewRead.status === 'rejected') throw overviewRead.reason;
     const errors: string[] = [];
     const collectError = (label: string, result: PromiseSettledResult<unknown>): void => {
       if (result.status === 'rejected') errors.push(`${label}: ${errorMessage(result.reason)}`);
@@ -1247,8 +1323,10 @@ export function createAppAgentCenterSession(
 
     let appearance: AgentCenterAppearanceProjection | undefined;
     if (presentationRead.status === 'fulfilled') {
+      // Another read may have observed a newer revision since the overview.
+      // Reconcile again; the existing target context check avoids duplicate work.
       const current = await adoptObservedPresentation(presentationRead.value);
-      appearance = await projectCurrentAppearance(current, voiceRead.status === 'fulfilled' ? voiceRead.value : undefined);
+      appearance = await readPart('appearance-projection', () => projectCurrentAppearance(current, voiceRead.status === 'fulfilled' ? voiceRead.value : undefined));
     }
 
     const failedAvailability = (result: PromiseSettledResult<unknown>): AgentCenterActionAvailability => (
@@ -1303,6 +1381,8 @@ export function createAppAgentCenterSession(
     }
 
     return {
+      reads: Object.freeze({ sharedAIConfig: readProgress(sharedRead), autonomy: readProgress(autonomyRead),
+        presentation: readProgress(presentationRead), memory: readProgress(memoryRead), manager: readProgress(managerRead) }),
       state: {
         runtimeError: errors.length ? errors.join('\n') : null,
         ...(sharedRead.status === 'fulfilled' ? {

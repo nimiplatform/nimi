@@ -81,6 +81,25 @@ async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: st
 }
 
 describe('AgentCenter UI session contract', () => {
+  it('keeps the mounted editor and its unsaved draft across an unchanged-owner refresh', async () => {
+    const session = await sessionFor();
+    try {
+      const node = render(<AgentCenter session={session} defaultSection="behavior" />);
+      await flush();
+      const input = node.querySelector('input[type="number"]') as HTMLInputElement;
+      expect(input).toBeTruthy();
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+      act(() => { setter.call(input, '4'); input.dispatchEvent(new Event('input', { bubbles: true })); });
+      expect(input.value).toBe('4');
+      await act(async () => { await session.refresh(); });
+      expect(node.querySelector('input[type="number"]')).toBe(input);
+      expect(input.value).toBe('4');
+      expect(node.querySelector('[data-agent-center-loading]')).toBeNull();
+      expect(session.getSnapshot().state.autonomy.maxFreeContactsPerDay).toBe(3);
+    } finally {
+      session.dispose();
+    }
+  });
   it('allows discarding a local edit when another window saved the same value', async () => {
     const session = await sessionFor({ autonomy: { freeContactEnabled:false, quietHours:null, maxFreeContactsPerDay:3,
       revision:'a1', enabled:true, mode:'low', budgetExhausted:false, usedTokensInWindow:0, dailyTokenBudget:100,

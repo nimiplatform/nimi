@@ -11,7 +11,6 @@ import {
   Card,
   FormFeedback,
   PageShell,
-  Section,
   SettingRow,
   ToggleRow,
 } from './settings-layout-components.js';
@@ -197,57 +196,44 @@ export function AppearancePage() {
     >
       <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('Appearance.pageTitle')} />
 
-      <Section title={t('Appearance.sectionTheme')} description={t('Appearance.sectionThemeDescription')}>
-        <Card>
-          <SettingRow
-            icon={<PaintIcon className="h-5 w-5" />}
-            title={t('Appearance.themeLabel')}
-            description={t('Appearance.themeHelper')}
-            control={(
-              <SegmentedControl
-                ariaLabel={t('Appearance.themeLabel')}
-                items={APPEARANCE_THEMES.map((theme) => ({ value: theme, label: themeLabels[theme] }))}
-                value={preferences.theme}
-                onValueChange={(value) => setPreferences((previous) => (
-                  previous ? { ...previous, theme: value as AppearanceTheme } : previous
-                ))}
-              />
-            )}
-          />
-        </Card>
-      </Section>
-
-      <Section title={t('Appearance.sectionLanguage')} description={t('Appearance.sectionLanguageDescription')}>
-        <Card>
-          <SettingRow
-            icon={<LanguageIcon className="h-5 w-5" />}
-            title={t('Appearance.languageLabel')}
-            description={t('Appearance.languageHelper')}
-            control={(
-              <SelectField
-                aria-label={t('Appearance.languageLabel')}
-                value={language}
-                onValueChange={(locale) => { void handleLanguageChange(locale as SupportedLocale); }}
-                options={languageOptions}
-                disabled={changingLocale}
-                className="w-56"
-              />
-            )}
-          />
-        </Card>
-      </Section>
-
-      <Section title={t('Appearance.sectionAccessibility')} description={t('Appearance.sectionAccessibilityDescription')}>
-        <Card>
-          <ToggleRow
-            icon={<MotionIcon className="h-5 w-5" />}
-            title={t('Appearance.reduceMotion')}
-            description={t('Appearance.reduceMotionDescription')}
-            checked={preferences.reduceMotion}
-            onChange={(value) => setPreferences((previous) => (previous ? { ...previous, reduceMotion: value } : previous))}
-          />
-        </Card>
-      </Section>
+      <Card className="divide-y divide-[var(--nimi-border-subtle)]">
+        <SettingRow
+          icon={<PaintIcon className="h-5 w-5" />}
+          title={t('Appearance.themeLabel')}
+          control={(
+            <SegmentedControl
+              ariaLabel={t('Appearance.themeLabel')}
+              items={APPEARANCE_THEMES.map((theme) => ({ value: theme, label: themeLabels[theme] }))}
+              value={preferences.theme}
+              onValueChange={(value) => setPreferences((previous) => (
+                previous ? { ...previous, theme: value as AppearanceTheme } : previous
+              ))}
+            />
+          )}
+        />
+        <SettingRow
+          icon={<LanguageIcon className="h-5 w-5" />}
+          title={t('Appearance.languageLabel')}
+          description={t('Appearance.languageHelper')}
+          control={(
+            <SelectField
+              aria-label={t('Appearance.languageLabel')}
+              value={language}
+              onValueChange={(locale) => { void handleLanguageChange(locale as SupportedLocale); }}
+              options={languageOptions}
+              disabled={changingLocale}
+              className="w-56"
+            />
+          )}
+        />
+        <ToggleRow
+          icon={<MotionIcon className="h-5 w-5" />}
+          title={t('Appearance.reduceMotion')}
+          description={t('Appearance.reduceMotionDescription')}
+          checked={preferences.reduceMotion}
+          onChange={(value) => setPreferences((previous) => (previous ? { ...previous, reduceMotion: value } : previous))}
+        />
+      </Card>
     </PageShell>
   );
 }

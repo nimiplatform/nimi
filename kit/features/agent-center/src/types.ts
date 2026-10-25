@@ -77,6 +77,11 @@ export type AgentCenterOverviewCopy = Partial<{
   readonly offPill: string;
   readonly projectedPill: string;
   readonly readOnlyPill: string;
+  readonly pendingTitle: string;
+  readonly pendingPill: string;
+  readonly pendingDescription: string;
+  readonly readFailedDescription: string;
+  readonly readFailedTitle: string;
   readonly sourceContextTitle: string;
   readonly sourceContextReadyDescription: string;
   readonly sourceContextBlockedDescription: string;
@@ -803,8 +808,15 @@ export interface AgentCenterStateInput extends AgentCenterRuntimeSnapshot {
 
 export type AgentCenterStorePhase = 'loading' | 'ready' | 'degraded';
 
+/** Published owner observations for loading UI; pending is not absence and never authorizes an action. */
+export type AgentCenterReadProgress = Readonly<Record<
+  'manager' | 'sharedAIConfig' | 'autonomy' | 'presentation' | 'memory',
+  'pending' | 'loaded' | 'failed'
+>>;
+
 export interface AgentCenterSnapshot {
   readonly phase: AgentCenterStorePhase;
+  readonly reads: AgentCenterReadProgress;
   readonly state: AgentCenterState;
   readonly availability: AgentCenterActionAvailabilityProjection;
   readonly error: string | null;

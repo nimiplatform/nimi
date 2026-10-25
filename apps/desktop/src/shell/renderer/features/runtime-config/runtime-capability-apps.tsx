@@ -83,7 +83,6 @@ export function RuntimeCapabilityAppsCard(props: {
       <h2 className="px-2 pb-2 pt-1 text-sm font-semibold text-[var(--nimi-text-primary)]">
         {t('runtimeConfig.capabilities.apps.title')}
       </h2>
-      <p className="px-2 pb-2 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.capabilities.apps.description')}</p>
       {state === 'unavailable' ? (
         <p className="px-2 pb-1 text-xs leading-relaxed text-[var(--nimi-text-muted)]">
           {t('runtimeConfig.capabilities.apps.unavailable')}
@@ -113,7 +112,7 @@ export function RuntimeCapabilityAppsCard(props: {
                     </span>
                     <ChevronRight
                       size={14}
-                      className="shrink-0 -translate-x-1 text-[var(--nimi-text-muted)] opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+                      className="shrink-0 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
                       aria-hidden="true"
                     />
                   </button>

@@ -456,13 +456,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     type="button"
                     aria-current={visibleCapability === id ? 'page' : undefined}
                     title={hasStatusDetails ? undefined : markLabel}
-                    className={`flex w-full items-start gap-2.5 rounded-[var(--nimi-radius-md)] px-3 py-2.5 text-left ${visibleCapability === id ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]`}
+                    className={`flex min-h-10 w-full items-center gap-2.5 rounded-[var(--nimi-radius-md)] px-3 py-2 text-left ${visibleCapability === id ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]`}
                     onClick={() => openCapability(id)}
                     data-testid={`ai-capability:${id}`}
                   >
                     <Icon
                       size={16}
-                      className={`mt-0.5 shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
+                      className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
                       aria-hidden="true"
                     />
                     <span className="min-w-0 flex-1 space-y-1">

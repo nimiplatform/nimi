@@ -171,7 +171,7 @@ export const AppListRow = memo(function AppListRow({
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
   readonly showSourceBadge?: boolean;
-  readonly presentation?: 'default' | 'update';
+  readonly presentation?: 'default' | 'update' | 'attention';
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement {
   const { t } = useTranslation();
@@ -193,13 +193,13 @@ export const AppListRow = memo(function AppListRow({
       data-local-development-shell={localDevelopment?.shell}
       data-source-generation={localDevelopment?.sourceGeneration}
       data-declaration-generation={localDevelopment?.declarationGeneration}
-      className="group relative flex min-w-0 items-center gap-4 rounded-2xl px-3 py-3 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)]"
+      className="group relative flex min-h-[76px] min-w-0 items-center gap-4 rounded-2xl px-3 py-3 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)]"
     >
       <AppArtworkIcon
         appId={identity.appId}
         displayName={identity.displayName}
         iconUrl={entry.iconUrl}
-        size="lg"
+        size={presentation === 'attention' ? 'md' : 'lg'}
         className="shadow-[var(--nimi-elevation-base)]"
       />
       <div className="min-w-0 flex-1">
@@ -226,7 +226,7 @@ export const AppListRow = memo(function AppListRow({
             {t('Apps.update.newVersion', { version: entry.catalogTarget?.version })}
           </p>
         ) : null}
-        {entry.summary ? (
+        {entry.summary && presentation !== 'attention' ? (
           <p
             data-testid={`apps-entry-${identity.entryKey}-summary`}
             className="mt-0.5 truncate text-xs leading-4 text-[color:var(--nimi-text-muted)]"
@@ -261,7 +261,7 @@ export const AppListRow = memo(function AppListRow({
               <span className="truncate">{aiConfigSummary.label}</span>
             </button>
           ) : null}
-          {localDevelopment === null ? <AppPackageStatusLine entry={entry} presentation={presentation} /> : null}
+          {localDevelopment === null ? <AppPackageStatusLine entry={entry} presentation={presentation === 'update' ? 'update' : 'default'} /> : null}
         </div>
       </div>
       <div className="relative z-10 flex shrink-0 items-center gap-1">

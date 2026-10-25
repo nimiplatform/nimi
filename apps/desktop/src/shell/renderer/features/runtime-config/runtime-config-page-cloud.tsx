@@ -454,9 +454,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       {hasConnectors ? (
         <>
           <CloudConnectorListPanel
+            defaultEndpointFor={(connector) => resolveProviderEndpoint(connector.provider || vendorToProvider(connector.vendor), providerCatalog)}
             connectors={orderedConnectors}
             deletingConnectorId={deletingConnectorId}
-            onAddConnector={onAddConnector}
             onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
             onSelectConnector={onSelectConnector}
             selectedConnectorId={selectedConnectorId}

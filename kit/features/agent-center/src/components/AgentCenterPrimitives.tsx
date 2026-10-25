@@ -2,7 +2,6 @@ import type { AriaAttributes, ComponentType, ReactNode } from 'react';
 import {
   Bug,
   Brain,
-  Check,
   ChevronRight,
   Cpu,
   Eye,
@@ -15,7 +14,6 @@ import { agentCenterEnCatalog } from '../locales/index.js';
 import type { AgentCenterSectionId } from '../types.js';
 
 export type AgentCenterPillTone = 'ready' | 'warn' | 'muted' | 'checking' | 'err';
-export type AgentCenterChecklistTone = 'done' | 'todo' | 'attn';
 
 const PILL_STATUS_TONE: Record<AgentCenterPillTone, StatusTone> = {
   ready: 'success',
@@ -141,67 +139,31 @@ export function Kv(props: {
   );
 }
 
-export function ProgressHero(props: {
+export function SetupSummary(props: {
   readonly setupDone: number;
   readonly setupTotal: number;
   readonly title: string;
   readonly configLabel?: string;
+  readonly pending?: boolean;
 }) {
-  const ratio = props.setupTotal > 0 ? Math.min(1, props.setupDone / props.setupTotal) : 0;
-  const radius = 36;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - ratio);
   return (
-    <div
-      className="mb-6 flex items-center gap-5 rounded-[18px] border border-[var(--nimi-border-subtle)] bg-gradient-to-br from-[var(--nimi-surface-card)] via-[var(--nimi-surface-card)] to-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)] p-5 shadow-[var(--nimi-elevation-base)]"
-      data-agent-center-progress-hero="desktop-migrated"
-    >
-      <div className="relative h-[84px] w-[84px] shrink-0">
-        <svg aria-hidden="true" className="-rotate-90" height="84" width="84">
-          <circle cx="42" cy="42" fill="none" r={radius} stroke="var(--nimi-border-subtle)" strokeWidth="8" />
-          <circle
-            cx="42"
-            cy="42"
-            fill="none"
-            r={radius}
-            stroke="var(--nimi-action-primary-bg)"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="round"
-            strokeWidth="8"
-            style={{ transition: 'stroke-dashoffset var(--nimi-motion-slow) var(--nimi-motion-ease-standard)' }}
-          />
-        </svg>
-        <div className="absolute inset-0 grid place-items-center text-center">
-          <div>
-            <div className="text-[length:var(--nimi-type-page-title-size)] font-semibold leading-none tracking-tight text-[var(--nimi-text-primary)] tabular-nums">
-              {props.setupDone}
-              <span className="text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">/{props.setupTotal}</span>
-            </div>
-            <div className="mt-1.5 text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.12em] text-[var(--nimi-text-muted)]">{props.configLabel || agentCenterEnCatalog['AgentCenter.progress.configLabel']}</div>
-          </div>
-        </div>
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="mb-1.5 text-[length:var(--nimi-type-section-title-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{props.title}</h3>
-      </div>
+    <div className="flex items-center justify-between gap-4 px-1 py-2" data-agent-center-setup-summary>
+      <h3 className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{props.title}</h3>
+      <span className="shrink-0 text-[length:var(--nimi-type-body-sm-size)] tabular-nums text-[var(--nimi-text-secondary)]">
+        <span className="sr-only">{props.configLabel || agentCenterEnCatalog['AgentCenter.progress.configLabel']} </span>
+        {props.pending ? '—' : `${props.setupDone}/${props.setupTotal}`}
+      </span>
     </div>
   );
 }
 
 export function ChecklistItem(props: {
-  readonly index: number;
-  readonly status: AgentCenterChecklistTone;
   readonly title: string;
   readonly description: ReactNode;
   readonly pill: { readonly tone: AgentCenterPillTone; readonly label: string };
   readonly onClick: () => void;
+  readonly loading?: boolean;
 }) {
-  const markerClass = props.status === 'done'
-    ? 'border border-[var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]'
-    : props.status === 'attn'
-      ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]'
-      : 'border-[1.5px] border-[var(--nimi-border-strong)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]';
   return (
     <button
       className={cn(
@@ -209,18 +171,17 @@ export function ChecklistItem(props: {
         FOCUS_RING_CLASS_NAME,
       )}
       onClick={props.onClick}
+      aria-busy={props.loading || undefined}
+      data-agent-center-loading={props.loading ? 'true' : undefined}
       type="button"
     >
-      <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full text-[length:var(--nimi-type-caption-size)] font-semibold tabular-nums', markerClass)}>
-        {props.status === 'done' ? <Check className="h-3 w-3" /> : props.status === 'attn' ? '!' : props.index}
-      </span>
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="min-w-0 truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{props.title}</span>
-        <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.5] text-[var(--nimi-text-secondary)]">{props.description}</span>
+        {props.description ? <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.5] text-[var(--nimi-text-secondary)]">{props.description}</span> : null}
       </span>
       <span className="flex shrink-0 items-center gap-2.5">
         <StatusPill label={props.pill.label} tone={props.pill.tone} />
-        <ChevronRight className="h-3.5 w-3.5 text-[var(--nimi-text-muted)]" />
+        <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-[var(--nimi-text-muted)]" />
       </span>
     </button>
   );

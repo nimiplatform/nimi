@@ -2593,7 +2593,7 @@
   "quickStart": {
     "title": "本机对话",
     "setupTitle": "设置你的第一个本机对话",
-    "readyTitle": "本机 AI 已就绪",
+    "readyTitle": "可用能力 · {{count}}",
     "defaultModel": "默认 · {{model}}",
     "defaultTag": "默认",
     "otherConfiguration": "另一份配置",
@@ -2948,6 +2948,8 @@
     },
     "aboutSize": "约 {{size}}",
     "whatItDoes": "这个模型能做什么",
+    "modelDetails": "模型详情",
+    "componentDetails": "组件详情",
     "technicalModel": "模型",
     "technicalEnvironment": "运行组件",
     "technicalRecipe": "配方",

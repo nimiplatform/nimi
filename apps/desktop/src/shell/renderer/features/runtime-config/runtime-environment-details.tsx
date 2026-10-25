@@ -75,7 +75,7 @@ export function RuntimeEnvironmentDependencies(props: {
                 ) : null}
               </div>
               <details className="mt-1 text-[var(--nimi-text-muted)]">
-                <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary>
+                <summary className="cursor-pointer">{t('runtimeConfig.product.componentDetails')}</summary>
                 <div className="mt-2 grid gap-1 break-all font-mono" data-testid="runtime-environment-dependency-supply">
                   <div>{item.dependencyFamily} · {item.dependencyId}</div>
                   <div>{item.sourceKind} · {item.consumerScope}</div>

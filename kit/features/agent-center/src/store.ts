@@ -7,5 +7,5 @@ export function useAgentCenterStore(session: AgentCenterSession) {
     session.getSnapshot,
     session.getSnapshot,
   );
-  return { snapshot, refresh: session.refresh };
+  return { snapshot, refresh: () => session.refresh() };
 }

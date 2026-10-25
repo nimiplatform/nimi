@@ -45,10 +45,12 @@ function DateSeparatorRow({ label }: { label: string }) {
   );
 }
 
-function renderMessageItem(
-  virtualItem: Extract<CanonicalTranscriptVirtualItem, { type: 'message' }>,
-  props: TranscriptMessageGroupsProps,
-) {
+// Range and measurement updates move the outer layout wrapper. Keep the
+// message slots and Bubble stable while all their actual inputs are unchanged.
+const TranscriptMessageItem = memo(function TranscriptMessageItem(props: Omit<TranscriptMessageGroupsProps, 'messages' | 'scrollRef' | 'formatDateLabel'> & {
+  virtualItem: Extract<CanonicalTranscriptVirtualItem, { type: 'message' }>;
+}) {
+  const { virtualItem } = props;
   const renderContext = toCanonicalTranscriptRenderContext({ item: virtualItem.item, focused: virtualItem.focused });
   const renderedAvatar = props.renderMessageAvatar?.(virtualItem.item.message, renderContext);
   // Surfaces without an avatar renderer must not reserve the 32px avatar gutter,
@@ -79,12 +81,13 @@ function renderMessageItem(
       />
     </div>
   );
-}
+});
 
 function NonVirtualizedTranscript(props: TranscriptMessageGroupsProps) {
+  const { messages, scrollRef: _scrollRef, formatDateLabel, ...rowProps } = props;
   const flatItems = useMemo(
-    () => buildCanonicalTranscriptVirtualItems(props.messages, props.formatDateLabel),
-    [props.formatDateLabel, props.messages],
+    () => buildCanonicalTranscriptVirtualItems(messages, formatDateLabel),
+    [formatDateLabel, messages],
   );
   return (
     <>
@@ -94,7 +97,7 @@ function NonVirtualizedTranscript(props: TranscriptMessageGroupsProps) {
         }
         return (
           <div key={vi.key} style={{ paddingTop: vi.isGroupStart ? 16 : 10 }}>
-            {renderMessageItem(vi, props)}
+            <TranscriptMessageItem {...rowProps} virtualItem={vi} />
           </div>
         );
       })}
@@ -103,9 +106,10 @@ function NonVirtualizedTranscript(props: TranscriptMessageGroupsProps) {
 }
 
 function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
+  const { messages, scrollRef, formatDateLabel, ...rowProps } = props;
   const flatItems = useMemo(
-    () => buildCanonicalTranscriptVirtualItems(props.messages, props.formatDateLabel),
-    [props.formatDateLabel, props.messages],
+    () => buildCanonicalTranscriptVirtualItems(messages, formatDateLabel),
+    [formatDateLabel, messages],
   );
 
   const estimateSize = useCallback((index: number) => {
@@ -123,7 +127,7 @@ function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
   const virtualizer = useVirtualizer({
     count: flatItems.length,
     getItemKey,
-    getScrollElement: () => props.scrollRef.current,
+    getScrollElement: () => scrollRef.current,
     estimateSize,
     overscan: 5,
   });
@@ -150,7 +154,7 @@ function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
           >
             {vi.type === 'date'
               ? <DateSeparatorRow label={vi.label} />
-              : renderMessageItem(vi, props)}
+              : <TranscriptMessageItem {...rowProps} virtualItem={vi} />}
           </div>
         );
       })}

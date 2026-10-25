@@ -314,9 +314,9 @@ export function RuntimeCapabilityDetail(props: Props) {
                         {t(downloaded ? 'runtimeConfig.product.downloadedLead' : 'runtimeConfig.product.chooseModelLead')}
                       </p>
                     ) : null}
-                    {cardTitle ? (
+                    {cardTitle && featureKeys.length > 0 ? (
                       <ul className="mt-4 flex flex-wrap gap-2" aria-label={t('runtimeConfig.product.whatItDoes')}>
-                        {[shortUse, ...featureKeys.map((key) => t(key))].map((text, index) => (
+                        {featureKeys.map((key) => t(key)).map((text, index) => (
                           <li
                             key={`${index}:${text}`}
                             className="rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)]"
@@ -419,7 +419,7 @@ export function RuntimeCapabilityDetail(props: Props) {
                 <details className="group border-t border-[var(--nimi-border-subtle)]" data-testid="capability-technical-details">
                   <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] lg:px-6 [&::-webkit-details-marker]:hidden">
                     <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
-                    {t('runtimeConfig.profiles.technicalDetails')}
+                    {t('runtimeConfig.product.modelDetails')}
                   </summary>
                   {/* Indented to the summary text: card padding plus the 14px chevron and its gap. */}
                   <div className="grid gap-x-12 gap-y-5 pb-5 pl-[calc(1.25rem+14px+0.5rem)] pr-5 md:grid-cols-2 lg:pb-6 lg:pl-[calc(1.5rem+14px+0.5rem)] lg:pr-6">

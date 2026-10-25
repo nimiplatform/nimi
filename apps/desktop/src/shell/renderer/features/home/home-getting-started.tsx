@@ -30,7 +30,6 @@ export function HomeGettingStarted(props: HomeGettingStartedProps) {
     setCollapsed(next);
     writeStorageTextTo(resolveBrowserStorage('local'), storageKey, String(next));
   };
-  const actions = { model: props.onOpenAI, chat: props.onOpenChat, apps: props.onOpenApps };
   return (
     <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-first-run">
       <div className="flex items-center justify-between gap-3">
@@ -41,30 +40,24 @@ export function HomeGettingStarted(props: HomeGettingStartedProps) {
         </Button>
       </div>
       {!collapsed ? (
-        <ol id="home-getting-started-steps" className="grid gap-3 md:grid-cols-3">
-          {(['model', 'chat', 'apps'] as const).map((step, index) => (
-            <li key={step} className="flex flex-col gap-3 rounded-2xl bg-[var(--nimi-surface-card)] p-4">
-              <span className="flex size-8 items-center justify-center rounded-full bg-[var(--nimi-surface-active)] text-sm font-semibold text-[var(--nimi-action-primary-bg)]">{index + 1}</span>
-              <div className="flex-1">
-                <h3 className="font-semibold">{t(`runtimeConfig.overview.firstRun.${step}.title`)}</h3>
-                <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">
-                  {t(step === 'model'
-                    ? `runtimeConfig.overview.firstRun.model.states.${props.textPreparation}`
-                    : `runtimeConfig.overview.firstRun.${step}.body`)}
-                </p>
-              </div>
-              <Button tone={step === 'chat' ? 'primary' : 'secondary'} size="sm" onClick={actions[step]}>
-                {t(`runtimeConfig.overview.firstRun.${step}.action`)}
-                <ArrowRight size={14} aria-hidden="true" />
-              </Button>
-              {step === 'model' ? (
-                <Button tone="ghost" size="sm" onClick={props.onOpenCloud}>{t('runtimeConfig.overview.firstRun.model.cloud')}</Button>
-              ) : step === 'chat' ? (
-                <Button tone="ghost" size="sm" onClick={props.onExplore}>{t('runtimeConfig.overview.firstRun.chat.partner')}</Button>
-              ) : null}
-            </li>
-          ))}
-        </ol>
+        <div id="home-getting-started-steps" className="space-y-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p className="min-w-0 flex-1 basis-64 text-sm text-[var(--nimi-text-secondary)]">
+              {t(`runtimeConfig.overview.firstRun.model.states.${props.textPreparation}`)}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              <Button tone="ghost" size="sm" onClick={props.onOpenAI}>{t('runtimeConfig.overview.firstRun.model.action')}</Button>
+              <Button tone="ghost" size="sm" onClick={props.onOpenCloud}>{t('runtimeConfig.overview.firstRun.model.cloud')}</Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button tone="primary" size="sm" onClick={props.onOpenChat}>
+              {t('runtimeConfig.overview.firstRun.chat.action')}<ArrowRight size={14} aria-hidden="true" />
+            </Button>
+            <Button tone="secondary" size="sm" onClick={props.onExplore}>{t('runtimeConfig.overview.firstRun.chat.partner')}</Button>
+            <Button tone="secondary" size="sm" onClick={props.onOpenApps}>{t('runtimeConfig.overview.firstRun.apps.action')}</Button>
+          </div>
+        </div>
       ) : null}
     </section>
   );

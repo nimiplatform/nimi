@@ -1,8 +1,12 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AgentCenter } from '../src/components/AgentCenter.js';
 import type {
   NimiCapabilityAIConfig,
   NimiAIConfigEffectiveSelection,
   NimiLocalAppAgentConfigureClient,
+  NimiLocalAppClient,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationProfile,
   NimiSharedLocalAgentAIConfigSnapshot,
@@ -302,6 +306,241 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
 }
 
 describe('AgentCenterSession', () => {
+  it('publishes real read-only overview facts without calling pending model data unconfigured or opening mutations', async () => {
+    const calls: unknown[] = [];
+    const client = appClient(calls);
+    const config = await client.sharedAIConfig.get();
+    calls.length = 0;
+    let complete!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
+    client.sharedAIConfig.get = () => new Promise(resolve => { complete = resolve; });
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    const pending = session.refresh();
+    await vi.waitFor(() => expect(session.getSnapshot().reads.presentation).toBe('loaded'));
+    const partial = session.getSnapshot();
+    expect(partial.phase).toBe('loading');
+    expect(partial.reads.sharedAIConfig).toBe('pending');
+    expect(partial.state.appearance.avatarAssetRef).toBe('avatar-1');
+    expect(partial.state.autonomy.revision).toBe('1');
+    expect(Object.values(partial.availability).every(action => action.state === 'unavailable')).toBe(true);
+    const overview = renderToStaticMarkup(createElement(AgentCenter, { session, activeSection: 'overview' }));
+    expect(overview).toContain('Reading settings');
+    expect(overview).toContain('Reading this setting');
+    expect(overview).toContain('aria-busy="true"');
+    expect(overview).not.toMatch(/\d\/5/);
+    const models = renderToStaticMarkup(createElement(AgentCenter, { session, activeSection: 'ai-config' }));
+    expect(models).toContain('data-agent-center-loading="true"');
+    await expect(session.updateAutonomy({ expectedRevision: '1', enabled: false, mode: 'off',
+      dailyTokenBudget: 0, maxBackgroundOutputTokens: 0, freeContactEnabled: false, quietHours: null, maxFreeContactsPerDay: 3,
+    })).rejects.toThrow(/unavailable/u);
+    expect(calls.some(call => (call as unknown[])[0] === 'autonomy.update')).toBe(false);
+    complete(config); await pending;
+    expect(session.getSnapshot().phase).toBe('ready');
+    expect(Object.values(session.getSnapshot().reads)).toEqual(Array(5).fill('loaded'));
+    expect(session.getSnapshot().availability.updateAutonomy.state).toBe('available');
+    session.dispose();
+  });
+
+  it('distinguishes an early failed owner from a pending owner and preserves domain failure after completion', async () => {
+    const client = appClient([]);
+    const config = await client.sharedAIConfig.get();
+    let complete!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
+    client.sharedAIConfig.get = () => new Promise(resolve => { complete = resolve; });
+    client.memory.inspect = async () => { throw new Error('Memory unavailable'); };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    const pending = session.refresh();
+    await vi.waitFor(() => expect(session.getSnapshot().reads.memory).toBe('failed'));
+    expect(session.getSnapshot().reads.sharedAIConfig).toBe('pending');
+    const html = renderToStaticMarkup(createElement(AgentCenter, { session, activeSection: 'overview' }));
+    expect(html).toContain('This setting could not be read.');
+    expect(session.getSnapshot().availability.updateAutonomy.state).toBe('unavailable');
+    complete(config); await pending;
+    expect(session.getSnapshot().phase).toBe('degraded');
+    expect(session.getSnapshot().availability.correctMemory.state).toBe('unavailable');
+    expect(session.getSnapshot().availability.updateAutonomy.state).toBe('available');
+    session.dispose();
+  });
+
+  it('reconciles final initial-read presentation with a newer owner observation from an overlapping refresh', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const config = await base.sharedAIConfig.get();
+    const finishShared: Array<() => void> = [];
+    let releaseFirstPresentation!: () => void;
+    const presentationGate = new Promise<void>(resolve => { releaseFirstPresentation = resolve; });
+    let firstPresentationStarted!: () => void;
+    const started = new Promise<void>(resolve => { firstPresentationStarted = resolve; });
+    let presentationReads = 0;
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      sharedAIConfig: {
+        ...base.sharedAIConfig,
+        get: () => new Promise(resolve => { finishShared.push(() => resolve(config)); }),
+      },
+      presentation: {
+        ...base.presentation,
+        async snapshot(input) {
+          if (++presentationReads === 1) {
+            firstPresentationStarted();
+            await presentationGate;
+          }
+          return base.presentation.snapshot(input);
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({ handle: HANDLE, client, resourcePackTargetController: controller });
+    const earlier = session.refresh();
+    let current: Promise<void> | undefined;
+    try {
+      await started;
+      current = session.refresh();
+      await vi.waitFor(() => {
+        expect(finishShared).toHaveLength(2);
+        expect(session.getSnapshot().state.appearance.presentationRevision).toBe('1');
+      });
+      // The earlier request observes a later external owner commit. Its UI
+      // publication is stale, but the presentation owner remains monotonic.
+      await base.presentation.commit({
+        agentHandle: HANDLE,
+        expectedPresentationRevision: '1',
+        intent: { selectImportedResourcePack: true },
+        importedAssets: [{
+          role: 'resource-pack', fileName: 'external.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([7, 8, 9]), sha256: 'e'.repeat(64),
+        }],
+      });
+      releaseFirstPresentation();
+      await vi.waitFor(() => expect(controller.getSnapshot()).toMatchObject({
+        phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}`,
+      }));
+      finishShared[0]!();
+      await earlier;
+      expect(session.getSnapshot().phase).toBe('loading');
+      finishShared[1]!();
+      await current;
+
+      expect(session.getSnapshot().state.appearance).toMatchObject({
+        presentationRevision: '2',
+        resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+        resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+      });
+      for (const operation of ['resetAgent', 'renderSelected']) {
+        expect(controller.calls.filter(call => Array.isArray(call) && call[0] === operation
+          && (call[1] as { selectionRevision?: string }).selectionRevision === '2')).toHaveLength(1);
+      }
+      expect(calls.filter(call => Array.isArray(call) && call[0] === 'presentation.readAsset')).toHaveLength(1);
+    } finally {
+      releaseFirstPresentation();
+      for (const complete of finishShared) complete();
+      await Promise.allSettled(current ? [earlier, current] : [earlier]);
+      session.dispose();
+    }
+  });
+
+  it('keeps loaded state and component inputs intact during a ready refresh', async () => {
+    const client = appClient([]);
+    const config = await client.sharedAIConfig.get();
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+    const previous = session.getSnapshot();
+    let complete!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
+    client.sharedAIConfig.get = () => new Promise(resolve => { complete = resolve; });
+    const pending = session.refresh();
+    await vi.waitFor(() => expect(complete).toBeTypeOf('function'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(session.getSnapshot()).toBe(previous);
+    expect(session.getSnapshot().phase).toBe('ready');
+    expect(session.getSnapshot().reads.sharedAIConfig).toBe('loaded');
+    complete(config); await pending;
+    expect(session.getSnapshot().phase).toBe('ready');
+    expect(session.getSnapshot().state.sharedAIConfig).toEqual(previous.state.sharedAIConfig);
+    session.dispose();
+  });
+
+  it('does not publish partial or final facts from an invalidated session', async () => {
+    const client = appClient([]);
+    const appearance = await client.presentation.snapshot({ agentHandle: HANDLE });
+    let complete!: (value: typeof appearance) => void;
+    client.presentation.snapshot = () => new Promise(resolve => { complete = resolve; });
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    const pending = session.refresh();
+    await vi.waitFor(() => expect(complete).toBeTypeOf('function'));
+    session.invalidate();
+    const invalidated = session.getSnapshot();
+    complete(appearance); await pending;
+    expect(session.getSnapshot()).toBe(invalidated);
+    expect(invalidated.phase).toBe('degraded');
+    expect(Object.values(invalidated.availability).every(action => action.state === 'unavailable')).toBe(true);
+    session.dispose();
+  });
+
+  it('shares only the pending automatic first subscription, never an explicit refresh', async () => {
+    const calls: unknown[] = [];
+    const client = appClient(calls);
+    const inspect = client.memory.inspect;
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    client.memory.inspect = async input => { await gate; return inspect(input); };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    const countReads = () => calls.filter(call => (call as unknown[])[0] === 'shared.get').length;
+    let unsubscribe = session.subscribe(() => {});
+    await vi.waitFor(() => expect(countReads()).toBe(1));
+    unsubscribe();
+    unsubscribe = session.subscribe(() => {});
+    await Promise.resolve();
+    expect(countReads()).toBe(1);
+    const explicit = session.refresh();
+    await vi.waitFor(() => expect(countReads()).toBe(2));
+    release();
+    await explicit;
+    expect(session.getSnapshot().phase).toBe('ready');
+    unsubscribe();
+    unsubscribe = session.subscribe(() => {});
+    await vi.waitFor(() => expect(countReads()).toBe(3));
+    unsubscribe(); session.dispose();
+  });
+
+  it('shares same-read owner replies with reference voice observation and rereads on retry', async () => {
+    const calls: unknown[] = [];
+    const client = appClient(calls);
+    const presentation = client.presentation.snapshot;
+    client.presentation.snapshot = async input => {
+      const result = await presentation(input);
+      return { ...result, defaultVoiceReference: 'voice_asset_id:bound-voice',
+        profile: result.profile ? { ...result.profile, defaultVoiceReference: 'voice_asset_id:bound-voice' } : null };
+    };
+    const options = client.sharedAIConfig.listOptions;
+    client.sharedAIConfig.listOptions = async input => {
+      const result = await options(input);
+      return input.kind === 'voice-assets' ? { kind: 'voice-assets', truncated: false, options: [{ voiceAssetId: 'bound-voice' }] } as Awaited<ReturnType<typeof options>> : result;
+    };
+    const referenceVoiceClient = { agentConfigure: client,
+      agents: { getIntroduction: async () => ({ voiceSampleUrl: null }) },
+      aiConfig: { get: async () => ({ config: null, revision: '1', effectiveSelections: [] }) }, ai: {},
+    } as unknown as NimiLocalAppClient;
+    const session = createAppAgentCenterSession({ handle: HANDLE, client, referenceVoiceClient });
+    for (let round = 1; round <= 2; round++) {
+      await session.refresh();
+      expect(session.getSnapshot().state.appearance.referenceVoice?.phase).toBe('bound');
+      expect(calls.filter(call => (call as unknown[])[0] === 'shared.get')).toHaveLength(round);
+      expect(calls.filter(call => (call as unknown[])[0] === 'presentation.snapshot')).toHaveLength(round);
+      expect(calls.filter(call => (call as unknown[])[0] === 'shared.listOptions'
+        && ((call as unknown[])[1] as { kind: string }).kind === 'voice-assets')).toHaveLength(round);
+    }
+    session.dispose();
+  });
+
+  it('keeps independent domain availability when a shared read throws before returning a Promise', async () => {
+    const client = appClient([]);
+    client.sharedAIConfig.get = () => { throw new Error('Shared owner unavailable'); };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+    expect(session.getSnapshot().phase).toBe('degraded');
+    expect(session.getSnapshot().availability.getSharedAIConfig.state).toBe('unavailable');
+    expect(session.getSnapshot().availability.readAutonomy.state).toBe('available');
+    session.dispose();
+  });
   it('keeps a committed mutation authoritative when the effective follow-up read fails', async () => {
     const calls: string[] = [];
     let projection = sharedProjection();

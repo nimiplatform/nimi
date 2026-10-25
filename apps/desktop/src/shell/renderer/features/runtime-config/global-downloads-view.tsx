@@ -1,4 +1,4 @@
-import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, NimiTabs, ScrollArea, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, NimiTabs, ProgressIndicator, ScrollArea, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyReadyState } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase, AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { Download, RefreshCw } from 'lucide-react';
@@ -43,11 +43,8 @@ function appJobStage(phase: string): DownloadStage {
 }
 
 /**
- * The rail entry: a download arrow that becomes a progress ring while work is
- * running. The ring only draws when every active transfer reports a total;
- * otherwise it spins as an indeterminate arc. The entry is ring-sized (44px,
- * like the other rail controls) with the button centered inside: a ring wider
- * than its container would overflow only to the right, off the icon's center.
+ * Keep the rail icon aligned with its neighbors. A fine progress line below
+ * the arrow shows known totals; a quiet dot marks work with unknown progress.
  */
 export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readonly onOpen: () => void; readonly selected?: boolean }) {
   const { t } = useTranslation();
@@ -65,36 +62,12 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
     + activeAppJobs.reduce((sum, job) => sum + Number(job.bytesTotal ?? 0), 0);
   const fraction = known && total > 0 ? Math.min(1, received / total) : null;
   const active = (downloads?.activeCount ?? 0) > 0;
-  const radius = 19;
-  const circumference = 2 * Math.PI * radius;
   return (
     <Tooltip
       content={active && fraction !== null ? `${t('runtimeConfig.downloads.title')} · ${Math.round(fraction * 100)}%` : t('runtimeConfig.downloads.title')}
       placement="right"
     >
       <div className="relative flex size-11 items-center justify-center">
-        {active ? (
-          <svg
-            className={`pointer-events-none absolute inset-0 size-full -rotate-90 ${fraction === null ? 'animate-spin' : ''}`}
-            viewBox="0 0 44 44"
-            aria-hidden="true"
-            data-testid="global-downloads-ring"
-          >
-            <circle cx="22" cy="22" r={radius} fill="none" stroke="var(--nimi-border-subtle)" strokeWidth="2" />
-            <circle
-              cx="22"
-              cy="22"
-              r={radius}
-              fill="none"
-              stroke="var(--nimi-action-primary-bg)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={fraction === null ? circumference * 0.75 : circumference * (1 - fraction)}
-              className="transition-[stroke-dashoffset] duration-500"
-            />
-          </svg>
-        ) : null}
         <IconButton
           size="sm"
           data-testid="global-downloads-entry"
@@ -102,8 +75,18 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
           aria-current={selected ? 'page' : undefined}
           icon={<Download size={19} />}
           onClick={onOpen}
-          className={selected ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : active ? 'text-[var(--nimi-action-primary-bg)]' : ''}
+          className={`size-11 rounded-xl ${selected ? 'bg-[var(--nimi-surface-active)]' : ''} ${selected || active ? 'text-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)]' : ''}`}
         />
+        {active ? (
+          <div className="pointer-events-none absolute bottom-1 left-1/2 w-5 -translate-x-1/2">
+            <ProgressIndicator
+              value={fraction === null ? undefined : fraction * 100}
+              aria-label={t('runtimeConfig.downloads.title')}
+              className="[&>div]:h-0.5"
+            />
+            {fraction === null ? <span aria-hidden="true" className="mx-auto block size-1 rounded-full bg-[var(--nimi-action-primary-bg)]" /> : null}
+          </div>
+        ) : null}
         {downloads?.activeCount && downloads.activeCount > 1 ? (
           <span className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-1 text-[10px] leading-4 text-[var(--nimi-action-primary-text)]">
             {downloads.activeCount}
@@ -437,13 +420,6 @@ export function GlobalDownloadsView() {
     !transfers.length &&
     !environments.length &&
     !appJobs.length;
-  const statusLine = loading
-    ? t('Common.loading')
-    : counts.active
-      ? t('runtimeConfig.downloads.summaryActive', { count: counts.active })
-      : counts.attention
-        ? t('runtimeConfig.downloads.summaryAttention', { count: counts.attention })
-        : t('runtimeConfig.downloads.summaryIdle');
   return (
     <div className="flex min-h-0 flex-1 px-3 pb-5 pt-4">
       <ConfirmDialog
@@ -477,7 +453,7 @@ export function GlobalDownloadsView() {
                 <h1 className="nimi-type-page-title truncate text-[color:var(--nimi-text-primary)]">
                   {t('runtimeConfig.downloads.title')}
                 </h1>
-                <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{statusLine}</p>
+                {loading ? <p role="status" className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{t('Common.loading')}</p> : null}
               </div>
             </div>
             <Button

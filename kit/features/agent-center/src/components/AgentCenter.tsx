@@ -32,20 +32,13 @@ import {
   ChecklistItem,
   Kv,
   KvGrid,
-  ProgressHero,
+  SetupSummary,
   SECTION_ICONS,
   SectionHeader,
   SectionShell,
   StatusPill,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
-
-function checklistTone(done: boolean, attention: boolean) {
-  if (done) {
-    return 'done';
-  }
-  return attention ? 'attn' : 'todo';
-}
 
 function agentCenterSetupProgress(state: AgentCenterState) {
   const requiredCapabilities = state.capabilities.filter((capability) => capability.required);
@@ -151,12 +144,14 @@ function AgentCenterOverview({
   progressCopy,
   sectionLabels,
   state,
+  reads,
   onSectionSelect,
 }: {
   readonly copy: Required<AgentCenterOverviewCopy>;
   readonly progressCopy: Required<AgentCenterProgressCopy>;
   readonly sectionLabels: Record<AgentCenterSectionId, string>;
   readonly state: AgentCenterState;
+  readonly reads: AgentCenterSnapshot['reads'];
   readonly onSectionSelect: (section: AgentCenterSectionId) => void;
 }) {
   const setup = agentCenterSetupProgress(state);
@@ -164,65 +159,74 @@ function AgentCenterOverview({
   const behaviorReady = state.autonomy.enabled === true || state.autonomy.freeContactEnabled === true;
   const cognitionReady = state.cognition.memory?.enabled === false || ['ready', 'empty', 'building'].includes(state.cognition.memoryState);
   const sourceContext = sourceContextOverviewStatus(state, copy);
+  const pending = Object.values(reads).includes('pending');
+  const readFailed = Object.values(reads).includes('failed');
   const checklist = [
     {
       section: 'appearance' as const,
+      read: reads.presentation,
       done: appearanceReady,
       attention: !appearanceReady,
       title: sectionLabels.appearance,
-      description: appearanceReady ? copy.appearanceReadyDescription : copy.appearancePendingDescription,
+      description: appearanceReady ? null : copy.appearancePendingDescription,
       pill: appearanceReady ? copy.readyPill : copy.needsSetupPill,
     },
     {
       section: 'ai-config' as const,
+      read: reads.sharedAIConfig,
       done: setup.requiredCapabilitiesConfigured,
       attention: !setup.requiredCapabilitiesConfigured,
       title: sectionLabels['ai-config'],
       description: setup.requiredCapabilitiesConfigured
-        ? copy.capabilitiesConfiguredDescription
+        ? null
         : copy.capabilitiesNotConfiguredDescription,
       pill: setup.requiredCapabilitiesConfigured ? copy.configuredPill : copy.needsSetupPill,
     },
     {
       section: 'behavior' as const,
+      read: reads.autonomy,
       done: state.autonomy.revision !== null,
       attention: false,
       title: sectionLabels.behavior,
-      description: behaviorReady ? copy.behaviorReadyDescriptionPrefix : copy.behaviorOffDescription,
+      description: behaviorReady ? null : copy.behaviorOffDescription,
       pill: behaviorReady ? copy.enabledPill : copy.offPill,
     },
     {
       section: 'cognition' as const,
+      read: reads.memory === 'failed' || reads.manager === 'failed' ? 'failed' as const
+        : reads.memory === 'pending' || reads.manager === 'pending' ? 'pending' as const : 'loaded' as const,
       done: cognitionReady,
       attention: false,
       title: sectionLabels.cognition,
-      description: copy.cognitionFallbackDescription,
+      description: null,
       pill: cognitionReady ? copy.projectedPill : copy.readOnlyPill,
     },
   ];
   return (
     <SectionShell labelledBy="agent-center-overview-title">
       <h2 className="sr-only" id="agent-center-overview-title">{sectionLabels.overview}</h2>
-      <ProgressHero
-        configLabel={progressCopy.configLabel}
+      <SetupSummary
+        configLabel={pending ? copy.pendingPill : readFailed ? copy.sourceContextFailedPill : progressCopy.configLabel}
+        pending={pending || readFailed}
         setupDone={setup.done}
         setupTotal={setup.total}
-        title={setup.remaining === 0 ? copy.readyTitle : copy.attentionTitle}
+        title={pending ? copy.pendingTitle : readFailed ? copy.readFailedTitle
+          : setup.remaining === 0 ? copy.readyTitle : copy.attentionTitle}
       />
-      <div>
-        <h3 className="mb-2 mt-1 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.checklistTitle}</h3>
+      <div role="group" aria-label={copy.checklistTitle}>
         <Card>
-          {checklist.map((item, index) => (
+          {checklist.map((item) => (
             <ChecklistItem
-              description={item.description}
-              index={index + 1}
+              description={item.read === 'pending' ? copy.pendingDescription
+                : item.read === 'failed' ? copy.readFailedDescription : item.description}
+              loading={item.read === 'pending'}
               key={item.section}
               onClick={() => onSectionSelect(item.section)}
               pill={{
-                label: item.pill,
-                tone: item.done ? 'ready' : item.attention ? 'warn' : 'muted',
+                label: item.read === 'pending' ? copy.pendingPill : item.read === 'failed' ? copy.sourceContextFailedPill : item.pill,
+                tone: item.read === 'pending' ? 'muted' : item.read === 'failed' ? 'err'
+                  : item.section === 'behavior' && !behaviorReady ? 'muted' : item.done ? 'ready' : item.attention ? 'warn' : 'muted',
               }}
-              status={checklistTone(item.done, item.attention)}
               title={item.title}
             />
           ))}
@@ -235,9 +239,9 @@ function AgentCenterOverview({
         >
           <span className="grid min-w-0 flex-1 gap-1">
             <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.sourceContextTitle}</span>
-            <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.5] text-[var(--nimi-text-secondary)]">{sourceContext.description}</span>
+            {state.sourceContext.status !== 'ready' ? <span className="text-[length:var(--nimi-type-body-sm-size)] leading-[1.5] text-[var(--nimi-text-secondary)]">{reads.manager === 'failed' ? copy.sourceContextFailedDescription : sourceContext.description}</span> : null}
           </span>
-          <StatusPill label={sourceContext.label} tone={sourceContext.tone} />
+          <StatusPill label={reads.manager === 'failed' ? copy.sourceContextFailedPill : sourceContext.label} tone={reads.manager === 'failed' ? 'err' : sourceContext.tone} />
         </div>
       </Card>
     </SectionShell>
@@ -507,7 +511,8 @@ function AgentCenterChromeHeader(props: {
           props.state.statusTone === 'loading' && 'text-[var(--nimi-status-info-soft-text)]',
           props.state.statusTone === 'disabled' && 'text-[var(--nimi-text-muted)]',
         )}>
-          {props.state.baseTextConfigured ? props.copy.textConfiguredLabel : props.state.baseTextConfigurationDetail}
+          {props.state.statusTone === 'loading' ? props.copy.loadingLabel
+            : props.state.baseTextConfigured ? props.copy.textConfiguredLabel : props.state.baseTextConfigurationDetail}
         </p>
       </div>
       <AgentCenterChromeActions actions={props.actions} copy={props.copy} />
@@ -524,6 +529,10 @@ export function AgentCenter(props: AgentCenterProps) {
   );
   const store = useAgentCenterStore(props.session);
   const state = store.snapshot.state;
+  const overviewObserved = store.snapshot.reads.manager !== 'pending'
+    && store.snapshot.reads.autonomy !== 'pending'
+    && store.snapshot.reads.presentation !== 'pending'
+    && store.snapshot.reads.memory !== 'pending';
   const [uncontrolledSection, setUncontrolledSection] = useState<AgentCenterSectionId>(
     props.defaultSection || 'overview',
   );
@@ -619,7 +628,8 @@ export function AgentCenter(props: AgentCenterProps) {
         {state.sections.map((section) => {
           const Icon = SECTION_ICONS[section];
           const selected = section === activeSection;
-          const badge = section === 'overview' && setup.remaining > 0 ? setup.remaining : null;
+          const badge = section === 'overview' && Object.values(store.snapshot.reads).every(read => read === 'loaded')
+            && setup.remaining > 0 ? setup.remaining : null;
           return (
             <button
               aria-controls={`agent-center-panel-${section}`}
@@ -676,7 +686,7 @@ export function AgentCenter(props: AgentCenterProps) {
         id={`agent-center-panel-${activeSection}`}
         role="tabpanel"
       >
-        {store.snapshot.phase === 'loading' ? (
+        {store.snapshot.phase === 'loading' && !(activeSection === 'overview' && overviewObserved) ? (
           <LoadingSkeleton data-agent-center-loading="true" lines={3} label={chromeCopy.loadingLabel} />
         ) : activeSection === 'overview'
           ? (
@@ -686,6 +696,7 @@ export function AgentCenter(props: AgentCenterProps) {
               progressCopy={progressCopy}
               sectionLabels={sectionLabels}
               state={state}
+              reads={store.snapshot.reads}
             />
           )
           : renderSection(

@@ -1,5 +1,5 @@
 import { ConfirmDialog, IconButton } from '@nimiplatform/kit/ui';
-import { CircleAlert, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { CircleAlert, KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -28,7 +28,7 @@ export function connectorPresentationState(connector: Pick<Connector, 'hasCreden
 export function CloudConnectorListPanel(props: {
   connectors: Connector[];
   deletingConnectorId: string;
-  onAddConnector: () => void;
+  defaultEndpointFor: (connector: Connector) => string;
   onDeleteConnector: (connectorId: string) => Promise<void>;
   onSelectConnector: (connectorId: string) => void;
   selectedConnectorId: string;
@@ -55,23 +55,15 @@ export function CloudConnectorListPanel(props: {
             key={connector.id}
             active={connector.id === props.selectedConnectorId}
             connector={connector}
+            showEndpoint={!props.defaultEndpointFor(connector)
+              || connector.endpoint.replace(/\/+$/, '') !== props.defaultEndpointFor(connector).replace(/\/+$/, '')
+              || connectors.some((other) => other.id !== connector.id && other.label.trim().toLowerCase() === connector.label.trim().toLowerCase())}
             deleting={connector.id === props.deletingConnectorId}
             onDeleteConnector={async () => setPendingDelete(connector)}
             onSelectConnector={props.onSelectConnector}
             t={t}
           />
         ))}
-        <button
-          type="button"
-          role="listitem"
-          onClick={props.onAddConnector}
-          className="group flex min-h-[112px] items-center justify-center gap-2 rounded-[20px] border border-dashed border-[var(--nimi-border-strong)] px-4 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-        >
-          <span className="flex size-8 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)] transition-colors group-hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] group-hover:text-[var(--nimi-action-primary-bg)]">
-            <Plus size={16} />
-          </span>
-          {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
-        </button>
       </div>
       <ConfirmDialog open={pendingDelete !== null} title={t('runtimeConfig.product.removeConnectionTitle', { name: pendingDelete?.label ?? '' })} message={t('runtimeConfig.product.removeConnectionHelp')} confirmLabel={t('runtimeConfig.cloud.deleteConnector')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => setPendingDelete(null)} onConfirm={() => { if (!pendingDelete) return; void props.onDeleteConnector(pendingDelete.id).finally(() => setPendingDelete(null)); }} />
     </section>
@@ -81,6 +73,7 @@ export function CloudConnectorListPanel(props: {
 function CloudConnectorCard(props: {
   active: boolean;
   connector: Connector;
+  showEndpoint: boolean;
   deleting: boolean;
   onDeleteConnector: (connectorId: string) => Promise<void>;
   onSelectConnector: (connectorId: string) => void;
@@ -93,7 +86,7 @@ function CloudConnectorCard(props: {
   const host = connector.endpoint ? endpointHost(connector.endpoint) : '';
   const subtitle = [
     vendorLabel.toLowerCase() !== connector.label.toLowerCase() ? vendorLabel : '',
-    host,
+    props.showEndpoint ? host : '',
   ].filter(Boolean).join(' · ');
   const status =
     presentation === 'healthy'
@@ -107,7 +100,7 @@ function CloudConnectorCard(props: {
     <div
       role="listitem"
       className={`group relative flex min-h-[112px] flex-col rounded-[20px] p-4 transition-[background-color,box-shadow] duration-200 ${active
-        ? 'bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] ring-1 ring-inset ring-[var(--nimi-border-strong)]'
+        ? 'bg-[var(--nimi-surface-active)] ring-2 ring-inset ring-[var(--nimi-action-primary-bg)]'
         : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_55%,transparent)] ring-1 ring-inset ring-[var(--nimi-border-subtle)] hover:bg-[var(--nimi-surface-card)]'
         }`}
     >

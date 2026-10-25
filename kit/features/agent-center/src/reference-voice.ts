@@ -5,6 +5,11 @@ type Client = Pick<NimiLocalAppClient, 'agents' | 'ai' | 'aiConfig' | 'agentConf
 type Handle = Parameters<Client['agents']['getIntroduction']>[0]['agentHandle'];
 type Presentation = Awaited<ReturnType<Client['agentConfigure']['presentation']['snapshot']>>;
 type JobResult = Awaited<ReturnType<Client['ai']['scenarioJobs']['get']>>;
+type ReadObservation = Readonly<{
+  presentation: Promise<Presentation>;
+  shared: ReturnType<Client['agentConfigure']['sharedAIConfig']['get']>;
+  voiceAssets: ReturnType<Client['agentConfigure']['sharedAIConfig']['listOptions']>;
+}>;
 
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
@@ -38,19 +43,19 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
   const assertCurrent = (version: number) => {
     if (disposed || epoch !== version || canceled) throw new Error('Reference voice action canceled.');
   };
-  const prepare = async () => {
+  const prepare = async (observation?: ReadObservation) => {
     const [introduction, presentation, app, shared] = await Promise.all([
       client.agents.getIntroduction({ agentHandle: handle }),
-      client.agentConfigure.presentation.snapshot({ agentHandle: handle }),
+      observation?.presentation ?? client.agentConfigure.presentation.snapshot({ agentHandle: handle }),
       client.aiConfig.get().catch(error => {
         if (asNimiError(error).reasonCode === 'AI_CONFIG_NOT_FOUND') return { config: null, revision: '0', effectiveSelections: [] };
         throw error;
-      }), client.agentConfigure.sharedAIConfig.get(),
+      }), observation?.shared ?? client.agentConfigure.sharedAIConfig.get(),
     ]);
     const sampleUrl = introduction.voiceSampleUrl;
     const existing = presentation.defaultVoiceReference || presentation.profile?.defaultVoiceReference;
     if (existing?.startsWith('voice_asset_id:')) {
-      const options = await client.agentConfigure.sharedAIConfig.listOptions({ kind: 'voice-assets' });
+      const options = await (observation?.voiceAssets ?? client.agentConfigure.sharedAIConfig.listOptions({ kind: 'voice-assets' }));
       if (options.kind === 'voice-assets' && options.options.some(x => `voice_asset_id:${x.voiceAssetId}` === existing)) {
         return { presentation, sampleUrl, reason: null, existing: true as const };
       }
@@ -77,11 +82,13 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
     return { presentation, sampleUrl, reason: null,
       identity: canonical({ sampleUrl, connector: create.connector.connectorRef, target: create.target.providerModelTarget }) };
   };
-  const refresh = async () => {
+  // Only the same factory-owned read may supply observations. start() and its
+  // final pre-commit prepare() always reread their owners independently.
+  const refresh = async (observation?: ReadObservation) => {
     if (disposed || pending) return;
     const version = ++epoch;
     try {
-      const prepared = await prepare();
+      const prepared = await prepare(observation);
       if (disposed || version !== epoch || pending) return;
       publish({ phase: prepared.existing ? 'bound' : prepared.reason ? 'unavailable' : 'ready', sampleUrl: prepared.sampleUrl,
         reason: prepared.reason, reasonCode: null });

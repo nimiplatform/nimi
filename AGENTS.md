@@ -15,6 +15,12 @@
 - The external AI host owns workflow state; Nimi-coding must not own or mutate host task lifecycle. Use the guarded scripts in the relevant `package.json` for host workflows. The managed block below defines project-local Nimi-coding execution.
 - Product composition serves the current module's audience and task. Facts, behavior, ownership, safety, and release boundaries remain binding; wording, grouping, hierarchy, and interaction are product decisions. Advanced controls and developer documentation retain necessary precision.
 
+## UI composition
+
+- Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining: use grouping, alignment, spacing, hierarchy, and proximity to make relationships and actions clear. Do not automatically add descriptions at page, section, and item levels or repeat the same fact in both a sentence and a status label within the same context.
+- Keep secondary text when it helps the user identify an object, distinguish actual states, or understand scope, prerequisites, permissions, costs, or consequences. Preserve meaningful control labels and accessible names. Keep essential warnings beside the relevant action; optional detail may use a clearly reachable disclosure, but necessary information must not depend on color or hover alone.
+- Judge simplification by whether the intended user can find the next action and predict its result. Removing words must not remove necessary choices, hide uncertainty, or blur distinctions such as configured, prepared, and actually running.
+
 ## Task-specific context
 
 - Start at the requested target or observed consumer, its direct dependencies, and its nearest guidance. Inspect upstream owners when a concrete task question, dependency, trace, or contract requires them; do not require a runtime failure before investigating a directly implicated owner.

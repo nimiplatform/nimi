@@ -2593,7 +2593,7 @@
   "quickStart": {
     "title": "On-device chat",
     "setupTitle": "Set up your first on-device chat",
-    "readyTitle": "Local AI is ready",
+    "readyTitle": "Ready capabilities · {{count}}",
     "defaultModel": "Default · {{model}}",
     "defaultTag": "Default",
     "otherConfiguration": "Another configuration",
@@ -2948,6 +2948,8 @@
     },
     "aboutSize": "about {{size}}",
     "whatItDoes": "What this model does",
+    "modelDetails": "Model details",
+    "componentDetails": "Component details",
     "technicalModel": "Model",
     "technicalEnvironment": "Runtime components",
     "technicalRecipe": "Recipe",

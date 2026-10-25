@@ -39,7 +39,7 @@ async function renderOverview(capabilities: readonly RuntimeOverviewCapability[]
 
 test('overview lists every ready capability and its model, excluding unready capabilities', async () => {
   const html = await renderOverview([text, image, { id: 'video.generate', model: 'Unready model', state: { state: 'preparing', replacement: false } }]);
-  assert.match(html, /本机 AI 已就绪/);
+  assert.match(html, /可用能力 · 2/);
   assert.doesNotMatch(html, /项能力在这台设备上本地运行/);
   assert.match(html, /文本生成/);
   assert.match(html, /Gemma 4/);
@@ -48,13 +48,13 @@ test('overview lists every ready capability and its model, excluding unready cap
   assert.match(html, /aria-label="查看图像生成"/);
   assert.equal((html.match(/data-ready-capability=/g) ?? []).length, 2);
   assert.doesNotMatch(html, /本机对话已就绪|Unready model|开始聊天|Nimi 聊天|本机默认/);
-  assert.equal((html.match(/已就绪/g) ?? []).length, 1, 'readiness appears only in the summary heading');
+  assert.equal((html.match(/可用能力/g) ?? []).length, 1, 'the summary states the scope of readiness once');
 });
 
 test('image readiness remains visible without ready text generation, in both locales', async () => {
   for (const language of ['zh', 'en']) {
     const html = await renderOverview([image], language);
-    assert.match(html, language === 'zh' ? /本机 AI 已就绪/ : /Local AI is ready/);
+    assert.match(html, language === 'zh' ? /可用能力 · 1/ : /Ready capabilities · 1/);
     assert.doesNotMatch(html, language === 'zh' ? /项能力在这台设备上本地运行/ : /capability runs on this device/);
     assert.match(html, /Z-Image Turbo/);
     assert.doesNotMatch(html, /data-ready-capability="text.generate"|Gemma 4|runtimeConfig\./);

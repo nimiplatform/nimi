@@ -26,6 +26,24 @@ function fixture() {
 }
 
 describe('Agent reference voice owner journey', () => {
+  it('uses same-read observations only for refresh, then verifies owners afresh before submit and bind', async () => {
+    const f = fixture();
+    const presentation = await f.client.agentConfigure.presentation.snapshot();
+    const shared = await f.client.agentConfigure.sharedAIConfig.get();
+    const voiceAssets = await f.client.agentConfigure.sharedAIConfig.listOptions({ kind: 'voice-assets' });
+    f.client.agentConfigure.presentation.snapshot.mockClear();
+    f.client.agentConfigure.sharedAIConfig.get.mockClear();
+    f.client.agentConfigure.sharedAIConfig.listOptions.mockClear();
+    await f.controller.refresh({ presentation: Promise.resolve(presentation), shared: Promise.resolve(shared), voiceAssets: Promise.resolve(voiceAssets) });
+    expect(f.controller.getSnapshot().phase).toBe('ready');
+    expect(f.client.agentConfigure.presentation.snapshot).not.toHaveBeenCalled();
+    expect(f.client.agentConfigure.sharedAIConfig.get).not.toHaveBeenCalled();
+    expect(f.client.ai.scenarioJobs.submit).not.toHaveBeenCalled();
+    await f.controller.start();
+    expect(f.client.agentConfigure.presentation.snapshot).toHaveBeenCalledTimes(2);
+    expect(f.client.agentConfigure.sharedAIConfig.get).toHaveBeenCalledTimes(2);
+    expect(f.client.ai.scenarioJobs.submit).toHaveBeenCalledTimes(1);
+  });
   it('does not create on refresh and uses the current greeting as the reference', async () => {
     const f = fixture(); await f.controller.refresh(); expect(f.controller.getSnapshot().phase).toBe('ready'); expect(f.client.ai.scenarioJobs.submit).not.toHaveBeenCalled();
     await f.controller.start(); expect(f.client.ai.scenarioJobs.submit.mock.calls[0][0]).toMatchObject({ creationSource: 'reference-audio', referenceAudio: { type: 'uri', uri: 'https://assets.example.test/current-greeting.wav' } });

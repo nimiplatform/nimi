@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import type { ChatCopy } from '@nimiplatform/kit/features/chat/ui';
@@ -69,7 +69,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
     : `${props.mode}:landing`;
   const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[viewModeKey] || 'chat');
   const canonicalMessages = props.host.messages || [];
-  const canonicalCopy: ChatCopy = {
+  const canonicalCopy = useMemo<ChatCopy>(() => ({
     targetPaneLoadingLabel: t('Chat.loadingTargets', { defaultValue: 'Loading targets…' }),
     targetPaneEmptyTitle: t('Chat.noTargetsTitle', { defaultValue: 'No targets available' }),
     targetPaneEmptyDescription: t('Chat.noTargetsDescription', { defaultValue: 'Change the source filter or wait until a compatible conversation target appears.' }),
@@ -113,7 +113,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
     markdownCopyLabel: t('Chat.markdownCopy', { defaultValue: 'Copy' }),
     markdownCopiedLabel: t('Chat.markdownCopied', { defaultValue: 'Copied!' }),
     shellDismissOverlayLabel: t('Chat.dismissOverlay', { defaultValue: 'Dismiss overlay' }),
-  };
+  }), [t]);
 
   const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
     if (!props.selectedTarget) {

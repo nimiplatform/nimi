@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Agent Center initial-read progress (0.x minor)
+
+Canonical Agent Center snapshots now include `reads`, a read-only completion map for the published manager, shared AIConfig, autonomy, presentation and memory observations. Consumers may show a partial read-only overview during initial loading; pending is not canonical absence or action permission. The original initial mutation gate, per-domain failure handling, explicit refresh and revision checks remain in force. Use the canonical factory and rebuild consumers of the widened snapshot type; there is no wire protocol or Runtime authority change.
+
 ## Unreleased — Realm launch hard cut (0.x minor)
 
 Desktop Account status and event projections now require the Runtime-owned `authorizationRevision` equality value. Use matching Runtime, native carrier, SDK, and Kit builds: authenticated snapshots require a nonempty revision, refresh-pending may carry an empty revision, and other states require an empty revision. Consumers compare the exact opaque value without treating it as authority or a credential. Missing fields are rejected; ordinary Local App auth/currentUser and account mutation responses are unchanged.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
 import {
@@ -6,6 +6,7 @@ import {
   type AgentCenterAppearanceProjection,
   type AgentCenterResourcePackPlacementAdapter,
   type AgentCenterSession,
+  type AgentCenterSnapshot,
 } from '@nimiplatform/kit/features/agent-center';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
@@ -60,10 +61,80 @@ export function projectDesktopRuntimePresentationProfile(
   };
 }
 
+type AgentConversationDisplaySource = {
+  getSnapshot(): {
+    readonly phase: AgentCenterSnapshot['phase'];
+    readonly state: {
+      readonly cognition: RuntimeCommittedStatusProjection;
+      readonly appearance: AgentCenterAppearanceProjection;
+    };
+  };
+  subscribe(listener: () => void): () => void;
+};
+
+type AgentConversationDisplaySnapshot = Readonly<Pick<AgentConversationRuntimeController,
+  'runtimeCommittedStatus' | 'runtimePresentationProfile'>>;
+
+function reuseDisplayProjection<T extends object>(previous: T | null, next: T | null): T | null {
+  if (previous && next) {
+    const keys = Object.keys(next) as (keyof T)[];
+    if (keys.length === Object.keys(previous).length
+      && keys.every(key => Object.hasOwn(previous, key) && Object.is(previous[key], next[key]))) return previous;
+  }
+  if (next) Object.freeze(next);
+  return next;
+}
+
+/** Display values belong to this exact Session instance, never a handle cache.
+ * Agent Center and mutations retain the complete Session's own subscriptions. */
+export function createAgentConversationDisplayStore(source: AgentConversationDisplaySource | null) {
+  // Partial initial Manager reads serve the independent Center overview. They
+  // must not change the chat scene/autoplay before the complete initial read.
+  const initialPresentation = projectDesktopRuntimePresentationProfile(source?.getSnapshot().state.appearance);
+  if (initialPresentation) Object.freeze(initialPresentation);
+  let observed: ReturnType<AgentConversationDisplaySource['getSnapshot']> | null | undefined;
+  let projected: AgentConversationDisplaySnapshot = Object.freeze({
+    runtimeCommittedStatus: null,
+    runtimePresentationProfile: initialPresentation,
+  });
+  const getSnapshot = (): AgentConversationDisplaySnapshot => {
+    const next = source?.getSnapshot() ?? null;
+    if (next === observed) return projected;
+    const cognition = next?.state.cognition;
+    const runtimeCommittedStatus = reuseDisplayProjection(projected.runtimeCommittedStatus,
+      !next || next.phase === 'loading' || !cognition ? null : {
+        lifecycleStatus: cognition.lifecycleStatus,
+        executionState: cognition.executionState,
+        statusText: cognition.statusText,
+      });
+    const runtimePresentationProfile = reuseDisplayProjection(projected.runtimePresentationProfile,
+      next?.phase === 'loading' ? initialPresentation : projectDesktopRuntimePresentationProfile(next?.state.appearance));
+    observed = next;
+    if (runtimeCommittedStatus !== projected.runtimeCommittedStatus
+      || runtimePresentationProfile !== projected.runtimePresentationProfile) {
+      projected = Object.freeze({ runtimeCommittedStatus, runtimePresentationProfile });
+    }
+    return projected;
+  };
+  const subscribe = (listener: () => void) => {
+    let current = getSnapshot();
+    let active = true;
+    const unsubscribe = source?.subscribe(() => {
+      if (!active) return;
+      const next = getSnapshot();
+      if (next === current) return;
+      current = next;
+      listener();
+    });
+    return () => { active = false; unsubscribe?.(); };
+  };
+  return Object.freeze({ getSnapshot, subscribe });
+}
+
 export function useAgentConversationRuntimeController(
   input: UseAgentConversationRuntimeControllerInput,
 ): AgentConversationRuntimeController {
-  const { activeTarget, authStatus, reportHostError } = input;
+  const { activeTarget, authStatus } = input;
   const bindings = useDesktopRendererBindings();
   const agentHandle = normalizeText(activeTarget?.agentHandle);
   const conversationAnchorId = normalizeText(activeTarget?.conversationAnchorId);
@@ -114,35 +185,10 @@ export function useAgentConversationRuntimeController(
     runtimeAgentCenterAdapter?.dispose();
   }, [runtimeAgentCenterAdapter]);
 
-  useEffect(() => {
-    if (!runtimeAgentCenterAdapter) return;
-    void runtimeAgentCenterAdapter.refresh().catch((error) => reportHostError(error, {
-      action: 'load-canonical-agent-manager',
-    }));
-  }, [reportHostError, runtimeAgentCenterAdapter]);
-
-  const subscribe = useCallback((listener: () => void) => (
-    runtimeAgentCenterAdapter?.subscribe(listener) ?? (() => undefined)
-  ), [runtimeAgentCenterAdapter]);
-  const getSnapshot = useCallback(
-    () => runtimeAgentCenterAdapter?.getSnapshot() ?? null,
-    [runtimeAgentCenterAdapter],
+  const displayStore = useMemo(() => createAgentConversationDisplayStore(runtimeAgentCenterAdapter), [runtimeAgentCenterAdapter]);
+  const { runtimeCommittedStatus, runtimePresentationProfile } = useSyncExternalStore(
+    displayStore.subscribe, displayStore.getSnapshot, displayStore.getSnapshot,
   );
-  const managerSnapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-
-  const runtimeCommittedStatus = useMemo<RuntimeCommittedStatusProjection | null>(() => {
-    if (!managerSnapshot || managerSnapshot.phase === 'loading') return null;
-    const cognition = managerSnapshot.state.cognition;
-    return {
-      lifecycleStatus: cognition.lifecycleStatus,
-      executionState: cognition.executionState,
-      statusText: cognition.statusText,
-    };
-  }, [managerSnapshot]);
-
-  const runtimePresentationProfile = useMemo<NimiRuntimeAgentPresentationProfileProjection | null>(() => {
-    return projectDesktopRuntimePresentationProfile(managerSnapshot?.state.appearance);
-  }, [managerSnapshot]);
 
   return {
     runtimeAgentCenterAdapter,

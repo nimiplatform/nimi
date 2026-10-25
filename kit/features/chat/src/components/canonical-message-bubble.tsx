@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, memo, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Component, Suspense, lazy, memo, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
@@ -78,7 +78,12 @@ class LazyMessageContentBoundary extends Component<LazyMessageContentBoundaryPro
   }
 }
 
-function MarkdownMessageContent({ content, copy }: { content: string; copy: Required<ChatCopy> }) {
+const MarkdownMessageContent = memo(function MarkdownMessageContent({ content, markdownCopyLabel, markdownCopiedLabel }: {
+  content: string;
+  markdownCopyLabel: string;
+  markdownCopiedLabel: string;
+}) {
+  const copy = useMemo(() => ({ markdownCopyLabel, markdownCopiedLabel }), [markdownCopyLabel, markdownCopiedLabel]);
   const fallback = <PlainTextMessageContent content={content} />;
   return (
     <LazyMessageContentBoundary resetKey={`markdown:${content}`} fallback={fallback}>
@@ -87,9 +92,9 @@ function MarkdownMessageContent({ content, copy }: { content: string; copy: Requ
       </Suspense>
     </LazyMessageContentBoundary>
   );
-}
+});
 
-function RpMessageContent({ content }: { content: string }) {
+const RpMessageContent = memo(function RpMessageContent({ content }: { content: string }) {
   const fallback = <PlainTextMessageContent content={content} />;
   return (
     <LazyMessageContentBoundary resetKey={`rp:${content}`} fallback={fallback}>
@@ -98,7 +103,7 @@ function RpMessageContent({ content }: { content: string }) {
       </Suspense>
     </LazyMessageContentBoundary>
   );
-}
+});
 
 function bubbleShapeFor(role: ConversationCanonicalMessage['role']): BubbleShape {
   const isUser = role === 'user' || role === 'human';
@@ -446,13 +451,13 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
         )
       ) : isStreaming ? (
         <div className={`space-y-1 ${message.text ? '' : 'italic opacity-70'}`}>
-          {message.text ? <MarkdownMessageContent content={message.text} copy={copyResolved} /> : copyResolved.bubbleStreamingLabel}
+          {message.text ? <MarkdownMessageContent content={message.text} markdownCopyLabel={copyResolved.markdownCopyLabel} markdownCopiedLabel={copyResolved.markdownCopiedLabel} /> : copyResolved.bubbleStreamingLabel}
           <span className="inline-block animate-pulse text-[var(--nimi-action-primary-bg)]">|</span>
         </div>
       ) : !disableRpContent && hasRpContent(message.text) ? (
         <RpMessageContent content={message.text} />
       ) : (
-        <MarkdownMessageContent content={message.text} copy={copyResolved} />
+        <MarkdownMessageContent content={message.text} markdownCopyLabel={copyResolved.markdownCopyLabel} markdownCopiedLabel={copyResolved.markdownCopiedLabel} />
       )}
       {isVoice && isVoiceTranscriptVisible && transcriptText ? (
         <div className="mt-2 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs opacity-80">
@@ -504,7 +509,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
         </div>
       </div>
 
-      <Dialog open={imagePreviewOpen && Boolean(mediaUri)} onOpenChange={(open) => { if (!open) closeImagePreview(); }}>
+      {isImage ? <Dialog open={imagePreviewOpen && Boolean(mediaUri)} onOpenChange={(open) => { if (!open) closeImagePreview(); }}>
         <DialogContent
           onClose={closeImagePreview}
           overlayClassName="bg-black/70"
@@ -521,7 +526,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             <img src={mediaUri} alt={message.text || copyResolved.bubbleImageLabel} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />
           ) : null}
         </DialogContent>
-      </Dialog>
+      </Dialog> : null}
     </>
   );
 });

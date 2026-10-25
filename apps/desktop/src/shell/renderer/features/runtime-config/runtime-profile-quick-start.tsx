@@ -153,7 +153,7 @@ export function RuntimeProfileQuickStart(props: {
                 className="size-2.5 shrink-0 rounded-full bg-[var(--nimi-status-success)] shadow-[0_0_0_4px_var(--nimi-status-success-soft-bg),0_0_12px_color-mix(in_srgb,var(--nimi-status-success)_45%,transparent)]"
                 aria-hidden="true"
               />
-              {t('runtimeConfig.quickStart.readyTitle')}
+              {t('runtimeConfig.quickStart.readyTitle', { count: ready.length })}
             </span>
           </QuickStartTitle>
           {props.readyAction}
@@ -178,16 +178,8 @@ export function RuntimeProfileQuickStart(props: {
                     <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{label}</span>
-                    {entry.model ? (
-                      <span
-                        data-current-model
-                        className="mt-0.5 block truncate text-xs leading-4 text-[var(--nimi-text-secondary)]"
-                        title={entry.model}
-                      >
-                        {entry.model}
-                      </span>
-                    ) : null}
+                    <span data-current-model={entry.model ? '' : undefined} className="block whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{entry.model || label}</span>
+                    {entry.model ? <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{label}</span> : null}
                   </span>
                   <ChevronRight
                     size={18}

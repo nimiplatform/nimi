@@ -25,6 +25,12 @@ test('Home sidebar keeps section and identity together and discards only the dep
   const root = createRoot(document.getElementById('root')!);
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   const sessions = { a: await sessionFor(), b: await sessionFor() };
+  const refreshCalls = { a: 0, b: 0 };
+  for (const handle of ['a', 'b'] as const) {
+    const refresh = sessions[handle].refresh.bind(sessions[handle]);
+    Object.defineProperty(sessions[handle], 'refresh', { value: () => { refreshCalls[handle]++; return refresh(); } });
+  }
+  let messageCount = 0;
   const i18n = createInstance(); await i18n.init({ lng: 'en', resources: {}, initImmediate: false });
   const bindings = { sdk: {}, app: { commands: { runtimeConfigNavigation: {} } } } as DesktopCanonicalRendererBindings;
   let position!: ReturnType<typeof useHomeChatPosition>;
@@ -33,7 +39,7 @@ test('Home sidebar keeps section and identity together and discards only the dep
     const handle = position.agentSelection.agentHandle as 'a' | 'b';
     if (!handle || !position.agentCenterSection) return null;
     const input = { activeTarget: { agentHandle: handle, displayName: handle === 'a' ? 'Partner A' : 'Partner B', handle: '', worldName: null },
-      activeConversationAnchorId: `anchor-${handle}`, messages: [], runtimeAgentCenterAdapter: sessions[handle],
+      activeConversationAnchorId: `anchor-${handle}`, messages: Array.from({ length: messageCount }, () => ({})), runtimeAgentCenterAdapter: sessions[handle],
       onCloseAgentCenter: () => position.setAgentCenterSection(undefined), t: (key: string) => key,
     } as unknown as UseAgentConversationPresentationInput;
     return <AgentConversationSettingsContent input={input} />;
@@ -72,6 +78,15 @@ test('Home sidebar keeps section and identity together and discards only the dep
     assert.ok(document.querySelector('[data-chat-agent-center]')?.textContent?.includes('Partner B'));
     await act(async () => position.setAgentCenterSection(undefined));
     assert.equal(document.querySelector('[data-chat-agent-center]'), null);
+    const beforeReopen = refreshCalls.b;
+    await act(async () => position.setAgentCenterSection('behavior'));
+    assert.ok(refreshCalls.b > beforeReopen, 'reopening a loaded center must revalidate owner state');
+    const beforeTurn = refreshCalls.b;
+    messageCount++;
+    await act(async () => position.setAgentCenterSection('overview'));
+    assert.equal(refreshCalls.b, beforeTurn + 1, 'a later turn still asks for fresh Manager context');
+    await act(async () => position.setAgentCenterSection('ai-config'));
+    assert.equal(refreshCalls.b, beforeTurn + 1, 'changing tabs alone does not repeat a full owner read');
   } finally {
     await act(async () => root.unmount()); sessions.a.dispose(); sessions.b.dispose(); store.navigation.dispose();
     dom.window.close();
