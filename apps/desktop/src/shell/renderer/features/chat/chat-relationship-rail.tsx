@@ -35,7 +35,6 @@ export type ChatRelationshipRailProps = {
   onToggleSettings: () => void;
   nimiThreadListOpen: boolean;
   onToggleNimiThreadList: () => void;
-  onManageAgents?: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -291,7 +290,6 @@ export function ChatRelationshipRail({
   onToggleSettings,
   nimiThreadListOpen,
   onToggleNimiThreadList,
-  onManageAgents,
 }: ChatRelationshipRailProps) {
   const { t } = useTranslation();
   const [findFriendOpen, setFindFriendOpen] = useState(false);
@@ -357,7 +355,6 @@ export function ChatRelationshipRail({
 
       </ScrollArea>
       <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-2 border-t border-white/70 px-1 pb-1 pt-3">
-        {onManageAgents ? <IconToggleAction active={false} aria-label={t('Chat.managePartners')} title={t('Chat.managePartners')} onClick={onManageAgents} icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M18 15a4 4 0 0 1 3 4"/></svg>}/> : null}
         {showNimiThreadToggle ? (
           <IconToggleAction
             icon={(

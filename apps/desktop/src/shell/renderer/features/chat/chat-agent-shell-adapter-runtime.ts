@@ -65,18 +65,19 @@ export function useAgentConversationRuntimeController(
 ): AgentConversationRuntimeController {
   const { activeTarget, authStatus, reportHostError } = input;
   const bindings = useDesktopRendererBindings();
+  const agentHandle = normalizeText(activeTarget?.agentHandle);
+  const conversationAnchorId = normalizeText(activeTarget?.conversationAnchorId);
   const runtimeAgentCenterAdapter = useMemo(() => {
-    const agentHandle = normalizeText(activeTarget?.agentHandle);
-    if (authStatus !== 'authenticated' || !activeTarget || !agentHandle) return null;
+    if (authStatus !== 'authenticated' || !agentHandle) return null;
     const shellBridge = hasElectronInvoke() ? createAgentCenterShellBridge() : null;
-    const resourcePackPlacement = activeTarget.conversationAnchorId && shellBridge
+    const resourcePackPlacement = conversationAnchorId && shellBridge
       ? {
           availability: {
             state: 'available',
             reasonCode: null,
             actionHint: null,
           },
-          open: () => shellBridge.openResourcePackInZhiyu(activeTarget.conversationAnchorId!),
+          open: () => shellBridge.openResourcePackInZhiyu(conversationAnchorId),
         } as const satisfies AgentCenterResourcePackPlacementAdapter
       : {
           availability: {
@@ -95,19 +96,19 @@ export function useAgentConversationRuntimeController(
       handle: agentHandle as NimiLocalAppAgentHandle,
       client: appClient.agentConfigure,
       referenceVoiceClient: appClient,
-      ...(activeTarget.conversationAnchorId
-        ? { conversationAnchorId: activeTarget.conversationAnchorId }
+      ...(conversationAnchorId
+        ? { conversationAnchorId }
         : {}),
       hostMechanics: shellBridge
         ? createDesktopAgentCenterHostMechanics({
-          conversationAnchorId: activeTarget.conversationAnchorId,
+          conversationAnchorId,
           shell: shellBridge,
           avatarHandoff: bindings.app.commands.avatarHandoff,
         })
         : null,
       resourcePackPlacement,
     });
-  }, [activeTarget, authStatus, bindings]);
+  }, [agentHandle, conversationAnchorId, authStatus, bindings]);
 
   useEffect(() => () => {
     runtimeAgentCenterAdapter?.dispose();

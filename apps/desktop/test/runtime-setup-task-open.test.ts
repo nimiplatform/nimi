@@ -10,7 +10,7 @@ import {
   openOrCreateRuntimeSetupTask,
   openRuntimeSetupTaskFromEntry,
   resolveRuntimeSetupReturnTarget,
-  resolveRuntimeSetupAgentDestination,
+  agentCenterSetupReturnFocus,
   returnFromRuntimeSetup,
 } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-open.js';
 
@@ -33,7 +33,7 @@ const APP_SOURCE = {
 test('a reused setup task returns to the latest exact partner management position', () => {
   const store = makeStore();
   const first = openOrCreateRuntimeSetupTask(store, { capabilityContract: 'text.generate', source: { kind: 'local-agent', accountId: 'acct-1', returnFocus: 'chat:agent' }, openTask() {} });
-  const destination = { id: 'agent-center', chat: { mode: 'agent', agentBinding: 'agent_binding_current', conversationAnchorId: 'anchor-current' } };
+  const destination = { id: 'chat', chat: { mode: 'agent', managerAnchorId: 'anchor-current', agentCenterSection: 'ai-config' } };
   const returnFocus = 'home:' + encodeURIComponent(JSON.stringify(destination));
   const second = openOrCreateRuntimeSetupTask(store, { capabilityContract: 'text.generate', source: { kind: 'local-agent', accountId: 'acct-1', returnFocus }, openTask() {} });
   assert.equal(first.taskId, second.taskId);
@@ -132,39 +132,36 @@ test('return handles resolve to existing tabs and never invent a destination', (
 });
 
 
-test('setup return resolves fresh session identity and verifies the original anchor', async () => {
-  const destination = { id: 'agent-center', chat: { mode: 'agent', agentBinding: 'binding-a', conversationAnchorId: 'anchor-a' } } as const;
+test('setup return persists only the original anchor and section for the current-account resolver', async () => {
+  const destination = { id: 'chat', chat: { mode: 'agent', managerAnchorId: 'anchor-a', agentCenterSection: 'ai-config' } } as const;
+  const returnFocus = agentCenterSetupReturnFocus({ mode: 'agent', agentHandle: 'expired-a', conversationAnchorId: 'anchor-a', agentCenterSection: 'ai-config' });
+  assert.ok(!returnFocus.includes('expired-a'));
   const saved = new Map<string, string>();
   const storage = { getItem: (key: string) => saved.get(key) ?? null, setItem: (key: string, value: string) => { saved.set(key, value); }, removeItem: (key: string) => { saved.delete(key); } };
   const original = createRuntimeSetupTaskStore({ storage });
-  const opened = openOrCreateRuntimeSetupTask(original, { capabilityContract: 'text.generate', source: { kind: 'local-agent', accountId: 'acct-1', returnFocus: 'home:' + encodeURIComponent(JSON.stringify(destination)) }, openTask() {} });
+  const opened = openOrCreateRuntimeSetupTask(original, { capabilityContract: 'text.generate', source: { kind: 'local-agent', accountId: 'acct-1', returnFocus }, openTask() {} });
   const restored = createRuntimeSetupTaskStore({ storage }).getTask(opened.taskId)!;
   const target = resolveRuntimeSetupReturnTarget(restored.source.returnFocus);
   assert.equal(target?.kind, 'destination');
   if (target?.kind !== 'destination') throw new Error('Saved return position missing');
   assert.deepEqual(target.destination, destination);
-  const calls: unknown[] = [];
-  const resolved = await resolveRuntimeSetupAgentDestination(target.destination, {
-    agents: { listReferences: async () => [{ agentBinding: 'binding-b', agentHandle: 'fresh-b' }, { agentBinding: 'binding-a', agentHandle: 'fresh-a' }] },
-    conversation: { snapshot: async (scope: unknown) => { calls.push(scope); return { conversationAnchorId: 'anchor-a' }; } },
-  } as never);
-  assert.equal(resolved.chat?.agentHandle, 'fresh-a');
-  assert.deepEqual(calls, [{ agentHandle: 'fresh-a', conversationAnchorId: 'anchor-a' }]);
-  const stale = resolveRuntimeSetupReturnTarget('home:' + encodeURIComponent(JSON.stringify({ id: 'agent-center', chat: { mode: 'agent', agentHandle: 'expired', conversationAnchorId: 'anchor-a' } })));
-  assert.deepEqual(stale, { kind: 'destination', destination: { id: 'agent-center', chat: { mode: 'agent' } } });
+  const stale = resolveRuntimeSetupReturnTarget('home:' + encodeURIComponent(JSON.stringify({ id: 'chat', chat: { mode: 'agent', agentHandle: 'expired', conversationAnchorId: 'anchor-a' } })));
+  assert.equal(stale, null);
+  assert.throws(() => agentCenterSetupReturnFocus({ mode: 'agent' }));
+  assert.equal(resolveRuntimeSetupReturnTarget('home:' + encodeURIComponent(JSON.stringify({ id: 'agent-center' }))), null);
 });
 
 test('returning from a setup detour preserves Back to the original chat', async () => {
   const { createHomeNavigation, homeRuntimeDestination } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
   const navigation = createHomeNavigation();
   const chat = { id: 'chat', chat: { mode: 'agent', agentHandle: 'a', conversationAnchorId: 'anchor-a' } } as const;
-  const manager = { ...chat, id: 'agent-center' } as const;
+  const manager = { ...chat, chat: { ...chat.chat, agentCenterSection: 'ai-config' } } as const;
   await navigation.push(chat);
   await navigation.push(manager);
   await navigation.push(homeRuntimeDestination('aiSettings'));
   await navigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: 'text.generate' }));
   await returnFromRuntimeSetup(navigation, manager);
-  assert.equal(navigation.getSnapshot().current.destination.id, 'agent-center');
+  assert.deepEqual(navigation.getSnapshot().current.destination, manager);
   await navigation.back();
   assert.deepEqual(navigation.getSnapshot().current.destination, chat);
 });
@@ -173,7 +170,7 @@ test('returning from a setup detour preserves Back to the original chat', async 
 test('a delayed configuration source cannot create or rewrite a task after leaving its entry', async () => {
   const { createHomeNavigation } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
   const navigation = createHomeNavigation();
-  const manager = { id: 'agent-center', chat: { mode: 'agent', agentHandle: 'current' } } as const;
+  const manager = { id: 'chat', chat: { mode: 'agent', agentHandle: 'current', conversationAnchorId: 'anchor-current', agentCenterSection: 'ai-config' } } as const;
   await navigation.push(manager);
   const store = makeStore();
   const opened: string[] = [];

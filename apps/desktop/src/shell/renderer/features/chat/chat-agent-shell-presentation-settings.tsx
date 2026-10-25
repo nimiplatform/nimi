@@ -1,13 +1,15 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { useEffect, useMemo, useState } from 'react';
+import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AgentCenter, type AgentCenterI18n, type AgentCenterPlacementActions, type AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
+import { AgentCenter, type AgentCenterI18n, type AgentCenterPlacementActions } from '@nimiplatform/kit/features/agent-center';
 
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
-import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
+import { agentCenterSetupReturnFocus, openRuntimeSetupTaskFromEntry } from '../runtime-config/runtime-setup-task-open.js';
 import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 
 type AgentConversationSettingsContentProps = {
   input: UseAgentConversationPresentationInput;
@@ -26,11 +28,13 @@ export function resolveAgentCenterIdentityBadge(input: {
   return `~${handle}`;
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-001c
 export function AgentConversationSettingsContent({ input }: AgentConversationSettingsContentProps) {
   const navigation = useHomeNavigation();
   const { i18n } = useTranslation();
   const sdk = useDesktopRendererSdk();
-  const [activeSection, setActiveSection] = useState<AgentCenterSectionId>('overview');
+  const homeChat = useHomeChatPosition();
+  const activeSection = homeChat.agentCenterSection ?? 'overview';
 
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const agentCenterI18n = useMemo<AgentCenterI18n>(() => ({
@@ -42,43 +46,30 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     void input.messages.length;
     void input.runtimeAgentCenterAdapter?.refresh();
   }, [input.activeConversationAnchorId, input.messages.length, input.runtimeAgentCenterAdapter]);
-  const placementActions = useMemo<AgentCenterPlacementActions>(() => ({
-    close: input.onCloseAgentCenter,
-    openRuntimeSettings: () => {
-
-      runtimeConfigNavigation.openPage('aiSettings');
-    },
-    openReferenceVoiceSetup: (scope) => {
-      void currentDesktopAccountIdForSetup().then((accountId) => {
-        openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
-          capabilityContract: scope === 'creation' ? 'voice.create' : 'audio.synthesize',
-          source: { kind: scope === 'creation' ? 'app' : 'local-agent', accountId,
-            ...(scope === 'creation' ? { ownerAppId: sdk.appId() } : {}), returnFocus: 'chat:agent' },
-          openTask: (taskId) => {  runtimeConfigNavigation.openSetupTask(taskId); },
-        });
-      });
-    },
-    openMachineLoadout: (capabilityContract) => {
-      // Preserve the capability requested by the shared Manager.
-      void currentDesktopAccountIdForSetup().then((accountId) => {
-        openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
-          capabilityContract,
-          source: {
-            kind: 'local-agent',
-            accountId,
-            returnFocus: 'chat:agent',
-          },
-          openTask: (taskId) => {
-
-            runtimeConfigNavigation.openSetupTask(taskId);
-          },
-        });
-      });
-    },
-  }), [input.onCloseAgentCenter, runtimeConfigNavigation, navigation, sdk]);
+  const placementActions = useMemo<AgentCenterPlacementActions>(() => {
+    const openSetup = (capabilityContract: string, creation = false) => {
+      void openRuntimeSetupTaskFromEntry(getRuntimeSetupTaskStore(), {
+        navigation, capabilityContract,
+        loadSource: async origin => ({
+          kind: creation ? 'app' : 'local-agent',
+          accountId: await currentDesktopAccountIdForSetup(),
+          ...(creation ? { ownerAppId: sdk.appId() } : {}),
+          returnFocus: agentCenterSetupReturnFocus(origin.chat),
+        }),
+        openTask: taskId => runtimeConfigNavigation.openSetupTask(taskId),
+      }).catch(error => emitFeedbackToast({ kind: 'error', message: error instanceof Error ? error.message : String(error) }));
+    };
+    return {
+      close: input.onCloseAgentCenter,
+      openRuntimeSettings: () => runtimeConfigNavigation.openPage('aiSettings'),
+      openReferenceVoiceSetup: scope => openSetup(scope === 'creation' ? 'voice.create' : 'audio.synthesize', scope === 'creation'),
+      openMachineLoadout: capabilityContract => openSetup(capabilityContract),
+    };
+  }, [input.onCloseAgentCenter, runtimeConfigNavigation, navigation, sdk]);
   if (!input.runtimeAgentCenterAdapter) return null;
   return (
     <AgentCenter
+      key={`${input.activeTarget?.agentHandle}:${input.activeConversationAnchorId}`}
       activeSection={activeSection}
       chrome="standalone"
       identity={input.activeTarget ? {
@@ -88,7 +79,7 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
         badgeLabel: resolveAgentCenterIdentityBadge(input.activeTarget),
       } : null}
       i18n={agentCenterI18n}
-      onSectionChange={setActiveSection}
+      onSectionChange={homeChat.setAgentCenterSection}
       placementActions={placementActions}
       session={input.runtimeAgentCenterAdapter}
     />

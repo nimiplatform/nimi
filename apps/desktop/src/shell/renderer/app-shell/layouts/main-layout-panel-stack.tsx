@@ -11,10 +11,6 @@ const ChatPage = lazy(async () => {
   const mod = await import('../../features/chat/chat-page');
   return { default: mod.ChatPage };
 });
-const LocalAgentManagementPage = lazy(async () => {
-  const mod = await import('../../features/agents/local-agent-management-page.js');
-  return { default: mod.LocalAgentManagementPage };
-});
 const ExplorePanel = lazy(async () => {
   const mod = await import('../../features/explore/explore-panel');
   return { default: mod.ExplorePanel };
@@ -145,11 +141,6 @@ export function MainLayoutPanelStack({
           {activeTab === 'chat' ? (
             <MotionPanelFrame panelId="chat" className="flex h-full min-h-0 flex-1">
               <ChatPage />
-            </MotionPanelFrame>
-          ) : null}
-          {activeTab === 'agent-center' ? (
-            <MotionPanelFrame panelId="agent-center" className="flex h-full min-h-0 flex-1">
-              <LocalAgentManagementPage />
             </MotionPanelFrame>
           ) : null}
 

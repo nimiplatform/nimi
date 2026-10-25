@@ -33,9 +33,8 @@ export function ChatAgentModeContent({
   const sdk = useDesktopRendererSdk();
   const [managerPending, setManagerPending] = useState(false);
   const [managerFailed, setManagerFailed] = useState(false);
-  const managerNavigation = useRef({ onOpenSettings, resolve: homeChat.resolveAgentCenterRequest });
-  const managerResolved = useRef<{ agentHandle: string; conversationAnchorId: string } | null>(null);
-  managerNavigation.current = { onOpenSettings, resolve: homeChat.resolveAgentCenterRequest };
+  const managerNavigation = useRef(homeChat.resolveAgentCenterRequest);
+  managerNavigation.current = homeChat.resolveAgentCenterRequest;
   const [diagnosticsSectionVisible, setDiagnosticsSectionVisible] = useState(false);
   const authStatus = useAppStore((state) => state.auth.status);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
@@ -51,23 +50,13 @@ export function ChatAgentModeContent({
     void resolveDesktopOpenAgentCenterTarget(sdk.appProduct(), anchor, () => current).then((target) => {
       if (!current) return;
       setAgentConversationTargetSnapshot(target);
-      managerResolved.current = { agentHandle: target.agentHandle, conversationAnchorId: anchor };
-      managerNavigation.current.resolve({ agentHandle: target.agentHandle, conversationAnchorId: anchor, targetId: target.agentHandle });
+      managerNavigation.current({ agentHandle: target.agentHandle, conversationAnchorId: anchor, targetId: target.agentHandle });
     }).catch(() => {
       if (!current) return;
-      setManagerFailed(true); managerNavigation.current.resolve(null);
+      setManagerFailed(true); managerNavigation.current(null);
     }).finally(() => { if (current) setManagerPending(false); });
     return () => { current = false; };
   }, [homeChat.managerAnchorId, authStatus, sdk, setAgentConversationTargetSnapshot]);
-  // Open after the proven selection is rendered. ChatPage closes transient
-  // sheets in its layout effect when the selected Agent changes.
-  useEffect(() => {
-    const target = managerResolved.current;
-    if (!target || homeChat.managerAnchorId) return;
-    managerResolved.current = null;
-    if (authStatus === 'authenticated' && target.agentHandle === agentConversationSelection.agentHandle
-      && target.conversationAnchorId === agentConversationSelection.conversationAnchorId) managerNavigation.current.onOpenSettings();
-  }, [homeChat.managerAnchorId, agentConversationSelection.agentHandle, agentConversationSelection.conversationAnchorId, authStatus]);
 
   const host = useAgentConversationModeHost({
     authStatus,

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useHomeDestination, useHomeEntryKey, useHomeNavigation } from './app-store.js';
 import type { AgentConversationSelection, NimiConversationSelection } from '../../features/chat/chat-shell-types.js';
 import type { HomeChatPosition } from './home-navigation.js';
+import type { AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
 
 /** App-owned conversation references; Runtime remains the Conversation/data owner. */
 export function useHomeChatPosition() {
@@ -19,10 +20,15 @@ export function useHomeChatPosition() {
     if (explicit && (position.mode !== explicit.mode
       || explicit.targetId && !position.targetId || explicit.threadId && !position.threadId
       || explicit.conversationAnchorId && !position.conversationAnchorId)) return;
-    void navigation.replace({ id: 'chat', chat: position });
+    void navigation.replace({ id: 'chat', chat: { ...position, ...(position.mode === 'agent' && explicit?.agentCenterSection ? { agentCenterSection: explicit.agentCenterSection } : {}) } });
   }, [entryKey, navigation]);
   const openMode = useCallback((mode: HomeChatPosition['mode']) => open({ mode }), [open]);
   const openTarget = useCallback((mode: HomeChatPosition['mode'], targetId: string | null) => open({ mode, targetId: targetId ?? undefined }), [open]);
+  const setAgentCenterSection = useCallback((section: AgentCenterSectionId | undefined) => {
+    const entry = navigation.getSnapshot().current;
+    if (entry.key !== entryKey || entry.destination.id !== 'chat' || entry.destination.chat?.mode !== 'agent') return;
+    void navigation.replace({ id: 'chat', chat: { ...entry.destination.chat, agentCenterSection: section } });
+  }, [entryKey, navigation]);
   const nimiSelection = useMemo<NimiConversationSelection>(() => ({ threadId: mode === 'ai' ? chat?.threadId ?? null : null }), [mode, chat?.threadId]);
   const agentSelection = useMemo<AgentConversationSelection>(() => ({
     agentHandle: mode === 'agent' ? chat?.agentHandle ?? null : null,
@@ -52,15 +58,17 @@ export function useHomeChatPosition() {
     if (!threadId || current.destination.chat.threadId) return;
     refine({ ...current.destination.chat, threadId: threadId ?? undefined });
   }, [entryKey, navigation, refine]);
+  // @nimi-authority: rule.nimi.desktop.shell-ui.r039
   const resolveAgentCenterRequest = useCallback((selection: AgentConversationSelection | null) => {
     const entry = navigation.getSnapshot().current;
     if (entry.key !== entryKey || entry.destination.chat?.mode !== 'agent' || !entry.destination.chat.managerAnchorId) return;
     if (selection && selection.conversationAnchorId !== entry.destination.chat.managerAnchorId) return;
     void navigation.replace({ id: 'chat', chat: selection
-      ? { mode: 'agent', agentHandle: selection.agentHandle ?? undefined, conversationAnchorId: selection.conversationAnchorId ?? undefined, targetId: selection.agentHandle ?? undefined }
+      ? { mode: 'agent', agentHandle: selection.agentHandle ?? undefined, conversationAnchorId: selection.conversationAnchorId ?? undefined, targetId: selection.agentHandle ?? undefined, agentCenterSection: entry.destination.chat.agentCenterSection ?? 'overview' }
       : { mode: 'agent' } });
   }, [entryKey, navigation]);
   return { mode, targetId: chat?.targetId ?? (mode === 'ai' ? 'ai:assistant' : null), nimiSelection, agentSelection,
     managerAnchorId: chat?.managerAnchorId ?? null, resolveAgentCenterRequest,
+    agentCenterSection: chat?.agentCenterSection, setAgentCenterSection,
     humanThreadId: mode === 'human' ? chat?.threadId ?? null : null, open, openMode, openTarget, refine, selectNimiThread, selectAgentConversation, resolveHumanThread };
 }

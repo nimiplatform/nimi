@@ -2,8 +2,7 @@ import type {
   RuntimeSetupTask,
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store.js';
-import { validateHomeDestination, type HomeDestination, type HomeNavigation } from '../../app-shell/providers/home-navigation.js';
-import type { DesktopAgentSessionRebindClients } from '../chat/chat-agent-session-rebind.js';
+import { validateHomeDestination, type HomeChatPosition, type HomeDestination, type HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 
 /**
  * Consumer entry helper: Apps/Chat open (or reuse) one setup task per exact
@@ -122,12 +121,8 @@ export function resolveRuntimeSetupReturnTarget(returnFocus: string | undefined)
   if (value.startsWith('home:')) {
     try {
       const destination = validateHomeDestination(JSON.parse(decodeURIComponent(value.slice(5))));
-      // A persisted selector is not a current-session capability. Without a
-      // stable binding the supported destination is the partner list.
-      if (destination.id === 'agent-center') return { kind: 'destination', destination: { id: 'agent-center', chat: {
-        mode: 'agent', ...(destination.chat?.agentBinding ? { agentBinding: destination.chat.agentBinding,
-          ...(destination.chat.conversationAnchorId ? { conversationAnchorId: destination.chat.conversationAnchorId } : {}) } : {}),
-      } } };
+      // Persist only a correlation, never replay a previous App session's handle.
+      if (destination.id === 'chat' && destination.chat?.mode === 'agent' && destination.chat.agentHandle) return null;
       return { kind: 'destination', destination };
     }
     catch { return null; }
@@ -144,18 +139,11 @@ export function resolveRuntimeSetupReturnTarget(returnFocus: string | undefined)
   return null;
 }
 
-export async function resolveRuntimeSetupAgentDestination(destination: HomeDestination, clients: DesktopAgentSessionRebindClients): Promise<HomeDestination> {
-  if (destination.id !== 'agent-center' || !destination.chat?.agentBinding) return destination;
-  const matches = (await clients.agents.listReferences()).filter(item => item.agentBinding === destination.chat!.agentBinding);
-  if (matches.length !== 1) return { id: 'agent-center' };
-  const reference = matches[0]!;
-  const anchor = destination.chat.conversationAnchorId;
-  if (anchor) {
-    const snapshot = await clients.conversation.snapshot({ agentHandle: reference.agentHandle, conversationAnchorId: anchor });
-    if (snapshot.conversationAnchorId !== anchor) throw new Error('Conversation reference could not be restored.');
-  }
-  return { id: 'agent-center', chat: { mode: 'agent', agentHandle: reference.agentHandle,
-    ...(anchor ? { conversationAnchorId: anchor } : {}) } };
+export function agentCenterSetupReturnFocus(position: HomeChatPosition | undefined): string {
+  if (position?.mode !== 'agent' || !position.agentHandle || !position.conversationAnchorId) throw new Error('Agent Center requires a current Conversation.');
+  const destination: HomeDestination = { id: 'chat', chat: { mode: 'agent',
+    managerAnchorId: position.conversationAnchorId, agentCenterSection: position.agentCenterSection ?? 'overview' } };
+  return 'home:' + encodeURIComponent(JSON.stringify(destination));
 }
 
 /** Finish this setup detour through the existing navigation owner. */

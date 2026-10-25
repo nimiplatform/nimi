@@ -4,6 +4,7 @@ import { readCharacterSourceRefV3, type CharacterSourceRefV3 } from '../../featu
 import type { AppTab, WorldDetailInitialSubpage } from './store-types.js';
 import type { RuntimeAdvancedDiagnosticsPane, RuntimePageIdV11 } from '../../features/runtime-config/runtime-config-state-types.js';
 import type { RuntimeConfigProfileUseOwner } from '../../features/runtime-config/runtime-config-panel-types.js';
+import type { AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
 
 export type HomeRuntimePosition = {
   readonly page?: 'aiSettings' | 'modelLibrary';
@@ -45,14 +46,14 @@ export type HomeChatPosition = {
   readonly targetId?: string;
   readonly threadId?: string;
   readonly agentHandle?: string;
-  /** Durable management return hint; resolved against fresh references. */
-  readonly agentBinding?: string;
+  /** An open chat sidebar and its presentation-only section. */
+  readonly agentCenterSection?: AgentCenterSectionId;
   readonly conversationAnchorId?: string;
   /** Pending management navigation only; never an admitted Agent selector. */
   readonly managerAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
-  home: ['homeSection'], chat: ['chat'], 'agent-center': ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
+  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   settings: ['settingsSection'], support: [], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
@@ -130,16 +131,16 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     }
     result.runtime = normalized;
   }
-  if (id === 'chat' || id === 'agent-center') {
-    const chat = result.chat ?? (id === 'agent-center' ? { mode: 'agent' } : { mode: 'ai', targetId: 'ai:assistant' });
+  if (id === 'chat') {
+    const chat = result.chat ?? { mode: 'ai', targetId: 'ai:assistant' };
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
-    if (id === 'agent-center' && fields.mode !== 'agent') throw new Error('Partner management requires Agent mode.');
-    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId', ...(id === 'agent-center' ? ['agentBinding'] : [])] : ['mode', 'targetId', 'threadId'];
+    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId', 'agentCenterSection'] : ['mode', 'targetId', 'threadId'];
     if (!['ai', 'human', 'agent'].includes(fields.mode as string) || Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
     for (const key of keys) if (key !== 'mode' && fields[key] !== undefined) normalized[key] = stringRef(fields[key]);
-    if (fields.mode === 'agent' && (id === 'chat' && Boolean(normalized.agentHandle) !== Boolean(normalized.conversationAnchorId) || normalized.conversationAnchorId && !normalized.agentHandle && !(id === 'agent-center' && normalized.agentBinding))) throw new Error('Agent conversation position requires its proven handle and Conversation anchor together.');
+    if (fields.mode === 'agent' && Boolean(normalized.agentHandle) !== Boolean(normalized.conversationAnchorId)) throw new Error('Agent conversation position requires its proven handle and Conversation anchor together.');
+    if (normalized.agentCenterSection !== undefined && !['overview', 'ai-config', 'behavior', 'cognition', 'appearance', 'advanced'].includes(normalized.agentCenterSection as string)) throw new Error('Invalid Agent Center section.');
     result.chat = normalized;
   }
   return result as HomeDestination;
@@ -151,7 +152,6 @@ export function homeRuntimeDestination(page: RuntimePageIdV11, position: HomeRun
 }
 export function homeNavigationColumn(destination: HomeDestination): AppTab {
   switch (destination.id) {
-    case 'agent-center': return 'chat';
     case 'source-detail':
     case 'world-detail': return 'explore';
     case 'diagnostics': return 'runtime';
