@@ -73,6 +73,7 @@ export function resolveSourceRuntimeLaunch(input = {}) {
 
 export async function runSourceRuntimeDevelopment(input = {}) {
   parseSourceRuntimeArguments(input.argv ?? process.argv.slice(2));
+  input.signal?.throwIfAborted();
   const tempRoot = input.tempRoot ?? (input.createTemp ?? (() => (
     mkdtempSync(path.join(os.tmpdir(), 'nimi-source-runtime-supervisor-'))
   )))();
@@ -98,13 +99,17 @@ export async function runSourceRuntimeDevelopment(input = {}) {
         'fix_source_runtime_supervisor_build',
       );
     }
+    input.signal?.throwIfAborted();
     const child = launch(plan.run.command, plan.run.args, {
       cwd: plan.repoRoot,
       env: process.env,
       stdio: ['pipe', 'inherit', 'inherit'],
       windowsHide: true,
+      // An enclosing Desktop launcher owns shutdown order. Its Runtime must
+      // not receive terminal signals before Desktop has released its hosts.
+      detached: Boolean(input.signal),
     });
-    return await waitForSupervisor(child);
+    return await waitForSupervisor(child, input.signal);
   } finally {
     removeTemp();
   }
@@ -137,19 +142,21 @@ export function stopSourceRuntimeDevelopment(args = [], input = {}) {
   }
 }
 
-function waitForSupervisor(child) {
+function waitForSupervisor(child, abortSignal) {
   return new Promise((resolve, reject) => {
     let stopping = false;
     const handlers = new Map();
     const cleanup = () => {
       for (const [signal, handler] of handlers) process.off(signal, handler);
+      abortSignal?.removeEventListener('abort', stop);
     };
-    for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-      const handler = () => {
-        if (stopping) return;
-        stopping = true;
-        child.stdin?.end();
-      };
+    const stop = () => {
+      if (stopping) return;
+      stopping = true;
+      child.stdin?.end();
+    };
+    for (const signal of abortSignal ? [] : ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+      const handler = stop;
       handlers.set(signal, handler);
       process.on(signal, handler);
     }
@@ -173,6 +180,8 @@ function waitForSupervisor(child) {
         'inspect_source_runtime_supervisor_output',
       ));
     });
+    abortSignal?.addEventListener('abort', stop, { once: true });
+    if (abortSignal?.aborted) stop();
   });
 }
 

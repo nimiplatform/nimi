@@ -54,6 +54,7 @@
   "nimiIntentRequired": "Pick a local or cloud model to start your first conversation.",
   "nimiSetupTitle": "Start chatting with Nimi",
   "nimiSetupLoadingTitle": "Preparing Nimi Chat…",
+  "nimiSetupLoadingDescription": "Loading your model selection and conversation settings.",
   "nimiSetupUnavailableTitle": "Nimi Chat settings are unavailable",
   "nimiSetupUnavailableDescription": "Couldn't read your saved model setting. Once the connection recovers, reopen Chat—you won't need to choose a model again.",
   "nimiSetupAction": "Choose a model",

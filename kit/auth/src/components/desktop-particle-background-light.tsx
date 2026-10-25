@@ -135,16 +135,15 @@ export function DesktopParticleBackgroundLight(
       bucketPoolIndex++;
       return b;
     }
-    function computeCurl(x: number, y: number, z: number) {
+    function computeCurl(x: number, y: number, z: number, result: { x: number; y: number }) {
       const eps = 0.1;
-      const psiY = (noise3D(x, y + eps, z) - noise3D(x, y - eps, z)) / (2 * eps);
-      const psiX = (noise3D(x + eps, y, z) - noise3D(x - eps, y, z)) / (2 * eps);
-      return { x: psiY, y: -psiX };
+      result.x = (noise3D(x, y + eps, z) - noise3D(x, y - eps, z)) / (2 * eps);
+      result.y = -(noise3D(x + eps, y, z) - noise3D(x - eps, y, z)) / (2 * eps);
     }
+    const curl = { x: 0, y: 0 };
 
     const particleGeometry = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(CONFIG.particleCount * 3);
-    const particleVelocities: { x: number; y: number; z: number }[] = [];
     const particleSizes = new Float32Array(CONFIG.particleCount);
     const flockingForces = new Float32Array(CONFIG.particleCount * 2);
 
@@ -158,11 +157,13 @@ export function DesktopParticleBackgroundLight(
       particlePositions[i * 3] = x;
       particlePositions[i * 3 + 1] = y;
       particlePositions[i * 3 + 2] = z;
-      particleVelocities.push({ x: 0, y: 0, z: 0 });
       particleSizes[i] = Math.random() < 0.3 ? 7.0 : 4.0;
     }
 
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    particleGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(particlePositions, 3).setUsage(THREE.DynamicDrawUsage),
+    );
     particleGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
 
     const particleMaterial = new THREE.ShaderMaterial({
@@ -244,9 +245,7 @@ export function DesktopParticleBackgroundLight(
     const raycaster = new THREE.Raycaster();
     const mouse3D = new THREE.Vector3();
 
-    let lastInteraction = performance.now();
     const onMouseMove = (event: MouseEvent) => {
-      lastInteraction = performance.now();
       if (isPaused()) return;
       const rect = container.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / width) * 2 - 1;
@@ -266,8 +265,6 @@ export function DesktopParticleBackgroundLight(
       frameId = null;
       if (disposed || isPaused()) return;
       frameId = requestAnimationFrame(animate);
-      const interval = isHoveredRef.current || now - lastInteraction < 2000 ? 1000 / 30 : 100;
-      if (now - previousFrame < interval) return;
       const delta = Math.min((now - previousFrame) / 1000, 0.1);
       previousFrame = now;
       elapsed += delta;
@@ -367,7 +364,7 @@ export function DesktopParticleBackgroundLight(
         let px = positions[i3]!;
         let py = positions[i3 + 1]!;
 
-        const curl = computeCurl(px * currentNoiseScale, py * currentNoiseScale, time);
+        computeCurl(px * currentNoiseScale, py * currentNoiseScale, time, curl);
         const vx = curl.x * 50 * CONFIG.baseSpeed;
         const vy = curl.y * 50 * CONFIG.baseSpeed;
 
@@ -423,8 +420,7 @@ export function DesktopParticleBackgroundLight(
         positions[i3 + 1] = py;
       }
 
-      // Edges and dots use the same integrated positions, including at the
-      // lower idle update rate; otherwise their endpoints lag by one update.
+      // Edges and dots use the same integrated positions so endpoints cannot lag by one update.
       for (let line = 0; line < lineIndex; line++) {
         const from = lineParticleIndices[line * 2]! * 3;
         const to = lineParticleIndices[line * 2 + 1]! * 3;

@@ -82,6 +82,31 @@
   --nimi-focus-ring-color: rgba(20, 118, 212, 0.28);
 }
 
+.nimi-shell-auth-root .nimi-shell-auth-main-capsule {
+  --nimi-field-bg: rgba(255, 255, 255, 0.78);
+  --nimi-field-border: rgba(100, 116, 139, 0.18);
+  --nimi-field-focus: rgba(80, 96, 120, 0.38);
+  --nimi-elevation-base: 0 4px 18px rgba(30, 45, 65, 0.05);
+  --nimi-text-primary: #303640;
+  --nimi-icon-muted: #7B8492;
+
+  transition: border-color 160ms ease;
+}
+
+.nimi-shell-auth-root .nimi-shell-auth-main-capsule:hover {
+  --nimi-field-border: rgba(100, 116, 139, 0.28);
+}
+
+.nimi-shell-auth-root .nimi-shell-auth-main-capsule:focus-within {
+  box-shadow: 0 4px 18px rgba(30, 45, 65, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nimi-shell-auth-root .nimi-shell-auth-main-capsule {
+    transition: none;
+  }
+}
+
 .nimi-shell-auth-root .nimi-shell-auth-background {
   position: absolute;
   inset: 0;

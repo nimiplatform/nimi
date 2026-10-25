@@ -29,7 +29,7 @@ import { HomeMessagesColumn } from './home-messages-column.js';
 import { useHomeMessages, type HomeMessages } from './home-messages-controller.js';
 import { systemMessage, type HomeMessageFilter, type HomeSystemItemMessage } from './home-messages-model.js';
 import { useHomeRowCapacity } from './use-home-row-capacity.js';
-import { HomeAIReadingEntries, SystemEntryDetails } from '../system-entry/system-entry-details.js';
+import { SystemEntryDetails } from '../system-entry/system-entry-details.js';
 
 const HOME_APP_LIMIT = 8;
 // Tile geometry of the Home app buttons (w-[92px] + gap-1): only as many
@@ -298,7 +298,6 @@ export function NimiOverview() {
       </div>
       <div className="min-w-0 xl:col-start-1 xl:row-start-2">
         <HomeAgentCard />
-        <HomeAIReadingEntries onOpenWork={() => setView('work')} onOpenUsage={() => setView('usage')} />
       </div>
       {messages ? (
         <HomeMessagesColumn
@@ -313,7 +312,6 @@ export function NimiOverview() {
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >
-        <HomeMachineStatus runtime={homeRuntimeState(health)} capabilities={status} onOpenDiagnostics={openDiagnostics} onOpenUsage={() => setView('usage')} />
         {messagesAccountKey ? (
           <HomeGettingStarted
             key={messagesAccountKey}
@@ -414,23 +412,35 @@ export function NimiOverview() {
             onOpenSettings={openMessageSettings}
           />
         </ScrollArea>
-      ) : splitColumns ? (
-        // Wide windows pin the date and greeting and scroll the main
-        // sections and the Messages column independently. A page-level
-        // ScrollArea cannot work here: Radix wraps its content in a
-        // display:table div that always grows with the content, so no
-        // bounded height reaches the columns.
-        <div className={`${SHELL_PAGE_WIDTH_CLASS} flex min-h-0 flex-1 flex-col pb-7 pt-5`}>
-          {renderOverview(messages)}
-        </div>
       ) : (
-        <ScrollArea
-          className="min-h-0 flex-1"
-          viewportClassName="bg-transparent [&>div]:!block"
-          contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
-        >
-          {renderOverview(messages)}
-        </ScrollArea>
+        <>
+          {splitColumns ? (
+            // Wide windows pin the date and greeting and scroll the main
+            // sections and the Messages column independently. A page-level
+            // ScrollArea cannot work here: Radix wraps its content in a
+            // display:table div that always grows with the content, so no
+            // bounded height reaches the columns.
+            <div className={`${SHELL_PAGE_WIDTH_CLASS} flex min-h-0 flex-1 flex-col pb-2 pt-5`}>
+              {renderOverview(messages)}
+            </div>
+          ) : (
+            <ScrollArea
+              className="min-h-0 flex-1"
+              viewportClassName="bg-transparent [&>div]:!block"
+              contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-4 pt-5`}
+            >
+              {renderOverview(messages)}
+            </ScrollArea>
+          )}
+          <footer className={`${SHELL_PAGE_WIDTH_CLASS} z-20 shrink-0 pt-2`} data-testid="home-status-dock">
+            <HomeMachineStatus
+              runtime={homeRuntimeState(health)}
+              capabilities={status}
+              onOpenDiagnostics={openDiagnostics}
+              onOpenUsage={() => setView('usage')}
+            />
+          </footer>
+        </>
       )}
     </div>
   );

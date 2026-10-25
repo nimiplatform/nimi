@@ -12,6 +12,7 @@ import {
   resolveWorkspaceElectronDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
 import { acquireDesktopDevSessionLock } from './lib/electron-dev-session-lock.mjs';
+import { prepareDesktopDevDependencies } from '../../../scripts/lib/desktop-dev-dependencies.mjs';
 
 const require = createRequire(import.meta.url);
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -78,6 +79,9 @@ const DESKTOP_QUIT_BACKSTOP_MS = 60_000;
 const CHILD_STOP_GRACE_MS = 2_000;
 const desktopChildren = new WeakSet();
 let shuttingDown = false;
+const dependencyAbort = new AbortController();
+let dependencyTask;
+let childrenShutdownTask;
 let forceShutdown;
 const forceRequested = new Promise((resolve) => { forceShutdown = resolve; });
 const SIGNAL_EXIT_CODES = new Map([
@@ -103,6 +107,9 @@ if (process.platform === 'darwin') {
 
 async function runWindowsDesktopDev() {
   try {
+    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal });
+    await dependencyTask;
+    dependencyAbort.signal.throwIfAborted();
     process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT = '1';
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
@@ -170,6 +177,9 @@ async function runWindowsDesktopDev() {
 
 async function runMacOSDesktopDev() {
   try {
+    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal });
+    await dependencyTask;
+    dependencyAbort.signal.throwIfAborted();
     process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT = '1';
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
@@ -427,8 +437,14 @@ async function shutdownFromSignal(signal) {
 }
 
 async function requestAllChildrenShutdown(signal) {
-  shuttingDown = true;
-  await Promise.all([...children].map((child) => requestProcessTreeShutdown(child, signal)));
+  childrenShutdownTask ??= (async () => {
+    shuttingDown = true;
+    dependencyAbort.abort();
+    await Promise.all([...children].map((child) => requestProcessTreeShutdown(child, signal)));
+    const dependencies = await dependencyTask?.catch(() => undefined);
+    await dependencies?.close();
+  })();
+  await childrenShutdownTask;
 }
 
 async function requestProcessTreeShutdown(child, signal) {

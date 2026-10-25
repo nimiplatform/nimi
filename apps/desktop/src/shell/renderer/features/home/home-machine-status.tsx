@@ -99,7 +99,7 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
       : t('runtimeConfig.systemEntry.costUnknown');
   return (
     <section
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-[24px] bg-[var(--nimi-surface-panel)] px-2 py-1.5 shadow-[var(--nimi-home-card-elevation)]"
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 py-1.5"
       aria-label={t('runtimeConfig.overview.machineStatus')}
       data-testid="home-machine-status"
     >

@@ -1,19 +1,23 @@
 // @vitest-environment jsdom
-import React, { act } from 'react';
+import React, { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 import { SourceAttention } from '../src/nimiday/ui/source-attention.js';
 import { SourceBrowser } from '../src/nimiday/ui/source-browser.js';
-import { emptyState } from '../src/nimiday/domain/defaults.js';
+import { CarePage } from '../src/nimiday/ui/care-page.js';
+import { createCircle, emptyState } from '../src/nimiday/domain/defaults.js';
 import type { SourceChange } from '../src/nimiday/domain/sources.js';
+import type { DayState } from '../src/nimiday/domain/types.js';
+import type { NavTarget } from '../src/nimiday/platform/engine.js';
 import { copyFor } from '../src/nimiday/i18n/index.js';
 
 // These component regressions check presentation and routes; they are not App acceptance.
-const context = vi.hoisted(() => ({ engine: {} as Record<string, unknown>, navigate: vi.fn(), retry: vi.fn() }));
+const context = vi.hoisted(() => ({ engine: {} as Record<string, unknown>, state: null as DayState | null, navigate: vi.fn(), retry: vi.fn() }));
 vi.mock('../src/nimiday/app/context.js', () => ({
   useNimiDay: () => ({ copy: copyFor('zh'), navigate: context.navigate, activity: { retry: context.retry }, engine: {}, actions: {}, store: {} }),
-  useDayStore: () => ({ state: emptyState('zh', new Date('2026-10-23T10:00:00Z')) }),
+  useDayStore: () => ({ state: context.state }),
   useEngine: () => context.engine,
+  useDesk: () => ({ phase: 'unavailable' }),
 }));
 vi.mock('../src/nimiday/ui/ui-context.js', () => ({ useUi: () => ({}) }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -26,8 +30,9 @@ function changes(apps = 6): SourceChange[] {
   }));
 }
 function reset(list: SourceChange[]) {
-  context.navigate.mockClear();
-  context.engine = { sourceChanges: list, sourceApps: [], activityStatus: 'ready', now: new Date('2026-10-23T10:00:00Z'),
+  context.navigate.mockReset();
+  context.state = emptyState('zh', new Date('2026-10-23T10:00:00Z'));
+  context.engine = { changes: list, sourceChanges: list, sourceApps: [], activityStatus: 'ready', now: new Date('2026-10-23T10:00:00Z'),
     activityCoverage: { openTodos: 'complete', recent: 'complete', recentCount: list.length }, activityHasMore: false };
 }
 const containers: { root: ReturnType<typeof createRoot>; el: HTMLDivElement }[] = [];
@@ -37,6 +42,26 @@ async function render(element: React.ReactNode) {
   await act(async () => root.render(element)); return { root, el };
 }
 afterEach(async () => { for (const { root, el } of containers.splice(0)) { await act(async () => root.unmount()); el.remove(); } });
+
+it('places care-circle navigation inside the content card without the page subtitle', async () => {
+  const person = { ...createCircle({ kind: 'child', name: '林知遥' }, new Date('2026-10-23T10:00:00Z')), id: 'person-1' };
+  reset([]);
+  context.state = { ...context.state!, circles: [person] };
+  const { el } = await render(<CarePage />);
+  const content = el.querySelector('.nd-care-content')!;
+  const contextHead = el.querySelector('.nd-care-context')!;
+  const people = el.querySelector('.nd-care-people')!;
+  const tabs = el.querySelector('.nd-care-tabs-row')!;
+  const children = [...content.children];
+
+  expect(el.querySelector('.nd-page-sub')).toBeNull();
+  expect(el.textContent).not.toContain('照看重要的人，记住需要上心的事。');
+  expect(el.querySelector('.nd-care-layout')).toBeNull();
+  expect(content.parentElement).toBe(el.querySelector('[data-testid="nd-care"]'));
+  expect(people.parentElement).toBe(content);
+  expect(children.indexOf(people)).toBeGreaterThan(children.indexOf(contextHead));
+  expect(children.indexOf(people)).toBeLessThan(children.indexOf(tabs));
+});
 
 it('uses exactly five units for a burst and routes a group to its exact complete-list selection', async () => {
   const list = changes();
@@ -48,6 +73,87 @@ it('uses exactly five units for a burst and routes a group to its exact complete
   expect(el.textContent).toContain('还有 30 项需要关注');
   await act(async () => el.querySelector<HTMLButtonElement>('.nd-source-summary')!.click());
   expect(context.navigate.mock.calls[0]![0]).toMatchObject({ view: 'care', sources: { mode: 'pending', unitKey: expect.any(String) } });
+});
+
+it('opens a Today group in its person workspace and keeps the exact group inside the updates tab', async () => {
+  const now = new Date('2026-10-23T10:00:00Z');
+  const person = { ...createCircle({ kind: 'child', name: '林知遥' }, now), id: 'person-1' };
+  const otherPerson = { ...createCircle({ kind: 'child', name: '林知遥' }, now), id: 'person-2' };
+  const list = changes(1).map(change => ({ ...change, circleId: person.id }));
+  const unrelatedGroup = { ...list[0]!, id: 'other-group', groupKey: 'other-source\0group', title: 'Other group' };
+  const unrelatedPerson = { ...list[0]!, id: 'other-person', circleId: otherPerson.id, title: 'Other person' };
+  reset([...list, unrelatedGroup, unrelatedPerson]);
+  context.state = { ...context.state!, circles: [person, otherPerson] };
+  function Journey() {
+    const [nav, navigate] = useState<NavTarget>({ view: 'today' });
+    context.navigate.mockImplementation(navigate);
+    return nav.view === 'care' ? <CarePage circleId={nav.circleId} sources={nav.sources} /> : <SourceAttention />;
+  }
+  const { el } = await render(<Journey />);
+  await act(async () => el.querySelector<HTMLButtonElement>('.nd-source-summary')!.click());
+  expect(context.navigate).toHaveBeenCalledWith({ view: 'care', circleId: person.id, sources: { mode: 'pending', unitKey: expect.any(String) } });
+  expect(el.querySelector('.nd-care-people')).not.toBeNull();
+  expect(el.querySelector('.nd-care-context h2')!.textContent).toBe(person.name);
+  expect(el.querySelectorAll('.nd-care-person')[1]!.getAttribute('aria-current')).toBe('true');
+  expect(el.querySelectorAll('.nd-care-person')[2]!.getAttribute('aria-current')).toBeNull();
+  expect(el.querySelector('#care-tab-changes')!.getAttribute('aria-selected')).toBe('true');
+  const rows = () => [...el.querySelectorAll('#care-panel [data-activity-id]')].map(row => row.getAttribute('data-activity-id'));
+  expect(rows()).toEqual(list.map(change => change.id));
+  await act(async () => el.querySelector<HTMLButtonElement>('#care-tab-notes')!.click());
+  expect(el.querySelector('[data-testid="nd-handbook"]')).not.toBeNull();
+  await act(async () => el.querySelector<HTMLButtonElement>('#care-tab-changes')!.click());
+  expect(rows()).toEqual(list.map(change => change.id));
+  await act(async () => el.querySelector<HTMLButtonElement>('.nd-source-filter-scope button')!.click());
+  expect(rows()).toContain('other-group');
+  expect(rows()).not.toContain('other-person');
+  // jsdom has no layout/scrolling; the real scroll is checked in App acceptance.
+  Object.defineProperty(el.querySelector('[data-testid="nd-care"]')!, 'scrollIntoView', { value: vi.fn() });
+  await act(async () => el.querySelectorAll<HTMLButtonElement>('.nd-care-person')[2]!.click());
+  expect(context.navigate).toHaveBeenLastCalledWith({ view: 'care', circleId: otherPerson.id });
+  expect(el.querySelector('.nd-source-filter-scope')).toBeNull();
+  expect(rows()).toEqual(['other-person']);
+});
+
+it.each(['pending', 'association', 'dynamics'] as const)('keeps the Care workspace for a %s source entry and opens updates from another tab', async mode => {
+  reset(changes(1));
+  const { root, el } = await render(<CarePage />);
+  await act(async () => el.querySelector<HTMLButtonElement>('#care-tab-notes')!.click());
+  await act(async () => root.render(<CarePage sources={{ mode }} />));
+  expect(el.querySelector('.nd-care-people')).not.toBeNull();
+  expect(el.querySelector('#care-tab-changes')!.getAttribute('aria-selected')).toBe('true');
+  expect(el.querySelector('#care-panel [data-testid="nd-source-browser"]')).not.toBeNull();
+  expect(el.querySelector<HTMLSelectElement>('select[aria-label="显示范围"]')!.value).toBe(mode);
+});
+
+it('filters the visible care updates by search text and unread state', async () => {
+  const now = new Date('2026-10-23T10:00:00Z');
+  const person = { ...createCircle({ kind: 'child', name: '林知遥' }, now), id: 'person-1' };
+  const list = changes(1).map((change, index) => ({ ...change, circleId: person.id, unread: index !== 1 }));
+  reset(list);
+  context.state = { ...context.state!, circles: [person] };
+  const { el } = await render(<CarePage />);
+  const rows = () => [...el.querySelectorAll('#care-panel [data-activity-id]')].map(row => row.getAttribute('data-activity-id'));
+  const search = el.querySelector<HTMLInputElement>('.nd-care-update-search input')!;
+  const filter = el.querySelector<HTMLButtonElement>('.nd-care-filter-button')!;
+  const setSearch = async (value: string) => act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, value);
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  expect(rows()).toHaveLength(6);
+  await act(async () => filter.click());
+  expect(filter.getAttribute('aria-pressed')).toBe('true');
+  expect(rows()).toHaveLength(6);
+  expect(rows()).not.toContain('a-1');
+  await act(async () => filter.click());
+  expect(filter.getAttribute('aria-pressed')).toBe('false');
+  await setSearch('Item 1');
+  expect(rows()).toEqual(['a-1']);
+  await setSearch('missing');
+  expect(rows()).toEqual([]);
+  expect(el.textContent).toContain('没有找到匹配的动态');
+  await setSearch('');
+  expect(rows()).toHaveLength(6);
 });
 
 it('retains reading order until refresh while immediately hiding stale data on permission loss', async () => {

@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
+import {
+  buttonBase,
+  buttonDefault,
+  buttonOutline,
+  WebAccountAuthPage,
+} from '@nimiplatform/kit/auth';
 import {
   clearWebBrowserSessionForFreshAccountSelection,
   createWebAccountAuthAdapter,
@@ -13,21 +18,33 @@ import {
   readValidatedOauthNext,
 } from './oauth-continuation.js';
 
-// Sign-in field surfaces share the landing homepage neutral palette and its
-// light-blue focus accent (apps/web/src/landing/styles.css).
+// Keep the landing homepage neutral surfaces; focus and action accents come
+// from the shared Nimi auth theme.
 const webHomeAuthPalette = {
   '--nimi-text-primary': '#0f172a',
   '--nimi-text-secondary': '#334155',
   '--nimi-text-muted': '#64748b',
   '--nimi-field-bg': '#ffffff',
   '--nimi-field-border': '#e2e8f0',
-  '--nimi-field-focus': '#45B8D6',
-  '--nimi-focus-ring-color': 'rgba(69, 184, 214, 0.28)',
   '--nimi-border-subtle': '#e2e8f0',
   '--nimi-elevation-base': '0 6px 18px rgba(15, 23, 42, 0.08)',
   '--nimi-elevation-raised': '0 12px 28px rgba(15, 23, 42, 0.12)',
   '--nimi-elevation-floating': '0 18px 44px rgba(15, 23, 42, 0.16)',
 } as CSSProperties;
+
+function WebAccountStatusShell({ children }: { children: ReactNode }) {
+  return (
+    <main
+      className="nimi-shell-auth-root nimi-shell-auth-brand-surface web-account-session-page"
+      data-shell-auth-theme="custom"
+      style={webHomeAuthPalette}
+    >
+      <div className="nimi-shell-auth-shell">
+        <div className="nimi-shell-auth-content">{children}</div>
+      </div>
+    </main>
+  );
+}
 
 export function WebAccountPage() {
   const { t } = useTranslation();
@@ -67,21 +84,40 @@ export function WebAccountPage() {
   }, [adapter, t]);
 
   if (checking) {
-    return <main className="web-account-status" role="status">{t('Account.sessionCheck')}</main>;
+    return (
+      <WebAccountStatusShell>
+        <p className="web-account-session-message" role="status">{t('Account.sessionCheck')}</p>
+      </WebAccountStatusShell>
+    );
   }
 
   if (sessionError) {
-    return <main className="web-account-status" role="alert">{sessionError}</main>;
+    return (
+      <WebAccountStatusShell>
+        <p className="web-account-session-message" role="alert">{sessionError}</p>
+      </WebAccountStatusShell>
+    );
   }
 
   if (currentUser) {
     return (
-      <main className="web-account-status">
-        <img src="/logo.svg" alt="Nimi" className="web-account-logo" />
-        <h1>{t('Account.signedInTitle')}</h1>
-        <p>{String(currentUser.displayName || currentUser.email || currentUser.id || t('Account.currentAccountFallback'))}</p>
-        <nav><Link to="/account">{t('Account.manageAccount')}</Link><Link to="/">{t('Account.backHome')}</Link></nav>
-      </main>
+      <WebAccountStatusShell>
+        <div className="web-account-session">
+          <img src="/logo.svg" alt="Nimi" className="web-account-logo" draggable={false} />
+          <div className="web-account-session-heading">
+            <h1>{t('Account.signedInTitle')}</h1>
+            <p>{String(currentUser.displayName || currentUser.email || currentUser.id || t('Account.currentAccountFallback'))}</p>
+          </div>
+          <nav className="web-account-session-actions">
+            <Link to="/account" className={`${buttonBase} ${buttonDefault} web-account-session-action`}>
+              {t('Account.manageAccount')}
+            </Link>
+            <Link to="/" className={`${buttonBase} ${buttonOutline} web-account-session-action`}>
+              {t('Account.backHome')}
+            </Link>
+          </nav>
+        </div>
+      </WebAccountStatusShell>
     );
   }
 

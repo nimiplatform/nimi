@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ConfirmDialog, nimiToast, StatusBadge } from '@nimiplatform/kit/ui';
-import { LayoutList, NotebookText, Pin, Plus, Search } from 'lucide-react';
+import { ChevronRight, LayoutList, ListFilter, NotebookText, Pin, Plus, Search, Sparkles } from 'lucide-react';
 import { isActive } from '../domain/reminders.js';
 import { CARE_REVIEW_SKILL } from '../domain/skills.js';
 import { attentionOrder, PARENTOS_APP_ID, type SourceChange } from '../domain/sources.js';
@@ -20,6 +20,7 @@ type CareSection = 'changes' | 'items' | 'notes';
 const CHANGE_PREVIEW_COUNT = 6;
 
 // @nimi-authority: rule.nimi.nimiday.assistant.child-source-association
+// @nimi-authority: rule.nimi.nimiday.assistant.source-attention-summary
 export function CarePage({ circleId, sources }: { readonly circleId?: string; readonly sources?: SourceListTarget }) {
   const { copy, navigate } = useNimiDay();
   const { state } = useDayStore();
@@ -28,12 +29,20 @@ export function CarePage({ circleId, sources }: { readonly circleId?: string; re
   const pageRef = useRef<HTMLDivElement>(null);
   const [section, setSection] = useState<CareSection>('changes');
   const [query, setQuery] = useState('');
+  const [updateQuery, setUpdateQuery] = useState('');
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  useEffect(() => {
+    if (sources) setSection('changes');
+    setUpdateQuery('');
+    setUnreadOnly(false);
+  }, [circleId, sources]);
   const circle = state.circles.find(entry => entry.id === circleId);
   const circles = useMemo(() => [...state.circles].sort((a, b) => Number(a.status === 'ended') - Number(b.status === 'ended')), [state.circles]);
   const shownCircles = circles.filter(entry => entry.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const { grouped, pending, unknown, other } = useMemo(() => careChanges(changes, circles), [changes, circles]);
+  const allUpdates = attentionOrder(grouped.flatMap(group => group.list));
   // Only explicitly associated records may enter a person's workspace.
-  const updates = attentionOrder(circle ? changes.filter(change => change.circleId === circle.id) : grouped.flatMap(group => group.list));
+  const updates = circle ? attentionOrder(changes.filter(change => change.circleId === circle.id)) : allUpdates;
   const items = circle ? careItems(state.items, circle.id) : state.items.filter(item => isActive(item) && circles.some(entry => entry.id === item.circleId))
     .sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999') || (a.time ?? '').localeCompare(b.time ?? ''));
   const notes = state.notes.filter(note => !circle || note.circleId === circle.id);
@@ -45,50 +54,52 @@ export function CarePage({ circleId, sources }: { readonly circleId?: string; re
   ];
   const select = (id?: string) => {
     navigate({ view: 'care', ...(id ? { circleId: id } : {}) });
+    if (sources) setSection('changes');
     setQuery('');
     pageRef.current?.scrollIntoView({ block: 'start' });
   };
 
-  if (sources) return <div className="nd-page nd-care-workspace" data-testid="nd-care">
-    <PageHead title={copy.care.title} sub={copy.care.updatesHint}
-      action={<button type="button" className="nd-link" onClick={() => navigate({ view: 'care' })}>{copy.care.people}</button>} />
-    <SourceBrowser key={JSON.stringify(sources)} target={sources} />
-  </div>;
-
   return (
     <div ref={pageRef} className="nd-page nd-care-workspace" data-testid="nd-care">
-      <PageHead title={copy.care.title} sub={copy.care.workspaceHint}
+      <PageHead title={copy.care.title}
         action={<Button tone="primary" size="sm" leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => ui.editCircle(null)}>{copy.care.add}</Button>} />
-      <div className="nd-care-layout">
+      <section className="nd-care-content" aria-label={circle?.name ?? copy.care.everyone}>
+        <header className="nd-care-context">
+          <div><h2>{circle?.name ?? copy.care.everyone}</h2><p>{circle ? copy.kinds.circle[circle.kind] : copy.care.everyoneHint}</p></div>
+          {circle ? <CircleActions key={circle.id} circle={circle} /> : null}
+        </header>
+        {circle ? <div className="nd-care-focus">
+          <span className="nd-care-focus-icon"><Pin size={14} strokeWidth={1.8} aria-hidden="true" /></span>
+          <span className="nd-care-label">{copy.care.watchLabel}</span>
+          <button type="button" className="nd-link nd-care-focus-value" onClick={() => ui.editCircle(circle.id)}>
+            <span>{circle.watch || copy.care.addWatch}</span>
+            <ChevronRight size={13} aria-hidden="true" />
+          </button>
+          {circle.focus.map(tag => <Chip key={tag}>{tag}</Chip>)}
+          {circle.status !== 'active' ? <StatusBadge tone="neutral">{copy.kinds.circleStatus[circle.status]}</StatusBadge> : null}
+        </div> : null}
         <nav className="nd-care-people" aria-label={copy.care.people}>
           <label className="nd-care-mobile-picker"><span>{copy.care.people}</span><select value={circle?.id ?? ''} onChange={event => select(event.target.value || undefined)}><option value="">{copy.care.everyone}</option>{circles.map(entry => <option key={entry.id} value={entry.id}>{entry.name}{entry.status !== 'active' ? ' · ' + copy.kinds.circleStatus[entry.status] : ''}</option>)}</select></label>
           <div className="nd-care-people-heading">{copy.care.people}<span>{circles.length}</span></div>
           {circles.length > 8 ? <label className="nd-care-search"><Search size={15} aria-hidden="true" /><input aria-label={copy.care.findPerson} placeholder={copy.care.findPerson} value={query} onChange={event => setQuery(event.target.value)} /></label> : null}
-          <button type="button" className="nd-care-person" aria-current={!circle ? 'true' : undefined} onClick={() => select()}>
-            <span className="nd-care-all-icon"><LayoutList size={18} aria-hidden="true" /></span><span className="nd-care-person-name">{copy.care.everyone}</span>
-          </button>
-          {shownCircles.map(entry => {
-            const fresh = changes.filter(change => change.circleId === entry.id && change.unread).length;
-            return <button key={entry.id} type="button" className="nd-care-person" aria-current={circle?.id === entry.id ? 'true' : undefined} onClick={() => select(entry.id)}>
-              <CircleIcon kind={entry.kind} size={17} />
-              <span className="nd-care-person-text"><span className="nd-care-person-name">{entry.name}</span><span className="nd-care-person-kind">{entry.status === 'active' ? (entry.name === copy.kinds.circle[entry.kind] ? '' : copy.kinds.circle[entry.kind]) : copy.kinds.circleStatus[entry.status]}</span></span>
-              {fresh > 0 ? <span className="nd-care-count" aria-label={copy.care.unreadChanges(fresh)}>{fresh}</span> : null}
-            </button>;
-          })}
+          <div className="nd-care-person-list">
+            <button type="button" className="nd-care-person" aria-current={!circle ? 'true' : undefined} onClick={() => select()}>
+              <span className="nd-care-all-icon"><LayoutList size={18} aria-hidden="true" /></span><span className="nd-care-person-name">{copy.care.everyone}</span>
+              <span className="nd-care-count">{allUpdates.length}</span>
+            </button>
+            {shownCircles.map(entry => {
+              const fresh = changes.filter(change => change.circleId === entry.id && change.unread).length;
+              return <button key={entry.id} type="button" className="nd-care-person" aria-current={circle?.id === entry.id ? 'true' : undefined} onClick={() => select(entry.id)}>
+                <CircleIcon kind={entry.kind} size={17} />
+                <span className="nd-care-person-text"><span className="nd-care-person-name">{entry.name}</span><span className="nd-care-person-kind">{entry.status === 'active' ? (entry.name === copy.kinds.circle[entry.kind] ? '' : copy.kinds.circle[entry.kind]) : copy.kinds.circleStatus[entry.status]}</span></span>
+                {fresh > 0 ? <span className="nd-care-count" aria-label={copy.care.unreadChanges(fresh)}>{fresh}</span> : null}
+              </button>;
+            })}
+          </div>
           {query && shownCircles.length === 0 ? <p className="nd-care-section-hint">{copy.care.noMatches}</p> : null}
           {circles.length === 0 ? <p className="nd-care-section-hint">{copy.care.emptyBody}</p> : null}
         </nav>
-        <section className="nd-care-content" aria-label={circle?.name ?? copy.care.everyone}>
-          <header className="nd-care-context">
-            <div><h2>{circle?.name ?? copy.care.everyone}</h2><p>{circle ? copy.kinds.circle[circle.kind] : copy.care.everyoneHint}</p></div>
-            {circle ? <CircleActions key={circle.id} circle={circle} /> : null}
-          </header>
-          {circle ? <div className="nd-care-focus">
-            <span className="nd-care-label">{copy.care.watchLabel}</span>
-            <button type="button" className="nd-link" onClick={() => ui.editCircle(circle.id)}>{circle.watch || copy.care.addWatch}</button>
-            {circle.focus.map(tag => <Chip key={tag}>{tag}</Chip>)}
-            {circle.status !== 'active' ? <StatusBadge tone="neutral">{copy.kinds.circleStatus[circle.status]}</StatusBadge> : null}
-          </div> : null}
+        <div className="nd-care-tabs-row">
           <div className="nd-care-tabs" role="tablist" aria-label={copy.care.contentLabel}>
             {tabs.map(tab => <button key={tab.id} id={'care-tab-' + tab.id} type="button" role="tab" aria-selected={section === tab.id} aria-controls="care-panel" tabIndex={section === tab.id ? 0 : -1}
               onClick={() => setSection(tab.id)} onKeyDown={event => {
@@ -97,36 +108,71 @@ export function CarePage({ circleId, sources }: { readonly circleId?: string; re
                 if (next !== null) { event.preventDefault(); setSection(tabs[next]!.id); document.getElementById('care-tab-' + tabs[next]!.id)?.focus(); }
               }}>{tab.label}<span>{tab.count}</span></button>)}
           </div>
-          <div id="care-panel" role="tabpanel" aria-labelledby={'care-tab-' + section} tabIndex={0} className="nd-care-panel">
-            {section === 'changes' ? <>
-              <div className="nd-care-section-intro"><p>{copy.care.updatesHint}</p>{unread > 0 ? <span>{copy.care.unreadChanges(unread)}</span> : null}<button type="button" className="nd-link" onClick={() => navigate({ view: 'care', sources: { mode: 'pending' } })}>{copy.sourceAttention.allSources}</button></div>
-              {!circle && activityStatus !== 'no-access' && activityStatus !== 'unavailable' ? <UnassignedChanges pending={pending} unknown={unknown} other={other} /> : null}
-              {activityStatus === 'no-access' ? <div className="nd-care-blank"><p>{copy.today.sourcesNoAccess}</p><p>{copy.today.sourcesNoAccessBody}</p></div>
-                : activityStatus === 'unavailable' ? <Hint>{copy.care.changesUnavailable}</Hint>
-                : updates.length === 0 ? <div className="nd-care-blank"><p>{activityStatus === 'ready' ? copy.care.noChanges : copy.common.loading}</p><p>{copy.care.noChangesHint}</p></div>
-                : <ChangePreview key={circle?.id ?? 'all'} changes={updates} showCircle={!circle} />}
-              <SourceCoverageNote />
-            </> : section === 'items' ? <>
-              <div className="nd-care-section-intro"><p>{circle ? copy.care.itemsHint : copy.care.allItemsHint}</p>{circle ? <Button size="sm" tone="secondary" leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => ui.newItem({ circleId: circle.id })}>{copy.item.new}</Button> : null}</div>
-              {circle ? <QuickCapture key={circle.id} circleId={circle.id} /> : null}
-              {items.length === 0 ? <Hint>{copy.care.noItems}</Hint> : <div className="nd-list">{items.map(item => <ItemRow key={item.id} item={item} layout="title-first" showFullDate showSnooze />)}</div>}
-            </> : <HandbookCard key={circle?.id ?? 'all'} circleId={circle?.id ?? null} />}
-          </div>
-        </section>
-      </div>
+          {section === 'changes' && !sources ? <div className="nd-care-update-tools">
+            <label className="nd-care-search nd-care-update-search">
+              <Search size={15} aria-hidden="true" />
+              <input type="search" aria-label={copy.care.findUpdate} placeholder={copy.care.findUpdate} value={updateQuery} onChange={event => setUpdateQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setUpdateQuery(''); }} />
+            </label>
+            <button type="button" className="nd-care-filter-button" aria-pressed={unreadOnly} onClick={() => setUnreadOnly(value => !value)}><ListFilter size={15} aria-hidden="true" />{copy.care.onlyUnread}</button>
+          </div> : null}
+        </div>
+        <div id="care-panel" role="tabpanel" aria-labelledby={'care-tab-' + section} tabIndex={0} className="nd-care-panel">
+          {section === 'changes' ? sources ? <SourceBrowser key={JSON.stringify([circle?.id, sources])} target={sources} circleId={circle?.id} /> : <>
+            <div className="nd-care-section-intro nd-care-source-notice">
+              <Sparkles size={16} aria-hidden="true" />
+              <p>{copy.care.updatesHint}</p>
+              {unread > 0 ? <span>{copy.care.unreadChanges(unread)}</span> : null}
+              <button type="button" className="nd-care-source-notice-link" aria-label={copy.sourceAttention.allSources} title={copy.sourceAttention.allSources} onClick={() => navigate({ view: 'care', sources: { mode: 'pending' } })}><ChevronRight size={17} aria-hidden="true" /></button>
+            </div>
+            {!circle && activityStatus !== 'no-access' && activityStatus !== 'unavailable' ? <UnassignedChanges pending={pending} unknown={unknown} other={other} /> : null}
+            {activityStatus === 'no-access' ? <div className="nd-care-blank"><p>{copy.today.sourcesNoAccess}</p><p>{copy.today.sourcesNoAccessBody}</p></div>
+              : activityStatus === 'unavailable' ? <Hint>{copy.care.changesUnavailable}</Hint>
+              : updates.length === 0 ? <div className="nd-care-blank"><p>{activityStatus === 'ready' ? copy.care.noChanges : copy.common.loading}</p><p>{copy.care.noChangesHint}</p></div>
+              : <ChangePreview key={circle?.id ?? 'all'} changes={updates} showCircle={!circle} query={updateQuery} unreadOnly={unreadOnly} onUnreadOnlyChange={setUnreadOnly} showHeading />}
+            <SourceCoverageNote />
+          </> : section === 'items' ? <>
+            <div className="nd-care-section-intro"><p>{circle ? copy.care.itemsHint : copy.care.allItemsHint}</p>{circle ? <Button size="sm" tone="secondary" leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => ui.newItem({ circleId: circle.id })}>{copy.item.new}</Button> : null}</div>
+            {circle ? <QuickCapture key={circle.id} circleId={circle.id} /> : null}
+            {items.length === 0 ? <Hint>{copy.care.noItems}</Hint> : <div className="nd-list">{items.map(item => <ItemRow key={item.id} item={item} layout="title-first" showFullDate showSnooze />)}</div>}
+          </> : <HandbookCard key={circle?.id ?? 'all'} circleId={circle?.id ?? null} />}
+        </div>
+      </section>
     </div>
   );
 }
 
-function ChangePreview({ changes, associationInGroup = false, showCircle = true }: { readonly changes: readonly SourceChange[]; readonly associationInGroup?: boolean; readonly showCircle?: boolean }) {
+function ChangePreview({ changes, associationInGroup = false, showCircle = true, query = '', unreadOnly: controlledUnreadOnly, onUnreadOnlyChange, showHeading = false }: {
+  readonly changes: readonly SourceChange[];
+  readonly associationInGroup?: boolean;
+  readonly showCircle?: boolean;
+  readonly query?: string;
+  readonly unreadOnly?: boolean;
+  readonly onUnreadOnlyChange?: (value: boolean) => void;
+  readonly showHeading?: boolean;
+}) {
   const { copy } = useNimiDay();
+  const { state } = useDayStore();
   const [visible, setVisible] = useState(CHANGE_PREVIEW_COUNT);
-  const [unreadOnly, setUnreadOnly] = useState(false);
-  const list = unreadOnly ? changes.filter(change => change.unread) : changes;
+  const [localUnreadOnly, setLocalUnreadOnly] = useState(false);
+  const unreadOnly = controlledUnreadOnly ?? localUnreadOnly;
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const list = changes.filter(change => {
+    if (unreadOnly && !change.unread) return false;
+    if (!normalizedQuery) return true;
+    const circleName = change.circleId ? state.circles.find(circle => circle.id === change.circleId)?.name ?? '' : '';
+    return [change.title, change.summary ?? '', change.appName, change.child?.childName ?? '', circleName]
+      .join(' ').toLocaleLowerCase().includes(normalizedQuery);
+  });
+  useEffect(() => { setVisible(CHANGE_PREVIEW_COUNT); }, [query, unreadOnly]);
+  const updateUnreadOnly = (value: boolean) => {
+    if (onUnreadOnlyChange) onUnreadOnlyChange(value);
+    else setLocalUnreadOnly(value);
+  };
   return <>
-    <div className="nd-care-filter"><label><input type="checkbox" checked={unreadOnly} onChange={event => { setUnreadOnly(event.target.checked); setVisible(CHANGE_PREVIEW_COUNT); }} />{copy.care.onlyUnread}</label></div>
+    {showHeading ? <div className="nd-care-updates-heading"><h3>{copy.care.linkedChanges}<span>{list.length}</span></h3></div> : null}
+    {!onUnreadOnlyChange ? <div className="nd-care-filter"><label><input type="checkbox" checked={unreadOnly} onChange={event => updateUnreadOnly(event.target.checked)} />{copy.care.onlyUnread}</label></div> : null}
     <div className="nd-list">{list.slice(0, visible).map(change => <SourceRow key={change.id} change={change} presentation="care" showCircle={showCircle} associationInGroup={associationInGroup} />)}</div>
-    {list.length === 0 ? <Hint>{copy.care.noUnread}</Hint> : null}
+    {list.length === 0 ? <Hint>{normalizedQuery ? copy.care.noMatchingUpdates : copy.care.noUnread}</Hint> : null}
     {list.length > CHANGE_PREVIEW_COUNT ? <div className="nd-care-list-footer">
       <span className="nd-muted">{copy.care.showingChanges(Math.min(visible, list.length), list.length)}</span>
       {visible < list.length ? <button type="button" className="nd-link" onClick={() => setVisible(count => count + CHANGE_PREVIEW_COUNT)}>{copy.care.loadMoreUpdates(Math.min(CHANGE_PREVIEW_COUNT, list.length - visible))}</button> : null}

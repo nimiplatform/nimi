@@ -19,7 +19,7 @@
 
 | 开发路径 | 适用场景 | 依赖条件 |
 |---|---|---|
-| `pnpm dev:desktop` | Windows / macOS 桌面端 UI、Main 与 Preload 核心迭代 | 先在独立终端启动 `pnpm dev:runtime` |
+| `pnpm dev:desktop` | Windows / macOS 桌面端 UI、Main 与 Preload 核心迭代 | 自动检查并启动缺失的 Runtime、Web 和已配置的 Realm 服务 |
 | `pnpm dev:runtime` | Windows x64 / macOS arm64 本地 Runtime 源码调试 | 独立终端持续前台运行 |
 | `pnpm dev:lab` | 启动 Nimi Lab 能力测试台应用 | 需先启动并登录 Desktop |
 | `pnpm dev:zhiyu` | 启动 织羽 (Zhiyu) AI 伙伴应用 | 需先启动并登录 Desktop |
@@ -52,10 +52,16 @@
 ## 推荐的开发流程
 
 ### 平台通用步骤
-1. **启动 Runtime 守护进程**：在一个终端窗口运行 `pnpm dev:runtime`，保持该终端处于前台运行状态。
-2. **启动 Nimi Desktop**：在另一个终端运行 `pnpm dev:desktop`。
+1. **配置 Realm 启动位置**：在根目录 `.env` 中设置 `NIMI_DEV_REALM_DIR`，指向已配置好数据库和环境变量的 Realm 开发工程。该工程需提供 `dev:infra`、`dev:api`、`dev:realtime` 三个 package 脚本。若自行管理 Realm 服务，可不设置，但 API `3002` 和实时服务 `3003` 必须已运行。
+2. **启动 Nimi Desktop**：运行 `pnpm dev:desktop`。启动器先检查数据服务、Realm API、实时服务、Web 登录代理和源码 Runtime，再启动 Electron。已就绪的服务会复用，无需逐个打开终端。
 3. **完成登录与授权**：首次启动 Desktop 时，选择数据根目录，并通过浏览器完成 Nimi 账号登录。
 4. **启动目标生态应用**：在 Desktop 保持运行的前提下，在新的终端窗口启动对应应用（如 `pnpm dev:zhiyu`，或在第三方 App 目录下运行 `pnpm dev`）。
+
+Realm 启动位置是本机配置，不提交到 Git；启动器不会猜测其他仓库的位置。Realm 的 `dev:infra` 负责检查 PostgreSQL、Redis 和 OpenSearch，并启动与配置相符的本地开发容器。Docker 未运行、镜像未准备或数据库尚未初始化时，启动明确报错，不自动安装软件、重建容器、迁移或重置数据库。
+
+Web 固定使用 `127.0.0.1:3000`，API 使用 `127.0.0.1:3002`，实时服务使用 `127.0.0.1:3003`。端口被其他服务占用、Web 属于其他工作区或服务启动失败时，Electron 不会继续打开。依赖日志位于 `.nimi/local/dev-services/`，终端会打印具体日志路径。源码 Runtime 仍由正式 supervisor 启动，并由 Desktop 的原生受保护连接完成准入检查。
+
+关闭 Desktop 或终端中断启动时，只停止本次自动创建的开发进程；先前已运行的服务和数据容器保留。需要独立调试 Runtime 时仍可先运行 `pnpm dev:runtime`，Desktop 会复用它。`pnpm dev:electron:desktop` 和 Desktop 包内的 `dev` / `dev:electron` 使用同一依赖检查。
 
 ---
 

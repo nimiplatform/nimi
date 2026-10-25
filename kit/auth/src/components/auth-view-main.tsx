@@ -44,7 +44,7 @@ export function AuthViewMain(props: {
   return (
     <form onSubmit={onContinue} noValidate className="relative w-full">
       {/* Capsule input bar */}
-      <div className={capsuleBar}>
+      <div className={`${capsuleBar} nimi-shell-auth-main-capsule`}>
         {/* Left: alternatives dropdown trigger */}
         <button
           type="button"

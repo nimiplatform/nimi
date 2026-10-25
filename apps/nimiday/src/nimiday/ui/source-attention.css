@@ -2,11 +2,12 @@
 .nd-source-compact { display: none; }
 .nd-source-section { margin-top: 20px; }
 .nd-source-section h3 { font-size: 12px; font-weight: 600; color: var(--nimi-text-secondary); margin: 0 0 8px; }
-.nd-source-summary { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 14px 0; background: transparent; border: 0; border-bottom: 1px solid var(--nimi-border-subtle); color: var(--nimi-text-primary); text-align: left; font: inherit; cursor: pointer; }
+.nd-source-summary { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 14px 0; background: transparent; border: 0; border-bottom: 1px solid var(--nimi-border-subtle); color: var(--nimi-text-primary); text-align: left; font: inherit; cursor: pointer; }
+.nd-source-summary::before { content: ''; position: absolute; inset: 4px -8px; z-index: -1; border-radius: 12px; background: transparent; transition: background-color 160ms ease; pointer-events: none; }
 .nd-source-summary strong { font-size: 14px; line-height: 1.6; }
 .nd-source-summary > span { font-size: 12px; color: var(--nimi-text-secondary); line-height: 1.6; }
 .nd-source-summary .nd-source-summary-action { color: var(--nimi-action-primary-bg); align-self: flex-end; }
-.nd-source-summary:hover { background: var(--nimi-action-ghost-hover); }
+.nd-source-summary:hover::before { background: var(--nimi-action-ghost-hover); }
 .nd-source-summary:focus-visible { outline: 2px solid var(--nimi-focus-ring-color); outline-offset: 4px; border-radius: 6px; }
 .nd-source-examples, .nd-source-row[data-presentation="summary"] .nd-row-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .nd-source-reason { color: var(--nimi-text-secondary); font-size: 12px; margin-top: 6px; }

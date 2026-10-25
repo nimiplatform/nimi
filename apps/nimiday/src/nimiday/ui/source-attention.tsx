@@ -39,7 +39,7 @@ export function SourceAttention() {
     return unit ? [unit] : [];
   });
   const changed = keys !== null && JSON.stringify(keys) !== nextKeyString;
-  const open = (target: SourceListTarget) => navigate({ view: 'care', sources: target });
+  const open = (target: SourceListTarget, circleId?: string) => navigate({ view: 'care', ...(circleId ? { circleId } : {}), sources: target });
   const shown = units.reduce((count, unit) => count + unit.entries.length, 0);
   return <section data-testid="nd-source-messages">
     <div className="nd-section-heading"><h2>{copy.today.fromApps}</h2>
@@ -56,7 +56,7 @@ export function SourceAttention() {
             const circle = state.circles.find(candidate => candidate.id === first.circleId);
             return <div key={unit.key} data-testid="nd-source-unit">
               {unit.entries.length === 1 ? <SourceRow change={first} presentation="summary" />
-                : <button type="button" className="nd-source-summary" onClick={() => open({ mode: 'pending', unitKey: unit.key })}>
+                : <button type="button" className="nd-source-summary" onClick={() => open({ mode: 'pending', unitKey: unit.key }, circle?.id)}>
                   <strong>{copy.sourceAttention.groupTitle(circle?.name ?? first.child?.childName ?? first.appName, unit.entries.length)}</strong>
                   <span>{first.appName} · {copy.sourceAttention.reasons[unit.entries[0]!.reason!]}</span>
                   <span className="nd-source-examples">{unit.entries.slice(0, 2).map(entry => entry.change.title).join(' · ')}</span>

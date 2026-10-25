@@ -9,7 +9,7 @@ import { Hint } from './common.js';
 import './source-attention.css';
 
 // @nimi-authority: rule.nimi.nimiday.assistant.source-attention-summary
-export function SourceBrowser({ target }: { readonly target: SourceListTarget }) {
+export function SourceBrowser({ target, circleId }: { readonly target: SourceListTarget; readonly circleId?: string }) {
   const { copy, navigate, activity } = useNimiDay();
   const { state } = useDayStore();
   const { sourceChanges, sourceApps, now, activityStatus } = useEngine();
@@ -33,7 +33,8 @@ export function SourceBrowser({ target }: { readonly target: SourceListTarget })
   const search = query.trim().toLocaleLowerCase();
   const list = selectSourceEntries(entries, { mode, unitKey }).sort((a, b) =>
     positions.get(sourceViewKey(a.change))! - positions.get(sourceViewKey(b.change))!).filter(({ change }) =>
-    (!app || change.appId === app) && (!circle || (circle === 'unassociated' ? !change.circleId : change.circleId === circle))
+    (!circleId || change.circleId === circleId)
+    && (!app || change.appId === app) && (!circle || (circle === 'unassociated' ? !change.circleId : change.circleId === circle))
     && (!search || [change.appName, change.title, change.summary, change.child?.childName,
       state.circles.find(person => person.id === change.circleId)?.name].filter(Boolean).join(' ').toLocaleLowerCase().includes(search)));
   const shown = list.slice(0, visible);
@@ -44,7 +45,7 @@ export function SourceBrowser({ target }: { readonly target: SourceListTarget })
   }
   const ready = activityStatus === 'ready';
   return <section className="nd-source-browser" data-testid="nd-source-browser">
-    <div className="nd-source-browser-heading"><h2>{copy.sourceAttention.allSources}</h2>
+    <div className="nd-care-section-intro"><p>{copy.care.updatesHint}</p>
       <button type="button" className="nd-link" onClick={() => navigate({ view: 'today' })}>{copy.sourceAttention.back}</button></div>
     <div className="nd-source-filters">
       <label>{copy.sourceAttention.status}<select aria-label={copy.sourceAttention.status} value={mode} onChange={event => { setMode(event.target.value as SourceListMode); setUnitKey(undefined); setVisible(20); }}>
@@ -53,10 +54,10 @@ export function SourceBrowser({ target }: { readonly target: SourceListTarget })
       <label>{copy.sourceAttention.app}<select aria-label={copy.sourceAttention.app} value={app} onChange={event => { setApp(event.target.value); setVisible(20); }}>
         <option value="">{copy.sourceAttention.allApps}</option>{apps.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
       </select></label>
-      <label>{copy.sourceAttention.object}<select aria-label={copy.sourceAttention.object} value={circle} onChange={event => { setCircle(event.target.value); setVisible(20); }}>
+      {!circleId ? <label>{copy.sourceAttention.object}<select aria-label={copy.sourceAttention.object} value={circle} onChange={event => { setCircle(event.target.value); setVisible(20); }}>
         <option value="">{copy.sourceAttention.allObjects}</option><option value="unassociated">{copy.sourceAttention.unassociated}</option>
         {state.circles.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
-      </select></label>
+      </select></label> : null}
       <label>{copy.sourceAttention.search}<input type="search" value={query} onChange={event => { setQuery(event.target.value); setVisible(20); }} /></label>
     </div>
     {unitKey ? <div className="nd-source-filter-scope"><span>{copy.sourceAttention.scope}</span>

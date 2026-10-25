@@ -171,13 +171,37 @@ export function useAiConversationPresentation(
     },
     composerContent: centerComposer ? null : composerNode,
     setupDescription: input.setupPending
-      ? null
+      ? (
+        <div className="flex flex-col items-center gap-5">
+          <p>
+            {input.t('Chat.nimiSetupLoadingDescription', {
+              defaultValue: 'Loading your model selection and conversation settings.',
+            })}
+          </p>
+          <div className="nimi-boot-dots scale-75" aria-hidden="true">
+            <span className="nimi-boot-dot" />
+            <span className="nimi-boot-dot" />
+            <span className="nimi-boot-dot" />
+          </div>
+        </div>
+      )
       : input.setupState.status === 'unavailable'
         ? input.t('Chat.nimiSetupUnavailableDescription')
       : input.t('Chat.nimiIntentRequired', {
         defaultValue: 'Pick a local or cloud model to start your first conversation.',
       }),
-    setupIcon: <img src={setupLogoImage} alt="" aria-hidden="true" className="h-16 w-16 object-contain" />,
+    setupIcon: input.setupPending ? (
+      <div className="relative flex h-36 w-36 items-center justify-center">
+        <div className="absolute inset-0 animate-pulse rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)_0%,color-mix(in_srgb,var(--nimi-status-success)_10%,transparent)_42%,transparent_72%)] motion-reduce:animate-none" />
+        <div className="absolute inset-2 animate-spin rounded-full border border-transparent border-t-[color-mix(in_srgb,var(--nimi-action-primary-bg)_48%,transparent)] border-r-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] [animation-duration:2.8s] motion-reduce:animate-none" />
+        <div className="absolute inset-[9px] rounded-full border border-[color-mix(in_srgb,var(--nimi-border-subtle)_64%,transparent)]" />
+        <div className="relative flex h-[84px] w-[84px] items-center justify-center rounded-[28px] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-[linear-gradient(145deg,var(--nimi-surface-card),var(--nimi-surface-panel))] shadow-[0_16px_40px_color-mix(in_srgb,var(--nimi-text-primary)_10%,transparent),inset_0_1px_0_color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)]">
+          <img src={setupLogoImage} alt="" aria-hidden="true" className="h-14 w-14 object-contain" />
+        </div>
+      </div>
+    ) : (
+      <img src={setupLogoImage} alt="" aria-hidden="true" className="h-16 w-16 object-contain" />
+    ),
     setupTitle: input.setupPending
       ? input.t('Chat.nimiSetupLoadingTitle', { defaultValue: 'Preparing Nimi Chat…' })
       : input.setupState.status === 'unavailable'

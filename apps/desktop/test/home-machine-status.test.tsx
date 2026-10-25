@@ -50,10 +50,13 @@ function render(overrides: Partial<HomeMachineStatusViewProps> = {}): string {
   return renderToStaticMarkup(<HomeMachineStatusView {...props} />);
 }
 
-test('machine status strip shows Runtime resources and shared real AI usage', async () => {
+test('machine status strip omits duplicate current work and shows Runtime resources and shared real AI usage', async () => {
   await initI18n(); await changeLocale('en');
   const html = render();
   assert.match(html, /data-testid="home-machine-status"/);
+  assert.doesNotMatch(html, /data-testid="home-work-entry"/);
+  assert.doesNotMatch(html, /Current work/);
+  assert.doesNotMatch(html, /data-testid="home-usage-entry"/);
   assert.match(html, /data-testid="home-machine-runtime" data-state="ready"/);
   assert.match(html, /Runtime running/);
   assert.match(html, /CPU<\/span><span[^>]*>7%/);
@@ -188,6 +191,7 @@ test('Home hides its resource sampler and reads usage only from the shared provi
     await renderVisible(true);
     assert.equal(loads, 1); assert.equal(scheduled.size, 1);
     assert.match(dom.window.document.body.textContent ?? '', /9 recorded AI executions/);
+    assert.equal(dom.window.document.querySelector('[data-testid="home-work-entry"]'), null);
     await act(async () => dom.window.document.querySelector<HTMLButtonElement>('[data-testid="home-machine-usage"]')!.click());
     assert.equal(openedUsage, 1);
     await renderVisible(false);
