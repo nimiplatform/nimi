@@ -83,37 +83,38 @@ export function createAvatarLivePresentationSwap(input: {
   const trackMaterializationLease = input.trackMaterializationLease ?? (() => {});
   const untrackMaterializationLease = input.untrackMaterializationLease ?? (() => {});
   let activationTail: Promise<void> = Promise.resolve();
-  let activeTransaction: ActivationTransaction | null = null;
+  let activationScope = new AbortController();
 
   const activate = (
     request: AvatarCommittedPresentationActivation,
     waitForPresentationReady: AvatarPresentationReadinessGate,
   ): Promise<void> => {
-    const pending = activationTail.then(() => activateOne(request, waitForPresentationReady));
-    activationTail = pending.catch(() => undefined);
+    const transaction = createActivationTransaction([request.signal, activationScope.signal]);
+    const previous = activationTail;
+    const pending = (async () => {
+      try {
+        await waitForPreparation(previous, transaction, input.isClosed);
+        await activateOne(request, waitForPresentationReady, transaction);
+      } finally { transaction.dispose(); }
+    })();
+    // Canceling a queued request must not let the next request overtake work
+    // that is still awaiting its irreversible Host commit.
+    activationTail = Promise.allSettled([previous, pending]).then(() => undefined);
     return pending;
   };
 
   const activateOne = async (
     request: AvatarCommittedPresentationActivation,
     waitForPresentationReady: AvatarPresentationReadinessGate,
+    transaction: ActivationTransaction,
   ): Promise<void> => {
-    const transaction = createActivationTransaction();
-    activeTransaction = transaction;
-    try {
-      assertActivationRequest(request);
-      assertTransactionOpen(transaction, input.isClosed);
-    } catch (error) {
-      if (activeTransaction === transaction) activeTransaction = null;
-      throw error;
-    }
+    assertActivationRequest(request);
+    assertTransactionOpen(transaction, input.isClosed);
     const currentCarrier = input.getCarrier();
     if (!currentCarrier) {
-      if (activeTransaction === transaction) activeTransaction = null;
       throw new Error('Avatar presentation carrier is unavailable.');
     }
     if (selectionMatches(currentCarrier, request)) {
-      if (activeTransaction === transaction) activeTransaction = null;
       return;
     }
 
@@ -124,23 +125,27 @@ export function createAvatarLivePresentationSwap(input: {
     let currentDetached = false;
     let replacementAttached = false;
     try {
-      const initialOwner = await readMatchingPresentation(
+      const initialOwner = await waitForPreparation(readMatchingPresentation(
         input.runtime,
         input.agentBinding,
         request,
-      );
+      ), transaction, input.isClosed);
       assertTransactionOpen(transaction, input.isClosed);
       assertBindingFence(input.agentBinding, request, initialOwner.bindingGeneration);
-      resolved = await resolveAsset({
+      resolved = await waitForPreparation(resolveAsset({
+        previewRequestId: request.previewRequestId,
         agentHandle: request.agentHandle,
         presentationRevision: request.presentationRevision,
         presentationProfile: initialOwner.profile,
+      }), transaction, input.isClosed, (late) => {
+        trackMaterializationLease(late.reference.materializationLeaseRef);
+        void releaseTrackedLease(late, releaseMaterializationLease, untrackMaterializationLease);
       });
       trackMaterializationLease(resolved.reference.materializationLeaseRef);
       assertTransactionOpen(transaction, input.isClosed);
       assertBindingFence(input.agentBinding, request, initialOwner.bindingGeneration);
       assertResolvedAssetMatches(resolved, request);
-      replacement = await startCarrier({
+      replacement = await waitForPreparation(startCarrier({
         modelManifest: resolved.manifest,
         publishModelState: false,
         committedPresentationSelection: {
@@ -149,20 +154,23 @@ export function createAvatarLivePresentationSwap(input: {
           previewMaterialRef: resolved.reference.materializationRef,
           presentationRevision: request.presentationRevision,
         },
-      });
+      }), transaction, input.isClosed, shutdownCarrierSafely);
       assertTransactionOpen(transaction, input.isClosed);
-      await waitForReadinessOrCancellation(replacement, waitForPresentationReady, transaction);
+      await waitForPreparation(waitForPresentationReady(replacement), transaction, input.isClosed);
       assertTransactionOpen(transaction, input.isClosed);
-      let ownerFence = await readMatchingPresentation(input.runtime, input.agentBinding, request);
+      let ownerFence = await waitForPreparation(readMatchingPresentation(input.runtime, input.agentBinding, request), transaction, input.isClosed);
       assertTransactionOpen(transaction, input.isClosed);
       assertBindingFence(input.agentBinding, request, ownerFence.bindingGeneration);
       currentCarrier.detachRuntimeDriver();
       currentDetached = true;
       assertTransactionOpen(transaction, input.isClosed);
-      await replacement.attachRuntimeDriver(input.driver);
+      const attaching = replacement;
+      await waitForPreparation(attaching.attachRuntimeDriver(input.driver), transaction, input.isClosed, () => {
+        try { attaching.detachRuntimeDriver(); } finally { shutdownCarrierSafely(attaching); }
+      });
       replacementAttached = true;
       assertTransactionOpen(transaction, input.isClosed);
-      ownerFence = await readMatchingPresentation(input.runtime, input.agentBinding, request);
+      ownerFence = await waitForPreparation(readMatchingPresentation(input.runtime, input.agentBinding, request), transaction, input.isClosed);
       assertTransactionOpen(transaction, input.isClosed);
       assertBindingFence(input.agentBinding, request, ownerFence.bindingGeneration);
       replacementCommitted = true;
@@ -198,7 +206,8 @@ export function createAvatarLivePresentationSwap(input: {
         }
       }
 
-      await releaseTrackedLease(resolved, releaseMaterializationLease, untrackMaterializationLease);
+      const release = releaseTrackedLease(resolved, releaseMaterializationLease, untrackMaterializationLease);
+      if (!transaction.cancelled() && !input.isClosed()) await release;
 
       if (restoreError) {
         input.commitReplacement(null);
@@ -213,14 +222,14 @@ export function createAvatarLivePresentationSwap(input: {
       shutdownCarrierSafely(replacement);
       useAvatarStore.setState({ model: previousModel });
       throw error;
-    } finally {
-      if (activeTransaction === transaction) activeTransaction = null;
     }
   };
 
   const cancelPending = async (): Promise<void> => {
-    activeTransaction?.cancel();
-    await activationTail;
+    const pending = activationTail;
+    activationScope.abort();
+    activationScope = new AbortController();
+    await pending;
   };
 
   return Object.freeze({ activate, cancelPending });
@@ -230,36 +239,64 @@ type ActivationTransaction = Readonly<{
   cancel(): void;
   cancelled(): boolean;
   cancellation: Promise<void>;
+  dispose(): void;
 }>;
 
-function createActivationTransaction(): ActivationTransaction {
+function createActivationTransaction(signals: readonly AbortSignal[]): ActivationTransaction {
   let isCancelled = false;
   let resolveCancellation = () => {};
   const cancellation = new Promise<void>((resolve) => {
     resolveCancellation = resolve;
   });
-  return Object.freeze({
-    cancel() {
+  const cancel = () => {
       if (isCancelled) return;
       isCancelled = true;
       resolveCancellation();
-    },
+  };
+  for (const signal of signals) {
+    signal.addEventListener('abort', cancel, { once: true });
+    if (signal.aborted) cancel();
+  }
+  return Object.freeze({
+    cancel,
     cancelled: () => isCancelled,
     cancellation,
+    dispose() { for (const signal of signals) signal.removeEventListener('abort', cancel); },
   });
 }
 
-async function waitForReadinessOrCancellation(
-  carrier: AvatarRuntimeCarrier,
-  waitForPresentationReady: AvatarPresentationReadinessGate,
+async function waitForPreparation<T>(
+  operation: Promise<T>,
   transaction: ActivationTransaction,
-): Promise<void> {
-  const result = await Promise.race([
-    waitForPresentationReady(carrier).then(() => 'ready' as const),
-    transaction.cancellation.then(() => 'cancelled' as const),
-  ]);
-  if (result === 'cancelled') {
-    throw new Error('Avatar presentation activation was cancelled.');
+  isClosed: () => boolean,
+  releaseLate?: (value: T) => void,
+): Promise<T> {
+  let abandoned = false, received = false, released = false;
+  let value: T;
+  const release = () => {
+    if (!received || released) return;
+    released = true;
+    try { releaseLate?.(value); } catch (error) {
+      console.warn('[avatar:presentation-swap] late preparation cleanup failed: ' + describeError(error));
+    }
+  };
+  const observed = operation.then((result) => {
+    received = true;
+    value = result;
+    if (abandoned) release();
+    return result;
+  });
+  try {
+    const result = await Promise.race([
+      observed,
+      transaction.cancellation.then(() => { throw new Error('Avatar presentation activation was cancelled.'); }),
+    ]);
+    assertTransactionOpen(transaction, isClosed);
+    return result;
+  } catch (error) {
+    abandoned = true;
+    release();
+    throw error;
   }
 }
 
@@ -344,6 +381,9 @@ function assertBindingFence(
 }
 
 function assertActivationRequest(request: AvatarCommittedPresentationActivation): void {
+  if (!request.previewRequestId || request.previewRequestId.trim() !== request.previewRequestId) {
+    throw new AvatarPresentationActivationMismatchError('Avatar preview request identity is missing.');
+  }
   const agentHandle = normalizeText(request.agentHandle);
   const avatarAssetRef = normalizeText(request.avatarAssetRef);
   const presentationRevision = normalizeText(request.presentationRevision);

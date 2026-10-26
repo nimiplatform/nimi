@@ -20,6 +20,7 @@ import {
   readAvatarInstanceScale,
 } from './avatar-scale-state.js';
 import { readAvatarShellSettings } from './settings-state.js';
+import { isAvatarLocalQuiet } from './local-quiet-state.js';
 
 const bootstrapAvatarMock = vi.fn<(options?: { signal?: AbortSignal }) => Promise<BootstrapHandle>>();
 const setIgnoreCursorEventsMock = vi.fn();
@@ -364,6 +365,21 @@ afterEach(() => {
 });
 
 describe('App composition state machine', () => {
+  it('keeps the local audio gate quiet when a latched composition recovers', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ projection: createBackendProjection() }));
+    render(<App />);
+    act(() => seedReadyState());
+    await waitFor(() => expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true'));
+    expect(isAvatarLocalQuiet()).toBe(false);
+    act(() => useAvatarStore.getState().setDriverStatus('error', 'preview-stream-lost'));
+    await waitFor(() => expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy());
+    expect(isAvatarLocalQuiet()).toBe(true);
+    act(() => useAvatarStore.getState().setDriverStatus('running'));
+    await waitFor(() => expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true'));
+    expect(isAvatarLocalQuiet()).toBe(true);
+    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+  });
+
   it('abandons a terminal initial attempt once and ignores its late ready', async () => {
     let publish!: (state: BackendPresentationState) => void;
     const handle = createBootstrapHandle({
@@ -623,6 +639,82 @@ describe('App composition state machine', () => {
     expect(replacement.shutdown).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a newer staged request intact when an older callback or activation rejection arrives late', async () => {
+    setHostRuntime(true);
+    const oldResult = createDeferred<void>();
+    const oldReady = createDeferred<void>();
+    const nextReady = createDeferred<void>();
+    const oldListener: { current?: (state: BackendPresentationState) => void } = {};
+    const nextMounted = vi.fn(), nextUnmounted = vi.fn();
+    const initialHandle = createBootstrapHandle({ projection: createBackendProjection() });
+    const first = createBootstrapHandle({ projection: createBackendProjection(), presentationReadyGate: oldReady.promise,
+      capturePresentationListener: listener => { oldListener.current = listener; } }).carrier!;
+    const second = createBootstrapHandle({ projection: createBackendProjection(), presentationReadyGate: nextReady.promise,
+      onSurfaceMount: nextMounted, onSurfaceUnmount: nextUnmounted }).carrier!;
+    first.committedPresentationSelection = { avatarAssetRef: 'vrm_aaaaaaaaaaaa', backendKind: 'vrm', previewMaterialRef: 'first', presentationRevision: '1' };
+    second.committedPresentationSelection = { avatarAssetRef: 'vrm_bbbbbbbbbbbb', backendKind: 'vrm', previewMaterialRef: 'second', presentationRevision: '2' };
+    initialHandle.activateCommittedPresentation = vi.fn(async (request, waitForReady) => {
+      if (request.previewRequestId === 'old-request') { await waitForReady(first); await oldResult.promise; }
+      else { await waitForReady(second); initialHandle.carrier = second; }
+    });
+    bootstrapAvatarMock.mockResolvedValue(initialHandle);
+    render(<App />);
+    act(() => seedReadyState());
+    await waitFor(() => expect(installAvatarAgentCenterPreviewHandoffMock).toHaveBeenCalledTimes(1));
+    const handoff = installAvatarAgentCenterPreviewHandoffMock.mock.calls[0]![0] as {
+      activatePresentation(input: Parameters<BootstrapHandle['activateCommittedPresentation']>[0]): Promise<void>;
+    };
+    const activation = { agentHandle: `agent_ref_${'a'.repeat(43)}`, avatarAssetRef: 'vrm_bbbbbbbbbbbb',
+      backendKind: 'vrm' as const, presentationRevision: '2', signal: new AbortController().signal };
+    let old!: Promise<unknown>;
+    act(() => { old = handoff.activatePresentation({ ...activation, previewRequestId: 'old-request' }).catch(error => error); });
+    await waitFor(() => expect(oldListener.current).toBeTypeOf('function'));
+    const staleCallback = oldListener.current!;
+    await act(async () => { oldReady.resolve(); await Promise.resolve(); });
+    let next!: Promise<void>, nextSettled = false;
+    act(() => {
+      next = handoff.activatePresentation({ ...activation, previewRequestId: 'next-request' });
+      void next.then(() => { nextSettled = true; }, () => { nextSettled = true; });
+    });
+    await waitFor(() => expect(nextMounted).toHaveBeenCalledOnce());
+    await act(async () => { staleCallback({ kind: 'ready' }); await Promise.resolve(); });
+    expect(nextSettled).toBe(false);
+    await act(async () => { oldResult.reject(new Error('old activation failed')); await old; });
+    expect(nextUnmounted).not.toHaveBeenCalled();
+    expect(nextSettled).toBe(false);
+    await act(async () => { nextReady.resolve(); await next; });
+    expect(nextSettled).toBe(true);
+  });
+
+  it('aborts and clears a staged preview when stream composition becomes unavailable', async () => {
+    setHostRuntime(true);
+    const candidateMounted = vi.fn();
+    const frame = createDeferred<void>();
+    const initialHandle = createBootstrapHandle({ projection: createBackendProjection() });
+    const candidate = createBootstrapHandle({ projection: createBackendProjection(), presentationReadyGate: frame.promise,
+      onSurfaceMount: candidateMounted }).carrier!;
+    candidate.committedPresentationSelection = { avatarAssetRef: 'vrm_cccccccccccc', backendKind: 'vrm', previewMaterialRef: 'candidate', presentationRevision: '2' };
+    initialHandle.activateCommittedPresentation = vi.fn(async (_request, waitForReady) => { await waitForReady(candidate); });
+    bootstrapAvatarMock.mockResolvedValue(initialHandle);
+    render(<App />);
+    act(() => seedReadyState());
+    await waitFor(() => expect(installAvatarAgentCenterPreviewHandoffMock).toHaveBeenCalledTimes(1));
+    const handoff = installAvatarAgentCenterPreviewHandoffMock.mock.calls[0]![0] as {
+      signal: AbortSignal;
+      activatePresentation(input: Parameters<BootstrapHandle['activateCommittedPresentation']>[0]): Promise<void>;
+    };
+    let pending!: Promise<unknown>;
+    act(() => { pending = handoff.activatePresentation({ previewRequestId: 'stream-loss', signal: handoff.signal,
+      agentHandle: `agent_ref_${'a'.repeat(43)}`, avatarAssetRef: 'vrm_cccccccccccc', backendKind: 'vrm', presentationRevision: '2',
+    }).catch(error => error); });
+    await waitFor(() => expect(candidateMounted).toHaveBeenCalledOnce());
+    await act(async () => { seedDegradedRuntime(); await Promise.resolve(); });
+    expect(handoff.signal.aborted).toBe(true);
+    expect(await pending).toBeInstanceOf(Error);
+    expect(document.querySelector('[data-avatar-presentation-layer="staging"]')).toBeNull();
+    frame.resolve();
+  });
+
   it('keeps staged promotion mounted when the unavailable current carrier is restarted', async () => {
     setHostRuntime(true);
     const candidateMounted = vi.fn();
@@ -667,17 +759,13 @@ describe('App composition state machine', () => {
         .toBe('unavailable');
     });
     const previewInput = installAvatarAgentCenterPreviewHandoffMock.mock.calls[0]?.[0] as {
-      activatePresentation(input: {
-        agentHandle: string;
-        avatarAssetRef: string;
-        backendKind: 'live2d' | 'vrm';
-        presentationRevision: string;
-      }): Promise<void>;
+      activatePresentation(input: Parameters<BootstrapHandle['activateCommittedPresentation']>[0]): Promise<void>;
     };
 
     let activationPromise!: Promise<void>;
     act(() => {
       activationPromise = previewInput.activatePresentation({
+        previewRequestId: 'preview-staged-ready', signal: new AbortController().signal,
         agentHandle: `agent_ref_${'a'.repeat(43)}`,
         avatarAssetRef: 'avatar_asset_new',
         backendKind: 'vrm',
@@ -738,16 +826,12 @@ describe('App composition state machine', () => {
         .toBe('unavailable');
     });
     const previewInput = installAvatarAgentCenterPreviewHandoffMock.mock.calls[0]?.[0] as {
-      activatePresentation(input: {
-        agentHandle: string;
-        avatarAssetRef: string;
-        backendKind: 'live2d' | 'vrm';
-        presentationRevision: string;
-      }): Promise<void>;
+      activatePresentation(input: Parameters<BootstrapHandle['activateCommittedPresentation']>[0]): Promise<void>;
     };
     let activationPromise!: Promise<void>;
     act(() => {
       activationPromise = previewInput.activatePresentation({
+        previewRequestId: 'preview-staged-failed', signal: new AbortController().signal,
         agentHandle: `agent_ref_${'a'.repeat(43)}`,
         avatarAssetRef: 'avatar_asset_failed',
         backendKind: 'vrm',

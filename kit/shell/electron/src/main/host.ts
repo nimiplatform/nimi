@@ -562,7 +562,16 @@ export function registerNimiElectronRuntimeBridge(
             : undefined,
           ...(event.sender ? { sender: event.sender as object } : {}),
           ...(scenarioExecute ? { operationGate: runDataRootOperation } : {}),
-        }));
+        })).finally(() => {
+          // Host disposal can wake an in-flight embodiment pull as completed.
+          // Its sender tombstone is terminal even before the closing event is
+          // handled. Keep this fence off mutations and their committed results.
+          if (rendererProfile.bundledAvatarProfile
+            && command === NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe']
+            && standardPayload.action === 'next') {
+            assertBundledAvatarSenderActive(event.sender as object);
+          }
+        });
         const mediaHost = effectiveStandardShellHost.localAppAssetMediaHost;
         if (mediaHost) {
           if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove']) mediaHost.invalidatePath(String(standardPayload.relativePath));

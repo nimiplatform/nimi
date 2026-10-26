@@ -84,6 +84,7 @@ import {
 import {
   createDesktopElectronBundledAvatarHost,
   resolveDesktopAvatarFormalLaunchBinding,
+  resolveDesktopAvatarFormalPresentation,
   type DesktopElectronBundledAvatarHost,
 } from './bundled-avatar-host.js';
 import { createDesktopElectronSystemResourcesHost } from './system-resources-host.js';
@@ -806,6 +807,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         if (!host) throw new Error('Avatar formal App host is unavailable.');
         return resolveDesktopAvatarFormalLaunchBinding(host, request);
       },
+      resolveFormalPresentation: (request) => {
+        const host = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
+        if (!host) throw new Error('Avatar formal App host is unavailable.');
+        return resolveDesktopAvatarFormalPresentation(host, request);
+      },
       resolveAppPrivateDataRoot: async () => path.join(
         await resolveProductControlDataRoot(),
         'apps',
@@ -823,23 +829,14 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       }) => {
         const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
         if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
-        const resolvedTarget = await localAppHost.avatarHostTargetResolve({
+        const presentation = await resolveDesktopAvatarFormalPresentation(localAppHost, {
+          avatarHostTargetRef,
           agentHandle,
           conversationAnchorId,
         });
-        if (normalizeText(resolvedTarget.avatarHostTargetRef) !== avatarHostTargetRef) {
-          throw new Error('Avatar materialization target no longer matches the hosted LocalAgent.');
-        }
-        const snapshot = await localAppHost.agentPresentationSnapshot({ agentHandle });
-        const profileValue = snapshot.profile;
-        if (!profileValue || typeof profileValue !== 'object' || Array.isArray(profileValue)) {
-          throw new Error('Avatar formal presentation snapshot is unavailable.');
-        }
-        const profile = profileValue as Readonly<Record<string, unknown>>;
-        if (normalizeText(snapshot.presentationRevision) !== presentationRevision
-          || normalizeText(profile.revision) !== presentationRevision
-          || normalizeText(profile.avatarAssetRef) !== avatarAssetRef
-          || normalizeText(profile.backendKind) !== backendKind) {
+        if (presentation.presentationRevision !== presentationRevision
+          || presentation.avatarAssetRef !== avatarAssetRef
+          || presentation.backendKind !== backendKind) {
           throw new Error('Avatar materialization request no longer matches the formal presentation.');
         }
       },

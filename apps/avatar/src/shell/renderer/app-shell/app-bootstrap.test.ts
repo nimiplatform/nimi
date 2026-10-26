@@ -61,7 +61,7 @@ function createMockDriver(): AgentDataDriver {
       statusHandler?.(status);
     },
     async stop() {
-      driverStopMock();
+      await driverStopMock();
       status = 'stopped';
       statusHandler?.(status);
     },
@@ -139,6 +139,35 @@ describe('bootstrapAvatar', () => {
     expect(useAvatarStore.getState().driver.status).toBe('running');
 
     await handle.shutdown();
+    expect(driverStopMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts driver cancellation before yielding to other bootstrap cleanup', async () => {
+    driverKind = 'mock';
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+    const handle = await bootstrapAvatar();
+    const closing = handle.shutdown();
+    try {
+      expect(driverStopMock).toHaveBeenCalledTimes(1);
+    } finally { await closing; }
+  });
+
+  it('all shutdown callers wait for the same pending resource cleanup', async () => {
+    driverKind = 'mock';
+    let release!: () => void;
+    driverStopMock.mockReturnValue(new Promise<void>((resolve) => { release = resolve; }));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+    const handle = await bootstrapAvatar();
+    const first = handle.shutdown();
+    await vi.waitFor(() => expect(driverStopMock).toHaveBeenCalledTimes(1));
+    let secondCompleted = false;
+    const second = handle.shutdown().then(() => { secondCompleted = true; });
+    try {
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(secondCompleted).toBe(false);
+    } finally { release(); await Promise.all([first, second]); }
+    expect(secondCompleted).toBe(true);
     expect(driverStopMock).toHaveBeenCalledTimes(1);
   });
 });

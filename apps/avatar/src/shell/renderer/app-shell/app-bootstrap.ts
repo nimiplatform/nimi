@@ -58,6 +58,7 @@ export async function bootstrapAvatar(options: { signal?: AbortSignal } = {}): P
   let initialMaterializationCommit: Promise<void> | null = null;
   let presentationSwap: AvatarLivePresentationSwap | null = null;
   let cleanedUp = false;
+  let cleanupPromise: Promise<void> | null = null;
   let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
     available: false,
     reason: 'Foreground voice requires a protected Desktop launch session.',
@@ -78,23 +79,22 @@ export async function bootstrapAvatar(options: { signal?: AbortSignal } = {}): P
     throw new Error('Avatar live presentation replacement requires an active formal App session.');
   };
   let commitInitialPresentation: BootstrapHandle['commitInitialPresentation'] = async () => {};
-  const cleanup = async () => {
-    if (cleanedUp) {
-      return;
-    }
+  // @nimi-authority: rule.nimi.avatar.embodiment.r009
+  const cleanup = (): Promise<void> => cleanupPromise ??= (async () => {
     cleanedUp = true;
     pendingLaunch.close();
     unsubscribeStatus();
     unsubscribeBundle();
     activeVoiceCapture?.cancel();
     activeVoiceCapture = null;
-    await presentationSwap?.cancelPending();
-    presentationSwap = null;
+    // Retire stream consumers before any asynchronous lease/swap cleanup.
+    // Every shutdown caller must await this same cleanup, including restart.
+    const stoppingDriver = driver?.stop().catch(() => {});
     carrier?.shutdown();
     carrier = null;
-    if (driver) {
-      await driver.stop().catch(() => {});
-    }
+    await presentationSwap?.cancelPending();
+    presentationSwap = null;
+    await stoppingDriver;
     await initialMaterializationCommit?.catch(() => undefined);
     if (pendingMaterializationLeaseRef) {
       const leaseRef = pendingMaterializationLeaseRef;
@@ -106,7 +106,7 @@ export async function bootstrapAvatar(options: { signal?: AbortSignal } = {}): P
       ownedMaterializationLeaseRefs.delete(leaseRef);
     }
     useAvatarStore.getState().clearRuntimeBinding();
-  };
+  })();
   const buildHandle = (): BootstrapHandle => ({
     get driver() {
       return driver;

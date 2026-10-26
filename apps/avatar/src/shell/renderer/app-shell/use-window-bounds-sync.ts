@@ -13,7 +13,7 @@
 // We deliberately do NOT measure DOM bounding rects of embodiment-stage or
 // other window-sized nodes as inputs. Bounds come from the backend projection.
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useAvatarStore } from './app-store.js';
 import {
   constrainWindowToVisibleArea,
@@ -21,6 +21,7 @@ import {
   setWindowSize,
 } from './avatar-window-commands.js';
 import { hasAvatarHostRuntime } from './avatar-host-bridge.js';
+import { isAvatarSenderInvalidated } from './window-command-lifecycle.js';
 import {
   WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE,
   createWindowBoundsRecomputer,
@@ -51,29 +52,50 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
     surfaceBoundsRevision = 0,
   } = input;
   const avatarScaleRef = useRef(avatarScale ?? WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE);
+  const senderInvalidatedRef = useRef(false);
   avatarScaleRef.current = avatarScale ?? WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE;
 
-  // Build the recomputer once; it has no React-owned state so it survives
-  // re-renders. dispose runs on unmount.
+  // Each ready/backend scope owns its pending native work. Ordinary rerenders
+  // reuse it; replacement, loss of readiness, and unmount retire it.
   const recomputer: WindowBoundsRecomputer = useMemo(() => {
-    return createWindowBoundsRecomputer({
+    let active = true;
+    const mayContinue = () => {
+      if (active && !senderInvalidatedRef.current) return true;
+      current.dispose();
+      return false;
+    };
+    const current = createWindowBoundsRecomputer({
       getEmbodimentBounds,
       getAvatarScale:
         getAvatarScale
         ?? (() => avatarScaleRef.current),
       applySize: async (size) => {
-        if (!hasAvatarHostRuntime()) return;
-        await setWindowSize(size.width, size.height);
-        await constrainWindowToVisibleArea();
-        await setIgnoreCursorEvents(false);
+        if (!mayContinue() || !hasAvatarHostRuntime()) return;
+        try {
+          await setWindowSize(size.width, size.height);
+          if (!mayContinue()) return;
+          await constrainWindowToVisibleArea();
+          if (!mayContinue()) return;
+          await setIgnoreCursorEvents(false);
+        } catch (error) {
+          if (!isAvatarSenderInvalidated(error)) throw error;
+          senderInvalidatedRef.current = true;
+          active = false;
+          current.dispose();
+        }
       },
       onRecomputed: ({ width, height }) => {
         useAvatarStore.getState().setWindowSize({ width, height });
       },
     });
-  }, [getAvatarScale, getEmbodimentBounds]);
+    if (senderInvalidatedRef.current) current.dispose();
+    return {
+      trigger: current.trigger,
+      dispose() { active = false; current.dispose(); },
+    };
+  }, [getAvatarScale, getEmbodimentBounds, isReady]);
 
-  useEffect(() => () => recomputer.dispose(), [recomputer]);
+  useLayoutEffect(() => () => recomputer.dispose(), [recomputer]);
 
   const previousAvatarScaleRef = useRef<number | null>(null);
   const previousSurfaceBoundsRevisionRef = useRef<number | null>(null);

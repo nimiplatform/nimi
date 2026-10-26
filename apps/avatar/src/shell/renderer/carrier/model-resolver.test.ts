@@ -9,7 +9,7 @@ vi.mock('../app-shell/avatar-host-bridge.js', () => ({
 describe('Runtime presentation Avatar asset resolver', () => {
   beforeEach(() => invokeAvatarHostCommandMock.mockReset());
 
-  it('binds native materialization to the exact presentation revision', async () => {
+  it.each([undefined, 'preview-current'])('binds native materialization to the exact presentation revision (preview %s)', async (previewRequestId) => {
     invokeAvatarHostCommandMock.mockResolvedValue({
       materializationRef: 'avatar-materialization:vrm:vrm_222222222222',
       materializationLeaseRef: `avatar_materialization_lease_${'a'.repeat(32)}`,
@@ -28,6 +28,7 @@ describe('Runtime presentation Avatar asset resolver', () => {
     const { resolveRuntimePresentationAvatarAsset } = await import('./model-resolver.js');
 
     await resolveRuntimePresentationAvatarAsset({
+      previewRequestId,
       agentHandle: `agent_ref_${'b'.repeat(43)}`,
       presentationRevision: 'revision-9',
       presentationProfile: {
@@ -40,6 +41,7 @@ describe('Runtime presentation Avatar asset resolver', () => {
       'nimi_avatar_resolve_agent_center_avatar_asset',
       {
         payload: {
+          ...(previewRequestId === undefined ? {} : { previewRequestId }),
           agentHandle: `agent_ref_${'b'.repeat(43)}`,
           avatarAssetRef: 'vrm_222222222222',
           backendKind: 'vrm',

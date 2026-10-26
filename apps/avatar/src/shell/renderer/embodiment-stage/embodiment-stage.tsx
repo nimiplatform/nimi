@@ -3,7 +3,7 @@
 // pointer interaction wiring. App-local prerequisite composition permits this
 // surface only in its `ready` branch.
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import {
@@ -26,6 +26,7 @@ import {
   type AvatarManualDragWindowOrigin,
 } from '../app-shell/avatar-window-commands.js';
 import { hasAvatarHostRuntime } from '../app-shell/avatar-host-bridge.js';
+import { isAvatarSenderInvalidated } from '../app-shell/window-command-lifecycle.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { AppOriginEvent } from '../driver/types.js';
 import type { BackendBranch } from '../carrier/backend-branch.js';
@@ -143,16 +144,38 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   const sinkRegistrationRef = useRef<(() => void) | null>(null);
   const currentHitRegionRef = useRef<BackendHitRegion | null>(null);
   const alphaProbeFailureReportedRef = useRef(false);
+  const windowCommandsActiveRef = useRef(true);
+  const cursorPollFailureReportedRef = useRef(false);
+  const clickThroughRecoveryPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopClickThroughRecoveryPoll = useCallback((): void => {
+    if (clickThroughRecoveryPollRef.current === null) return;
+    clearInterval(clickThroughRecoveryPollRef.current);
+    clickThroughRecoveryPollRef.current = null;
+  }, []);
 
   // 60Hz-capped throttle around the Desktop Host click-through command.
   // Per the app-shell contract, rapid pointermove
   // (1000+ events in 10ms) must not saturate the IPC channel. The throttle
   // dedupes same-value calls and coalesces with trailing-edge fire.
   const cursorEventsThrottleRef = useMemo(
-    () => createThrottledCursorEvents(),
-    [],
+    () => createThrottledCursorEvents({ onSenderInvalidated: () => {
+      windowCommandsActiveRef.current = false;
+      stopClickThroughRecoveryPoll();
+    } }),
+    [stopClickThroughRecoveryPoll],
   );
-  const clickThroughRecoveryPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resetCursorCapture = useCallback(() => {
+    if (!windowCommandsActiveRef.current) return;
+    void Promise.resolve(setIgnoreCursorEvents(false)).catch((error: unknown) => {
+      if (isAvatarSenderInvalidated(error)) {
+        windowCommandsActiveRef.current = false;
+        stopClickThroughRecoveryPoll();
+        cursorEventsThrottleRef.dispose();
+        return;
+      }
+      console.warn(`[avatar:shell] cursor reset failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  }, [cursorEventsThrottleRef, stopClickThroughRecoveryPoll]);
 
   const handleAudioConsumerReady = useCallback(
     (consumer: BackendAudioConsumer) => {
@@ -306,22 +329,18 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     pumpManualDragMove(drag);
   };
 
-  const stopClickThroughRecoveryPoll = useCallback((): void => {
-    if (clickThroughRecoveryPollRef.current === null) return;
-    clearInterval(clickThroughRecoveryPollRef.current);
-    clickThroughRecoveryPollRef.current = null;
-  }, []);
-
-  useEffect(
+  useLayoutEffect(
     () => () => {
       stopClickThroughRecoveryPoll();
-      void setIgnoreCursorEvents(false);
+      resetCursorCapture();
+      windowCommandsActiveRef.current = false;
       cursorEventsThrottleRef.dispose();
       hitRegionEmitThrottleRef.dispose();
     },
     [
       cursorEventsThrottleRef,
       hitRegionEmitThrottleRef,
+      resetCursorCapture,
       stopClickThroughRecoveryPoll,
     ],
   );
@@ -362,17 +381,29 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   );
 
   const startClickThroughRecoveryPoll = useCallback((): void => {
-    if (clickThroughRecoveryPollRef.current !== null) return;
+    if (!windowCommandsActiveRef.current || clickThroughRecoveryPollRef.current !== null) return;
     clickThroughRecoveryPollRef.current = setInterval(() => {
       void getCursorClientPosition()
         .then((position) => {
+          if (!windowCommandsActiveRef.current) return;
+          cursorPollFailureReportedRef.current = false;
           if (computeIgnoreForPoint(position.clientX, position.clientY)) {
             return;
           }
           stopClickThroughRecoveryPoll();
           cursorEventsThrottleRef.setIgnore(false);
         })
-        .catch(() => undefined);
+        .catch((error: unknown) => {
+          if (!windowCommandsActiveRef.current) return;
+          if (isAvatarSenderInvalidated(error)) {
+            windowCommandsActiveRef.current = false;
+            stopClickThroughRecoveryPoll();
+            cursorEventsThrottleRef.dispose();
+          } else if (!cursorPollFailureReportedRef.current) {
+            cursorPollFailureReportedRef.current = true;
+            console.warn('[avatar:embodiment] cursor recovery poll failed', error);
+          }
+        });
     }, CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS);
   }, [
     computeIgnoreForPoint,
@@ -382,6 +413,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   const setClickThrough = useCallback(
     (ignore: boolean): void => {
+      if (!windowCommandsActiveRef.current) return;
       if (ignore) {
         startClickThroughRecoveryPoll();
       } else {
@@ -463,8 +495,8 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // unclickable.
   useEffect(() => {
     stopClickThroughRecoveryPoll();
-    if (interactive) void setIgnoreCursorEvents(false);
-  }, [interactive, stopClickThroughRecoveryPoll]);
+    if (interactive) resetCursorCapture();
+  }, [interactive, resetCursorCapture, stopClickThroughRecoveryPoll]);
 
   return (
     <section

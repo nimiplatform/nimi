@@ -9,6 +9,8 @@ import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { App } from './App.js';
 import { t } from './i18n/index.js';
+import { hasAvatarHostRuntime, listenAvatarHostEvent } from './app-shell/avatar-host-bridge.js';
+import { bindAvatarRendererRootLifecycle } from './app-shell/renderer-root-lifecycle.js';
 import './app.css';
 
 installNimiShellRuntimeBridge();
@@ -29,7 +31,15 @@ if (typeof document !== 'undefined') {
 // GLTFLoader during the first canvas teardown — the second mount then
 // fails to re-upload the textures and the renderer enters Context Lost.
 // Three.js / R3F + cached GPU resources are not StrictMode-friendly.
-createRoot(container).render(
+const root = createRoot(container);
+const rootLifecycle = bindAvatarRendererRootLifecycle({
+  target: window,
+  unmount: () => root.unmount(),
+  ...(hasAvatarHostRuntime() ? {
+    listenClosing: (handler: () => void) => listenAvatarHostEvent('avatar://host-closing', handler),
+  } : {}),
+});
+if (await rootLifecycle.ready) root.render(
   <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
     <App />
   </NimiThemeProvider>,

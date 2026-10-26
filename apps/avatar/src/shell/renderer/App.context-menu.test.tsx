@@ -788,7 +788,10 @@ describe('App context menu overlay', () => {
 
   it('closes the current avatar window through the native window command', async () => {
     setHostRuntime(true);
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+    const handle = createBootstrapHandle();
+    let finishCleanup!: () => void;
+    vi.mocked(handle.shutdown).mockImplementation(() => new Promise<void>((resolve) => { finishCleanup = resolve; }));
+    bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
 
@@ -811,6 +814,9 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(closeAvatarWindowMock).toHaveBeenCalledTimes(1);
     });
+    expect(handle.shutdown).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(handle.shutdown).mock.invocationCallOrder[0]).toBeLessThan(closeAvatarWindowMock.mock.invocationCallOrder[0]!);
+    finishCleanup();
     expect(hideAvatarWindowMock).not.toHaveBeenCalled();
     expect(quitAvatarAppMock).not.toHaveBeenCalled();
     await waitFor(() => {
@@ -820,7 +826,8 @@ describe('App context menu overlay', () => {
 
   it('quits the Avatar App without closing only the current avatar', async () => {
     setHostRuntime(true);
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
 
@@ -847,6 +854,8 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(quitAvatarAppMock).toHaveBeenCalledTimes(1);
     });
+    expect(handle.shutdown).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(handle.shutdown).mock.invocationCallOrder[0]).toBeLessThan(quitAvatarAppMock.mock.invocationCallOrder[0]!);
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
     expect(hideAvatarWindowMock).not.toHaveBeenCalled();
     await waitFor(() => {

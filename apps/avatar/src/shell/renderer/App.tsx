@@ -191,9 +191,9 @@ export function App() {
     // Fixture rendering is a development-only visual preview. Keeping the
     // shared local projection gate quiet prevents fixture driver events and
     // audio from becoming live embodiment behavior.
-    setAvatarLocalQuiet(!presentationReady);
+    setAvatarLocalQuiet(!presentationReady || quietLatched);
     return () => setAvatarLocalQuiet(false);
-  }, [presentationReady]);
+  }, [presentationReady, quietLatched]);
 
   useEffect(() => {
     appMountedRef.current = true;
@@ -240,17 +240,36 @@ export function App() {
   useEffect(() => {
     if (!hasAvatarHostRuntime() || !productCompositionReady || !bootstrapHandle) return;
     let cancelled = false;
+    const previewScope = new AbortController();
     let unlisten: (() => void) | null = null;
     void installAvatarAgentCenterPreviewHandoff({
+      signal: previewScope.signal,
       getContext: () => ({
         agentHandle: useAvatarStore.getState().consume.agentHandle,
         conversationAnchorId: useAvatarStore.getState().consume.conversationAnchorId,
         carrier: bootstrapHandle?.carrier ?? null,
       }),
       async activatePresentation(request) {
+        const attempt: { staged: StagedPresentation | null } = { staged: null };
+        const clearOwnStaged = () => {
+          const own = attempt.staged;
+          if (!own) return;
+          if (stagedPresentationRef.current === own) stagedPresentationRef.current = null;
+          if (appMountedRef.current) setStagedPresentation(current => current === own ? null : current);
+        };
+        const abortStaged = () => {
+          const own = attempt.staged;
+          if (own && !own.settled.value) {
+            own.settled.value = true;
+            own.reject(new Error('Avatar preview staging was cancelled.'));
+            clearOwnStaged();
+          }
+        };
+        request.signal.addEventListener('abort', abortStaged, { once: true });
         try {
           await bootstrapHandle!.activateCommittedPresentation(request, (candidate) => (
             new Promise<void>((resolve, reject) => {
+              if (request.signal.aborted) { reject(new Error('Avatar preview staging was cancelled.')); return; }
               const settled = { value: false };
               const staged: StagedPresentation = {
                 carrier: candidate,
@@ -259,20 +278,19 @@ export function App() {
                 resolve,
                 reject,
               };
+              attempt.staged = staged;
               stagedPresentationRef.current = staged;
               setStagedPresentation(staged);
             })
           ));
+          if (!appMountedRef.current || activeBootstrapHandleRef.current !== bootstrapHandle) return;
           backendSurfaceBoundsRef.current = null;
           backendPresentationRef.current = { kind: 'ready' };
           setBackendPresentation({ kind: 'ready' });
           setPresentationRecovery(null);
-          stagedPresentationRef.current = null;
-          setStagedPresentation(null);
         } catch (error) {
-          stagedPresentationRef.current = null;
-          setStagedPresentation(null);
-          if (isAvatarPresentationRollbackUnavailableError(error)) {
+          if (appMountedRef.current && activeBootstrapHandleRef.current === bootstrapHandle
+            && isAvatarPresentationRollbackUnavailableError(error)) {
             const unavailable: BackendPresentationState = {
               kind: 'unavailable',
               reason: toErrorMessage(error),
@@ -282,6 +300,9 @@ export function App() {
             throw error;
           }
           throw error;
+        } finally {
+          request.signal.removeEventListener('abort', abortStaged);
+          clearOwnStaged();
         }
       },
     }).then((release) => {
@@ -293,6 +314,7 @@ export function App() {
     }).catch(() => undefined);
     return () => {
       cancelled = true;
+      previewScope.abort();
       unlisten?.();
     };
   }, [bootstrapHandle, presentationRecovery, productCompositionReady]);
@@ -421,9 +443,8 @@ export function App() {
     });
   }, [bootstrapHandle, productCompositionReady, presentationRecovery]);
 
-  const handleStagedPresentationState = useCallback((state: BackendPresentationState): void => {
-    const staged = stagedPresentationRef.current;
-    if (!staged || staged.settled.value) return;
+  const handleStagedPresentationState = useCallback((staged: StagedPresentation, state: BackendPresentationState): void => {
+    if (stagedPresentationRef.current !== staged || staged.settled.value) return;
     if (state.kind === 'ready') {
       staged.settled.value = true;
       staged.resolve();
@@ -922,7 +943,7 @@ export function App() {
         stagingPresentation={stagedPresentation ? {
           backend: stagedPresentation.carrier.backend,
           presentationKey: stagedPresentation.presentationKey,
-          onPresentationStateChange: handleStagedPresentationState,
+          onPresentationStateChange: state => handleStagedPresentationState(stagedPresentation, state),
         } : null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={presentationReady}

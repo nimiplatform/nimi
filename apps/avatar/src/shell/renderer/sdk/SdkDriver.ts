@@ -20,6 +20,7 @@ import type {
   InterruptMode,
 } from '../driver/types.js';
 import { createEventBus } from '../infra/event-bus.js';
+import { isAvatarSenderInvalidated } from '../app-shell/window-command-lifecycle.js';
 import {
   clearTurnCueRecord,
   mapExecutionState,
@@ -82,6 +83,8 @@ export class SdkDriver implements AgentDataDriver {
   private readonly cursorInfo: () => { x: number; y: number };
   private readonly bus = createEventBus<InternalEvents>();
   private streamAbort: AbortController | null = null;
+  private streamCleanup: { readonly parentAbort: AbortController; readonly close: () => Promise<void> } | null = null;
+  private stopPromise: Promise<void> | null = null;
   private canonicalVoiceGeneration = 0;
   private readonly interruptedCanonicalVoiceTurns = new Set<string>();
   private bundle: AgentDataBundle;
@@ -117,32 +120,59 @@ export class SdkDriver implements AgentDataDriver {
     if (this._status === 'starting' || this._status === 'running') {
       return;
     }
+    this.streamAbort?.abort();
+    const abortController = new AbortController();
+    this.streamAbort = abortController;
     this.setStatus('starting');
-    this.streamAbort = new AbortController();
-    this.publishBundle();
     try {
-      const streams = await this.connectRuntimeStreams(this.streamAbort);
+      this.assertStreamCurrent(abortController);
+      this.publishBundle();
+      const streams = await this.connectRuntimeStreams(abortController);
+      if (!this.streamIsCurrent(abortController)) {
+        await streams.close();
+        this.assertStreamCurrent(abortController);
+      }
       this.setStatus('running');
-      const abortController = this.streamAbort;
       void this.consumeStreamsWithResync(streams, abortController);
     } catch (error) {
-      this.streamAbort = null;
-      this.setStatus('error', errorMessage(error));
-      throw error instanceof Error
+      if (this.streamIsCurrent(abortController)) {
+        if (isAvatarSenderInvalidated(error)) await this.stop();
+        else {
+          this.streamAbort = null;
+          this.setStatus('error', errorMessage(error));
+        }
+      }
+      throw error instanceof Error || error instanceof DOMException
         ? error
         : new Error(`avatar sdk driver failed to start: ${String(error)}`);
     }
   }
 
   async stop(): Promise<void> {
-    if (this._status === 'stopping' || this._status === 'stopped' || this._status === 'idle') {
+    if (this._status === 'stopping') {
+      await this.stopPromise;
       return;
     }
+    if (this._status === 'stopped' || this._status === 'idle') {
+      return;
+    }
+    const abortController = this.streamAbort;
+    const close = this.streamCleanup?.parentAbort === abortController ? this.streamCleanup.close : undefined;
+    const stopping = Promise.resolve().then(() => close?.()).finally(() => {
+      if (this.streamAbort === abortController) {
+        this.streamAbort = null;
+        this.setStatus('stopped');
+      }
+    });
+    this.stopPromise = stopping;
     this.setStatus('stopping');
     this.invalidateCanonicalVoiceReads();
-    this.streamAbort?.abort();
-    this.streamAbort = null;
-    this.setStatus('stopped');
+    abortController?.abort();
+    try {
+      await stopping;
+    } finally {
+      if (this.stopPromise === stopping) this.stopPromise = null;
+    }
   }
 
   getBundle(): AgentDataBundle {
@@ -180,28 +210,53 @@ export class SdkDriver implements AgentDataDriver {
   private async connectRuntimeStreams(
     parentAbort: AbortController,
   ): Promise<AvatarRuntimeStreams> {
+    this.assertStreamCurrent(parentAbort);
     this.invalidateCanonicalVoiceReads();
     const attemptAbort = new AbortController();
-    const abortAttempt = () => attemptAbort.abort();
-    parentAbort.signal.addEventListener('abort', abortAttempt, { once: true });
-    let conversation: NimiLocalAppConversationSubscription | null = null;
-    let embodiment: NimiLocalAppEmbodimentSubscription | null = null;
+    let closeLease: () => Promise<void> = async () => {};
     const close = async () => {
       attemptAbort.abort();
       parentAbort.signal.removeEventListener('abort', abortAttempt);
-      await Promise.allSettled([
-        conversation?.cancel(),
-        embodiment?.cancel(),
-      ]);
+      try {
+        await closeLease();
+      } finally {
+        if (this.streamCleanup === cleanup) this.streamCleanup = null;
+      }
+    };
+    const abortAttempt = () => { void close(); };
+    const cleanup = { parentAbort, close };
+    this.streamCleanup = cleanup;
+    parentAbort.signal.addEventListener('abort', abortAttempt, { once: true });
+    const assertCurrent = () => {
+      this.assertStreamCurrent(parentAbort);
+      if (attemptAbort.signal.aborted) throw new DOMException('Avatar Runtime stream attempt was closed.', 'AbortError');
     };
     try {
       const opened = await this.runWithAgentHandle(async (agentHandle) => {
-        const openedConversation = await this.conversation.subscribe({
-          agentHandle,
-          conversationAnchorId: this.conversationAnchorId,
-        });
-        let openedEmbodiment: NimiLocalAppEmbodimentSubscription | null = null;
+        assertCurrent();
+        let conversation: NimiLocalAppConversationSubscription | null = null;
+        let embodiment: NimiLocalAppEmbodimentSubscription | null = null;
+        let closing: Promise<void> | null = null;
+        const closeCurrentLease = () => {
+          // Pending subscribe/snapshot calls have no cancellation parameter.
+          // Close owned streams now; a late subscription releases itself below.
+          closing ??= Promise.allSettled([
+            conversation?.cancel(),
+            embodiment?.cancel(),
+          ]).then(() => undefined);
+          return closing;
+        };
+        closeLease = closeCurrentLease;
         try {
+          const openedConversation = await this.conversation.subscribe({
+            agentHandle,
+            conversationAnchorId: this.conversationAnchorId,
+          });
+          if (!this.streamIsCurrent(parentAbort) || attemptAbort.signal.aborted) {
+            await openedConversation.cancel().catch(() => undefined);
+            assertCurrent();
+          }
+          conversation = openedConversation;
           const [conversationSnapshot, embodimentSnapshot] = await Promise.all([
             this.conversation.snapshot({
               agentHandle,
@@ -212,29 +267,43 @@ export class SdkDriver implements AgentDataDriver {
               conversationAnchorId: this.conversationAnchorId,
             }),
           ]);
-          openedEmbodiment = await this.embodiment.subscribe({
+          assertCurrent();
+          const openedEmbodiment = await this.embodiment.subscribe({
             agentHandle,
             conversationAnchorId: this.conversationAnchorId,
             afterSequence: embodimentSnapshot.sequence,
           });
+          if (!this.streamIsCurrent(parentAbort) || attemptAbort.signal.aborted) {
+            await openedEmbodiment.cancel().catch(() => undefined);
+            assertCurrent();
+          }
+          embodiment = openedEmbodiment;
           this.setCurrentAgentHandle(agentHandle);
           this.applyCanonicalConversationSnapshot(conversationSnapshot);
+          assertCurrent();
           this.applyEmbodimentSnapshot(embodimentSnapshot);
+          assertCurrent();
           return { conversation: openedConversation, embodiment: openedEmbodiment };
         } catch (error) {
-          await Promise.allSettled([
-            openedConversation.cancel(),
-            openedEmbodiment?.cancel(),
-          ]);
+          await closeCurrentLease();
           throw error;
         }
       });
-      conversation = opened.conversation;
-      embodiment = opened.embodiment;
-      return { conversation, embodiment, signal: attemptAbort.signal, close };
+      assertCurrent();
+      return { ...opened, signal: attemptAbort.signal, close };
     } catch (error) {
       await close();
       throw error;
+    }
+  }
+
+  private streamIsCurrent(abortController: AbortController): boolean {
+    return this.streamAbort === abortController && !abortController.signal.aborted;
+  }
+
+  private assertStreamCurrent(abortController: AbortController): void {
+    if (!this.streamIsCurrent(abortController)) {
+      throw new DOMException('Avatar SDK driver lifecycle was stopped.', 'AbortError');
     }
   }
 
@@ -244,40 +313,53 @@ export class SdkDriver implements AgentDataDriver {
   ): Promise<void> {
     let streams = initialStreams;
     let retryAttempt = 0;
-    while (!abortController.signal.aborted) {
-      try {
-        await Promise.all([
-          this.consumeCanonicalConversationStream(streams.conversation, streams.signal),
-          this.consumeEmbodimentStream(streams.embodiment, streams.signal),
-        ]);
-      } catch (error) {
-        if (abortController.signal.aborted) return;
-        const message = errorMessage(error);
-        console.error(`[avatar:sdk] consume stream failed: ${message}`);
-        this.setStatus('error', message);
-      } finally {
-        this.invalidateCanonicalVoiceReads();
-        await streams.close();
-      }
-      while (!abortController.signal.aborted) {
-        await abortableDelay(
-          STREAM_RECONNECT_DELAYS_MS[Math.min(retryAttempt, STREAM_RECONNECT_DELAYS_MS.length - 1)]!,
-          abortController.signal,
-        );
-        if (abortController.signal.aborted) return;
-        retryAttempt += 1;
+    try {
+      while (this.streamIsCurrent(abortController)) {
         try {
-          streams = await this.connectRuntimeStreams(abortController);
-          retryAttempt = 0;
-          this.setStatus('running');
-          break;
+          await Promise.all([
+            this.consumeCanonicalConversationStream(streams.conversation, streams.signal),
+            this.consumeEmbodimentStream(streams.embodiment, streams.signal),
+          ]);
         } catch (error) {
-          if (abortController.signal.aborted) return;
+          if (!this.streamIsCurrent(abortController)) return;
+          if (isAvatarSenderInvalidated(error)) {
+            await this.stop();
+            return;
+          }
           const message = errorMessage(error);
-          console.error(`[avatar:sdk] stream resync failed: ${message}`);
+          console.error(`[avatar:sdk] consume stream failed: ${message}`);
           this.setStatus('error', message);
+        } finally {
+          if (this.streamAbort === abortController) this.invalidateCanonicalVoiceReads();
+          await streams.close();
+        }
+        while (this.streamIsCurrent(abortController)) {
+          await abortableDelay(
+            STREAM_RECONNECT_DELAYS_MS[Math.min(retryAttempt, STREAM_RECONNECT_DELAYS_MS.length - 1)]!,
+            abortController.signal,
+          );
+          if (!this.streamIsCurrent(abortController)) return;
+          retryAttempt += 1;
+          try {
+            streams = await this.connectRuntimeStreams(abortController);
+            if (!this.streamIsCurrent(abortController)) return;
+            retryAttempt = 0;
+            this.setStatus('running');
+            break;
+          } catch (error) {
+            if (!this.streamIsCurrent(abortController)) return;
+            if (isAvatarSenderInvalidated(error)) {
+              await this.stop();
+              return;
+            }
+            const message = errorMessage(error);
+            console.error(`[avatar:sdk] stream resync failed: ${message}`);
+            this.setStatus('error', message);
+          }
         }
       }
+    } finally {
+      await streams.close();
     }
   }
 

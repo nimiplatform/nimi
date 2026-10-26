@@ -16,6 +16,7 @@ import {
 import type { AvatarCommittedPresentationActivation } from '../app-shell/app-bootstrap-types.js';
 
 export const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
+export const AVATAR_AGENT_CENTER_PREVIEW_CANCEL_EVENT = 'avatar://agent-center-preview-cancel';
 export const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
 
 export type AvatarAgentCenterPreviewRequest = {
@@ -35,6 +36,7 @@ type PreviewHandoffContext = {
 export type AvatarAgentCenterPreviewHandoff = {
   readonly handleRequest: (
     request: AvatarAgentCenterPreviewRequest,
+    signal?: AbortSignal,
   ) => Promise<AgentCenterAvatarPreviewServiceResolveResult>;
 };
 
@@ -51,12 +53,13 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
 }): AvatarAgentCenterPreviewHandoff {
   const service = input.service ?? createAgentCenterAvatarPreviewService();
   return Object.freeze({
-    async handleRequest(request) {
+    async handleRequest(request, signal = new AbortController().signal) {
       const requestId = normalizeText(request.requestId);
       const conversationAnchorId = normalizeText(request.conversationAnchorId);
       const avatarAssetRef = normalizeText(request.avatarAssetRef);
       const presentationRevision = normalizeText(request.presentationRevision);
       const backendKind = request.backendKind;
+      if (signal.aborted) return unavailableResult(request, null, 'Avatar preview observation was cancelled.');
       if (!requestId || !conversationAnchorId || !avatarAssetRef || !presentationRevision
         || (backendKind !== 'live2d' && backendKind !== 'vrm')) {
         return failedResult(request, null, 'invalid_manifest', 'Avatar preview carrier received an invalid projection request.');
@@ -75,12 +78,15 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
         }
         try {
           await input.activatePresentation({
+            previewRequestId: requestId,
+            signal,
             agentHandle: normalizeText(context.agentHandle),
             avatarAssetRef,
             backendKind,
             presentationRevision,
           });
         } catch (error) {
+          if (signal.aborted) return unavailableResult(request, selection?.previewMaterialRef ?? null, 'Avatar preview observation was cancelled.');
           return failedResult(
             request,
             selection?.previewMaterialRef ?? null,
@@ -99,6 +105,7 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
         }
       }
       const previewMaterialRef = selection!.previewMaterialRef;
+      if (signal.aborted) return unavailableResult(request, previewMaterialRef, 'Avatar preview observation was cancelled.');
       const documentRef = input.document ?? globalThis.document;
       if (!documentRef) {
         return unavailableResult(request, previewMaterialRef, 'Avatar preview renderer document is unavailable.');
@@ -117,8 +124,10 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
           document: documentRef,
           getContext: input.getContext,
           timeoutMs: input.readinessTimeoutMs ?? AVATAR_PREVIEW_RENDERER_READINESS_TIMEOUT_MS,
-          wait: input.wait ?? waitForDelay,
+          wait: input.wait,
+          signal,
         });
+        signal.throwIfAborted();
         if (backendKind === 'live2d') {
           const surface = documentRef.querySelector('[data-avatar-live2d-carrier-status]');
           const status = surface?.getAttribute('data-avatar-live2d-carrier-status');
@@ -151,6 +160,7 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
           },
         });
       } catch (error) {
+        if (signal.aborted) return unavailableResult(request, previewMaterialRef, 'Avatar preview observation was cancelled.');
         return failedResult(
           request,
           previewMaterialRef,
@@ -174,21 +184,69 @@ export async function installAvatarAgentCenterPreviewHandoff(input: {
   readonly document?: Pick<Document, 'querySelector'>;
   readonly activatePresentation?: (request: AvatarCommittedPresentationActivation) => Promise<void>;
   readonly readinessTimeoutMs?: number;
+  readonly signal?: AbortSignal;
 }): Promise<ShellEventUnsubscribe> {
   const handoff = createAvatarAgentCenterPreviewHandoff(input);
   const listen = input.listen ?? listenAvatarHostEvent;
   const invoke = input.invoke ?? invokeAvatarHostCommand;
-  return listen<AvatarAgentCenterPreviewRequest>(
-    AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT,
-    (request) => {
-      void handoff.handleRequest(request).then((result) => (
-        invoke(AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND, {
-          requestId: normalizeText(request.requestId),
-          result,
-        })
-      )).catch(() => undefined);
-    },
-  );
+  const scope = new AbortController();
+  const requests = new Map<string, AbortController>();
+  const unlisteners: ShellEventUnsubscribe[] = [];
+  const release = () => {
+    if (scope.signal.aborted) return;
+    scope.abort();
+    for (const controller of requests.values()) controller.abort();
+    requests.clear();
+    for (const unlisten of unlisteners) unlisten();
+    unlisteners.length = 0;
+    input.signal?.removeEventListener('abort', release);
+  };
+  input.signal?.addEventListener('abort', release, { once: true });
+  if (input.signal?.aborted) { release(); return release; }
+  let aborted!: () => void;
+  const stopped = new Promise<void>(resolve => { aborted = resolve; scope.signal.addEventListener('abort', aborted, { once: true }); });
+  const ownListener = async <T>(event: string, callback: (payload: T) => void) => {
+    const unlisten = await listen<T>(event, callback);
+    if (scope.signal.aborted) unlisten();
+    else unlisteners.push(unlisten);
+  };
+  try {
+    await Promise.race([Promise.all([
+      ownListener<AvatarAgentCenterPreviewRequest>(AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT, request => {
+        const requestId = normalizeText(request.requestId);
+        if (scope.signal.aborted || !requestId || requests.has(requestId)) return;
+        const controller = new AbortController();
+        requests.set(requestId, controller);
+        let reported = false;
+        const report = (result: AgentCenterAvatarPreviewServiceResolveResult) => {
+          if (reported) return;
+          reported = true;
+          void invoke(AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND, { requestId, result }).catch(() => undefined);
+        };
+        // Scope loss must revoke the Host's uncommitted lease work immediately,
+        // even if renderer preparation or a Host owner read has not returned.
+        controller.signal.addEventListener('abort', () => {
+          report(unavailableResult(request, null, 'Avatar preview scope was cancelled.'));
+        }, { once: true });
+        void handoff.handleRequest(request, controller.signal).then(result => {
+          if (!scope.signal.aborted && !controller.signal.aborted) {
+            report(result);
+          }
+        }).catch(() => undefined).finally(() => {
+          if (requests.get(requestId) === controller) requests.delete(requestId);
+        });
+      }),
+      ownListener<{ requestId: string }>(AVATAR_AGENT_CENTER_PREVIEW_CANCEL_EVENT, request => {
+        requests.get(normalizeText(request?.requestId))?.abort();
+      }),
+    ]), stopped]);
+    return release;
+  } catch (error) {
+    release();
+    throw error;
+  } finally {
+    scope.signal.removeEventListener('abort', aborted);
+  }
 }
 
 async function waitForRendererReadiness(input: {
@@ -196,11 +254,13 @@ async function waitForRendererReadiness(input: {
   readonly document: Pick<Document, 'querySelector'>;
   readonly getContext: () => PreviewHandoffContext;
   readonly timeoutMs: number;
-  readonly wait: (delayMs: number) => Promise<void>;
+  readonly wait?: (delayMs: number) => Promise<void>;
+  readonly signal: AbortSignal;
 }): Promise<void> {
-  const timeoutMs = Math.max(0, Math.min(4_000, Math.floor(input.timeoutMs)));
+  const timeoutMs = Math.max(0, Math.min(AVATAR_PREVIEW_RENDERER_READINESS_TIMEOUT_MS, Math.floor(input.timeoutMs)));
   const deadline = Date.now() + timeoutMs;
   while (true) {
+    input.signal.throwIfAborted();
     const context = input.getContext();
     if (normalizeText(context.conversationAnchorId) !== normalizeText(input.request.conversationAnchorId)
       || !context.carrier
@@ -220,7 +280,10 @@ async function waitForRendererReadiness(input: {
     if (Date.now() >= deadline) {
       throw new Error('Avatar preview renderer did not bind the exact committed presentation before the deadline.');
     }
-    await input.wait(Math.min(AVATAR_PREVIEW_RENDERER_READINESS_POLL_MS, Math.max(0, deadline - Date.now())));
+    await waitForObservationDelay(
+      Math.min(AVATAR_PREVIEW_RENDERER_READINESS_POLL_MS, Math.max(0, deadline - Date.now())),
+      input.signal, input.wait,
+    );
   }
 }
 
@@ -249,8 +312,24 @@ function selectionMatches(
     && carrier.backend.kind === request.backendKind;
 }
 
-function waitForDelay(delayMs: number): Promise<void> {
-  return new Promise((resolve) => globalThis.setTimeout(resolve, delayMs));
+function waitForObservationDelay(delayMs: number, signal: AbortSignal, wait?: (delayMs: number) => Promise<void>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
+    const finish = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      if (timer !== undefined) globalThis.clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+      if (error !== undefined) reject(error); else resolve();
+    };
+    const abort = () => finish(new Error('Avatar preview observation was cancelled.'));
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) { abort(); return; }
+    if (wait) {
+      void Promise.resolve().then(() => settled ? undefined : wait(delayMs)).then(() => finish(), finish);
+    } else timer = globalThis.setTimeout(() => finish(), delayMs);
+  });
 }
 
 function failedResult(

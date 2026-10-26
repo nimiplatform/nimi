@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { registerNimiElectronRuntimeBridge } from '../src/main/index.js';
+import * as desktopControl from '../src/main/desktop-control-host.js';
+import type { RuntimeGrpcBridgeStreamHandlers } from '../src/main/types.js';
+import { NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID, NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { FakeIpcMain, invokeBridge } from './electron-shell-test-utils.js';
 
 function rendererEvent(url: string) {
@@ -10,7 +13,102 @@ function rendererEvent(url: string) {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((accept) => { resolve = accept; });
+  return { promise, resolve };
+}
+
+function embodimentPullBridge() {
+  const started = deferred<void>();
+  const closed = deferred<void>();
+  const mutationStarted = deferred<void>();
+  const mutation = deferred<{ applied: boolean }>();
+  let handlers: RuntimeGrpcBridgeStreamHandlers | undefined;
+  const nativeCancel = vi.fn(() => { closed.resolve(); });
+  const factory = vi.spyOn(desktopControl, 'createNimiElectronDesktopControlHost').mockReturnValue({
+    bundledAvatarServerStream: (request) => {
+      expect(request.methodId).toBe('/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents');
+      return {
+        start: (current: RuntimeGrpcBridgeStreamHandlers) => { handlers = current; started.resolve(); },
+        cancel: nativeCancel,
+        closed: closed.promise,
+      };
+    },
+  } as desktopControl.NimiElectronDesktopControlHost);
+  const ipcMain = new FakeIpcMain();
+  const event = rendererEvent('http://127.0.0.1:1427/');
+  let invalidate: ((sender: object) => void | Promise<void>) | undefined;
+  const bridge = registerNimiElectronRuntimeBridge({
+    appId: 'nimi.desktop', runtimeEndpoint: 'protected-desktop-control',
+    allowedOrigins: ['http://127.0.0.1:1420'], allowedRendererUrls: ['http://127.0.0.1:1420/'], ipcMain,
+    bundledAvatarHost: {
+      rendererUrl: 'http://127.0.0.1:1427/', authorizeSender: (candidate) => candidate === event,
+      subscribeSenderInvalidation: (listener) => { invalidate = listener; return () => undefined; },
+      standardShellHost: { capabilitySetRef: NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID },
+      commandHandlers: {
+        'avatar.test.committed-mutation': async () => { mutationStarted.resolve(); return mutation.promise; },
+      },
+    },
+  });
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'];
+  return {
+    started: started.promise, nativeCancel, mutationStarted: mutationStarted.promise, mutation,
+    invokeMutation: () => invokeBridge(ipcMain, event, { command: 'avatar.test.committed-mutation', payload: {} }),
+    async open() {
+      const result = await invokeBridge(ipcMain, event, { command, payload: { payload: {
+        agentHandle: `agent_ref_${'a'.repeat(43)}`, conversationAnchorId: 'anchor-1', afterSequence: '0',
+      } } }) as { subscriptionId: string };
+      return result.subscriptionId;
+    },
+    next: (subscriptionId: string) => invokeBridge(ipcMain, event, { command, payload: { payload: { action: 'next', subscriptionId } } }),
+    invalidate: () => Promise.resolve(invalidate?.(event.sender)),
+    end() { handlers?.onEnd(); closed.resolve(); },
+    async cleanup() {
+      mutation.resolve({ applied: true });
+      await bridge.disposeFormalAppResources?.();
+      bridge.unregister();
+      factory.mockRestore();
+    },
+  };
+}
+
 describe('Desktop-supervised bundled Avatar host profile', () => {
+  it('returns the existing sender terminal error when an in-flight embodiment pull ends during invalidation', async () => {
+    const fixture = embodimentPullBridge();
+    try {
+      const subscriptionId = await fixture.open();
+      const next = fixture.next(subscriptionId);
+      const rejected = expect(next).rejects.toMatchObject({ reasonCode: 'electron-bundled-avatar-sender-invalidated' });
+      await fixture.started;
+      await fixture.invalidate();
+      await rejected;
+      expect(fixture.nativeCancel).toHaveBeenCalled();
+    } finally { await fixture.cleanup(); }
+  });
+
+  it('preserves ordinary embodiment EOF while the Avatar sender remains active', async () => {
+    const fixture = embodimentPullBridge();
+    try {
+      const subscriptionId = await fixture.open();
+      const next = fixture.next(subscriptionId);
+      await fixture.started;
+      fixture.end();
+      await expect(next).resolves.toEqual({ subscriptionId, completed: true });
+    } finally { await fixture.cleanup(); }
+  });
+
+  it('does not rewrite an admitted committed mutation result after sender invalidation', async () => {
+    const fixture = embodimentPullBridge();
+    try {
+      const committed = fixture.invokeMutation();
+      await fixture.mutationStarted;
+      await fixture.invalidate();
+      fixture.mutation.resolve({ applied: true });
+      await expect(committed).resolves.toEqual({ applied: true });
+    } finally { await fixture.cleanup(); }
+  });
+
   it('admits the packaged standard-scheme origin for the exact Avatar sender', async () => {
     const ipcMain = new FakeIpcMain();
     const avatarEvent = {

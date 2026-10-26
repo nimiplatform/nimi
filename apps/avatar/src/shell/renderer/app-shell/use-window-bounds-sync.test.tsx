@@ -39,10 +39,12 @@ vi.mock('./avatar-host-bridge.js', () => ({
 
 function Harness({
   nominalBounds,
+  isReady = true,
   avatarScale = 1,
   surfaceBoundsRevision = 0,
 }: {
   nominalBounds: BackendNominalBounds | null;
+  isReady?: boolean;
   avatarScale?: number;
   surfaceBoundsRevision?: number;
 }) {
@@ -54,7 +56,7 @@ function Harness({
     [nominalBounds],
   );
   useWindowBoundsSync({
-    isReady: true,
+    isReady,
     getEmbodimentBounds,
     avatarScale,
     surfaceBoundsRevision,
@@ -92,6 +94,88 @@ afterEach(() => {
 });
 
 describe('useWindowBoundsSync - BackendBranch.nominalBounds -> floatingWindow.setBounds Host IPC', () => {
+  const bounds: BackendNominalBounds = { width: 360, height: 720, bodyCenterX: 0.5, bodyCenterY: 0.55 };
+
+  it.each(['resolve', 'reject'] as const)('drops resize work that settles after unmount (%s)', async (outcome) => {
+    let resolve!: () => void;
+    let reject!: (error: Error) => void;
+    setWindowSizeMock.mockReturnValue(new Promise<void>((done, fail) => { resolve = done; reject = fail; }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const view = renderWithBackend(bounds);
+    try {
+      await act(async () => { useAvatarStore.getState().setModelLoaded('retiring-model'); });
+      expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
+      view.unmount();
+      await act(async () => {
+        if (outcome === 'resolve') resolve();
+        else reject(new Error('Late retired resize failure'));
+      });
+      expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
+      expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+      expect(useAvatarStore.getState().shell.windowSize).toEqual({ width: 400, height: 600 });
+      expect(warn).not.toHaveBeenCalled();
+    } finally { resolve(); warn.mockRestore(); }
+  });
+
+  it('stops the reset after readiness is lost during constrain', async () => {
+    let resolve!: () => void;
+    constrainWindowToVisibleAreaMock.mockReturnValue(new Promise<void>(done => { resolve = done; }));
+    const view = renderWithBackend(bounds);
+    await act(async () => { useAvatarStore.getState().setModelLoaded('retiring-ready'); });
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
+    view.rerender(<Harness nominalBounds={bounds} isReady={false} />);
+    await act(async () => { resolve(); });
+    expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+    expect(useAvatarStore.getState().shell.windowSize).toEqual({ width: 400, height: 600 });
+  });
+
+  it('does not let the old backend resize overwrite a replacement', async () => {
+    let resolve!: () => void;
+    setWindowSizeMock.mockReturnValueOnce(new Promise<void>(done => { resolve = done; }));
+    const view = renderWithBackend(bounds);
+    await act(async () => { useAvatarStore.getState().setModelLoaded('old-backend'); });
+    const replacement = { ...bounds, width: 420, height: 640 };
+    await act(async () => { view.rerender(<Harness nominalBounds={replacement} />); });
+    const currentSize = { width: 420 + 2 * WINDOW_BOUNDS_PADDING_PX, height: 640 + 2 * WINDOW_BOUNDS_PADDING_PX };
+    expect(useAvatarStore.getState().shell.windowSize).toEqual(currentSize);
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledTimes(1);
+    await act(async () => { resolve(); });
+    expect(useAvatarStore.getState().shell.windowSize).toEqual(currentSize);
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retires an invalidated sender without later resize/reset calls or successful size adoption', async () => {
+    setWindowSizeMock.mockRejectedValue(Object.assign(new Error('Bundled Avatar sender was invalidated'), {
+      reasonCode: 'electron-bundled-avatar-sender-invalidated',
+    }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const view = renderWithBackend(bounds);
+    try {
+      await act(async () => { useAvatarStore.getState().setModelLoaded('closed-sender'); });
+      view.rerender(<Harness nominalBounds={{ ...bounds, width: 420 }} avatarScale={1.1} />);
+      await act(async () => { useAvatarStore.getState().setModelLoaded('another-model'); });
+      expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
+      expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
+      expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+      expect(useAvatarStore.getState().shell.windowSize).toEqual({ width: 400, height: 600 });
+      expect(warn).not.toHaveBeenCalled();
+    } finally { warn.mockRestore(); }
+  });
+
+  it('reports an active constrain failure and withholds successful size adoption', async () => {
+    constrainWindowToVisibleAreaMock.mockRejectedValue(new Error('Active Host constrain failed'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderWithBackend(bounds);
+    try {
+      await act(async () => { useAvatarStore.getState().setModelLoaded('active-failure'); });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Active Host constrain failed'));
+      expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+      expect(useAvatarStore.getState().shell.windowSize).toEqual({ width: 400, height: 600 });
+    } finally { warn.mockRestore(); }
+  });
+
   it('forwards VRM 360x720 nominalBounds to floatingWindow.setBounds on model_load', async () => {
     const vrmBounds: BackendNominalBounds = {
       width: 360,

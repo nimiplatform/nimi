@@ -110,15 +110,17 @@ describe.each([
       await expect(hook.invoke(eventName)).rejects.toThrow(/unsupported characters/u);
     }
     expect(() => hook.listen('menu-bar://open-tab', () => undefined)).toThrow(/unsupported characters/u);
-    for (const eventName of ['avatar://host-suspend', 'avatar://agent-center-preview-request']) {
+    for (const eventName of ['avatar://host-suspend', 'avatar://host-closing', 'avatar://agent-center-preview-request', 'avatar://agent-center-preview-cancel']) {
       const receivedAvatarEvents: unknown[] = [];
       const unsubscribeAvatar = hook.listen(eventName, (event) => receivedAvatarEvents.push(event.payload));
-      ipcEvents.get(`nimi:runtime:event:${eventName}`)?.({}, { requestId: 'avatar-event' });
-      expect(receivedAvatarEvents).toEqual([{ requestId: 'avatar-event' }]);
+      const payload = eventName === 'avatar://host-closing' ? {} : { requestId: 'avatar-event' };
+      ipcEvents.get(`nimi:runtime:event:${eventName}`)?.({}, payload);
+      expect(receivedAvatarEvents).toEqual([payload]);
       unsubscribeAvatar();
       expect(ipcEvents.has(`nimi:runtime:event:${eventName}`)).toBe(false);
       await expect(hook.invoke(eventName)).rejects.toThrow(/unsupported characters/u);
     }
+    expect(() => hook.listen('avatar://host-closing-extra', () => undefined)).toThrow(/unsupported characters/u);
     expect(() => hook.listen('desktop-open:\\unsafe', () => undefined)).toThrow(/unsupported characters/u);
   });
 

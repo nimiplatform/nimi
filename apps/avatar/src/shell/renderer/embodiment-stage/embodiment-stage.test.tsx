@@ -170,6 +170,54 @@ function installStageRect(stage: HTMLElement): void {
 }
 
 describe('EmbodimentStage — render', () => {
+  it('handles an invalidated mount reset and stops subsequent cursor IPC', async () => {
+    setIgnoreCursorEventsMock.mockRejectedValue({ reasonCode: 'electron-bundled-avatar-sender-invalidated' });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const backend = createMockBackend({ hitRegion: { ...createHitRegionStub(), isOpaqueAtClientPoint: () => false } });
+    let view!: ReturnType<typeof render>;
+    try {
+      await act(async () => { view = render(<EmbodimentStage {...baseProps} backend={backend} />); });
+      const stage = screen.getByTestId('avatar-embodiment-stage');
+      fireEvent.pointerMove(stage, { clientX: 1, clientY: 1 });
+      view.unmount();
+      await act(async () => { await Promise.resolve(); });
+      expect(setIgnoreCursorEventsMock).toHaveBeenCalledTimes(1);
+      expect(getCursorClientPositionMock).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalled();
+    } finally { warn.mockRestore(); }
+  });
+
+  it('reports a real reset failure while the embodiment remains active', async () => {
+    setIgnoreCursorEventsMock.mockRejectedValueOnce(new Error('Active cursor reset failed'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      await act(async () => { render(<EmbodimentStage {...baseProps} />); });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Active cursor reset failed'));
+    } finally { warn.mockRestore(); }
+  });
+
+  it('handles the retirement reset rejection and clears cursor recovery work', async () => {
+    vi.useFakeTimers();
+    setIgnoreCursorEventsMock.mockResolvedValue(undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const backend = createMockBackend({ hitRegion: { ...createHitRegionStub(), isOpaqueAtClientPoint: () => false } });
+    const view = render(<EmbodimentStage {...baseProps} backend={backend} />);
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(30); });
+      fireEvent.pointerMove(screen.getByTestId('avatar-embodiment-stage'), { clientX: 1, clientY: 1 });
+      await act(async () => { await vi.advanceTimersByTimeAsync(20); });
+      expect(setIgnoreCursorEventsMock).toHaveBeenLastCalledWith(true);
+      const calls = setIgnoreCursorEventsMock.mock.calls.length;
+      setIgnoreCursorEventsMock.mockRejectedValue({ reasonCode: 'electron-bundled-avatar-sender-invalidated' });
+      view.unmount();
+      await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+      expect(setIgnoreCursorEventsMock).toHaveBeenCalledTimes(calls + 1);
+      expect(setIgnoreCursorEventsMock).toHaveBeenLastCalledWith(false);
+      expect(getCursorClientPositionMock).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalled();
+    } finally { view.unmount(); vi.useRealTimers(); warn.mockRestore(); }
+  });
+
   it('renders the embodiment stage section with body hit-region', () => {
     render(<EmbodimentStage {...baseProps} />);
     const stage = screen.getByTestId('avatar-embodiment-stage');

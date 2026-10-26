@@ -146,6 +146,7 @@ export function createWindowBoundsRecomputer(deps: WindowBoundsRecomputerDeps): 
     trigger(reason) {
       if (disposed) return;
       void performRecompute(reason).catch((error: unknown) => {
+        if (disposed) return;
         console.warn(`[avatar:shell] window bounds apply failed: ${error instanceof Error ? error.message : String(error)}`);
       });
     },

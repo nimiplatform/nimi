@@ -16,6 +16,7 @@
 // under jsdom + vi.useFakeTimers without monkeypatching Date.now.
 
 import { setIgnoreCursorEvents } from './avatar-window-commands.js';
+import { isAvatarSenderInvalidated } from './window-command-lifecycle.js';
 
 /** 1000 / 60 ≈ 16.67ms. Frozen here as a named contract constant (no
  *  scattered float literals in throttle
@@ -32,8 +33,7 @@ export type ThrottledCursorEventsHandle = {
    *  IPC is fire-and-forget. Returns the awaited IPC promise (or a
    *  resolved promise if nothing was pending). */
   flush(): Promise<void>;
-  /** Cancel any pending timer; subsequent `setIgnore` calls are still
-   *  honored. */
+  /** Cancel queued/future work. Subsequent calls are ignored. */
   dispose(): void;
 };
 
@@ -46,6 +46,7 @@ export type CreateThrottledCursorEventsInputs = {
   /** Test seam: clock source. Default `performance.now()` (or `Date.now`
    *  if `performance` is unavailable). */
   nowMsFn?: () => number;
+  onSenderInvalidated?: () => void;
 };
 
 function defaultNowMs(): number {
@@ -68,6 +69,22 @@ export function createThrottledCursorEvents(
   let pendingValue: boolean | null = null;
   let inFlightValue: boolean | null = null;
   let disposed = false;
+
+  const retire = () => {
+    disposed = true;
+    if (pendingTimer !== null) clearTimeout(pendingTimer);
+    pendingTimer = null;
+    pendingValue = null;
+    inFlightValue = null;
+  };
+  const reportFailure = (error: unknown) => {
+    if (isAvatarSenderInvalidated(error)) {
+      retire();
+      input.onSenderInvalidated?.();
+      return;
+    }
+    console.warn(`[avatar:shell] set_ignore_cursor_events failed: ${error instanceof Error ? error.message : String(error)}`);
+  };
 
   const fireNow = (value: boolean): Promise<void> => {
     const sentAtMs = nowMs();
@@ -121,9 +138,7 @@ export function createThrottledCursorEvents(
         return;
       }
       if (elapsed >= minIntervalMs && pendingTimer === null) {
-        void fireNow(value).catch((error: unknown) => {
-          console.warn(`[avatar:shell] set_ignore_cursor_events failed: ${error instanceof Error ? error.message : String(error)}`);
-        });
+        void fireNow(value).catch(reportFailure);
         return;
       }
       // Either we're inside the rate-limit window OR a timer is already
@@ -133,9 +148,7 @@ export function createThrottledCursorEvents(
         const remaining = Math.max(0, minIntervalMs - elapsed);
         pendingTimer = setTimeout(() => {
           pendingTimer = null;
-          void flushPending().catch((error: unknown) => {
-            console.warn(`[avatar:shell] set_ignore_cursor_events failed: ${error instanceof Error ? error.message : String(error)}`);
-          });
+          void flushPending().catch(reportFailure);
         }, remaining);
       }
     },
@@ -144,13 +157,8 @@ export function createThrottledCursorEvents(
       return flushPending();
     },
     dispose(): void {
-      disposed = true;
-      if (pendingTimer !== null) {
-        clearTimeout(pendingTimer);
-        pendingTimer = null;
-      }
-      pendingValue = null;
-      inFlightValue = null;
+      if (disposed) return;
+      retire();
     },
   };
 }

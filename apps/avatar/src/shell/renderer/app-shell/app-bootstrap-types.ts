@@ -3,6 +3,8 @@ import type { AgentDataDriver } from '../driver/types.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
 
 export type AvatarCommittedPresentationActivation = {
+  readonly previewRequestId: string;
+  readonly signal: AbortSignal;
   readonly agentHandle: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';

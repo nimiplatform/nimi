@@ -41,7 +41,9 @@ const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 const SYSTEM_ENTRY_ACTION_EVENT = 'system-entry://action';
 const SYSTEM_ENTRY_VISIBILITY_EVENT = 'system-entry://visibility';
 const AVATAR_HOST_SUSPEND_EVENT = 'avatar://host-suspend';
+const AVATAR_HOST_CLOSING_EVENT = 'avatar://host-closing';
 const AVATAR_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
+const AVATAR_PREVIEW_CANCEL_EVENT = 'avatar://agent-center-preview-cancel';
 
 export function installNimiElectronRuntimeBridge(
   input: InstallNimiElectronRuntimeBridgeInput,
@@ -124,7 +126,8 @@ function normalizeCommand(value: unknown): string {
 function normalizeEvent(value: unknown): string {
   const normalized = String(value ?? '').trim();
   return normalized === DESKTOP_OPEN_INTENT_EVENT || normalized === SYSTEM_ENTRY_ACTION_EVENT || normalized === SYSTEM_ENTRY_VISIBILITY_EVENT
-    || normalized === AVATAR_HOST_SUSPEND_EVENT || normalized === AVATAR_PREVIEW_REQUEST_EVENT
+    || normalized === AVATAR_HOST_SUSPEND_EVENT || normalized === AVATAR_HOST_CLOSING_EVENT || normalized === AVATAR_PREVIEW_REQUEST_EVENT
+    || normalized === AVATAR_PREVIEW_CANCEL_EVENT
     ? normalized
     : normalizeCommand(normalized);
 }

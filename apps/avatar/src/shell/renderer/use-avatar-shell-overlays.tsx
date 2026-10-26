@@ -243,14 +243,24 @@ export function useAvatarShellOverlays(input: {
     [setShellSettings],
   );
 
+  const beginLocalShutdown = useCallback((): void => {
+    // Stop local consumers before the close command can revoke their sender.
+    // Native close retains its own bounded cleanup and must not wait for IPC
+    // cancellation acknowledgements from the renderer it is closing.
+    void bootstrapHandle?.shutdown().catch((error: unknown) => {
+      console.warn(`[avatar:shell] local shutdown failed: ${toErrorMessage(error)}`);
+    });
+  }, [bootstrapHandle]);
+
   const requestShellLifecycle = useCallback(
     (action: 'hide' | 'close'): void => {
+      if (action === 'close') beginLocalShutdown();
       const command = action === 'hide' ? hideAvatarWindow : closeAvatarWindow;
       void command().catch((error: unknown) => {
         console.warn(`[avatar:shell] ${action} window request failed: ${toErrorMessage(error)}`);
       });
     },
-    [],
+    [beginLocalShutdown],
   );
 
   const handleContextMenuAction = useCallback(
@@ -324,6 +334,7 @@ export function useAvatarShellOverlays(input: {
         requestShellLifecycle('close');
       }
       if (action === 'quit_app') {
+        beginLocalShutdown();
         void quitAvatarApp().catch((error: unknown) => {
           console.warn(`[avatar:shell] quit app request failed: ${toErrorMessage(error)}`);
         });
@@ -339,6 +350,7 @@ export function useAvatarShellOverlays(input: {
       onOpenCapsule,
       onReengage,
       onQuiet,
+      beginLocalShutdown,
       persistShellSettings,
       requestShellLifecycle,
       shellSettings,

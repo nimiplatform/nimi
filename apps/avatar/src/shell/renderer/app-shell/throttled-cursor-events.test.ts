@@ -216,4 +216,32 @@ describe('createThrottledCursorEvents — flush + dispose', () => {
     handle.setIgnore(false);
     expect(ipc).toHaveBeenCalledTimes(1); // post-dispose calls are dropped
   });
+
+  it('cancels queued native work when the active sender is invalidated', async () => {
+    const ipc = vi.fn().mockRejectedValue({ reasonCode: 'electron-bundled-avatar-sender-invalidated' });
+    let now = 0;
+    const handle = createThrottledCursorEvents({ ipcOverride: ipc, nowMsFn: () => now });
+    handle.setIgnore(false);
+    now = 5;
+    handle.setIgnore(true);
+    await vi.advanceTimersByTimeAsync(100);
+    handle.setIgnore(true);
+    expect(ipc).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not treat matching error text as sender invalidation', async () => {
+    const ipc = vi.fn().mockRejectedValue(new Error('Bundled Avatar sender was invalidated'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let now = 0;
+    const handle = createThrottledCursorEvents({ ipcOverride: ipc, nowMsFn: () => now });
+    try {
+      handle.setIgnore(false);
+      await vi.advanceTimersByTimeAsync(20);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('set_ignore_cursor_events failed'));
+      now = 100;
+      handle.setIgnore(false);
+      await vi.advanceTimersByTimeAsync(20);
+      expect(ipc).toHaveBeenCalledTimes(2);
+    } finally { handle.dispose(); warn.mockRestore(); }
+  });
 });

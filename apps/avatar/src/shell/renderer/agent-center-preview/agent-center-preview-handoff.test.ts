@@ -3,6 +3,7 @@ import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import {
   AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND,
   AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT,
+  AVATAR_AGENT_CENTER_PREVIEW_CANCEL_EVENT,
   createAvatarAgentCenterPreviewHandoff,
   installAvatarAgentCenterPreviewHandoff,
   type AvatarAgentCenterPreviewRequest,
@@ -51,6 +52,91 @@ function surface(attributes: Readonly<Record<string, string>>): Pick<Document, '
 }
 
 describe('Avatar Agent Center preview handoff', () => {
+  it('cancels a renderer-readiness observation without waiting for the next poll', async () => {
+    const scope = new AbortController();
+    const wait = vi.fn(() => new Promise<void>(() => {}));
+    const handoff = createAvatarAgentCenterPreviewHandoff({
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
+      document: surface({ 'data-avatar-live2d-carrier-status': 'pending' }), wait,
+    });
+    const pending = handoff.handleRequest(request, scope.signal);
+    await vi.waitFor(() => expect(wait).toHaveBeenCalledOnce());
+    scope.abort();
+    await expect(pending).resolves.toMatchObject({ state: 'unavailable', previewImageRef: null });
+    expect(wait).toHaveBeenCalledOnce();
+  });
+
+  it('bounds renderer observation to three seconds even when a caller asks for longer', async () => {
+    vi.useFakeTimers();
+    try {
+      const handoff = createAvatarAgentCenterPreviewHandoff({
+        getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
+        document: surface({ 'data-avatar-live2d-carrier-status': 'pending' }), readinessTimeoutMs: 9000,
+      });
+      let result: Awaited<ReturnType<typeof handoff.handleRequest>> | undefined;
+      void handoff.handleRequest(request).then(value => { result = value; });
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(result).toMatchObject({ state: 'failed', previewImageRef: null });
+    } finally { vi.clearAllTimers(); vi.useRealTimers(); }
+  });
+
+  it.each(['host-cancel', 'scope-loss'] as const)('reports %s immediately while activation is pending and never reports its late result twice', async (reason) => {
+    const listeners = new Map<string, (payload: never) => void>();
+    const unlisten = vi.fn();
+    const scope = new AbortController();
+    const invoke = vi.fn(async () => undefined);
+    let finish!: () => void;
+    const gate = new Promise<void>(resolve => { finish = resolve; });
+    let active = carrier({ committedPresentationSelection: { ...carrier().committedPresentationSelection!, presentationRevision: '6' } });
+    let activationSignal: AbortSignal | undefined;
+    const activate = vi.fn(async (input: { signal: AbortSignal }) => { activationSignal = input.signal; await gate; });
+    const release = await installAvatarAgentCenterPreviewHandoff({
+      signal: scope.signal,
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: active }),
+      document: surface({ 'data-avatar-live2d-carrier-status': 'ready' }),
+      activatePresentation: activate,
+      listen: (async (name: string, callback: (payload: never) => void) => { listeners.set(name, callback); return unlisten; }) as never,
+      invoke: invoke as never,
+    });
+    try {
+      listeners.get(AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT)!(request as never);
+      expect(activate).toHaveBeenCalledOnce();
+      if (reason === 'host-cancel') listeners.get(AVATAR_AGENT_CENTER_PREVIEW_CANCEL_EVENT)!({ requestId: request.requestId } as never);
+      else scope.abort();
+      expect(activationSignal?.aborted).toBe(true);
+      expect(invoke).toHaveBeenCalledExactlyOnceWith(AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND,
+        expect.objectContaining({ requestId: request.requestId, result: expect.objectContaining({ state: 'unavailable', previewImageRef: null }) }));
+      if (reason === 'host-cancel') {
+        active = carrier();
+        listeners.get(AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT)!({ ...request, requestId: 'request-next' } as never);
+        await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+        expect(invoke.mock.calls[1]).toEqual([AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND,
+          expect.objectContaining({ requestId: 'request-next', result: expect.objectContaining({ state: 'ready' }) })]);
+      }
+      const count = invoke.mock.calls.length;
+      finish(); await gate; await Promise.resolve(); await Promise.resolve();
+      expect(invoke).toHaveBeenCalledTimes(count);
+    } finally { finish(); release(); }
+    expect(unlisten).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases listener registrations that arrive after the owner scope was cancelled', async () => {
+    const scope = new AbortController();
+    const completions: Array<(unlisten: () => void) => void> = [];
+    const unlisten = vi.fn();
+    const pending = installAvatarAgentCenterPreviewHandoff({ signal: scope.signal,
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
+      listen: (() => new Promise<() => void>(resolve => { completions.push(resolve); })) as never,
+    });
+    scope.abort();
+    const release = await pending;
+    for (const complete of completions) complete(unlisten);
+    await Promise.resolve(); await Promise.resolve();
+    expect(unlisten).toHaveBeenCalledTimes(2);
+    release();
+    expect(unlisten).toHaveBeenCalledTimes(2);
+  });
+
   it('reports render evidence for the current committed presentation', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
       getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
@@ -173,6 +259,8 @@ describe('Avatar Agent Center preview handoff', () => {
       avatarAssetRef: request.avatarAssetRef,
     });
     expect(activatePresentation).toHaveBeenCalledWith({
+      previewRequestId: request.requestId,
+      signal: expect.any(AbortSignal),
       agentHandle: AVATAR_HANDLE,
       avatarAssetRef: request.avatarAssetRef,
       backendKind: request.backendKind,
@@ -185,8 +273,8 @@ describe('Avatar Agent Center preview handoff', () => {
     const invoke = vi.fn(async () => undefined);
     const unlisten = vi.fn();
     const listen = vi.fn(async (eventName: string, handler: (payload: AvatarAgentCenterPreviewRequest) => void) => {
-      expect(eventName).toBe(AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT);
-      listener = handler;
+      if (eventName === AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT) listener = handler;
+      else expect(eventName).toBe(AVATAR_AGENT_CENTER_PREVIEW_CANCEL_EVENT);
       return unlisten;
     });
     const release = await installAvatarAgentCenterPreviewHandoff({
@@ -209,7 +297,7 @@ describe('Avatar Agent Center preview handoff', () => {
       }),
     ));
     release();
-    expect(unlisten).toHaveBeenCalledOnce();
+    expect(unlisten).toHaveBeenCalledTimes(2);
   });
 
   it('fails closed when the exact committed presentation never reaches the renderer root', async () => {

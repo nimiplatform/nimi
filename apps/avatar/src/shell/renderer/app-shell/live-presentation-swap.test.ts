@@ -15,6 +15,8 @@ const OLD_ASSET_REF = 'live2d_aaaaaaaaaaaa';
 const NEW_ASSET_REF = 'live2d_bbbbbbbbbbbb';
 const NEW_REVISION = '8';
 const request = {
+  previewRequestId: 'preview-current',
+  signal: new AbortController().signal,
   agentHandle: AGENT_HANDLE,
   avatarAssetRef: NEW_ASSET_REF,
   backendKind: 'live2d' as const,
@@ -83,6 +85,64 @@ describe('Avatar live presentation swap', () => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
     useAvatarStore.getState().setModelPath('C:/avatar/old');
     useAvatarStore.getState().setModelLoaded('old-model');
+  });
+
+  it.each(['owner', 'asset', 'carrier'] as const)('cancels a pending %s wait and cleans only its late resources after a newer activation', async (phase) => {
+    const scope = new AbortController();
+    const gate = deferred<unknown>();
+    const oldCarrier = carrier({ assetRef: OLD_ASSET_REF, revision: '7' });
+    const lateCarrier = carrier({ assetRef: NEW_ASSET_REF, revision: NEW_REVISION });
+    const nextCarrier = carrier({ assetRef: NEW_ASSET_REF, revision: NEW_REVISION });
+    const ownerSnapshot = { profile: profile(), presentationRevision: NEW_REVISION };
+    const asset = (suffix: string) => ({
+      manifest: { modelId: 'model-' + suffix, kind: 'live2d', runtimeDir: 'C:/avatar/' + suffix },
+      reference: { localAvatarAssetRef: NEW_ASSET_REF, backendKind: 'live2d',
+        materializationRef: 'avatar-materialization:live2d:' + NEW_ASSET_REF,
+        materializationLeaseRef: 'avatar_materialization_lease_' + suffix.repeat(32) },
+    });
+    const lateAsset = asset('a'), nextAsset = asset('b');
+    let active: AvatarRuntimeCarrier | null = oldCarrier;
+    let entered = false;
+    const snapshot = vi.fn().mockResolvedValue(ownerSnapshot);
+    const resolveAsset = vi.fn().mockResolvedValue(nextAsset);
+    const startCarrier = vi.fn().mockResolvedValue(nextCarrier);
+    if (phase === 'owner') snapshot.mockImplementationOnce(() => { entered = true; return gate.promise; });
+    if (phase === 'asset') resolveAsset.mockImplementationOnce(() => { entered = true; return gate.promise; });
+    if (phase === 'carrier') {
+      resolveAsset.mockResolvedValueOnce(lateAsset);
+      startCarrier.mockImplementationOnce(() => { entered = true; return gate.promise; });
+    }
+    const release = vi.fn(async () => undefined);
+    const commit = vi.fn(async () => undefined);
+    const swap = createAvatarLivePresentationSwap({ runtime: runtime(snapshot), agentBinding: binding(),
+      driver: {} as AgentDataDriver, getCarrier: () => active, commitReplacement: value => { active = value; },
+      isClosed: () => false, resolveAsset: resolveAsset as never, startCarrier: startCarrier as never,
+      commitMaterializationLease: commit, releaseMaterializationLease: release });
+    let settled = false;
+    const pending = swap.activate({ ...request, signal: scope.signal }, async () => undefined)
+      .then(() => null, error => error).finally(() => { settled = true; });
+    try {
+      await vi.waitFor(() => expect(entered).toBe(true));
+      scope.abort();
+      await vi.waitFor(() => expect(settled).toBe(true));
+      expect(await pending).toBeInstanceOf(Error);
+      expect(active).toBe(oldCarrier);
+      expect(commit).not.toHaveBeenCalled();
+      await swap.activate({ ...request, previewRequestId: 'preview-next' }, async () => undefined);
+      expect(active).toBe(nextCarrier);
+      expect(resolveAsset).toHaveBeenLastCalledWith(expect.objectContaining({ previewRequestId: 'preview-next' }));
+      gate.resolve(phase === 'owner' ? ownerSnapshot : phase === 'asset' ? lateAsset : lateCarrier);
+      await Promise.resolve(); await Promise.resolve();
+      if (phase !== 'owner') expect(release).toHaveBeenCalledExactlyOnceWith(lateAsset.reference.materializationLeaseRef);
+      else expect(release).not.toHaveBeenCalled();
+      if (phase === 'carrier') expect(lateCarrier.shutdown).toHaveBeenCalledOnce();
+      expect(nextCarrier.shutdown).not.toHaveBeenCalled();
+      expect(active).toBe(nextCarrier);
+      expect(useAvatarStore.getState().model.modelId).toBe('model-b');
+    } finally {
+      gate.resolve(phase === 'owner' ? ownerSnapshot : phase === 'asset' ? lateAsset : lateCarrier);
+      await pending;
+    }
   });
 
   it('waits for candidate first-frame readiness before transferring the driver and lease', async () => {
