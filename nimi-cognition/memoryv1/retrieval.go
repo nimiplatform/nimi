@@ -500,7 +500,9 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 	for rows.Next() {
 		var item scoredMemory
 		var occurredAt, updatedAt string
-		var vectorRaw []byte
+		// Borrow this row's bytes: validation, decoding and scoring finish before
+		// Next, and retained hits contain no references to the vector buffer.
+		var vectorRaw sql.RawBytes
 		if err := rows.Scan(&item.memory.MemoryRef, &item.memory.BankRef, &item.memory.Content, &item.memory.EpistemicStatus, &item.memory.Lifecycle, &occurredAt, &updatedAt, &item.memory.SourceExplanation, &item.memory.EventRef, &vectorRaw); err != nil {
 			_ = rows.Close()
 			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: scan vector: %w", err)
