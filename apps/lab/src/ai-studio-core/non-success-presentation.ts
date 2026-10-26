@@ -95,6 +95,8 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   if (diagnostics?.reasonCode === LOCAL_LOAD_FAILED_REASON_CODE) return translate('NonSuccess.message.localLoadFailed');
   if (diagnostics?.reasonCode === LOCAL_CONFIGURATION_MISSING_REASON_CODE) return translate('NonSuccess.message.localConfigurationMissing');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.geometryUnsupported');
+  // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-retrieval-purpose
+  if (capabilityId === 'text.embed' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.embeddingPurposeUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.mediaOptionUnsupported');
   if (diagnostics?.reasonCode === MODALITY_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.modalityUnsupported');
   if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.message.providerRateLimited');
@@ -119,6 +121,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (diagnostics?.reasonCode === LOCAL_LOAD_FAILED_REASON_CODE) return translate('NonSuccess.action.localLoadFailed');
   if (diagnostics?.reasonCode === LOCAL_CONFIGURATION_MISSING_REASON_CODE) return translate('NonSuccess.action.localConfigurationMissing');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.chooseSupportedGeometry');
+  if (capabilityId === 'text.embed' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.embeddingPurposeUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
   if (diagnostics?.reasonCode === MODALITY_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.modalityUnsupported');
   if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.action.providerRateLimited', { usageUrl: NIMI_CHATGPT_PLAN_USAGE_URL });

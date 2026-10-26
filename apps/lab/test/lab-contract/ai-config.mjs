@@ -165,7 +165,7 @@ test('lab mounts the shared App AIConfig editor with self-owner CAS and optional
   // mounted consumer, even when the drawer closed before the write finished.
   assert.match(
     source,
-    /setSnapshot\(\{ config: result\.config, revision: result\.revision, effectiveSelections: \[\] \}\);[\s\S]{0,240}?if \(result\.outcome === 'committed'\) onCommitted\(\);\s*else void refresh\(\);/u,
+    /if \(result\.outcome === 'committed'\) onCommitted\(\);\s*else void refresh\(\);/u,
   );
   const workbench = readFileSync(path.join(root, 'src/lab/lab-workbench.tsx'), 'utf8');
   assert.match(workbench, /renderAIConfigPanel=\{\(\{ runtime, capabilityId, onCommitted \}\) =>[\s\S]{0,200}?onCommitted=\{onCommitted\}/u);
@@ -173,7 +173,7 @@ test('lab mounts the shared App AIConfig editor with self-owner CAS and optional
   assert.match(source, /kind: 'open-apps'[\s\S]*appId[\s\S]*section: 'ai-models'/u);
   assert.match(
     source,
-    /return subscribeLabAIConfigOwnerRefresh\([\s\S]{0,240}?window,[\s\S]{0,80}?document/u,
+    /subscribeLabAIConfigOwnerRefresh\([\s\S]{0,240}?window,[\s\S]{0,80}?document/u,
   );
   assert.doesNotMatch(source, /sdk\.modelConfig|open-runtime-config/u);
 });

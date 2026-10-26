@@ -1006,6 +1006,37 @@ test('unsupported media settings offer parameter correction instead of a blind r
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 
+test('embedding retrieval purpose failures give task-specific bilingual guidance without selecting a purpose', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const { i18n } = await load('shell/i18n/index.js');
+  for (const purpose of [undefined, 'retrieval-query']) {
+    const fake = fakeClient({ execute: () => { throw typedError('ai-media-option-unsupported'); } });
+    const parameters = { inputs: ['retrieval text'], ...(purpose ? { purpose } : {}) };
+    const result = await runLabCapability({ capabilityId: 'text.embed', prompt: '', parameters }, ready(fake.client));
+    assert.equal(result.ok, false);
+    assert.equal(result.diagnostics.reasonCode, 'AI_MEDIA_OPTION_UNSUPPORTED');
+    assert.deepEqual(fake.calls.execute, [{ type: 'text-embed', ...parameters }]);
+    for (const locale of ['en', 'zh']) {
+      const translate = i18n.getFixedT(locale);
+      const message = studioNonSuccessReasonUserMessage(result.reason, translate, result.capabilityId, result.diagnostics);
+      const action = studioNonSuccessReasonUserAction(result.reason, translate, result.capabilityId, result.diagnostics);
+      assert.equal(message, translate('NonSuccess.message.embeddingPurposeUnsupported'));
+      assert.equal(action, translate('NonSuccess.action.embeddingPurposeUnsupported'));
+      assert.notEqual(message, 'NonSuccess.message.embeddingPurposeUnsupported');
+      assert.match(message, locale === 'en' ? /retrieval purpose/u : /检索用途/u);
+      assert.ok(action.includes(translate('Studio.parameters.embeddingPurposeDocument')));
+      assert.ok(action.includes(translate('Studio.parameters.embeddingPurposeQuery')));
+      assert.doesNotMatch(message + action, /Nomic|reset|重置|media settings|媒体参数/iu);
+      for (const capability of ['image.generate', 'video.generate', 'audio.synthesize']) {
+        assert.equal(studioNonSuccessReasonUserMessage(result.reason, translate, capability, result.diagnostics), translate('NonSuccess.message.mediaOptionUnsupported'));
+        assert.equal(studioNonSuccessReasonUserAction(result.reason, translate, capability, result.diagnostics), translate('NonSuccess.action.mediaOptionUnsupported'));
+      }
+      assert.equal(studioNonSuccessReasonUserMessage(result.reason, translate, 'text.embed', { reasonCode: 'AI_INPUT_LIMIT_EXCEEDED' }), translate('NonSuccess.message.inputLimitExceeded'));
+    }
+  }
+});
+
 test('missing local execution configuration leads to Home setup without retrying or changing the App target', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction, studioNonSuccessNeedsTargetReselection } = await load('ai-studio-core/non-success-presentation.js');

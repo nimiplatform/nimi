@@ -16,7 +16,10 @@ export function MusicTranscriptionNotice({ value, recordId }: { readonly value?:
   const [feedback, setFeedback] = useState<{ sourceKey: string; error?: string; exportedPath?: string } | null>(null);
   const [exporting, setExporting] = useState('');
   const currentSource = useRef(sourceKey);
-  useLayoutEffect(() => { currentSource.current = sourceKey; }, [sourceKey]);
+  useLayoutEffect(() => {
+    currentSource.current = sourceKey;
+    return () => { if (currentSource.current === sourceKey) currentSource.current = ''; };
+  }, [sourceKey]);
   const scores = value?.scores;
   const timelinePath = value?.timelineRelativePath;
   // Render and actions gate on provenance before passive effects can run.
@@ -33,23 +36,37 @@ export function MusicTranscriptionNotice({ value, recordId }: { readonly value?:
     const midi = score?.format === 'midi';
     const mediaType = timeline ? 'application/vnd.nimi.music-timeline+json' : midi ? 'audio/midi' : 'text/vnd.abc';
     const filename = timeline ? 'music-timeline.json' : midi ? 'estimated-notes.mid' : 'transcribed-score.abc';
+    let iterator: AsyncIterator<Uint8Array> | undefined;
+    let closing: Promise<unknown> | undefined;
+    const current = () => active && currentSource.current === sourceKey;
+    const close = (): Promise<unknown> => {
+      if (!iterator) return Promise.resolve();
+      const retiring = iterator;
+      return closing ??= Promise.resolve().then(() => retiring.return?.());
+    };
     void (async () => {
       const read = await host.sdk.assets.read({ relativePath: selected });
-      const iterator = read.body[Symbol.asyncIterator]();
+      iterator = read.body[Symbol.asyncIterator]();
       const limit = timeline || midi ? 16777216 : 1048576;
       try {
+        if (!current()) return;
         if (read.asset.mediaType !== mediaType || read.asset.sizeBytes < 1 || read.asset.sizeBytes > limit) throw new Error(t('Music.scoreTooLarge'));
         const bytes = new Uint8Array(read.asset.sizeBytes); let offset = 0;
-        for await (const chunk of { [Symbol.asyncIterator]: () => iterator }) {
+        for (;;) {
+          if (!current()) return;
+          const next = await iterator.next();
+          if (!current()) return;
+          if (next.done) break;
+          const chunk = next.value;
           if (offset + chunk.length > bytes.length) throw new Error(t('Music.scoreTooLarge'));
           bytes.set(chunk, offset); offset += chunk.length;
         }
         if (offset !== bytes.length) throw new Error(t('Music.scoreIncomplete'));
         const body = midi ? '' : new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-        if (active) setLoaded({ sourceKey, path: selected, bytes, body, filename, mediaType, midi });
-      } finally { await iterator.return?.(); }
-    })().catch((cause: unknown) => { if (active) setFeedback({ sourceKey, error: String(cause) }); });
-    return () => { active = false; };
+        if (current()) setLoaded({ sourceKey, path: selected, bytes, body, filename, mediaType, midi });
+      } finally { await close(); }
+    })().catch((cause: unknown) => { if (current()) setFeedback({ sourceKey, error: String(cause) }); });
+    return () => { active = false; void close().catch(() => undefined); };
   }, [sourceKey, selected, timelinePath, scores, host, t]);
   async function exportSelected() {
     const snapshot = file;

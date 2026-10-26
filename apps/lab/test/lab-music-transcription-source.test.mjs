@@ -68,3 +68,140 @@ test('MIDI export preserves the saved path when reveal fails and does not write 
   assert.equal(writes.length,1);
  }finally{await act(async()=>renderer.unmount())}
 });
+
+for (const departure of ['record-change', 'unmount']) test(`a late asset open after ${departure} closes without reading metadata or bytes`, async () => {
+  const pending = Promise.withResolvers();
+  let metadataReads = 0, pulls = 0, closes = 0;
+  const reader = {
+    next: async () => { pulls++; return { done: true, value: undefined }; },
+    return: async () => { closes++; return { done: true, value: undefined }; },
+  };
+  const lateRead = {
+    asset: {
+      get mediaType() { metadataReads++; return 'application/vnd.nimi.music-timeline+json'; },
+      get sizeBytes() { metadataReads++; return 2; },
+    },
+    body: { [Symbol.asyncIterator]: () => reader },
+  };
+  const host = { translate: key => key, sdk: { assets: { read: () => pending.promise } } };
+  const renderer = createRoot(document.getElementById('root'));
+  const render = id => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(MusicTranscriptionNotice, { recordId: id, value: value(id) })));
+  let mounted = true;
+  try {
+    await act(async () => render('a'));
+    await click('Transcription.timeline');
+    await act(async () => {
+      if (departure === 'record-change') render('b');
+      else { renderer.unmount(); mounted = false; }
+    });
+    await act(async () => pending.resolve(lateRead));
+    assert.equal(closes, 1);
+    assert.equal(pulls, 0);
+    assert.equal(metadataReads, 0, 'closed work must stop before sizing or allocating its output buffer');
+    assert.equal(document.querySelector('textarea'), null);
+    assert.equal(button('Transcription.export'), undefined);
+  } finally { if (mounted) await act(async () => renderer.unmount()); }
+});
+
+for (const departure of ['collapse', 'record-change', 'unmount']) test(`pending chunk cleanup on ${departure} requests return before next settles and consumes no late bytes`, async t => {
+  const pending = Promise.withResolvers();
+  let pulls = 0, closes = 0, consumedLateValue = 0, decodes = 0;
+  const decode = TextDecoder.prototype.decode;
+  t.mock.method(TextDecoder.prototype, 'decode', function (...args) { decodes++; return decode.apply(this, args); });
+  const reader = {
+    next() { pulls++; return pulls === 1 ? pending.promise : Promise.resolve({ done: true, value: undefined }); },
+    return() { closes++; return pending.promise.then(() => ({ done: true, value: undefined })); },
+  };
+  const host = { translate: key => key, sdk: { assets: { read: async () => ({
+    asset: { mediaType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 2 },
+    body: { [Symbol.asyncIterator]: () => reader },
+  }) } } };
+  const renderer = createRoot(document.getElementById('root'));
+  const render = id => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(MusicTranscriptionNotice, { recordId: id, value: value(id) })));
+  let mounted = true;
+  try {
+    await act(async () => render('a'));
+    await click('Transcription.timeline');
+    assert.equal(pulls, 1);
+    if (departure === 'collapse') await click('Transcription.timeline');
+    else await act(async () => {
+      if (departure === 'record-change') render('b');
+      else { renderer.unmount(); mounted = false; }
+    });
+    assert.equal(closes, 1, 'cleanup initiates close while the current pull is still pending');
+    const bytes = Uint8Array.of(123, 125);
+    await act(async () => pending.resolve({ done: false, get value() { consumedLateValue++; return bytes; } }));
+    assert.equal(closes, 1, 'finally shares the same close instead of closing twice');
+    assert.equal(pulls, 1, 'no future next is requested');
+    assert.equal(consumedLateValue, 0, 'closed work must not inspect or copy the late chunk');
+    assert.equal(decodes, 0);
+    assert.equal(document.querySelector('textarea'), null);
+    assert.equal(button('Transcription.export'), undefined);
+  } finally {
+    pending.resolve({ done: true, value: undefined });
+    if (mounted) await act(async () => renderer.unmount());
+  }
+});
+
+test('an active ABC reader preserves split UTF-8 content and exported bytes/MIME', async () => {
+  const text = 'X:1\nT:旋律\nK:C\nCDEF|\n';
+  const bytes = new TextEncoder().encode(text);
+  const pieces = [bytes.subarray(0, 9), bytes.subarray(9, 10), bytes.subarray(10)];
+  let index = 0, closes = 0;
+  const writes = [];
+  const host = { translate: key => key, sdk: { assets: {
+    read: async () => ({ asset: { sizeBytes: bytes.length, mediaType: 'text/vnd.abc' }, body: { [Symbol.asyncIterator]: () => ({
+      next: async () => index < pieces.length ? { done: false, value: pieces[index++] } : { done: true, value: undefined },
+      return: async () => { closes++; return { done: true, value: undefined }; },
+    }) } }),
+    write: async request => {
+      const body = []; for await (const chunk of request.body) body.push(...chunk);
+      writes.push({ body, mediaType: request.mediaType, relativePath: request.relativePath });
+      return { relativePath: 'studio/music/exports/active.abc' };
+    },
+    reveal: async () => {},
+  } } };
+  const result = { ...value('a'), scores: [{ format: 'abc', part: 'lead-sheet', relativePath: 'media/a.abc' }] };
+  const renderer = createRoot(document.getElementById('root'));
+  try {
+    await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(MusicTranscriptionNotice, { recordId: 'a', value: result }))));
+    await click('Transcription.parts.lead-sheet · ABC');
+    assert.equal(document.querySelector('textarea').value, text);
+    assert.equal(closes, 1);
+    await click('Transcription.export');
+    assert.deepEqual(writes[0].body, [...bytes]);
+    assert.equal(writes[0].mediaType, 'text/vnd.abc');
+    assert.match(writes[0].relativePath, /transcribed-score\.abc$/u);
+  } finally { await act(async () => renderer.unmount()); }
+});
+
+for (const invalid of [
+  { name: 'MIME mismatch', mediaType: 'audio/midi', sizeBytes: 2, bytes: [123, 125], error: 'Music.scoreTooLarge', beforePull: true },
+  { name: 'ABC limit', abc: true, mediaType: 'text/vnd.abc', sizeBytes: 1048577, bytes: [], error: 'Music.scoreTooLarge', beforePull: true },
+  { name: 'timeline limit', mediaType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 16777217, bytes: [], error: 'Music.scoreTooLarge', beforePull: true },
+  { name: 'incomplete result', mediaType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 3, bytes: [123, 125], error: 'Music.scoreIncomplete' },
+  { name: 'oversized chunk', mediaType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 1, bytes: [123, 125], error: 'Music.scoreTooLarge' },
+  { name: 'invalid UTF-8', mediaType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 1, bytes: [255] },
+]) test(`an active reader still rejects ${invalid.name}`, async () => {
+  let pulls = 0, closes = 0;
+  const host = { translate: key => key, sdk: { assets: { read: async () => ({
+    asset: { mediaType: invalid.mediaType, sizeBytes: invalid.sizeBytes },
+    body: { [Symbol.asyncIterator]: () => ({
+      next: async () => ++pulls === 1 ? { done: false, value: Uint8Array.from(invalid.bytes) } : { done: true, value: undefined },
+      return: async () => { closes++; return { done: true, value: undefined }; },
+    }) },
+  }) } } };
+  const result = invalid.abc ? { ...value('a'), scores: [{ format: 'abc', part: 'lead-sheet', relativePath: 'media/a.abc' }] } : value('a');
+  const renderer = createRoot(document.getElementById('root'));
+  try {
+    await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(MusicTranscriptionNotice, { recordId: 'a', value: result }))));
+    await click(invalid.abc ? 'Transcription.parts.lead-sheet · ABC' : 'Transcription.timeline');
+    const alert = document.querySelector('[role="alert"]');
+    assert.ok(alert);
+    if (invalid.error) assert.ok(alert.textContent.includes(invalid.error));
+    assert.equal(closes, 1);
+    if (invalid.beforePull) assert.equal(pulls, 0);
+    assert.equal(document.querySelector('textarea'), null);
+    assert.equal(button('Transcription.export'), undefined);
+  } finally { await act(async () => renderer.unmount()); }
+});

@@ -97,30 +97,52 @@ export function LabAiConfigSettingsPanel({
   const rendererHost = useLabRendererHost();
   const { t, i18n } = useTranslation();
   const copy = useLabModelConfigCopy();
-  const [snapshot, setSnapshot] = useState<NimiAIConfigSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const scope = useMemo(() => ({ active: false, readSequence: 0 }), [rendererHost]);
+  const [observation, setObservation] = useState(() => ({
+    scope,
+    snapshot: null as NimiAIConfigSnapshot | null,
+    loading: true,
+    loadError: null as string | null,
+  }));
+  // A replaced protected renderer scope must not display the prior owner's
+  // snapshot while its first read is still pending.
+  const { snapshot, loading, loadError } = observation.scope === scope
+    ? observation
+    : { snapshot: null, loading: true, loadError: null };
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+    if (!scope.active) return;
+    const sequence = ++scope.readSequence;
+    const isCurrent = () => scope.active && scope.readSequence === sequence;
+    setObservation((current) => ({ scope,
+      snapshot: current.scope === scope ? current.snapshot : null,
+      loading: true, loadError: null,
+    }));
     try {
-      setSnapshot(await loadLabAIConfig(rendererHost.sdk.aiConfig));
+      const next = await loadLabAIConfig(rendererHost.sdk.aiConfig);
+      if (isCurrent()) setObservation({ scope, snapshot: next, loading: false, loadError: null });
     } catch (cause) {
-      setLoadError(cause instanceof Error ? cause.message : String(cause || t('ModelConfig.loadFailed')));
-    } finally {
-      setLoading(false);
+      if (isCurrent()) setObservation((current) => ({ ...current,
+        loading: false,
+        loadError: cause instanceof Error ? cause.message : String(cause || t('ModelConfig.loadFailed')),
+      }));
     }
-  }, [rendererHost, t]);
+  }, [rendererHost, scope, t]);
 
   useEffect(() => {
+    scope.active = true;
     void refresh();
-    return subscribeLabAIConfigOwnerRefresh(
+    const unsubscribe = subscribeLabAIConfigOwnerRefresh(
       () => { void refresh(); },
       window,
       document,
     );
-  }, [refresh]);
+    return () => {
+      scope.active = false;
+      scope.readSequence += 1;
+      unsubscribe();
+    };
+  }, [refresh, scope]);
 
   const runtimeLabel = runtime?.status === 'connected'
     ? t('ModelConfig.runtimeConnected')
@@ -144,7 +166,14 @@ export function LabAiConfigSettingsPanel({
           onRetry={() => { void refresh(); }}
           onOverwrite={async (input) => {
             const result = await rendererHost.sdk.aiConfig.overwrite(input);
-            setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
+            if (scope.active) {
+              // The acknowledgement supersedes every read started before it.
+              scope.readSequence += 1;
+              setObservation({ scope,
+                snapshot: { config: result.config, revision: result.revision, effectiveSelections: [] },
+                loading: false, loadError: null,
+              });
+            }
             // A commit re-reads every mounted consumer, this panel included,
             // even when the drawer closed before the write finished.
             if (result.outcome === 'committed') onCommitted();
