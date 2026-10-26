@@ -9,6 +9,7 @@ import { getRuntimeWireCodec, RuntimeHealthStatus } from '@nimiplatform/sdk/runt
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
 import { verifyProductInstaller } from './product-update-installer-verification.js';
 import { DesktopShutdownBlockedError, runDesktopShutdownSteps, type DesktopShutdownReport } from './product-update-shutdown.js';
+import { createDesktopFinalExit } from './desktop-final-exit.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
 import path from 'node:path';
@@ -220,6 +221,18 @@ let systemEntryAccountUnsubscribe: (() => void) | undefined;
 let systemEntryLocale: 'en' | 'zh' = 'en';
 let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
+const desktopFinalExit = createDesktopFinalExit({
+  takeRuntimeBridge: () => {
+    const bridge = registeredRuntimeBridge;
+    registeredRuntimeBridge = undefined;
+    return bridge;
+  },
+  reportDiagnostic: (reason) => writeDesktopStderr(`[desktop-shutdown] runtime-bridge:${reason}\n`),
+  exit: (code) => app.exit(code),
+});
+// Install before startup can exit. Home remains an IPC consumer until all
+// windows close; synchronous app.exit paths use the same finalizer directly.
+app.on('will-quit', desktopFinalExit.finish);
 let homeChromeHost: NimiElectronAppChromeHost | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
@@ -302,7 +315,7 @@ const ownsDesktopInstanceLock = unregisterProductionService || app.requestSingle
 if (!ownsDesktopInstanceLock) {
   app.quit();
 } else if (!await configureDesktopHomeHostProfile()) {
-  app.exit(1);
+  desktopFinalExit.exit(1);
 } else {
   app.on('second-instance', () => {
     void focusDesktopMainWindow();
@@ -563,7 +576,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       : undefined;
     if (macOSProductionService && unregisterProductionService) {
       await macOSProductionService.unregister();
-      app.exit(0);
+      desktopFinalExit.exit(0);
       return;
     }
     if (macOSProductionService) {
@@ -1166,7 +1179,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           ? `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
           : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
     );
-    app.exit(1);
+    desktopFinalExit.exit(1);
   }
 }
 
@@ -1344,7 +1357,7 @@ function handleDesktopSystemSessionEnd(): void {
     new Promise<void>((resolve) => { timer = setTimeout(resolve, 2_000); }),
   ]).finally(() => {
     if (timer) clearTimeout(timer);
-    app.exit(0);
+    desktopFinalExit.exit(0);
   });
 }
 
@@ -1363,7 +1376,7 @@ async function finishDesktopHomeProfileBeforeExit(): Promise<void> {
     // so this relaunch carries no Home-profile relaunch marker.
     homeTemporaryEnvironment?.restore();
     if (SOURCE_PER_USER_RUNTIME_D2) {
-      app.exit(HOME_PROFILE_RELAUNCH_EXIT_CODE);
+      desktopFinalExit.exit(HOME_PROFILE_RELAUNCH_EXIT_CODE);
       return;
     }
     app.relaunch({
@@ -1379,7 +1392,7 @@ async function finishDesktopHomeProfileBeforeExit(): Promise<void> {
   homeTemporaryEnvironment?.restore();
   if (SOURCE_PER_USER_RUNTIME_D2) {
     // The source dev launcher owns the renderer and restarts this host.
-    app.exit(HOME_PROFILE_RELAUNCH_EXIT_CODE);
+    desktopFinalExit.exit(HOME_PROFILE_RELAUNCH_EXIT_CODE);
     return;
   }
   app.relaunch({
@@ -1444,7 +1457,6 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
     } },
     { operation: 'open-intent', critical: false, timeoutMs: 5_000, run: () => openIntentHost?.shutdown() },
     { operation: 'connector-auth', critical: false, timeoutMs: 5_000, run: () => connectorAuthHost?.shutdown() },
-    { operation: 'runtime-bridge', critical: false, timeoutMs: 5_000, run: () => runtimeBridge?.unregister() },
     { operation: 'system-entry', critical: false, timeoutMs: 5_000, run: () => currentSystemEntryHost?.dispose() },
   ];
   const result = await runDesktopShutdownSteps(forUpdate ? steps.filter((step) => step.critical) : steps);
@@ -1467,7 +1479,6 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   if (chatAiStoreHost === chatStoreHost) chatAiStoreHost = undefined;
   if (systemEntryHost === currentSystemEntryHost) systemEntryHost = undefined;
   if (connectorAuthAcquisitionHost === connectorAuthHost) connectorAuthAcquisitionHost = undefined;
-  if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
   return report;
 }
 
