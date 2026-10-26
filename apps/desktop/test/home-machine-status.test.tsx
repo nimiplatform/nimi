@@ -69,6 +69,17 @@ test('machine status strip omits duplicate current work and shows Runtime resour
   assert.doesNotMatch(html, /runtimeConfig\.overview\./);
 });
 
+test('machine status shows zero for local usage while preserving incomplete and cloud estimates', async () => {
+  await initI18n(); await changeLocale('en');
+  const local = usageProjection({ localAttempts: '12', cloudAttempts: '0', costs: [], status: 'partial', partial: true });
+  const html = render({ usage: local });
+  assert.match(html, /Estimated 0/);
+  assert.match(html, /Partial/);
+  assert.doesNotMatch(html, /Cost estimate unavailable/);
+  assert.match(render({ usage: usageProjection({ costs: [] }) }), /Cost estimate unavailable/);
+  assert.match(render({ usage: { ...local, localAttempts: null, cloudAttempts: null } }), /Cost estimate unavailable/);
+});
+
 function snapshotWith(memoryPressure: 'normal' | 'warning' | 'critical' | 'unknown', overrides: { cpuPercent?: number; diskUsedBytes?: number } = {}) {
   return {
     status: 'ready' as const,

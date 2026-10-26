@@ -1,4 +1,4 @@
-import { Button, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { Button, IconButton, InlineAlert, LoadingSkeleton, ScrollArea, SearchField, Tooltip } from '@nimiplatform/kit/ui';
 import {
   DesktopAIExecutionRoute,
   DesktopAIExecutionState,
@@ -11,6 +11,7 @@ import { Activity, ArrowLeft, CalendarDays, ChevronDown, Coins, Info, Layers3, P
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
+import { isSystemEntryLocalOnlyUsage } from '../../../shared/system-entry-types.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import { projectSystemEntryUsage, type SystemEntryAIState } from './system-entry-ai-model.js';
 import { useSystemEntry, useSystemEntryAI } from './system-entry-context.js';
@@ -66,11 +67,13 @@ function RecordedTime({ value, timeZone }: { value: Parameters<typeof systemEntr
   }).format(new Date(iso))}</time>;
 }
 
-function Estimates({ estimates, emphasis = false }: {
+function Estimates({ estimates, emphasis = false, local = false }: {
   estimates: readonly DesktopAICostEstimate[];
   emphasis?: boolean;
+  local?: boolean;
 }) {
   const { t } = useTranslation();
+  if (local && !estimates.length) return <div className={`${emphasis ? 'text-[40px] font-semibold leading-tight tracking-[-0.035em]' : 'text-right text-sm font-medium'} tabular-nums`}>0</div>;
   const valid = estimates.filter(value => /^[A-Z]{3,8}$/u.test(value.currency)
     && /^\d+(\.\d+)?$/u.test(value.estimatedAmount) && value.estimatedAmount.length <= 40);
   if (!valid.length) return <span className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.costUnknown`)}</span>;
@@ -178,6 +181,13 @@ function UsageNotice({ children, testId }: { children: ReactNode; testId: string
   </div>;
 }
 
+function UsageInfo({ children, label, testId }: { children: ReactNode; label: string; testId: string }) {
+  return <Tooltip content={<div className="space-y-2">{children}</div>} contentClassName="max-w-xs text-left font-normal">
+    <IconButton size="sm" className="size-6 shrink-0 text-[var(--nimi-text-secondary)]" aria-label={label} data-testid={testId}
+      icon={<Info size={15} aria-hidden="true" />} />
+  </Tooltip>;
+}
+
 function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly DesktopAIUsageGroup[]; attempts: string | null; groupsComplete: boolean }) {
   const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
@@ -231,7 +241,7 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
           <td className="break-words px-3 py-3 text-xs text-[var(--nimi-text-secondary)]">{SOURCE_KEYS[group.sourceKind] ? t(`${PREFIX}.sources.${SOURCE_KEYS[group.sourceKind]}`) : group.sourceKind}</td>
           <td className="px-3 py-3"><RouteLabel route={group.route} /></td>
           <td className="break-words px-3 py-3 text-right font-medium tabular-nums">{display(group.totals?.attemptCount)}</td>
-          <td className="px-4 py-3"><Estimates estimates={group.estimates} /></td>
+          <td className="px-4 py-3"><Estimates estimates={group.estimates} local={group.route === DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_LOCAL} /></td>
         </tr>)}</tbody>
       </table>
     </div> : <div className="mt-5 rounded-2xl bg-[var(--nimi-surface-panel)] py-10 text-center" role="status">
@@ -272,41 +282,42 @@ function UsageSummary({ ai }: { ai: SystemEntryAIState | null }) {
   const locale = i18n.resolvedLanguage ?? 'en';
   const projection = projectSystemEntryUsage(read, ai.range, locale.startsWith('zh') ? 'zh' : 'en');
   if (projection.status === 'unavailable') return <UnavailableUsageSummary />;
+  const localOnly = isSystemEntryLocalOnlyUsage(projection);
   const display = (value: string | undefined | null) => count(value ?? undefined, locale) ?? t(`${PREFIX}.unknown`);
   const pending = hasPositiveCount(summary.totals?.pendingUsageCount);
   const unpriced = hasPositiveCount(summary.totals?.unpricedAttemptCount);
   const uncoveredSources = summary.sourceCoverage.filter(source => !source.usageComplete);
   const sourceIncomplete = !summary.sourceComplete || !summary.sourceCoverage.length || uncoveredSources.length > 0;
   const recordsIncomplete = sourceIncomplete || !summary.timeComplete;
-  const quantitiesIncomplete = !summary.quantityComplete || pending;
+  const quantitiesIncomplete = !localOnly && (!summary.quantityComplete || pending);
   const pricingIncomplete = projection.costs.length !== summary.estimates.length;
-  const unexplainedCoverage = summary.partialReasons.length > 0 && !recordsIncomplete && !quantitiesIncomplete && !unpriced;
+  const unexplainedCoverage = summary.partialReasons.some(reason => !localOnly || reason !== 'usage_pending') && !recordsIncomplete && !quantitiesIncomplete && !unpriced;
   const costIncomplete = recordsIncomplete || quantitiesIncomplete || unpriced || pricingIncomplete || unexplainedCoverage;
   return <>
         <div className={PANEL_CLASS} data-testid="home-usage-attempts-card">
-          <dt className="relative flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Play size={17} aria-hidden="true" /></span>{t(`${PREFIX}.todayExecutions`)}</dt>
-          <dd className="mt-4 break-words text-[40px] font-semibold leading-tight tracking-[-0.035em] tabular-nums">{display(projection.attempts)}<span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.executionUnit`)}</span></dd>
-          <dd className="relative"><UsageRouteSummary attempts={projection.attempts} localAttempts={projection.localAttempts} cloudAttempts={projection.cloudAttempts} /></dd>
-          {recordsIncomplete || unexplainedCoverage ? <dd className="relative"><UsageNotice testId="home-usage-count-warning">
+          <dt className="flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Play size={17} aria-hidden="true" /></span>{t(`${PREFIX}.todayExecutions`)}
+          {recordsIncomplete || unexplainedCoverage ? <UsageInfo testId="home-usage-count-warning" label={t(`${PREFIX}.${recordsIncomplete ? 'attemptsIncomplete' : 'attemptsUnconfirmed'}`)}>
             <p>{t(`${PREFIX}.${recordsIncomplete ? 'attemptsIncomplete' : 'attemptsUnconfirmed'}`)}</p>
             {uncoveredSources.length ? <p className="text-xs">{t(`${PREFIX}.uncoveredUsageSources`, { sources: uncoveredSources.map(source => SOURCE_KEYS[source.source] ? t(`${PREFIX}.sources.${SOURCE_KEYS[source.source]}`) : source.source).join(' · ') })}</p> : null}
             {!summary.timeComplete && systemEntryTimestampIso(summary.coverageFrom) && systemEntryTimestampIso(summary.coverageTo) ? <p className="text-xs">{t(`${PREFIX}.recordedBounds`)} <RecordedTime value={summary.coverageFrom} timeZone={ai.range.timeZone} /> — <RecordedTime value={summary.coverageTo} timeZone={ai.range.timeZone} /></p> : null}
-          </UsageNotice></dd> : null}
+          </UsageInfo> : null}</dt>
+          <dd className="mt-4 break-words text-[40px] font-semibold leading-tight tracking-[-0.035em] tabular-nums">{display(projection.attempts)}<span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.executionUnit`)}</span></dd>
+          <dd><UsageRouteSummary attempts={projection.attempts} localAttempts={projection.localAttempts} cloudAttempts={projection.cloudAttempts} /></dd>
         </div>
         <div className={PANEL_CLASS} data-testid="home-usage-cost-card">
-          <dt className="relative flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Coins size={17} aria-hidden="true" /></span>{t(`${PREFIX}.estimatedCosts`)}</dt>
-          <dd className="mt-4"><Estimates estimates={summary.estimates} emphasis /></dd>
-          {summary.estimates.length ? <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateShortDisclaimer`)}</dd> : null}
-          {projection.costs.length > 1 ? <dd className="relative mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.separateCurrencies`)}</dd> : null}
-          {costIncomplete ? <dd className="relative"><UsageNotice testId="home-usage-cost-warning">
+          <dt className="flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Coins size={17} aria-hidden="true" /></span>{t(`${PREFIX}.estimatedCosts`)}
+          {costIncomplete ? <UsageInfo testId="home-usage-cost-warning" label={t(`${PREFIX}.costsIncomplete`)}>
             <p className="font-medium">{t(`${PREFIX}.costsIncomplete`)}</p>
             {recordsIncomplete ? <p>{t(`${PREFIX}.costsMissingRecords`)}</p> : null}
-            {pending ? <p>{t(`${PREFIX}.costsPendingUsage`, { value: display(summary.totals?.pendingUsageCount) })}</p> : null}
+            {pending && quantitiesIncomplete ? <p>{t(`${PREFIX}.costsPendingUsage`, { value: display(summary.totals?.pendingUsageCount) })}</p> : null}
             {!pending && quantitiesIncomplete ? <p>{t(`${PREFIX}.costsMissingQuantities`)}</p> : null}
             {unpriced ? <p>{t(`${PREFIX}.costsUnpriced`, { value: display(summary.totals?.unpricedAttemptCount) })}</p> : null}
             {pricingIncomplete || unexplainedCoverage ? <p>{t(`${PREFIX}.costsUnconfirmed`)}</p> : null}
             <p className="text-xs">{t(`${PREFIX}.missingCostsNotZero`)}</p>
-          </UsageNotice></dd> : null}
+          </UsageInfo> : null}</dt>
+          <dd className="mt-4"><Estimates estimates={summary.estimates} local={localOnly} emphasis /></dd>
+          {summary.estimates.length ? <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateShortDisclaimer`)}</dd> : null}
+          {projection.costs.length > 1 ? <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.separateCurrencies`)}</dd> : null}
         </div>
   </>;
 }

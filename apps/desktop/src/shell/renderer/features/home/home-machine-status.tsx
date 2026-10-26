@@ -4,7 +4,7 @@ import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-ty
 import { Coins } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SystemEntryUsage } from '../../../shared/system-entry-types.js';
+import { isSystemEntryLocalOnlyUsage, type SystemEntryUsage } from '../../../shared/system-entry-types.js';
 import { useSystemEntry } from '../system-entry/system-entry-context.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import {
@@ -96,6 +96,7 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
   const costText = !usageReady ? null : usage.costs.length === 1
     ? t('runtimeConfig.systemEntry.estimateWithCurrency', { amount: usage.costs[0]!.estimate, currency: usage.costs[0]!.currency })
     : usage.costs.length > 1 ? t('runtimeConfig.systemEntry.currencyCount', { count: usage.costs.length })
+      : isSystemEntryLocalOnlyUsage(usage) ? t('runtimeConfig.systemEntry.estimatedAmount', { amount: '0' })
       : t('runtimeConfig.systemEntry.costUnknown');
   return (
     <section

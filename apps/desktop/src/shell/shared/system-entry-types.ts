@@ -63,6 +63,14 @@ export type SystemEntryUsage = Readonly<{
   partial: boolean;
   note: string;
 }>;
+
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-usage-summary
+export function isSystemEntryLocalOnlyUsage(usage: SystemEntryUsage): boolean {
+  return (usage.status === 'available' || usage.status === 'partial')
+    && usage.attempts !== null && /^\d{1,30}$/u.test(usage.attempts) && BigInt(usage.attempts) > 0n
+    && usage.localAttempts === usage.attempts && usage.cloudAttempts === '0';
+}
+
 export type SystemEntryProjection = Readonly<{
   generation: string;
   revision: number;

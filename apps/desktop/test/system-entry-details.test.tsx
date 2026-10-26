@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -10,9 +10,24 @@ import {
   type DesktopAIUsageTotals,
 } from '@nimiplatform/sdk/runtime/generated';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n/index.js';
-import { SystemEntryDetailsView } from '../src/shell/renderer/features/system-entry/system-entry-details.js';
 import type { SystemEntryAIState } from '../src/shell/renderer/features/system-entry/system-entry-ai-model.js';
 import { systemEntryDayRange, systemEntryTimestamp } from '../src/shell/renderer/features/system-entry/system-entry-time.js';
+
+// Radix chooses its layout effect at import time; overlays need a DOM then,
+// including when this file also exercises server-rendered closed states.
+const bootstrapDOM = new JSDOM('<!doctype html><html><body></body></html>');
+const bootstrapGlobals = new Map(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+Object.defineProperty(globalThis, 'window', { configurable: true, writable: true, value: bootstrapDOM.window });
+Object.defineProperty(globalThis, 'document', { configurable: true, writable: true, value: bootstrapDOM.window.document });
+const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+const { SystemEntryDetailsView } = await import('../src/shell/renderer/features/system-entry/system-entry-details.js');
+after(() => {
+  bootstrapDOM.window.close();
+  for (const [key, descriptor] of bootstrapGlobals) {
+    if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+    else Reflect.deleteProperty(globalThis, key);
+  }
+});
 
 (globalThis as { React?: typeof React }).React = React;
 const now = Date.parse('2026-10-23T03:00:00Z');
@@ -58,7 +73,7 @@ function completeUsageState(groupCount = 1): SystemEntryAIState {
   return ai;
 }
 function render(ai: SystemEntryAIState | null): string {
-  return renderToStaticMarkup(<SystemEntryDetailsView ai={ai} onBack={() => {}} onRefresh={() => {}} />);
+  return renderToStaticMarkup(<TooltipProvider><SystemEntryDetailsView ai={ai} onBack={() => {}} onRefresh={() => {}} /></TooltipProvider>);
 }
 
 test('one page shows independent work and daily execution counts with separate timestamps', async () => {
@@ -156,14 +171,63 @@ test('pending measurements and unavailable prices warn only beside costs without
   const html = render(ai);
   const document = JSDOM.fragment(html);
   const warning = document.querySelector('[data-testid="home-usage-cost-card"] [data-testid="home-usage-cost-warning"]');
-  assert.match(warning?.textContent ?? '', /Executions awaiting usage: 1/);
-  assert.match(warning?.textContent ?? '', /Executions without a cost estimate: 1/);
-  assert.match(warning?.textContent ?? '', /Unknown costs are not counted as zero/);
+  assert.equal(warning?.tagName, 'BUTTON');
+  assert.equal(warning?.closest('dt')?.parentElement?.getAttribute('data-testid'), 'home-usage-cost-card');
+  assert.equal(warning?.getAttribute('aria-label'), 'Cost estimate is incomplete');
+  assert.doesNotMatch(document.textContent ?? '', /Executions awaiting usage|Executions without a cost estimate|Unknown costs/);
+  assert.equal(document.querySelector('[role="tooltip"]'), null);
   assert.equal(document.querySelector('[data-testid="home-usage-count-warning"], [data-testid="home-usage-details-warning"]'), null);
   assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /incomplete|awaiting|cannot yet/);
 });
 
-test('each incomplete dimension warns only about the affected numbers', async () => {
+test('local execution costs are zero without currency even while quantities are pending', async () => {
+  await initI18n();
+  const ai = completeUsageState(3);
+  const summary = ai.usage.value!;
+  summary.estimates = [];
+  summary.quantityComplete = false;
+  summary.partialReasons = ['usage_pending'];
+  summary.totals!.pendingUsageCount = '3';
+  summary.totals!.measuredAttemptCount = '0';
+  for (const [index, group] of summary.groups.entries()) {
+    group.route = DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_LOCAL;
+    group.capability = ['text.generate', 'text.embed', 'audio.synthesize'][index]!;
+    group.totals!.pendingUsageCount = '1';
+    group.totals!.measuredAttemptCount = '0';
+  }
+  for (const locale of ['zh', 'en'] as const) {
+    await changeLocale(locale);
+    const document = JSDOM.fragment(render(ai));
+    assert.equal(document.querySelector('[data-testid="home-usage-cost-card"] dd')!.textContent, '0');
+    assert.deepEqual([...document.querySelectorAll('[data-testid="home-usage-group"] td:last-child')].map(cell => cell.textContent), ['0', '0', '0']);
+    assert.equal(document.querySelector('[data-testid="home-usage-cost-warning"]'), null);
+    assert.match(document.querySelector('[data-testid="home-usage-attempts-card"] dd')!.textContent!, /^3/);
+  }
+  summary.timeComplete = false;
+  const incomplete = JSDOM.fragment(render(ai));
+  assert.equal(incomplete.querySelector('[data-testid="home-usage-cost-card"] dd')!.textContent, '0');
+  assert.equal(incomplete.querySelector('[data-testid="home-usage-cost-warning"]')!.getAttribute('aria-label'), 'Cost estimate is incomplete');
+  assert.doesNotMatch(incomplete.querySelector('[data-testid="home-usage-cost-warning"]')!.textContent!, /Executions awaiting usage/);
+});
+
+test('local zero never substitutes for unknown cloud costs or incomplete route totals', async () => {
+  await initI18n(); await changeLocale('en');
+  const ai = completeUsageState(3);
+  const summary = ai.usage.value!;
+  summary.estimates = [];
+  summary.groups[2]!.route = DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED;
+  summary.groups[2]!.models[0]!.modelId = 'local.name-does-not-prove-route';
+  const document = JSDOM.fragment(render(ai));
+  assert.deepEqual([...document.querySelectorAll('[data-testid="home-usage-group"] td:last-child')].map(cell => cell.textContent), ['0', 'Cost estimate unavailable', 'Cost estimate unavailable']);
+  assert.equal(document.querySelector('[data-testid="home-usage-cost-card"] dd')!.textContent, 'Cost estimate unavailable');
+  summary.groups = summary.groups.slice(0, 1);
+  summary.groupsComplete = false;
+  const truncated = JSDOM.fragment(render(ai));
+  assert.equal(truncated.querySelector('[data-testid="home-usage-group"] td:last-child')!.textContent, '0');
+  assert.equal(truncated.querySelector('[data-testid="home-usage-cost-card"] dd')!.textContent, 'Cost estimate unavailable');
+});
+
+test('each incomplete dimension is disclosed only beside the affected numbers', async () => {
   await initI18n(); await changeLocale('en');
   type Summary = NonNullable<SystemEntryAIState['usage']['value']>;
   const cases: Array<{ name: string; change(summary: Summary): void; warnings: string[]; text: RegExp }> = [
@@ -187,19 +251,32 @@ test('each incomplete dimension warns only about the affected numbers', async ()
     { name: 'groups do not reconcile', change: summary => { summary.groups = summary.groups.slice(0, 1); }, warnings: ['details'], text: /Total executions and costs are still shown from their separate summary records/ },
     { name: 'unclassified coverage', change: summary => { summary.partialReasons = ['unconfirmed']; }, warnings: ['count', 'cost'], text: /Execution record coverage is not confirmed/ },
   ];
-  for (const scenario of cases) {
-    const ai = completeUsageState(2);
-    scenario.change(ai.usage.value!);
-    const document = JSDOM.fragment(render(ai));
-    for (const dimension of ['count', 'cost', 'details']) {
-      assert.equal(Boolean(document.querySelector(`[data-testid="home-usage-${dimension}-warning"]`)), scenario.warnings.includes(dimension), `${scenario.name}: ${dimension}`);
+  await withDetailsDocument(async (document, renderAI) => {
+    for (const scenario of cases) {
+      const ai = completeUsageState(2);
+      scenario.change(ai.usage.value!);
+      await renderAI(ai);
+      for (const dimension of ['count', 'cost', 'details']) {
+        assert.equal(Boolean(document.querySelector(`[data-testid="home-usage-${dimension}-warning"]`)), scenario.warnings.includes(dimension), `${scenario.name}: ${dimension}`);
+      }
+      const warning = document.querySelector<HTMLButtonElement>('button[data-testid="home-usage-count-warning"], button[data-testid="home-usage-cost-warning"]');
+      if (warning) {
+        assert.equal(document.querySelector('[role="tooltip"]'), null);
+        await act(async () => warning.focus());
+        const tooltipId = warning.getAttribute('aria-describedby');
+        assert.ok(tooltipId, scenario.name);
+        assert.match(document.getElementById(tooltipId)!.textContent ?? '', scenario.text, scenario.name);
+        await act(async () => document.activeElement?.dispatchEvent(new document.defaultView!.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+        assert.equal(warning.getAttribute('aria-describedby'), null);
+      } else {
+        assert.match(document.body.textContent ?? '', scenario.text, scenario.name);
+      }
+      assert.match(document.querySelector('[data-testid="home-usage-attempts-card"] dd')!.textContent ?? '', /^2executions$/);
+      assert.match(document.querySelector('[data-testid="home-usage-cost-card"]')!.textContent ?? '', /0\.0117501/);
+      assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /Recorded range|coverage|incomplete|Not fully recorded/);
+      assert.doesNotMatch(document.body.textContent ?? '', /runtimeConfig\.systemEntry/);
     }
-    assert.match(document.textContent ?? '', scenario.text, scenario.name);
-    assert.match(document.querySelector('[data-testid="home-usage-attempts-card"] dd')!.textContent ?? '', /^2executions$/);
-    assert.match(document.querySelector('[data-testid="home-usage-cost-card"]')!.textContent ?? '', /0\.0117501/);
-    assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /Recorded range|coverage|incomplete|Not fully recorded/);
-    assert.doesNotMatch(document.textContent ?? '', /runtimeConfig\.systemEntry/);
-  }
+  });
 });
 
 test('empty complete usage stays quiet while missing details never imply a zero total', async () => {
@@ -256,8 +333,7 @@ test('independent loading, unavailable and invalid readers never hide the health
   assert.match(render(invalid), /complete current work count is not confirmed/);
 });
 
-test('large usage groups support search, route filters, recovery and details without changing totals', async () => {
-  await initI18n(); await changeLocale('en');
+async function withDetailsDocument(run: (document: Document, renderAI: (ai: SystemEntryAIState) => Promise<void>) => Promise<void>) {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
   class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
   const values: Record<string, unknown> = {
@@ -278,18 +354,36 @@ test('large usage groups support search, route filters, recovery and details wit
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(dom.window.document.getElementById('root')!);
   const document = dom.window.document;
-  const groups = () => document.querySelectorAll('[data-testid="home-usage-group"]');
-  const search = () => document.querySelector<HTMLInputElement>('input[aria-label="Search models, providers or sources"]')!;
-  const setSearch = async (value: string) => act(async () => {
-    Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value')!.set!.call(search(), value);
-    search().dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  });
-  const clear = async () => {
-    const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find(item => item.textContent === 'Clear filters')!;
-    await act(async () => button.click());
-  };
+  let revision = 0;
   try {
-    await act(async () => root.render(<SystemEntryDetailsView ai={completeUsageState(6)} onBack={() => {}} onRefresh={() => {}} />));
+    await run(document, async ai => {
+      await act(async () => root.render(<TooltipProvider key={revision++} delayDuration={0}><SystemEntryDetailsView ai={ai} onBack={() => {}} onRefresh={() => {}} /></TooltipProvider>));
+    });
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+}
+
+test('large usage groups support search, route filters, recovery and details without changing totals', async () => {
+  await initI18n(); await changeLocale('en');
+  await withDetailsDocument(async (document, renderAI) => {
+    const dom = { window: document.defaultView! };
+    const groups = () => document.querySelectorAll('[data-testid="home-usage-group"]');
+    const search = () => document.querySelector<HTMLInputElement>('input[aria-label="Search models, providers or sources"]')!;
+    const setSearch = async (value: string) => act(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value')!.set!.call(search(), value);
+      search().dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    });
+    const clear = async () => {
+      const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find(item => item.textContent === 'Clear filters')!;
+      await act(async () => button.click());
+    };
+    await renderAI(completeUsageState(6));
     assert.equal(groups().length, 6);
     const summary = document.querySelector('[data-testid="home-usage-summary"]')!.textContent;
     await setSearch('Model 1');
@@ -320,12 +414,5 @@ test('large usage groups support search, route filters, recovery and details wit
     await act(async () => details.querySelector('summary')!.click());
     assert.equal(details.open, true);
     assert.match(details.textContent ?? '', /Each actual AI execution counts once/);
-  } finally {
-    await act(async () => root.unmount());
-    dom.window.close();
-    for (const [key, descriptor] of previous) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else Reflect.deleteProperty(globalThis, key);
-    }
-  }
+  });
 });

@@ -13,6 +13,20 @@ test('scope or coverage notes never hide the partial usage marker', () => {
   assert.match(html, /Recorded since 00:00/);
 });
 
+test('overview shows zero only when all recorded executions have a confirmed local route', () => {
+  const usage = { status: 'partial' as const, observedAt: null, periodLabel: 'Today', attempts: '3',
+    localAttempts: '3', cloudAttempts: '0', costs: [], partial: true, note: 'Recorded since 00:00' };
+  for (const locale of ['zh', 'en'] as const) {
+    const document = JSDOM.fragment(renderToStaticMarkup(<SystemEntryUsageView locale={locale} usage={usage} />));
+    assert.match(document.querySelector('.se-usage-cost')!.textContent!, / 0$/);
+    assert.match(document.textContent!, /Recorded since 00:00/);
+  }
+  for (const counts of [{ localAttempts: null, cloudAttempts: null }, { localAttempts: '2', cloudAttempts: '1' }, { localAttempts: '2', cloudAttempts: '0' }]) {
+    const document = JSDOM.fragment(renderToStaticMarkup(<SystemEntryUsageView locale="en" usage={{ ...usage, ...counts }} />));
+    assert.equal(document.querySelector('.se-usage-cost')!.textContent, 'Cost estimate unavailable');
+  }
+});
+
 test('a delayed initial popup read cannot replace a newer account invalidation', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/system-entry.html' });
   const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, React, IS_REACT_ACT_ENVIRONMENT: true };

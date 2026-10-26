@@ -20,6 +20,7 @@ import type {
   SystemEntrySnapshot,
   SystemEntryUsage,
 } from '../../shared/system-entry-types.js';
+import { isSystemEntryLocalOnlyUsage } from '../../shared/system-entry-types.js';
 
 declare global { interface Window { nimiSystemEntry?: SystemEntryBridge } }
 const logo = new URL('../assets/logo.png', import.meta.url).href;
@@ -95,7 +96,7 @@ export function SystemEntryUsageView({ usage, locale, onOpen, busy = false }: { 
     <div className="se-usage-count">{available ? `${formatSystemEntryCount(usage.attempts, locale)} ${usage.attempts === '1' ? copy.attempt : copy.attempts}` : usage.status === 'loading' ? copy.loading : copy.unavailable}</div>
     {available ? <>
       <div className="se-usage-breakdown">{copy.local} {formatSystemEntryCount(usage.localAttempts, locale)}<span aria-hidden="true">·</span>{copy.cloud} {formatSystemEntryCount(usage.cloudAttempts, locale)}</div>
-      {usage.costs.length > 0 ? <div className="se-usage-cost">{copy.estimate} {usage.costs.map(cost => `${cost.currency} ${cost.estimate}`).join(' · ')}</div> : <div className="se-usage-cost">{copy.noPrice}</div>}
+      {usage.costs.length > 0 || isSystemEntryLocalOnlyUsage(usage) ? <div className="se-usage-cost">{copy.estimate} {usage.costs.length ? usage.costs.map(cost => `${cost.currency} ${cost.estimate}`).join(' · ') : '0'}</div> : <div className="se-usage-cost">{copy.noPrice}</div>}
     </> : null}
     {usage.note && <p className="se-source-status">{usage.note}</p>}
     {usage.partial && available && <p className="se-source-status">{copy.partial}</p>}
