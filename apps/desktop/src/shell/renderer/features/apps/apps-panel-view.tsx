@@ -600,6 +600,13 @@ const RailGroupRow = memo(function RailGroupRow({
   const rowButtonRef = useRef<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPoint, setMenuPoint] = useState<{ readonly x: number; readonly y: number } | null>(null);
+  // Pointer coordinates are viewport-relative. A fixed DOM anchor inside the
+  // rail can acquire a different containing block from an ancestor's effects.
+  const menuAnchorRef = useMemo(() => menuPoint ? {
+    current: {
+      getBoundingClientRect: () => new DOMRect(menuPoint.x, menuPoint.y, 0, 0),
+    },
+  } : null, [menuPoint]);
 
   const openContextMenu = (event: MouseEvent<HTMLDivElement>): void => {
     event.preventDefault();
@@ -693,11 +700,7 @@ const RailGroupRow = memo(function RailGroupRow({
             />
           </PopoverTrigger>
         </div>
-        {menuPoint ? (
-          <PopoverAnchor asChild>
-            <span aria-hidden="true" className="pointer-events-none fixed h-0 w-0" style={{ left: menuPoint.x, top: menuPoint.y }} />
-          </PopoverAnchor>
-        ) : null}
+        {menuAnchorRef ? <PopoverAnchor virtualRef={menuAnchorRef} /> : null}
         <PopoverContent
           align={menuPoint ? 'start' : 'end'}
           sideOffset={menuPoint ? 2 : 6}

@@ -144,13 +144,16 @@ func TestPackageInfoSelectorsAndInstalledSnapshot(t *testing.T) {
 	if err := png.Encode(&imageBytes, imageData); err != nil {
 		t.Fatal(err)
 	}
-	info := nimiapppackage.AppInfo{Format: "nimi.app-info/v1", AppID: "test.info", Version: "1.0.0", TargetID: "macos-aarch64", DisplayName: "Info App", Summary: "Installed snapshot",
+	info := nimiapppackage.AppInfo{Format: "nimi.app-info/v1", AppID: "test.info", Version: "1.0.0", TargetID: "macos-aarch64", DisplayName: "Info App", Summary: "Installed snapshot", ReadmeMarkdown: "# Info App\n\nView this installed app's information.",
 		Icon: nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(imageBytes.Bytes())}, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"}, AppAccess: []string{}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: nimiapppackage.AppInfoStoragePolicy{Kind: "nimi-mediated-default"},
 		// The installed snapshot carries the declaration as declared and reads it back typed.
 		SafetyProfile: &appsafety.Profile{IntendedAudience: "adult", ContentDescriptors: []string{"strong-language"}, AI: appsafety.AI{DirectInteraction: appsafety.Bool(false), InteractionNotice: "not-applicable", RiskFeatures: []string{}, SubjectNotice: "not-applicable", Outputs: []appsafety.Output{}}, DataPractices: appsafety.DataPractices{PublisherDirectExternalNetwork: appsafety.Bool(false), Telemetry: []string{}, ThirdPartyAccount: "none", UserContentSharing: "none", CommercialFeatures: []string{}, SensitiveDataCategories: []string{}}, HighImpactDecisionUses: []string{}}}
 	raw, err := json.Marshal(info)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err := nimiapppackage.ParseAppInfo(raw); err != nil {
+		t.Fatalf("fixture must satisfy the admitted AppInfo contract: %v", err)
 	}
 	store := kernel.PackageLifecycle()
 	job, err := store.Begin(ctx, localappkernel.BeginPackageJobInput{AppID: info.AppID, SourceClass: localappkernel.SourceClassUserImported, Kind: localappkernel.PackageJobInstall, TargetRef: "local-package:v1:info:1.0.0", ProgressBasis: localappkernel.PackageProgressIndeterminate})
