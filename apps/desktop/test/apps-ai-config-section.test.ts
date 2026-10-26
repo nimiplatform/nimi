@@ -148,7 +148,9 @@ test('Apps AIConfig mutations refresh the canonical card summary lane', async ()
   assert.match(viewSource, /onAIConfigChanged=\{\(result\) => onAIConfigChanged\(selectedEntry\.identity\.entryKey, result\)\}/u);
   assert.match(panelSource, /onAIConfigChanged=\{acknowledgeAIConfigMutation\}/u);
   assert.match(controllerSource, /applyAppsPanelAIConfigAcknowledgement\(projectionRef\.current, entryKey, result\)/u);
-  assert.match(controllerSource, /setProjection\(acknowledged\)[\s\S]*void reload\(true\)/u);
+  // A committed mutation supersedes an in-flight read, so an older result
+  // cannot replace the acknowledged card summary (behavior covered in apps-panel-cache).
+  assert.match(controllerSource, /setProjection\(acknowledged\)[\s\S]*void reload\(true, true\)/u);
 });
 
 test('Apps AIConfig owner copy covers every canonical capability in both locales', () => {

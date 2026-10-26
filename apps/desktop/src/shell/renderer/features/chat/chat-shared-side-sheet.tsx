@@ -38,7 +38,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
 
   return (
     <aside
-      className={cn(CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS, 'flex min-h-0 shrink-0', widthClassName, props.className)}
+      className={cn(CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS, 'desktop-sidebar flex min-h-0 shrink-0', widthClassName, props.className)}
       data-chat-shared-side-sheet={props.sheetKey}
     >
       <AppCardSurface
@@ -46,9 +46,9 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
         as="section"
         // Base elevation: the sheet is flush with the clipped content edge, so the
         // raised shadow was cut into a hard dark band along the window bottom.
-        className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-[var(--nimi-elevation-base)]"
+        className="desktop-module-panel flex min-h-0 flex-1 flex-col overflow-hidden shadow-[var(--nimi-elevation-base)]"
       >
-        {props.hideHeader ? null : <div className="flex items-start gap-3 border-b border-white/70 px-4 pb-3.5 pt-7">
+        {props.hideHeader ? null : <div className="desktop-sidebar__header flex items-start gap-2 border-b border-white/70">
           {props.eyebrow && (props.avatarUrl !== undefined || props.avatarFallback) ? (
             <EntityAvatar
               kind="agent"
@@ -64,7 +64,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
                 <p className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
                   {props.eyebrow}
                 </p>
-                <h2 className="m-0 truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+                <h2 className="desktop-sidebar__title m-0 break-words font-semibold tracking-tight text-[var(--nimi-text-primary)]">
                   {props.title}
                 </h2>
                 {(props.subtitle || props.world) ? (
@@ -87,7 +87,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
               </>
             ) : (
               <>
-                <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h2>
+                <h2 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">{props.title}</h2>
                 {props.subtitle ? (
                   <p className="mt-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">{props.subtitle}</p>
                 ) : null}
@@ -95,6 +95,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
             )}
           </div>
           <IconToggleAction
+            className="desktop-sidebar__icon-action shrink-0"
             icon={(
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -115,7 +116,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
           {props.children}
         </ScrollShell>
         {props.footer ? (
-          <div className="border-t border-white/70 px-4 py-3">
+          <div className="desktop-sidebar__footer border-t border-white/70">
             {props.footer}
           </div>
         ) : null}

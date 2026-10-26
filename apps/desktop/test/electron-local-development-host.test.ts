@@ -2,7 +2,7 @@ import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -198,7 +198,9 @@ describe('Desktop Electron local-development registration host', () => {
   });
 
   it('reopens its real supervisor endpoint after another quit owner fails without restarting stopped Apps', async (context) => {
-    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-recovery-'));
+    // macOS exposes os.tmpdir() through /var → /private/var. Use a real owner
+    // root; production must continue rejecting symlink ancestry for presence.
+    const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-recovery-')));
     const host = new ElectronLocalDevelopmentHost(control({ listRegistrations: async () => [] }), home);
     context.after(async () => { await host.shutdown(); await rm(home, { recursive: true, force: true }); });
     const presencePath = path.join(home, '.nimi/run/desktop/local-development/presence.v1.json');

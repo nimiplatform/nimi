@@ -102,7 +102,7 @@ export function SettingsPanelBody() {
   };
 
   const navigation = (
-    <ScrollArea className="flex-1" contentClassName="space-y-4 px-3 pb-3 pt-1">
+    <ScrollArea className="flex-1" contentClassName="desktop-sidebar__body desktop-sidebar__groups">
       {menuSections.map((section) => {
         const sectionKey = SETTINGS_SECTION_KEY_BY_LABEL[section.label];
         return (
@@ -146,13 +146,13 @@ export function SettingsPanelBody() {
           tone="panel"
           material="solid"
           padding="none"
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+          className="desktop-sidebar desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
         >
           {compactView === 'list' ? (
             <div className="flex min-h-0 flex-1 flex-col" data-testid="panel:settings-compact-list">
               <SidebarHeader
-                title={<h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>}
-                className="px-5"
+                title={<h1 className="desktop-sidebar__title font-semibold text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>}
+                className="desktop-sidebar__header"
               />
               {navigation}
             </div>
@@ -182,8 +182,8 @@ export function SettingsPanelBody() {
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3" data-testid="panel:settings-body">
-      <SidebarShell width={sidebarWidth} data-testid="panel:settings-sidebar">
-        <SidebarHeader title={<h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>} className="px-5" />
+      <SidebarShell width={sidebarWidth} className="desktop-sidebar" data-testid="panel:settings-sidebar">
+        <SidebarHeader title={<h1 className="desktop-sidebar__title font-semibold text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>} className="desktop-sidebar__header" />
         {navigation}
         <SidebarResizeHandle
           ariaLabel={t('Settings.resizeSidebarAriaLabel')}
@@ -210,7 +210,7 @@ export function SettingsPanelBody() {
         tone="panel"
         material="solid"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+        className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
       >
         {renderSettingsPage(selectedId)}
       </Surface>

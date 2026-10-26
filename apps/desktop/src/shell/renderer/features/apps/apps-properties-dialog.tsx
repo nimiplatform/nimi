@@ -36,8 +36,8 @@ export function AppsPropertiesDialog({ open, appName, sections, onClose }: {
   if (!active) return null;
 
   const sidebar = (
-    <nav aria-label={appName} className="flex flex-col gap-0.5">
-      <p className="mb-3 truncate px-3 text-sm font-semibold text-[var(--nimi-action-primary-bg)]">
+    <nav aria-label={appName} className="desktop-sidebar desktop-sidebar__items">
+      <p className="mb-3 break-words px-3 text-sm font-semibold text-[var(--nimi-action-primary-bg)]">
         {appName}
       </p>
       {sections.map((section) => {
@@ -49,7 +49,7 @@ export function AppsPropertiesDialog({ open, appName, sections, onClose }: {
             data-testid={`apps-properties-nav:${section.id}`}
             aria-current={isActive ? 'true' : undefined}
             onClick={() => setSelectedId(section.id)}
-            className={`rounded-lg px-3 py-2 text-left text-sm transition-colors ${isActive
+            className={`desktop-sidebar__row text-left transition-colors ${isActive
               ? 'bg-[var(--nimi-sidebar-item-active)] font-medium text-[var(--nimi-text-primary)]'
               : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]'}`}
           >
@@ -72,7 +72,7 @@ export function AppsPropertiesDialog({ open, appName, sections, onClose }: {
         </span>
       )}
       sidebar={sidebar}
-      sidebarClassName="bg-[var(--nimi-sidebar-canvas)]"
+      sidebarClassName="nimi-ui-module--desktop px-3 bg-[var(--nimi-sidebar-canvas)]"
       panelStyle={{ height: 'min(620px, calc(100vh - 3rem))', maxHeight: 'calc(100vh - 3rem)' }}
       panelClassName="flex flex-col overflow-hidden"
       contentClassName="flex min-h-0 flex-1 flex-col px-0 py-0"

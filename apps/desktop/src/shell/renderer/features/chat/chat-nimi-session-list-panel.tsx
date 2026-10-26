@@ -30,25 +30,25 @@ function SessionThreadItem({
       kind="operational-solid"
       as="div"
       className={cn(
-        'group relative overflow-hidden transition-colors duration-100',
+        'desktop-sidebar__row-surface group relative overflow-hidden transition-colors duration-100',
         active
           ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_98%,white)]'
           : 'border-transparent bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,white)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]',
       )}
     >
-      <button type="button" className="w-full px-3 py-2.5 text-left" onClick={onSelect}>
+      <button type="button" className="desktop-sidebar__row w-full text-left" onClick={onSelect}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p
               className={cn(
-                'truncate text-[13px]',
+                'desktop-sidebar__label',
                 active ? 'font-semibold text-[var(--nimi-text-primary)]' : 'font-medium text-[var(--nimi-text-secondary)]',
               )}
             >
               {thread.title}
             </p>
           </div>
-          <div className="shrink-0 pt-0.5 pr-1 text-[10px] text-[var(--nimi-text-muted)]">
+          <div className="desktop-sidebar__caption shrink-0 pt-0.5 text-[var(--nimi-text-muted)]">
             {i18n.formatRelativeTime(thread.updatedAt)}
           </div>
         </div>
@@ -77,7 +77,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
           fullWidth
           onClick={props.onCreateThread}
           disabled={!props.onCreateThread}
-          className="gap-2"
+          className="desktop-sidebar__row"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -88,7 +88,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
       )}
     >
       {props.description ? (
-        <div className="px-4 py-4">
+        <div className="px-6 py-4">
           <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{props.description}</p>
         </div>
       ) : null}
@@ -104,7 +104,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
           description={t('Chat.startNewConversation', { defaultValue: 'Start a new conversation below' })}
         />
       ) : (
-        <div className="flex flex-col gap-1.5 px-3 py-3">
+        <div className="desktop-sidebar__body desktop-sidebar__items">
           {props.threads.map((thread) => (
             <SessionThreadItem
               key={thread.id}

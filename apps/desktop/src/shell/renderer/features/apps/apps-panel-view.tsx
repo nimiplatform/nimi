@@ -286,7 +286,7 @@ export function AppsPanelView({
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
+        className="desktop-module-panel flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
         {downloadsOnly && downloads && onViewDownloadApp && onRetryDownload ? (
           <AppsDownloadsView downloads={downloads} entries={loadedEntries} onViewApp={onViewDownloadApp} onRetry={onRetryDownload} />
@@ -395,10 +395,10 @@ function AppsRail({
     />
   );
   return (
-    <SidebarShell className="h-56 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="apps-sidebar">
-      <div className="shrink-0 px-4 pb-3 pt-5">
+    <SidebarShell className="desktop-sidebar h-56 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="apps-sidebar">
+      <div className="desktop-sidebar__header">
         <div className="flex items-end justify-between gap-2">
-          <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
+          <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">
             {t('Navigation.apps', { defaultValue: 'Apps' })}
           </h1>
           <p className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">
@@ -409,7 +409,7 @@ function AppsRail({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 px-2 pb-2" data-testid="apps-sidebar-search">
+      <div className="desktop-sidebar__search flex items-center" data-testid="apps-sidebar-search">
         <SearchField
           ref={searchInputRef}
           value={searchQuery}
@@ -420,8 +420,7 @@ function AppsRail({
           trailing={searchQuery ? <SearchClearButton testId="apps-search-clear" onClear={onClearSearch} /> : undefined}
           placeholder={t('Apps.sidebar.searchPlaceholder')}
           aria-label={t('Apps.sidebar.searchLabel')}
-          className="min-h-8 min-w-0 flex-1"
-          inputClassName="text-xs"
+          className="min-h-10 min-w-0 flex-1"
         />
         <Popover>
           <PopoverTrigger asChild>
@@ -432,7 +431,7 @@ function AppsRail({
               size="sm"
               aria-label={t('Apps.library.filterLabel')}
               title={`${t('Apps.library.filterLabel')} · ${t(FILTER_LABEL_KEYS[filterId])}`}
-              className="mr-2 h-8 w-8 shrink-0"
+              className="desktop-sidebar__icon-action shrink-0"
             />
           </PopoverTrigger>
           <PopoverContent align="end" sideOffset={6} className="p-1">
@@ -441,7 +440,7 @@ function AppsRail({
         </Popover>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="px-2 pb-2">
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-sidebar__body">
         {projection === null ? (
           <div className="space-y-1.5 px-1 py-2" aria-label={t('Apps.loading')}>
             {Array.from({ length: 6 }).map((_, index) => (
@@ -468,18 +467,18 @@ function AppsRail({
             <Button tone="ghost" size="sm" className="mt-2" onClick={onClearSearch}>{t('Apps.sidebar.clearSearch')}</Button>
           </div>
         ) : (
-          <div data-app-rail-list>
+          <div className="desktop-sidebar__groups" data-app-rail-list>
             {runningGroups.length > 0 ? (
-              <section data-testid="apps-rail-running-section" aria-label={t('Apps.rail.runningSection')} className="mb-2">
-                <h2 className="px-2 pb-1 text-[11px] font-semibold leading-4 text-[color:var(--nimi-text-muted)]">
+              <section data-testid="apps-rail-running-section" aria-label={t('Apps.rail.runningSection')} className="desktop-sidebar__items">
+                <h2 className="desktop-sidebar__section-label font-semibold text-[color:var(--nimi-text-muted)]">
                   {t('Apps.rail.runningSection')}
                 </h2>
-                <div className="space-y-0.5">
+                <div className="desktop-sidebar__items">
                   {runningGroups.map(renderRow)}
                 </div>
               </section>
             ) : null}
-            <div className="space-y-0.5">
+            <div className="desktop-sidebar__items">
               {restGroups.map(renderRow)}
             </div>
           </div>
@@ -502,7 +501,7 @@ function RailDownloadsEntry({
   const activeCount = downloads.jobs.filter((job) => isAppDownloadJob(job) && !packageJobIsTerminal(job)).length;
   const active = downloads.view === 'downloads';
   return (
-    <div className="shrink-0 border-t border-[var(--nimi-border-subtle)] px-2 py-2">
+    <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
       <button
         type="button"
         data-testid="apps-downloads-entry"
@@ -515,13 +514,13 @@ function RailDownloadsEntry({
             downloads.openDownloads();
           }
         }}
-        className={`flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] leading-5 transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
+        className={`desktop-sidebar__row flex w-full min-w-0 items-center text-left transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
           ? 'bg-[var(--nimi-surface-active)] font-medium text-[color:var(--nimi-text-primary)]'
           : 'font-medium text-[color:var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
         }`}
       >
         <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate">{t('Apps.downloads.title')}</span>
+        <span className="min-w-0 flex-1">{t('Apps.downloads.title')}</span>
         {activeCount > 0 ? (
           <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[11px] font-medium leading-3 tabular-nums text-[var(--nimi-action-primary-bg)]">
             {activeCount}
@@ -626,7 +625,7 @@ const RailGroupRow = memo(function RailGroupRow({
         }}
       >
         <div
-          className={`flex w-full min-w-0 items-center rounded-lg transition-colors ${active
+          className={`desktop-sidebar__row-surface flex w-full min-w-0 items-center transition-colors ${active
             ? 'bg-[var(--nimi-surface-active)]'
             : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
           }`}
@@ -640,16 +639,16 @@ const RailGroupRow = memo(function RailGroupRow({
             tabIndex={tabIndex}
             onClick={() => onAction('details')}
             onKeyDown={onKeyDown}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-1.5 pl-2 pr-1 text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+            className="desktop-sidebar__row flex min-w-0 flex-1 items-center text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
           >
             <AppArtworkIcon
               appId={group.appId}
               displayName={group.displayName}
               iconUrl={group.iconUrl}
               size="xs"
-              className={notInstalled ? 'opacity-60' : ''}
+              className={`desktop-sidebar__icon ${notInstalled ? 'opacity-60' : ''}`}
             />
-            <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${notInstalled
+            <span className={`desktop-sidebar__label min-w-0 flex-1 ${notInstalled
               ? 'font-medium text-[color:var(--nimi-text-muted)]'
               : visual === 'running'
                 ? 'font-semibold text-[color:var(--nimi-text-primary)]'
@@ -690,7 +689,7 @@ const RailGroupRow = memo(function RailGroupRow({
               size="sm"
               aria-label={t('Apps.library.cardMenuLabel')}
               title={t('Apps.library.cardMenuLabel')}
-              className="mr-1 hidden h-6 w-6 min-h-0 shrink-0 group-focus-within/rail-row:inline-flex group-has-[[aria-expanded=true]]/rail-row:inline-flex"
+              className="desktop-sidebar__icon-action mr-1 hidden shrink-0 group-focus-within/rail-row:inline-flex group-has-[[aria-expanded=true]]/rail-row:inline-flex"
             />
           </PopoverTrigger>
         </div>
@@ -1030,7 +1029,7 @@ function SearchClearButton({
       size="sm"
       aria-label={t('Apps.sidebar.clearSearch')}
       title={t('Apps.sidebar.clearSearch')}
-      className="h-5 w-5 min-h-0 shrink-0 rounded-full text-[var(--nimi-text-muted)]"
+      className="h-8 w-8 min-h-8 shrink-0 rounded-full text-[var(--nimi-text-muted)]"
       onClick={onClear}
     />
   );

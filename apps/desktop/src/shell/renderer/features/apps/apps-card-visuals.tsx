@@ -58,7 +58,6 @@ export function AppArtworkIcon({
       style={{
         background: visibleUrl ? 'transparent' : artwork.iconBackground,
         fontFamily: 'var(--nimi-font-display)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 6px rgba(15,23,42,0.18)',
       }}
     >
       {visibleUrl ? (

@@ -24,7 +24,7 @@ export function ExploreSourceModeFlap({
       data-testid="explore-source-mode-flap"
       role="group"
       aria-label={t('Explore.sectionNavLabel')}
-      className="flex shrink-0 items-center gap-0.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)] p-0.5"
+      className="desktop-source-mode-switch flex shrink-0 items-center gap-0.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)] p-0.5"
     >
       {items.map((item) => {
         const active = item.id === mode;

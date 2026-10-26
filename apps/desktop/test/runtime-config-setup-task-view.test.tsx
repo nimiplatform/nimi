@@ -615,7 +615,10 @@ test('a prepared capability keeps its model on one card and folds ready componen
     status: { state: 'ready', replacement: false },
   });
   assertReadyCurrentModel(html);
-  assert.match(html, /aria-label="runtimeConfig\.product\.whatItDoes"><li[^>]*>[^<]+<\/li><li[^>]*>runtimeConfig\.product\.feature\.input-image</);
+  const features = html.match(/<ul\b[^>]*aria-label="runtimeConfig\.product\.whatItDoes"[^>]*>([\s\S]*?)<\/ul>/u)?.[1];
+  assert.ok(features);
+  assert.deepEqual([...features.matchAll(/<li\b[^>]*>([^<]+)<\/li>/gu)].map((match) => match[1]),
+    ['runtimeConfig.product.feature.input-image'], 'only the recipe-declared feature is advertised');
   // Ready components are a technical detail, not a second status line.
   assert.doesNotMatch(html, /capability-environment-status/);
   assert.match(html, /capability-technical-details[\s\S]*runtimeConfig\.product\.technicalEnvironment[\s\S]*component-0/);

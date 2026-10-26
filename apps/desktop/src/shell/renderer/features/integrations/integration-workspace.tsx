@@ -31,11 +31,11 @@ const SERVICE_LOGOS: Readonly<Record<string, string>> = {
   'onebot-v11': './integration-logos/onebot-v11.png',
 };
 
-export function IntegrationServiceIcon({ kind, large = false }: { kind: string; large?: boolean }) {
+export function IntegrationServiceIcon({ kind, large = false, className = '' }: { kind: string; large?: boolean; className?: string }) {
   const logo = SERVICE_LOGOS[kind];
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center ${logo ? 'bg-white' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]'} ${large ? 'size-14 rounded-2xl' : 'size-7 rounded-lg'}`}
+      className={`inline-flex shrink-0 items-center justify-center ${logo ? 'bg-white' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]'} ${large ? 'size-14 rounded-2xl' : 'size-7 rounded-lg'} ${className}`}
     >
       {logo ? (
         <img src={logo} alt="" aria-hidden="true" className={`object-contain ${large ? 'size-10' : 'size-6'}`} />
@@ -72,18 +72,18 @@ export function IntegrationSidebar({
     `${serviceLabel(kind, t)} ${kind}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
   );
   const itemClass = (active: boolean) =>
-    `flex min-h-9 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${active ? 'bg-[var(--nimi-surface-active)] font-medium' : 'hover:bg-[var(--nimi-surface-hover)]'}`;
+    `desktop-sidebar__row flex w-full items-center text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${active ? 'bg-[var(--nimi-surface-active)] font-medium' : 'hover:bg-[var(--nimi-surface-hover)]'}`;
   return (
-    <SidebarShell className="h-64 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="integrations-sidebar">
-      <div className="shrink-0 px-4 pb-3 pt-5">
+    <SidebarShell className="desktop-sidebar h-64 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="integrations-sidebar">
+      <div className="desktop-sidebar__header">
         <div className="flex items-end justify-between gap-2">
-          <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
+          <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
           <p className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">
             {t('Integrations.serviceCount', { count: services.length })}
           </p>
         </div>
       </div>
-      <div className="px-2 pb-2">
+      <div className="desktop-sidebar__search">
         <SearchField
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -92,11 +92,10 @@ export function IntegrationSidebar({
           }}
           placeholder={t('Integrations.searchServices')}
           aria-label={t('Integrations.searchServices')}
-          className="min-h-8"
-          inputClassName="text-xs"
+          className="min-h-10"
         />
       </div>
-      <ScrollArea className="min-h-0 flex-1" contentClassName="space-y-0.5 px-2 pb-2">
+      <ScrollArea className="min-h-0 flex-1" contentClassName="desktop-sidebar__body desktop-sidebar__items">
         {visible.map((kind) => {
           const count = targets.filter((target) => target.kind === kind).length;
           return (
@@ -109,7 +108,7 @@ export function IntegrationSidebar({
               className={itemClass(selected === kind)}
               onClick={() => onSelect(kind)}
             >
-              <IntegrationServiceIcon kind={kind} />
+              <IntegrationServiceIcon kind={kind} className="desktop-sidebar__icon" />
               <span className="min-w-0 flex-1 break-words">{serviceLabel(kind, t)}</span>
               {count > 0 ? (
                 <span className="text-xs tabular-nums text-[var(--nimi-text-muted)]">{count}</span>
@@ -127,7 +126,7 @@ export function IntegrationSidebar({
           </div>
         ) : null}
       </ScrollArea>
-      <div className="shrink-0 space-y-0.5 border-t border-[var(--nimi-border-subtle)] p-2">
+      <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
         <button
           type="button"
           data-testid="integration-all-permissions"

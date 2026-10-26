@@ -25,6 +25,162 @@
   display: none;
 }
 
+/* Module rails share geometry; each consumer keeps its own colors and states.
+   The 4px rhythm leaves more space between groups than between their rows. */
+.desktop-sidebar,
+.desktop-module-panel {
+  border-radius: var(--nimi-radius-md);
+}
+
+.desktop-sidebar {
+  --desktop-sidebar-inset: 12px;
+  --desktop-sidebar-row-gap: 4px;
+  --desktop-sidebar-group-gap: 16px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.desktop-sidebar.nimi-sidebar-shell {
+  border-left-width: 1px;
+}
+
+.desktop-sidebar__header {
+  flex-shrink: 0;
+  min-height: 64px;
+  padding: 16px calc(var(--desktop-sidebar-inset) + 12px);
+}
+
+.desktop-sidebar__title {
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.desktop-sidebar__search {
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 0 var(--desktop-sidebar-inset) 12px;
+}
+
+.desktop-sidebar__search > label {
+  min-height: 40px;
+  border-radius: var(--nimi-radius-sm);
+}
+
+.desktop-sidebar__search input {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.desktop-sidebar__body {
+  padding: 4px var(--desktop-sidebar-inset) 12px;
+}
+
+.desktop-sidebar__groups,
+.desktop-sidebar .nimi-sidebar-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.desktop-sidebar__groups {
+  gap: var(--desktop-sidebar-group-gap);
+}
+
+.desktop-sidebar__items,
+.desktop-sidebar .nimi-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--desktop-sidebar-row-gap);
+}
+
+.desktop-sidebar .nimi-sidebar-section {
+  padding: 0;
+}
+
+.desktop-sidebar__section-label,
+.desktop-sidebar .nimi-sidebar-section-label {
+  margin: 0;
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.desktop-sidebar__footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--desktop-sidebar-row-gap);
+  padding: 12px var(--desktop-sidebar-inset);
+}
+
+.desktop-sidebar__row,
+.desktop-sidebar .nimi-sidebar-item {
+  height: auto;
+  min-height: 40px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--nimi-radius-sm);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.desktop-sidebar__label,
+.desktop-sidebar .nimi-sidebar-item__title {
+  font-size: 14px;
+  line-height: 20px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.desktop-sidebar__caption {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.desktop-sidebar__row > svg,
+.desktop-sidebar .desktop-source-mode-switch svg,
+.desktop-sidebar__search svg,
+.desktop-sidebar__icon-action svg,
+.desktop-sidebar .nimi-sidebar-item svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.desktop-sidebar__icon {
+  /* App and service marks need more detail than the 12px action glyphs. */
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.desktop-sidebar__icon > :is(img, svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.desktop-sidebar__icon-action {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: var(--nimi-radius-sm);
+}
+
+.desktop-sidebar__row-surface {
+  border-radius: var(--nimi-radius-sm);
+}
+
+.desktop-sidebar .desktop-source-mode-switch button {
+  min-height: 40px;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
 @container nimi-ui-module-desktop-surface (min-width: 640px) {
   .desktop-shell-topbar {
     padding-right: 0.75rem;

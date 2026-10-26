@@ -191,7 +191,7 @@ function RelationshipAvatar({
 
   return (
     <>
-      <div className="group relative flex h-11 w-full items-center justify-start">
+      <div className="group relative flex h-11 w-full items-center justify-center">
         {/* Selection indicator — Discord-style right pill, outside the avatar */}
         <div
           className={`absolute right-0 w-[3px] rounded-l-full bg-[var(--nimi-action-primary-bg)] transition-all duration-200 ${
@@ -201,7 +201,7 @@ function RelationshipAvatar({
           }`}
         />
 
-        {/* Avatar button — offset left to leave space for the pill */}
+        {/* Keep the hit target centered; the selection pill stays at the edge. */}
         <button
           ref={ref}
           type="button"
@@ -213,12 +213,12 @@ function RelationshipAvatar({
           onFocus={handleFocus}
           onBlur={scheduleHide}
           aria-current={selected ? 'page' : undefined}
-          className="relative ml-0.5 flex h-10 w-10 items-center justify-center"
+          className="relative flex h-11 w-11 items-center justify-center"
           aria-label={`${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`}
         >
           {/* Rounded clipping stays on the inner wrapper so the unread badge is not clipped. */}
           <div
-            className={`flex h-full w-full items-center justify-center overflow-hidden transition-all duration-200 ${
+            className={`flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
               selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
             }`}
           >
@@ -274,7 +274,7 @@ function RelationshipAvatar({
 // ---------------------------------------------------------------------------
 
 function SidebarSeparator() {
-  return <div className="mx-auto my-1.5 h-px w-7 rounded-full bg-[var(--nimi-border-subtle)]" />;
+  return <div className="mx-auto my-2 h-px w-7 shrink-0 rounded-full bg-[var(--nimi-border-subtle)]" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -308,7 +308,7 @@ export function ChatRelationshipRail({
       <ScrollArea
         className="w-full flex-1 px-1 py-1"
         viewportClassName="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        contentClassName="flex flex-col items-center gap-1.5"
+        contentClassName="flex flex-col items-center gap-1"
       >
         {/* AI targets (always visible) */}
         {aiTargets.map((target) => (
@@ -320,7 +320,7 @@ export function ChatRelationshipRail({
           />
         ))}
 
-        <IconButton tone="ghost" size="sm" icon={<UserPlus size={18} />} onClick={() => setFindFriendOpen(true)}
+        <IconButton tone="ghost" size="sm" className="h-11 w-11" icon={<UserPlus size={16} />} onClick={() => setFindFriendOpen(true)}
           aria-label={t('Relationship.findByHandleTitle')} title={t('Relationship.findByHandleTitle')}
           data-testid="find-friend-by-handle" />
         {/* Human contacts */}
@@ -354,7 +354,7 @@ export function ChatRelationshipRail({
         ) : null}
 
       </ScrollArea>
-      <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-2 border-t border-white/70 px-1 pb-1 pt-3">
+      <div className="mt-4 flex w-full shrink-0 flex-col items-center gap-1 border-t border-white/70 px-1 pb-1 pt-3">
         {showNimiThreadToggle ? (
           <IconToggleAction
             icon={(

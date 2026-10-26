@@ -407,17 +407,17 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         </div>
       </div>
       <SidebarShell
-        className="hidden w-64 shrink-0 md:flex lg:w-72"
+        className="desktop-sidebar hidden w-64 shrink-0 md:flex lg:w-72"
         aria-label={t('runtimeConfig.capabilities.title')}
       >
         <button
           type="button"
           onClick={onHome}
-          className="px-4 pb-3 pt-5 text-left"
+          className="desktop-sidebar__header text-left"
           data-testid="ai-capabilities-home"
         >
-          <span className="block space-y-1.5">
-            <span className="block text-lg font-semibold text-[var(--nimi-text-primary)]">
+          <span className="block space-y-1">
+            <span className="desktop-sidebar__title block font-semibold text-[var(--nimi-text-primary)]">
               {t('runtimeConfig.capabilities.title')}
             </span>
             <span className="block text-xs text-[var(--nimi-text-secondary)]">{railSummary}</span>
@@ -426,11 +426,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         <ScrollArea
           className="min-h-0 flex-1"
           viewportClassName="[&>div]:!block"
-          contentClassName="min-w-0 space-y-3 px-2 pb-3"
+          contentClassName="desktop-sidebar__body desktop-sidebar__groups min-w-0"
         >
           {groupCapabilities(railEntries.map((entry) => entry.id)).map(({ group, items }) => (
-            <div key={group} className="space-y-0.5">
-              <p className="px-3 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
+            <div key={group} className="desktop-sidebar__items">
+              <p className="desktop-sidebar__section-label font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
                 {t(`runtimeConfig.capabilities.group.${group}`)}
               </p>
               {items.map((id) => {
@@ -456,7 +456,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     type="button"
                     aria-current={visibleCapability === id ? 'page' : undefined}
                     title={hasStatusDetails ? undefined : markLabel}
-                    className={`flex min-h-10 w-full items-center gap-2.5 rounded-[var(--nimi-radius-md)] px-3 py-2 text-left ${visibleCapability === id ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]`}
+                    className={`desktop-sidebar__row flex w-full items-center text-left ${visibleCapability === id ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]`}
                     onClick={() => openCapability(id)}
                     data-testid={`ai-capability:${id}`}
                   >
@@ -466,7 +466,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                       aria-hidden="true"
                     />
                     <span className="min-w-0 flex-1 space-y-1">
-                      <span className="block whitespace-normal break-words text-sm font-medium leading-5 text-[var(--nimi-text-primary)]">
+                      <span className="desktop-sidebar__label block font-medium text-[var(--nimi-text-primary)]">
                         {label(id)}
                       </span>
                       {hasStatusDetails ? (
@@ -487,14 +487,14 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           ))}
           {inventory.isPending ? <p className="px-3 text-sm">{t('Common.loading')}</p> : null}
         </ScrollArea>
-        <div className="flex flex-col gap-1 border-t border-[var(--nimi-border-subtle)] p-2">
-          <Button tone="ghost" size="sm" className="h-auto min-h-8 justify-start whitespace-normal text-left" onClick={props.onOpenModelFiles}>
+        <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
+          <Button tone="ghost" size="sm" className="desktop-sidebar__row justify-start text-left" onClick={props.onOpenModelFiles}>
             {t('runtimeConfig.capabilities.manageFiles')}
           </Button>
           <Button
             tone="ghost"
             size="sm"
-            className={`h-auto min-h-8 justify-start whitespace-normal text-left ${props.advancedDiagnostics ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : ''}`}
+            className={`desktop-sidebar__row justify-start text-left ${props.advancedDiagnostics ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : ''}`}
             aria-current={props.advancedDiagnostics ? 'page' : undefined}
             data-testid="ai-capabilities-advanced-diagnostics"
             onClick={props.onOpenAdvancedDiagnostics}
@@ -509,7 +509,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+        className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       >
         <ScrollArea viewportRef={contentViewportRef} className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="min-w-0 p-5 lg:px-8 lg:py-7">
           {props.advancedDiagnostics ? (

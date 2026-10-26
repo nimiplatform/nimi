@@ -40,7 +40,9 @@ test('consumer entries open the shared setup task instead of the legacy pages', 
     ['chat-agent-shell-presentation-settings', agentSettings],
     ['chat-page', chatPage],
   ] as const) {
-    assert.match(source, /openOrCreateRuntimeSetupTask/u, `${name} must route through the setup task helper`);
+    const helper = name === 'chat-agent-shell-presentation-settings'
+      ? /openRuntimeSetupTaskFromEntry/u : /openOrCreateRuntimeSetupTask/u;
+    assert.match(source, helper, `${name} must route through its shared setup task entry helper`);
     assert.match(source, /runtimeConfigNavigation\.openSetupTask/u, `${name} must open the task via the navigation intent`);
     assert.doesNotMatch(source, /runtime-config-action-focus\.loadouts/u, `${name} must not deep-link the legacy loadouts page`);
   }
@@ -49,8 +51,11 @@ test('consumer entries open the shared setup task instead of the legacy pages', 
   assert.match(appsSection, /returnFocus: `apps:\$\{appId\}`/u);
   // The Chat settings entry owns the Nimi first-party app identity.
   assert.match(chatSettings, /ownerAppId: DESKTOP_NIMI_APP_ID/u);
-  // The agent shell entry uses the shared LocalAgent owner.
-  assert.match(agentSettings, /kind: 'local-agent'/u);
+  // Voice creation uses the consuming App; companion playback uses LocalAgent.
+  assert.match(agentSettings, /kind: creation \? 'app' : 'local-agent'/u);
+  assert.match(agentSettings, /creation \? \{ ownerAppId: sdk\.appId\(\) \} : \{\}/u);
+  const open = await readFeature('runtime-config/runtime-setup-task-open.ts');
+  assert.match(open, /return openOrCreateRuntimeSetupTask\(store, \{ \.\.\.input, source \}\)/u);
 });
 
 test('the AI settings page navigates back to the recorded source on return', async () => {

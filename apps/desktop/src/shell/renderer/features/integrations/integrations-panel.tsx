@@ -591,7 +591,7 @@ export function IntegrationsPanel({
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
+        className="desktop-module-panel flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
         <ScrollArea
           className="min-h-0 flex-1"
