@@ -22,11 +22,11 @@
 - Judge the specific module's audience. Profile creation and other advanced editing retain precise fields, validation, and control; they do not inherit an introductory interface merely because Desktop's main experience serves ordinary users.
 
 ## Settings-like Surfaces (IA ownership)
-- Settings (account menu) owns end-user account and preference content: profile, language, appearance, privacy, security, notifications, the single Developer Mode entry with local-development registration and activity, data management, legal.
-- Support (account menu) owns guided repair, diagnostics, logs, and recovery; its section set is contract-fixed (`rule.nimi.desktop.product-surfaces.r023`).
-- AI Capabilities owns the Profile quick-start home and capability master-detail workspace; Cloud Services is an independent primary entry. Downloads is a persistent global utility over existing App, model and environment jobs. Home is the personal AI overview with App and Runtime messages; Realm activity feed and publishing are deferred for the current launch and have no active entry. Advanced & Diagnostics remains a secondary system-management destination.
-- Authorization/Grant split: account projection and Web account-management handoff → Settings > Security; local-development project registrations and activity → Settings > Developer; external-agent tokens and delegated approvals → Advanced & Diagnostics > Permissions & Access.
-- Never embed a whole settings page inside another surface (or vice versa); use the current Home navigation controller to push `{ id: 'settings', settingsSection }`. Single-home every control exactly once.
+- Home Settings owns appearance/language, notifications, profile, privacy, account-security browser handoff, data management, Developer Mode, troubleshooting and local log export in one grouped workspace. Normal Support shortcuts target Settings; no parallel normal Support workspace remains. About and legal reading belong to Help.
+- AI Capabilities, Cloud Services, integrations, App configuration, Chat and cross-App Agent Center remain independent functional domains. Advanced & Diagnostics remains their secondary Runtime management destination. Do not move these domains into Home Settings merely because their configuration is shared or machine-wide.
+- Troubleshooting reuses a minimal degraded recovery host without ordinary Settings, Realm preference or Runtime AI hydration. Preserve owner-permitted degraded App-cache and directory-cleanup actions; an existing ready Product Control record cannot override a current maintenance or admission failure.
+- Account security, local development registrations, external-agent access and integration permissions retain their respective owners and destinations. Shared Kit Agent Center and supported App AIConfig editors may have multiple legitimate hosts.
+- Reuse the Home navigation controller for normal Settings sections and protect pending autosave on controlled departure. Entry focus and compact presentation may be requested again after unchanged navigation without duplicating history. Never embed a whole feature workspace inside Settings.
 
 ## Verification Commands
 - Renderer TypeScript or behavior changes: `pnpm --filter @nimiplatform/desktop typecheck` and the directly affected test.

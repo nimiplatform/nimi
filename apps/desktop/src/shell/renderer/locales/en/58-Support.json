@@ -74,8 +74,8 @@
   "diagnosticsResourcesDisk": "Disk",
   "diagnosticsResourcesSource": "Source",
   "diagnosticsResourcesUnavailable": "The system resource snapshot is unavailable in this environment.",
-  "logsTitle": "Logs",
-  "logsDescription": "Log viewing and export.",
+  "logsTitle": "Export Logs",
+  "logsDescription": "Locate logs and export a local archive.",
   "logsProjectionUnavailable": "Could not read the storage directory information.",
   "logsLocationTitle": "Log location",
   "logsLocationDescription": "Logs are stored under the nimi_data data root.",
@@ -162,5 +162,11 @@
   "homeProfileTitle": "Nimi needs to finish setting up its data folder",
   "homeProfileDescription": "Setup and repair are available. Normal work will resume after Nimi can use the selected folder and restart.",
   "homeProfileRetry": "Check folder and restart Nimi",
-  "homeProfileStillUnavailable": "The folder is still unavailable or recovery is incomplete. Use Support to repair it, then try again."
+  "homeProfileStillUnavailable": "The folder is still unavailable or recovery is incomplete. Use Support to repair it, then try again.",
+  "homeNotReady": "Home is not ready",
+  "runtimeMaintenance": "Runtime recovery is required",
+  "gateStillBlocked": "The current startup or connection problem is not resolved. Complete the recovery steps before continuing.",
+  "storedRecord": "Saved product record (not current availability)",
+  "logsExportEmpty": "The current log directory is empty, so no archive was created. Check the log location above before retrying.",
+  "logsExportUnavailable": "Logs could not be exported. Check the log location and technical details before retrying."
 }

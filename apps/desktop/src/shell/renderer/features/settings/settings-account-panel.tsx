@@ -1,3 +1,4 @@
+import { useSettingsSaveGuard } from './use-settings-save-guard.js';
 import { useCurrentUserProfileProjection } from '../profile/current-user-profile.js';
 import { readMediaDelivery, selectMediaImage } from '@nimiplatform/kit/features/media/headless';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
@@ -129,7 +130,7 @@ export function ProfilePage() {
 
   const markLocalEdit = () => {
     editVersionRef.current += 1;
-    setSaveStatus((current) => (current === 'saved' ? 'idle' : current));
+    setSaveStatus('idle');
   };
 
   const handleNameChange = (value: string) => {
@@ -164,9 +165,9 @@ export function ProfilePage() {
     || profileDraft.bio !== persistedProfile.bio
   );
 
-  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
-    if (saving || uploadingAvatar) {
-      return;
+  const performSave = async (isCurrent: () => boolean, { silentSuccess = true }: { silentSuccess?: boolean } = {}) => {
+    if (uploadingAvatar) {
+      return false;
     }
     const editSnapshot = editVersionRef.current;
     setSaving(true);
@@ -178,7 +179,9 @@ export function ProfilePage() {
         bio: profileDraft.bio,
       };
       const updated = await realmSocialData.updateUserProfile(payload);
+      if (!isCurrent()) return false;
       const updatedUser = parseOptionalJsonObject(updated) ?? null;
+      if (!updatedUser) throw new Error(t('Profile.updateError'));
       if (updatedUser) {
         if ((updatedUser.avatarResourceId ?? null) !== profileDraft.avatarResourceId) throw new Error(t('Profile.avatarUploadFailed'));
         queryClient.setQueryData(profileQueryKey, updated);
@@ -200,16 +203,25 @@ export function ProfilePage() {
           message: t('Profile.updateSuccess'),
         });
       }
+      return true;
     } catch (error) {
       setSaveStatus('error');
       setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('Profile.updateError'),
+        actionLabel: t('Common.retry'), onAction: () => { void handleSave(); },
       });
+      return false;
     } finally {
       setSaving(false);
     }
   };
+  const { save: handleSave, dialog: leaveDialog } = useSettingsSaveGuard({
+    dirty: hasPendingProfileChanges, revision: editVersionRef.current, currentRevision: () => editVersionRef.current,
+    pending: uploadingAvatar, cancelScheduled: () => { profileAutosaveTimerRef.current?.(); profileAutosaveTimerRef.current = null; },
+    commit: isCurrent => performSave(isCurrent),
+  });
+
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -269,7 +281,7 @@ export function ProfilePage() {
   };
 
   useEffect(() => {
-    if (uploadingAvatar || saving || !hasPendingProfileChanges) {
+    if (uploadingAvatar || saving || saveStatus === 'error' || !hasPendingProfileChanges) {
       profileAutosaveTimerRef.current?.();
       profileAutosaveTimerRef.current = null;
       return;
@@ -277,7 +289,7 @@ export function ProfilePage() {
 
     profileAutosaveTimerRef.current?.();
     profileAutosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
-      if (result.ok) void handleSave({ silentSuccess: true });
+      if (result.ok) void handleSave();
     });
 
     return () => {
@@ -293,6 +305,7 @@ export function ProfilePage() {
     hasPendingProfileChanges,
     name,
     saving,
+    saveStatus,
     uploadingAvatar,
     userAvatarUrl,
   ]);
@@ -306,7 +319,7 @@ export function ProfilePage() {
   ) : null;
 
   return (
-    <PageShell
+    <PageShell footer={leaveDialog}
       title={t('Profile.pageTitle')}
       description={t('Profile.pageDescription')}
       status={saveStatusBadge}
@@ -341,7 +354,7 @@ export function ProfilePage() {
             <button
               type="button"
               onClick={() => avatarInputRef.current?.click()}
-              disabled={uploadingAvatar}
+              disabled={uploadingAvatar || saving}
               className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-lg transition-transform hover:scale-110 hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               title={uploadingAvatar ? t('Profile.avatarUploading') : t('Profile.changePhoto')}
             >

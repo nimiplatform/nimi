@@ -16,7 +16,7 @@ type LegalDocumentContent = {
   sections: LegalSection[];
 };
 
-export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy' }) {
+export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy'; hideTitle?: boolean }) {
   const { t } = useTranslation();
   const content = t(`Legal.${props.documentKey}`, { returnObjects: true }) as unknown as LegalDocumentContent;
 
@@ -27,7 +27,7 @@ export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy' }) {
       contentClassName="mx-auto max-w-3xl px-6 py-10"
     >
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--nimi-text-primary)]">{content.title}</h1>
+          {!props.hideTitle ? <h1 className="text-3xl font-bold text-[var(--nimi-text-primary)]">{content.title}</h1> : null}
           <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">{content.lastUpdatedLabel}: {content.lastUpdated}</p>
           <p className="mt-4 text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{content.description}</p>
         </div>

@@ -112,7 +112,7 @@ export function RuntimeMaintenanceRecoveryContent(props: RuntimeMaintenanceRecov
               {t('Bootstrap.maintenanceChooseFolder')}
             </button>
           )}
-          <SupportDegradedEntry />
+          <SupportDegradedEntry recovery={{ title: t('Support.runtimeMaintenance'), detail: props.reasonCode, actionLabel: t(committed ? 'Bootstrap.maintenanceReopen' : 'Bootstrap.maintenanceChooseFolder'), onAction: committed ? props.onReopen : props.onChooseFolder, busy }} />
         </div>
         <details className="w-full text-xs text-[var(--nimi-text-muted)]">
           <summary className="cursor-pointer text-center">{t('Feedback.technicalDetails')}</summary>

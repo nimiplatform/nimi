@@ -46,7 +46,7 @@ export function PageShell({
     >
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <NimiText as="h2" role="page-title">
+          <NimiText as="h2" role="page-title" tabIndex={-1}>
             {title}
           </NimiText>
           {description ? (

@@ -5,7 +5,8 @@ import { DeveloperPage } from './settings-developer-page.js';
 import { PrivacyPage } from './settings-privacy-page.js';
 import { SecurityPage } from './settings-security-page.js';
 import { DataManagementPage } from './settings-data-management-page.js';
-import { AboutLegalPage } from './settings-about-legal-page.js';
+import { SupportTroubleshooting } from '../support/support-troubleshooting.js';
+import { SupportLogsSection } from '../support/support-logs-section.js';
 
 export {
   ProfilePage,
@@ -15,7 +16,6 @@ export {
   NotificationsPage,
   DeveloperPage,
   DataManagementPage,
-  AboutLegalPage,
 };
 
 export function renderSettingsPage(selectedId: string) {
@@ -27,7 +27,8 @@ export function renderSettingsPage(selectedId: string) {
     case 'notifications': return <NotificationsPage />;
     case 'developer': return <DeveloperPage />;
     case 'data': return <DataManagementPage />;
-    case 'about-legal': return <AboutLegalPage />;
-    default: return <ProfilePage />;
+    case 'troubleshooting': return <SupportTroubleshooting />;
+    case 'logs': return <SupportLogsSection />;
+    default: return <AppearancePage />;
   }
 }

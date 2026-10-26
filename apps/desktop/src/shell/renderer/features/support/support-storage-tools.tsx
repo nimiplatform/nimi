@@ -1,171 +1,19 @@
-/**
- * Support `repair` sub-area (`rule.nimi.desktop.product-surfaces.r024`).
- *
- * Consumes the `P-COLD-*` product-control projection and the `P-MIG-*`
- * `nimi_data` directory-ownership / cleanup bridge. It presents and triggers
- * repair — it never interprets owner storage or performs Product Control root
- * replacement. The destructive-cleanup action is gated by the `P-MIG-008`
- * confirmation token; a non-cache cleanup is never run without it.
- */
-
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
+import { Button } from '@nimiplatform/kit/ui';
 import type { DesktopRendererStorageDirs as DesktopStorageDirs } from '../../renderer/settings-port.js';
-import {
-  NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
-  type DesktopRendererSupportRepairPort,
-  type NimiAppHostCachePlan,
-  type NimiDataCleanupPlan,
-} from '../../renderer/support-repair-port.js';
-import { formatBytes } from '../../components/download-format.js';
+import { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION, type NimiAppHostCachePlan, type NimiDataCleanupPlan } from '../../renderer/support-repair-port.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import { Button, useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
-import { useDesktopFormalSessionRecovery } from '../../app-shell/routes/desktop-formal-session.js';
-import {
-  NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
-  isNimiProductControlRepairRoutedState,
-} from '@nimiplatform/sdk/runtime';
-import {
-  SupportCard,
-  SupportFailClosed,
-  SupportInfoRow,
-  SupportLoading,
-  SupportSectionShell,
-} from './support-section-shell.js';
-
-interface RepairProjection {
-  readonly control: NimiProductControlRecordProjection;
-  readonly dirs: DesktopStorageDirs | null;
-  readonly dirsError: string | null;
-}
-
-async function loadRepairProjection(
-  repair: DesktopRendererSupportRepairPort,
-): Promise<RepairProjection> {
-  // The product-control record is the load-bearing typed projection — if it
-  // fails, the whole sub-area fail-closes. The storage-dirs read is a
-  // secondary input; its failure is captured inline, not promoted to a
-  // whole-section fail-close (repair must stay reachable).
-  const control = await repair.loadProductControlRecord();
-  let dirs: DesktopStorageDirs | null = null;
-  let dirsError: string | null = null;
-  try {
-    dirs = await repair.loadStorageDirs();
-  } catch (error) {
-    dirsError = error instanceof Error ? error.message : String(error ?? 'storage dirs unavailable');
-  }
-  return { control, dirs, dirsError };
-}
-
-export function SupportRepairSection(props: { onNavigateToRecovery: () => void }) {
-  const { t } = useTranslation();
-  const repair = useDesktopRendererCommands().supportRepair;
-  const recoverSession = useDesktopFormalSessionRecovery();
-  const loadProjection = useCallback(() => loadRepairProjection(repair), [repair]);
-  const projection = useSupportProjection(loadProjection, {
-    failClosedMessage: t('Support.repairProjectionUnavailable'),
-  });
-
-  if (projection.status === 'loading') {
-    return (
-      <SupportSectionShell
-        title={t('Support.repairTitle')}
-        description={t('Support.repairDescription')}
-        testId="support-section-repair"
-      >
-        <SupportLoading testId="support-repair-loading" />
-      </SupportSectionShell>
-    );
-  }
-
-  if (projection.status === 'failed' || !projection.data) {
-    return (
-      <SupportSectionShell
-        title={t('Support.repairTitle')}
-        description={t('Support.repairDescription')}
-        testId="support-section-repair"
-      >
-        <SupportFailClosed
-          testId="support-repair-fail-closed"
-          reason={projection.error ?? t('Support.repairProjectionUnavailable')}
-          onRetry={projection.reload}
-        />
-      </SupportSectionShell>
-    );
-  }
-
-  const { control, dirs, dirsError } = projection.data;
-  const repairRouted = isNimiProductControlRepairRoutedState(control.state)
-    || control.record?.repair.required === true;
-  const repairReason = control.error
-    ?? control.record?.repair.reason
-    ?? null;
-
-  return (
-    <SupportSectionShell
-      title={t('Support.repairTitle')}
-      description={t('Support.repairDescription')}
-      testId="support-section-repair"
-    >
-      <SupportCard
-        title={t('Support.repairStatusTitle')}
-        description={
-          repairRouted
-            ? t('Support.repairStatusRoutedBody')
-            : t('Support.repairStatusHealthyBody')
-        }
-        testId="support-repair-status"
-      >
-        <div className="divide-y divide-[var(--nimi-border-subtle)]">
-          <SupportInfoRow
-            label={t('Support.repairProductState')}
-            value={t(`${NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[control.state]}.title`)}
-          />
-        </div>
-        {repairReason ? (
-          <p
-            data-testid="support-repair-reason"
-            className="mt-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]"
-          >
-            {repairReason}
-          </p>
-        ) : null}
-        {repairRouted ? (
-          <button
-            type="button"
-            data-testid="support-repair-open-recovery"
-            onClick={props.onNavigateToRecovery}
-            className="mt-4 inline-flex items-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]"
-          >
-            {t('Support.repairOpenRecovery')}
-          </button>
-        ) : null}
-      </SupportCard>
-
-      {recoverSession ? (
-        <SupportCard title={t('Support.localSessionTitle')} description={t('Support.localSessionDescription')} testId="support-local-session">
-          <Button size="sm" data-testid="support-local-session-retry" onClick={recoverSession}>
-            {t('Bootstrap.localSessionRetry')}
-          </Button>
-        </SupportCard>
-      ) : null}
-      <SupportAppHostCacheCard />
-      <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
-        <summary className="cursor-pointer text-sm font-medium">{t('Support.repairAdvancedCleanup')}</summary>
-        <div className="mt-3"><SupportDataRootCleanupCard dirs={dirs} dirsError={dirsError} /></div>
-      </details>
-    </SupportSectionShell>
-  );
-}
-
+import { formatBytes } from '../../components/download-format.js';
+import { SupportCard, SupportInfoRow } from './support-section-shell.js';
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r024
 /**
  * Standard App cache (`P-MIG-006e`): clears only the fixed regenerable browser
  * caches of stopped standard App Hosts in this data root. Cookies, site
  * storage, App data and Nimi's own profile are never touched, so the click is
  * the intent and no destructive confirmation token applies.
  */
-function SupportAppHostCacheCard() {
+export function SupportAppHostCacheCard() {
   const { t } = useTranslation();
   const repair = useDesktopRendererCommands().supportRepair;
   const [plan, setPlan] = useState<NimiAppHostCachePlan | null>(null);
@@ -286,7 +134,7 @@ function cleanupOwnerBlockedCopyKey(directory: string): string {
  * non-pure-cache directory, then runs the confirmed cleanup. It never deletes
  * or changes the active Product Control root itself.
  */
-function SupportDataRootCleanupCard(props: {
+export function SupportDataRootCleanupCard(props: {
   dirs: DesktopStorageDirs | null;
   dirsError: string | null;
 }) {

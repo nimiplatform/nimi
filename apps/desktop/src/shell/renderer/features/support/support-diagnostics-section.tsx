@@ -52,7 +52,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 }
 
-export function SupportDiagnosticsSection() {
+export function SupportDiagnosticsSection({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const projection = useSupportProjection(
@@ -64,7 +64,7 @@ export function SupportDiagnosticsSection() {
 
   if (projection.status === 'loading') {
     return (
-      <SupportSectionShell
+      <SupportSectionShell embedded={embedded}
         title={t('Support.diagnosticsTitle')}
         description={t('Support.diagnosticsDescription')}
         testId="support-section-diagnostics"
@@ -76,7 +76,7 @@ export function SupportDiagnosticsSection() {
 
   if (projection.status === 'failed' || !projection.data) {
     return (
-      <SupportSectionShell
+      <SupportSectionShell embedded={embedded}
         title={t('Support.diagnosticsTitle')}
         description={t('Support.diagnosticsDescription')}
         testId="support-section-diagnostics"
@@ -93,7 +93,7 @@ export function SupportDiagnosticsSection() {
   const { daemon, resources, resourcesError } = projection.data;
 
   return (
-    <SupportSectionShell
+    <SupportSectionShell embedded={embedded}
       title={t('Support.diagnosticsTitle')}
       description={t('Support.diagnosticsDescription')}
       testId="support-section-diagnostics"

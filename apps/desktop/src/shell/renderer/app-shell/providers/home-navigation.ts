@@ -1,4 +1,5 @@
-import { createNimiNavigation, type NimiNavigationController } from '@nimiplatform/kit/core/navigation';
+import { SETTINGS_SECTIONS } from '../../features/settings/settings-sections.js';
+import { createNimiNavigation, type NimiNavigationController, type NimiNavigationLeaveGuard } from '@nimiplatform/kit/core/navigation';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { readCharacterSourceRefV3, type CharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
 import type { AppTab, WorldDetailInitialSubpage } from './store-types.js';
@@ -55,9 +56,9 @@ export type HomeChatPosition = {
 const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
-  settings: ['settingsSection'], support: [], profile: ['profileId'],
+  settings: ['settingsSection'], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
-  notification: [], 'privacy-policy': [], 'terms-of-service': [],
+  notification: [],
 };
 const stringRef = (value: unknown): string => {
   if (typeof value !== 'string' || !value.trim() || value !== value.trim()) throw new Error('Home destination requires a nonempty reference.');
@@ -86,13 +87,13 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   closed('worldCollection', ['favorites']);
   closed('worldSubpage', ['relationship-explorer']);
   closed('appSection', ['overview', 'ai-models']);
-  closed('settingsSection', ['profile', 'appearance', 'privacy', 'security', 'notifications', 'developer', 'data', 'about-legal']);
+  closed('settingsSection', SETTINGS_SECTIONS);
   if (result.search !== undefined && typeof result.search !== 'string') throw new Error('Invalid Home search.');
   if (result.worldSearch !== undefined && typeof result.worldSearch !== 'string') throw new Error('Invalid Home world search.');
   if (!result.appId && (result.appSection || result.appEntryKey)) throw new Error('App detail requires an App reference.');
   if (id === 'home') result.homeSection ??= 'overview';
   if (id === 'explore') { result.exploreSection ??= 'worlds'; result.search ??= ''; }
-  if (id === 'settings') result.settingsSection ??= 'profile';
+  if (id === 'settings') result.settingsSection ??= 'appearance';
   if (id === 'runtime' || id === 'cloud' || id === 'diagnostics') {
     const position = result.runtime ?? {};
     if (!position || typeof position !== 'object' || Array.isArray(position)) throw new Error('Invalid Runtime position.');
@@ -145,7 +146,9 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   }
   return result as HomeDestination;
 }
-export type HomeNavigation = NimiNavigationController<HomeDestination>;
+export type HomeNavigation = NimiNavigationController<HomeDestination> & {
+  readonly registerLeaveGuard: (guard: NimiNavigationLeaveGuard<HomeDestination>) => () => void;
+};
 export function homeRuntimeDestination(page: RuntimePageIdV11, position: HomeRuntimePosition = {}): HomeDestination {
   return { id: page === 'cloudServices' ? 'cloud' : page === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
     runtime: page === 'cloudServices' || page === 'advancedDiagnostics' ? position : { ...position, page } };
@@ -155,11 +158,27 @@ export function homeNavigationColumn(destination: HomeDestination): AppTab {
     case 'source-detail':
     case 'world-detail': return 'explore';
     case 'diagnostics': return 'runtime';
-    case 'privacy-policy':
-    case 'terms-of-service': return 'settings';
     default: return destination.id;
   }
 }
 export function createHomeNavigation(): HomeNavigation {
-  return createNimiNavigation({ initial: { id: 'home', homeSection: 'overview' }, validate: validateHomeDestination });
+  const guards = new Set<NimiNavigationLeaveGuard<HomeDestination>>();
+  const beforeLeave: NimiNavigationLeaveGuard<HomeDestination> = async context => {
+    for (const guard of guards) {
+      const result = await guard(context);
+      if (result !== 'allow' || context.signal.aborted) return context.signal.aborted ? 'cancel' : result;
+    }
+    return 'allow';
+  };
+  const navigation = createNimiNavigation({ initial: { id: 'home', homeSection: 'overview' }, validate: validateHomeDestination,
+    // Preserve ordinary synchronous navigation commits when no editor needs a guard.
+    get beforeLeave() { return guards.size ? beforeLeave : undefined; },
+  });
+  return Object.freeze({
+    ...navigation,
+    registerLeaveGuard(guard: NimiNavigationLeaveGuard<HomeDestination>) {
+      guards.add(guard);
+      return () => { guards.delete(guard); };
+    },
+  });
 }

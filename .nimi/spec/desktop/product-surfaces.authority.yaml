@@ -23,7 +23,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.support
     kind: definition
     title: Desktop Support product surface
-    meaning: Desktop Support is the independent secondary system surface for repair, diagnostics, logs and export, and recovery help that consumes owner-typed state and remains reachable during degraded product-control state.
+    meaning: Home support presents owner-governed troubleshooting and local log export within normal Settings, with independently mounted recovery content when ordinary Home is unavailable. It owns no readiness, account, Runtime, storage, diagnostic or repair truth and does not absorb AI Capabilities, Cloud Services, integrations, App configuration or the cross-App Agent Center.
   - id: definition.nimi.desktop.product-surfaces.data-root-management
     kind: definition
     title: Desktop data-root management surface
@@ -244,21 +244,21 @@ units:
         target: definition.nimi.desktop.product-surfaces.home-feed
   - id: rule.nimi.desktop.product-surfaces.r022
     kind: rule
-    title: Support is an independent secondary system surface
+    title: Normal Home support shares the Settings workspace
     modality: must
-    statement: Support is registered by config/desktop-shell-ui-app-tabs.yaml as a non-authoritative nav_group secondary projection, remains independent of and peer to Settings, is reachable from menu, account, or Settings entry, and never enters ordinary primary navigation.
+    statement: Normal Home places personal preferences, account controls, data management, development, troubleshooting and log export in one grouped Settings workspace. Account, menu and tray support shortcuts open its exact troubleshooting or logs section, not a parallel ordinary Support page. About, legal documents, documentation and shortcut instructions belong to Help; AI Capabilities, Cloud Services, integrations, advanced Runtime management, App configuration, Chat and Agent Center retain their separate domain surfaces and existing owners.
     condition: Whenever Desktop registers, groups, or routes the Support surface.
-    failure: Reject Support or any Support sub-area as an ordinary primary item, a Settings section, a developer surface, or an unreachable secondary surface.
+    failure: Reject a second normal Support workspace, global Settings that absorbs ecosystem or Agent configuration, or a recovery path gated by ordinary Settings readiness.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.support
   - id: rule.nimi.desktop.product-surfaces.r023
     kind: rule
-    title: Support sub-areas are closed
+    title: Home Settings categories distinguish preferences and support
     modality: must
-    statement: Support contains exactly repair for configuration, data-root, dependency, and independently installed Runtime service repair entry; diagnostics for aggregated technical diagnostics; logs for log viewing and export; and recovery for recovery help and guidance.
+    statement: Home Settings groups appearance and language plus notifications as preferences; profile, privacy and account security as account controls; storage and Developer Mode as device management; and troubleshooting plus log export as support. Troubleshooting combines repair and recovery guidance with bounded technical information. Home content cache and regenerable standard App cache remain explicitly distinct in storage; owner-approved directory cleanup stays an advanced troubleshooting action. One implementation may serve normal and degraded hosts without creating another configuration owner. Search lists only these pages and their synonyms, never executes actions or promises unavailable controls.
     condition: Whenever Desktop configures, routes, or renders Support content.
-    failure: Reject a missing or additional Support sub-area, ordinary account, language, appearance, notification, or other preference content, and any developer-surface entry.
+    failure: Reject About and legal as Settings categories, conflated cleanup or notification scopes, a second configuration store, or a search that mutates settings.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.support
@@ -301,9 +301,9 @@ units:
     kind: rule
     title: Support recovery projects typed recovery guidance
     modality: must
-    statement: Support recovery guides users with damaged ~/.nimi state, missing or unreachable nimi_data, or incomplete first run toward repair and setup using typed fail-closed product-control state and the admitted first-run copy floor, while readiness remains owned by the product-control record.
+    statement: Home troubleshooting presents the actual current recovery gate cause and allowed callbacks alongside typed Product Control record facts. Runtime maintenance, Home profile, formal-session and account admission failure must not be portrayed as ready merely because the persisted Product Control record reads ready_for_use. Recovery guides damaged configuration, unavailable data root and incomplete first run through their existing owner paths, without minting readiness or changing admission truth.
     condition: Whenever Desktop presents recovery help for degraded setup or storage state.
-    failure: Reject raw technical enums as primary user copy, untyped guidance, or a Support-authored claim that readiness has been restored.
+    failure: Reject a healthy claim that overrides a current owner gate failure, untyped or fabricated recovery, or a normal settings route used in place of unavailable recovery.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.support
@@ -311,9 +311,9 @@ units:
     kind: rule
     title: Support remains reachable while degraded
     modality: must
-    statement: Support and at least its repair and recovery sub-areas remain reachable when Settings preference state is damaged, ordinary shell readiness is unavailable, or product control is fail-closed, without waiting for ready_for_use.
+    statement: Troubleshooting remains reachable without ordinary shell or preference readiness through a minimal recovery host on first-run, repair, Runtime maintenance, Home-profile, formal-session and account-admission failures. It reuses the same troubleshooting and existing owner-permitted App-cache and directory-cleanup content; host visibility grants no operation permission. Non-ready tray recovery may focus the actual gate and offer its visible keyboard-operable troubleshooting entry, and acknowledgement describes that focus rather than falsely claiming repair opened or completed.
     condition: Whenever Desktop is in degraded, repair-required, setup-incomplete, or ordinary-shell-unavailable state.
-    failure: Reject a readiness-gated recovery path and expose the bounded repair and recovery entry without fabricating shell readiness.
+    failure: Reject a readiness-gated recovery entry, lost owner-permitted degraded cleanup, a stale ready record overriding the current gate, or replay of recovery actions after scope loss.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.support

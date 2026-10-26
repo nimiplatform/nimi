@@ -9,7 +9,7 @@ import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/b
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 import { StreamControllerProvider } from '../src/shell/renderer/features/turns/stream-controller-context.js';
 import type { StreamController } from '../src/shell/renderer/features/turns/stream-controller.js';
-import { SupportRepairSection } from '../src/shell/renderer/features/support/support-repair-section.js';
+import { SupportTroubleshooting } from '../src/shell/renderer/features/support/support-troubleshooting.js';
 import { initI18n } from '../src/shell/renderer/i18n/index.js';
 import {
   DesktopFormalSessionRecoveryContext,
@@ -52,7 +52,7 @@ async function setup() {
   function Business() {
     const account = store.getState().auth.user?.id as string;
     useEffect(() => { business.push(account); return () => { cleanups++; }; }, [account]);
-    return <><span data-testid="current-account">{account}</span><SupportRepairSection onNavigateToRecovery={() => {}} /></>;
+    return <><span data-testid="current-account">{account}</span><SupportTroubleshooting /></>;
   }
   function Consumer() {
     handle = useDesktopFormalSessionReadiness();

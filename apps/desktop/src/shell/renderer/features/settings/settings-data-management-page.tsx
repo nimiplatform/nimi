@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SupportAppHostCacheCard } from '../support/support-storage-tools.js';
+import { useProductUpdate } from '../home/product-update-context.js';
+import { useCallback, useEffect, useState } from 'react';
 import { ConfirmDialog } from '@nimiplatform/kit/ui';
-import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { logoutAndClearSession, useLogoutSessionDependencies } from '../auth/logout';
 import type {
   DesktopRendererCheckSyncProjection,
   DesktopRendererStorageDirs,
 } from '../../renderer/settings-port.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   Button,
   Card,
@@ -18,7 +17,7 @@ import {
   PageShell,
   Section,
 } from './settings-layout-components.js';
-import { LogOutIcon, TrashIcon } from './settings-assets.js';
+import { TrashIcon } from './settings-assets.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { isExecutableCheckSyncNextAction } from '../../../shared/check-sync-next-action.js';
 import { useCheckSyncPolling } from './check-sync-polling.js';
@@ -57,30 +56,26 @@ export function DataManagementPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const bindings = useDesktopRendererBindings();
-  const clearAuthSession = useAppStore((s) => s.clearAuthSession);
-  const logoutDependencies = useLogoutSessionDependencies();
+  const update = useProductUpdate();
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [resolvedDataRoot, setResolvedDataRoot] = useState('');
   const [checkSync, setCheckSync] = useState<DesktopRendererCheckSyncProjection | null>(null);
   const [dataRootBusy, setDataRootBusy] = useState(false);
   const [pendingDataRoot, setPendingDataRoot] = useState<string | null>(null);
-  const [storage, setStorage] = useState<StorageSnapshot>({
-    queryCacheBytes: 0,
-    localStorageBytes: 0,
-    estimatedUsageBytes: 0,
-    estimatedQuotaBytes: 0,
-  });
+  const [storage, setStorage] = useState<StorageSnapshot | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [dirsError, setDirsError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const refreshStorageSnapshot = useCallback(async () => {
+    setStorage(null);
+    setStorageError(null);
     const queryCacheBytes = estimateQueryCacheBytes(queryClient);
     try {
       const usage = await bindings.app.commands.settings.estimateStorageUsage();
       setStorage({ queryCacheBytes, ...usage });
     } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : 'DESKTOP_STORAGE_ESTIMATE_UNAVAILABLE',
-      });
+      setStorageError(error instanceof Error ? error.message : 'DESKTOP_STORAGE_ESTIMATE_UNAVAILABLE');
     }
   }, [bindings.app.commands.settings, queryClient]);
 
@@ -92,25 +87,19 @@ export function DataManagementPage() {
     setResolvedDataRoot(dirs.dataRoot);
   }, []);
 
-  useEffect(() => {
-    void bindings.app.commands.settings.loadStorageDirs()
-      .then(applyStorageDirs)
-      .catch((error) => {
-        logRendererEvent({
-          level: 'warn',
-          area: 'settings-data-management',
-          message: 'get-desktop-storage-dirs:failed',
-          details: {
-            error: error instanceof Error ? error.message : String(error || ''),
-          },
-        });
-      });
+  const refreshDirs = useCallback(async () => {
+    setDirsError(null);
+    setResolvedDataRoot('');
+    try { applyStorageDirs(await bindings.app.commands.settings.loadStorageDirs()); }
+    catch (error) { setDirsError(error instanceof Error ? error.message : String(error)); }
   }, [applyStorageDirs, bindings.app.commands.settings]);
+  useEffect(() => { void refreshDirs(); }, [refreshDirs]);
 
   const refreshCheckSync = useCallback(async () => {
-    const projection = await bindings.app.commands.settings.loadCheckSync();
-    setCheckSync(projection);
-    return projection;
+    try {
+      const projection = await bindings.app.commands.settings.loadCheckSync();
+      setCheckSync(projection); setSyncError(null); return projection;
+    } catch (error) { setSyncError(error instanceof Error ? error.message : String(error)); throw error; }
   }, [bindings.app.commands.settings]);
 
   useEffect(() => {
@@ -182,14 +171,6 @@ export function DataManagementPage() {
     }
   }, [bindings.app.commands.settings, t]);
 
-  const totalTrackedBytes = useMemo(
-    () => storage.queryCacheBytes + storage.localStorageBytes + storage.estimatedUsageBytes,
-    [storage.estimatedUsageBytes, storage.localStorageBytes, storage.queryCacheBytes],
-  );
-
-  const usagePercent = storage.estimatedQuotaBytes > 0
-    ? Math.min(100, Math.round((storage.estimatedUsageBytes / storage.estimatedQuotaBytes) * 100))
-    : 0;
   const handleClearCache = () => {
     queryClient.clear();
     setFeedback({ kind: 'success', message: t('DataManagement.cacheCleared') });
@@ -204,33 +185,21 @@ export function DataManagementPage() {
       {/* Storage Usage */}
       <Section title={t('DataManagement.storageUsageTitle')}>
         <Card>
-          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+          {!storage ? <div role={storageError ? 'alert' : 'status'} className="space-y-2 text-sm">
+            <p>{t(storageError ? 'DataManagement.storageReadFailed' : 'Common.loading')}</p>
+            {storageError ? <Button variant="secondary" onClick={() => { void refreshStorageSnapshot(); }}>{t('Common.retry')}</Button> : null}
+          </div> : <div className="divide-y divide-[var(--nimi-border-subtle)]">
             <InfoRow label={t('DataManagement.storageChats')} value={formatBytes(storage.queryCacheBytes)} />
             <InfoRow label={t('DataManagement.storageMediaFiles')} value={formatBytes(storage.estimatedUsageBytes)} />
             <InfoRow label={t('DataManagement.storageCache')} value={formatBytes(storage.localStorageBytes)} />
-            <InfoRow label={t('DataManagement.storageTotalUsed')} value={formatBytes(totalTrackedBytes)} highlight />
-          </div>
-          {/* Progress Bar */}
-          <div className="mt-4 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-4">
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--nimi-surface-active)]">
-              <div
-                className="h-full rounded-full bg-[var(--nimi-action-primary-bg)] transition-all duration-500 ease-out"
-                style={{ width: `${usagePercent}%` }}
-              />
-            </div>
-            <p className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-              {storage.estimatedQuotaBytes > 0
-                ? t('DataManagement.storageUsageSummary', {
-                  percent: usagePercent,
-                  quota: formatBytes(storage.estimatedQuotaBytes),
-                })
-                : t('DataManagement.storageUsageFootnote')}
-            </p>
-          </div>
+          </div>}
+          <p className="mt-3 text-xs text-[var(--nimi-text-muted)]">{t('DataManagement.separateStorageScopes')}</p>
         </Card>
       </Section>
 
       <Section title={t('DataManagement.dataDirTitle')}>
+        {dirsError ? <div role="alert" className="text-sm"><p>{t('DataManagement.dataRootReadFailed')}</p><Button variant="secondary" onClick={() => { void refreshDirs(); }}>{t('Common.retry')}</Button></div> : null}
+        {syncError ? <div role="alert" className="text-sm"><p>{t('DataManagement.checkSyncReadFailed')}</p><Button variant="secondary" onClick={() => { void refreshCheckSync().catch(() => undefined); }}>{t('Common.retry')}</Button></div> : null}
         <Card>
           <div className="space-y-4">
             <div className="space-y-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
@@ -338,28 +307,10 @@ export function DataManagementPage() {
         </Card>
       </Section>
 
-      {/* Session */}
-      <Section title={t('DataManagement.sessionTitle')}>
-        <Card>
-          <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">{t('DataManagement.sessionBody')}</p>
-          <Button
-            variant="secondary"
-            className="mt-4"
-            icon={<LogOutIcon className="h-4 w-4" />}
-            onClick={() => {
-              void logoutAndClearSession(
-                {
-                  clearAuthSession,
-                  onFeedback: setFeedback,
-                },
-                logoutDependencies.logout,
-              );
-            }}
-          >
-            {t('DataManagement.logOut')}
-          </Button>
-        </Card>
-      </Section>
+      <SupportAppHostCacheCard />
+      {update.status?.maintenanceAvailable ? <Section title={t('DataManagement.productVersions')}>
+        <Card><Button variant="secondary" disabled={update.busy} onClick={update.openDetails}>{t('ProductUpdate.retention.open')}</Button></Card>
+      </Section> : null}
 
     </PageShell>
   );

@@ -7,28 +7,6 @@ import {
   isNimiProductControlDegradedState,
   isNimiProductControlRepairRoutedState,
 } from '@nimiplatform/sdk/runtime';
-import {
-  SUPPORT_DEGRADED_REACHABLE_SECTIONS,
-  SUPPORT_SECTION_IDS,
-  isSupportSectionId,
-  resolveSupportSection,
-} from '../src/shell/renderer/features/support/support-sections.js';
-
-test('support exposes the closed set of product-control sections', () => {
-  assert.deepEqual(
-    [...SUPPORT_SECTION_IDS],
-    ['repair', 'diagnostics', 'logs', 'recovery'],
-  );
-});
-
-test('support section resolution rejects unknown sub-areas', () => {
-  assert.equal(resolveSupportSection('unknown-section'), 'repair');
-  assert.equal(resolveSupportSection('nonexistent'), 'repair');
-  assert.equal(resolveSupportSection(null), 'repair');
-  assert.equal(isSupportSectionId('diagnostics'), true);
-  assert.equal(isSupportSectionId('settings'), false);
-});
-
 test('product-control recovery copy mapping is total', () => {
   for (const state of NIMI_PRODUCT_CONTROL_STATES) {
     assert.ok(
@@ -45,8 +23,4 @@ test('product-control classifies degraded and repair-routed states', () => {
   assert.equal(isNimiProductControlRepairRoutedState('repair_required'), true);
   assert.equal(isNimiProductControlRepairRoutedState('blocked'), true);
   assert.equal(isNimiProductControlRepairRoutedState('ready_for_use'), false);
-});
-
-test('degraded support exposes only repair and recovery sections', () => {
-  assert.deepEqual([...SUPPORT_DEGRADED_REACHABLE_SECTIONS], ['repair', 'recovery']);
 });

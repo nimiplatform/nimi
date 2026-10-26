@@ -42,13 +42,10 @@ export type AppTab =
   | 'downloads'
   | 'diagnostics'
   | 'settings'
-  | 'support'
   | 'profile'
   | 'source-detail'
   | 'world-detail'
-  | 'notification'
-  | 'privacy-policy'
-  | 'terms-of-service';
+  | 'notification';
 export type StatusKind = 'info' | 'success' | 'warning' | 'error';
 export type WorldDetailInitialSubpage = 'relationship-explorer';
 export type WorldDetailNavigationOptions = {

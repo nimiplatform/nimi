@@ -2,11 +2,10 @@
  * T10.4 — Support secondary surface render coverage (`rule.nimi.desktop.product-surfaces.r022..r029`).
  *
  * Static-markup render proofs:
- *   - the Support panel mounts the fixed four-item sub-area sidebar;
  *   - the typed fail-closed surface renders the typed reason + retry;
  *   - each sub-area starts in a non-fabricated state (loading), never a
  *     synthesized "ready" placeholder, before its typed projection resolves;
- *   - the degraded entry only exposes repair + recovery.
+ *   - recovery remains independently reachable.
  *
  * Effects do not run under `renderToStaticMarkup`, so a freshly mounted
  * sub-area renders its initial pre-projection state — which the contract
@@ -24,12 +23,10 @@ import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { initI18n } from '../src/shell/renderer/i18n';
-import { SupportPanel } from '../src/shell/renderer/features/support/support-panel';
 import { SupportFailClosed } from '../src/shell/renderer/features/support/support-section-shell';
-import { SupportRepairSection } from '../src/shell/renderer/features/support/support-repair-section';
+import { SupportTroubleshooting } from '../src/shell/renderer/features/support/support-troubleshooting';
 import { SupportDiagnosticsSection } from '../src/shell/renderer/features/support/support-diagnostics-section';
 import { SupportLogsSection } from '../src/shell/renderer/features/support/support-logs-section';
-import { SupportRecoverySection } from '../src/shell/renderer/features/support/support-recovery-section';
 import { SupportDegradedEntry } from '../src/shell/renderer/features/support/support-degraded-entry';
 import {
   DesktopRendererBindingProvider,
@@ -55,15 +52,6 @@ function renderToStaticMarkup(element: React.ReactNode): string {
   );
 }
 
-test('rule.nimi.desktop.product-surfaces.r022/r023: the Support panel renders the four-item sub-area sidebar', () => {
-  const markup = renderToStaticMarkup(React.createElement(SupportPanel));
-  assert.match(markup, /data-testid="panel:support"/);
-  assert.match(markup, /data-testid="panel:support-sidebar"/);
-  for (const section of ['repair', 'diagnostics', 'logs', 'recovery']) {
-    assert.match(markup, new RegExp(`data-testid="support-nav:${section}"`));
-  }
-});
-
 test('rule.nimi.desktop.product-surfaces.r024..r028: the typed fail-closed surface shows the typed reason and retry', () => {
   const markup = renderToStaticMarkup(
     React.createElement(SupportFailClosed, {
@@ -81,8 +69,8 @@ test('rule.nimi.desktop.product-surfaces.r024..r028: the typed fail-closed surfa
 const SECTIONS: Array<{ name: string; element: React.ReactElement; loadingTestId: string }> = [
   {
     name: 'repair',
-    element: React.createElement(SupportRepairSection, { onNavigateToRecovery: () => {} }),
-    loadingTestId: 'support-repair-loading',
+    element: React.createElement(SupportTroubleshooting),
+    loadingTestId: 'support-control-loading',
   },
   {
     name: 'diagnostics',
@@ -94,17 +82,13 @@ const SECTIONS: Array<{ name: string; element: React.ReactElement; loadingTestId
     element: React.createElement(SupportLogsSection),
     loadingTestId: 'support-logs-loading',
   },
-  {
-    name: 'recovery',
-    element: React.createElement(SupportRecoverySection, { onNavigateToRepair: () => {} }),
-    loadingTestId: 'support-recovery-loading',
-  },
+
 ];
 
 for (const section of SECTIONS) {
   test(`rule.nimi.desktop.product-surfaces.r024..r028: ${section.name} starts in a typed loading state, not placeholder data`, () => {
     const markup = renderToStaticMarkup(section.element);
-    assert.match(markup, new RegExp(`data-testid="support-section-${section.name}"`));
+    assert.match(markup, new RegExp(`data-testid="${section.name === 'repair' ? 'support-troubleshooting' : `support-section-${section.name}`}"`));
     // Before the typed projection resolves the sub-area shows loading — never
     // a fabricated ready surface.
     assert.match(markup, new RegExp(`data-testid="${section.loadingTestId}"`));

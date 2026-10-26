@@ -238,14 +238,6 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-019
-  - id: support.operational.panel
-    module: features/support/support-panel.tsx
-    role: support_operational_panel
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-029
   - id: support.operational.degraded_entry
     module: features/support/support-degraded-entry.tsx
     role: support_operational_degraded_entry

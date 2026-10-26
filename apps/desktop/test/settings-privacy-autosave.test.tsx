@@ -19,6 +19,10 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
   const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
   const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.ts');
   const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => {} });
+  await appStore.navigation.push({ id: 'settings', settingsSection: 'privacy' });
   const { PrivacyPage } = await import('../src/shell/renderer/features/settings/settings-privacy-page.js');
   const { DesktopMotionProvider } = await import('../src/shell/renderer/ui/motion/desktop-motion-context.js');
   await initI18n();
@@ -60,7 +64,7 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
       root.render(
         <QueryClientProvider client={client}>
           <DesktopRendererBindingProvider bindings={bindings}>
-            <DesktopMotionProvider><PrivacyPage /></DesktopMotionProvider>
+            <AppStoreProvider store={appStore}><DesktopMotionProvider><PrivacyPage /></DesktopMotionProvider></AppStoreProvider>
           </DesktopRendererBindingProvider>
         </QueryClientProvider>,
       );

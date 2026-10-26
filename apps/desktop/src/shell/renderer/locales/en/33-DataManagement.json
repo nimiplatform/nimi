@@ -1,5 +1,5 @@
 {
-  "pageTitle": "Data Management",
+  "pageTitle": "Storage & Data",
   "pageDescription": "Manage your data and storage preferences",
   "cacheCleared": "Cache cleared successfully.",
   "storageUsageTitle": "Window storage estimates",
@@ -50,5 +50,10 @@
   "sessionTitle": "Session",
   "sessionBody": "Sign out of your account on this device.",
   "logOut": "Log Out",
-  "dataRootReplacedAuditUnrecorded": "The new data folder is active, but this change could not be saved to the audit log. Do not repeat the replacement. Reopen Nimi to continue; contact support if recording keeps failing."
+  "dataRootReplacedAuditUnrecorded": "The new data folder is active, but this change could not be saved to the audit log. Do not repeat the replacement. Reopen Nimi to continue; contact support if recording keeps failing.",
+  "storageReadFailed": "Storage estimates could not be read.",
+  "dataRootReadFailed": "The current data location could not be read.",
+  "checkSyncReadFailed": "Check and Sync status could not be read.",
+  "separateStorageScopes": "These estimates describe different storage scopes. They are not the total size of Nimi data or your disk.",
+  "productVersions": "Retained product versions"
 }

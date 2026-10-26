@@ -9,13 +9,10 @@ entries:
   - apps
   - runtime
   - settings
-  - support
   - profile
   - source-detail
   - world-detail
   - notification
-  - privacy-policy
-  - terms-of-service
   - cloud
   - downloads
   - diagnostics
@@ -56,11 +53,6 @@ tabs:
     label: Settings
     gated_by: null
     source_rule: D-SHELL-001
-  - id: support
-    nav_group: secondary
-    label: Support
-    gated_by: null
-    source_rule: rule.nimi.desktop.product-surfaces.r022
   - id: profile
     nav_group: detail
     label: Profile
@@ -79,16 +71,6 @@ tabs:
   - id: notification
     nav_group: detail
     label: Notification
-    gated_by: null
-    source_rule: D-SHELL-001
-  - id: privacy-policy
-    nav_group: detail
-    label: Privacy Policy
-    gated_by: null
-    source_rule: D-SHELL-001
-  - id: terms-of-service
-    nav_group: detail
-    label: Terms of Service
     gated_by: null
     source_rule: D-SHELL-001
   - id: downloads

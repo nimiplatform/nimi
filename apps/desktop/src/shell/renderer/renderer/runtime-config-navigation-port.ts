@@ -1,6 +1,6 @@
 import type { RuntimeAdvancedDiagnosticsPane, RuntimeConfigActionFocus, RuntimePageIdV11 } from '../features/runtime-config/runtime-config-state-types.js';
 import type { RuntimeConfigProfileUseOwner } from '../features/runtime-config/runtime-config-panel-types.js';
-import { homeRuntimeDestination, type HomeNavigation, type HomeRuntimePosition } from '../app-shell/providers/home-navigation.js';
+import { homeRuntimeDestination, validateHomeDestination, type HomeNavigation, type HomeRuntimePosition } from '../app-shell/providers/home-navigation.js';
 
 /** Only unconsumed one-time actions live here. Page position belongs to Home navigation. */
 export type DesktopRendererRuntimeConfigNavigationView = {
@@ -41,12 +41,23 @@ export function createDesktopRendererRuntimeConfigNavigationPort(getNavigation: 
       const position: HomeRuntimePosition = actionFocus.action === 'open-saved-configs' ? { section: 'saved' }
         : actionFocus.action === 'import-model-files' || actionFocus.action === 'manage-model-files' ? { section: 'downloaded' } : {};
       const generation = navigation.getSnapshot().generation;
-      const pending = open(actionFocus.page, position);
-      const entryKey = navigation.getSnapshot().current.key;
-      if (actionFocus.action === 'open-saved-configs' || actionFocus.action === 'manage-model-files') return;
-      void pending.then(result => {
+      const expected = JSON.stringify(validateHomeDestination(homeRuntimeDestination(actionFocus.page, position)));
+      let entryKey: string | null = null;
+      let left = false;
+      const observe = () => {
         const snapshot = navigation.getSnapshot();
-        if (!['committed', 'unchanged'].includes(result.status) || snapshot.generation !== generation || snapshot.current.key !== entryKey) return;
+        if (snapshot.generation !== generation) left = true;
+        else if (entryKey && (snapshot.current.key !== entryKey || snapshot.transitionState === 'pending')) left = true;
+        else if (!entryKey && snapshot.transitionState === 'idle' && JSON.stringify(snapshot.current.destination) === expected) entryKey = snapshot.current.key;
+      };
+      const unsubscribe = navigation.subscribe(observe);
+      const pending = open(actionFocus.page, position);
+      observe();
+      if (actionFocus.action === 'open-saved-configs' || actionFocus.action === 'manage-model-files') { unsubscribe(); return; }
+      void pending.then(result => {
+        unsubscribe();
+        const snapshot = navigation.getSnapshot();
+        if (left || !entryKey || !['committed', 'unchanged'].includes(result.status) || snapshot.generation !== generation || snapshot.current.key !== entryKey) return;
         view = Object.freeze({ revision: view.revision + 1, intent: Object.freeze({ kind: 'focus-action', actionFocus, entryKey, generation }) });
         for (const listener of listeners) listener();
       });

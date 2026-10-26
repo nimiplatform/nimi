@@ -1,3 +1,5 @@
+import { useLayoutEffect } from 'react';
+import { homeShellPresence } from '../providers/home-shell-presence.js';
 import { CurrentUserProfileObserver } from '../../features/profile/current-user-profile.js';
 import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { GlobalDownloadsProvider } from '../../features/runtime-config/global-downloads-context.js';
@@ -59,6 +61,7 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 
 export function MainLayout() {
   const navigation = useHomeNavigation();
+  useLayoutEffect(() => homeShellPresence(navigation).mount(), [navigation]);
   const notifications = useHomeExecutionNotificationControls();
   const [homeVisible, setHomeVisible] = useState(true);
   const reading = useMemo(() => {

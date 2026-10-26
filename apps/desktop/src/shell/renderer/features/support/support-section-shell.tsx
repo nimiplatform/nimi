@@ -16,20 +16,18 @@ export function SupportSectionShell(props: {
   description?: string;
   testId: string;
   children: ReactNode;
+  embedded?: boolean;
+  hideHeader?: boolean;
 }) {
-  return (
-    <ScrollArea className="flex-1" contentClassName="w-full max-w-4xl px-5 py-5">
-      <div data-testid={props.testId} className="flex flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h2 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{props.title}</h2>
-          {props.description ? (
-            <p className="text-sm text-[var(--nimi-text-secondary)]">{props.description}</p>
-          ) : null}
-        </header>
-        {props.children}
-      </div>
-    </ScrollArea>
-  );
+  const content = <div data-testid={props.testId} className="flex flex-col gap-5">
+    {!props.embedded && !props.hideHeader ? <header className="flex flex-col gap-1">
+      <h2 tabIndex={-1} className="nimi-type-page-title text-[var(--nimi-text-primary)]">{props.title}</h2>
+      {props.description ? <p className="text-sm text-[var(--nimi-text-secondary)]">{props.description}</p> : null}
+    </header> : null}
+    {props.children}
+  </div>;
+  return props.embedded ? content : <ScrollArea className="min-h-0 flex-1" contentClassName="w-full max-w-4xl px-5 py-5">{content}</ScrollArea>;
+
 }
 
 export function SupportCard(props: {

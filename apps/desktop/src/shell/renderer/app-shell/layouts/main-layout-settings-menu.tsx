@@ -27,7 +27,7 @@ const SETTINGS_SUBMENU_ITEMS: Array<{ id: SettingsSubmenuItemId; label: string; 
 const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
   profile: 'Menu.profile',
   settings: 'Menu.settings',
-  support: 'Menu.support',
+  support: 'Settings.menuTroubleshooting',
   logout: 'Menu.logout',
 };
 

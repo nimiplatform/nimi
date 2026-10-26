@@ -1,3 +1,4 @@
+import { openHomeSettings } from '../../features/settings/settings-entry.js';
 import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { homeNavigationColumn } from '../providers/home-navigation.js';
 // @nimi-authority: rule.nimi.desktop.shell-ui.r023
@@ -175,7 +176,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        event.preventDefault();
         setSettingsMenuOpen(false);
+        settingsTriggerRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
       }
     };
     const unsubscribeMouseDown = bindings.app.events.subscribeDocumentMouseDown(onMouseDown);
@@ -189,6 +192,14 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   useEffect(() => {
     setSettingsMenuOpen(false);
   }, [props.activeTab]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) return;
+    const frame = requestAnimationFrame(() => {
+      settingsMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [settingsMenuOpen]);
 
   const avatarNode = (
     <EntityAvatar
@@ -224,12 +235,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       return;
     }
     if (itemId === 'settings') {
-      props.onNav('settings');
+      void openHomeSettings(navigation);
       setSettingsMenuOpen(false);
       return;
     }
     if (itemId === 'support') {
-      props.onNav('support');
+      void openHomeSettings(navigation, 'troubleshooting');
       setSettingsMenuOpen(false);
       return;
     }
@@ -433,7 +444,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               isItemActive={isSettingsMenuItemActive}
               onOpenItem={openSettingsSubmenuItem}
               onEditProfile={() => {
-              props.onNav('settings');
+              void openHomeSettings(navigation, 'profile');
               setSettingsMenuOpen(false);
               }}
               onSwitchAccount={() => {

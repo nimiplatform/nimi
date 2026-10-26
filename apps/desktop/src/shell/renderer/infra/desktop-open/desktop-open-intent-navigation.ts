@@ -1,3 +1,4 @@
+import { openHomeSettings } from '../../features/settings/settings-entry.js';
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import type { RuntimePageIdV11 } from '../../features/runtime-config/runtime-config-state-types';
@@ -69,7 +70,7 @@ export function applyDesktopOpenIntentToAppStore(
       return;
     }
     case 'open-settings': {
-      void store.push({ id: 'settings', settingsSection: intent.section });
+      void openHomeSettings(store, intent.section);
       return;
     }
     case 'open-integrations': {

@@ -6,6 +6,36 @@ import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-co
 import { resetRuntimePageViewport } from '../src/shell/renderer/features/runtime-config/runtime-config-page-shell.js';
 import { getProfileViewState, trackProfileViewRequest } from '../src/shell/renderer/features/runtime-config/runtime-profile-view-state.js';
 
+test('Home navigation can register and remove a leave guard on its composed controller', async () => {
+  const navigation = createHomeNavigation();
+  const unregister = navigation.registerLeaveGuard(() => 'cancel');
+  assert.equal((await navigation.push({ id: 'cloud' })).status, 'cancelled');
+  assert.equal(navigation.getSnapshot().current.destination.id, 'home');
+  unregister();
+  assert.equal((await navigation.push({ id: 'cloud' })).status, 'committed');
+  assert.equal(navigation.getSnapshot().current.destination.id, 'cloud');
+  navigation.dispose();
+});
+
+test('a one-time action waits for an editor leave decision and belongs to its committed entry', async () => {
+  const navigation = createHomeNavigation();
+  const port = createDesktopRendererRuntimeConfigNavigationPort(() => navigation);
+  let decide!: (value: 'allow' | 'cancel') => void;
+  const unregister = navigation.registerLeaveGuard(() => new Promise(resolve => { decide = resolve; }));
+  const action = { page: 'modelLibrary', action: 'import-model-files', focus: 'runtime-config-action-focus.model-library-import' } as const;
+  port.focusAction(action);
+  assert.equal(port.takeAction(), null);
+  decide('cancel');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(port.takeAction(), null);
+  port.focusAction(action);
+  decide('allow');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(port.takeAction(), action);
+  assert.equal(port.takeAction(), null);
+  unregister(); navigation.dispose();
+});
+
 test('Runtime workspace, capabilities, model section and references use one history', async () => {
   const navigation = createHomeNavigation();
   const port = createDesktopRendererRuntimeConfigNavigationPort(() => navigation);

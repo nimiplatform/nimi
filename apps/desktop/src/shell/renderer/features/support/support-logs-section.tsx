@@ -87,9 +87,10 @@ function SupportLogsExportCard() {
           : t('Support.logsExportButton')}
       </button>
 
+      {exportState.status === 'running' ? <p role="status" className="mt-2 text-sm">{t('Support.logsExportRunning')}</p> : null}
       {exportState.status === 'done' ? (
         <div
-          data-testid="support-logs-export-done"
+          role="status" aria-live="polite" data-testid="support-logs-export-done"
           className="mt-4 space-y-2 rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2"
         >
           <p className="text-xs font-medium text-[var(--nimi-status-positive)]">
@@ -109,12 +110,13 @@ function SupportLogsExportCard() {
       {exportState.status === 'failed' ? (
         // rule.nimi.desktop.product-surfaces.r027: typed fail-closed state. The backend reason is surfaced
         // verbatim; no export artifact is fabricated.
-        <p
-          data-testid="support-logs-export-failed"
+        <div
+          role="alert" data-testid="support-logs-export-failed"
           className="mt-4 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]"
         >
-          {t('Support.logsExportFailed', { reason: exportState.reason })}
-        </p>
+          {t(exportState.reason.includes('logs-directory-empty') || exportState.reason.includes('log-content-empty') ? 'Support.logsExportEmpty' : 'Support.logsExportUnavailable')}
+          <details className="mt-2"><summary>{t('Feedback.technicalDetails')}</summary>{exportState.reason}</details>
+        </div>
       ) : null}
     </SupportCard>
   );

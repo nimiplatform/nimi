@@ -1,3 +1,4 @@
+import { openHomeSettings } from '../settings/settings-entry.js';
 import type { NimiAppActivityOpenResult, NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import type { SystemEntryActionDispatch, SystemEntryContext, SystemEntryProjection } from '../../../shared/system-entry-types.js';
 import { isSystemEntryActionOffered, SYSTEM_ENTRY_ACTION_DISPATCH_MS } from '../../../shared/system-entry-types.js';
@@ -69,9 +70,9 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
     case 'downloads': return navigate({ id: 'downloads' });
     case 'apps': return navigate({ id: 'apps' });
     case 'ai-capabilities': return navigate({ id: 'runtime', runtime: { page: 'aiSettings', section: 'overview' } });
-    case 'settings': return navigate({ id: 'settings' });
-    case 'notification-settings': return navigate({ id: 'settings', settingsSection: 'notifications' });
-    case 'support': return navigate({ id: 'support' });
+    case 'settings': { const result = await openHomeSettings(input.navigation); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
+    case 'notification-settings': { const result = await openHomeSettings(input.navigation, 'notifications'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
+    case 'support': { const result = await openHomeSettings(input.navigation, 'troubleshooting'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'chat': return navigate({ id: 'chat', chat: { mode: 'agent' } });
     case 'pause-notifications':
       if (!input.notifications.enabled) throw new Error('system-entry-notifications-disabled');

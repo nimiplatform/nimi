@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop ordinary primary navigation is Home, Chat, Explore, Apps, AI Capabilities and Cloud Services in that order. Home is the Nimi personal AI overview and the Logo destination; Downloads is a persistent global utility above the account entry, while Settings, Support and Advanced and Diagnostics remain secondary. Capability setup is never hidden by enableRuntimeTab, and the former four-tab Runtime navigation is not a parallel ordinary entry.
+    statement: Desktop ordinary primary navigation is Home, Chat, Explore, Apps, AI Capabilities and Cloud Services in that order. Home is the Nimi personal AI overview and the Logo destination; Downloads is a persistent global utility above the account entry, while Settings and Advanced and Diagnostics remain secondary. Normal support shortcuts target Settings troubleshooting or logs; independently mounted recovery remains available outside ordinary readiness. Capability setup is never hidden by enableRuntimeTab, and the former four-tab Runtime navigation is not a parallel ordinary entry.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -1119,3 +1119,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.menu-bar
+  - id: rule.nimi.desktop.shell-ui.settings-navigation
+    kind: rule
+    title: Settings navigation preserves pending user edits and entry focus
+    modality: must
+    statement: Controlled navigation from Settings completes pending appearance, profile, privacy or Realm notification autosave before leaving; on failure it preserves the page for retry or an explicit discard decision. Forced account or data-root scope invalidation cancels pending navigation and never writes an old draft into a new owner. Reopening the same Settings section presents and focuses it without duplicate history. Search is page-scoped and read-only. Keyboard account-menu entry, escape and target focus, compact list-detail return and responsive focus recovery remain usable.
+    condition: Whenever Home navigates into, within or out of Settings.
+    failure: Reject silently discarded unsaved edits, saving treated as saved, scope-crossing draft writes, repeated entry that leaves compact navigation on its list, or focus on removed elements.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane

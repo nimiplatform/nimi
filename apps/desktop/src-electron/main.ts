@@ -894,6 +894,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       metadata: { name: 'Nimi Home', version: desktopPackage.version },
       allowedRendererUrls: allowedRendererUrls(), app,
       appCommands: [
+        { id: 'home.open-settings', menu: 'file', labels: { en: 'Settings', zh: '设置' }, shortcut: 'Ctrl+,', macShortcut: 'Cmd+,' },
+        { id: 'home.open-troubleshooting', menu: 'help', labels: { en: 'Troubleshooting', zh: '故障排查' } },
+        { id: 'home.open-logs', menu: 'help', labels: { en: 'Export Logs', zh: '日志导出' } },
+        { id: 'home.open-terms', menu: 'help', labels: { en: 'Terms of Service', zh: '服务条款' } },
+        { id: 'home.open-privacy', menu: 'help', labels: { en: 'Privacy Policy', zh: '隐私政策' } },
         { id: 'home.open-downloads', menu: 'view', labels: { en: 'Downloads', zh: '下载' } },
         { id: 'home.open-docs', menu: 'help', labels: { en: 'Documentation', zh: '文档' } },
         { id: 'home.check-update', menu: 'help', labels: { en: 'Check for updates', zh: '检查更新' } },

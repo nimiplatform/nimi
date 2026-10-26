@@ -1,3 +1,4 @@
+import { LifeBuoy, FileText } from 'lucide-react';
 import React from 'react';
 
 export const ICON_USER = (
@@ -152,39 +153,23 @@ export type SettingsMenuSection = {
 };
 
 const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
-  {
-    label: 'Account',
-    items: [
-      { id: 'profile', icon: ICON_USER, title: 'Profile' },
-      { id: 'appearance', icon: ICON_MONITOR, title: 'Appearance & Language' },
-    ],
-  },
-  {
-    label: 'Privacy & Security',
-    items: [
-      { id: 'privacy', icon: ICON_EYE, title: 'Privacy' },
-      { id: 'security', icon: ICON_SHIELD, title: 'Security' },
-    ],
-  },
-  {
-    label: 'Preferences',
-    items: [
-      { id: 'notifications', icon: ICON_BELL, title: 'Notifications' },
-      { id: 'developer', icon: ICON_ZAP, title: 'Developer' },
-    ],
-  },
-  {
-    label: 'Data',
-    items: [
-      { id: 'data', icon: ICON_DATABASE, title: 'Data Management' },
-    ],
-  },
-  {
-    label: 'About & Legal',
-    items: [
-      { id: 'about-legal', icon: ICON_INFO, title: 'About & Legal' },
-    ],
-  },
+  { label: 'Preferences', items: [
+    { id: 'appearance', icon: ICON_MONITOR, title: 'Appearance & Language' },
+    { id: 'notifications', icon: ICON_BELL, title: 'Notifications' },
+  ] },
+  { label: 'Account', items: [
+    { id: 'profile', icon: ICON_USER, title: 'Profile' },
+    { id: 'privacy', icon: ICON_EYE, title: 'Privacy' },
+    { id: 'security', icon: ICON_SHIELD, title: 'Account Security' },
+  ] },
+  { label: 'Device', items: [
+    { id: 'data', icon: ICON_DATABASE, title: 'Storage & Data' },
+    { id: 'developer', icon: ICON_ZAP, title: 'Developer' },
+  ] },
+  { label: 'Support', items: [
+    { id: 'troubleshooting', icon: <LifeBuoy size={18} />, title: 'Troubleshooting' },
+    { id: 'logs', icon: <FileText size={18} />, title: 'Export Logs' },
+  ] },
 ];
 
 export const MENU_SECTIONS: SettingsMenuSection[] = BASE_MENU_SECTIONS;

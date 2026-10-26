@@ -1,5 +1,5 @@
 {
-  "pageTitle": "数据管理",
+  "pageTitle": "存储与数据",
   "pageDescription": "管理你的数据与存储偏好",
   "cacheCleared": "缓存清理成功。",
   "storageUsageTitle": "当前窗口的存储估算",
@@ -50,5 +50,10 @@
   "sessionTitle": "会话",
   "sessionBody": "在当前设备退出你的账户。",
   "logOut": "退出登录",
-  "dataRootReplacedAuditUnrecorded": "新数据目录已启用，但本次变更未能写入审计记录。请勿重复更换目录。重新打开 Nimi 继续使用；若记录持续失败，请联系支持。"
+  "dataRootReplacedAuditUnrecorded": "新数据目录已启用，但本次变更未能写入审计记录。请勿重复更换目录。重新打开 Nimi 继续使用；若记录持续失败，请联系支持。",
+  "storageReadFailed": "暂时无法读取存储估算。",
+  "dataRootReadFailed": "暂时无法读取当前数据位置。",
+  "checkSyncReadFailed": "暂时无法读取检查与同步状态。",
+  "separateStorageScopes": "以上估算分别对应不同范围，不代表 Nimi 数据总量或磁盘占用。",
+  "productVersions": "保留的产品版本"
 }

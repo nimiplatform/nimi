@@ -71,7 +71,7 @@ export function ScreenRepair(props: ScreenRepairProps): ReactElement {
           {t('FirstRun.repair.retry', { defaultValue: 'Retry' })}
         </Button>
         <div className="[&_button]:rounded-md" data-testid="first-run-repair-support">
-          <SupportDegradedEntry />
+          <SupportDegradedEntry recovery={{ title: t('FirstRun.repair.heading'), detail: props.reason ?? undefined, actionLabel: t('Common.retry'), onAction: props.onRetry, busy: props.busy }} />
         </div>
       </div>
     </div>
@@ -114,7 +114,7 @@ export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
         ) : null}
       </div>
       <div className="[&_button]:rounded-md" data-testid="first-run-blocked-support">
-        <SupportDegradedEntry />
+        <SupportDegradedEntry recovery={{ title: t('FirstRun.blocked.heading'), detail: props.reason ?? undefined }} />
       </div>
     </div>
   );

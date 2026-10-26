@@ -278,7 +278,7 @@ function HomeProfileRepairScreen() {
           <button type="button" disabled={busy} onClick={() => { void retry(); }} className={STATUS_SHELL_PRIMARY_BUTTON}>
             {t('Support.homeProfileRetry')}
           </button>
-          <SupportDegradedEntry />
+          <SupportDegradedEntry recovery={{ title: t('Support.homeProfileTitle'), detail: error ?? undefined, actionLabel: t('Support.homeProfileRetry'), onAction: () => { void retry(); }, busy }} />
         </div>
       </div>
     </SharedStatusShell>
@@ -398,6 +398,7 @@ function DesktopAdmissionFailedScreen(props: {
         >
           {t('Bootstrap.admissionFailedSignOut', { defaultValue: 'Sign out' })}
         </button>
+        <SupportDegradedEntry recovery={{ title: t('Bootstrap.admissionFailedTitle'), actionLabel: t('Bootstrap.admissionFailedRetry'), onAction: props.onRetry }} />
       </div>
     </SharedStatusShell>
   );

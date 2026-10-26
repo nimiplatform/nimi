@@ -1,3 +1,4 @@
+import { useSettingsSaveGuard } from './use-settings-save-guard.js';
 import { ExecutionNotificationSetting } from '../home/execution-notices.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
@@ -110,6 +111,8 @@ export function NotificationsPage() {
   const [feedback, setFeedback] = useState<{
     kind: 'info' | 'success' | 'warning' | 'error';
     message: string;
+    actionLabel?: string;
+    onAction?: () => void;
   } | null>(null);
   const autosaveTimerRef = useRef<(() => void) | null>(null);
   // Monotonic counter bumped on every user edit; a save snapshots it so that
@@ -152,15 +155,15 @@ export function NotificationsPage() {
     setForm((previous) => ({ ...previous, ...patch }));
   };
 
-  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
-    if (saving || !hasChanges) {
+  const performSave = async (isCurrent: () => boolean, { silentSuccess = true }: { silentSuccess?: boolean } = {}) => {
+    if (!hasChanges) {
       if (!hasChanges) {
         setFeedback({
           kind: 'info',
           message: t('Notifications.noChanges'),
         });
       }
-      return;
+      return true;
     }
     setSaving(true);
     setSaveStatus('saving');
@@ -168,8 +171,10 @@ export function NotificationsPage() {
     const savedForm = form;
     try {
       await updateNimiRealmUserNotificationSettings(bindings.sdk.realm(), toNotificationPayload(savedForm));
+      if (!isCurrent()) return false;
       saveSnapshotRef.current = saveSnapshot;
       await settingsQuery.refetch();
+      if (!isCurrent()) return false;
       if (editVersionRef.current === saveSnapshot) {
         // No newer edits arrived in flight; the saved form is the new baseline
         // even when the refetch returns structurally identical data.
@@ -182,20 +187,29 @@ export function NotificationsPage() {
           message: t('Notifications.updateSuccess'),
         });
       }
+      return true;
     } catch (error) {
       saveSnapshotRef.current = null;
       setSaveStatus('error');
       setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Notifications.updateError')),
+        actionLabel: t('Common.retry'), onAction: () => { void handleSave(); },
       });
+      return false;
     } finally {
       setSaving(false);
     }
   };
+  const { save: handleSave, dialog: leaveDialog } = useSettingsSaveGuard({
+    dirty: hasChanges, revision: editVersionRef.current, currentRevision: () => editVersionRef.current,
+    cancelScheduled: () => { autosaveTimerRef.current?.(); autosaveTimerRef.current = null; },
+    commit: isCurrent => performSave(isCurrent),
+  });
+
 
   useEffect(() => {
-    if (saving || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
+    if (saving || saveStatus === 'error' || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
       autosaveTimerRef.current?.();
       autosaveTimerRef.current = null;
       return;
@@ -212,14 +226,14 @@ export function NotificationsPage() {
         });
         return;
       }
-      void handleSave({ silentSuccess: true });
+      void handleSave();
     });
 
     return () => {
       autosaveTimerRef.current?.();
       autosaveTimerRef.current = null;
     };
-  }, [bindings.clock, form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
+  }, [bindings.clock, form, hasChanges, saving, saveStatus, settingsQuery.isError, settingsQuery.isPending]);
 
   const statusNode = saveStatus === 'saving'
     ? <StatusBadge status="info" text={t('Settings.statusSaving')} />
@@ -235,7 +249,7 @@ export function NotificationsPage() {
 
   if (settingsQuery.isPending) {
     return (
-      <PageShell title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
+      <PageShell footer={leaveDialog} title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
         {homeMessages}
         <Card>
           <div className="flex items-center gap-3">
@@ -249,7 +263,7 @@ export function NotificationsPage() {
 
   if (settingsQuery.isError) {
     return (
-      <PageShell title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
+      <PageShell footer={leaveDialog} title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
         {homeMessages}
         <FormFeedback
           feedback={{ kind: 'error', message: t('Notifications.loadError') }}
@@ -260,7 +274,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <PageShell
+    <PageShell footer={leaveDialog}
       title={t('Notifications.pageTitle')}
       description={t('Notifications.pageDescription')}
       status={statusNode}

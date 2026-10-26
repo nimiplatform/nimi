@@ -89,7 +89,7 @@ export function DesktopRecoveryActions(props: {
         >
           {props.retryLabel}
         </button>
-        <SupportDegradedEntry />
+        <SupportDegradedEntry recovery={{ title: t('Support.homeNotReady'), detail: props.technicalDetail, actionLabel: props.retryLabel, onAction: props.onRetry, busy: props.retrying }} />
       </div>
       {props.technicalDetail ? (
         <details className="w-full max-w-[28rem] text-left text-xs text-[var(--nimi-text-muted)]">

@@ -1,3 +1,4 @@
+import { useSettingsSaveGuard } from './use-settings-save-guard.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
@@ -216,9 +217,9 @@ export function PrivacyPage() {
 
   const hasChanges = useMemo(() => !formsEqual(form, baseline), [form, baseline]);
 
-  const handleSave = async () => {
-    if (saving || !hasChanges) {
-      return;
+  const performSave = async (isCurrent: () => boolean) => {
+    if (!hasChanges) {
+      return true;
     }
     const persistedForm = form;
     saveStartVersionRef.current = editVersionRef.current;
@@ -227,12 +228,15 @@ export function PrivacyPage() {
     setFeedback(null);
     try {
       await updateNimiRealmUserSettings(bindings.sdk.realm(), toUpdatePayload(persistedForm));
+      if (!isCurrent()) return false;
       await settingsQuery.refetch();
+      if (!isCurrent()) return false;
       // The baseline must reflect exactly what was persisted, even when the
       // refetch returns deep-equal data and the server-data effect above does
       // not re-run.
       setBaseline(persistedForm);
       setSaveState('saved');
+      return true;
     } catch (error) {
       failedEditVersionRef.current = saveStartVersionRef.current;
       setFeedback({
@@ -242,8 +246,15 @@ export function PrivacyPage() {
         onAction: () => { void handleSaveRef.current(); },
       });
       setSaveState('error');
+      return false;
     }
   };
+  const { save: handleSave, dialog: leaveDialog } = useSettingsSaveGuard({
+    dirty: hasChanges, revision: editVersionRef.current, currentRevision: () => editVersionRef.current,
+    cancelScheduled: () => { autosaveTimerRef.current?.(); autosaveTimerRef.current = null; },
+    commit: isCurrent => performSave(isCurrent),
+  });
+
 
   // The retry action always saves the current form, not the failed render's.
   const handleSaveRef = useRef(handleSave);
@@ -283,7 +294,7 @@ export function PrivacyPage() {
 
   if (settingsQuery.isPending) {
     return (
-      <PageShell
+      <PageShell footer={leaveDialog}
         title={t('PrivacySettings.pageTitle')}
         description={t('PrivacySettings.pageDescription')}
       >
@@ -299,7 +310,7 @@ export function PrivacyPage() {
 
   if (settingsQuery.isError) {
     return (
-      <PageShell
+      <PageShell footer={leaveDialog}
         title={t('PrivacySettings.pageTitle')}
         description={t('PrivacySettings.pageDescription')}
       >
@@ -309,7 +320,7 @@ export function PrivacyPage() {
   }
 
   return (
-    <PageShell
+    <PageShell footer={leaveDialog}
       title={t('PrivacySettings.pageTitle')}
       description={t('PrivacySettings.pageDescription')}
       status={saveStatus}

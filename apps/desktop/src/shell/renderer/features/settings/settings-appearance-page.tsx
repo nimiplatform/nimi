@@ -1,3 +1,4 @@
+import { useSettingsSaveGuard } from './use-settings-save-guard.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineAlert, SegmentedControl, SelectField } from '@nimiplatform/kit/ui';
@@ -26,6 +27,8 @@ import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 type FeedbackState = {
   kind: 'info' | 'success' | 'warning' | 'error';
   message: string;
+  actionLabel?: string;
+  onAction?: () => void;
 } | null;
 
 /**
@@ -98,6 +101,8 @@ export function AppearancePage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const autosaveTimerRef = React.useRef<(() => void) | null>(null);
+  const editVersion = React.useRef(0);
+  const edit = (patch: Partial<AppearancePreferences>) => { editVersion.current++; setFeedback(null); setPreferences(previous => previous ? { ...previous, ...patch } : previous); };
   const [language, setLanguage] = useState<SupportedLocale>(() => i18n.getCurrentLocale());
   const [changingLocale, setChangingLocale] = useState(false);
   const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
@@ -133,48 +138,57 @@ export function AppearancePage() {
     autosaveTimerRef.current?.();
   }, []);
 
-  const handleSave = ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
-    if (saving || !hasChanges || preferences === null) {
-      return;
+  const performSave = async (isCurrent: () => boolean) => {
+    if (!hasChanges || preferences === null) {
+      return true;
     }
+    if (!isCurrent()) return false;
     setSaving(true);
     try {
       bindings.app.commands.settings.persistAppearancePreferences(preferences);
       setBaseline(preferences);
-      if (!silentSuccess) {
-        setFeedback({ kind: 'success', message: t('Appearance.saveSuccess') });
-      }
+      setFeedback(null);
+      return true;
     } catch (error) {
       setFeedback({
         kind: 'error',
         message: error instanceof DevicePreferenceProjectionError
           ? t('Appearance.saveFailClosed')
           : (error instanceof Error ? error.message : t('Appearance.saveFailClosed')),
+        actionLabel: t('Common.retry'), onAction: () => { void handleSave(); },
       });
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
+  const { save: handleSave, dialog: leaveDialog } = useSettingsSaveGuard({
+    dirty: hasChanges, revision: editVersion.current, currentRevision: () => editVersion.current, pending: changingLocale,
+    cancelScheduled: () => { autosaveTimerRef.current?.(); autosaveTimerRef.current = null; },
+    commit: performSave,
+  });
+
   useEffect(() => {
-    if (saving || !hasChanges) {
+    if (saving || !hasChanges || feedback?.kind === 'error') {
       autosaveTimerRef.current?.();
       autosaveTimerRef.current = null;
       return;
     }
     autosaveTimerRef.current?.();
     autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
-      if (result.ok) handleSave({ silentSuccess: true });
+      if (result.ok) void handleSave();
+      else setFeedback({ kind: 'error', message: result.error });
     });
     return () => {
       autosaveTimerRef.current?.();
       autosaveTimerRef.current = null;
     };
-  }, [bindings, hasChanges, preferences, saving]);
+  }, [bindings, hasChanges, preferences, saving, feedback?.kind]);
 
   if (load.status === 'failClosed' || preferences === null) {
     return (
-      <PageShell title={t('Appearance.pageTitle')} description={t('Appearance.pageDescription')}>
+      <PageShell footer={leaveDialog} title={t('Appearance.pageTitle')} description={t('Appearance.pageDescription')}>
         <InlineAlert tone="danger" data-testid="settings:appearance-fail-closed">
           <p className="font-semibold">{t('Appearance.failClosedTitle')}</p>
           <p className="mt-1">{t('Appearance.failClosedBody')}</p>
@@ -190,7 +204,7 @@ export function AppearancePage() {
   };
 
   return (
-    <PageShell
+    <PageShell footer={leaveDialog}
       title={t('Appearance.pageTitle')}
       description={t('Appearance.pageDescription')}
     >
@@ -205,9 +219,7 @@ export function AppearancePage() {
               ariaLabel={t('Appearance.themeLabel')}
               items={APPEARANCE_THEMES.map((theme) => ({ value: theme, label: themeLabels[theme] }))}
               value={preferences.theme}
-              onValueChange={(value) => setPreferences((previous) => (
-                previous ? { ...previous, theme: value as AppearanceTheme } : previous
-              ))}
+              onValueChange={(value) => edit({ theme: value as AppearanceTheme })}
             />
           )}
         />
@@ -231,7 +243,7 @@ export function AppearancePage() {
           title={t('Appearance.reduceMotion')}
           description={t('Appearance.reduceMotionDescription')}
           checked={preferences.reduceMotion}
-          onChange={(value) => setPreferences((previous) => (previous ? { ...previous, reduceMotion: value } : previous))}
+          onChange={(value) => edit({ reduceMotion: value })}
         />
       </Card>
     </PageShell>

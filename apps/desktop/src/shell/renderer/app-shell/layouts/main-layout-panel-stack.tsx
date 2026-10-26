@@ -23,10 +23,6 @@ const SettingsPanelBody = lazy(async () => {
   const mod = await import('../../features/settings/settings-panel-body');
   return { default: mod.SettingsPanelBody };
 });
-const SupportPanel = lazy(async () => {
-  const mod = await import('../../features/support/support-panel');
-  return { default: mod.SupportPanel };
-});
 const RuntimeConfigPanelBody = lazy(async () => {
   const mod = await import('../../features/runtime-config/runtime-config-panel-view');
   return { default: mod.RuntimeConfigPanelBody };
@@ -53,15 +49,6 @@ const GlobalDownloadsView = lazy(async () => ({
 const NimiOverview = lazy(async () => ({
   default: (await import('../../features/home/nimi-overview')).NimiOverview,
 }));
-const PrivacyPolicyView = lazy(async () => {
-  const mod = await import('../../features/legal/privacy-policy-view');
-  return { default: mod.PrivacyPolicyView };
-});
-const TermsOfServiceView = lazy(async () => {
-  const mod = await import('../../features/legal/terms-of-service-view');
-  return { default: mod.TermsOfServiceView };
-});
-
 type MainLayoutPanelStackProps = {
   activeTab: AppTab;
   exploreActiveSection: ExploreSectionId;
@@ -173,12 +160,6 @@ export function MainLayoutPanelStack({
             </MotionPanelFrame>
           ) : null}
 
-          {activeTab === 'support' ? (
-            <MotionPanelFrame panelId="support">
-              <SupportPanel />
-            </MotionPanelFrame>
-          ) : null}
-
           {activeTab === 'profile' ? (
             <MotionPanelFrame panelId="profile">
               <ProfilePanel />
@@ -197,17 +178,6 @@ export function MainLayoutPanelStack({
             </MotionPanelFrame>
           ) : null}
 
-          {activeTab === 'privacy-policy' ? (
-            <MotionPanelFrame panelId="privacy-policy">
-              <PrivacyPolicyView />
-            </MotionPanelFrame>
-          ) : null}
-
-          {activeTab === 'terms-of-service' ? (
-            <MotionPanelFrame panelId="terms-of-service">
-              <TermsOfServiceView />
-            </MotionPanelFrame>
-          ) : null}
         </AnimatePresence>
       </Suspense>
     </>

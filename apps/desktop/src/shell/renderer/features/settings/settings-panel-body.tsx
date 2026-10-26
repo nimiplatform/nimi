@@ -1,219 +1,104 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Button as KitButton,
-  ScrollArea,
-  SidebarAffordanceChevron,
-  SidebarHeader,
-  SidebarItem,
-  SidebarResizeHandle,
-  SidebarSection,
-  SidebarShell,
-  Surface,
-} from '@nimiplatform/kit/ui';
+import { Button, ScrollArea, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface } from '@nimiplatform/kit/ui';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
+import { SETTINGS_LABELS } from './settings-sections.js';
+import { openHomeSettings, subscribeSettingsEntry } from './settings-entry.js';
 import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 
-const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
-  Account: 'Settings.sectionAccount',
-  'Privacy & Security': 'Settings.sectionPrivacySecurity',
-  Preferences: 'Settings.sectionPreferences',
-  Data: 'Settings.sectionData',
-  'About & Legal': 'Settings.sectionAboutLegal',
+const GROUP_KEYS: Record<string, string> = {
+  Preferences: 'Settings.sectionPreferences', Account: 'Settings.sectionAccount',
+  Device: 'Settings.sectionDevice', Support: 'Settings.sectionSupport',
 };
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 320;
 
-const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
-  profile: 'Settings.menuProfile',
-  appearance: 'Settings.menuAppearance',
-  privacy: 'Settings.menuPrivacy',
-  security: 'Settings.menuSecurity',
-  notifications: 'Settings.menuNotifications',
-  developer: 'Settings.menuDeveloper',
-  data: 'Settings.menuData',
-  'about-legal': 'Settings.menuAboutLegal',
-};
-
-const MIN_SETTINGS_SIDEBAR_WIDTH = 200;
-const MAX_SETTINGS_SIDEBAR_WIDTH = 320;
-const SETTINGS_SIDEBAR_KEYBOARD_STEP = 8;
-const COMPACT_SETTINGS_LAYOUT_MAX_WIDTH = 620;
-
+// @nimi-authority: rule.nimi.desktop.shell-ui.settings-navigation
 export function SettingsPanelBody() {
   const { t } = useTranslation();
-  const controller = useHomeNavigation();
-  const menuSections = getSettingsMenuSections();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const resizePointerIdRef = useRef<number | null>(null);
-  const [sidebarWidth, setSidebarWidth] = useState(216);
-  const selectedId = useHomeDestination().settingsSection ?? 'profile';
-  const [isCompactLayout, setIsCompactLayout] = useState(false);
-  const [compactView, setCompactView] = useState<'list' | 'detail'>('list');
-
-  const handleSelect = (id: string) => {
-    void controller.push({ id: 'settings', settingsSection: id });
-    if (isCompactLayout) {
-      setCompactView('detail');
-    }
-  };
-
-  useEffect(() => setCompactView('detail'), [selectedId]);
-
+  const navigation = useHomeNavigation();
+  const selectedId = useHomeDestination().settingsSection ?? 'appearance';
+  const container = useRef<HTMLDivElement>(null);
+  const sidebar = useRef<HTMLDivElement>(null);
+  const detail = useRef<HTMLDivElement>(null);
+  const resizePointer = useRef<number | null>(null);
+  const requestedFocus = useRef<'list' | 'detail' | null>('detail');
+  const [width, setWidth] = useState(232);
+  const [compact, setCompact] = useState(false);
+  const [view, setView] = useState<'list' | 'detail'>('detail');
+  const [query, setQuery] = useState('');
+  const [entry, setEntry] = useState(0);
+  const reveal = () => { setQuery(''); requestedFocus.current = 'detail'; setView('detail'); setEntry(value => value + 1); };
+  useEffect(() => subscribeSettingsEntry(navigation, reveal), [navigation]);
+  useEffect(() => { reveal(); }, [selectedId]);
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || typeof ResizeObserver !== 'function') return undefined;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setIsCompactLayout(entry.contentRect.width < COMPACT_SETTINGS_LAYOUT_MAX_WIDTH);
+    if (!container.current || typeof ResizeObserver !== 'function') return;
+    const observer = new ResizeObserver(entries => {
+      for (const event of entries) {
+        const next = event.contentRect.width < 620;
+        setCompact(previous => {
+          if (next !== previous) requestedFocus.current = next && sidebar.current?.contains(document.activeElement) ? 'list' : 'detail';
+          return next;
+        });
       }
     });
-    observer.observe(container);
+    observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
+  useLayoutEffect(() => {
+    const request = requestedFocus.current;
+    if (!request) return;
+    if (compact && view !== request) { setView(request); return; }
+    const frame = requestAnimationFrame(() => {
+      const target = request === 'list'
+        ? sidebar.current?.querySelector<HTMLElement>(`[data-testid="settings-nav:${selectedId}"]`) ?? sidebar.current?.querySelector<HTMLElement>('input')
+        : detail.current?.querySelector<HTMLElement>('h2, h1');
+      if (target) { if (!target.matches('button, input, select, textarea')) target.tabIndex = -1; target.focus({ preventScroll: true }); }
+      requestedFocus.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedId, compact, view, entry]);
 
-  const startResize = (event: PointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    resizePointerIdRef.current = event.pointerId;
-    event.currentTarget.setPointerCapture(event.pointerId);
+  const groups = getSettingsMenuSections().map(group => ({ ...group, items: group.items.filter(item => {
+    const terms = `${t(SETTINGS_LABELS[item.id]!)} ${t(`Settings.searchTerms.${item.id}`)}`.toLocaleLowerCase();
+    return !query.trim() || query.trim().toLocaleLowerCase().split(/\s+/).every(word => terms.includes(word));
+  }) })).filter(group => group.items.length);
+  const select = (id: string) => { void openHomeSettings(navigation, id); };
+  const beginResize = (event: PointerEvent<HTMLDivElement>) => { event.preventDefault(); resizePointer.current = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); };
+  const resize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizePointer.current !== event.pointerId || !container.current) return;
+    setWidth(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(event.clientX - container.current.getBoundingClientRect().left))));
   };
-
-  const continueResize = (event: PointerEvent<HTMLDivElement>) => {
-    if (resizePointerIdRef.current !== event.pointerId || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setSidebarWidth(Math.min(
-      MAX_SETTINGS_SIDEBAR_WIDTH,
-      Math.max(MIN_SETTINGS_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
-    ));
+  const endResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizePointer.current !== event.pointerId) return;
+    resizePointer.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
-
-  const stopResize = (event: PointerEvent<HTMLDivElement>) => {
-    if (resizePointerIdRef.current !== event.pointerId) return;
-    resizePointerIdRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  const stepResize = (delta: number) => {
-    setSidebarWidth((width) => Math.min(
-      MAX_SETTINGS_SIDEBAR_WIDTH,
-      Math.max(MIN_SETTINGS_SIDEBAR_WIDTH, width + delta),
-    ));
-  };
-
-  const navigation = (
-    <ScrollArea className="flex-1" contentClassName="desktop-sidebar__body desktop-sidebar__groups">
-      {menuSections.map((section) => {
-        const sectionKey = SETTINGS_SECTION_KEY_BY_LABEL[section.label];
-        return (
-          <SidebarSection
-            key={section.label}
-            label={sectionKey ? t(sectionKey) : section.label}
-          >
-            {section.items.map((item) => {
-              const itemKey = SETTINGS_ITEM_KEY_BY_ID[item.id];
-              const itemTitle = itemKey ? t(itemKey) : item.title;
-              const active = selectedId === item.id;
-              return (
-                <SidebarItem
-                  key={item.id}
-                  kind="nav-row"
-                  active={active}
-                  data-testid={`settings-nav:${item.id}`}
-                  title={itemTitle}
-                  onClick={() => handleSelect(item.id)}
-                  icon={<span className={active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}>{item.icon}</span>}
-                  label={itemTitle}
-                  trailing={active ? <SidebarAffordanceChevron /> : undefined}
-                />
-              );
-            })}
-          </SidebarSection>
-        );
-      })}
-    </ScrollArea>
-  );
-
-  const pageTitle = (() => {
-    const itemKey = SETTINGS_ITEM_KEY_BY_ID[selectedId];
-    return itemKey ? t(itemKey) : selectedId;
-  })();
-
-  if (isCompactLayout) {
-    return (
-      <div ref={containerRef} className="flex min-h-0 flex-1 px-4 pb-4 pt-3" data-testid="panel:settings-body">
-        <Surface
-          tone="panel"
-          material="solid"
-          padding="none"
-          className="desktop-sidebar desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
-        >
-          {compactView === 'list' ? (
-            <div className="flex min-h-0 flex-1 flex-col" data-testid="panel:settings-compact-list">
-              <SidebarHeader
-                title={<h1 className="desktop-sidebar__title font-semibold text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>}
-                className="desktop-sidebar__header"
-              />
-              {navigation}
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 flex-col" data-testid="panel:settings-compact-detail">
-              <div className="flex shrink-0 items-center gap-2 border-b border-[color:var(--nimi-border-subtle)] px-3 py-2">
-                <KitButton
-                  tone="ghost"
-                  size="sm"
-                  onClick={() => setCompactView('list')}
-                  aria-label={t('Settings.back')}
-                  data-testid="settings-compact-back"
-                >
-                  {t('Settings.back')}
-                </KitButton>
-                <span className="min-w-0 truncate text-[length:var(--nimi-type-body-size)] font-medium text-[var(--nimi-text-secondary)]">
-                  {pageTitle}
-                </span>
-              </div>
-              {renderSettingsPage(selectedId)}
-            </div>
-          )}
-        </Surface>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3" data-testid="panel:settings-body">
-      <SidebarShell width={sidebarWidth} className="desktop-sidebar" data-testid="panel:settings-sidebar">
-        <SidebarHeader title={<h1 className="desktop-sidebar__title font-semibold text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>} className="desktop-sidebar__header" />
-        {navigation}
-        <SidebarResizeHandle
-          ariaLabel={t('Settings.resizeSidebarAriaLabel')}
-          aria-valuenow={sidebarWidth}
-          aria-valuemin={MIN_SETTINGS_SIDEBAR_WIDTH}
-          aria-valuemax={MAX_SETTINGS_SIDEBAR_WIDTH}
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowLeft') {
-              event.preventDefault();
-              stepResize(-SETTINGS_SIDEBAR_KEYBOARD_STEP);
-            } else if (event.key === 'ArrowRight') {
-              event.preventDefault();
-              stepResize(SETTINGS_SIDEBAR_KEYBOARD_STEP);
-            }
-          }}
-          onPointerCancel={stopResize}
-          onPointerDown={startResize}
-          onPointerMove={continueResize}
-          onPointerUp={stopResize}
-        />
-      </SidebarShell>
-
-      <Surface
-        tone="panel"
-        material="solid"
-        padding="none"
-        className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[color:var(--nimi-border-subtle)] shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
-      >
-        {renderSettingsPage(selectedId)}
-      </Surface>
-    </div>
-  );
+  return <div ref={container} className="flex min-h-0 min-w-0 flex-1 gap-3 px-4 pb-4 pt-3" data-testid="panel:settings-body">
+    <div ref={sidebar} className={compact && view === 'detail' ? 'hidden' : 'contents'}><SidebarShell width={compact ? '100%' : width} className={`desktop-sidebar min-h-0 ${compact ? 'flex-1' : ''}`} data-testid="panel:settings-sidebar">
+      <SidebarHeader className="desktop-sidebar__header" title={<h1 className="desktop-sidebar__title font-semibold">{t('Navigation.settings')}</h1>} />
+      <div className="px-3 pb-3" data-testid="settings-search"><SidebarSearch value={query} onValueChange={setQuery}
+        ariaLabel={t('Settings.search')} placeholder={t('Settings.search')} onClear={() => setQuery('')} clearLabel={t('Common.clear')} /></div>
+      <ScrollArea className="min-h-0 flex-1" contentClassName="desktop-sidebar__body desktop-sidebar__groups">
+        {groups.map(group => <SidebarSection key={group.label} label={t(GROUP_KEYS[group.label]!)}>
+          {group.items.map(item => <SidebarItem key={item.id} kind="nav-row" active={selectedId === item.id} aria-current={selectedId === item.id ? 'page' : undefined}
+            data-testid={`settings-nav:${item.id}`} title={t(SETTINGS_LABELS[item.id]!)} icon={item.icon} label={t(SETTINGS_LABELS[item.id]!)}
+            description={query.trim() ? t(`Settings.searchSummary.${item.id}`) : undefined} onClick={() => select(item.id)} />)}
+        </SidebarSection>)}
+        {!groups.length ? <p role="status" className="px-2 text-sm text-[var(--nimi-text-secondary)]">{t('Settings.searchEmpty')}</p> : null}
+      </ScrollArea>
+      {!compact ? <SidebarResizeHandle ariaLabel={t('Settings.resizeSidebarAriaLabel')} aria-valuenow={width} aria-valuemin={MIN_WIDTH} aria-valuemax={MAX_WIDTH}
+        onPointerDown={beginResize} onPointerMove={resize} onPointerUp={endResize} onPointerCancel={endResize}
+        onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setWidth(value => Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, value + (event.key === 'ArrowRight' ? 8 : -8)))); } }} /> : null}
+    </SidebarShell></div>
+    <Surface tone="panel" material="solid" padding="none" className={`desktop-module-panel min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${compact && view === 'list' ? 'hidden' : 'flex'}`}>
+      {compact ? <div className="flex shrink-0 items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-3 py-2">
+        <Button tone="ghost" size="sm" data-testid="settings-compact-back" onClick={() => { requestedFocus.current = 'list'; setView('list'); }}>
+          {t('Settings.back')}
+        </Button><span className="truncate text-sm text-[var(--nimi-text-secondary)]">{t(SETTINGS_LABELS[selectedId]!)}</span>
+      </div> : null}
+      <div ref={detail} className="flex min-h-0 flex-1 flex-col" data-testid="settings-detail">{renderSettingsPage(selectedId)}</div>
+    </Surface>
+  </div>;
 }

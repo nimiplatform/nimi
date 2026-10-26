@@ -74,8 +74,8 @@
   "diagnosticsResourcesDisk": "磁盘",
   "diagnosticsResourcesSource": "来源",
   "diagnosticsResourcesUnavailable": "当前环境不提供系统资源快照。",
-  "logsTitle": "日志",
-  "logsDescription": "日志查看与导出。",
+  "logsTitle": "日志导出",
+  "logsDescription": "查找日志位置，并导出本地归档。",
   "logsProjectionUnavailable": "无法读取日志存储目录信息。",
   "logsLocationTitle": "日志位置",
   "logsLocationDescription": "日志保存在 nimi_data 数据根目录下。",
@@ -162,5 +162,11 @@
   "homeProfileTitle": "Nimi 需要完成数据目录设置",
   "homeProfileDescription": "当前可以进行设置和修复。所选目录恢复可用并重启 Nimi 后，才能继续正常使用。",
   "homeProfileRetry": "检查目录并重启 Nimi",
-  "homeProfileStillUnavailable": "目录仍不可用，或恢复尚未完成。请通过支持面板修复后重试。"
+  "homeProfileStillUnavailable": "目录仍不可用，或恢复尚未完成。请通过支持面板修复后重试。",
+  "homeNotReady": "Home 尚未就绪",
+  "runtimeMaintenance": "Runtime 正在等待恢复",
+  "gateStillBlocked": "当前启动或连接问题尚未解决，请先完成恢复操作。",
+  "storedRecord": "已保存的产品记录（不代表当前可用）",
+  "logsExportEmpty": "当前日志目录为空，没有生成归档。请核对上方日志位置后重试。",
+  "logsExportUnavailable": "暂时无法导出日志。请核对日志位置，并查看技术详情后重试。"
 }
