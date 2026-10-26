@@ -43,7 +43,7 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
         })
       : null;
   return (
-    <section data-testid="world-character-works-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
+    <section data-testid="world-character-works-section" className="border-t border-[var(--nimi-border-subtle)] py-7">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
@@ -239,7 +239,7 @@ type WorldCharacterDialogueSample = {
   character: string;
 };
 
-// The hero banner anchors the card: the back control sits on its top-left and
+// The hero banner anchors the page: the back control sits on its top-left and
 // the host world pill on its top-right. Below the banner an enlarged avatar
 // overlaps the banner edge, followed by name, an explicit subtitle line
 // (role, optionally age), and the voice preview. The body splits into two
@@ -308,13 +308,13 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
     >
       <ScrollArea
         className="flex-1"
-        contentClassName="mx-auto max-w-[1180px] px-5 py-6"
+        contentClassName="w-full"
       >
-        <div className="grid gap-5">
+        <div>
           <section
             data-testid="world-character-overview-section"
             data-nimi-density="expressive"
-            className="overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]"
+            className="min-w-0"
           >
             <div
               data-testid="world-character-hero-banner"
@@ -353,7 +353,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
               ) : null}
             </div>
 
-            <div className="px-9 pb-7 max-[720px]:px-5">
+            <div className="mx-auto max-w-[1180px] px-9 pb-7 max-[720px]:px-5">
               <div className="flex items-start gap-8 max-[720px]:flex-col max-[720px]:gap-6">
                 <div
                   data-testid="world-character-hero-avatar"
@@ -523,7 +523,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                                       />
                                       <div className="min-w-0">
                                         <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">{source.displayName}</p>
-                                        <p data-testid="world-character-opening-line" className="mt-1.5 whitespace-pre-wrap rounded-[16px] rounded-tl-[6px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-sm leading-6 text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]">
+                                        <p data-testid="world-character-opening-line" className="mt-1.5 whitespace-pre-wrap rounded-[16px] rounded-tl-[6px] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm leading-6 text-[var(--nimi-text-primary)]">
                                           {dialogueSample.character}
                                         </p>
                                       </div>
@@ -557,9 +557,9 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
             </div>
           </section>
 
-          <main className="grid min-w-0 gap-5">
+          <div className="mx-auto max-w-[1180px] px-9 max-[720px]:px-5">
             <WorldCharacterWorksBlock source={source} />
-          </main>
+          </div>
         </div>
       </ScrollArea>
     </div>
