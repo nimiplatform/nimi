@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mimo
-catalog_version: 2026-10-10-mimo-v2-6
+catalog_version: 2026-10-27-mimo-v2-6
 generated_target: runtime/catalog/providers/mimo.yaml
 runtime:
   inventory_mode: static_source
@@ -27,8 +27,8 @@ defaults:
 sources:
   - source_id: mimo_models_doc
     url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
-    retrieved_at: 2026-10-10
-    note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
+    retrieved_at: 2026-10-27
+    note: Xiaomi MiMo official current models page confirms V2.5 text names retired on 2026-10-21; V2.6 Pro and Flash remain current.
   - source_id: mimo_deprecation_doc
     url: https://mimo.mi.com/docs/zh-CN/updates/deprecate
     retrieved_at: 2026-10-10
@@ -136,33 +136,6 @@ models:
       as_of: 2026-10-10
       notes: Recommended MiMo V2.6 Flash model for high-frequency, large-scale work, with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
     source_ids: [mimo_models_doc, mimo_openai_api_doc]
-
-  - model_id: mimo-v2.5-pro
-    model_type: chat
-    updated_at: 2026-06-02
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-10-10
-      notes: Legacy MiMo V2.5 Pro text model automatically replaced by mimo-v2.6-pro at 2026-10-14 18:00 Beijing time; this model name becomes invalid at 2026-10-21 10:00 Beijing time. Select mimo-v2.6-pro explicitly.
-    source_ids: [mimo_models_doc, mimo_deprecation_doc, mimo_openai_api_doc, mimo_v2_retirement_notice]
-
-  - model_id: mimo-v2.5
-    model_type: chat
-    updated_at: 2026-06-02
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-10-10
-      notes: Legacy MiMo V2.5 multimodal text model automatically replaced by mimo-v2.6-flash at 2026-10-14 18:00 Beijing time; this model name becomes invalid at 2026-10-21 10:00 Beijing time. Select mimo-v2.6-flash explicitly.
-    source_ids: [mimo_models_doc, mimo_deprecation_doc, mimo_openai_api_doc, mimo_v2_retirement_notice]
 
   - model_id: mimo-v2.5-asr
     model_type: stt
