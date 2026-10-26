@@ -2,43 +2,43 @@
 
 ## Scope and decisions
 
-- This file applies repo-wide. Before working in a target subtree, read the applicable `AGENTS.md` chain from this Git root to that target, including intermediate ancestors. Reuse guidance already in context unless it changes; do not enumerate unrelated subtrees or read parent-directory guidance above this Git root.
+- This file applies repo-wide. Before working in a subtree, read its `AGENTS.md` chain from this Git root, including intermediate ancestors. Reuse unchanged guidance already in context; do not enumerate unrelated subtrees or read guidance above this Git root.
 - Explicit user instructions take precedence over this file. Reuse confirmed goals, topology, phase state, and authorization. Ask only about unresolved choices that materially change the result; continue independent authorized work.
-- Complete the requested outcome within its authorized scope. Preserve unrelated work. Report concrete adjacent defects without silently expanding the task to repair them.
+- Complete the requested outcome within its authorized scope; audits and plans do not authorize implementation. Preserve unrelated work and report concrete adjacent defects without expanding the task to repair them.
 
-## Product authority and ownership
+## Product authority and implementation
 
 - Product authority lives under `.nimi/spec/**`; Git holds retired authority history. App-local spec slices, implementation, generated projections, and local evidence must not create parallel product truth. Host governance and configuration live under `.nimi/**` and `config/**`; `.local/**` is non-authoritative.
-- Before redesign that changes product semantics or canonical ownership, resolve `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth`, reusing confirmed decisions, and align canonical authority. Bounded fixes and alignment do not require a separate preflight artifact or renewed approval.
-- Fail closed on contract violations. Do not add legacy shims, pseudo-success, app-level REST bypasses, provider/model hardcoding, file collisions, or forwarding shells outside `index.ts`.
+- For redesigns changing product semantics or canonical ownership, resolve `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth` and align canonical authority, reusing confirmed decisions. Bounded fixes and alignment need no separate preflight artifact or renewed approval.
+- Validate unknown inputs once at their owning trust boundary and fail closed on contract violations. Pass validated, typed values inward; do not repeat checks already guaranteed by a schema, constructor, or internal contract unless crossing a new trust boundary. Do not add legacy shims, pseudo-success, app-level REST bypasses, provider/model hardcoding, file collisions, or forwarding shells outside `index.ts`.
 - Desktop and Web must not import `runtime/internal/**`. SDK must not cross Realm or Runtime private boundaries. Runtime must not import `sdks/**` or `apps/**`.
-- The external AI host owns workflow state; Nimi-coding must not own or mutate host task lifecycle. Use the guarded scripts in the relevant `package.json` for host workflows. The managed block below defines project-local Nimi-coding execution.
+- Keep implementation direct. Extract helpers or add layers for current reuse, a complex boundary, or a clear concept that improves readability. New fallback, retry, compatibility, concurrency, or recovery machinery must address a concrete failure mode in a supported path or an explicit contract. Supported uncommon cases remain in scope; hypothetical future needs alone do not justify complexity.
+- The external AI host owns workflow state; Nimi-coding must not own or mutate host task lifecycle. Use the relevant `package.json` guarded scripts for host workflows and the managed block below for project-local Nimi-coding execution.
 - Product composition serves the current module's audience and task. Facts, behavior, ownership, safety, and release boundaries remain binding; wording, grouping, hierarchy, and interaction are product decisions. Advanced controls and developer documentation retain necessary precision.
 
 ## UI composition
 
-- Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining: use grouping, alignment, spacing, hierarchy, and proximity to make relationships and actions clear. Do not automatically add descriptions at page, section, and item levels or repeat the same fact in both a sentence and a status label within the same context.
+- Use grouping, alignment, spacing, hierarchy, and proximity to make relationships and actions clear. Avoid redundant labels and descriptions across page, section, and item levels, including repeating a fact as both prose and status.
 - Keep secondary text when it helps the user identify an object, distinguish actual states, or understand scope, prerequisites, permissions, costs, or consequences. Preserve meaningful control labels and accessible names. Keep essential warnings beside the relevant action; optional detail may use a clearly reachable disclosure, but necessary information must not depend on color or hover alone.
-- Judge simplification by whether the intended user can find the next action and predict its result. Removing words must not remove necessary choices, hide uncertainty, or blur distinctions such as configured, prepared, and actually running.
+- Simplification must preserve the user's ability to find the next action and predict its result. Keep necessary choices, uncertainty, and distinctions such as configured, prepared, and actually running.
 
 ## Task-specific context
 
-- Start at the requested target or observed consumer, its direct dependencies, and its nearest guidance. Inspect upstream owners when a concrete task question, dependency, trace, or contract requires them; do not require a runtime failure before investigating a directly implicated owner.
+- Start at the requested target or observed consumer, its direct dependencies, and nearest guidance. Expand inspection only to resolve an uncertainty affecting the task; reuse sufficient existing evidence. A concrete dependency, trace, or contract can justify inspecting an upstream owner without a runtime failure.
 - For third-party App feasibility, capability-fit or cost audits, adaptation, AI capability expansion, consume-chain repair or related acceptance in Nimi, read `.agents/skills/nimi-app-runtime-evolution/SKILL.md`. Select audit or implementation from the current request; prior audit recommendations do not become product authority. Ordinary App business edits use the App's lifecycle guidance.
 - For shared UI primitive or contract changes, read `DESIGN.md` and `kit/DESIGN.md` as generated projections. App-local composition starts with its consumer and nearest guidance.
 - For top-level Nimi/Home/App framing, public App lifecycle, or cross-domain canonical ownership, read `rule.nimi.platform.core-protocol.p-arch-001a` with its declared outgoing context and the affected exact domain owners. Public positioning or release promises also require the implicated `P-GOV-026` rules beginning with `rule.nimi.platform.governance-release.p-gov-026-positioning` and `rule.nimi.platform.governance-release.p-gov-026-owner-boundary`.
 - For prompt or governance audits, search instruction filenames and inspect the relevant instructions and their direct loaders/checkers. Do not inspect `.nimi/spec/**` or product implementation merely because an instruction mentions them.
 - For canonical authority edits, reviews, or authority-command failures, use `.agents/skills/nimi-authority-work/SKILL.md`; ordinary implementation that follows settled contracts does not require this workflow.
-- When the requested output is only a list of lookup targets, provide the list without performing the lookups or inspecting Git state. For an actual implementation plan, read the bounded inputs needed to resolve its decisions; do not execute the planned changes. Read the direct package manifest before naming a runnable command.
+- For a list of lookup targets, provide the list without lookups or Git inspection. For implementation plans, read the bounded inputs needed to resolve decisions without executing changes. Read the direct package manifest before naming a runnable command.
 - Skip `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, generated code, lockfiles, large assets, and historical plans/evidence unless directly relevant to the task.
 
 ## Verification and findings
 
-- For a reported failure, attempt the affected supported path when feasible, repair its cause, and rerun that path. For new work, verify the requested behavior without requiring a pre-existing failure. When the task includes launch or product interaction, run the real supported journey and address failures within scope.
-- Select checks for a specific plausible failure or an applicable module requirement. Reuse passing results until a new change, failure, or concrete unresolved risk invalidates them. Complete required module checks; broader validation follows changed cross-cutting contracts.
-- Supported uncommon cases remain in scope. Match threat assumptions and evidence strength to the actual task and interfaces; do not add speculative compatibility paths, corner-case machinery, or redundant evidence systems.
-- Report actual incorrect behavior; a review finding may rely on a concrete supported path and failure mechanism without a reproduction. Say when inspected behavior is correct.
-- `unknown`, unread, and `not_observed` mean unconfirmed. Missing prerequisites block only dependent work. Mark relevant product paths not actually run as `NOT-VERIFIED`; automation success alone does not establish product acceptance.
+- For reported failures, attempt the supported path when feasible, repair the cause, and rerun it. Verify new behavior without requiring a pre-existing failure. Tasks involving launch or product interaction require the real supported journey; automation success alone does not establish acceptance.
+- Select checks for a concrete risk or an applicable module requirement; broaden validation for changed cross-cutting contracts. Reuse passing results. Stop verification when the requested behavior, required checks, and identified risks are sufficiently covered; reopen it only for a new change, failure, or unresolved risk affecting the conclusion. Do not create extra evidence artifacts merely to restate established results.
+- Add tests for important behavior or regression risks not already covered. Exercise the implementation without copying its logic or merely asserting its structure. Low-impact copy, styling, or mechanical edits do not automatically need new tests; applicable checks and acceptance still apply.
+- Report actual incorrect behavior; a concrete supported path and failure mechanism can support a finding without reproduction. Say when inspected behavior is correct. Treat `unknown`, unread, and `not_observed` as unconfirmed, not automatic investigation tasks. Mark unrun product paths affecting the conclusion `NOT-VERIFIED` and explain the impact; missing prerequisites block only dependent work.
 - For shared design projection changes, run `pnpm check:nimi-design-artifacts` unless an already-required check includes it. Do not run it for unrelated app composition. Authority edits follow the managed instructions below.
 
 ## Nimi App acceptance
