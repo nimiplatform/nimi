@@ -157,7 +157,7 @@ func TestManagedUVArchiveSpecPinsOfficialWindowsX64Hash(t *testing.T) {
 		if spec.ArchiveName != "uv-x86_64-pc-windows-msvc.zip" {
 			t.Fatalf("archive name = %q, want x64 Windows uv archive", spec.ArchiveName)
 		}
-		if spec.SHA256 != "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a" {
+		if spec.SHA256 != "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a" { // pragma: allowlist secret -- public uv release archive checksum
 			t.Fatalf("sha256 = %q, want pinned uv 0.13.5 Windows x64 archive hash", spec.SHA256)
 		}
 	}

@@ -22,37 +22,37 @@ var managedUVArchiveSpecs = []managedUVArchiveSpec{
 		OS:          "windows",
 		Arch:        "amd64",
 		ArchiveName: "uv-x86_64-pc-windows-msvc.zip",
-		SHA256:      "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a",
+		SHA256:      "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a", // pragma: allowlist secret -- public uv release archive checksum
 	},
 	{
 		OS:          "windows",
 		Arch:        "arm64",
 		ArchiveName: "uv-aarch64-pc-windows-msvc.zip",
-		SHA256:      "09f47edf90726084a70f9426f6e3ca4f46e9bf7cbf23b1716ec64d60b055fae3",
+		SHA256:      "09f47edf90726084a70f9426f6e3ca4f46e9bf7cbf23b1716ec64d60b055fae3", // pragma: allowlist secret -- public uv release archive checksum
 	},
 	{
 		OS:          "darwin",
 		Arch:        "amd64",
 		ArchiveName: "uv-x86_64-apple-darwin.tar.gz",
-		SHA256:      "b0f52b0e3945b4107d89024ea38e625683011fbfc05a0d98f9fa2d6dcee28c66",
+		SHA256:      "b0f52b0e3945b4107d89024ea38e625683011fbfc05a0d98f9fa2d6dcee28c66", // pragma: allowlist secret -- public uv release archive checksum
 	},
 	{
 		OS:          "darwin",
 		Arch:        "arm64",
 		ArchiveName: "uv-aarch64-apple-darwin.tar.gz",
-		SHA256:      "743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73",
+		SHA256:      "743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73", // pragma: allowlist secret -- public uv release archive checksum
 	},
 	{
 		OS:          "linux",
 		Arch:        "amd64",
 		ArchiveName: "uv-x86_64-unknown-linux-gnu.tar.gz",
-		SHA256:      "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f",
+		SHA256:      "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f", // pragma: allowlist secret -- public uv release archive checksum
 	},
 	{
 		OS:          "linux",
 		Arch:        "arm64",
 		ArchiveName: "uv-aarch64-unknown-linux-gnu.tar.gz",
-		SHA256:      "4bb69cf95ed13f23713bb7bc09f241896ea0c75b7c557e615a20604b82f9c403",
+		SHA256:      "4bb69cf95ed13f23713bb7bc09f241896ea0c75b7c557e615a20604b82f9c403", // pragma: allowlist secret -- public uv release archive checksum
 	},
 }
 
