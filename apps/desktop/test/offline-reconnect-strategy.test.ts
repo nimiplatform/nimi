@@ -54,13 +54,13 @@ class FakeTimer implements OfflineCoordinatorTimer {
 }
 
 async function flushAsyncWork(): Promise<void> {
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 10; index += 1) {
     await Promise.resolve();
   }
 }
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
-  test('realm_reconnect only probes and revalidates queries', async () => {
+  test('realm_reconnect revalidates queries and rereads the account profile without replaying work', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });
     const effects: string[] = [];
@@ -73,6 +73,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
+      refreshAccountProfile: async () => { effects.push('readAccountProfile'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
@@ -81,7 +82,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.equal(timer.nextDelay(), 1000);
 
     await timer.runNext();
-    assert.deepEqual(effects.filter((effect) => !effect.startsWith('tier:')), ['invalidateQueries']);
+    assert.deepEqual(effects.filter((effect) => !effect.startsWith('tier:')), ['invalidateQueries', 'readAccountProfile']);
   });
 
   test('runtime_reconnect reboots runtime state', async () => {
@@ -97,6 +98,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
+      refreshAccountProfile: async () => { effects.push('readAccountProfile'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
@@ -121,6 +123,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRuntimeReachability: async () => false,
       hasPendingRealmRecoveryWork: async () => true,
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
+      refreshAccountProfile: async () => { effects.push('readAccountProfile'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
@@ -151,6 +154,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
       invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
+      refreshAccountProfile: async () => { effects.push('readAccountProfile'); },
       rebootstrapRuntime: async () => {
         rebootstrapAttempts += 1;
         effects.push(`rebootstrapRuntime:${rebootstrapAttempts}`);
@@ -176,4 +180,32 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.ok(effects.includes('runtimeReconnectEvent'));
   });
 
+  test('a disposed binding ignores a late successful probe and later reconnect events', async () => {
+    const timer = new FakeTimer();
+    const coordinator = new OfflineCoordinator({ timer });
+    const effects: string[] = [];
+    let finish!: (reachable: boolean) => void;
+    const probe = new Promise<boolean>(resolve => { finish = resolve; });
+    const detach = attachOfflineCoordinatorBindings({
+      coordinator,
+      setOfflineTier: () => {},
+      suspendRuntimeCallbacksForL2: () => {},
+      probeRealmReachability: () => probe,
+      probeRuntimeReachability: async () => true,
+      hasPendingRealmRecoveryWork: async () => true,
+      invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
+      refreshAccountProfile: async () => { effects.push('readAccountProfile'); },
+      rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
+    });
+    coordinator.markRealmRestReachability('unreachable');
+    await flushAsyncWork();
+    await timer.runNext();
+    detach();
+    finish(true);
+    await flushAsyncWork();
+    assert.equal(coordinator.getStatus().realm.rest, 'unreachable');
+    coordinator.markRealmRestReachability('reachable');
+    await flushAsyncWork();
+    assert.deepEqual(effects, []);
+  });
 });

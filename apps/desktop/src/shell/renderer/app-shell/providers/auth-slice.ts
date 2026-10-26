@@ -2,7 +2,7 @@ import {
   DEFAULT_CHAT_SOURCE_FILTER,
   DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
 } from '../../features/chat/chat-shell-types';
-import type { AppStoreSet, AppStoreState } from './store-types';
+import type { AppStoreSet, AppStoreState, RuntimeAccountAuthProjection } from './store-types';
 
 type AuthSlice = Pick<AppStoreState,
   'auth'
@@ -15,6 +15,17 @@ type AuthSlice = Pick<AppStoreState,
 
 function accountIdOf(user: Record<string, unknown> | null): string {
   return typeof user?.id === 'string' ? user.id : '';
+}
+
+function preservesProfile(previous: AppStoreState['auth'], next: RuntimeAccountAuthProjection): boolean {
+  const continuous = (status: AppStoreState['auth']['status']) => status === 'authenticated' || status === 'refresh-pending';
+  const accountId = accountIdOf(previous.user);
+  const realmEnvironmentId = previous.user?.realmEnvironmentId;
+  return continuous(previous.status) && continuous(next.status)
+    && Boolean(accountId.trim()) && accountId === accountIdOf(next.user)
+    && typeof realmEnvironmentId === 'string' && Boolean(realmEnvironmentId.trim())
+    && realmEnvironmentId === next.user?.realmEnvironmentId
+    && Boolean(previous.authorizationRevision.trim()) && previous.authorizationRevision === next.authorizationRevision;
 }
 
 function releaseAttachmentDrafts(state: AppStoreState) {
@@ -45,9 +56,15 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
       })),
     applyRuntimeAccountProjection: (projection) =>
       set((state) => {
+        // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
+        // Preserve only profile presentation within proven Account continuity.
+        // The incoming Runtime identity, state and authorization remain authoritative.
+        const user = preservesProfile(state.auth, projection)
+          ? { ...state.auth.user, ...projection.user }
+          : projection.user;
         const auth = {
           status: projection.status,
-          user: projection.user,
+          user,
           sequence: projection.sequence,
           reasonCode: projection.reasonCode,
           accountReasonCode: projection.accountReasonCode,

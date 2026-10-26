@@ -2,7 +2,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { resolveRealmDataErrorLogLevel } from '../src/shell/renderer/infra/realm/realm-api-log-level';
+import { realmDataErrorDiagnosticDetails, resolveRealmDataErrorLogLevel } from '../src/shell/renderer/infra/realm/realm-api-log-level';
+
+test('mediated Realm diagnostics retain status and account reason without remote content', () => {
+  assert.deepEqual(realmDataErrorDiagnosticDetails({ details: {
+    httpStatus: 503,
+    accountReasonCode: 'BROKER_REALM_UNAVAILABLE',
+    errorMessage: 'remote content must not be copied',
+    requestJson: 'private request content',
+  } }), { httpStatus: 503, accountReasonCode: 'BROKER_REALM_UNAVAILABLE' });
+  assert.deepEqual(realmDataErrorDiagnosticDetails({ details: { httpStatus: 0 } }), { httpStatus: 0 });
+});
+
+test('absent or malformed diagnostic details do not become an HTTP status or log payload', () => {
+  for (const error of [null, new Error('unavailable'), { details: [] }, { details: 'remote text' },
+    { details: { httpStatus: '503', accountReasonCode: 'reason\nprivate content' } },
+    { details: { httpStatus: 999, accountReasonCode: 'x'.repeat(100) } },
+    { details: { httpStatus: 200.5 } }]) {
+    assert.deepEqual(realmDataErrorDiagnosticDetails(error), {});
+  }
+});
 
 test('current-user authorization denial is an expected deferred bootstrap state', () => {
   assert.equal(resolveRealmDataErrorLogLevel({

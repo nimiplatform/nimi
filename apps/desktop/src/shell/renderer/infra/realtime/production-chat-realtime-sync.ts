@@ -16,9 +16,21 @@ export function connectProductionChatRealtimeSync(input: {
   const abortController = new AbortController();
   const subscriptionIds = new Set<string>();
   const localSubscriptions = new Set<{ readonly cancel: () => Promise<void> }>();
+  let realtime: ReturnType<typeof getDesktopRealmRealtimeClient> | null = null;
   let channelId = '';
   let active = true;
   let notificationRefreshInFlight = false;
+
+  const closeConnection = () => {
+    if (abortController.signal.aborted) return;
+    abortController.abort();
+    for (const subscription of localSubscriptions) void subscription.cancel().catch(() => undefined);
+    if (!channelId || !realtime) return;
+    for (const subscriptionId of subscriptionIds) {
+      void realtime.closeSubscription({ channelId, subscriptionId }).catch(() => undefined);
+    }
+    void realtime.closeChannel({ channelId }).catch(() => undefined);
+  };
 
   const refreshNotifications = async () => {
     if (!active || notificationRefreshInFlight) return;
@@ -40,25 +52,30 @@ export function connectProductionChatRealtimeSync(input: {
   document.addEventListener('visibilitychange', onVisibilityChange);
 
   const connectRealtime = async () => {
-    const realtime = getDesktopRealmRealtimeClient();
-    const opened = await realtime.open();
-    if (!active) {
-	  await realtime.closeChannel({ channelId: opened.channelId });
+    const client = getDesktopRealmRealtimeClient();
+    realtime = client;
+    const opened = await client.open();
+    if (!active || abortController.signal.aborted) {
+	  await client.closeChannel({ channelId: opened.channelId });
       return;
     }
     channelId = opened.channelId;
     offlineCoordinator.markRealmSocketReachability('reachable');
 
     const consume = async (
-	  target: Parameters<typeof realtime.subscribe>[0],
+	  target: Parameters<typeof client.subscribe>[0],
     ) => {
-	  const subscription = await realtime.subscribe(target);
+	  const subscription = await client.subscribe(target);
+      if (!active || abortController.signal.aborted) {
+        await subscription.cancel().catch(() => undefined);
+        return;
+      }
 	  localSubscriptions.add(subscription);
 	  const cancel = () => void subscription.cancel().catch(() => undefined);
 	  abortController.signal.addEventListener('abort', cancel, { once: true });
 	  try {
 		for await (const event of subscription) {
-        if (!active) return;
+        if (!active || abortController.signal.aborted) return;
         if (event.subscriptionId) subscriptionIds.add(event.subscriptionId);
 		switch (event.event.type) {
           case 'control': {
@@ -81,7 +98,8 @@ export function connectProductionChatRealtimeSync(input: {
                 exact: false,
               }),
             ]);
-			await realtime.ack({
+            if (!active || abortController.signal.aborted) return;
+            await client.ack({
               channelId,
               subscriptionId: event.subscriptionId,
 			  cursor: event.event.cursor,
@@ -131,7 +149,7 @@ export function connectProductionChatRealtimeSync(input: {
     await Promise.all(consumers);
   };
 
-  void connectRealtime().catch((error) => {
+  void connectRealtime().finally(closeConnection).catch((error) => {
     if (!active) return;
     offlineCoordinator.markRealmSocketReachability('unreachable');
     logRendererEvent({
@@ -146,16 +164,8 @@ export function connectProductionChatRealtimeSync(input: {
 
   return () => {
     active = false;
-    abortController.abort();
-	for (const subscription of localSubscriptions) void subscription.cancel().catch(() => undefined);
+    closeConnection();
     globalThis.clearInterval(notificationInterval);
     document.removeEventListener('visibilitychange', onVisibilityChange);
-    if (!channelId) return;
-    const realtime = getDesktopRealmRealtimeClient();
-    for (const subscriptionId of subscriptionIds) {
-	  void realtime.closeSubscription({ channelId, subscriptionId })
-        .catch(() => undefined);
-    }
-	void realtime.closeChannel({ channelId }).catch(() => undefined);
   };
 }

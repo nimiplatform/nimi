@@ -10,7 +10,7 @@ import {
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import { getOfflineCoordinator } from '../offline/coordinator';
 import { getDesktopRealm } from '../sdk/desktop-nimi-client-session';
-import { resolveRealmDataErrorLogLevel } from './realm-api-log-level';
+import { realmDataErrorDiagnosticDetails, resolveRealmDataErrorLogLevel } from './realm-api-log-level';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = (
@@ -59,6 +59,7 @@ export function emitRealmDataError(
     traceId: errorFields.traceId,
     details: {
       ...details,
+      ...realmDataErrorDiagnosticDetails(error),
       reasonCode: errorFields.reasonCode,
       actionHint: errorFields.actionHint,
       retryable: errorFields.retryable,

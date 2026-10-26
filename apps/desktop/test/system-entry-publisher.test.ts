@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { SystemEntryContext, SystemEntryProjection } from '../src/shell/shared/system-entry-types.js';
+import { SYSTEM_ENTRY_HEARTBEAT_MS, SYSTEM_ENTRY_LIVENESS_MS, type SystemEntryContext, type SystemEntryProjection } from '../src/shell/shared/system-entry-types.js';
 import { createSystemEntryPublisher, type SystemEntryProjectionDraft } from '../src/shell/renderer/features/system-entry/system-entry-publisher.js';
 
 function draft(generation: string, label = 'first'): SystemEntryProjectionDraft {
@@ -11,6 +11,12 @@ function draft(generation: string, label = 'first'): SystemEntryProjectionDraft 
     notificationsEnabled: true, notificationsPausedUntil: 0 };
 }
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((onResolve, onReject) => { resolve = onResolve; reject = onReject; });
+  return { promise, resolve, reject };
+}
 
 test('publication is serialized and coalesces changes received while an IPC is pending', async () => {
   let current = draft('a');
@@ -83,5 +89,147 @@ test('a Home color scheme change republishes even when business observations are
     assert.deepEqual(calls.map(value => value.colorScheme), ['light', 'dark', 'light']);
     assert.deepEqual(calls.map(value => value.revision), [1, 2, 3]);
     assert.equal(calls[0]!.observedAt, calls[2]!.observedAt);
+  } finally { publisher.stop(); }
+});
+
+for (const outcome of ['success', 'failure'] as const) {
+  for (const restart of [false, true]) {
+    test(`late heartbeat ${outcome} is ignored after ${restart ? 'restart' : 'stop'}`, async (t) => {
+      t.mock.timers.enable({ apis: ['setInterval'] });
+      const pending = deferred<void>();
+      let current = draft('a');
+      let context: SystemEntryContext = { generation: 'a', state: 'ready', homeVisible: true };
+      let time = 1, reads = 0, refreshes = 0;
+      const heartbeats: string[] = [];
+      const calls: SystemEntryProjection[] = [];
+      const publisher = createSystemEntryPublisher({
+        readContext: async () => { reads += 1; return context; },
+        heartbeat: async value => { heartbeats.push(value); if (heartbeats.length === 1) await pending.promise; },
+        publish: async value => { calls.push(value); }, draft: () => current,
+        onContext: () => {}, onPublished: () => {},
+        refreshSources: async () => { refreshes += 1; }, now: () => time,
+      });
+      try {
+        publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+        time += SYSTEM_ENTRY_LIVENESS_MS;
+        t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+        assert.deepEqual(heartbeats, ['a']);
+        publisher.stop();
+        if (restart) {
+          context = { generation: 'b', state: 'ready', homeVisible: false };
+          current = draft('b');
+          publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+          t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+          assert.deepEqual(heartbeats, ['a'], 'a pending heartbeat remains single flight across restart');
+        }
+        if (outcome === 'success') pending.resolve();
+        else pending.reject(new Error('retired heartbeat'));
+        await flush();
+        assert.equal(refreshes, 0);
+        assert.equal(reads, restart ? 2 : 1, 'a retired rejection does not read the current owner');
+        assert.deepEqual(calls.map(value => value.generation), restart ? ['a', 'b'] : ['a']);
+        assert.equal(publisher.published()?.generation ?? null, restart ? 'b' : null);
+        if (restart) {
+          t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+          assert.deepEqual(heartbeats, ['a', 'b'], 'the current lifecycle can heartbeat after the old call settles');
+        }
+      } finally { pending.resolve(); publisher.stop(); }
+    });
+  }
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`old-generation heartbeat ${outcome} cannot renew current liveness or refresh its sources`, async (t) => {
+    t.mock.timers.enable({ apis: ['setInterval'] });
+    const pending = deferred<void>();
+    let current = draft('a');
+    let context: SystemEntryContext = { generation: 'a', state: 'ready', homeVisible: true };
+    let time = 1, reads = 0, refreshes = 0;
+    const heartbeats: string[] = [];
+    const publisher = createSystemEntryPublisher({
+      readContext: async () => { reads += 1; return context; },
+      heartbeat: async value => { heartbeats.push(value); if (heartbeats.length === 1) await pending.promise; },
+      publish: async () => {}, draft: () => current, onContext: () => {}, onPublished: () => {},
+      refreshSources: async () => { refreshes += 1; }, now: () => time,
+    });
+    try {
+      publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+      t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+      context = { generation: 'b', state: 'ready', homeVisible: true };
+      current = draft('b'); await publisher.refreshContext(); publisher.update(); await flush();
+      time += SYSTEM_ENTRY_LIVENESS_MS;
+      if (outcome === 'success') pending.resolve();
+      else pending.reject(new Error('old generation'));
+      await flush();
+      assert.equal(reads, 2); assert.equal(refreshes, 0);
+      assert.equal(publisher.published()?.generation, 'b');
+      t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+      assert.deepEqual(heartbeats, ['a', 'b']);
+      assert.equal(refreshes, 1, 'only the current heartbeat observes and repairs its elapsed liveness gap');
+    } finally { pending.resolve(); publisher.stop(); }
+  });
+}
+
+for (const heartbeatFails of [false, true]) {
+  test(`late ${heartbeatFails ? 'recovery' : 'liveness-gap'} source refresh cannot publish into a restarted lifecycle`, async (t) => {
+    t.mock.timers.enable({ apis: ['setInterval'] });
+    const pending = deferred<void>();
+    let current = draft('a');
+    let context: SystemEntryContext = { generation: 'a', state: 'ready', homeVisible: true };
+    let time = 1, refreshes = 0;
+    const calls: SystemEntryProjection[] = [];
+    const publisher = createSystemEntryPublisher({
+      readContext: async () => context,
+      heartbeat: async () => { if (heartbeatFails) throw new Error('owner needs refresh'); },
+      publish: async value => { calls.push(value); }, draft: () => current,
+      onContext: () => {}, onPublished: () => {},
+      refreshSources: async () => { refreshes += 1; await pending.promise; }, now: () => time,
+    });
+    try {
+      publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+      time += SYSTEM_ENTRY_LIVENESS_MS;
+      t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+      assert.equal(refreshes, 1);
+      publisher.stop();
+      context = { generation: 'b', state: 'ready', homeVisible: true };
+      current = draft('b');
+      publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+      current = draft('b', 'not yet observed');
+      pending.resolve(); await flush();
+      assert.deepEqual(calls.map(value => [value.generation, value.usage.periodLabel]), [['a', 'first'], ['b', 'first']]);
+      publisher.update(); await flush();
+      assert.equal(calls.at(-1)?.usage.periodLabel, 'not yet observed', 'the current source update still publishes normally');
+    } finally { pending.resolve(); publisher.stop(); }
+  });
+}
+
+test('active heartbeat refresh and owner recovery retain their publication behavior', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  let current = draft('a');
+  let context: SystemEntryContext = { generation: 'a', state: 'ready', homeVisible: true };
+  let time = 1, heartbeatFails = false, refreshes = 0;
+  const calls: SystemEntryProjection[] = [];
+  const publisher = createSystemEntryPublisher({
+    readContext: async () => context,
+    heartbeat: async () => { if (heartbeatFails) throw new Error('owner changed'); },
+    publish: async value => { calls.push(value); }, draft: () => current,
+    onContext: () => {}, onPublished: () => {},
+    refreshSources: async () => { refreshes += 1; if (refreshes === 1) throw new Error('source temporarily unavailable'); },
+    now: () => time,
+  });
+  try {
+    publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+    time += SYSTEM_ENTRY_LIVENESS_MS;
+    t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+    assert.equal(refreshes, 1);
+    assert.deepEqual(calls.map(value => value.revision), [1, 2]);
+    heartbeatFails = true;
+    context = { generation: 'b', state: 'ready', homeVisible: true };
+    current = draft('b');
+    t.mock.timers.tick(SYSTEM_ENTRY_HEARTBEAT_MS); await flush();
+    assert.equal(refreshes, 2);
+    assert.equal(publisher.currentContext()?.generation, 'b');
+    assert.equal(publisher.published()?.generation, 'b');
+    assert.equal(calls.at(-1)?.revision, 1);
   } finally { publisher.stop(); }
 });

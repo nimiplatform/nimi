@@ -93,24 +93,33 @@ export function createSystemEntryPublisher(input: {
   const tick = async (): Promise<void> => {
     if (!active || heartbeatRunning) return;
     heartbeatRunning = true;
+    const captured = epoch;
+    let heartbeatGeneration: string | null = null;
     try {
       if (!context) await refreshContext();
+      if (!active || captured !== epoch) return;
       const current = context;
       if (!current) return;
+      heartbeatGeneration = current.generation;
       const gap = heartbeatAt > 0 && now() - heartbeatAt >= SYSTEM_ENTRY_LIVENESS_MS;
       await input.heartbeat(current.generation);
+      if (!active || captured !== epoch || context?.generation !== current.generation) return;
       heartbeatAt = now();
-      if (gap && current.state === 'ready') {
+      if (gap && context.state === 'ready') {
         signature = '';
         await input.refreshSources().catch(() => undefined);
+        if (!active || captured !== epoch || context?.generation !== current.generation || context.state !== 'ready') return;
         queued = true;
         await pump();
       }
     } catch {
+      if (!active || captured !== epoch || (heartbeatGeneration !== null && generation !== heartbeatGeneration)) return;
       const next = await refreshContext();
-      if (next?.state === 'ready') {
+      if (!active || captured !== epoch) return;
+      if (next?.state === 'ready' && context?.generation === next.generation && context.state === 'ready') {
         signature = '';
         await input.refreshSources().catch(() => undefined);
+        if (!active || captured !== epoch || context?.generation !== next.generation || context.state !== 'ready') return;
         queued = true;
         await pump();
       }

@@ -18,7 +18,8 @@ import {
   startAuthStateWatcher,
   stopAuthStateWatcher,
 } from './auth-state-watcher';
-import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
+import { createDesktopAccountProfileHydrator, type DesktopAccountProfileHydrator } from './runtime-bootstrap-account-profile';
+import { productionRealmSocialData as realmSocialData } from '../../features/social/data/production-realm-social-data.js';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
   runtimeDaemonUnavailable,
@@ -38,7 +39,8 @@ import { RUNTIME_STORED_DATA_UNSUPPORTED } from '../../../shared/runtime-mainten
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
-let offlineCoordinatorBindingsReady = false;
+let offlineCoordinatorBinding: { lifecycle: DesktopRendererLifecyclePort; unsubscribe: () => void } | null = null;
+let accountProfileHydration: { lifecycle: DesktopRendererLifecyclePort; hydrator: DesktopAccountProfileHydrator } | null = null;
 let pendingRebootstrap = false;
 let unsubscribeRealmConnectivityEvents: (() => void) | null = null;
 
@@ -46,15 +48,15 @@ function suspendRuntimeCallbacksForL2(): void {
 }
 
 function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
-  if (offlineCoordinatorBindingsReady) {
+  if (offlineCoordinatorBinding?.lifecycle === lifecycle) {
     return;
   }
-  offlineCoordinatorBindingsReady = true;
+  offlineCoordinatorBinding?.unsubscribe();
   const coordinator = getOfflineCoordinator();
   const setOfflineTier = (tier: ReturnType<typeof coordinator.getTier>) => {
     lifecycle.setOfflineTier(tier);
   };
-  attachOfflineCoordinatorBindings({
+  const unsubscribe = attachOfflineCoordinatorBindings({
     coordinator,
     setOfflineTier,
     suspendRuntimeCallbacksForL2,
@@ -94,10 +96,19 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
         ['notification-page'],
       ]);
     },
+    refreshAccountProfile: async () => {
+      if (accountProfileHydration?.lifecycle === lifecycle) await accountProfileHydration.hydrator.hydrate();
+    },
     rebootstrapRuntime: async () => {
       await rebootstrapRuntime(lifecycle);
     },
   });
+  offlineCoordinatorBinding = { lifecycle, unsubscribe };
+}
+
+function invalidateAccountProfileHydration(): void {
+  accountProfileHydration?.hydrator.dispose();
+  accountProfileHydration = null;
 }
 
 function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
@@ -109,6 +120,7 @@ function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
 
 // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
 export function rebootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
+  invalidateAccountProfileHydration();
   pendingRebootstrap = true;
   if (rebootstrapPromise) {
     return rebootstrapPromise;
@@ -135,6 +147,7 @@ export function rebootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Pro
 }
 
 async function teardownBootstrapState(): Promise<void> {
+  invalidateAccountProfileHydration();
   stopAuthStateWatcher();
   unsubscribeRealmConnectivityEvents?.();
   unsubscribeRealmConnectivityEvents = null;
@@ -142,6 +155,9 @@ async function teardownBootstrapState(): Promise<void> {
 }
 
 export async function disposeRuntimeBootstrap(): Promise<void> {
+  invalidateAccountProfileHydration();
+  offlineCoordinatorBinding?.unsubscribe();
+  offlineCoordinatorBinding = null;
   pendingRebootstrap = false;
   const activeBootstrap = bootstrapPromise;
   if (activeBootstrap) {
@@ -166,8 +182,19 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     return bootstrapPromise;
   }
 
+  invalidateAccountProfileHydration();
   bootstrapPromise = (async () => {
     const flowId = createRendererFlowId('renderer-bootstrap');
+    const profileHydrator: DesktopAccountProfileHydrator = createDesktopAccountProfileHydrator({
+      flowId,
+      lifecycle,
+      readClientScope: () => isDesktopNimiClientSessionReady() ? getDesktopRealm() : null,
+      isCurrentBootstrap: () => accountProfileHydration?.hydrator === profileHydrator
+        && offlineCoordinatorBinding?.lifecycle === lifecycle,
+      loadCurrentUser: () => realmSocialData.loadCurrentUser(),
+      logEvent: logRendererEvent,
+    });
+    accountProfileHydration = { lifecycle, hydrator: profileHydrator };
     const startedAt = performance.now();
     const flags = getShellFeatureFlags();
     lifecycle.setAuthBootstrapping();
@@ -371,26 +398,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         ['desktop-local-app-agent-references'],
       ]);
       if (accountStatus?.state === 'authenticated' && accountProjection?.accountId) {
-        await withBootstrapStepTimeout(
-          'account profile hydrate',
-          hydrateDesktopAccountProfile({
-            accountProjection,
-            flowId,
-            lifecycle,
-          }),
-          DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-        ).catch((error) => {
-          logRendererEvent({
-            level: 'warn',
-            area: 'renderer-bootstrap',
-            message: 'phase:account-profile:hydrate-deferred',
-            flowId,
-            details: {
-              accountId: accountProjection.accountId,
-              error: safeBootstrapErrorMessage(error),
-            },
-          });
-        });
+        await profileHydrator.hydrate();
       }
     }
     startAuthStateWatcher(lifecycle);
