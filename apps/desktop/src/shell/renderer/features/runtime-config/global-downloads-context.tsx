@@ -27,6 +27,7 @@ import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
 import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library.js';
 
 type GlobalDownloadsContextValue = {
+  readonly rootActivationId: string;
   readonly loading: boolean;
   readonly transfers: readonly NimiRuntimeLocalTransferSessionSummary[];
   readonly environments: readonly NimiRuntimeLocalEnvironmentDependencyJob[];
@@ -55,6 +56,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
   const [environments, setEnvironments] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rootActivationId, setRootActivationId] = useState('');
   const [selectedTransfer, setSelectedTransfer] = useState<GlobalDownloadsContextValue['selectedTransfer']>(null);
   const polling = useRef<ReturnType<typeof startDownloadPolling> | null>(null);
   const pendingDownloads = useRef(0);
@@ -89,6 +91,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
         if (activation.current !== before) {
           activation.current = before;
           if (active) {
+            setRootActivationId(before);
             setTransfers([]);
             setEnvironments([]);
           }
@@ -167,7 +170,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
     environments.filter((item) => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(item.state)).length +
     (apps?.jobs.filter((item) => !packageJobIsTerminal(item)).length ?? 0);
   return (
-    <GlobalDownloadsContext.Provider value={{ transfers, environments, errors, activeCount, refresh, loading, selectedTransfer, selectTransfer }}>
+    <GlobalDownloadsContext.Provider value={{ rootActivationId, transfers, environments, errors, activeCount, refresh, loading, selectedTransfer, selectTransfer }}>
       <RuntimeDownloadActivityContext.Provider value={onDownloadStart}>
         {children}
       </RuntimeDownloadActivityContext.Provider>

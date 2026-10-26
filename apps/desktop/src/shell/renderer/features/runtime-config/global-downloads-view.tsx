@@ -1,8 +1,8 @@
 import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, NimiTabs, ProgressIndicator, ScrollArea, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyReadyState } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase, AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
-import { Download, RefreshCw } from 'lucide-react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Download, RefreshCw, Trash2 } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useHomeDestination } from '../../app-shell/providers/app-store.js';
@@ -16,12 +16,14 @@ import { packageJobKey } from '../apps/apps-downloads-observer.js';
 import { appDownloadPhase } from '../apps/apps-downloads-view.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from './global-downloads-context.js';
-import { appJobLane, DownloadTaskRow, downloadModelName, environmentLane, environmentStage, groupTransferAttempts, interruptionReasonKey, setupTaskLane, setupTaskStatusTone, transferLane, transferStage, type DownloadStage, type DownloadsLane } from './global-downloads-presentation.js';
+import { appJobLane, DownloadTaskRow, downloadModelName, environmentLane, environmentStage, groupTransferAttempts, interruptionReasonKey, setupTaskStatusTone, transferLane, transferStage, type DownloadStage, type DownloadsLane } from './global-downloads-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { componentPresentation } from './runtime-environment-presentation.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
-import { getRuntimeSetupTaskStore, runtimeSetupTaskUnconfirmed, useRuntimeSetupTasks } from './runtime-setup-task-store.js';
+import { getRuntimeSetupTaskStore, useRuntimeSetupTasks } from './runtime-setup-task-store.js';
+import { createDownloadHistoryStore, useDownloadHistory, type DownloadHistoryRecord } from './download-history-store.js';
+import { appHistoryRecord, environmentHistoryRecord, projectDownloadLane, transferHistoryRecord } from './download-history-projection.js';
 import { ModelTransferRecoveryActions } from './model-transfer-recovery-actions.js';
 import { useCapabilityInventory } from './runtime-capability-inventory.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
@@ -113,6 +115,10 @@ export function GlobalDownloadsView() {
 
   const store = getRuntimeSetupTaskStore();
   const snapshot = useRuntimeSetupTasks(store);
+  const historyScope = downloads?.rootActivationId ?? '';
+  const historyStore = useMemo(() => createDownloadHistoryStore(historyScope), [historyScope]);
+  const history = useDownloadHistory(historyStore);
+  const [pendingClear, setPendingClear] = useState<{ scope: string; count: number; records: readonly DownloadHistoryRecord[] } | null>(null);
   const destination = useHomeDestination();
   const [appDetails, setAppDetails] = useState(false);
   const inventory = useCapabilityInventory({ enabled: destination.id === 'downloads' && !appDetails });
@@ -164,31 +170,30 @@ export function GlobalDownloadsView() {
       setBusy(false);
     }
   };
-  const transfers = downloads?.transfers.filter((item) => transferLane(item.state) === lane) ?? [];
-  const environments = downloads?.environments.filter((item) => environmentLane(item) === lane)
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)) ?? [];
-  const appJobs = apps?.jobs.filter((item) => appJobLane(item.phase) === lane) ?? [];
-  const grouped = new Map<string, typeof snapshot.tasks>();
-  for (const task of snapshot.tasks) {
-    if (setupTaskLane(task) !== lane) continue;
-    if (runtimeSetupTaskUnconfirmed(task)) continue;
-    const key = task.draft?.profileUseId ?? task.taskId;
-    grouped.set(key, [...(grouped.get(key) ?? []), task]);
-  }
   const lanes: DownloadsLane[] = ['active', 'attention', 'history'];
-  const counts = Object.fromEntries(
-    lanes.map((value) => [
-      value,
-      (value === 'active'
-        ? downloads?.transfers.filter((item) => transferLane(item.state) === value).length ?? 0
-        : groupTransferAttempts(downloads?.transfers.filter((item) => transferLane(item.state) === value) ?? []).length) +
-        (downloads?.environments.filter((item) => environmentLane(item) === value).length ?? 0) +
-        (apps?.jobs.filter((item) => appJobLane(item.phase) === value).length ?? 0),
-    ]),
-  );
-  const usedTransfers = new Set<string>();
-  const usedEnvironments = new Set<string>();
-  const transferRow = (item: (typeof transfers)[number], attempts = 1, embedded = false) => {
+  const projections = Object.fromEntries(lanes.map(value => [value, projectDownloadLane({
+    lane: value, tasks: snapshot.tasks, transfers: downloads?.transfers ?? [],
+    environments: downloads?.environments ?? [], appJobs: apps?.jobs ?? [], removed: history.entries,
+  })])) as Record<DownloadsLane, ReturnType<typeof projectDownloadLane>>;
+  const { setupGroups, transferGroups, environments, appGroups } = projections[lane];
+  const counts = Object.fromEntries(lanes.map(value => [value, projections[value].count]));
+  const removeHistory = (records: readonly DownloadHistoryRecord[]) => {
+    setError('');
+    try {
+      // Revalidate the displayed revisions so a resumed task is never cleared.
+      const current = new Map(projections.history.records.map(record => [record.key, record.revision]));
+      historyStore.remove(records.filter(record => current.get(record.key) === record.revision));
+      return true;
+    } catch {
+      setError(t('runtimeConfig.downloads.historySaveFailed'));
+      return false;
+    }
+  };
+  const removeButton = (records: readonly DownloadHistoryRecord[]) => lane === 'history' ? (
+    <Button size="sm" tone="ghost" leadingIcon={<Trash2 size={14} />} disabled={busy || !historyScope}
+      onClick={() => removeHistory(records)}>{t('runtimeConfig.downloads.removeRecord')}</Button>
+  ) : null;
+  const transferRow = (item: NonNullable<typeof downloads>['transfers'][number], attempts = 1, embedded = false, records = [transferHistoryRecord(item)]) => {
     const stage = transferStage(item);
     const catalog = modelLibrary.data?.catalog ?? [];
     const title = downloadModelName(item.modelAssetId, catalog)
@@ -209,6 +214,7 @@ export function GlobalDownloadsView() {
         at={item.updatedAt}
         attempts={attempts}
         embedded={embedded}
+        headerAction={!embedded ? removeButton(records) : null}
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.message ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
         technical={[item.sourceLabel, item.modelAssetId, item.message, item.reasonCode, item.relatedInstallSessionId ? `related=${item.relatedInstallSessionId}` : ''].filter(Boolean).join(' · ')}
       >
@@ -265,7 +271,7 @@ export function GlobalDownloadsView() {
   const transferGroup = (group: ReturnType<typeof groupTransferAttempts>[number]) => (
     group.attempts.length > 1 ? (
       <div key={`group:${group.latest.installSessionId}`}>
-        {transferRow(group.latest, group.attempts.length)}
+        {transferRow(group.latest, group.attempts.length, false, group.attempts.map(transferHistoryRecord))}
         <details className="-mt-2 mb-2 pl-14 text-xs text-[var(--nimi-text-secondary)]">
           <summary className="cursor-pointer">{t('runtimeConfig.downloads.showAttempts', { count: group.attempts.length - 1 })}</summary>
           <ul className="mt-1 space-y-1">
@@ -300,6 +306,7 @@ export function GlobalDownloadsView() {
         total={item.bytesTotal}
         at={item.updatedAt}
         embedded={embedded}
+        headerAction={!embedded ? removeButton([environmentHistoryRecord(item)]) : null}
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.failureDetail ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
         technical={[item.dependencyFamily, item.dependencyId, item.failureDetail, item.reasonCode].filter(Boolean).join(' · ')}
       >
@@ -339,27 +346,7 @@ export function GlobalDownloadsView() {
       </DownloadTaskRow>
     );
   };
-  const setupGroups = [...grouped.entries()].map(([id, tasks]) => {
-    const taskTransfers = transfers.filter(
-      (item) =>
-        !usedTransfers.has(item.installSessionId) &&
-        tasks.some(
-          (task) =>
-            task.refs.transferIds.includes(item.installSessionId) ||
-            (!!item.planId && task.refs.installPlanIds.includes(item.planId)),
-        ),
-    );
-    taskTransfers.forEach((item) => usedTransfers.add(item.installSessionId));
-    const taskEnvironments = environments.filter(
-      (item) =>
-        !usedEnvironments.has(item.jobId) &&
-        tasks.some((task) => task.refs.dependencyJobIds.includes(item.jobId)),
-    );
-    taskEnvironments.forEach((item) => usedEnvironments.add(item.jobId));
-    const updatedAt = [...tasks, ...taskTransfers, ...taskEnvironments].map((item) => item.updatedAt).sort().at(-1) ?? '';
-    return { id, tasks, taskTransfers, taskEnvironments, updatedAt };
-  }).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-  const renderSetupGroup = ({ id, tasks, taskTransfers, taskEnvironments, updatedAt }: (typeof setupGroups)[number]) => (
+  const renderSetupGroup = ({ id, tasks, taskTransfers, taskEnvironments, updatedAt, records }: (typeof setupGroups)[number]) => (
     <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -381,6 +368,7 @@ export function GlobalDownloadsView() {
             {t(lane === 'history' ? 'runtimeConfig.downloads.setupUpdatedAt' : 'runtimeConfig.downloads.setupCreatedAt', { at: new Date(lane === 'history' ? updatedAt : tasks[0]!.createdAt).toLocaleString() })}
           </p>
         </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
         <Button
           size="sm"
           tone="secondary"
@@ -392,6 +380,8 @@ export function GlobalDownloadsView() {
         >
           {t('runtimeConfig.downloads.openSetup')}
         </Button>
+        {removeButton(records)}
+        </div>
       </div>
       {tasks.map((task) => <DownloadSetupModels
         key={task.taskId}
@@ -416,12 +406,24 @@ export function GlobalDownloadsView() {
   const empty = !loading &&
     !downloads?.errors.length &&
     !apps?.error &&
-    !grouped.size &&
-    !transfers.length &&
-    !environments.length &&
-    !appJobs.length;
+    projections[lane].count === 0;
   return (
     <div className="flex min-h-0 flex-1 px-3 pb-5 pt-4">
+      <ConfirmDialog
+        open={pendingClear !== null}
+        title={t('runtimeConfig.downloads.clearHistoryTitle', { count: pendingClear?.count ?? 0 })}
+        message={t('runtimeConfig.downloads.clearHistoryMessage') + (error ? `\n${error}` : '')}
+        confirmLabel={t('runtimeConfig.downloads.clearHistory')}
+        cancelLabel={t('Common.cancel')}
+        onClose={() => setPendingClear(null)}
+        onConfirm={() => {
+          if (!pendingClear) return;
+          if (pendingClear.scope !== historyScope) {
+            setError(t('runtimeConfig.downloads.historySaveFailed'));
+            setPendingClear(null);
+          } else if (removeHistory(pendingClear.records)) setPendingClear(null);
+        }}
+      />
       <ConfirmDialog
         open={pendingCancel !== null}
         title={t('runtimeConfig.downloads.cancelTitle')}
@@ -470,7 +472,7 @@ export function GlobalDownloadsView() {
             </Button>
           </header>
           {!appDetails ? (
-            <div className="shrink-0 border-b border-[var(--nimi-border-subtle)] px-6">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 border-b border-[var(--nimi-border-subtle)] px-6">
               <NimiTabs
                 ariaLabel={t('runtimeConfig.downloads.title')}
                 value={lane}
@@ -482,8 +484,16 @@ export function GlobalDownloadsView() {
                     (counts[value] ? ' (' + counts[value] + ')' : ''),
                 }))}
               />
+              {lane === 'history' ? (
+                <Button size="sm" tone="ghost" leadingIcon={<Trash2 size={14} />}
+                  disabled={busy || loading || !historyScope || counts.history === 0 || !!downloads?.errors.length || !!apps?.error || history.readFailed}
+                  onClick={() => { setError(''); setPendingClear({ scope: historyScope, count: counts.history!, records: projections.history.records }); }}>
+                  {t('runtimeConfig.downloads.clearHistory')}
+                </Button>
+              ) : null}
             </div>
           ) : null}
+          {history.readFailed ? <InlineAlert tone="warning" className="mx-6 mt-4">{t('runtimeConfig.downloads.historyReadFailed')}</InlineAlert> : null}
           {appDetails ? (
             <div className="flex min-h-0 flex-1 flex-col">
               <Button tone="ghost" onClick={() => setAppDetails(false)}>
@@ -510,9 +520,9 @@ export function GlobalDownloadsView() {
                   <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
                     {t(`runtimeConfig.product.downloadEmpty.${lane}`)}
                   </h2>
-                  <p className="mx-auto max-w-sm text-sm leading-relaxed text-[var(--nimi-text-muted)]">
+                  {lane !== 'history' ? <p className="mx-auto max-w-sm text-sm leading-relaxed text-[var(--nimi-text-muted)]">
                     {t('runtimeConfig.product.downloadEmptyHelp')}
-                  </p>
+                  </p> : null}
                 </div>
                 {lane === 'active' && counts.attention ? (
                   <Button tone="secondary" onClick={() => setLane('attention')}>
@@ -533,22 +543,10 @@ export function GlobalDownloadsView() {
                   </details>
                 </InlineAlert>
               ) : null}
-              {setupGroups.filter((group) => group.taskTransfers.length || group.taskEnvironments.length).map(renderSetupGroup)}
-              {lane === 'active'
-                ? transfers.filter((item) => !usedTransfers.has(item.installSessionId)).map((item) => transferRow(item))
-                : groupTransferAttempts(transfers.filter((item) => !usedTransfers.has(item.installSessionId))).map(transferGroup)}
-              {environments.filter((item) => !usedEnvironments.has(item.jobId)).map((item) => environmentRow(item))}
-              {(lane === 'active'
-                ? appJobs.map((job) => ({ job, attempts: 1 }))
-                : [...new Map(
-                    [...appJobs]
-                      .sort((left, right) => Number(right.updatedAt?.seconds ?? 0) - Number(left.updatedAt?.seconds ?? 0))
-                      .reverse()
-                      .map((job) => [job.appId, job] as const),
-                  ).values()]
-                    .sort((left, right) => Number(right.updatedAt?.seconds ?? 0) - Number(left.updatedAt?.seconds ?? 0))
-                    .map((job) => ({ job, attempts: appJobs.filter((item) => item.appId === job.appId).length }))
-              ).map(({ job, attempts }) => {
+              {setupGroups.filter(group => group.taskTransfers.length || group.taskEnvironments.length).map(renderSetupGroup)}
+              {transferGroups.map(transferGroup)}
+              {environments.map(item => environmentRow(item))}
+              {appGroups.map(({ job, attempts, jobs }) => {
                 const entry = appEntries.get(job.appId);
                 const stage = appJobStage(appDownloadPhase(job));
                 const failure = appPackageFailureReason(job);
@@ -564,6 +562,7 @@ export function GlobalDownloadsView() {
                     bytes={Number(job.bytesCompleted)}
                     total={Number(job.bytesTotal)}
                     attempts={attempts}
+                    headerAction={removeButton(jobs.map(appHistoryRecord))}
                     at={job.updatedAt ? new Date(Number(job.updatedAt.seconds) * 1000).toISOString() : undefined}
                     reason={stage === 'interrupted' ? t(interruptionReasonKey(failure ?? '')) : undefined}
                     technical={failure ?? undefined}

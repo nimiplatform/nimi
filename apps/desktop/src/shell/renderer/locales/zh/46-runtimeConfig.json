@@ -2641,6 +2641,12 @@
     "scopeOwner": "专为 {{owner}} 设置。确认后将在本机准备好相关能力，供 {{owner}} 使用。"
   },
   "downloads": {
+    "removeRecord": "移除记录",
+    "clearHistory": "清空历史",
+    "clearHistoryTitle": "清空 {{count}} 条历史记录？",
+    "clearHistoryMessage": "仅移除下载历史记录。已下载的内容、已安装的模型和应用以及现有配置均会保留。未完成和需处理的任务不受影响。",
+    "historySaveFailed": "未能保存历史记录的清理结果，请重试。",
+    "historyReadFailed": "无法读取历史记录的清理结果，已移除的记录可能暂时显示。请重新打开下载页重试。",
     "title": "下载",
     "description": "模型、应用和运行组件的准备进度，集中在这里。",
     "history": "显示已结束任务",

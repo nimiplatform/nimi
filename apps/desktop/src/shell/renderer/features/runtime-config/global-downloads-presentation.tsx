@@ -137,6 +137,7 @@ export function DownloadTaskRow(
     testId: string;
     /** A real face for the object: app artwork, model tile, component tile. */
     leading?: ReactNode;
+    headerAction?: ReactNode;
     /**
      * Nested inside an AI setup group: the group card already carries the
      * identity, so the row keeps a small neutral glyph and tighter rhythm
@@ -182,12 +183,15 @@ export function DownloadTaskRow(
               {props.attempts && props.attempts > 1 ? ` · ${t('runtimeConfig.downloads.attempts', { count: props.attempts })}` : ''}
             </p>
           </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${props.stage === 'interrupted' ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : active ? 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-secondary)]'}`}
           >
             {StageIcon ? <StageIcon size={13} className={active && props.stage !== 'paused' ? 'animate-spin' : ''} /> : null}
             {stageLabel}
           </span>
+          {props.headerAction}
+          </div>
         </div>
         {props.stage === 'interrupted' && props.reason ? (
           <p className="text-sm text-[var(--nimi-text-secondary)]">{props.reason}</p>

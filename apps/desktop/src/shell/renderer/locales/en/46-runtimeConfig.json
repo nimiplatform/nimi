@@ -2641,6 +2641,12 @@
     "scopeOwner": "Setting up for {{owner}}. Once confirmed, these capabilities will be prepared on this device for {{owner}} to use."
   },
   "downloads": {
+    "removeRecord": "Remove record",
+    "clearHistory": "Clear history",
+    "clearHistoryTitle": "Clear {{count}} history records?",
+    "clearHistoryMessage": "Only download history records will be removed. Downloaded content, installed models and apps, and existing configurations will be kept. Unfinished tasks and tasks needing attention are unaffected.",
+    "historySaveFailed": "Could not save the history changes. Please try again.",
+    "historyReadFailed": "Could not read your history preferences. Removed records may be shown temporarily. Reopen Downloads to try again.",
     "title": "Downloads",
     "description": "Models, apps, and runtime components being prepared in one place.",
     "history": "Show finished tasks",
