@@ -11,7 +11,7 @@ import { RuntimeCapabilityApps, useCapabilityAppsColumn } from './runtime-capabi
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import { resetRuntimePageViewport } from './runtime-config-page-shell.js';
 import { type CapabilityPreparationState, capabilityPreparationState, useCapabilityInventory } from './runtime-capability-inventory.js';
-import { capabilityIcon, capabilityModelIdentity, capabilityRecommendedFilesOnDevice, capabilityRecommendedRecipeOnDevice, distinctSavedLoadouts, groupCapabilities, setupPlanAllowsDirectUse, setupTaskModelTitle } from './runtime-capability-presentation.js';
+import { capabilityIcon, capabilityModelIdentity, capabilityRecommendedFilesOnDevice, capabilityRecommendedRecipeOnDevice, groupCapabilities, setupPlanAllowsDirectUse, setupTaskModelTitle } from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeEnvironmentObservation } from './runtime-environment-observation.js';
@@ -95,7 +95,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
   const entryKey = useHomeEntryKey();
   const capability = position?.capabilityContract ?? null;
-  const section = position?.section ?? 'overview';
+  const section = position?.section ?? 'models';
   const modelConfiguration = position?.loadoutId && capability ? { loadoutId: position.loadoutId, capability } : null;
   const openSection = (value: string) => { void navigation.push(homeRuntimeDestination('aiSettings', { ...position, section: value as HomeRuntimePosition['section'] })); };
   const [busy, setBusy] = useState(false);
@@ -179,16 +179,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     props.onOpenSetupTask(taskId);
   };
   const taskModel = status?.task ? setupTaskModelTitle(status.task, inventory.data?.aggregate.loadouts ?? [], recipes) : '';
-  // Exact equivalents share a presentation entry here; every saved Loadout
-  // remains available in the model inventory and sharing flow.
-  const saved = distinctSavedLoadouts(
-    inventory.data?.aggregate.loadouts.filter(
-      (item) => item.capabilityContract === visibleCapability && item.validationState === 'configured',
-    ) ?? [],
-    selection?.loadoutId,
-  );
-  // The overview names the downloaded recipe only while nothing is selected;
-  // it mirrors the rail's "downloaded · not enabled" reading aid.
+  // Every saved configuration keeps its own identity and settings entry.
+  const saved = inventory.data?.aggregate.loadouts.filter(
+    item => item.capabilityContract === visibleCapability && item.validationState === 'configured',
+  ) ?? [];
+  // Files on this device are a preparation hint, never a readiness claim.
   const downloadedRecipe =
     visibleCapability && status?.state === 'unset'
       ? capabilityRecommendedRecipeOnDevice(visibleCapability, recipes)
@@ -268,7 +263,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         openSetupTask(task.taskId);
         return;
       }
-      openSection('overview');
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.modelPicker.selected') });
     } catch (caught) {
       setError({ message: caught instanceof Error ? caught.message : String(caught) });
@@ -293,16 +287,20 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       setBusy(false);
     }
   };
-  const onApplyCustomization = async (draft: RuntimeSetupTaskDraft) => {
-    if (!selected || !visibleCapability || busy || props.runtimeWritesDisabled) return;
+  const onApplyCustomization = async (draft: RuntimeSetupTaskDraft, previous?: NimiMachineLoadout) => {
+    if (!visibleCapability || busy || props.runtimeWritesDisabled) throw new Error(t('runtimeConfig.product.settings.applyUnavailable'));
+    const recipe = recipes.find(item => item.recipeId === draft.recipeId);
+    if (!recipe || (previous && (previous.recipeId !== recipe.recipeId || previous.capabilityContract !== visibleCapability))) {
+      throw new Error(t('runtimeConfig.product.customization.unavailable'));
+    }
     setBusy(true);
     setError(null);
     try {
       const task = await createSetupTask();
       store.updateTask(task.taskId, () => ({ draft }));
       const created = await createRuntimeSetupCandidate(store, task.taskId, ports, {
-        recipeId: selected.recipeId,
-        displayName: selected.displayName,
+        recipeId: recipe.recipeId,
+        displayName: previous?.displayName,
         axes: draft.axes,
         options: draft.options,
       });
@@ -657,7 +655,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   busy={busy}
                   disabled={props.runtimeWritesDisabled}
                   navigationContext={props.savedConfigsContext}
-                  onHome={onHome}
                   onStart={onStart}
                   onEnable={onEnable}
                   onApplyCustomization={onApplyCustomization}

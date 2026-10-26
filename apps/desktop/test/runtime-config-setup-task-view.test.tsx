@@ -497,55 +497,7 @@ test('the capability banner names the model under setup and offers the action fo
   assert.match(banner('preparing', ''), /pendingSetup\.preparingUnnamed</);
 });
 
-test('the capability page offers the customize tab only when a current model exists', () => {
-  const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
-  const detail = (selected: NimiMachineLoadout | undefined) => renderView(
-    <AppStoreProvider store={appStore}>
-    <TooltipProvider>
-    <RuntimeCapabilityDetail
-      capability="text.annotate"
-      selected={selected}
-      loadouts={[]}
-      recipes={[]}
-      catalog={[]}
-      assets={[]}
-      libraryLoading={false}
-      libraryError={false}
-      status={{ state: selected ? 'ready' : 'unset', replacement: false }}
-      taskModel=""
-      section="advanced"
-      onSection={() => {}}
-      busy={false}
-      disabled={false}
-      navigationContext={null}
-      onHome={() => {}}
-      onStart={async () => {}}
-      onEnable={async () => {}}
-      onApplyCustomization={async () => {}}
-      onTask={() => {}}
-      onDiagnostics={() => {}}
-      onModelMarket={() => {}}
-    />
-    </TooltipProvider>
-    </AppStoreProvider>,
-  );
-  // Nothing to customize: no tab; a visited section reports its missing
-  // configuration without silently rewriting navigation to the overview.
-  const unset = detail(undefined);
-  assert.doesNotMatch(unset, /runtimeConfig\.capabilities\.tabs\.advanced/);
-  assert.doesNotMatch(unset, /runtimeConfig\.product\.editModelAndOptions/);
-  assert.match(unset, /runtimeConfig\.localModels\.configurationMissing/);
-
-  const current = detail({
-    loadoutId: 'loadout-1', recipeId: 'recipe-en', capabilityContract: 'text.annotate',
-    displayName: 'English language analysis', modelAxes: [], validationState: 'configured',
-  } as unknown as NimiMachineLoadout);
-  assert.match(current, /runtimeConfig\.capabilities\.tabs\.advanced/);
-  assert.doesNotMatch(current, /runtimeConfig\.product\.editModelAndOptions/);
-  assert.match(current, /runtimeConfig\.product\.customization\.unavailable/);
-});
-
-function renderCapabilityOverview(props: Partial<React.ComponentProps<typeof RuntimeCapabilityDetail>>): string {
+function renderCapabilityModels(props: Partial<React.ComponentProps<typeof RuntimeCapabilityDetail>>): string {
   const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
   return renderView(
     <AppStoreProvider store={appStore}>
@@ -560,13 +512,11 @@ function renderCapabilityOverview(props: Partial<React.ComponentProps<typeof Run
       libraryError={false}
       status={{ state: 'unset', replacement: false }}
       taskModel=""
-      section="overview"
+      section="models"
       onSection={() => {}}
       busy={false}
       disabled={false}
-      navigationContext={null}
-      onHome={() => {}}
-      onStart={async () => {}}
+      navigationContext={null}      onStart={async () => {}}
       onEnable={async () => {}}
       onApplyCustomization={async () => {}}
       onTask={() => {}}
@@ -599,35 +549,29 @@ function assertReadyCurrentModel(html: string): void {
   assert.match(html, /Gemma 4 text generation/);
   assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.ready</);
   assert.match(html, /runtimeConfig\.product\.currentOnDevice/);
-  const changeModel = html.match(/<button\b[^>]*data-testid="capability-change-model"[^>]*>[\s\S]*?<\/button>/)?.[0];
-  assert.ok(changeModel, 'the ready current model offers a change-model action');
-  assert.match(changeModel, /runtimeConfig\.product\.changeModel/);
-  assert.doesNotMatch(changeModel, /\bdisabled(?:=|[\s>])/);
+  assert.match(html, /data-testid="capability-model-settings:recipe-gemma"/);
+  assert.doesNotMatch(html, /role="tablist"|capability-change-model/);
   assert.doesNotMatch(html, /runtimeConfig\.overview\.openChat/);
   assert.doesNotMatch(html, /runtimeConfig\.setupTask\.(?:repairSetup|checkPreparation)/);
 }
 
 test('a prepared capability keeps its model on one card and folds ready components into technical details', () => {
-  const html = renderCapabilityOverview({
+  const html = renderCapabilityModels({
     selected: GEMMA_LOADOUT,
     recipes: [GEMMA_RECIPE],
     environment: environmentWith('ready_managed'),
     status: { state: 'ready', replacement: false },
   });
   assertReadyCurrentModel(html);
-  const features = html.match(/<ul\b[^>]*aria-label="runtimeConfig\.product\.whatItDoes"[^>]*>([\s\S]*?)<\/ul>/u)?.[1];
-  assert.ok(features);
-  assert.deepEqual([...features.matchAll(/<li\b[^>]*>([^<]+)<\/li>/gu)].map((match) => match[1]),
-    ['runtimeConfig.product.feature.input-image'], 'only the recipe-declared feature is advertised');
+  assert.match(html, /runtimeConfig\.product\.feature\.input-image/);
   // Ready components are a technical detail, not a second status line.
   assert.doesNotMatch(html, /capability-environment-status/);
   assert.match(html, /capability-technical-details[\s\S]*runtimeConfig\.product\.technicalEnvironment[\s\S]*component-0/);
-  // Customizing is reached through its own tab.
-  assert.doesNotMatch(html, /runtimeConfig\.product\.customize/);
+  assert.match(html, /runtimeConfig\.product\.settings\.open/);
 });
 
 test('runtime components that still need work stay on the capability card and are listed once', () => {
-  const html = renderCapabilityOverview({
+  const html = renderCapabilityModels({
     selected: GEMMA_LOADOUT,
     recipes: [GEMMA_RECIPE],
     environment: environmentWith('ready_managed', 'failed'),
@@ -642,10 +586,9 @@ test('runtime components that still need work stay on the capability card and ar
 });
 
 test('a downloaded recipe offers enable without being labeled as the current model', () => {
-  const html = renderCapabilityOverview({ downloadedRecipe: GEMMA_RECIPE, recipes: [GEMMA_RECIPE] });
-  assert.match(html, /capability-downloaded-badge/);
+  const html = renderCapabilityModels({ downloadedRecipe: GEMMA_RECIPE, recipes: [GEMMA_RECIPE] });
   assert.match(html, /capability-enable-downloaded/);
-  assert.match(html, /runtimeConfig\.product\.downloadedLead/);
+  assert.match(html, /runtimeConfig\.product\.modelsOnDevice/);
   assert.doesNotMatch(html, /runtimeConfig\.product\.currentOnDevice/);
   assert.doesNotMatch(html, /capability-technical-details/);
 });
@@ -704,18 +647,19 @@ test('the review names Python components by family, shows offer terms, and block
   assert.doesNotMatch(refused, /Ready to use these settings|readyToUseSettings/);
 });
 
-test('inline preparation replaces an unavailable model card and retains the ready current model during replacement', () => {
+test('inline preparation stays visible alongside the current model and replacement choices', () => {
   const pending = taskOn(makeStore(), { capabilityContract: 'text.generate', status: 'preparing', candidateLoadoutId: 'replacement' });
   const props = {
     selected: GEMMA_LOADOUT,
     recipes: [GEMMA_RECIPE],
     preparation: <div data-testid="embedded-preparation">Download progress</div>,
   };
-  const repair = renderCapabilityOverview({ ...props, status: { state: 'attention', task: pending, replacement: false } });
+  const repair = renderCapabilityModels({ ...props, status: { state: 'attention', task: pending, replacement: false } });
   assert.match(repair, /capability-preparation[\s\S]*embedded-preparation/);
-  assert.doesNotMatch(repair, /capability-current-model|capability-pending-setup/);
+  assert.match(repair, /capability-current-model/);
+  assert.doesNotMatch(repair, /capability-pending-setup/);
   assert.equal((repair.match(/<h1/g) ?? []).length, 1);
-  const replacement = renderCapabilityOverview({ ...props, status: { state: 'ready', task: pending, replacement: true } });
+  const replacement = renderCapabilityModels({ ...props, status: { state: 'ready', task: pending, replacement: true } });
   assertReadyCurrentModel(replacement);
   assert.match(replacement, /capability-preparation[\s\S]*embedded-preparation/);
   assert.equal((replacement.match(/data-testid="capability-current-model"/g) ?? []).length, 1);
@@ -726,11 +670,11 @@ test('inline preparation replaces an unavailable model card and retains the read
 test('unsupported optional acceleration stays a detail while an unsupported plan is never ready', () => {
   const readyEnvironment = environmentWith('ready_managed', 'unsupported');
   const optionalEnvironment = { ...readyEnvironment, dependencies: readyEnvironment.dependencies.map((dependency, index) => ({ ...dependency, required: index === 0 })) };
-  const ready = renderCapabilityOverview({ selected: GEMMA_LOADOUT, recipes: [GEMMA_RECIPE], environment: optionalEnvironment, status: { state: 'ready', replacement: false } });
+  const ready = renderCapabilityModels({ selected: GEMMA_LOADOUT, recipes: [GEMMA_RECIPE], environment: optionalEnvironment, status: { state: 'ready', replacement: false } });
   assertReadyCurrentModel(ready);
   assert.doesNotMatch(ready, /capability-environment-status/);
   assert.match(ready, /runtimeConfig\.local\.optional/);
-  const unsupported = renderCapabilityOverview({ selected: GEMMA_LOADOUT, recipes: [GEMMA_RECIPE], environment: { ...environmentWith(), state: 'unsupported' }, status: { state: 'attention', reason: 'unsupported', replacement: false } });
+  const unsupported = renderCapabilityModels({ selected: GEMMA_LOADOUT, recipes: [GEMMA_RECIPE], environment: { ...environmentWith(), state: 'unsupported' }, status: { state: 'attention', reason: 'unsupported', replacement: false } });
   assert.match(unsupported, /capability-environment-status[\s\S]*localCapabilityStateUnsupported/);
   assert.doesNotMatch(unsupported, /capabilities\.environmentSummary/);
 });

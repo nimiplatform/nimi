@@ -1,4 +1,5 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -90,35 +91,37 @@ export function RuntimeCapabilityAppsCard(props: {
       ) : (
         <>
           {state.apps.length ? (
-            // One column beside the tab content; several when the column stacks below it.
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-0.5">
-              {state.apps.map((entry) => (
-                <li key={entry.identity.appId}>
-                  <button
-                    type="button"
-                    className="group flex w-full items-center gap-3 rounded-[var(--nimi-radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                    title={entry.identity.displayName}
-                    onClick={() => props.onOpen(entry)}
-                    data-testid={`capability-app:${entry.identity.appId}`}
-                  >
-                    <AppArtworkIcon
-                      appId={entry.identity.appId}
-                      displayName={entry.identity.displayName}
-                      iconUrl={entry.iconUrl}
-                      size="sm"
-                    />
-                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--nimi-text-primary)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
-                      {entry.identity.displayName}
-                    </span>
-                    <ChevronRight
-                      size={14}
-                      className="shrink-0 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <ScrollArea className="max-h-[40vh]" viewportClassName="overscroll-contain" contentClassName="p-0.5">
+              {/* One column beside the tab content; several when the column stacks below it. */}
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-0.5">
+                {state.apps.map((entry) => (
+                  <li key={entry.identity.appId}>
+                    <button
+                      type="button"
+                      className="group flex w-full items-center gap-3 rounded-[var(--nimi-radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                      title={entry.identity.displayName}
+                      onClick={() => props.onOpen(entry)}
+                      data-testid={`capability-app:${entry.identity.appId}`}
+                    >
+                      <AppArtworkIcon
+                        appId={entry.identity.appId}
+                        displayName={entry.identity.displayName}
+                        iconUrl={entry.iconUrl}
+                        size="sm"
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm text-[var(--nimi-text-primary)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
+                        {entry.identity.displayName}
+                      </span>
+                      <ChevronRight
+                        size={14}
+                        className="shrink-0 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
           ) : null}
           {state.incomplete ? (
             <p className="px-2 pb-1 pt-1 text-xs leading-relaxed text-[var(--nimi-text-muted)]">

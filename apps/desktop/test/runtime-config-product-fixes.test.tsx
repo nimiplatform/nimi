@@ -582,90 +582,94 @@ test('read-only setup never auto-creates a candidate', async () => {
   });
 });
 
-test('changing a capability model stays in the overview, cancels without writes, and preserves the exact saved choice', async () => {
-  await withRenderer(async (ui) => {
+test('model settings stay scoped to the chosen configuration and protect unapplied changes', async () => {
+  await withRenderer(async ui => {
     const { RuntimeCapabilityDetail } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-detail.js');
     const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
     const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
     const { TooltipProvider } = await import('@nimiplatform/kit/ui');
     const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
-    const current = {
-      loadoutId: 'current', recipeId: 'recipe-a', capabilityContract: 'text.generate',
-      displayName: 'Current model', modelAxes: [], options: {}, validationState: 'configured',
-    } as unknown as import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
-    const saved = { ...current, loadoutId: 'saved-version', displayName: 'My saved version', options: { contextSize: 4096 }, modelAxes: [{ slotId: 'main.text', modelAssetId: 'exact-file', expectedContentId: 'exact-content', displayLabel: 'Main' }] };
-    const recipe = (recipeId: string, applicability = 'supported') => ({ recipeId, title: recipeId, capabilityContract: 'text.generate', implementationSupportedFeatures: [], slots: [], applicability }) as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
-    const navigation: string[] = [];
+    const current = { loadoutId: 'current', recipeId: 'recipe-a', capabilityContract: 'text.generate', displayName: 'Current model', modelAxes: [], options: { useMmap: true }, validationState: 'configured' } as unknown as import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
+    const saved = { ...current, loadoutId: 'saved-version', recipeId: 'recipe-b', displayName: 'My saved version', options: { useMmap: true, contextSize: 4096 } };
+    const recipe = (recipeId: string, applicability = 'supported') => ({ recipeId, title: recipeId, capabilityContract: 'text.generate', implementationSupportedFeatures: [], slots: [], applicability, defaultOptions: { useMmap: true } }) as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
     const uses: unknown[][] = [];
+    const applies: unknown[][] = [];
+    let failApply = true;
     const props: React.ComponentProps<typeof RuntimeCapabilityDetail> = {
       capability: 'text.generate', selected: current, loadouts: [current, saved],
-      recipes: [recipe('recipe-a'), recipe('recipe-b'), recipe('unsupported', 'unsupported')], catalog: [], assets: [],
+      recipes: [recipe('recipe-b'), recipe('recipe-a'), recipe('new'), recipe('unsupported', 'unsupported')], catalog: [], assets: [],
       libraryLoading: false, libraryError: false, status: { state: 'ready', replacement: false }, taskModel: '',
-      section: 'overview', onSection: (section) => navigation.push(section), busy: false, disabled: false, navigationContext: null,
-      onHome: () => {}, onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
-      onStart: async () => { throw new Error('Opening the picker must not create a preparation task'); },
+      section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
+      onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
+      onStart: async () => { throw Error('Opening settings must not create a task'); },
       onEnable: async (...args) => { uses.push(args); },
-      onApplyCustomization: async () => {},
+      onApplyCustomization: async (...args) => { applies.push(args); if (failApply) throw Error('Runtime is unavailable'); },
     };
-    const render = async (overrides: Partial<typeof props> = {}) => ui.render(
-      <AppStoreProvider store={appStore}><TooltipProvider><RuntimeCapabilityDetail {...props} {...overrides} /></TooltipProvider></AppStoreProvider>,
-    );
+    const render = async (overrides: Partial<typeof props> = {}) => ui.render(<AppStoreProvider store={appStore}><TooltipProvider><RuntimeCapabilityDetail {...props} {...overrides} /></TooltipProvider></AppStoreProvider>);
     await render();
-    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-change-model"]')!;
+    assert.equal(ui.document.querySelector('[role="tablist"]'), null);
+    assert.equal(ui.document.querySelector('[data-testid="capability-model-list"] > article')?.getAttribute('data-testid'), 'capability-model:recipe-a');
+    assert.equal(ui.document.querySelectorAll('[data-testid="capability-model:recipe-a"]').length, 1);
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-settings:unsupported"]')?.disabled, true);
+    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-settings:recipe-b"]')!;
     trigger.focus();
-    await ui.click('[data-testid="capability-change-model"]');
-    assert.ok(ui.document.querySelector('[role="dialog"][data-testid="capability-model-picker"]'));
-    assert.ok(ui.document.querySelector('[data-testid="capability-current-model"]'));
-    assert.deepEqual(navigation, []);
+    await ui.click('[data-testid="capability-model-settings:recipe-b"]');
+    const dialog = () => ui.document.querySelector('[data-testid="capability-model-settings"]');
+    assert.equal(dialog()?.querySelector('[data-testid="capability-settings-content"]')?.getAttribute('data-loadout-id'), 'saved-version');
+    assert.match(dialog()?.textContent ?? '', /My saved version/);
+    assert.match(dialog()?.textContent ?? '', /settings.otherScope/);
+    assert.deepEqual(applies, []);
     assert.deepEqual(uses, []);
-    assert.ok(ui.document.querySelector('[data-testid="capability-model-picker-saved:saved-version"]'), 'another saved version of the current recipe stays directly selectable');
-    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-recipe:unsupported"]')?.disabled, true);
-    assert.match(ui.document.querySelector('[data-testid="capability-model-picker"]')?.textContent ?? '', /modelPicker\.switchNote/, 'a switch discloses its scope next to the choices');
-    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'), null);
-    await ui.click('[data-testid="capability-model-picker-close"]');
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
+    await ui.click('[data-testid="capability-model-settings-close"]');
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+    assert.equal(dialog(), null);
+    assert.equal(ui.document.activeElement, trigger);
+
+    await ui.click('[data-testid="capability-model-settings:recipe-b"]');
+    await ui.click('input[aria-label="useMmap"]');
+    await ui.click('[data-testid="capability-model-settings-close"]');
+    assert.match(ui.document.body.textContent ?? '', /settings.discardTitle/, 'dismissal protects the draft');
+    await act(async () => [...ui.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(button => button.textContent?.includes('keepEditing'))!.click());
+    assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, false);
+    await ui.click('[data-testid="capability-customize-apply"]');
+    assert.equal(applies[0]?.[1], saved, 'the exact non-default configuration is submitted');
+    assert.equal((applies[0]?.[0] as { recipeId: string }).recipeId, 'recipe-b');
+    assert.match(dialog()?.textContent ?? '', /Runtime is unavailable/);
+    assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, false);
+    failApply = false;
+    await ui.click('[data-testid="capability-customize-apply"]');
+    assert.equal(dialog(), null);
+
+    await ui.click('[data-testid="capability-model-settings:new"]');
+    assert.equal(dialog()?.querySelector('[data-testid="capability-settings-content"]')?.getAttribute('data-loadout-id'), null);
+    await ui.click('input[aria-label="useMmap"]');
+    await ui.click('[data-testid="capability-customize-apply"]');
+    assert.equal((applies.at(-1)?.[0] as { recipeId: string }).recipeId, 'new');
+    assert.equal(applies.at(-1)?.[1], undefined, 'a new recipe never borrows the current configuration');
+
+    await ui.click('[data-testid="capability-model-settings:recipe-a"]');
+    await ui.click('input[aria-label="useMmap"]');
+    const count = applies.length;
+    await ui.click('[data-testid="capability-customize-discard"]');
+    assert.equal(dialog(), null);
+    assert.equal(applies.length, count, 'cancel never applies');
     assert.deepEqual(uses, []);
-    assert.equal(ui.document.activeElement === trigger, true, 'closing restores focus to the change-model trigger');
-
-    await ui.click('[data-testid="capability-change-model"]');
-    await ui.click('[data-testid="capability-model-picker-saved:saved-version"]');
-    assert.deepEqual(uses, [['recipe-a', saved]]);
-    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
-    assert.deepEqual(navigation, []);
-    await ui.click('[data-testid="capability-change-model"]');
-    await ui.click('[data-testid="capability-model-picker-recipe:recipe-b"]');
-    assert.deepEqual(uses[1], ['recipe-b', undefined]);
-
-    const imports: string[] = [];
-    const onImportModelFiles = () => { imports.push('import'); };
-    await render({ loadouts: [current], recipes: [recipe('recipe-a')], onImportModelFiles });
-    await ui.click('[data-testid="capability-change-model"]');
-    const empty = ui.document.querySelector('[data-testid="capability-model-picker-empty"]');
-    assert.ok(empty);
-    assert.ok(empty.querySelector('[data-testid="capability-model-picker-market"]'), 'with nothing to switch to, adding a model is the main content');
-    assert.ok(empty.querySelector('[data-testid="capability-model-picker-import"]'));
-    assert.equal(ui.document.querySelectorAll('[data-testid="capability-model-picker-market"]').length, 1, 'no second market entry in a footer');
-    assert.doesNotMatch(ui.document.querySelector('[data-testid="capability-model-picker"]')?.textContent ?? '', /switchNote/, 'the scope note belongs to an actual switch');
-    await render({ loadouts: [current], recipes: [], modelsError: true });
-    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'), null, 'a failed recipe query is not an empty inventory');
+    const second = { ...saved, loadoutId: 'second-version', displayName: 'Second saved version' };
+    await render({ loadouts: [current, saved, second] });
+    await ui.click('[data-testid="capability-model-settings:recipe-b"]');
+    assert.match(dialog()?.textContent ?? '', /settings.chooseConfiguration/);
+    assert.equal(ui.document.querySelector('input[aria-label="useMmap"]'), null, 'multiple configurations require an explicit choice');
+    await ui.click('[data-testid="capability-settings-choose:second-version"]');
+    assert.match(dialog()?.textContent ?? '', /Second saved version/);
+    await ui.click('input[aria-label="useMmap"]');
+    await ui.click('[data-testid="capability-customize-apply"]');
+    assert.equal(applies.at(-1)?.[1], second);
     await render({ disabled: true });
-    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-saved:saved-version"]')?.disabled, true);
-    await render({ recipes: [recipe('recipe-b')] });
-    const unavailable = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-saved:saved-version"]')!;
-    assert.equal(unavailable.disabled, true);
-    assert.match(unavailable.parentElement?.textContent ?? '', /preparationUnknown/);
-    assert.doesNotMatch(unavailable.parentElement?.textContent ?? '', /hostFit\.unsupported/, 'a missing recipe is unknown, not evidence of incompatibility');
-
-    await render({ loadouts: [current], recipes: [recipe('recipe-a')], onImportModelFiles });
-    await ui.click('[data-testid="capability-model-picker-import"]');
-    assert.deepEqual(imports, ['import']);
-    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
-    assert.deepEqual(uses, [['recipe-a', saved], ['recipe-b', undefined]], 'adding a model never switches the current one');
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-settings:recipe-b"]')?.disabled, true);
   });
 });
 
-test('the models tab offers import above a long model list without starting a setup', async () => {
+test('the model workspace offers import above a long model list without starting a setup', async () => {
   await withRenderer(async (ui) => {
     const { RuntimeCapabilityDetail } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-detail.js');
     const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
@@ -681,7 +685,7 @@ test('the models tab offers import above a long model list without starting a se
       capability: 'audio.transcribe', loadouts: [], recipes, catalog: [], assets: [],
       libraryLoading: false, libraryError: false, status: { state: 'unset', replacement: false }, taskModel: '',
       section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
-      onHome: () => {}, onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
+      onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
       onStart: async () => { throw new Error('Importing must not start a setup'); },
       onEnable: async () => { throw new Error('Importing must not enable a model'); },
       onApplyCustomization: async () => {},
@@ -842,9 +846,9 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
       ],
       catalog: [], assets: [], libraryLoading: false, libraryError: false, status: { state: 'unset', replacement: false }, taskModel: '',
       section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
-      onHome: () => {}, onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
-      onStart: async (...args) => { starts.push(args); },
-      onEnable: async () => {}, onApplyCustomization: async () => {},
+      onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
+      onStart: async () => {},
+      onEnable: async (...args) => { starts.push(args); }, onApplyCustomization: async () => {},
       onImportModelFiles: () => { imports += 1; },
       onChooseImportedFiles: (recipeId) => { chosenImports.push(recipeId); },
     };
@@ -865,7 +869,7 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
     assert.deepEqual(starts.at(-1), ['spacy-md-de']);
 
     // One saved configuration: the main Select carries exactly that binding.
-    assert.match(card('spacy-md-en').textContent ?? '', /runtimeConfig\.product\.modelsOnDevice/);
+    assert.match(card('spacy-md-en').textContent ?? '', /runtimeConfig\.product\.savedConfiguration/);
     await act(async () => button('spacy-md-en', 'runtimeConfig.product.selectModel').click());
     assert.deepEqual(starts.at(-1), ['spacy-md-en', english]);
 

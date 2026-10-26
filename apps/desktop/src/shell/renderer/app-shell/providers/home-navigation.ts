@@ -9,7 +9,7 @@ import type { AgentCenterSectionId } from '@nimiplatform/kit/features/agent-cent
 
 export type HomeRuntimePosition = {
   readonly page?: 'aiSettings' | 'modelLibrary';
-  readonly section?: 'overview' | 'models' | 'advanced' | 'saved' | 'discover' | 'downloaded';
+  readonly section?: 'models' | 'saved' | 'discover' | 'downloaded';
   readonly capabilityContract?: string;
   readonly setupTaskId?: string;
   readonly profileViewId?: string;
@@ -109,7 +109,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
       if (!['aiSettings', 'modelLibrary'].includes(normalized.page as string)) throw new Error('Invalid Runtime page.');
       if ((normalized.profileViewId || normalized.profileTaskDetailId) && normalized.page !== 'aiSettings') throw new Error('Profile views require AI Capabilities.');
       if (normalized.profileTaskDetailId && !normalized.setupTaskId) throw new Error('Profile item detail requires its setup task.');
-      const sections = normalized.page === 'aiSettings' ? ['overview', 'models', 'advanced', 'saved'] : ['discover', 'downloaded'];
+      const sections = normalized.page === 'aiSettings' ? ['models', 'saved'] : ['discover', 'downloaded'];
       normalized.section ??= sections[0];
       if (!sections.includes(normalized.section as string)) throw new Error('Invalid Runtime section.');
       if (normalized.market !== undefined && !['browse', 'slot'].includes(normalized.market as string)) throw new Error('Invalid model market position.');

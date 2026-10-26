@@ -131,9 +131,9 @@ test('the Apps column shows each App by icon and name, with explicit incomplete 
   assert.match(render(<RuntimeCapabilityAppsCard state="unavailable" onOpen={() => {}} />), /apps\.unavailable/);
 });
 
-test('the capability page places the Apps column beside the tab content', () => {
+test('the capability page places the Apps column beside the model list', () => {
   const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
-  const detail = (apps?: React.ReactNode, section = 'overview') => render(
+  const detail = (apps?: React.ReactNode, section = 'models') => render(
     <AppStoreProvider store={appStore}>
       <TooltipProvider>
         <RuntimeCapabilityDetail
@@ -154,9 +154,7 @@ test('the capability page places the Apps column beside the tab content', () => 
           onSection={() => {}}
           busy={false}
           disabled={false}
-          navigationContext={null}
-          onHome={() => {}}
-          onStart={async () => {}}
+          navigationContext={null}          onStart={async () => {}}
           onEnable={async () => {}}
           onApplyCustomization={async () => {}}
           onTask={() => {}}
@@ -168,11 +166,9 @@ test('the capability page places the Apps column beside the tab content', () => 
     </AppStoreProvider>,
   );
   const column = <p data-testid="apps-column-slot">apps</p>;
-  for (const section of ['overview', 'models', 'advanced']) {
-    const html = detail(column, section);
-    // The tabs stay full width; the column sits after the tab content inside the same grid.
-    assert.match(html, /role="tablist"[\s\S]*xl:grid-cols-\[minmax\(0,1fr\)_15rem\][\s\S]*<aside[^>]*><p data-testid="apps-column-slot">/, section);
-  }
+  const html = detail(column);
+  assert.doesNotMatch(html, /role="tablist"/);
+  assert.match(html, /xl:grid-cols-\[minmax\(0,1fr\)_15rem\][\s\S]*<aside[^>]*><p data-testid="apps-column-slot">/);
   const without = detail(undefined);
   assert.doesNotMatch(without, /<aside|xl:grid-cols-\[minmax\(0,1fr\)_15rem\]/);
   assert.match(without, /data-testid="capability-current-model"/);

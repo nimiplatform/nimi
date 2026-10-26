@@ -69,7 +69,7 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
     case 'usage': await input.reading.openAIActivity(); guard(); return;
     case 'downloads': return navigate({ id: 'downloads' });
     case 'apps': return navigate({ id: 'apps' });
-    case 'ai-capabilities': return navigate({ id: 'runtime', runtime: { page: 'aiSettings', section: 'overview' } });
+    case 'ai-capabilities': return navigate({ id: 'runtime', runtime: { page: 'aiSettings', section: 'models' } });
     case 'settings': { const result = await openHomeSettings(input.navigation); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'notification-settings': { const result = await openHomeSettings(input.navigation, 'notifications'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'support': { const result = await openHomeSettings(input.navigation, 'troubleshooting'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }

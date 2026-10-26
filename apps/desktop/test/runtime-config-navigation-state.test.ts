@@ -87,7 +87,8 @@ test('Runtime destination validator refuses unknown fields and preserves explici
   assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { page: 'modelLibrary', draft: { text: 'business data' } } }));
   assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { market: 'slot', capabilityContract: 'text.generate' } }));
   assert.deepEqual(validateHomeDestination({ id: 'runtime', runtime: { capabilityContract: 'unavailable.ref', loadoutId: 'loadout-ref' } }).runtime,
-    { page: 'aiSettings', section: 'overview', capabilityContract: 'unavailable.ref', loadoutId: 'loadout-ref' });
+    { page: 'aiSettings', section: 'models', capabilityContract: 'unavailable.ref', loadoutId: 'loadout-ref' });
+  for (const section of ['overview', 'advanced']) assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { page: 'aiSettings', section } }));
   const state = createDefaultStateV11();
   assert.equal(state.version, 16);
   for (const field of ['activePage', 'actionFocus', 'selectedConnectorId']) assert.equal(field in state, false);

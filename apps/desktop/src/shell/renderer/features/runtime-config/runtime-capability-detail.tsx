@@ -1,7 +1,7 @@
 import {
   Button,
   InlineAlert,
-  NimiTabs,
+  LoadingSkeleton,
   StatusBadge,
   type StatusTone,
   TextField,
@@ -16,7 +16,6 @@ import {
   type NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
-  ArrowLeft,
   ArrowRight,
   Bookmark,
   Check,
@@ -29,7 +28,7 @@ import {
   FolderOpen,
   LoaderCircle,
   MonitorCheck,
-  Search,
+  Store,
   SlidersHorizontal,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -37,8 +36,7 @@ import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
-import { RuntimeCapabilityModelPicker } from './runtime-capability-model-picker.js';
-import { RuntimeCapabilityCustomizeTab, ScopeHint } from './runtime-capability-customize.js';
+import { RuntimeCapabilitySettingsDialog } from './runtime-capability-settings-dialog.js';
 import {
   capabilityIcon,
   capabilityModelIdentity,
@@ -75,20 +73,19 @@ type Props = {
   status: ReturnType<typeof capabilityPreparationState>;
   /** Model the in-flight setup works on; '' when its candidate is not known. */
   taskModel: string;
-  /** A machine setup stays in this capability's overview, including recovery and progress. */
+  /** Preparation and recovery remain visible alongside the model list. */
   preparation?: ReactNode;
-  /** Apps that use this capability, shown in a column beside the tab content. */
+  /** Apps that use this capability, shown beside the models. */
   apps?: ReactNode;
   section: string;
   onSection: (section: string) => void;
   busy: boolean;
   disabled: boolean;
   navigationContext: RuntimeConfigLoadoutNavigationContext | null;
-  onHome: () => void;
   onStart: (recipe: string, previous?: NimiMachineLoadout) => Promise<void>;
   /** Uses the exact saved configuration or recipe recommendation after checking its preparation plan. */
   onEnable: (recipe: string, previous?: NimiMachineLoadout) => Promise<void>;
-  onApplyCustomization: (draft: RuntimeSetupTaskDraft) => Promise<void>;
+  onApplyCustomization: (draft: RuntimeSetupTaskDraft, previous?: NimiMachineLoadout) => Promise<void>;
   onRetryCustomization?: () => void;
   onTask: (taskId: string) => void;
   onModelFiles?: () => void;
@@ -148,235 +145,125 @@ export function PendingSetupBanner(props: {
 export function RuntimeCapabilityDetail(props: Props) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [editing, setEditing] = useState<{ recipeId: string; loadoutId?: string; chooseConfiguration?: boolean } | null>(null);
   const label = displayRuntimeConfigCapabilityLabel(props.capability, t);
   const Icon = capabilityIcon(props.capability);
-  const identity = capabilityModelIdentity(props.selected, props.recipes, props.catalog);
-  const capabilityKey = props.capability.replace(/[._]/g, '-');
-  const usage = displayRuntimeConfigCapabilityUsage(props.capability, t);
-  const shortUse = t(`runtimeConfig.product.shortUse.${capabilityKey}`, { defaultValue: label });
-  // Without a selection the card describes the downloaded recipe instead, so
-  // the person sees what they would enable rather than an empty "not set".
-  const downloaded = !props.selected ? props.downloadedRecipe : undefined;
-  const shownRecipe = identity.recipe ?? downloaded;
-  const featureKeys = modelFeatureLocaleKeys(shownRecipe?.implementationSupportedFeatures ?? []);
-  const downloadedSummary = downloaded ? recipeOfferSummary(downloaded) : null;
-  const cardTitle = identity.shortTitle || (downloaded ? modelDisplayTitle(downloaded.title) : '');
-  const cardSeed = identity.title || downloaded?.title || '';
-  const matched = props.recipes.filter((recipe) =>
-    `${recipe.title} ${props.loadouts
-      .filter((item) => item.recipeId === recipe.recipeId)
-      .map((item) => item.displayName)
-      .join(' ')}`
-      .toLocaleLowerCase()
-      .includes(query.trim().toLocaleLowerCase()),
-  );
-  const isReady = props.status.state === 'ready';
-  // The same dependency reading as the capability list, so the card and the rail agree.
-  const environmentReady =
-    !!props.environment && props.environment.state !== 'unsupported' &&
-    props.environment.dependencies.every(
-      (d) => !d.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state),
-    );
-  const readyDependencies =
-    props.environment?.dependencies.filter((d) => d.required && isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state)).length ?? 0;
-  const chipSize = identity.sizeBytes ?? downloadedSummary?.installedBytes ?? null;
-  const versionChip = [identity.versionShort, chipSize ? t('runtimeConfig.product.aboutSize', { size: formatBytes(chipSize) }) : '']
-    .filter(Boolean)
-    .join(' · ');
-  // Imported files that no saved configuration of this capability uses yet;
-  // Runtime validates any of them only when they are chosen for a recipe.
-  const unboundImports = props.assets.some((asset) => !asset.catalogVerified
-    && !props.loadouts.some((loadout) => loadout.modelAxes.some((axis) => axis.modelAssetId === asset.modelAssetId)));
-  // The card reads Runtime's offers: a saved configuration is reused first,
-  // an exact installed offer counts as on this device, and a download names
-  // the source transfer size only when Runtime knows it.
+  const currentIdentity = capabilityModelIdentity(props.selected, props.recipes, props.catalog);
+  const loadouts = props.selected && !props.loadouts.some(item => item.loadoutId === props.selected!.loadoutId)
+    ? [props.selected, ...props.loadouts] : props.loadouts;
+  const matched = props.recipes.filter(recipe => `${recipe.title} ${loadouts.filter(item => item.recipeId === recipe.recipeId).map(item => item.displayName).join(' ')}`
+    .toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  // Only the current selection moves to the front. Owner recommendation order remains intact otherwise.
+  const ordered = [...matched.filter(recipe => recipe.recipeId === props.selected?.recipeId), ...matched.filter(recipe => recipe.recipeId !== props.selected?.recipeId)];
+  const editingLoadout = editing?.loadoutId ? loadouts.find(item => item.loadoutId === editing.loadoutId) : undefined;
+  const editingRecipe = props.recipes.find(recipe => recipe.recipeId === editing?.recipeId);
+  const unboundImports = props.assets.some(asset => !asset.catalogVerified
+    && !loadouts.some(loadout => loadout.modelAxes.some(axis => axis.modelAssetId === asset.modelAssetId)));
   const costOf = (recipe: NimiLoadoutRecipe, saved: readonly NimiMachineLoadout[]): ModelCost => {
-    if (props.modelsLoading) return { text: t('Common.loading'), tone: 'muted' };
-    if (props.modelsError) return { text: t('runtimeConfig.product.preparationUnknown'), tone: 'muted' };
-    if (saved.length > 0) return { text: t('runtimeConfig.product.modelsOnDevice'), tone: 'ready' };
+    if (props.modelsLoading || props.libraryLoading) return { text: t('Common.loading'), tone: 'muted' };
+    if (props.modelsError || props.libraryError) return { text: t('runtimeConfig.product.preparationUnknown'), tone: 'muted' };
+    if (saved.length > 0) return { text: t('runtimeConfig.product.savedConfiguration'), tone: 'muted' };
     const summary = recipeOfferSummary(recipe);
     if (summary.withoutOffer > 0) return { text: t('runtimeConfig.product.noDirectDownload'), tone: 'muted' };
-    if (summary.missing === 0)
-      return {
-        text: summary.installedBytes !== null
-          ? t('runtimeConfig.product.onDeviceWithSize', { size: formatBytes(summary.installedBytes) })
-          : t('runtimeConfig.product.modelsOnDevice'),
-        tone: 'ready',
-      };
+    if (summary.missing === 0) return { text: t('runtimeConfig.product.modelsOnDevice'), tone: 'ready' };
     if (summary.downloadBytes === null) return { text: t('runtimeConfig.product.downloadSizeUnknown'), tone: 'muted' };
     return { text: t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.downloadBytes) }), tone: 'download' };
   };
-  // Missing configuration cannot rewrite a visited section.
-  const sections = props.selected ? ['overview', 'models', 'advanced'] : ['overview', 'models'];
-  const section = props.section;
-  if (props.section === 'saved')
-    return (
-      <SavedConfigsView
-        contextual
-        capabilityContract={props.capability}
-        navigationContext={props.navigationContext ?? { capabilityContract: props.capability }}
-        onBack={() => props.onSection('advanced')}
-        environmentWritesDisabled={props.disabled}
-        onPrepareEnvironment={(loadout) => { void props.onStart(loadout.recipeId, loadout); }}
-        onOpenModelMarket={props.onModelMarket}
-      />
-    );
-  const needsAttention = props.status.state === 'attention';
-  const stateBadge = isReady ? (
-    <StatusBadge tone="success" shape="dot" data-testid="capability-state-badge">
-      {t('runtimeConfig.capabilities.state.ready')}
-    </StatusBadge>
-  ) : downloaded ? (
-    <StatusBadge tone="neutral" shape="soft" data-testid="capability-downloaded-badge">
-      {t('runtimeConfig.capabilities.state.downloaded')}
-    </StatusBadge>
-  ) : props.status.state !== 'unset' ? (
-    <StatusBadge
-      tone={needsAttention ? 'warning' : props.status.state === 'preparing' ? 'info' : 'neutral'}
-      shape="soft"
-      data-testid="capability-state-badge"
-    >
-      {props.status.state === 'preparing' ? <LoaderCircle size={12} className="animate-spin" aria-hidden="true" /> : null}
-      {needsAttention ? <CircleAlert size={12} aria-hidden="true" /> : null}
-      {t(`runtimeConfig.capabilities.state.${props.status.state}`)}
-    </StatusBadge>
-  ) : null;
+  if (props.section === 'saved') return <SavedConfigsView contextual capabilityContract={props.capability}
+    backLabel={t('runtimeConfig.localModels.backToModels')}
+    navigationContext={props.navigationContext ?? { capabilityContract: props.capability }} onBack={() => props.onSection('models')}
+    environmentWritesDisabled={props.disabled} onPrepareEnvironment={loadout => { void props.onStart(loadout.recipeId, loadout); }} onOpenModelMarket={props.onModelMarket} />;
+  const controlsDisabled = props.busy || props.disabled || Boolean(props.modelsLoading || props.modelsError || props.libraryLoading || props.libraryError);
   return (
-    <div className="space-y-6" data-testid={`ai-capability-detail:${props.capability}`}>
-      <Button tone="ghost" size="sm" className="-ml-3" onClick={props.onHome}>
-        <ArrowLeft size={15} />
-        {t('runtimeConfig.product.backToSetups')}
-      </Button>
-      <header className="flex items-start gap-4">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
-          <Icon size={25} strokeWidth={1.6} />
-        </span>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{label}</h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
-            {usage}
-          </p>
-        </div>
+    <div className="space-y-5" data-testid={`ai-capability-detail:${props.capability}`}>
+      <header className="flex items-start gap-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]"><Icon size={24} strokeWidth={1.6} /></span>
+        <div className="min-w-0"><h1 className="text-2xl font-semibold tracking-tight">{label}</h1>
+          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{displayRuntimeConfigCapabilityUsage(props.capability, t)}</p></div>
       </header>
-      <NimiTabs
-        ariaLabel={t('runtimeConfig.capabilities.details')}
-        value={section}
-        onValueChange={props.onSection}
-        items={sections.map((value) => ({
-          value,
-          label: t(`runtimeConfig.capabilities.tabs.${value}`),
-        }))}
-      />
       <div className={props.apps ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_15rem]' : undefined}>
-        <div className="min-w-0 space-y-6">
-          {props.status.task && !props.preparation ? (
-            <PendingSetupBanner
-              task={props.status.task}
-              model={props.taskModel}
-              onOpen={() => props.onTask(props.status.task!.taskId)}
-            />
+        <div className="min-w-0 space-y-4">
+          {props.status.task && !props.preparation ? <PendingSetupBanner task={props.status.task} model={props.taskModel} onOpen={() => props.onTask(props.status.task!.taskId)} /> : null}
+          {props.preparation ? <div className="rounded-xl bg-[var(--nimi-surface-card)] p-4" data-testid="capability-preparation">{props.preparation}</div> : null}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">{t('runtimeConfig.product.settings.models')}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              {props.recipes.length > 6 ? <TextField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query} onChange={event => setQuery(event.currentTarget.value)} /> : null}
+              <Button tone="secondary" size="sm" onClick={() => props.onModelMarket({ kind: 'browse', capabilityContract: props.capability })}><Store size={14} />{t('runtimeConfig.product.modelPicker.browse')}</Button>
+              {props.onImportModelFiles || props.onModelFiles ? <Button tone="secondary" size="sm" onClick={props.onImportModelFiles ?? props.onModelFiles} data-testid="capability-models-import"><FolderOpen size={14} />{t('runtimeConfig.product.importModel')}</Button> : null}
+            </div>
+          </div>
+          {props.modelsError || props.libraryError ? <InlineAlert tone="warning">{t('runtimeConfig.product.preparationUnknown')}<Button tone="ghost" size="sm" onClick={props.onRetryCustomization}>{t('Common.retry')}</Button></InlineAlert> : null}
+          {props.selected && !props.recipes.some(recipe => recipe.recipeId === props.selected!.recipeId) ? (
+            <div className="rounded-xl bg-[var(--nimi-surface-card)] p-4" data-testid="capability-current-model" data-loadout-id={props.selected.loadoutId}>
+              <p className="font-semibold">{currentIdentity.shortTitle || props.selected.displayName}</p>
+              <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.currentOnDevice')}</p>
+              <InlineAlert tone="warning">{t('runtimeConfig.product.preparationUnknown')}</InlineAlert>
+              <CurrentModelDetails {...props} />
+            </div>
           ) : null}
-
-          {section === 'overview' && (!props.preparation || isReady) ? (
-            <section
-              className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)]"
-              data-testid="capability-current-model"
-              data-loadout-id={props.selected?.loadoutId}
-            >
-              <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-5 lg:p-6">
-                <div className="flex min-w-[16rem] flex-1 items-start gap-4">
-                  {cardTitle ? (
-                    <IdentityTile seed={modelFamilySeed(cardSeed)} label={cardTitle} size="lg" />
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                      <h2 className="text-xl font-semibold leading-7">
-                        {cardTitle || t('runtimeConfig.aiSettings.notConfigured')}
-                      </h2>
-                      {stateBadge}
+          {props.modelsLoading && !ordered.length ? <LoadingSkeleton lines={4} /> : ordered.length ? (
+            <div className="space-y-3" data-testid="capability-model-list">
+              {ordered.map(recipe => {
+                const saved = loadouts.filter(item => item.recipeId === recipe.recipeId && item.validationState === 'configured');
+                const current = props.selected?.recipeId === recipe.recipeId;
+                const noDirectDownload = !props.modelsLoading && !props.modelsError && recipeOfferSummary(recipe).withoutOffer > 0;
+                const features = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
+                const settings = (loadout?: NimiMachineLoadout) => {
+                  const target = loadout ?? (current ? props.selected : undefined);
+                  setEditing({ recipeId: recipe.recipeId, loadoutId: target?.loadoutId, chooseConfiguration: !target && saved.length > 1 });
+                };
+                return <ModelChoiceCard key={recipe.recipeId} recipe={recipe} title={modelDisplayTitle(recipe.title)}
+                  description={features.map(key => t(key)).join(' · ')} cost={costOf(recipe, saved)} current={current}
+                  enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId} saved={saved}
+                  noDirectDownload={!noDirectDownload ? null : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
+                  selectedLoadoutId={props.selected?.loadoutId} recipes={props.recipes} catalog={props.catalog} busy={controlsDisabled}
+                  onSelect={() => { void props.onEnable(recipe.recipeId); }} onEnable={() => { void props.onEnable(recipe.recipeId); }}
+                  onUseSaved={item => { void props.onEnable(item.recipeId, item); }}
+                  onChooseImported={() => props.onChooseImportedFiles?.(recipe.recipeId)} onImport={props.onImportModelFiles ?? props.onModelFiles}
+                  onCustomize={settings}
+                  currentContent={current ? <div className="space-y-3" data-testid="capability-current-model" data-loadout-id={props.selected?.loadoutId}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--nimi-text-secondary)]">
+                        <span>{[currentIdentity.versionShort, currentIdentity.sizeBytes ? t('runtimeConfig.product.aboutSize', { size: formatBytes(currentIdentity.sizeBytes) }) : ''].filter(Boolean).join(' · ')}</span>
+                        <StatusBadge tone={props.status.state === 'ready' ? 'success' : props.status.state === 'attention' ? 'warning' : 'neutral'} shape="soft" data-testid="capability-state-badge">{t(`runtimeConfig.capabilities.state.${props.status.state}`)}</StatusBadge>
+                      </div>
+                      {props.status.state !== 'ready' && !props.preparation ? <Button tone="secondary" size="sm" disabled={controlsDisabled} onClick={() => { if (props.status.task) props.onTask(props.status.task.taskId); else void props.onStart(recipe.recipeId, props.selected); }}>{t(props.status.state === 'unknown' ? 'runtimeConfig.setupTask.checkPreparation' : 'runtimeConfig.setupTask.repairSetup')}</Button> : null}
                     </div>
-                    {/* A downloaded recipe is not selected yet, so it is never labeled as the current model. */}
-                    {!downloaded || versionChip ? (
-                      <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">
-                        {!downloaded ? (
-                          <>
-                            {t('runtimeConfig.product.currentOnDevice')}
-                            <ScopeHint text={t('runtimeConfig.product.localScopeHelp')} />
-                          </>
-                        ) : null}
-                        {!downloaded && versionChip ? <span aria-hidden="true">·</span> : null}
-                        {versionChip ? <span>{versionChip}</span> : null}
-                      </p>
-                    ) : null}
-                    {!props.selected ? (
-                      <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
-                        {t(downloaded ? 'runtimeConfig.product.downloadedLead' : 'runtimeConfig.product.chooseModelLead')}
-                      </p>
-                    ) : null}
-                    {cardTitle && featureKeys.length > 0 ? (
-                      <ul className="mt-4 flex flex-wrap gap-2" aria-label={t('runtimeConfig.product.whatItDoes')}>
-                        {featureKeys.map((key) => t(key)).map((text, index) => (
-                          <li
-                            key={`${index}:${text}`}
-                            className="rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)]"
-                          >
-                            {text}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-[7px]">
-                  {props.selected || downloaded ? (
-                    <Button tone="secondary" disabled={props.busy} onClick={() => setModelPickerOpen(true)} data-testid="capability-change-model">
-                      {t('runtimeConfig.product.changeModel')}
-                    </Button>
-                  ) : null}
-                  {props.selected ? (
-                    !isReady ? (
-                      <Button
-                        tone="primary"
-                        disabled={props.busy || props.disabled}
-                        onClick={() => {
-                          if (props.status.task) props.onTask(props.status.task.taskId);
-                          else void props.onStart(props.selected!.recipeId, props.selected);
-                        }}
-                      >
-                        {t(
-                          props.status.state === 'unknown'
-                            ? 'runtimeConfig.setupTask.checkPreparation'
-                            : 'runtimeConfig.setupTask.repairSetup',
-                        )}
-                        <ArrowRight size={15} />
-                      </Button>
-                    ) : null
-                  ) : downloaded ? (
-                    <Button
-                      tone="primary"
-                      disabled={props.busy || props.disabled}
-                      data-testid="capability-enable-downloaded"
-                      onClick={() => {
-                        void props.onEnable(downloaded.recipeId);
-                      }}
-                    >
-                      {t('runtimeConfig.product.enableModel')}
-                      <ArrowRight size={15} />
-                    </Button>
-                  ) : (
-                    <Button tone="primary" onClick={() => props.onSection('models')}>
-                      {t('runtimeConfig.capabilities.chooseModel')}
-                      <ArrowRight size={15} />
-                    </Button>
-                  )}
-                </div>
-              </div>
+                    <CurrentModelDetails {...props} />
+                  </div> : undefined} />;
+              })}
+            </div>
+          ) : !props.modelsError ? <p className="py-6 text-sm text-[var(--nimi-text-secondary)]">{t(query ? 'runtimeConfig.product.noModelsMatch' : 'runtimeConfig.product.settings.empty')}</p> : null}
+          {ordered.length ? <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.modelPicker.switchNote')}</p> : null}
+          {loadouts.length ? <Button tone="ghost" size="sm" onClick={() => props.onSection('saved')}><Bookmark size={14} />{t('runtimeConfig.product.manageSaved')}</Button> : null}
+        </div>
+        {props.apps ? <aside className="min-w-0">{props.apps}</aside> : null}
+      </div>
+      {editing ? <RuntimeCapabilitySettingsDialog key={editing.recipeId}
+        recipe={editingRecipe} selected={editingLoadout} missingConfiguration={Boolean(editing.loadoutId && !editingLoadout)}
+        configurations={editing.chooseConfiguration ? loadouts.filter(item => item.recipeId === editing.recipeId && item.validationState === 'configured') : undefined}
+        onChooseConfiguration={loadout => setEditing({ recipeId: editing.recipeId, loadoutId: loadout?.loadoutId })}
+        current={Boolean(editing.loadoutId && editing.loadoutId === props.selected?.loadoutId)} catalog={props.catalog} assets={props.assets}
+        loading={props.libraryLoading || Boolean(props.modelsLoading)} readFailed={props.libraryError || Boolean(props.modelsError)} disabled={props.busy || props.disabled}
+        onRetry={props.onRetryCustomization} onClose={() => setEditing(null)}
+        onApply={async draft => { await props.onApplyCustomization(draft, editingLoadout); setEditing(null); }} /> : null}
+    </div>
+  );
+}
 
+function CurrentModelDetails(props: Props) {
+  const { t } = useTranslation();
+  const identity = capabilityModelIdentity(props.selected, props.recipes, props.catalog);
+  const needsAttention = props.status.state === 'attention';
+  const environmentReady = !!props.environment && props.environment.state !== 'unsupported'
+    && props.environment.dependencies.every(d => !d.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state));
+  const readyDependencies = props.environment?.dependencies.filter(d => d.required && isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state)).length ?? 0;
+  return <>
               {/* Components that still need preparing stay on the card; once all are ready they move into the technical details. */}
               {props.environment && !environmentReady ? (
-                <div className="flex gap-4 px-5 pb-5 lg:px-6 lg:pb-6">
-                  {cardTitle ? <span className="w-12 shrink-0" aria-hidden="true" /> : null}
+                <div className="flex gap-4 pt-2">
+                  {identity.shortTitle ? <span className="hidden" aria-hidden="true" /> : null}
                   <div
                     className={`min-w-0 flex-1 rounded-[var(--nimi-radius-md)] px-4 py-3 ring-1 ring-inset ${
                       needsAttention
@@ -417,12 +304,12 @@ export function RuntimeCapabilityDetail(props: Props) {
 
               {props.selected ? (
                 <details className="group border-t border-[var(--nimi-border-subtle)]" data-testid="capability-technical-details">
-                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] lg:px-6 [&::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] [&::-webkit-details-marker]:hidden">
                     <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
                     {t('runtimeConfig.product.modelDetails')}
                   </summary>
                   {/* Indented to the summary text: card padding plus the 14px chevron and its gap. */}
-                  <div className="grid gap-x-12 gap-y-5 pb-5 pl-[calc(1.25rem+14px+0.5rem)] pr-5 md:grid-cols-2 lg:pb-6 lg:pl-[calc(1.5rem+14px+0.5rem)] lg:pr-6">
+                  <div className="grid gap-4 pb-3 md:grid-cols-2">
                     <div className="min-w-0">
                       <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
                         {t('runtimeConfig.product.technicalModel')}
@@ -468,156 +355,8 @@ export function RuntimeCapabilityDetail(props: Props) {
                   </div>
                 </details>
               ) : null}
-            </section>
-          ) : null}
 
-          {props.preparation ? (
-            <div hidden={section !== 'overview'} className="min-w-0 rounded-2xl bg-[var(--nimi-surface-card)] p-5 lg:p-6" data-testid="capability-preparation">
-              {props.preparation}
-            </div>
-          ) : null}
-
-          {modelPickerOpen ? (
-            <RuntimeCapabilityModelPicker
-              label={label}
-              selected={props.selected}
-              loadouts={props.loadouts}
-              recipes={props.recipes}
-              catalog={props.catalog}
-              assets={props.assets}
-              libraryLoading={props.libraryLoading}
-              libraryError={props.libraryError}
-              loading={props.modelsLoading ?? false}
-              error={props.modelsError ?? false}
-              busy={props.busy}
-              disabled={props.disabled}
-              onChoose={async (recipe, previous) => {
-                await props.onEnable(recipe, previous);
-                setModelPickerOpen(false);
-              }}
-              onCustomize={() => {
-                setModelPickerOpen(false);
-                props.onSection('advanced');
-              }}
-              onBrowse={() => {
-                setModelPickerOpen(false);
-                props.onModelMarket({ kind: 'browse', capabilityContract: props.capability });
-              }}
-              onImport={props.onImportModelFiles || props.onModelFiles ? () => {
-                setModelPickerOpen(false);
-                (props.onImportModelFiles ?? props.onModelFiles)?.();
-              } : undefined}
-              onClose={() => setModelPickerOpen(false)}
-            />
-          ) : null}
-
-          {section === 'models' ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-base font-semibold">{t('runtimeConfig.product.chooseYourModel')}</h2>
-                {/* Import sits in the header so it stays in view above a long model list. */}
-                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                  {props.recipes.length > 6 ? (
-                    <div className="relative flex-1 sm:w-60 sm:flex-none">
-                      <Search
-                        size={15}
-                        className="pointer-events-none absolute left-3 top-3 text-[var(--nimi-text-secondary)]"
-                      />
-                      <TextField
-                        aria-label={t('runtimeConfig.product.searchModels')}
-                        placeholder={t('runtimeConfig.product.searchModels')}
-                        value={query}
-                        onChange={(event) => setQuery(event.currentTarget.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                  ) : null}
-                  {props.onImportModelFiles || props.onModelFiles ? (
-                    <Button
-                      tone="secondary"
-                      onClick={props.onImportModelFiles ?? props.onModelFiles}
-                      data-testid="capability-models-import"
-                    >
-                      <FolderOpen size={15} />
-                      {t('runtimeConfig.product.importModel')}
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-              {props.libraryError ? (
-                <InlineAlert tone="warning">{t('runtimeConfig.product.preparationUnknown')}</InlineAlert>
-              ) : null}
-              {matched.length ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {matched.map((recipe) => {
-                    const recipeFeatures = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
-                    const saved = props.loadouts.filter(
-                      (item) => item.recipeId === recipe.recipeId && item.validationState === 'configured',
-                    );
-                    const noDirectDownload = !props.modelsLoading && !props.modelsError && recipeOfferSummary(recipe).withoutOffer > 0;
-                    return (
-                      <ModelChoiceCard
-                        key={recipe.recipeId}
-                        recipe={recipe}
-                        title={modelDisplayTitle(recipe.title)}
-                        description={
-                          recipeFeatures.length ? recipeFeatures.map((key) => t(key)).join(' · ') : shortUse
-                        }
-                        cost={costOf(recipe, saved)}
-                        current={props.selected?.recipeId === recipe.recipeId}
-                        enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId}
-                        saved={saved}
-                        noDirectDownload={!noDirectDownload ? null
-                          : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
-                        selectedLoadoutId={props.selected?.loadoutId}
-                        recipes={props.recipes}
-                        catalog={props.catalog}
-                        busy={props.busy || props.disabled}
-                        onSelect={() => {
-                          void props.onStart(recipe.recipeId);
-                        }}
-                        onEnable={() => {
-                          void props.onEnable(recipe.recipeId);
-                        }}
-                        onUseSaved={(item) => {
-                          void props.onStart(item.recipeId, item);
-                        }}
-                        onChooseImported={() => props.onChooseImportedFiles?.(recipe.recipeId)}
-                        onImport={props.onImportModelFiles ?? props.onModelFiles}
-                        onCustomize={() => props.onSection('advanced')}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="rounded-xl bg-[var(--nimi-surface-card)] px-4 py-6 text-center text-sm text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.product.noModelsMatch')}
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          {section === 'advanced' && !props.selected ? <InlineAlert tone="warning">{t('runtimeConfig.localModels.configurationMissing')}</InlineAlert> : null}
-          {section === 'advanced' && props.selected ? (
-            <RuntimeCapabilityCustomizeTab
-              selected={props.selected}
-              recipe={identity.recipe}
-              recipes={props.recipes}
-              assets={props.assets}
-              catalog={props.catalog}
-              loading={props.libraryLoading || Boolean(props.modelsLoading)}
-              readFailed={props.libraryError || Boolean(props.modelsError)}
-              disabled={props.busy || props.disabled}
-              onRetry={props.onRetryCustomization}
-              onManageSaved={() => props.onSection('saved')}
-              onApply={props.onApplyCustomization}
-            />
-          ) : null}
-        </div>
-        {props.apps ? <aside className="min-w-0">{props.apps}</aside> : null}
-      </div>
-    </div>
-  );
+  </>;
 }
 
 type ModelCost = { readonly text: string; readonly tone: 'ready' | 'download' | 'muted' };
@@ -649,11 +388,13 @@ function ModelChoiceCard(props: {
   readonly onUseSaved: (item: NimiMachineLoadout) => void;
   readonly onChooseImported: () => void;
   readonly onImport?: () => void;
-  readonly onCustomize: () => void;
+  readonly onCustomize: (loadout?: NimiMachineLoadout) => void;
+  readonly currentContent?: ReactNode;
 }) {
   const { t } = useTranslation();
   const [savedOpen, setSavedOpen] = useState(false);
   const onlySaved = props.saved.length === 1 ? props.saved[0] : undefined;
+  const settingsTarget = props.saved.find(item => item.loadoutId === props.selectedLoadoutId) ?? onlySaved;
   const unsupported = props.recipe.applicability === 'unsupported';
   const fitTone: StatusTone = unsupported ? 'danger' : 'neutral';
   const FitIcon = props.recipe.applicability === 'supported'
@@ -682,16 +423,17 @@ function ModelChoiceCard(props: {
             {props.current ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-text)]">
                 <Check size={12} strokeWidth={2.5} aria-hidden="true" />
-                {t('runtimeConfig.product.currentModel')}
+                {t('runtimeConfig.product.currentOnDevice')}
               </span>
             ) : null}
           </div>
-          <p className={`mt-1 text-sm leading-relaxed ${unsupported ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}>
+          {props.description ? <p className={`mt-1 text-sm leading-relaxed ${unsupported ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}>
             {props.description}
-          </p>
+          </p> : null}
         </div>
       </div>
-      <ul className="flex flex-wrap gap-1.5">
+      {props.currentContent}
+      {!props.current ? <ul className="flex flex-wrap gap-1.5">
         <li>
           <StatusBadge tone={costTone} shape="soft">
             {CostIcon ? <CostIcon size={12} aria-hidden="true" /> : null}
@@ -704,7 +446,7 @@ function ModelChoiceCard(props: {
             {t(`runtimeConfig.product.modelFit.${props.recipe.applicability}`)}
           </StatusBadge>
         </li>
-      </ul>
+      </ul> : null}
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3">
         {props.saved.length ? (
           <button
@@ -724,13 +466,10 @@ function ModelChoiceCard(props: {
         ) : (
           <span />
         )}
-        {props.current ? (
-          <Button tone="ghost" size="sm" onClick={props.onCustomize}>
-            <SlidersHorizontal size={14} />
-            {t('runtimeConfig.product.customize')}
-          </Button>
-        ) : props.enableable ? (
-          <Button tone="primary" size="sm" disabled={props.busy} onClick={props.onEnable}>
+        <div className="flex flex-wrap items-center gap-2">
+        <Button tone="ghost" size="sm" disabled={props.busy || unsupported} data-testid={`capability-model-settings:${props.recipe.recipeId}`} onClick={() => props.onCustomize(settingsTarget)}><SlidersHorizontal size={14} />{t('runtimeConfig.product.settings.open')}</Button>
+        {props.current ? null : props.enableable ? (
+          <Button tone="primary" size="sm" disabled={props.busy} onClick={props.onEnable} data-testid="capability-enable-downloaded">
             {t('runtimeConfig.product.enableModel')}
             <ArrowRight size={14} />
           </Button>
@@ -762,6 +501,7 @@ function ModelChoiceCard(props: {
             <ArrowRight size={14} />
           </Button>
         )}
+        </div>
       </div>
       {savedOpen && props.saved.length ? (
         <ul className="divide-y divide-[var(--nimi-border-subtle)] rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] px-3">
@@ -776,16 +516,19 @@ function ModelChoiceCard(props: {
                     {model.versionShort || t('runtimeConfig.product.savedConfiguration')}
                   </p>
                 </div>
+                <div className="flex items-center gap-2">
+                <Button tone="ghost" size="sm" disabled={props.busy || unsupported} data-testid={`capability-config-settings:${item.loadoutId}`} onClick={() => props.onCustomize(item)}>{t('runtimeConfig.product.settings.open')}</Button>
                 {isSelected ? (
                   <StatusBadge tone="success" shape="soft">
                     <Check size={12} aria-hidden="true" />
-                    {t('runtimeConfig.product.currentModel')}
+                    {t('runtimeConfig.product.currentOnDevice')}
                   </StatusBadge>
                 ) : (
                   <Button tone="ghost" size="sm" disabled={props.busy} onClick={() => props.onUseSaved(item)}>
                     {t('runtimeConfig.product.useSavedVersion')}
                   </Button>
                 )}
+                </div>
               </li>
             );
           })}

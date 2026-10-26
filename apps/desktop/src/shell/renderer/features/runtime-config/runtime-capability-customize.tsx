@@ -1,6 +1,6 @@
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 
-import { Button, InlineAlert, LoadingSkeleton, SelectField, StatusBadge, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, SelectField, StatusBadge, TextareaField } from '@nimiplatform/kit/ui';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 import type {
   NimiLoadoutRecipe,
@@ -9,12 +9,10 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
-import { Bookmark, Braces, Check, CircleAlert, Download, Info, RotateCcw } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { Braces, Check, CircleAlert, Download, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
-import { IdentityTile } from '../../components/identity-tile.js';
-import { capabilityModelIdentity, modelFamilySeed } from './runtime-capability-presentation.js';
 import {
   loadoutAssetLabel,
   loadoutCandidatePresentation,
@@ -111,23 +109,12 @@ function StatusLine({ status }: { readonly status: SlotStatus }) {
   );
 }
 
-/** The scope of the device's current model, one hover away beside its name. */
-export function ScopeHint({ text }: { readonly text: string }) {
-  return (
-    <Tooltip content={text} placement="top">
-      <span className="inline-flex cursor-help items-center text-[var(--nimi-text-muted)]" aria-label={text}>
-        <Info size={14} />
-      </span>
-    </Tooltip>
-  );
-}
-
-/** The same card as the capability overview, so both tabs read as one model. */
+/** Groups the versions and runtime options of one configuration. */
 function CustomizeCard({ children }: { readonly children: ReactNode }) {
   return <section className="rounded-2xl bg-[var(--nimi-surface-card)]" data-testid="capability-customize-card">{children}</section>;
 }
 
-/** A band of the card below the model, divided like the overview's technical details. */
+/** One settings section. */
 function Band(props: { readonly title: string; readonly children: ReactNode }) {
   return (
     <div className="border-t border-[var(--nimi-border-subtle)] px-5 pb-2 pt-5 lg:px-6">
@@ -139,148 +126,31 @@ function Band(props: { readonly title: string; readonly children: ReactNode }) {
 }
 
 /**
- * The top of the card, laid out like the overview's: the model this device
- * currently uses for the capability and, indented under its name, why its
- * versions and options cannot be read right now.
- */
-function CapabilityCustomizeCurrent(props: {
-  readonly selected: NimiMachineLoadout;
-  readonly recipes: readonly NimiLoadoutRecipe[];
-  readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
-  readonly unavailable: boolean;
-  readonly onRetry?: () => void;
-  readonly onManageSaved: () => void;
-}) {
-  const { t } = useTranslation();
-  const identity = capabilityModelIdentity(props.selected, props.recipes, props.catalog);
-  const title = identity.shortTitle || props.selected.displayName || '';
-  const version = [
-    identity.versionShort,
-    identity.sizeBytes ? t('runtimeConfig.product.aboutSize', { size: formatBytes(identity.sizeBytes) }) : '',
-  ].filter(Boolean).join(' · ');
-  return (
-    <div data-testid="capability-customize-current">
-      <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-5 lg:p-6">
-        <div className="flex min-w-[16rem] flex-1 items-start gap-4">
-          {title ? <IdentityTile seed={modelFamilySeed(identity.title || title)} label={title} size="lg" /> : null}
-          <div className="min-w-0 flex-1">
-            {title ? <h2 className="break-words text-xl font-semibold leading-7">{title}</h2> : null}
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.product.currentOnDevice')}
-              <ScopeHint text={t('runtimeConfig.product.customization.sharedScope')} />
-              {version ? <><span aria-hidden="true">·</span><span>{version}</span></> : null}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 pt-[7px]">
-          <Button tone="secondary" onClick={props.onManageSaved} data-testid="capability-customize-manage-saved">
-            <Bookmark size={15} />
-            {t('runtimeConfig.product.manageSaved')}
-          </Button>
-        </div>
-      </div>
-      {props.unavailable ? (
-        <div className="flex gap-4 px-5 pb-5 lg:px-6 lg:pb-6">
-          {title ? <span className="w-12 shrink-0" aria-hidden="true" /> : null}
-          <div
-            role="status"
-            className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_7%,transparent)] px-4 py-2.5 ring-1 ring-inset ring-[var(--nimi-status-warning-soft-border)]"
-            data-testid="capability-customize-unavailable"
-          >
-            <p className="flex min-w-0 items-center gap-2 text-sm text-[var(--nimi-text-primary)]">
-              <CircleAlert size={15} className="shrink-0 text-[var(--nimi-status-warning)]" aria-hidden="true" />
-              {t('runtimeConfig.product.customization.unavailable')}
-            </p>
-            {props.onRetry ? (
-              <Button tone="secondary" size="sm" onClick={props.onRetry}>{t('Common.retry')}</Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * The Customize tab as one card, like the overview: the current model on top
- * and, once its recipe is read, its versions and runtime options in bands.
- */
-export function RuntimeCapabilityCustomizeTab(props: {
-  readonly selected: NimiMachineLoadout;
-  /** Recipe of the selected configuration; absent while loading or when it cannot be read. */
-  readonly recipe?: NimiLoadoutRecipe;
-  readonly recipes: readonly NimiLoadoutRecipe[];
-  readonly assets: readonly NimiRuntimeModelAssetRecord[];
-  readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
-  readonly loading: boolean;
-  /** The model library or inventory could not be read; editing waits for a retry. */
-  readonly readFailed: boolean;
-  readonly disabled: boolean;
-  readonly onRetry?: () => void;
-  readonly onManageSaved: () => void;
-  readonly onApply: (draft: RuntimeSetupTaskDraft) => Promise<void>;
-}) {
-  const header = (
-    <CapabilityCustomizeCurrent
-      selected={props.selected}
-      recipes={props.recipes}
-      catalog={props.catalog}
-      unavailable={!props.loading && (props.readFailed || !props.recipe)}
-      onRetry={props.onRetry}
-      onManageSaved={props.onManageSaved}
-    />
-  );
-  if (props.loading || !props.recipe) {
-    return (
-      <CustomizeCard>
-        {header}
-        {props.loading ? (
-          <div className="border-t border-[var(--nimi-border-subtle)] px-5 py-5 lg:px-6">
-            <LoadingSkeleton lines={4} />
-          </div>
-        ) : null}
-      </CustomizeCard>
-    );
-  }
-  return (
-    <RuntimeCapabilityCustomize
-      key={`${props.selected.loadoutId}:${props.selected.revision}`}
-      header={header}
-      selected={props.selected}
-      recipe={props.recipe}
-      assets={props.assets}
-      catalog={props.catalog}
-      disabled={props.disabled || props.readFailed}
-      onApply={props.onApply}
-    />
-  );
-}
-
-/**
- * Versions and runtime options of the current configuration. Opening or
+ * Versions and runtime options of the chosen configuration. Opening or
  * editing this form creates no task and never changes the selected Loadout;
  * only the explicit apply submits the draft, whose preparation is checked
  * before anything is downloaded or selected.
  */
 export function RuntimeCapabilityCustomize(props: {
-  /** Top of the card, above the versions and runtime options. */
-  readonly header?: ReactNode;
-  readonly selected: NimiMachineLoadout;
+  readonly selected?: NimiMachineLoadout;
   readonly recipe: NimiLoadoutRecipe;
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
   readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly disabled: boolean;
   readonly onApply: (draft: RuntimeSetupTaskDraft) => Promise<void>;
+  readonly onStateChange?: (dirty: boolean, applying: boolean) => void;
+  readonly onCancel?: () => void;
+  readonly applyLabel?: string;
 }) {
   const { t } = useTranslation();
   const { recipe } = props;
   const initial = useMemo<RuntimeSetupTaskDraft>(() => ({
     recipeId: recipe.recipeId,
-    options: (props.selected.options ?? recipe.defaultOptions ?? {}) as RuntimeSetupTaskDraft['options'],
-    axes: props.selected.modelAxes.filter((axis) => axis.modelAssetId && axis.expectedContentId)
+    options: (props.selected?.options ?? recipe.defaultOptions ?? {}) as RuntimeSetupTaskDraft['options'],
+    axes: (props.selected?.modelAxes ?? []).filter((axis) => axis.modelAssetId && axis.expectedContentId)
       .map(({ slotId, modelAssetId, expectedContentId }) => ({ slotId, modelAssetId, expectedContentId })),
-    disabledOptionalSlots: recipe.slots.filter((slot) => slot.presence === 'optional-conditional'
-      && !props.selected.modelAxes.some((axis) => axis.slotId === slot.slotId && axis.modelAssetId))
+    disabledOptionalSlots: recipe.slots.filter((slot) => props.selected && slot.presence === 'optional-conditional'
+      && !props.selected?.modelAxes.some((axis) => axis.slotId === slot.slotId && axis.modelAssetId))
       .map((slot) => slot.slotId),
     preferredOffers: {},
     pendingAxes: [],
@@ -295,6 +165,7 @@ export function RuntimeCapabilityCustomize(props: {
   const optionsInvalid = parsedOptions === null;
   const changed = optionsInvalid || draftIdentity(draft) !== draftIdentity(initial);
   const disabled = props.disabled || applying;
+  useEffect(() => { props.onStateChange?.(changed, applying); }, [changed, applying, props.onStateChange]);
   const options = draft.options ?? {};
   const disabledSlots = new Set(draft.disabledOptionalSlots ?? []);
 
@@ -422,7 +293,7 @@ export function RuntimeCapabilityCustomize(props: {
       // Keep a missing current binding visible rather than silently showing another version.
       ...(value !== NOT_USED && value !== UNRESOLVED && !current ? [{
         value,
-        label: props.selected.modelAxes.find((axis) => axis.slotId === slot.slotId)?.displayLabel || label,
+        label: props.selected?.modelAxes.find((axis) => axis.slotId === slot.slotId)?.displayLabel || label,
       }] : []),
     ];
     const status: SlotStatus | undefined = value === UNRESOLVED
@@ -464,7 +335,7 @@ export function RuntimeCapabilityCustomize(props: {
     setApplyError('');
   };
   const apply = async () => {
-    if (disabled || !parsedOptions) return;
+    if (disabled || !parsedOptions || !changed) return;
     setApplying(true);
     setApplyError('');
     try {
@@ -480,7 +351,6 @@ export function RuntimeCapabilityCustomize(props: {
   return (
     <div className="space-y-4" data-testid="capability-customize-editor">
       <CustomizeCard>
-        {props.header}
         <fieldset disabled={disabled} className="min-w-0">
           <Band title={t('runtimeConfig.setupTask.advanced.slotsTitle')}>
             {rows.map((row) => (
@@ -595,22 +465,21 @@ export function RuntimeCapabilityCustomize(props: {
         </fieldset>
       </CustomizeCard>
 
-      {changed || applyError ? (
+      {props.onCancel || changed || applyError ? (
         <div
-          className="sticky bottom-4 z-10 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] py-2.5 pl-4 pr-2.5 shadow-[var(--nimi-elevation-raised)]"
+          className="sticky bottom-0 z-10 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] py-2.5 pl-4 pr-2.5 shadow-[var(--nimi-elevation-raised)]"
           data-testid="capability-customize-apply-bar"
         >
           <div className="flex flex-wrap items-center gap-3">
-            <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-[var(--nimi-action-primary-bg)]" />
             <div role="status" className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.product.customization.pending')}</p>
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t(changed ? 'runtimeConfig.product.customization.pending' : 'runtimeConfig.product.settings.review')}</p>
               <p className="mt-0.5 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{applyHint}</p>
             </div>
-            <Button tone="ghost" disabled={disabled} onClick={discard} data-testid="capability-customize-discard">
-              {t('runtimeConfig.product.customization.discard')}
+            <Button tone="ghost" disabled={disabled} onClick={props.onCancel ?? discard} data-testid="capability-customize-discard">
+              {t(props.onCancel ? 'Common.cancel' : 'runtimeConfig.product.customization.discard')}
             </Button>
-            <Button tone="primary" disabled={disabled || optionsInvalid} onClick={() => { void apply(); }} data-testid="capability-customize-apply">
-              {applying ? t('runtimeConfig.setupTask.advanced.applying') : t('runtimeConfig.product.customization.apply')}
+            <Button tone="primary" disabled={disabled || optionsInvalid || !changed} onClick={() => { void apply(); }} data-testid="capability-customize-apply">
+              {applying ? t('runtimeConfig.setupTask.advanced.applying') : (props.applyLabel ?? t('runtimeConfig.product.customization.apply'))}
             </Button>
           </div>
           {applyError ? <div className="mt-2.5"><InlineAlert tone="warning">{applyError}</InlineAlert></div> : null}
