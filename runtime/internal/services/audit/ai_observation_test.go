@@ -56,6 +56,9 @@ func TestDesktopAIReadsRejectEveryNonAccountPurpose(t *testing.T) {
 			if _, err := service.GetDesktopAIUsageSummary(ctx, &runtimev1.GetDesktopAIUsageSummaryRequest{}); status.Code(err) != codes.PermissionDenied && status.Code(err) != codes.Unauthenticated {
 				t.Fatalf("usage accepted unrelated purpose: %v", err)
 			}
+			if _, err := service.ListDesktopAICloudHistory(ctx, &runtimev1.ListDesktopAICloudHistoryRequest{}); status.Code(err) != codes.PermissionDenied && status.Code(err) != codes.Unauthenticated {
+				t.Fatalf("history accepted unrelated purpose: %v", err)
+			}
 		})
 	}
 }

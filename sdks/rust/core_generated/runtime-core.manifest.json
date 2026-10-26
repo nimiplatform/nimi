@@ -843,6 +843,15 @@
       "source_file": "proto/runtime/v1/ai.proto",
       "methods": [
         {
+          "name": "ListDesktopConnectorReferences",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
+          "kind": "unary",
+          "request_type": "ListDesktopConnectorReferencesRequest",
+          "response_type": "ListDesktopConnectorReferencesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetAppAIConfig",
           "method_id": "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
           "kind": "unary",
@@ -1607,6 +1616,15 @@
       "name": "RuntimeAuditService",
       "source_file": "proto/runtime/v1/audit.proto",
       "methods": [
+        {
+          "name": "ListDesktopAICloudHistory",
+          "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
+          "kind": "unary",
+          "request_type": "ListDesktopAICloudHistoryRequest",
+          "response_type": "ListDesktopAICloudHistoryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
         {
           "name": "ListAuditEvents",
           "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
@@ -2804,6 +2822,7 @@
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions",
+    "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
     "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
     "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
     "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
@@ -2875,6 +2894,7 @@
     "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary",
     "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
+    "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
     "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity",
@@ -3797,6 +3817,14 @@
       "response_type": "ListAppAIConfigOptionsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
+      "service": "RuntimeAiService",
+      "method": "ListDesktopConnectorReferences",
+      "kind": "unary",
+      "request_type": "ListDesktopConnectorReferencesRequest",
+      "response_type": "ListDesktopConnectorReferencesResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
       "service": "RuntimeAiService",
       "method": "ListLocalAppVoiceAssets",
@@ -4363,6 +4391,14 @@
       "kind": "unary",
       "request_type": "ListAuditEventsRequest",
       "response_type": "ListAuditEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
+      "service": "RuntimeAuditService",
+      "method": "ListDesktopAICloudHistory",
+      "kind": "unary",
+      "request_type": "ListDesktopAICloudHistoryRequest",
+      "response_type": "ListDesktopAICloudHistoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
@@ -6063,6 +6099,14 @@
       "response_type": "ListAppAIConfigOptionsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
+      "service": "RuntimeAiService",
+      "method": "ListDesktopConnectorReferences",
+      "kind": "unary",
+      "request_type": "ListDesktopConnectorReferencesRequest",
+      "response_type": "ListDesktopConnectorReferencesResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
       "service": "RuntimeAiService",
       "method": "ListLocalAppVoiceAssets",
@@ -6629,6 +6673,14 @@
       "kind": "unary",
       "request_type": "ListAuditEventsRequest",
       "response_type": "ListAuditEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
+      "service": "RuntimeAuditService",
+      "method": "ListDesktopAICloudHistory",
+      "kind": "unary",
+      "request_type": "ListDesktopAICloudHistoryRequest",
+      "response_type": "ListDesktopAICloudHistoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
@@ -7755,6 +7807,7 @@
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "Connector",
+      "ConnectorCheck",
       "ConnectorModelDescriptor",
       "ConnectorOAuthRegistration",
       "ConsentRef",
@@ -7789,6 +7842,7 @@
       "DeleteVoiceAssetRequest",
       "DeleteVoiceAssetResponse",
       "DesktopAIActivitySnapshot",
+      "DesktopAICloudAttempt",
       "DesktopAICostEstimate",
       "DesktopAIExecution",
       "DesktopAIExecutionModel",
@@ -7797,6 +7851,7 @@
       "DesktopAIUsageSummary",
       "DesktopAIUsageTotals",
       "DesktopAuditEventProjection",
+      "DesktopConnectorReference",
       "DisableAutonomyRequest",
       "DisableAutonomyResponse",
       "DiscardLocalAppPackageRequest",
@@ -7989,8 +8044,12 @@
       "ListDelegatedDiagnosticsResponse",
       "ListDelegatedProviderProfilesRequest",
       "ListDelegatedProviderProfilesResponse",
+      "ListDesktopAICloudHistoryRequest",
+      "ListDesktopAICloudHistoryResponse",
       "ListDesktopAuditEventsRequest",
       "ListDesktopAuditEventsResponse",
+      "ListDesktopConnectorReferencesRequest",
+      "ListDesktopConnectorReferencesResponse",
       "ListFactoryProfileRecommendationsRequest",
       "ListFactoryProfileRecommendationsResponse",
       "ListFeaturedModelAssetsRequest",
@@ -8695,6 +8754,7 @@
       "DelegatedReplayOutcome",
       "DelegatedTraceStageKind",
       "DelegatedTransportKind",
+      "DesktopAICloudAttemptOutcome",
       "DesktopAIExecutionRoute",
       "DesktopAIExecutionState",
       "DeveloperModeState",
@@ -17618,6 +17678,40 @@
             "repeated": false,
             "optional": false,
             "number": 15
+          },
+          {
+            "name": "last_check",
+            "type": "ConnectorCheck",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorCheck",
+        "fields": [
+          {
+            "name": "ok",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "checked_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -18924,6 +19018,124 @@
         "source_file": "proto/runtime/v1/audit.proto"
       },
       {
+        "name": "DesktopAICloudAttempt",
+        "fields": [
+          {
+            "name": "attempt_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "source_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "source_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "parent_work_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "parent_work_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "models",
+            "type": "DesktopAIExecutionModel",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "started_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "finished_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "outcome",
+            "type": "DesktopAICloudAttemptOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "usage_measured",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "usage",
+            "type": "UsageStats",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
         "name": "DesktopAICostEstimate",
         "fields": [
           {
@@ -19263,6 +19475,13 @@
             "repeated": true,
             "optional": false,
             "number": 16
+          },
+          {
+            "name": "attribution_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 17
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
@@ -19411,6 +19630,40 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopConnectorReference",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "AIConfigOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "implementation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "config_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "DisableAutonomyRequest",
@@ -20986,6 +21239,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
@@ -23935,6 +24195,95 @@
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
+        "name": "ListDesktopAICloudHistoryRequest",
+        "fields": [
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "from_time",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "to_time",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "page_size",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "ListDesktopAICloudHistoryResponse",
+        "fields": [
+          {
+            "name": "attempts",
+            "type": "DesktopAICloudAttempt",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "read_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "attribution_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "records_complete",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "partial_reasons",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
         "name": "ListDesktopAuditEventsRequest",
         "fields": [
           {
@@ -24036,6 +24385,67 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "ListDesktopConnectorReferencesRequest",
+        "fields": [
+          {
+            "name": "connector_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "page_size",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "ListDesktopConnectorReferencesResponse",
+        "fields": [
+          {
+            "name": "references",
+            "type": "DesktopConnectorReference",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "snapshot_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "ListFactoryProfileRecommendationsRequest",
@@ -42346,6 +42756,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "connector",
+            "type": "Connector",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -46878,6 +47295,18 @@
           "DELEGATED_TRANSPORT_KIND_UNSPECIFIED"
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "DesktopAICloudAttemptOutcome",
+        "values": [
+          "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED",
+          "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING",
+          "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED",
+          "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED",
+          "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED",
+          "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN"
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
       },
       {
         "name": "DesktopAIExecutionRoute",

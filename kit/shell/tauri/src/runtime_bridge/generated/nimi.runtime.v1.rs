@@ -4598,6 +4598,38 @@ pub struct GetAppAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub owner: ::core::option::Option<AiConfigOwner>,
 }
+/// Protected Home read-only index. Visibility here grants no Get/Overwrite access.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDesktopConnectorReferencesRequest {
+    #[prost(string, tag = "1")]
+    pub connector_ref: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub page_size: i32,
+    #[prost(string, tag = "3")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopConnectorReference {
+    #[prost(message, optional, tag = "1")]
+    pub owner: ::core::option::Option<AiConfigOwner>,
+    #[prost(string, tag = "2")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub implementation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub config_revision: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDesktopConnectorReferencesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub references: ::prost::alloc::vec::Vec<DesktopConnectorReference>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub snapshot_revision: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAppAiConfigResponse {
     #[prost(message, optional, tag = "1")]
@@ -9771,6 +9803,37 @@ pub mod runtime_ai_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn list_desktop_connector_references(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListDesktopConnectorReferencesRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDesktopConnectorReferencesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ListDesktopConnectorReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn get_app_ai_config(
             &mut self,
@@ -16463,7 +16526,7 @@ pub struct DesktopAiActivitySnapshot {
     #[prost(string, repeated, tag = "10")]
     pub partial_reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetDesktopAiUsageSummaryRequest {
     /// Half-open UTC interval, at most seven days. Future time is not claimed as
     /// covered: effective_to is the earlier of to_time and the consistent read.
@@ -16471,6 +16534,9 @@ pub struct GetDesktopAiUsageSummaryRequest {
     pub from_time: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "2")]
     pub to_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// Optional exact captured Cloud connection; never an account selector.
+    #[prost(string, tag = "3")]
+    pub connector_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetDesktopAiUsageSummaryResponse {
@@ -16558,6 +16624,72 @@ pub struct DesktopAiUsageSummary {
     #[prost(message, optional, tag = "15")]
     pub coverage_to: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(string, repeated, tag = "16")]
+    pub partial_reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "17")]
+    pub attribution_complete: bool,
+}
+/// No payload, prompt, output, endpoint or private custody material crosses this projection.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DesktopAiCloudAttempt {
+    #[prost(string, tag = "1")]
+    pub attempt_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub connector_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub parent_work_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub parent_work_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "9")]
+    pub models: ::prost::alloc::vec::Vec<DesktopAiExecutionModel>,
+    #[prost(message, optional, tag = "10")]
+    pub started_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub finished_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "DesktopAiCloudAttemptOutcome", tag = "13")]
+    pub outcome: i32,
+    #[prost(enumeration = "ReasonCode", tag = "14")]
+    pub reason_code: i32,
+    #[prost(bool, tag = "15")]
+    pub usage_measured: bool,
+    #[prost(message, optional, tag = "16")]
+    pub usage: ::core::option::Option<UsageStats>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDesktopAiCloudHistoryRequest {
+    #[prost(string, tag = "1")]
+    pub connector_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub from_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub to_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDesktopAiCloudHistoryResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub attempts: ::prost::alloc::vec::Vec<DesktopAiCloudAttempt>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub read_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "4")]
+    pub attribution_complete: bool,
+    #[prost(bool, tag = "5")]
+    pub records_complete: bool,
+    #[prost(string, repeated, tag = "6")]
     pub partial_reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -16690,6 +16822,44 @@ impl DesktopAiExecutionState {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopAiCloudAttemptOutcome {
+    Unspecified = 0,
+    Running = 1,
+    Succeeded = 2,
+    Failed = 3,
+    Cancelled = 4,
+    Unknown = 5,
+}
+impl DesktopAiCloudAttemptOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED",
+            Self::Running => "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING",
+            Self::Succeeded => "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED",
+            Self::Failed => "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED",
+            Self::Cancelled => "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED",
+            Self::Unknown => "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING" => Some(Self::Running),
+            "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED" => Some(Self::Succeeded),
+            "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED" => Some(Self::Failed),
+            "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED" => Some(Self::Cancelled),
+            "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN" => Some(Self::Unknown),
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_audit_service_client {
     #![allow(
@@ -16780,6 +16950,35 @@ pub mod runtime_audit_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn list_desktop_ai_cloud_history(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListDesktopAiCloudHistoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDesktopAiCloudHistoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuditService",
+                        "ListDesktopAICloudHistory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn list_audit_events(
             &mut self,

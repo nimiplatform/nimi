@@ -170,6 +170,9 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		cancelQuery()
 		if err != nil {
 			if terminal && previousResult == nil {
+				if s.aiObservation != nil {
+					s.aiObservation.ObserveOperationOutcome(jobID, nil, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED, reasonCodeFromMediaError(err))
+				}
 				s.finishScenarioAsyncJobFailure(ctx, jobID, effective, err)
 			} else {
 				s.setNativeObservationIssue(jobID, version, err)
@@ -181,6 +184,9 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 			return
 		}
 		response = observed
+		if s.aiObservation != nil {
+			s.aiObservation.ObserveOperationOutcome(jobID, observed.Usage, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED, runtimev1.ReasonCode_ACTION_EXECUTED)
+		}
 	}
 	required := 1
 	if effective.request.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE {
@@ -233,6 +239,9 @@ func (s *Service) runNativeStopObservation(ctx context.Context, jobID string, ve
 	defer cancel()
 	outcome, err := host.StopNativeTask(stop, effective.connector, effective.target, s.scenarioJobs.originalNativeReceipt(jobID), effective.dispatchAudit())
 	if outcome == nimillm.ProviderTaskCleanupCanceled && err == nil {
+		if s.aiObservation != nil {
+			s.aiObservation.ObserveOperationOutcome(jobID, nil, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED)
+		}
 		err = s.scenarioJobs.withJobWorkAuthority(jobID, func() error {
 			return s.scenarioJobs.confirmNativeStop(ctx, jobID)
 		})

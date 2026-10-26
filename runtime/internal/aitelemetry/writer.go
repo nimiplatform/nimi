@@ -23,6 +23,8 @@ type accountingWrite struct {
 	gap         *accountingGap
 	operationID string
 	usage       *runtimev1.UsageStats
+	outcome     runtimev1.DesktopAICloudAttemptOutcome
+	reasonCode  runtimev1.ReasonCode
 }
 
 // enqueueLocked never waits for the database or for queue capacity. The queue
@@ -128,7 +130,7 @@ func (s *Store) Flush(ctx context.Context) error {
 }
 
 func (s *Store) finishOperationTx(ctx context.Context, tx *sql.Tx, write accountingWrite) error {
-	rows, err := tx.QueryContext(ctx, `SELECT record FROM runtime_ai_usage_attempt WHERE operation_id=? AND terminal_ns=0`, write.operationID)
+	rows, err := tx.QueryContext(ctx, `SELECT record FROM runtime_ai_usage_attempt WHERE operation_id=?`, write.operationID)
 	if err != nil {
 		return err
 	}
@@ -154,11 +156,19 @@ func (s *Store) finishOperationTx(ctx context.Context, tx *sql.Tx, write account
 		return err
 	}
 	for _, record := range records {
+		if !record.TerminalAt.IsZero() && write.usage == nil && write.outcome == runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED {
+			continue
+		}
 		record.Revision++
-		record.TerminalAt = write.at
+		if record.TerminalAt.IsZero() {
+			record.TerminalAt = write.at
+		}
 		record.ObservedAt = write.at
-		if len(records) == 1 {
+		if len(records) == 1 && write.usage != nil && record.Usage == nil {
 			record.Usage = cloneUsage(write.usage)
+		}
+		if len(records) == 1 && write.outcome != runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED && (record.Outcome == runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED || record.Outcome == runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN) {
+			record.Outcome, record.ReasonCode = write.outcome, write.reasonCode
 		}
 		encoded, err := json.Marshal(record)
 		if err != nil {

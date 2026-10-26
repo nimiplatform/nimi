@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -5586,6 +5587,203 @@ func (x *GetAppAIConfigRequest) GetOwner() *AIConfigOwner {
 	return nil
 }
 
+// Protected Home read-only index. Visibility here grants no Get/Overwrite access.
+type ListDesktopConnectorReferencesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ConnectorRef  string                 `protobuf:"bytes,1,opt,name=connector_ref,json=connectorRef,proto3" json:"connector_ref,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDesktopConnectorReferencesRequest) Reset() {
+	*x = ListDesktopConnectorReferencesRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDesktopConnectorReferencesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDesktopConnectorReferencesRequest) ProtoMessage() {}
+
+func (x *ListDesktopConnectorReferencesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDesktopConnectorReferencesRequest.ProtoReflect.Descriptor instead.
+func (*ListDesktopConnectorReferencesRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *ListDesktopConnectorReferencesRequest) GetConnectorRef() string {
+	if x != nil {
+		return x.ConnectorRef
+	}
+	return ""
+}
+
+func (x *ListDesktopConnectorReferencesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListDesktopConnectorReferencesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type DesktopConnectorReference struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Owner              *AIConfigOwner         `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	CapabilityContract string                 `protobuf:"bytes,2,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	ImplementationId   string                 `protobuf:"bytes,3,opt,name=implementation_id,json=implementationId,proto3" json:"implementation_id,omitempty"`
+	ConfigRevision     string                 `protobuf:"bytes,4,opt,name=config_revision,json=configRevision,proto3" json:"config_revision,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *DesktopConnectorReference) Reset() {
+	*x = DesktopConnectorReference{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopConnectorReference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopConnectorReference) ProtoMessage() {}
+
+func (x *DesktopConnectorReference) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopConnectorReference.ProtoReflect.Descriptor instead.
+func (*DesktopConnectorReference) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *DesktopConnectorReference) GetOwner() *AIConfigOwner {
+	if x != nil {
+		return x.Owner
+	}
+	return nil
+}
+
+func (x *DesktopConnectorReference) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *DesktopConnectorReference) GetImplementationId() string {
+	if x != nil {
+		return x.ImplementationId
+	}
+	return ""
+}
+
+func (x *DesktopConnectorReference) GetConfigRevision() string {
+	if x != nil {
+		return x.ConfigRevision
+	}
+	return ""
+}
+
+type ListDesktopConnectorReferencesResponse struct {
+	state            protoimpl.MessageState       `protogen:"open.v1"`
+	References       []*DesktopConnectorReference `protobuf:"bytes,1,rep,name=references,proto3" json:"references,omitempty"`
+	NextPageToken    string                       `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	SnapshotRevision string                       `protobuf:"bytes,3,opt,name=snapshot_revision,json=snapshotRevision,proto3" json:"snapshot_revision,omitempty"`
+	ObservedAt       *timestamppb.Timestamp       `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListDesktopConnectorReferencesResponse) Reset() {
+	*x = ListDesktopConnectorReferencesResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDesktopConnectorReferencesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDesktopConnectorReferencesResponse) ProtoMessage() {}
+
+func (x *ListDesktopConnectorReferencesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDesktopConnectorReferencesResponse.ProtoReflect.Descriptor instead.
+func (*ListDesktopConnectorReferencesResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{69}
+}
+
+func (x *ListDesktopConnectorReferencesResponse) GetReferences() []*DesktopConnectorReference {
+	if x != nil {
+		return x.References
+	}
+	return nil
+}
+
+func (x *ListDesktopConnectorReferencesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListDesktopConnectorReferencesResponse) GetSnapshotRevision() string {
+	if x != nil {
+		return x.SnapshotRevision
+	}
+	return ""
+}
+
+func (x *ListDesktopConnectorReferencesResponse) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
 type GetAppAIConfigResponse struct {
 	state               protoimpl.MessageState        `protogen:"open.v1"`
 	Config              *AIConfig                     `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
@@ -5597,7 +5795,7 @@ type GetAppAIConfigResponse struct {
 
 func (x *GetAppAIConfigResponse) Reset() {
 	*x = GetAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[67]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5609,7 +5807,7 @@ func (x *GetAppAIConfigResponse) String() string {
 func (*GetAppAIConfigResponse) ProtoMessage() {}
 
 func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[67]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5622,7 +5820,7 @@ func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{67}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *GetAppAIConfigResponse) GetConfig() *AIConfig {
@@ -5656,7 +5854,7 @@ type OverwriteAppAIConfigRequest struct {
 
 func (x *OverwriteAppAIConfigRequest) Reset() {
 	*x = OverwriteAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[68]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5668,7 +5866,7 @@ func (x *OverwriteAppAIConfigRequest) String() string {
 func (*OverwriteAppAIConfigRequest) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[68]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5681,7 +5879,7 @@ func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{68}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *OverwriteAppAIConfigRequest) GetConfig() *AIConfig {
@@ -5710,7 +5908,7 @@ type OverwriteAppAIConfigResponse struct {
 
 func (x *OverwriteAppAIConfigResponse) Reset() {
 	*x = OverwriteAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[69]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5722,7 +5920,7 @@ func (x *OverwriteAppAIConfigResponse) String() string {
 func (*OverwriteAppAIConfigResponse) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[69]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5735,7 +5933,7 @@ func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{69}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *OverwriteAppAIConfigResponse) GetConfig() *AIConfig {
@@ -5778,7 +5976,7 @@ type LoadoutRecipeCustodyDescriptor struct {
 
 func (x *LoadoutRecipeCustodyDescriptor) Reset() {
 	*x = LoadoutRecipeCustodyDescriptor{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[70]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5790,7 +5988,7 @@ func (x *LoadoutRecipeCustodyDescriptor) String() string {
 func (*LoadoutRecipeCustodyDescriptor) ProtoMessage() {}
 
 func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[70]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5803,7 +6001,7 @@ func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadoutRecipeCustodyDescriptor.ProtoReflect.Descriptor instead.
 func (*LoadoutRecipeCustodyDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{70}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *LoadoutRecipeCustodyDescriptor) GetFile() string {
@@ -5838,7 +6036,7 @@ var File_runtime_v1_capability_configuration_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\n" +
-	")runtime/v1/capability_configuration.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\x1a-runtime/v1/local_runtime_recommendation.proto\"\x93\x01\n" +
+	")runtime/v1/capability_configuration.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\x1a-runtime/v1/local_runtime_recommendation.proto\"\x93\x01\n" +
 	" CapabilityImplementationIdentity\x12+\n" +
 	"\x11implementation_id\x18\x01 \x01(\tR\x10implementationId\x12\x1b\n" +
 	"\tdriver_id\x18\x02 \x01(\tR\bdriverId\x12%\n" +
@@ -6258,7 +6456,25 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\ttruncated\x18\x02 \x01(\bR\ttruncatedB\b\n" +
 	"\x06result\"M\n" +
 	"\x15GetAppAIConfigRequest\x124\n" +
-	"\x05owner\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05owner\"\xc7\x01\n" +
+	"\x05owner\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05owner\"\x88\x01\n" +
+	"%ListDesktopConnectorReferencesRequest\x12#\n" +
+	"\rconnector_ref\x18\x01 \x01(\tR\fconnectorRef\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\xd8\x01\n" +
+	"\x19DesktopConnectorReference\x124\n" +
+	"\x05owner\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AIConfigOwnerR\x05owner\x12/\n" +
+	"\x13capability_contract\x18\x02 \x01(\tR\x12capabilityContract\x12+\n" +
+	"\x11implementation_id\x18\x03 \x01(\tR\x10implementationId\x12'\n" +
+	"\x0fconfig_revision\x18\x04 \x01(\tR\x0econfigRevision\"\x86\x02\n" +
+	"&ListDesktopConnectorReferencesResponse\x12J\n" +
+	"\n" +
+	"references\x18\x01 \x03(\v2*.nimi.runtime.v1.DesktopConnectorReferenceR\n" +
+	"references\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12+\n" +
+	"\x11snapshot_revision\x18\x03 \x01(\tR\x10snapshotRevision\x12;\n" +
+	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\"\xc7\x01\n" +
 	"\x16GetAppAIConfigResponse\x121\n" +
 	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\x12\x1a\n" +
 	"\brevision\x18\x02 \x01(\tR\brevision\x12^\n" +
@@ -6349,7 +6565,7 @@ func file_runtime_v1_capability_configuration_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
-var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 72)
+var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 75)
 var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(LocalCapabilityInterpretability)(0),            // 0: nimi.runtime.v1.LocalCapabilityInterpretability
 	(LocalCapabilityRequirementResolution)(0),       // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
@@ -6428,90 +6644,94 @@ var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(*ListAppAIConfigOptionsRequest)(nil),           // 74: nimi.runtime.v1.ListAppAIConfigOptionsRequest
 	(*ListAppAIConfigOptionsResponse)(nil),          // 75: nimi.runtime.v1.ListAppAIConfigOptionsResponse
 	(*GetAppAIConfigRequest)(nil),                   // 76: nimi.runtime.v1.GetAppAIConfigRequest
-	(*GetAppAIConfigResponse)(nil),                  // 77: nimi.runtime.v1.GetAppAIConfigResponse
-	(*OverwriteAppAIConfigRequest)(nil),             // 78: nimi.runtime.v1.OverwriteAppAIConfigRequest
-	(*OverwriteAppAIConfigResponse)(nil),            // 79: nimi.runtime.v1.OverwriteAppAIConfigResponse
-	(*LoadoutRecipeCustodyDescriptor)(nil),          // 80: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	nil,                                             // 81: nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
-	(ToolSpecKind)(0),                               // 82: nimi.runtime.v1.ToolSpecKind
-	(ToolChoiceMode)(0),                             // 83: nimi.runtime.v1.ToolChoiceMode
-	(TextBehaviorKind)(0),                           // 84: nimi.runtime.v1.TextBehaviorKind
-	(*structpb.Struct)(nil),                         // 85: google.protobuf.Struct
-	(ReasonCode)(0),                                 // 86: nimi.runtime.v1.ReasonCode
-	(*ModelAssetMarketCandidate)(nil),               // 87: nimi.runtime.v1.ModelAssetMarketCandidate
-	(LocalRecommendationApplicability)(0),           // 88: nimi.runtime.v1.LocalRecommendationApplicability
+	(*ListDesktopConnectorReferencesRequest)(nil),   // 77: nimi.runtime.v1.ListDesktopConnectorReferencesRequest
+	(*DesktopConnectorReference)(nil),               // 78: nimi.runtime.v1.DesktopConnectorReference
+	(*ListDesktopConnectorReferencesResponse)(nil),  // 79: nimi.runtime.v1.ListDesktopConnectorReferencesResponse
+	(*GetAppAIConfigResponse)(nil),                  // 80: nimi.runtime.v1.GetAppAIConfigResponse
+	(*OverwriteAppAIConfigRequest)(nil),             // 81: nimi.runtime.v1.OverwriteAppAIConfigRequest
+	(*OverwriteAppAIConfigResponse)(nil),            // 82: nimi.runtime.v1.OverwriteAppAIConfigResponse
+	(*LoadoutRecipeCustodyDescriptor)(nil),          // 83: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	nil,                                             // 84: nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
+	(ToolSpecKind)(0),                               // 85: nimi.runtime.v1.ToolSpecKind
+	(ToolChoiceMode)(0),                             // 86: nimi.runtime.v1.ToolChoiceMode
+	(TextBehaviorKind)(0),                           // 87: nimi.runtime.v1.TextBehaviorKind
+	(*structpb.Struct)(nil),                         // 88: google.protobuf.Struct
+	(ReasonCode)(0),                                 // 89: nimi.runtime.v1.ReasonCode
+	(*ModelAssetMarketCandidate)(nil),               // 90: nimi.runtime.v1.ModelAssetMarketCandidate
+	(LocalRecommendationApplicability)(0),           // 91: nimi.runtime.v1.LocalRecommendationApplicability
+	(*timestamppb.Timestamp)(nil),                   // 92: google.protobuf.Timestamp
 }
 var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
-	82,  // 0: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_spec_kinds:type_name -> nimi.runtime.v1.ToolSpecKind
-	83,  // 1: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_choice_modes:type_name -> nimi.runtime.v1.ToolChoiceMode
-	84,  // 2: nimi.runtime.v1.TextBehaviorCapabilityProjection.kind:type_name -> nimi.runtime.v1.TextBehaviorKind
+	85,  // 0: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_spec_kinds:type_name -> nimi.runtime.v1.ToolSpecKind
+	86,  // 1: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_choice_modes:type_name -> nimi.runtime.v1.ToolChoiceMode
+	87,  // 2: nimi.runtime.v1.TextBehaviorCapabilityProjection.kind:type_name -> nimi.runtime.v1.TextBehaviorKind
 	6,   // 3: nimi.runtime.v1.TextBehaviorCapabilityProjection.configuration_state:type_name -> nimi.runtime.v1.TextBehaviorConfigurationState
 	5,   // 4: nimi.runtime.v1.TextBehaviorCapabilityProjection.reasons:type_name -> nimi.runtime.v1.LocalCapabilityReason
 	11,  // 5: nimi.runtime.v1.TextBehaviorCapabilityProjection.implementation_tool_use:type_name -> nimi.runtime.v1.ToolUseCapabilityProjection
 	11,  // 6: nimi.runtime.v1.TextBehaviorCapabilityProjection.configured_tool_use:type_name -> nimi.runtime.v1.ToolUseCapabilityProjection
 	4,   // 7: nimi.runtime.v1.LocalCapabilityRequirement.role:type_name -> nimi.runtime.v1.LocalCapabilityRequirementRole
 	2,   // 8: nimi.runtime.v1.LocalCapabilityRequirement.policy:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	85,  // 9: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
+	88,  // 9: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
 	3,   // 10: nimi.runtime.v1.LocalCapabilityRequirement.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
-	86,  // 11: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	89,  // 11: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 12: nimi.runtime.v1.LoadoutModelAxis.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	1,   // 13: nimi.runtime.v1.LoadoutModelAxis.resolution:type_name -> nimi.runtime.v1.LocalCapabilityRequirementResolution
 	10,  // 14: nimi.runtime.v1.Loadout.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	85,  // 15: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
+	88,  // 15: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
 	15,  // 16: nimi.runtime.v1.Loadout.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxis
 	16,  // 17: nimi.runtime.v1.Loadout.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
 	7,   // 18: nimi.runtime.v1.Loadout.validation_state:type_name -> nimi.runtime.v1.LoadoutValidationState
-	86,  // 19: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	85,  // 20: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
+	89,  // 19: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	88,  // 20: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
 	12,  // 21: nimi.runtime.v1.Loadout.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
-	85,  // 22: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
+	88,  // 22: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
 	17,  // 23: nimi.runtime.v1.MachineLoadouts.loadouts:type_name -> nimi.runtime.v1.Loadout
 	18,  // 24: nimi.runtime.v1.MachineLoadouts.selections:type_name -> nimi.runtime.v1.LoadoutSelection
-	81,  // 25: nimi.runtime.v1.MachineLoadouts.selection_revisions:type_name -> nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
-	85,  // 26: nimi.runtime.v1.LoadoutRecipeContextFit.recommended_options:type_name -> google.protobuf.Struct
-	87,  // 27: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.candidate:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
-	88,  // 28: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	86,  // 29: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	84,  // 25: nimi.runtime.v1.MachineLoadouts.selection_revisions:type_name -> nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
+	88,  // 26: nimi.runtime.v1.LoadoutRecipeContextFit.recommended_options:type_name -> google.protobuf.Struct
+	90,  // 27: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.candidate:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
+	91,  // 28: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	89,  // 29: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	22,  // 30: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.context_fit:type_name -> nimi.runtime.v1.LoadoutRecipeContextFit
-	85,  // 31: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
+	88,  // 31: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
 	3,   // 32: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	23,  // 33: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.offers:type_name -> nimi.runtime.v1.LoadoutRecipeOfferDescriptor
-	88,  // 34: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	86,  // 35: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	91,  // 34: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	89,  // 35: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	22,  // 36: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.recommended_context_fit:type_name -> nimi.runtime.v1.LoadoutRecipeContextFit
 	10,  // 37: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	85,  // 38: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
+	88,  // 38: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
 	24,  // 39: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
-	80,  // 40: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	88,  // 41: nimi.runtime.v1.LoadoutRecipeDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	86,  // 42: nimi.runtime.v1.LoadoutRecipeDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	85,  // 43: nimi.runtime.v1.LoadoutRecipeDescriptor.recommended_options:type_name -> google.protobuf.Struct
+	83,  // 40: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	91,  // 41: nimi.runtime.v1.LoadoutRecipeDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	89,  // 42: nimi.runtime.v1.LoadoutRecipeDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	88,  // 43: nimi.runtime.v1.LoadoutRecipeDescriptor.recommended_options:type_name -> google.protobuf.Struct
 	25,  // 44: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
 	19,  // 45: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
 	17,  // 46: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	85,  // 47: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
+	88,  // 47: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
 	20,  // 48: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	85,  // 49: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	88,  // 49: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
 	17,  // 50: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
 	21,  // 51: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
 	17,  // 52: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	85,  // 53: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
+	88,  // 53: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
 	20,  // 54: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	85,  // 55: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	88,  // 55: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
 	17,  // 56: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
 	18,  // 57: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
-	86,  // 58: nimi.runtime.v1.SelectLoadoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	89,  // 58: nimi.runtime.v1.SelectLoadoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 59: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	10,  // 60: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	85,  // 61: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
+	88,  // 61: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
 	42,  // 62: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
 	16,  // 63: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
-	84,  // 64: nimi.runtime.v1.LoadoutEffectiveInputIdentity.admitted_text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorKind
+	87,  // 64: nimi.runtime.v1.LoadoutEffectiveInputIdentity.admitted_text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorKind
 	44,  // 65: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
 	45,  // 66: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
 	10,  // 67: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	85,  // 68: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	85,  // 69: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	88,  // 68: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	88,  // 69: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
 	47,  // 70: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
 	48,  // 71: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
 	46,  // 72: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
@@ -6527,7 +6747,7 @@ var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	53,  // 82: nimi.runtime.v1.AIConfigLocalResourceProjection.speech_input:type_name -> nimi.runtime.v1.SpeechInputCapabilities
 	8,   // 83: nimi.runtime.v1.AIConfigCloudConnectorProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
 	10,  // 84: nimi.runtime.v1.AIConfigCloudTargetProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	85,  // 85: nimi.runtime.v1.AIConfigCloudTargetProjection.provider_model_target:type_name -> google.protobuf.Struct
+	88,  // 85: nimi.runtime.v1.AIConfigCloudTargetProjection.provider_model_target:type_name -> google.protobuf.Struct
 	8,   // 86: nimi.runtime.v1.AIConfigCloudTargetProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
 	51,  // 87: nimi.runtime.v1.AIConfigCloudTargetProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
 	54,  // 88: nimi.runtime.v1.AIConfigCloudTargetProjection.music_input:type_name -> nimi.runtime.v1.MusicInputCapabilities
@@ -6555,16 +6775,19 @@ var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	70,  // 110: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
 	73,  // 111: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
 	46,  // 112: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	50,  // 113: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	61,  // 114: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
-	50,  // 115: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	50,  // 116: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	86,  // 117: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	118, // [118:118] is the sub-list for method output_type
-	118, // [118:118] is the sub-list for method input_type
-	118, // [118:118] is the sub-list for extension type_name
-	118, // [118:118] is the sub-list for extension extendee
-	0,   // [0:118] is the sub-list for field type_name
+	46,  // 113: nimi.runtime.v1.DesktopConnectorReference.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	78,  // 114: nimi.runtime.v1.ListDesktopConnectorReferencesResponse.references:type_name -> nimi.runtime.v1.DesktopConnectorReference
+	92,  // 115: nimi.runtime.v1.ListDesktopConnectorReferencesResponse.observed_at:type_name -> google.protobuf.Timestamp
+	50,  // 116: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	61,  // 117: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
+	50,  // 118: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	50,  // 119: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	89,  // 120: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	121, // [121:121] is the sub-list for method output_type
+	121, // [121:121] is the sub-list for method input_type
+	121, // [121:121] is the sub-list for extension type_name
+	121, // [121:121] is the sub-list for extension extendee
+	0,   // [0:121] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }
@@ -6604,7 +6827,7 @@ func file_runtime_v1_capability_configuration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_capability_configuration_proto_rawDesc), len(file_runtime_v1_capability_configuration_proto_rawDesc)),
 			NumEnums:      10,
-			NumMessages:   72,
+			NumMessages:   75,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -52,24 +52,27 @@ type Price struct {
 }
 
 type Facts struct {
-	AccountID   string                               `json:"account_id"`
-	OperationID string                               `json:"operation_id"`
-	Source      Source                               `json:"source"`
-	Capability  string                               `json:"capability"`
-	Models      []*runtimev1.DesktopAIExecutionModel `json:"models"`
-	Route       runtimev1.DesktopAIExecutionRoute    `json:"route"`
-	Price       Price                                `json:"price"`
+	ConnectorRef string                               `json:"connector_ref,omitempty"`
+	AccountID    string                               `json:"account_id"`
+	OperationID  string                               `json:"operation_id"`
+	Source       Source                               `json:"source"`
+	Capability   string                               `json:"capability"`
+	Models       []*runtimev1.DesktopAIExecutionModel `json:"models"`
+	Route        runtimev1.DesktopAIExecutionRoute    `json:"route"`
+	Price        Price                                `json:"price"`
 }
 
 type Record struct {
 	Facts
-	ID                 string                `json:"id"`
-	Revision           uint64                `json:"revision"`
-	StartedAt          time.Time             `json:"started_at"`
-	ObservedAt         time.Time             `json:"observed_at"`
-	TerminalAt         time.Time             `json:"terminal_at,omitempty"`
-	Usage              *runtimev1.UsageStats `json:"usage,omitempty"`
-	ObservationUnknown bool                  `json:"observation_unknown,omitempty"`
+	ID                 string                                 `json:"id"`
+	Revision           uint64                                 `json:"revision"`
+	StartedAt          time.Time                              `json:"started_at"`
+	ObservedAt         time.Time                              `json:"observed_at"`
+	TerminalAt         time.Time                              `json:"terminal_at,omitempty"`
+	Usage              *runtimev1.UsageStats                  `json:"usage,omitempty"`
+	ObservationUnknown bool                                   `json:"observation_unknown,omitempty"`
+	Outcome            runtimev1.DesktopAICloudAttemptOutcome `json:"outcome,omitempty"`
+	ReasonCode         runtimev1.ReasonCode                   `json:"reason_code,omitempty"`
 }
 
 type Attempt struct {
@@ -144,18 +147,33 @@ func (a *Attempt) ID() string {
 }
 
 func (a *Attempt) Finish(usage *runtimev1.UsageStats) {
+	a.Complete(usage, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED)
+}
+
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.home-cloud-connection-observation
+func (a *Attempt) Complete(usage *runtimev1.UsageStats, outcome runtimev1.DesktopAICloudAttemptOutcome, reason runtimev1.ReasonCode) {
 	if a == nil {
 		return
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if !a.record.TerminalAt.IsZero() {
+		// A late measurement may fill an unknown quantity without changing
+		// the already observed outcome, terminal time or attempt identity.
+		if a.record.Usage == nil && usage != nil {
+			a.record.Revision++
+			a.record.ObservedAt = a.store.now().UTC()
+			a.record.Usage = cloneUsage(usage)
+			a.store.Record(a.record)
+		}
 		return
 	}
 	a.record.Revision++
 	a.record.TerminalAt = a.store.now().UTC()
 	a.record.ObservedAt = a.record.TerminalAt
 	a.record.Usage = cloneUsage(usage)
+	a.record.Outcome = outcome
+	a.record.ReasonCode = reason
 	a.store.Record(a.record)
 }
 

@@ -12,7 +12,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (h *ProviderMediaHost) InspectVoiceAsset(ctx context.Context, record connector.ConnectorRecord, target capabilitydriver.CloudMediaTarget, request *capabilitydriver.CloudVoiceInspectionMappedRequest, audit MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, bool, error) {
+func (h *ProviderMediaHost) InspectVoiceAsset(ctx context.Context, record connector.ConnectorRecord, target capabilitydriver.CloudMediaTarget, request *capabilitydriver.CloudVoiceInspectionMappedRequest, audit MediaDispatchAudit) (response capabilitydriver.CloudVoiceWorkflowTransportResponse, found bool, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, record)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, false, err
 	}
@@ -34,7 +35,7 @@ func (h *ProviderMediaHost) InspectVoiceAsset(ctx context.Context, record connec
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, false, err
 	}
-	response := capabilitydriver.CloudVoiceWorkflowTransportResponse{ProviderVoiceRef: result.ProviderVoiceRef}
+	response = capabilitydriver.CloudVoiceWorkflowTransportResponse{ProviderVoiceRef: result.ProviderVoiceRef}
 	if !result.ExpiresAt.IsZero() {
 		response.ExpiresAt = timestamppb.New(result.ExpiresAt)
 	}

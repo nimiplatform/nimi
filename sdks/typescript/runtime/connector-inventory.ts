@@ -51,6 +51,11 @@ export interface NimiRuntimeConnectorModelInfo {
   readonly capabilities: readonly string[];
 }
 
+/** Runtime catalog facts for browsing, independently of a connection diagnostic. */
+export interface NimiRuntimeConnectorCatalogEntry extends NimiRuntimeConnectorModelInfo {
+  readonly available: boolean;
+}
+
 export interface NimiRuntimeConnectorProjectionInput {
   readonly connectorId: string;
   readonly provider: string;
@@ -64,6 +69,8 @@ export interface NimiRuntimeConnectorProjectionInput {
   readonly ownerId?: string;
   readonly kind: ConnectorKind;
   readonly status: ConnectorStatus;
+  readonly lastCheck?: Connector['lastCheck'];
+  readonly updatedAt?: Connector['updatedAt'];
 }
 
 export type NimiRuntimeConnectorClient = Pick<
@@ -116,8 +123,9 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly authMode?: 'api_key';
   }): Promise<NimiRuntimeConnectorProjection | null>;
   deleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
-  testConnector(connectorId: string): Promise<void>;
+  testConnector(connectorId: string): Promise<NimiRuntimeConnectorProjection>;
   listConnectorModels(connectorId: string, forceRefresh?: boolean): Promise<readonly string[]>;
+  listConnectorCatalog(connectorId: string, bypassCache?: boolean): Promise<readonly NimiRuntimeConnectorCatalogEntry[]>;
   listConnectorModelDescriptors(
     connectorId: string,
     forceRefresh?: boolean,
@@ -131,6 +139,7 @@ function cloneProviderCatalog(catalog: readonly ProviderCatalogEntry[]): Provide
 function cloneConnector(connector: NimiRuntimeConnectorProjection): NimiRuntimeConnectorProjection {
   return {
     ...connector,
+    lastCheck: connector.lastCheck ? { ...connector.lastCheck } : undefined,
     models: [...connector.models],
   };
 }
@@ -155,6 +164,15 @@ function cloneConnectorModelInfos(
   models: readonly NimiRuntimeConnectorModelInfo[],
 ): NimiRuntimeConnectorModelInfo[] {
   return models.map(cloneConnectorModelInfo);
+}
+
+function cloneConnectorCatalog(models: readonly NimiRuntimeConnectorCatalogEntry[]): NimiRuntimeConnectorCatalogEntry[] {
+  return models.map((model) => ({ ...cloneConnectorModelInfo(model), available: model.available }));
+}
+
+function incompleteConnectorInventory(): never {
+  throw createNimiError({ message: 'Runtime connector inventory did not complete pagination',
+    reasonCode: NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED, source: 'runtime', actionHint: 'retry_inventory_read' });
 }
 
 function normalizeText(value: unknown): string {
@@ -321,7 +339,14 @@ export function nimiRuntimeConnectorToProjection(
     scope,
     hasCredential: Boolean(connector.hasCredential),
     isSystemOwned: scope !== 'user',
+    managementStatus: connector.status === ConnectorStatus.ACTIVE ? 'active' : connector.status === ConnectorStatus.DISABLED ? 'disabled' : 'unknown',
+    configurationVersion: connector.updatedAt ? `${connector.updatedAt.seconds}:${connector.updatedAt.nanos}` : '',
     models: models && models.length > 0 ? models.map(normalizeText).filter(Boolean) : [],
+    lastCheck: connector.lastCheck?.checkedAt ? {
+      ok: connector.lastCheck.ok,
+      checkedAt: new Date(Number(connector.lastCheck.checkedAt.seconds) * 1000 + connector.lastCheck.checkedAt.nanos / 1e6).toISOString(),
+      reasonCode: normalizeNimiRuntimeReasonCode(connector.lastCheck.reasonCode) || NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED,
+    } : undefined,
   };
 }
 
@@ -341,8 +366,8 @@ export function createNimiRuntimeConnectorInventoryClient(
   let cachedConnectorsAt = 0;
   let pendingConnectors: Promise<NimiRuntimeConnectorProjection[]> | null = null;
   let connectorInventoryCacheGeneration = 0;
-  const cachedConnectorModels = new Map<string, { at: number; value: NimiRuntimeConnectorModelInfo[] }>();
-  const pendingConnectorModels = new Map<string, Promise<NimiRuntimeConnectorModelInfo[]>>();
+  const cachedConnectorModels = new Map<string, { at: number; value: NimiRuntimeConnectorCatalogEntry[] }>();
+  const pendingConnectorModels = new Map<string, Promise<NimiRuntimeConnectorCatalogEntry[]>>();
 
   function connectors(): NimiRuntimeConnectorClient {
     return resolveConnectors(options.connectors);
@@ -386,16 +411,24 @@ export function createNimiRuntimeConnectorInventoryClient(
     const cacheGeneration = connectorInventoryCacheGeneration;
     pendingConnectors = (async () => {
       const providerCatalog = await listProviderCatalog();
-      const response = await connectors().listConnectors({
-        pageSize: 0,
-        pageToken: '',
-        kindFilter: ConnectorKind.REMOTE_MANAGED,
-        statusFilter: ConnectorStatus.UNSPECIFIED,
-        providerFilter: '',
-      }, options.callOptions);
-      const remoteConnectors = (response.connectors ?? [])
-        .filter((connector) => connector.kind === ConnectorKind.REMOTE_MANAGED);
-      const result = remoteConnectors.map((connector) => nimiRuntimeConnectorToProjection(connector, providerCatalog));
+      const result: NimiRuntimeConnectorProjection[] = [];
+      const seenIds = new Set<string>();
+      const seenTokens = new Set<string>();
+      let pageToken = '';
+      for (let page = 0; page < DEFAULT_CONNECTOR_MODELS_MAX_PAGES; page += 1) {
+        const response = await connectors().listConnectors({ pageSize: 200, pageToken,
+          kindFilter: ConnectorKind.REMOTE_MANAGED, statusFilter: ConnectorStatus.UNSPECIFIED, providerFilter: '' }, options.callOptions);
+        for (const connector of response.connectors ?? []) {
+          if (connector.kind !== ConnectorKind.REMOTE_MANAGED || seenIds.has(connector.connectorId)) continue;
+          seenIds.add(connector.connectorId);
+          result.push(nimiRuntimeConnectorToProjection(connector, providerCatalog));
+        }
+        pageToken = normalizeText(response.nextPageToken);
+        if (!pageToken) break;
+        if (seenTokens.has(pageToken)) incompleteConnectorInventory();
+        seenTokens.add(pageToken);
+      }
+      if (pageToken) incompleteConnectorInventory();
       if (cacheGeneration === connectorInventoryCacheGeneration) {
         cachedConnectors = cloneConnectors(result);
         cachedConnectorsAt = now();
@@ -475,8 +508,8 @@ export function createNimiRuntimeConnectorInventoryClient(
     return Object.freeze({ actionHint: actionHint || null });
   }
 
-  async function testConnector(connectorId: string): Promise<void> {
-    const response = await connectors().testConnector({ connectorId }, options.callOptions);
+  async function testConnector(connectorId: string): Promise<NimiRuntimeConnectorProjection> {
+    const response = await connectors().testConnector({ connectorId }, options.callOptions).finally(invalidateConnectorInventoryCache);
     const ack = response.ack;
     if (!ack) {
       throw createNimiError({
@@ -487,7 +520,13 @@ export function createNimiRuntimeConnectorInventoryClient(
         details: { connectorId },
       });
     }
-    if (ack.ok) return;
+    if (ack.ok) {
+      if (!response.connector?.lastCheck?.ok || !response.connector.lastCheck.checkedAt) {
+        throw createNimiError({ message: 'connector check response has no persisted observation',
+          reasonCode: NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED, actionHint: 'retry_or_check_runtime_status', source: 'runtime' });
+      }
+      return nimiRuntimeConnectorToProjection(response.connector, await listProviderCatalog());
+    }
 
     const reasonCode = normalizeNimiRuntimeReasonCode(ack.reasonCode)
       || NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED;
@@ -504,46 +543,46 @@ export function createNimiRuntimeConnectorInventoryClient(
     });
   }
 
-  async function listConnectorModelDescriptors(
+  // @nimi-authority: rule.nimi.runtime.ai-provider.r024
+  async function listConnectorCatalog(
     connectorId: string,
     forceRefresh = false,
-  ): Promise<NimiRuntimeConnectorModelInfo[]> {
+  ): Promise<NimiRuntimeConnectorCatalogEntry[]> {
     const normalizedConnectorId = normalizeText(connectorId);
     const currentTime = now();
     if (!forceRefresh) {
       const cached = cachedConnectorModels.get(normalizedConnectorId);
       if (cached && currentTime - cached.at < connectorModelCacheTtlMs) {
-        return cloneConnectorModelInfos(cached.value);
+        return cloneConnectorCatalog(cached.value);
       }
       const pending = pendingConnectorModels.get(normalizedConnectorId);
       if (pending) {
-        return cloneConnectorModelInfos(await pending);
+        return cloneConnectorCatalog(await pending);
       }
     }
     const cacheGeneration = connectorInventoryCacheGeneration;
     const pending = (async () => {
-      const descriptors: NimiRuntimeConnectorModelInfo[] = [];
+      const descriptors: NimiRuntimeConnectorCatalogEntry[] = [];
       const seenCatalogIds = new Set<string>();
+      const seenTokens = new Set<string>();
       let pageToken = '';
       for (let pageIndex = 0; pageIndex < maxModelPages; pageIndex += 1) {
         const response = await connectors().listConnectorModels({
           connectorId: normalizedConnectorId,
-          forceRefresh: pageIndex === 0 ? forceRefresh : false,
+          forceRefresh: false,
           pageSize: modelPageSize,
           pageToken,
         }, options.callOptions);
         const pageItems = (response.models ?? [])
-          .filter((item: ConnectorModelDescriptor) => Boolean(item.available))
-          .map((item) => ({
+          .map((item: ConnectorModelDescriptor) => ({
             modelLabel: normalizeText(item.modelLabel) || normalizeText(item.providerModelId),
             provider: normalizeLower(item.provider),
             providerModelId: normalizeText(item.providerModelId),
             remoteModelCatalogId: normalizeText(item.remoteModelCatalogId),
             capabilities: (item.capabilities ?? []).map(normalizeText).filter(Boolean),
-          }))
-          .filter((item) => item.provider.length > 0
-            && item.providerModelId.length > 0
-            && item.remoteModelCatalogId.length > 0);
+            available: Boolean(item.available),
+          }));
+        if (pageItems.some(item => !item.provider || !item.providerModelId || !item.remoteModelCatalogId)) incompleteConnectorInventory();
         for (const item of pageItems) {
           if (seenCatalogIds.has(item.remoteModelCatalogId)) {
             continue;
@@ -555,11 +594,14 @@ export function createNimiRuntimeConnectorInventoryClient(
         if (!pageToken) {
           break;
         }
+        if (seenTokens.has(pageToken)) incompleteConnectorInventory();
+        seenTokens.add(pageToken);
       }
+      if (pageToken) incompleteConnectorInventory();
       if (cacheGeneration === connectorInventoryCacheGeneration) {
         cachedConnectorModels.set(normalizedConnectorId, {
           at: now(),
-          value: cloneConnectorModelInfos(descriptors),
+          value: cloneConnectorCatalog(descriptors),
         });
       }
       return descriptors;
@@ -568,12 +610,17 @@ export function createNimiRuntimeConnectorInventoryClient(
       pendingConnectorModels.set(normalizedConnectorId, pending);
     }
     try {
-      return cloneConnectorModelInfos(await pending);
+      return cloneConnectorCatalog(await pending);
     } finally {
       if (!forceRefresh && pendingConnectorModels.get(normalizedConnectorId) === pending) {
         pendingConnectorModels.delete(normalizedConnectorId);
       }
     }
+  }
+
+  async function listConnectorModelDescriptors(connectorId: string, forceRefresh = false): Promise<NimiRuntimeConnectorModelInfo[]> {
+    const catalog = await listConnectorCatalog(connectorId, forceRefresh);
+    return cloneConnectorModelInfos(catalog.filter((entry) => entry.available));
   }
 
   async function listConnectorModels(
@@ -598,5 +645,6 @@ export function createNimiRuntimeConnectorInventoryClient(
     testConnector,
     listConnectorModels,
     listConnectorModelDescriptors,
+    listConnectorCatalog,
   };
 }

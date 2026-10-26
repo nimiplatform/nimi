@@ -70,7 +70,8 @@ func (h *ProviderMediaHost) ExecuteMedia(
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudMediaMappedRequest,
 	audit MediaDispatchAudit,
-) (capabilitydriver.CloudMediaTransportResponse, error) {
+) (response capabilitydriver.CloudMediaTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, err
 	}
@@ -90,6 +91,8 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		cleanup = &observation
 	})
 	attempt := aitelemetry.Begin(ctx)
+	var reportedUsage *runtimev1.UsageStats
+	defer func() { finishCloudAttempt(attempt, reportedUsage, executionErr) }()
 	result, err := h.transport.ExecuteMediaAdapter(
 		ctx,
 		request.Adapter(),
@@ -99,6 +102,7 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		remoteTarget,
 		pollState,
 	)
+	reportedUsage = result.Usage
 	if err != nil {
 		if errors.Is(err, nimillm.ErrNativeTaskYielded) || errors.Is(err, nimillm.ErrFiniteMediaResultOwned) {
 			if auditErr := h.recordDispatch(audit, "receipt", runtimev1.ReasonCode_ACTION_EXECUTED, false); auditErr != nil {
@@ -188,7 +192,8 @@ func (h *ProviderMediaHost) DeleteVoiceAsset(
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudVoiceDeleteMappedRequest,
 	audit MediaDispatchAudit,
-) error {
+) (executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return err
 	}
@@ -218,7 +223,8 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudVoiceWorkflowMappedRequest,
 	audit MediaDispatchAudit,
-) (capabilitydriver.CloudVoiceWorkflowTransportResponse, error) {
+) (response capabilitydriver.CloudVoiceWorkflowTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, err
 	}
@@ -233,7 +239,8 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
-	aitelemetry.Begin(ctx)
+	attempt := aitelemetry.Begin(ctx)
+	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
 	result, err := nimillm.ExecuteVoiceWorkflowAdapter(ctx, request.Adapter(), nimillm.VoiceWorkflowRequest{
 		Provider:        request.Provider(),
 		WorkflowType:    request.WorkflowType(),
@@ -247,7 +254,7 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		Headers:               cloneRemoteHeaders(remoteTarget.Headers),
 		AllowLoopbackEndpoint: remoteTarget.AllowLoopback,
 	})
-	response := capabilitydriver.CloudVoiceWorkflowTransportResponse{
+	response = capabilitydriver.CloudVoiceWorkflowTransportResponse{
 		ProviderVoiceRef: result.ProviderVoiceRef, PreviewAudio: append([]byte(nil), result.PreviewAudio...),
 		PreviewMime: result.PreviewMime, Usage: result.Usage,
 	}
@@ -286,7 +293,8 @@ func (h *ProviderMediaHost) StreamSpeech(
 	request *capabilitydriver.CloudMediaMappedRequest,
 	onChunk func(capabilitydriver.CloudMediaStreamChunk) error,
 	audit MediaDispatchAudit,
-) (capabilitydriver.CloudMediaTransportResponse, error) {
+) (response capabilitydriver.CloudMediaTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, err
 	}
@@ -316,7 +324,9 @@ func (h *ProviderMediaHost) StreamSpeech(
 		backendModelID = request.ProviderModelID()
 	}
 	extensions := nimillm.ScenarioExtensionPayloadForType(mapped.GetScenarioType(), mapped.GetExtensions())
-	aitelemetry.Begin(ctx)
+	attempt := aitelemetry.Begin(ctx)
+	var reportedUsage *runtimev1.UsageStats
+	defer func() { finishCloudAttempt(attempt, reportedUsage, executionErr) }()
 	if request.StreamMode() == capabilitydriver.CloudMediaStreamNative {
 		usage, finish, streamErr := backend.StreamSynthesizeSpeech(ctx, backendModelID, spec, extensions, func(chunk nimillm.SpeechStreamChunk) error {
 			mimeType := strings.TrimSpace(chunk.MIMEType)
@@ -330,6 +340,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 				FailureReason: chunk.FailureReason,
 			})
 		})
+		reportedUsage = usage
 		if streamErr != nil {
 			return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), streamErr)
 		}
@@ -339,6 +350,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		return capabilitydriver.CloudMediaTransportResponse{Usage: usage, FinishReason: finish, Streamed: true}, nil
 	}
 	payload, usage, synthErr := backend.SynthesizeSpeech(ctx, backendModelID, spec, extensions)
+	reportedUsage = usage
 	if synthErr != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), synthErr)
 	}

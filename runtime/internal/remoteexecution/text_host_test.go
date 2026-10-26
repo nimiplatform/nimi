@@ -138,3 +138,28 @@ func remoteHostDriverInput(t *testing.T) (capabilitydriver.CloudTextDriver, capa
 	}
 	return driver, target, mapped
 }
+
+func TestProviderTextCredentialRejectionUpdatesHistoricalCheck(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":{"message":"invalid api key"}}`))
+	}))
+	defer server.Close()
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	record, err := store.Create(connector.ConnectorRecord{Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER, OwnerID: "account-a",
+		Provider: "openai", Endpoint: server.URL, Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE}, "expired-key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, target, mapped := remoteHostDriverInput(t)
+	host := NewProviderTextHost(store, nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}), auditlog.New(16, 16), true)
+	_, err = host.ExecuteText(context.Background(), record, target, mapped, TextDispatchAudit{AccountID: "account-a", ConnectorID: record.ConnectorID})
+	if err == nil {
+		t.Fatal("authentication failure was lost")
+	}
+	current, found, readErr := store.Get(record.ConnectorID)
+	if readErr != nil || !found || current.LastCheck == nil || current.LastCheck.OK || current.LastCheck.Reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("execution did not persist credential rejection: %+v %v", current.LastCheck, readErr)
+	}
+}

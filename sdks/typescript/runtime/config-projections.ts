@@ -33,7 +33,10 @@ export interface NimiRuntimeConnectorProjection {
   readonly scope: NimiRuntimeConnectorScope;
   readonly hasCredential: boolean;
   readonly isSystemOwned: boolean;
+  readonly managementStatus: 'active' | 'disabled' | 'unknown';
+  readonly configurationVersion: string;
   readonly models: readonly string[];
+  readonly lastCheck?: Readonly<{ ok: boolean; checkedAt: string; reasonCode: string }>;
 }
 
 export interface NimiRuntimeConfigConnectorProjection extends NimiRuntimeConnectorProjection {
@@ -56,7 +59,10 @@ export interface NimiRuntimeConfigConnectorProjectionInput {
   readonly scope?: unknown;
   readonly hasCredential?: unknown;
   readonly isSystemOwned?: unknown;
+  readonly managementStatus?: unknown;
+  readonly configurationVersion?: unknown;
   readonly models?: unknown;
+  readonly lastCheck?: NimiRuntimeConnectorProjection['lastCheck'];
   readonly modelCapabilities?: unknown;
   readonly status?: unknown;
   readonly lastCheckedAt?: unknown;
@@ -255,6 +261,8 @@ export function createNimiRuntimeConfigConnectorDraft(input: {
     hasCredential: false,
     isSystemOwned: false,
     models: [],
+    managementStatus: 'unknown',
+    configurationVersion: '',
     status: 'idle',
     lastCheckedAt: null,
     lastDetail: '',
@@ -278,7 +286,10 @@ export function normalizeNimiRuntimeConfigConnectorProjection(
     scope,
     hasCredential: Boolean(raw.hasCredential),
     isSystemOwned: scope !== 'user' || Boolean(raw.isSystemOwned),
+    managementStatus: raw.managementStatus === 'active' || raw.managementStatus === 'disabled' ? raw.managementStatus : 'unknown',
+    configurationVersion: normalizeText(raw.configurationVersion),
     models: normalizeNimiRuntimeConfigConnectorModels(raw.models),
+    lastCheck: raw.lastCheck ? { ...raw.lastCheck } : undefined,
     modelCapabilities: normalizeNimiRuntimeConfigConnectorModelCapabilities(raw.modelCapabilities),
     status: normalizeNimiRuntimeConfigConnectorStatus(raw.status),
     lastCheckedAt: normalizeText(raw.lastCheckedAt) || null,
@@ -292,9 +303,9 @@ export function runtimeConnectorProjectionToNimiRuntimeConfigConnector(
 ): NimiRuntimeConfigConnectorProjection {
   return normalizeNimiRuntimeConfigConnectorProjection({
     ...connector,
-    status: 'idle',
-    lastCheckedAt: null,
-    lastDetail: '',
+    status: connector.lastCheck ? (connector.lastCheck.ok ? 'healthy' : 'unreachable') : 'idle',
+    lastCheckedAt: connector.lastCheck?.checkedAt ?? null,
+    lastDetail: connector.lastCheck?.ok === false ? connector.lastCheck.reasonCode : '',
   });
 }
 

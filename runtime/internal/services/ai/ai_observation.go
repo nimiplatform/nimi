@@ -82,6 +82,7 @@ func (s *Service) scenarioObservationContext(ctx context.Context, jobID string) 
 		return ctx
 	}
 	var models []*runtimev1.DesktopAIExecutionModel
+	var connectorRef string
 	route := runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED
 	if assembly, ok := s.scenarioJobs.resolvedAssembly(jobID); ok {
 		route = runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_LOCAL
@@ -93,6 +94,7 @@ func (s *Service) scenarioObservationContext(ctx context.Context, jobID string) 
 			models = append(models, &runtimev1.DesktopAIExecutionModel{ModelId: axis.ModelAssetID, DisplayName: label, Role: axis.RequirementRole.String()})
 		}
 	} else if assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID); ok {
+		connectorRef = assembly.Connector.ConnectorID
 		target := &structpb.Struct{}
 		if protojson.Unmarshal(assembly.ProviderModelTarget, target) == nil {
 			provider := target.GetFields()["provider"].GetStringValue()
@@ -104,5 +106,6 @@ func (s *Service) scenarioObservationContext(ctx context.Context, jobID string) 
 		}
 	}
 	facts := s.aiObservationFacts(ctx, job.GetHead().GetSubjectUserId(), job.GetHead().GetAppId(), jobID, scenarioTargetCapability(job.GetScenarioType()), models, route)
+	facts.ConnectorRef = connectorRef
 	return aitelemetry.WithInvocation(ctx, s.aiObservation, facts)
 }

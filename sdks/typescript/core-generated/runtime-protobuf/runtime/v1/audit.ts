@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { UsageStats } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 import { CallerKind } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
@@ -737,6 +738,12 @@ export interface GetDesktopAIUsageSummaryRequest {
      * @generated from protobuf field: google.protobuf.Timestamp to_time = 2
      */
     toTime?: Timestamp;
+    /**
+     * Optional exact captured Cloud connection; never an account selector.
+     *
+     * @generated from protobuf field: string connector_ref = 3
+     */
+    connectorRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetDesktopAIUsageSummaryResponse
@@ -908,6 +915,135 @@ export interface DesktopAIUsageSummary {
      * @generated from protobuf field: repeated string partial_reasons = 16
      */
     partialReasons: string[];
+    /**
+     * @generated from protobuf field: bool attribution_complete = 17
+     */
+    attributionComplete: boolean;
+}
+/**
+ * No payload, prompt, output, endpoint or private custody material crosses this projection.
+ *
+ * @generated from protobuf message nimi.runtime.v1.DesktopAICloudAttempt
+ */
+export interface DesktopAICloudAttempt {
+    /**
+     * @generated from protobuf field: string attempt_id = 1
+     */
+    attemptId: string;
+    /**
+     * @generated from protobuf field: string connector_ref = 2
+     */
+    connectorRef: string;
+    /**
+     * @generated from protobuf field: string source_kind = 3
+     */
+    sourceKind: string;
+    /**
+     * @generated from protobuf field: string source_id = 4
+     */
+    sourceId: string;
+    /**
+     * @generated from protobuf field: string source_label = 5
+     */
+    sourceLabel: string;
+    /**
+     * @generated from protobuf field: string parent_work_id = 6
+     */
+    parentWorkId: string;
+    /**
+     * @generated from protobuf field: string parent_work_kind = 7
+     */
+    parentWorkKind: string;
+    /**
+     * @generated from protobuf field: string capability = 8
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.DesktopAIExecutionModel models = 9
+     */
+    models: DesktopAIExecutionModel[];
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp started_at = 10
+     */
+    startedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 11
+     */
+    observedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp finished_at = 12
+     */
+    finishedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DesktopAICloudAttemptOutcome outcome = 13
+     */
+    outcome: DesktopAICloudAttemptOutcome;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 14
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: bool usage_measured = 15
+     */
+    usageMeasured: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 16
+     */
+    usage?: UsageStats;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListDesktopAICloudHistoryRequest
+ */
+export interface ListDesktopAICloudHistoryRequest {
+    /**
+     * @generated from protobuf field: string connector_ref = 1
+     */
+    connectorRef: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp from_time = 2
+     */
+    fromTime?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp to_time = 3
+     */
+    toTime?: Timestamp;
+    /**
+     * @generated from protobuf field: int32 page_size = 4
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 5
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListDesktopAICloudHistoryResponse
+ */
+export interface ListDesktopAICloudHistoryResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.DesktopAICloudAttempt attempts = 1
+     */
+    attempts: DesktopAICloudAttempt[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp read_at = 3
+     */
+    readAt?: Timestamp;
+    /**
+     * @generated from protobuf field: bool attribution_complete = 4
+     */
+    attributionComplete: boolean;
+    /**
+     * @generated from protobuf field: bool records_complete = 5
+     */
+    recordsComplete: boolean;
+    /**
+     * @generated from protobuf field: repeated string partial_reasons = 6
+     */
+    partialReasons: string[];
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.UsageWindow
@@ -992,6 +1128,35 @@ export enum DesktopAIExecutionState {
      * @generated from protobuf enum value: DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN = 2;
      */
     DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.DesktopAICloudAttemptOutcome
+ */
+export enum DesktopAICloudAttemptOutcome {
+    /**
+     * @generated from protobuf enum value: DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED = 0;
+     */
+    DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING = 1;
+     */
+    DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING = 1,
+    /**
+     * @generated from protobuf enum value: DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED = 2;
+     */
+    DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED = 2,
+    /**
+     * @generated from protobuf enum value: DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED = 3;
+     */
+    DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED = 3,
+    /**
+     * @generated from protobuf enum value: DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED = 4;
+     */
+    DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED = 4,
+    /**
+     * @generated from protobuf enum value: DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN = 5;
+     */
+    DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN = 5
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ListAuditEventsRequest$Type extends MessageType<ListAuditEventsRequest> {
@@ -3004,11 +3169,13 @@ class GetDesktopAIUsageSummaryRequest$Type extends MessageType<GetDesktopAIUsage
     constructor() {
         super("nimi.runtime.v1.GetDesktopAIUsageSummaryRequest", [
             { no: 1, name: "from_time", kind: "message", T: () => Timestamp },
-            { no: 2, name: "to_time", kind: "message", T: () => Timestamp }
+            { no: 2, name: "to_time", kind: "message", T: () => Timestamp },
+            { no: 3, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetDesktopAIUsageSummaryRequest>): GetDesktopAIUsageSummaryRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorRef = "";
         if (value !== undefined)
             reflectionMergePartial<GetDesktopAIUsageSummaryRequest>(this, message, value);
         return message;
@@ -3023,6 +3190,9 @@ class GetDesktopAIUsageSummaryRequest$Type extends MessageType<GetDesktopAIUsage
                     break;
                 case /* google.protobuf.Timestamp to_time */ 2:
                     message.toTime = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.toTime);
+                    break;
+                case /* string connector_ref */ 3:
+                    message.connectorRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3042,6 +3212,9 @@ class GetDesktopAIUsageSummaryRequest$Type extends MessageType<GetDesktopAIUsage
         /* google.protobuf.Timestamp to_time = 2; */
         if (message.toTime)
             Timestamp.internalBinaryWrite(message.toTime, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string connector_ref = 3; */
+        if (message.connectorRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.connectorRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3385,7 +3558,8 @@ class DesktopAIUsageSummary$Type extends MessageType<DesktopAIUsageSummary> {
             { no: 13, name: "quantity_complete", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 14, name: "coverage_from", kind: "message", T: () => Timestamp },
             { no: 15, name: "coverage_to", kind: "message", T: () => Timestamp },
-            { no: 16, name: "partial_reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 16, name: "partial_reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "attribution_complete", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<DesktopAIUsageSummary>): DesktopAIUsageSummary {
@@ -3399,6 +3573,7 @@ class DesktopAIUsageSummary$Type extends MessageType<DesktopAIUsageSummary> {
         message.timeComplete = false;
         message.quantityComplete = false;
         message.partialReasons = [];
+        message.attributionComplete = false;
         if (value !== undefined)
             reflectionMergePartial<DesktopAIUsageSummary>(this, message, value);
         return message;
@@ -3455,6 +3630,9 @@ class DesktopAIUsageSummary$Type extends MessageType<DesktopAIUsageSummary> {
                     break;
                 case /* repeated string partial_reasons */ 16:
                     message.partialReasons.push(reader.string());
+                    break;
+                case /* bool attribution_complete */ 17:
+                    message.attributionComplete = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3516,6 +3694,9 @@ class DesktopAIUsageSummary$Type extends MessageType<DesktopAIUsageSummary> {
         /* repeated string partial_reasons = 16; */
         for (let i = 0; i < message.partialReasons.length; i++)
             writer.tag(16, WireType.LengthDelimited).string(message.partialReasons[i]);
+        /* bool attribution_complete = 17; */
+        if (message.attributionComplete !== false)
+            writer.tag(17, WireType.Varint).bool(message.attributionComplete);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3526,3 +3707,329 @@ class DesktopAIUsageSummary$Type extends MessageType<DesktopAIUsageSummary> {
  * @generated MessageType for protobuf message nimi.runtime.v1.DesktopAIUsageSummary
  */
 export const DesktopAIUsageSummary = new DesktopAIUsageSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DesktopAICloudAttempt$Type extends MessageType<DesktopAICloudAttempt> {
+    constructor() {
+        super("nimi.runtime.v1.DesktopAICloudAttempt", [
+            { no: 1, name: "attempt_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "source_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "parent_work_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "parent_work_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DesktopAIExecutionModel },
+            { no: 10, name: "started_at", kind: "message", T: () => Timestamp },
+            { no: 11, name: "observed_at", kind: "message", T: () => Timestamp },
+            { no: 12, name: "finished_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "outcome", kind: "enum", T: () => ["nimi.runtime.v1.DesktopAICloudAttemptOutcome", DesktopAICloudAttemptOutcome] },
+            { no: 14, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 15, name: "usage_measured", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 16, name: "usage", kind: "message", T: () => UsageStats }
+        ]);
+    }
+    create(value?: PartialMessage<DesktopAICloudAttempt>): DesktopAICloudAttempt {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.attemptId = "";
+        message.connectorRef = "";
+        message.sourceKind = "";
+        message.sourceId = "";
+        message.sourceLabel = "";
+        message.parentWorkId = "";
+        message.parentWorkKind = "";
+        message.capability = "";
+        message.models = [];
+        message.outcome = 0;
+        message.reasonCode = 0;
+        message.usageMeasured = false;
+        if (value !== undefined)
+            reflectionMergePartial<DesktopAICloudAttempt>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DesktopAICloudAttempt): DesktopAICloudAttempt {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string attempt_id */ 1:
+                    message.attemptId = reader.string();
+                    break;
+                case /* string connector_ref */ 2:
+                    message.connectorRef = reader.string();
+                    break;
+                case /* string source_kind */ 3:
+                    message.sourceKind = reader.string();
+                    break;
+                case /* string source_id */ 4:
+                    message.sourceId = reader.string();
+                    break;
+                case /* string source_label */ 5:
+                    message.sourceLabel = reader.string();
+                    break;
+                case /* string parent_work_id */ 6:
+                    message.parentWorkId = reader.string();
+                    break;
+                case /* string parent_work_kind */ 7:
+                    message.parentWorkKind = reader.string();
+                    break;
+                case /* string capability */ 8:
+                    message.capability = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.DesktopAIExecutionModel models */ 9:
+                    message.models.push(DesktopAIExecutionModel.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* google.protobuf.Timestamp started_at */ 10:
+                    message.startedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.startedAt);
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 11:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                case /* google.protobuf.Timestamp finished_at */ 12:
+                    message.finishedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.finishedAt);
+                    break;
+                case /* nimi.runtime.v1.DesktopAICloudAttemptOutcome outcome */ 13:
+                    message.outcome = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 14:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* bool usage_measured */ 15:
+                    message.usageMeasured = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.UsageStats usage */ 16:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DesktopAICloudAttempt, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string attempt_id = 1; */
+        if (message.attemptId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.attemptId);
+        /* string connector_ref = 2; */
+        if (message.connectorRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.connectorRef);
+        /* string source_kind = 3; */
+        if (message.sourceKind !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.sourceKind);
+        /* string source_id = 4; */
+        if (message.sourceId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.sourceId);
+        /* string source_label = 5; */
+        if (message.sourceLabel !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sourceLabel);
+        /* string parent_work_id = 6; */
+        if (message.parentWorkId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.parentWorkId);
+        /* string parent_work_kind = 7; */
+        if (message.parentWorkKind !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.parentWorkKind);
+        /* string capability = 8; */
+        if (message.capability !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.capability);
+        /* repeated nimi.runtime.v1.DesktopAIExecutionModel models = 9; */
+        for (let i = 0; i < message.models.length; i++)
+            DesktopAIExecutionModel.internalBinaryWrite(message.models[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp started_at = 10; */
+        if (message.startedAt)
+            Timestamp.internalBinaryWrite(message.startedAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp observed_at = 11; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp finished_at = 12; */
+        if (message.finishedAt)
+            Timestamp.internalBinaryWrite(message.finishedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.DesktopAICloudAttemptOutcome outcome = 13; */
+        if (message.outcome !== 0)
+            writer.tag(13, WireType.Varint).int32(message.outcome);
+        /* nimi.runtime.v1.ReasonCode reason_code = 14; */
+        if (message.reasonCode !== 0)
+            writer.tag(14, WireType.Varint).int32(message.reasonCode);
+        /* bool usage_measured = 15; */
+        if (message.usageMeasured !== false)
+            writer.tag(15, WireType.Varint).bool(message.usageMeasured);
+        /* nimi.runtime.v1.UsageStats usage = 16; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DesktopAICloudAttempt
+ */
+export const DesktopAICloudAttempt = new DesktopAICloudAttempt$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDesktopAICloudHistoryRequest$Type extends MessageType<ListDesktopAICloudHistoryRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListDesktopAICloudHistoryRequest", [
+            { no: 1, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "from_time", kind: "message", T: () => Timestamp },
+            { no: 3, name: "to_time", kind: "message", T: () => Timestamp },
+            { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListDesktopAICloudHistoryRequest>): ListDesktopAICloudHistoryRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorRef = "";
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListDesktopAICloudHistoryRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDesktopAICloudHistoryRequest): ListDesktopAICloudHistoryRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string connector_ref */ 1:
+                    message.connectorRef = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp from_time */ 2:
+                    message.fromTime = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.fromTime);
+                    break;
+                case /* google.protobuf.Timestamp to_time */ 3:
+                    message.toTime = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.toTime);
+                    break;
+                case /* int32 page_size */ 4:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 5:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDesktopAICloudHistoryRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string connector_ref = 1; */
+        if (message.connectorRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.connectorRef);
+        /* google.protobuf.Timestamp from_time = 2; */
+        if (message.fromTime)
+            Timestamp.internalBinaryWrite(message.fromTime, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp to_time = 3; */
+        if (message.toTime)
+            Timestamp.internalBinaryWrite(message.toTime, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* int32 page_size = 4; */
+        if (message.pageSize !== 0)
+            writer.tag(4, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 5; */
+        if (message.pageToken !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListDesktopAICloudHistoryRequest
+ */
+export const ListDesktopAICloudHistoryRequest = new ListDesktopAICloudHistoryRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDesktopAICloudHistoryResponse$Type extends MessageType<ListDesktopAICloudHistoryResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListDesktopAICloudHistoryResponse", [
+            { no: 1, name: "attempts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DesktopAICloudAttempt },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "read_at", kind: "message", T: () => Timestamp },
+            { no: 4, name: "attribution_complete", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "records_complete", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "partial_reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListDesktopAICloudHistoryResponse>): ListDesktopAICloudHistoryResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.attempts = [];
+        message.nextPageToken = "";
+        message.attributionComplete = false;
+        message.recordsComplete = false;
+        message.partialReasons = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListDesktopAICloudHistoryResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDesktopAICloudHistoryResponse): ListDesktopAICloudHistoryResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.DesktopAICloudAttempt attempts */ 1:
+                    message.attempts.push(DesktopAICloudAttempt.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp read_at */ 3:
+                    message.readAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.readAt);
+                    break;
+                case /* bool attribution_complete */ 4:
+                    message.attributionComplete = reader.bool();
+                    break;
+                case /* bool records_complete */ 5:
+                    message.recordsComplete = reader.bool();
+                    break;
+                case /* repeated string partial_reasons */ 6:
+                    message.partialReasons.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDesktopAICloudHistoryResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.DesktopAICloudAttempt attempts = 1; */
+        for (let i = 0; i < message.attempts.length; i++)
+            DesktopAICloudAttempt.internalBinaryWrite(message.attempts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        /* google.protobuf.Timestamp read_at = 3; */
+        if (message.readAt)
+            Timestamp.internalBinaryWrite(message.readAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* bool attribution_complete = 4; */
+        if (message.attributionComplete !== false)
+            writer.tag(4, WireType.Varint).bool(message.attributionComplete);
+        /* bool records_complete = 5; */
+        if (message.recordsComplete !== false)
+            writer.tag(5, WireType.Varint).bool(message.recordsComplete);
+        /* repeated string partial_reasons = 6; */
+        for (let i = 0; i < message.partialReasons.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.partialReasons[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListDesktopAICloudHistoryResponse
+ */
+export const ListDesktopAICloudHistoryResponse = new ListDesktopAICloudHistoryResponse$Type();

@@ -2,6 +2,8 @@
 # Normative authority: .nimi/spec/runtime/security-core.authority.yaml
 version: 1
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     posture: authenticated_or_protected_local_app_operation
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/PutArtifact

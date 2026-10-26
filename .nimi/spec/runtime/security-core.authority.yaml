@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.runtime
 scope: runtime.security-core
 units:
+  - id: rule.nimi.runtime.security-core.home-connector-reference-index
+    kind: rule
+    title: Home can read a bounded safe current-account Connector reference index
+    modality: must
+    statement: ListDesktopConnectorReferences requires the protected Desktop account product purpose and derives the account namespace before reading the canonical current AIConfig store. It returns only safe App or singular shared LocalAgent owner identity, capability, implementation identity, opaque configuration revision and observation metadata for exact matching Connector references, including references whose App is no longer projected, without returning complete configuration or widening GetAppAIConfig, options or Overwrite authorization. Pagination binds the account, exact Connector filter, stable ordering and a collection revision derived consistently from all canonical owner identities and revisions; a changed collection invalidates continuation, and incomplete or failed reads never claim no references. This read adds no Connector grant, route authority, remote lookup or configuration mutation.
+    condition: Whenever Home reads current configuration references for a cloud connection.
+    failure: Reject ordinary App, anonymous, machine-only, cross-account, invalid or stale cursor access before disclosing references, and preserve existing projected-owner restrictions on complete configuration operations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: definition.nimi.runtime.security-core.token-validation-plane
     kind: definition
     title: Runtime token validation plane

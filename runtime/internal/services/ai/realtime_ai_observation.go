@@ -10,7 +10,7 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-accounting
-func (s *Service) configureRealtimeAIObservation(ctx context.Context, record *realtimeSessionRecord, providerID, modelID string) {
+func (s *Service) configureRealtimeAIObservation(ctx context.Context, record *realtimeSessionRecord, providerID, modelID, connectorRef string) {
 	if s.aiObservation == nil || record == nil {
 		return
 	}
@@ -20,6 +20,7 @@ func (s *Service) configureRealtimeAIObservation(ctx context.Context, record *re
 		capabilitydriver.RealtimeInteractCapabilityContract,
 		[]*runtimev1.DesktopAIExecutionModel{{ProviderId: providerID, ModelId: modelID}},
 		runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_CLOUD)
+	record.aiObservationFacts.ConnectorRef = connectorRef
 	record.ctx = aitelemetry.WithSource(record.ctx, record.aiObservationFacts.Source)
 }
 
@@ -52,7 +53,7 @@ func beginRealtimeAIObservationLocked(record *realtimeSessionRecord, providerRes
 	return attempt
 }
 
-func finishRealtimeAIObservation(record *realtimeSessionRecord, responseID string, usage *runtimev1.UsageStats) {
+func finishRealtimeAIObservation(record *realtimeSessionRecord, responseID string, usage *runtimev1.UsageStats, result capabilitydriver.CloudRealtimeResponseStatus) {
 	record.mu.Lock()
 	attempt := record.aiAttemptsByResponse[responseID]
 	if track := record.tracksByProvider[responseID]; attempt == nil && track != nil {
@@ -64,7 +65,17 @@ func finishRealtimeAIObservation(record *realtimeSessionRecord, responseID strin
 		record.aiObservation.MarkGap("realtime", record.aiObservationStarted, "response-start-unobserved")
 	}
 	record.mu.Unlock()
-	attempt.Finish(usage)
+	outcome := runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN
+	reason := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	switch result {
+	case capabilitydriver.CloudRealtimeResponseStatusCompleted:
+		outcome, reason = runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED, runtimev1.ReasonCode_ACTION_EXECUTED
+	case capabilitydriver.CloudRealtimeResponseStatusFailed:
+		outcome, reason = runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+	case capabilitydriver.CloudRealtimeResponseStatusCancelled:
+		outcome = runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED
+	}
+	attempt.Complete(usage, outcome, reason)
 }
 
 func markRealtimeAIObservationUnknown(record *realtimeSessionRecord) {

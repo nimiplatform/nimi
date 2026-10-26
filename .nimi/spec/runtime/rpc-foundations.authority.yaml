@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.runtime
 scope: runtime.rpc-foundations
 units:
+  - id: rule.nimi.runtime.rpc-foundations.home-cloud-connection-observation
+    kind: rule
+    title: Home cloud history and estimates use captured connection and owner attempt outcomes
+    modality: must
+    statement: Actual Cloud execution attempts capture their exact admitted safe Connector reference at the existing dispatch boundary. Their owning execution path records succeeded, failed or cancelled with only a safe reason code; missing terminal observation remains unknown, and usage presence, a generic RPC result, parent work or transport close never substitutes for an attempt outcome. Realtime records owner-identified response or generation rounds, never session setup or audio fragments. ListDesktopAICloudHistory and Connector-filtered GetDesktopAIUsageSummary require the protected Desktop account purpose with derived current account, read only the existing bounded device accounting owner for at most seven days, and return only safe identities, model and capability labels, timing, outcome, reason, measured usage and estimates with coverage. History has bounded stable pagination and permits a captured deleted-Connector reference without restoring custody. Missing historical attribution remains explicit, never inferred from current configuration or provider/model; rename or recreate never changes prior attribution, repeated events never double count, and late usage retains the attempt's start interval and terminal outcome. Reads never execute AI, poll providers, change configuration or expose content, endpoints, credentials or private payloads.
+    condition: Whenever Cloud attempt facts are captured, queried or presented by Home.
+    failure: Reject unauthorized purpose, account selection, invalid bounds or cursors; retain typed unknown and coverage gaps instead of fabricated zero, success, exact billing or cross-connection attribution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.home-ai-observation
   - id: definition.nimi.runtime.rpc-foundations.audit-plane
     kind: definition
     title: Runtime audit plane

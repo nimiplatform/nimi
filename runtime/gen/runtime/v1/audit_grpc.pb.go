@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeAuditService_ListDesktopAICloudHistory_FullMethodName    = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory"
 	RuntimeAuditService_ListAuditEvents_FullMethodName              = "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents"
 	RuntimeAuditService_ListDesktopAuditEvents_FullMethodName       = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
 	RuntimeAuditService_ExportAuditEvents_FullMethodName            = "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents"
@@ -34,6 +35,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeAuditServiceClient interface {
+	ListDesktopAICloudHistory(ctx context.Context, in *ListDesktopAICloudHistoryRequest, opts ...grpc.CallOption) (*ListDesktopAICloudHistoryResponse, error)
 	ListAuditEvents(ctx context.Context, in *ListAuditEventsRequest, opts ...grpc.CallOption) (*ListAuditEventsResponse, error)
 	ListDesktopAuditEvents(ctx context.Context, in *ListDesktopAuditEventsRequest, opts ...grpc.CallOption) (*ListDesktopAuditEventsResponse, error)
 	ExportAuditEvents(ctx context.Context, in *ExportAuditEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AuditExportChunk], error)
@@ -51,6 +53,16 @@ type runtimeAuditServiceClient struct {
 
 func NewRuntimeAuditServiceClient(cc grpc.ClientConnInterface) RuntimeAuditServiceClient {
 	return &runtimeAuditServiceClient{cc}
+}
+
+func (c *runtimeAuditServiceClient) ListDesktopAICloudHistory(ctx context.Context, in *ListDesktopAICloudHistoryRequest, opts ...grpc.CallOption) (*ListDesktopAICloudHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDesktopAICloudHistoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAuditService_ListDesktopAICloudHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAuditServiceClient) ListAuditEvents(ctx context.Context, in *ListAuditEventsRequest, opts ...grpc.CallOption) (*ListAuditEventsResponse, error) {
@@ -174,6 +186,7 @@ func (c *runtimeAuditServiceClient) GetDesktopAIUsageSummary(ctx context.Context
 // All implementations should embed UnimplementedRuntimeAuditServiceServer
 // for forward compatibility.
 type RuntimeAuditServiceServer interface {
+	ListDesktopAICloudHistory(context.Context, *ListDesktopAICloudHistoryRequest) (*ListDesktopAICloudHistoryResponse, error)
 	ListAuditEvents(context.Context, *ListAuditEventsRequest) (*ListAuditEventsResponse, error)
 	ListDesktopAuditEvents(context.Context, *ListDesktopAuditEventsRequest) (*ListDesktopAuditEventsResponse, error)
 	ExportAuditEvents(*ExportAuditEventsRequest, grpc.ServerStreamingServer[AuditExportChunk]) error
@@ -192,6 +205,9 @@ type RuntimeAuditServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAuditServiceServer struct{}
 
+func (UnimplementedRuntimeAuditServiceServer) ListDesktopAICloudHistory(context.Context, *ListDesktopAICloudHistoryRequest) (*ListDesktopAICloudHistoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDesktopAICloudHistory not implemented")
+}
 func (UnimplementedRuntimeAuditServiceServer) ListAuditEvents(context.Context, *ListAuditEventsRequest) (*ListAuditEventsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAuditEvents not implemented")
 }
@@ -237,6 +253,24 @@ func RegisterRuntimeAuditServiceServer(s grpc.ServiceRegistrar, srv RuntimeAudit
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAuditService_ServiceDesc, srv)
+}
+
+func _RuntimeAuditService_ListDesktopAICloudHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDesktopAICloudHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAuditServiceServer).ListDesktopAICloudHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAuditService_ListDesktopAICloudHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAuditServiceServer).ListDesktopAICloudHistory(ctx, req.(*ListDesktopAICloudHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAuditService_ListAuditEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -387,6 +421,10 @@ var RuntimeAuditService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAuditService",
 	HandlerType: (*RuntimeAuditServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListDesktopAICloudHistory",
+			Handler:    _RuntimeAuditService_ListDesktopAICloudHistory_Handler,
+		},
 		{
 			MethodName: "ListAuditEvents",
 			Handler:    _RuntimeAuditService_ListAuditEvents_Handler,

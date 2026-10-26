@@ -18,6 +18,8 @@ import { OverwriteAppAIConfigResponse } from "./capability_configuration";
 import { OverwriteAppAIConfigRequest } from "./capability_configuration";
 import { GetAppAIConfigResponse } from "./capability_configuration";
 import { GetAppAIConfigRequest } from "./capability_configuration";
+import { ListDesktopConnectorReferencesResponse } from "./capability_configuration";
+import { ListDesktopConnectorReferencesRequest } from "./capability_configuration";
 import type { BinaryWriteOptions } from "@protobuf-ts/runtime";
 import type { IBinaryWriter } from "@protobuf-ts/runtime";
 import { WireType } from "@protobuf-ts/runtime";

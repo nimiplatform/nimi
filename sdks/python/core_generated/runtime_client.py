@@ -816,6 +816,14 @@ RUNTIME_METHODS = [
     "response_type": "ListAppAIConfigOptionsResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
+    "service": "RuntimeAiService",
+    "method": "ListDesktopConnectorReferences",
+    "kind": "unary",
+    "request_type": "ListDesktopConnectorReferencesRequest",
+    "response_type": "ListDesktopConnectorReferencesResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
     "service": "RuntimeAiService",
     "method": "ListLocalAppVoiceAssets",
@@ -1382,6 +1390,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListAuditEventsRequest",
     "response_type": "ListAuditEventsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
+    "service": "RuntimeAuditService",
+    "method": "ListDesktopAICloudHistory",
+    "kind": "unary",
+    "request_type": "ListDesktopAICloudHistoryRequest",
+    "response_type": "ListDesktopAICloudHistoryResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",

@@ -25,7 +25,7 @@ function summary(): DesktopAIUsageSummary {
       { sourceKind: 'home', capability: 'text.generate', models: [], route: local, totals: totals('2'), estimates: [] },
       { sourceKind: 'app', capability: 'text.generate', models: [], route: cloud, totals: totals('1'), estimates: [] },
     ], groupsComplete: true, estimates: [], sourceCoverage: [{ source: 'home', activityComplete: true, usageComplete: true }],
-    sourceComplete: true, timeComplete: true, quantityComplete: true, coverageFrom: range.fromTime, coverageTo: observedAt, partialReasons: [] };
+    sourceComplete: true, timeComplete: true, quantityComplete: true, attributionComplete: true, coverageFrom: range.fromTime, coverageTo: observedAt, partialReasons: [] };
 }
 
 test('local natural day uses 23/25-hour DST days and non-hour offsets', () => {

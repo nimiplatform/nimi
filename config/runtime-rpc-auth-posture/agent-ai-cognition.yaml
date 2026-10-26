@@ -2,6 +2,8 @@
 # Normative authority: .nimi/spec/runtime/security-core.authority.yaml
 version: 1
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
     posture: authenticated_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/TerminateAgent

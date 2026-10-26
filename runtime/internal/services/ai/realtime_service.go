@@ -143,7 +143,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		terminalInputs:   make(map[string]struct{}),
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
 	}
-	s.configureRealtimeAIObservation(capturedCtx, realtime, catalogBinding.Provider, catalogBinding.ProviderModelID)
+	s.configureRealtimeAIObservation(capturedCtx, realtime, catalogBinding.Provider, catalogBinding.ProviderModelID, capturedRecord.ConnectorID)
 	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
 		realtime.ownerSessionID, realtime.ownerInvalidated = decision.SessionID, decision.SessionInvalidated
 	}
@@ -752,7 +752,7 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		if !source.NoOutput {
 			track = ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 		}
-		finishRealtimeAIObservation(record, source.ProviderResponseID, source.Usage)
+		finishRealtimeAIObservation(record, source.ProviderResponseID, source.Usage, source.ResponseStatus)
 		if s.logger != nil {
 			s.logger.Info("AI Realtime response finished", "response_id", source.ProviderResponseID, "status", source.ResponseStatus, "output_types", source.OutputTypes)
 		}

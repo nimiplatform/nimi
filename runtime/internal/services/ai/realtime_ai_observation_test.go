@@ -39,7 +39,7 @@ func realtimeObservationTestOwner(t *testing.T) (*Service, *realtimeSessionRecor
 	svc := &Service{aiObservation: owner, realtimeSessions: newRealtimeSessionStore()}
 	svc.realtimeSessions.create(record)
 	ctx := aitelemetry.WithSource(context.Background(), aitelemetry.Source{Kind: "local-agent", ID: "agent-1", Label: "LocalAgent"})
-	svc.configureRealtimeAIObservation(ctx, record, "actual-provider", "actual-model")
+	svc.configureRealtimeAIObservation(ctx, record, "actual-provider", "actual-model", "actual-connector")
 	return svc, record, owner
 }
 
@@ -78,6 +78,15 @@ func TestRealtimeObservationCountsProviderRoundsAndRawUsageOnce(t *testing.T) {
 	}
 	if len(owner.Snapshot("account", 50).Executions) != 0 {
 		t.Fatal("completed responses stayed active")
+	}
+	history, err := owner.CloudHistory(context.Background(), "account", "actual-connector", time.Now().Add(-time.Minute), time.Now().Add(time.Minute), 20, "")
+	if err != nil || len(history.GetAttempts()) != 2 {
+		t.Fatalf("round history: %+v %v", history, err)
+	}
+	for _, attempt := range history.Attempts {
+		if attempt.ConnectorRef != "actual-connector" || attempt.Outcome != runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED {
+			t.Fatalf("round identity or outcome lost: %+v", attempt)
+		}
 	}
 }
 
@@ -118,7 +127,7 @@ func TestRealtimeObservationCountsAdmittedNoOutputRoundWithoutOutputTrack(t *tes
 	_, _, owner := realtimeObservationTestOwner(t)
 	svc, record, _, ctx := geminiRealtimeServiceFixture(t)
 	svc.aiObservation = owner
-	svc.configureRealtimeAIObservation(ctx, record, "google", "gemini-live")
+	svc.configureRealtimeAIObservation(ctx, record, "google", "gemini-live", "gemini-connector")
 	_, err := svc.AppendRealtimeInput(ctx, &runtimev1.AppendRealtimeInputRequest{RealtimeSessionId: "session", Generation: 1,
 		Input: &runtimev1.AppendRealtimeInputRequest_Text{Text: &runtimev1.AiRealtimeTextInput{RequestId: "input", Text: "Speak"}}})
 	if err != nil {

@@ -105,6 +105,8 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences":               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory":                 runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":                               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":                         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":                              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

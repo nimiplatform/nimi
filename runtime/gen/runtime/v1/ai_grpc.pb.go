@@ -233,6 +233,7 @@ var RuntimeAiVideoSessionService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
+	RuntimeAiService_ListDesktopConnectorReferences_FullMethodName     = "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences"
 	RuntimeAiService_GetAppAIConfig_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	RuntimeAiService_OverwriteAppAIConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
 	RuntimeAiService_ListAppAIConfigOptions_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"
@@ -267,6 +268,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeAiServiceClient interface {
+	ListDesktopConnectorReferences(ctx context.Context, in *ListDesktopConnectorReferencesRequest, opts ...grpc.CallOption) (*ListDesktopConnectorReferencesResponse, error)
 	GetAppAIConfig(ctx context.Context, in *GetAppAIConfigRequest, opts ...grpc.CallOption) (*GetAppAIConfigResponse, error)
 	OverwriteAppAIConfig(ctx context.Context, in *OverwriteAppAIConfigRequest, opts ...grpc.CallOption) (*OverwriteAppAIConfigResponse, error)
 	ListAppAIConfigOptions(ctx context.Context, in *ListAppAIConfigOptionsRequest, opts ...grpc.CallOption) (*ListAppAIConfigOptionsResponse, error)
@@ -304,6 +306,16 @@ type runtimeAiServiceClient struct {
 
 func NewRuntimeAiServiceClient(cc grpc.ClientConnInterface) RuntimeAiServiceClient {
 	return &runtimeAiServiceClient{cc}
+}
+
+func (c *runtimeAiServiceClient) ListDesktopConnectorReferences(ctx context.Context, in *ListDesktopConnectorReferencesRequest, opts ...grpc.CallOption) (*ListDesktopConnectorReferencesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDesktopConnectorReferencesResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_ListDesktopConnectorReferences_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAiServiceClient) GetAppAIConfig(ctx context.Context, in *GetAppAIConfigRequest, opts ...grpc.CallOption) (*GetAppAIConfigResponse, error) {
@@ -629,6 +641,7 @@ func (c *runtimeAiServiceClient) PeekScheduling(ctx context.Context, in *PeekSch
 // All implementations should embed UnimplementedRuntimeAiServiceServer
 // for forward compatibility.
 type RuntimeAiServiceServer interface {
+	ListDesktopConnectorReferences(context.Context, *ListDesktopConnectorReferencesRequest) (*ListDesktopConnectorReferencesResponse, error)
 	GetAppAIConfig(context.Context, *GetAppAIConfigRequest) (*GetAppAIConfigResponse, error)
 	OverwriteAppAIConfig(context.Context, *OverwriteAppAIConfigRequest) (*OverwriteAppAIConfigResponse, error)
 	ListAppAIConfigOptions(context.Context, *ListAppAIConfigOptionsRequest) (*ListAppAIConfigOptionsResponse, error)
@@ -667,6 +680,9 @@ type RuntimeAiServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAiServiceServer struct{}
 
+func (UnimplementedRuntimeAiServiceServer) ListDesktopConnectorReferences(context.Context, *ListDesktopConnectorReferencesRequest) (*ListDesktopConnectorReferencesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDesktopConnectorReferences not implemented")
+}
 func (UnimplementedRuntimeAiServiceServer) GetAppAIConfig(context.Context, *GetAppAIConfigRequest) (*GetAppAIConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppAIConfig not implemented")
 }
@@ -769,6 +785,24 @@ func RegisterRuntimeAiServiceServer(s grpc.ServiceRegistrar, srv RuntimeAiServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAiService_ServiceDesc, srv)
+}
+
+func _RuntimeAiService_ListDesktopConnectorReferences_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDesktopConnectorReferencesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).ListDesktopConnectorReferences(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_ListDesktopConnectorReferences_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).ListDesktopConnectorReferences(ctx, req.(*ListDesktopConnectorReferencesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAiService_GetAppAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1243,6 +1277,10 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAiService",
 	HandlerType: (*RuntimeAiServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListDesktopConnectorReferences",
+			Handler:    _RuntimeAiService_ListDesktopConnectorReferences_Handler,
+		},
 		{
 			MethodName: "GetAppAIConfig",
 			Handler:    _RuntimeAiService_GetAppAIConfig_Handler,

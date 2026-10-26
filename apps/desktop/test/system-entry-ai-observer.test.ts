@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { DesktopAIActivitySnapshot, GetDesktopAIUsageSummaryRequest, GetDesktopAIUsageSummaryResponse } from '@nimiplatform/sdk/runtime/generated';
+import type { DesktopAIActivitySnapshot, GetDesktopAIUsageSummaryResponse } from '@nimiplatform/sdk/runtime/generated';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import { createSystemEntryAIObserver } from '../src/shell/renderer/features/system-entry/system-entry-ai-observer.js';
 import { systemEntryTimestamp } from '../src/shell/renderer/features/system-entry/system-entry-time.js';
 
-type Audit = ReturnType<DesktopRendererSdkPort['accountProduct']>['audit'];
+type Audit = Pick<ReturnType<DesktopRendererSdkPort['accountProduct']>['audit'], 'getDesktopAIActivitySnapshot' | 'subscribeDesktopAIActivity' | 'getDesktopAIUsageSummary'>;
+type GetDesktopAIUsageSummaryRequest = Parameters<Audit['getDesktopAIUsageSummary']>[0];
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 function snapshot(revision = '1'): DesktopAIActivitySnapshot {
   return { generationId: 'runtime-a', revision, observedAt: systemEntryTimestamp(Date.parse('2026-10-23T03:00:00Z')),
@@ -15,7 +16,7 @@ function snapshot(revision = '1'): DesktopAIActivitySnapshot {
 function usage(request: GetDesktopAIUsageSummaryRequest): GetDesktopAIUsageSummaryResponse {
   return { summary: { generationId: 'runtime-a', fromTime: request.fromTime, toTime: request.toTime, readAt: request.fromTime, effectiveTo: request.fromTime,
     totals: { attemptCount: '0', activeAttemptCount: '0', pendingUsageCount: '0', measuredAttemptCount: '0', inputTokens: '0', outputTokens: '0', cachedInputTokens: '0', reasoningOutputTokens: '0', computeMs: '0', unpricedAttemptCount: '0' },
-    groups: [], groupsComplete: true, estimates: [], sourceCoverage: [], sourceComplete: false, timeComplete: false, quantityComplete: true,
+    groups: [], groupsComplete: true, estimates: [], sourceCoverage: [], sourceComplete: false, timeComplete: false, quantityComplete: true, attributionComplete: true,
     coverageFrom: request.fromTime, coverageTo: request.fromTime, partialReasons: ['not_all_sources'] } };
 }
 function activityStream() {

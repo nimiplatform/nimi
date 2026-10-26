@@ -27,6 +27,17 @@ func (s *Store) readPoint() accountingReadPoint {
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-usage-summary
 func (s *Store) Summary(ctx context.Context, accountID string, from, to time.Time) (*runtimev1.DesktopAIUsageSummary, error) {
+	return s.summary(ctx, accountID, from, to, "")
+}
+
+func (s *Store) ConnectorSummary(ctx context.Context, accountID, connectorRef string, from, to time.Time) (*runtimev1.DesktopAIUsageSummary, error) {
+	if connectorRef == "" {
+		return nil, fmt.Errorf("connection reference is required")
+	}
+	return s.summary(ctx, accountID, from, to, connectorRef)
+}
+
+func (s *Store) summary(ctx context.Context, accountID string, from, to time.Time, connectorRef string) (*runtimev1.DesktopAIUsageSummary, error) {
 	if accountID == "" || from.IsZero() || !from.Before(to) || to.Sub(from) > Retention {
 		return nil, fmt.Errorf("AI usage requires an ordered interval of at most seven days")
 	}
@@ -40,6 +51,7 @@ func (s *Store) Summary(ctx context.Context, accountID string, from, to time.Tim
 		effectiveTo = readAt
 	}
 	result := &runtimev1.DesktopAIUsageSummary{GenerationId: point.generation, ReadAt: timestamppb.New(readAt), FromTime: timestamppb.New(from), ToTime: timestamppb.New(to), EffectiveTo: timestamppb.New(effectiveTo), GroupsComplete: true, SourceComplete: true, QuantityComplete: true, Totals: &runtimev1.DesktopAIUsageTotals{}, SourceCoverage: point.sources}
+	result.AttributionComplete = true
 	for _, source := range result.SourceCoverage {
 		if !source.UsageComplete {
 			result.SourceComplete = false
@@ -68,72 +80,120 @@ func (s *Store) Summary(ctx context.Context, accountID string, from, to time.Tim
 		groups[key] = current
 		return nil
 	}
-	fullFrom := from.UTC().Truncate(time.Minute)
-	if fullFrom.Before(from) {
-		fullFrom = fullFrom.Add(time.Minute)
-	}
-	fullTo := effectiveTo.UTC().Truncate(time.Minute)
-	rows, err := tx.QueryContext(ctx, `SELECT group_key,record FROM runtime_ai_usage_minute WHERE account_id=? AND bucket_ns>=? AND bucket_ns<? ORDER BY bucket_ns,group_key`, accountID, fullFrom.UnixNano(), fullTo.UnixNano())
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var key string
-		var encoded []byte
-		if err := rows.Scan(&key, &encoded); err != nil {
-			_ = rows.Close()
-			return nil, err
-		}
-		var value aggregate
-		if err := json.Unmarshal(encoded, &value); err != nil {
-			_ = rows.Close()
-			return nil, err
-		}
-		if err := accumulate(key, value); err != nil {
-			_ = rows.Close()
-			return nil, err
-		}
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
-		return nil, err
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	// Only edge minutes need per-attempt timestamps. Calendar-midnight ranges
-	// remain exact even when the query's read boundary is inside a minute.
-	rows, err = tx.QueryContext(ctx, `SELECT record FROM runtime_ai_usage_attempt WHERE account_id=? AND started_ns>=? AND started_ns<? AND (started_ns<? OR started_ns>=?) ORDER BY started_ns,attempt_id`, accountID, from.UnixNano(), effectiveTo.UnixNano(), fullFrom.UnixNano(), fullTo.UnixNano())
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var encoded []byte
-		if err := rows.Scan(&encoded); err != nil {
-			_ = rows.Close()
-			return nil, err
-		}
-		record, err := decodeRecord(encoded)
+	if connectorRef != "" {
+		// Existing retained attempts are already account/time bounded. Reading
+		// their captured attribution avoids rewriting old aggregate identities.
+		rows, err := tx.QueryContext(ctx, `SELECT record FROM runtime_ai_usage_attempt WHERE account_id=? AND started_ns>=? AND started_ns<? ORDER BY started_ns,attempt_id`, accountID, from.UnixNano(), effectiveTo.UnixNano())
 		if err != nil {
-			_ = rows.Close()
 			return nil, err
 		}
-		value, key, err := recordAggregate(record)
-		if err != nil {
-			_ = rows.Close()
-			return nil, err
+		for rows.Next() {
+			var encoded []byte
+			if err := rows.Scan(&encoded); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			record, err := decodeRecord(encoded)
+			if err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			if record.Route != runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_CLOUD {
+				continue
+			}
+			if record.ConnectorRef == "" {
+				result.AttributionComplete = false
+				continue
+			}
+			if record.ConnectorRef != connectorRef {
+				continue
+			}
+			value, key, err := recordAggregate(record)
+			if err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			if err := accumulate(key, value); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
 		}
-		if err := accumulate(key, value); err != nil {
-			_ = rows.Close()
-			return nil, err
-		}
-	}
-	if err := rows.Err(); err != nil {
+		err = rows.Err()
 		_ = rows.Close()
-		return nil, err
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		if !result.AttributionComplete {
+			result.PartialReasons = append(result.PartialReasons, "connector_attribution_incomplete")
+		}
+	} else {
+		fullFrom := from.UTC().Truncate(time.Minute)
+		if fullFrom.Before(from) {
+			fullFrom = fullFrom.Add(time.Minute)
+		}
+		fullTo := effectiveTo.UTC().Truncate(time.Minute)
+		rows, err := tx.QueryContext(ctx, `SELECT group_key,record FROM runtime_ai_usage_minute WHERE account_id=? AND bucket_ns>=? AND bucket_ns<? ORDER BY bucket_ns,group_key`, accountID, fullFrom.UnixNano(), fullTo.UnixNano())
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var key string
+			var encoded []byte
+			if err := rows.Scan(&key, &encoded); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			var value aggregate
+			if err := json.Unmarshal(encoded, &value); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			if err := accumulate(key, value); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
+		// Only edge minutes need per-attempt timestamps. Calendar-midnight ranges
+		// remain exact even when the query's read boundary is inside a minute.
+		rows, err = tx.QueryContext(ctx, `SELECT record FROM runtime_ai_usage_attempt WHERE account_id=? AND started_ns>=? AND started_ns<? AND (started_ns<? OR started_ns>=?) ORDER BY started_ns,attempt_id`, accountID, from.UnixNano(), effectiveTo.UnixNano(), fullFrom.UnixNano(), fullTo.UnixNano())
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var encoded []byte
+			if err := rows.Scan(&encoded); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			record, err := decodeRecord(encoded)
+			if err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			value, key, err := recordAggregate(record)
+			if err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			if err := accumulate(key, value); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
 	}
 	total := aggregate{Totals: &runtimev1.DesktopAIUsageTotals{}}
 	keys := make([]string, 0, len(groups))

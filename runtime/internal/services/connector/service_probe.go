@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r025
 func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnectorRequest) (*runtimev1.TestConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
@@ -50,51 +52,55 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_INVALID},
 		}, nil
 	}
-	if IsChatGPTPlanRecord(rec) {
-		reason, hint := s.testChatGPTPlanConnector(ctx, rec)
-		s.emitAudit(ctx, "connector.test", reason, auditPayload)
-		if reason != runtimev1.ReasonCode_ACTION_EXECUTED {
-			return &runtimev1.TestConnectorResponse{Ack: &runtimev1.Ack{Ok: false, ReasonCode: reason, ActionHint: hint}}, nil
-		}
-		return &runtimev1.TestConnectorResponse{Ack: &runtimev1.Ack{Ok: true}}, nil
-	}
-
-	secretPayload, err := s.store.LoadSecretPayload(connectorID)
+	rec, secretPayload, found, err := s.store.captureCheck(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("test_connector.load_credential", err)
 	}
+	if !found || !connectorVisibleToCaller(rec, ownerID, hasOwner) {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	}
+	if rec.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
+	}
+	started := s.store.now().UnixNano()
+	finish := func(reason runtimev1.ReasonCode, hint string) (*runtimev1.TestConnectorResponse, error) {
+		check := ConnectionCheck{OK: reason == runtimev1.ReasonCode_ACTION_EXECUTED, Reason: reason, CheckedAt: s.store.now().UnixMilli(), StartedAt: started}
+		updated, accepted, err := s.store.saveConnectionCheck(rec, check)
+		if err != nil {
+			return nil, s.internalProviderError("test_connector.persist", err)
+		}
+		if !accepted {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+		}
+		s.emitAudit(ctx, "connector.test", reason, auditPayload)
+		return &runtimev1.TestConnectorResponse{Ack: &runtimev1.Ack{Ok: check.OK, ReasonCode: reason, ActionHint: hint}, Connector: recordToProto(updated)}, nil
+	}
+	probeCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+	if IsChatGPTPlanRecord(rec) {
+		reason, hint := s.testChatGPTPlanConnector(probeCtx, rec)
+		return finish(reason, hint)
+	}
 	resolvedCredential := ResolveCredential(rec, secretPayload)
 	if resolvedCredential.APIKey == "" {
-		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, auditPayload)
-		return &runtimev1.TestConnectorResponse{
-			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING},
-		}, nil
+		return finish(runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, "")
 	}
 
 	cloud := s.cloudProvider()
 	if cloud == nil {
-		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
-		return &runtimev1.TestConnectorResponse{
-			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
-		}, nil
+		return finish(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, "")
 	}
-	probeErr := cloud.ProbeConnector(ctx, rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
+	probeErr := cloud.ProbeConnector(probeCtx, rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
 	if probeErr != nil {
 		s.logger.Warn("connector test probe failed", "connector_id", connectorID, "error", probeErr)
 		reasonCode := runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 		if extracted, ok := grpcerr.ExtractReasonCode(probeErr); ok {
 			reasonCode = extracted
 		}
-		s.emitAudit(ctx, "connector.test", reasonCode, auditPayload)
-		return &runtimev1.TestConnectorResponse{
-			Ack: &runtimev1.Ack{Ok: false, ReasonCode: reasonCode},
-		}, nil
+		return finish(reasonCode, "")
 	}
 
-	s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
-	return &runtimev1.TestConnectorResponse{
-		Ack: &runtimev1.Ack{Ok: true},
-	}, nil
+	return finish(runtimev1.ReasonCode_ACTION_EXECUTED, "")
 }
 
 func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListConnectorModelsRequest) (*runtimev1.ListConnectorModelsResponse, error) {

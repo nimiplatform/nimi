@@ -14,7 +14,7 @@ units:
     kind: rule
     title: Home AI observation uses only the protected account facade
     modality: must
-    statement: The Desktop account-product audit facade exposes only typed current AI snapshot, replacement-snapshot subscription and half-open AI usage summary through the protected Desktop account purpose. It preserves Runtime-derived current account, source and time coverage, revision, route, provider and pricing uncertainty, accepts no account selector and has no generic Runtime audit, machine-profile, App-purpose, anonymous or direct-network fallback. SDK transport and projections do not calculate a second execution state or durable usage ledger.
+    statement: The Desktop account-product audit facade exposes only typed current AI snapshot, replacement-snapshot subscription, bounded Cloud attempt history and half-open AI usage summary with optional exact captured Connector filtering through the protected Desktop account purpose; its separate configurationReferences facade carries only the protected safe current-account AIConfig reference index and never widens complete owner configuration access. These facades preserve Runtime-derived current account, source, attribution and time coverage, revision, route, outcome and pricing uncertainty, accept no account selector and have no generic Runtime audit, machine-profile, App-purpose, anonymous or direct-network fallback. SDK transport and projections do not calculate a second execution state, reference truth or durable usage ledger.
     condition: Whenever the SDK carries Home AI observation.
     failure: Reject unsupported purpose or unavailable access with its typed owner error and never fabricate empty or complete data.
     relations:

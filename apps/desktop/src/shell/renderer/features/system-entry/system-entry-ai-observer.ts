@@ -3,7 +3,7 @@ import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { SystemEntryAIState } from './system-entry-ai-model.js';
 import { systemEntryDayRange, systemEntryTimestampIso } from './system-entry-time.js';
 
-type Audit = ReturnType<DesktopRendererSdkPort['accountProduct']>['audit'];
+type Audit = Pick<ReturnType<DesktopRendererSdkPort['accountProduct']>['audit'], 'getDesktopAIActivitySnapshot' | 'subscribeDesktopAIActivity' | 'getDesktopAIUsageSummary'>;
 export type SystemEntryAIObserver = {
   getSnapshot(): SystemEntryAIState;
   start(): void;

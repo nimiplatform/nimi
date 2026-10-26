@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"time"
 )
 
@@ -28,10 +29,13 @@ func (s *Store) recordTx(ctx context.Context, tx *sql.Tx, record Record, encoded
 		if record.Revision <= previous.Revision {
 			return errIgnoredRevision
 		}
-		if record.AccountID != previous.AccountID || !record.StartedAt.Equal(previous.StartedAt) || record.OperationID != previous.OperationID || record.Source != previous.Source || record.Price != previous.Price {
+		if record.AccountID != previous.AccountID || !record.StartedAt.Equal(previous.StartedAt) || record.OperationID != previous.OperationID || record.Source != previous.Source || record.Price != previous.Price || record.ConnectorRef != previous.ConnectorRef {
 			return fmt.Errorf("AI attempt immutable identity changed")
 		}
 		if !previous.TerminalAt.IsZero() && (record.TerminalAt.IsZero() || !record.TerminalAt.Equal(previous.TerminalAt)) {
+			return errIgnoredRevision
+		}
+		if previous.Outcome >= runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED && previous.Outcome <= runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED && (record.Outcome != previous.Outcome || record.ReasonCode != previous.ReasonCode) {
 			return errIgnoredRevision
 		}
 		if !previous.TerminalAt.IsZero() && now.After(previous.TerminalAt.Add(Retention)) {

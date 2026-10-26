@@ -50,6 +50,8 @@ type ConnectorRecord struct {
 	CreatedAt            int64                        `json:"created_at"`
 	UpdatedAt            int64                        `json:"updated_at"`
 	DeletePending        bool                         `json:"delete_pending,omitempty"`
+	CredentialRevision   string                       `json:"credential_revision,omitempty"`
+	LastCheck            *ConnectionCheck             `json:"last_check,omitempty"`
 	// OAuthRegistration is the non-secret projection of a managed OAuth
 	// registration; tokens stay only in sealed custody.
 	OAuthRegistration    *OAuthRegistration `json:"oauth_registration,omitempty"`
@@ -295,6 +297,10 @@ func (s *ConnectorStore) updateRecord(connectorID string, mutations ConnectorMut
 	}
 
 	rec := &records[idx]
+	checkChanged := mutations.SecretPayload != nil || mutations.SealedCredential != nil ||
+		(mutations.Endpoint != nil && *mutations.Endpoint != rec.Endpoint) ||
+		(mutations.AuthKind != nil && normalizeAuthKind(*mutations.AuthKind) != rec.AuthKind) ||
+		(mutations.ProviderAuthProfile != nil && strings.TrimSpace(*mutations.ProviderAuthProfile) != rec.ProviderAuthProfile)
 
 	if mutations.Label != nil {
 		rec.Label = *mutations.Label
@@ -339,6 +345,10 @@ func (s *ConnectorStore) updateRecord(connectorID string, mutations ConnectorMut
 		rec.OAuthRegistration = registration
 	}
 
+	if checkChanged {
+		rec.CredentialRevision = ulid.Make().String()
+		rec.LastCheck = nil
+	}
 	rec.UpdatedAt = time.Now().UnixMilli()
 
 	if err := s.persistRegistryLocked(records); err != nil {

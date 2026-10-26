@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Timestamp } from "../../google/protobuf/timestamp";
 import { LocalRecommendationApplicability } from "./local_runtime_recommendation";
 import { ModelAssetMarketCandidate } from "./local_runtime_recommendation";
 import { ReasonCode } from "./common";
@@ -1723,6 +1724,67 @@ export interface GetAppAIConfigRequest {
      * @generated from protobuf field: nimi.runtime.v1.AIConfigOwner owner = 1
      */
     owner?: AIConfigOwner;
+}
+/**
+ * Protected Home read-only index. Visibility here grants no Get/Overwrite access.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ListDesktopConnectorReferencesRequest
+ */
+export interface ListDesktopConnectorReferencesRequest {
+    /**
+     * @generated from protobuf field: string connector_ref = 1
+     */
+    connectorRef: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 2
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 3
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DesktopConnectorReference
+ */
+export interface DesktopConnectorReference {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigOwner owner = 1
+     */
+    owner?: AIConfigOwner;
+    /**
+     * @generated from protobuf field: string capability_contract = 2
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: string implementation_id = 3
+     */
+    implementationId: string;
+    /**
+     * @generated from protobuf field: string config_revision = 4
+     */
+    configRevision: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListDesktopConnectorReferencesResponse
+ */
+export interface ListDesktopConnectorReferencesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.DesktopConnectorReference references = 1
+     */
+    references: DesktopConnectorReference[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+    /**
+     * @generated from protobuf field: string snapshot_revision = 3
+     */
+    snapshotRevision: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 4
+     */
+    observedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetAppAIConfigResponse
@@ -7059,6 +7121,209 @@ class GetAppAIConfigRequest$Type extends MessageType<GetAppAIConfigRequest> {
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAppAIConfigRequest
  */
 export const GetAppAIConfigRequest = new GetAppAIConfigRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDesktopConnectorReferencesRequest$Type extends MessageType<ListDesktopConnectorReferencesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListDesktopConnectorReferencesRequest", [
+            { no: 1, name: "connector_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListDesktopConnectorReferencesRequest>): ListDesktopConnectorReferencesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorRef = "";
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListDesktopConnectorReferencesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDesktopConnectorReferencesRequest): ListDesktopConnectorReferencesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string connector_ref */ 1:
+                    message.connectorRef = reader.string();
+                    break;
+                case /* int32 page_size */ 2:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 3:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDesktopConnectorReferencesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string connector_ref = 1; */
+        if (message.connectorRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.connectorRef);
+        /* int32 page_size = 2; */
+        if (message.pageSize !== 0)
+            writer.tag(2, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 3; */
+        if (message.pageToken !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListDesktopConnectorReferencesRequest
+ */
+export const ListDesktopConnectorReferencesRequest = new ListDesktopConnectorReferencesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DesktopConnectorReference$Type extends MessageType<DesktopConnectorReference> {
+    constructor() {
+        super("nimi.runtime.v1.DesktopConnectorReference", [
+            { no: 1, name: "owner", kind: "message", T: () => AIConfigOwner },
+            { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "implementation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "config_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DesktopConnectorReference>): DesktopConnectorReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.implementationId = "";
+        message.configRevision = "";
+        if (value !== undefined)
+            reflectionMergePartial<DesktopConnectorReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DesktopConnectorReference): DesktopConnectorReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfigOwner owner */ 1:
+                    message.owner = AIConfigOwner.internalBinaryRead(reader, reader.uint32(), options, message.owner);
+                    break;
+                case /* string capability_contract */ 2:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* string implementation_id */ 3:
+                    message.implementationId = reader.string();
+                    break;
+                case /* string config_revision */ 4:
+                    message.configRevision = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DesktopConnectorReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfigOwner owner = 1; */
+        if (message.owner)
+            AIConfigOwner.internalBinaryWrite(message.owner, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string capability_contract = 2; */
+        if (message.capabilityContract !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilityContract);
+        /* string implementation_id = 3; */
+        if (message.implementationId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.implementationId);
+        /* string config_revision = 4; */
+        if (message.configRevision !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.configRevision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DesktopConnectorReference
+ */
+export const DesktopConnectorReference = new DesktopConnectorReference$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDesktopConnectorReferencesResponse$Type extends MessageType<ListDesktopConnectorReferencesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListDesktopConnectorReferencesResponse", [
+            { no: 1, name: "references", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DesktopConnectorReference },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "snapshot_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "observed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<ListDesktopConnectorReferencesResponse>): ListDesktopConnectorReferencesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.references = [];
+        message.nextPageToken = "";
+        message.snapshotRevision = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListDesktopConnectorReferencesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDesktopConnectorReferencesResponse): ListDesktopConnectorReferencesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.DesktopConnectorReference references */ 1:
+                    message.references.push(DesktopConnectorReference.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                case /* string snapshot_revision */ 3:
+                    message.snapshotRevision = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 4:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDesktopConnectorReferencesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.DesktopConnectorReference references = 1; */
+        for (let i = 0; i < message.references.length; i++)
+            DesktopConnectorReference.internalBinaryWrite(message.references[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        /* string snapshot_revision = 3; */
+        if (message.snapshotRevision !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.snapshotRevision);
+        /* google.protobuf.Timestamp observed_at = 4; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListDesktopConnectorReferencesResponse
+ */
+export const ListDesktopConnectorReferencesResponse = new ListDesktopConnectorReferencesResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetAppAIConfigResponse$Type extends MessageType<GetAppAIConfigResponse> {
     constructor() {

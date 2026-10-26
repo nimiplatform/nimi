@@ -1576,6 +1576,22 @@ impl Default for DelegatedTransportKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DesktopAICloudAttemptOutcome {
+    DESKTOPAICLOUDATTEMPTOUTCOMEUNSPECIFIED,
+    DESKTOPAICLOUDATTEMPTOUTCOMERUNNING,
+    DESKTOPAICLOUDATTEMPTOUTCOMESUCCEEDED,
+    DESKTOPAICLOUDATTEMPTOUTCOMEFAILED,
+    DESKTOPAICLOUDATTEMPTOUTCOMECANCELLED,
+    DESKTOPAICLOUDATTEMPTOUTCOMEUNKNOWN,
+}
+
+impl Default for DesktopAICloudAttemptOutcome {
+    fn default() -> Self {
+        Self::DESKTOPAICLOUDATTEMPTOUTCOMEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DesktopAIExecutionRoute {
     DESKTOPAIEXECUTIONROUTEUNSPECIFIED,
     DESKTOPAIEXECUTIONROUTELOCAL,
@@ -7222,6 +7238,14 @@ pub struct Connector {
     pub auth_kind: Option<ConnectorAuthKind>,
     pub provider_auth_profile: Option<String>,
     pub oauth_registration: Option<Box<ConnectorOAuthRegistration>>,
+    pub last_check: Option<Box<ConnectorCheck>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorCheck {
+    pub ok: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
+    pub checked_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7619,6 +7643,26 @@ pub struct DesktopAIActivitySnapshot {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAICloudAttempt {
+    pub attempt_id: Option<String>,
+    pub connector_ref: Option<String>,
+    pub source_kind: Option<String>,
+    pub source_id: Option<String>,
+    pub source_label: Option<String>,
+    pub parent_work_id: Option<String>,
+    pub parent_work_kind: Option<String>,
+    pub capability: Option<String>,
+    pub models: Vec<Box<DesktopAIExecutionModel>>,
+    pub started_at: Option<String>,
+    pub observed_at: Option<String>,
+    pub finished_at: Option<String>,
+    pub outcome: Option<DesktopAICloudAttemptOutcome>,
+    pub reason_code: Option<ReasonCode>,
+    pub usage_measured: Option<bool>,
+    pub usage: Option<Box<UsageStats>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DesktopAICostEstimate {
     pub currency: Option<String>,
     pub estimated_amount: Option<String>,
@@ -7684,6 +7728,7 @@ pub struct DesktopAIUsageSummary {
     pub coverage_from: Option<String>,
     pub coverage_to: Option<String>,
     pub partial_reasons: Vec<String>,
+    pub attribution_complete: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7711,6 +7756,14 @@ pub struct DesktopAuditEventProjection {
     pub trace_id: Option<String>,
     pub timestamp: Option<String>,
     pub caller_kind: Option<CallerKind>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopConnectorReference {
+    pub owner: Option<Box<AIConfigOwner>>,
+    pub capability_contract: Option<String>,
+    pub implementation_id: Option<String>,
+    pub config_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8369,6 +8422,7 @@ pub struct GetDesktopAIActivitySnapshotResponse {
 pub struct GetDesktopAIUsageSummaryRequest {
     pub from_time: Option<String>,
     pub to_time: Option<String>,
+    pub connector_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9723,6 +9777,25 @@ pub struct ListDelegatedProviderProfilesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListDesktopAICloudHistoryRequest {
+    pub connector_ref: Option<String>,
+    pub from_time: Option<String>,
+    pub to_time: Option<String>,
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListDesktopAICloudHistoryResponse {
+    pub attempts: Vec<Box<DesktopAICloudAttempt>>,
+    pub next_page_token: Option<String>,
+    pub read_at: Option<String>,
+    pub attribution_complete: Option<bool>,
+    pub records_complete: Option<bool>,
+    pub partial_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListDesktopAuditEventsRequest {
     pub trace_id: Option<String>,
     pub request_id: Option<String>,
@@ -9741,6 +9814,21 @@ pub struct ListDesktopAuditEventsRequest {
 pub struct ListDesktopAuditEventsResponse {
     pub events: Vec<Box<DesktopAuditEventProjection>>,
     pub next_page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListDesktopConnectorReferencesRequest {
+    pub connector_ref: Option<String>,
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListDesktopConnectorReferencesResponse {
+    pub references: Vec<Box<DesktopConnectorReference>>,
+    pub next_page_token: Option<String>,
+    pub snapshot_revision: Option<String>,
+    pub observed_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15018,6 +15106,7 @@ pub struct TestConnectorRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TestConnectorResponse {
     pub ack: Option<Box<Ack>>,
+    pub connector: Option<Box<Connector>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

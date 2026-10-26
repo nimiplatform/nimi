@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.ai-provider.connector-plane
     kind: definition
     title: Runtime connector plane
-    meaning: The Runtime connector plane is credential custody and account-ownership support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose user-explicit bounded Test Connector diagnostic never establishes route, target, binding, readiness, or execution truth; Cloud execution validates only the exact Connector reference committed by the canonical AIConfig owner and captures it through ownership, App Capability access, credential validity, and existing policy either as durable immutable Job effective input at Job admission or as bounded session-generation-scoped ephemeral input before successful realtime.interact Open.
+    meaning: The Runtime connector plane is credential custody and account-ownership support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose bounded connection diagnostic retains only the last observed result, never route, target, binding, readiness, or execution truth; Cloud execution validates only the exact Connector reference committed by the canonical AIConfig owner and captures it through ownership, App Capability access, credential validity, and existing policy either as durable immutable Job effective input at Job admission or as bounded session-generation-scoped ephemeral input before successful realtime.interact Open.
   - id: definition.nimi.runtime.ai-provider.model-service-plane
     kind: definition
     title: Runtime ModelAsset service plane
@@ -289,11 +289,11 @@ units:
         target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r025
     kind: rule
-    title: Test Connector is explicit bounded diagnosis only
+    title: Connector checks retain bounded historical diagnostics
     modality: must
-    statement: Test Connector runs only after an explicit user action, passes owner, custody status, and credential preconditions before its bounded outbound call, and diagnoses connectivity and credential validity without model or voice discovery, catalog warmup, periodic polling, readiness state, AIConfig mutation, route choice, binding, derived admission, or execution prerequisite semantics.
-    condition: Whenever TestConnector probes a remote connector.
-    failure: Reject probes that skip preconditions or exceed the bounded probe purpose.
+    statement: Test Connector passes owner, custody status, and credential preconditions before its bounded outbound call and diagnoses connectivity and credential validity without model or voice discovery, catalog warmup, periodic polling, readiness state, AIConfig mutation, route choice, binding, derived admission, or execution prerequisite semantics. Runtime persists the last result, safe reason code and observation time for the exact current credential and connection configuration; credential or connection configuration replacement clears that result while a label-only edit preserves it, and an older in-flight result cannot overwrite a replacement or newer observation. Home automatically checks a saved connection lacking a result once, including after creation or credential replacement, retains results across refresh and restart without expiry-driven rechecks, and keeps explicit rechecking as a secondary action. A definitive credential rejection from actual execution updates the matching connection diagnostic without changing the execution outcome or misclassifying transport, quota, rate-limit or model-access failures as invalid credentials. Home presents successful and failed observations as concise green and red labels with text, while unknown and checking states stay neutral; hover and keyboard focus disclose the last observation time and safe reason, never claiming permanent availability.
+    condition: Whenever Runtime records or Home presents a remote connector diagnostic.
+    failure: Reject unauthorized or unbounded probes, discard stale observations, and preserve an honest unknown state on unavailable persistence instead of inventing a successful check or changing execution admission.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.connector-plane

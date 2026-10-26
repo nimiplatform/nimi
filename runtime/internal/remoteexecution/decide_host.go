@@ -62,7 +62,8 @@ func (h *ProviderDecideHost) ExecuteDecide(
 	target capabilitydriver.CloudDecideTarget,
 	request *capabilitydriver.CloudDecideMappedRequest,
 	audit DecideDispatchAudit,
-) (capabilitydriver.CloudDecideTransportResponse, error) {
+) (response capabilitydriver.CloudDecideTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDecideDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED); err != nil {
 		return capabilitydriver.CloudDecideTransportResponse{}, err
 	}
@@ -75,7 +76,8 @@ func (h *ProviderDecideHost) ExecuteDecide(
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
-	aitelemetry.Begin(ctx)
+	attempt := aitelemetry.Begin(ctx)
+	defer func() { finishCloudAttempt(attempt, nil, executionErr) }()
 	body, err := h.transport.DecideWithTarget(ctx, request.ProviderModelID(), request.Body(), remoteTarget)
 	if err != nil {
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, dispatchExit(ctx, "error"), err)

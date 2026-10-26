@@ -73,6 +73,7 @@ func (h *ProviderTextHost) ExecuteText(
 	request *capabilitydriver.CloudTextMappedRequest,
 	audit TextDispatchAudit,
 ) (response capabilitydriver.CloudTextTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
@@ -88,12 +89,12 @@ func (h *ProviderTextHost) ExecuteText(
 	}
 	spec := request.Spec()
 	var attempt *aitelemetry.Attempt
-	defer func() { attempt.Finish(response.Usage) }()
+	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
 		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() { attempt = aitelemetry.Begin(ctx) })
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, nil)
 		if err != nil {
-			return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 		}
 		if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 			return capabilitydriver.CloudTextTransportResponse{}, err
@@ -128,6 +129,7 @@ func (h *ProviderTextHost) StreamText(
 	onDelta func(textbehavior.OrderedDelta) error,
 	audit TextDispatchAudit,
 ) (response capabilitydriver.CloudTextTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
@@ -141,7 +143,7 @@ func (h *ProviderTextHost) StreamText(
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	var attempt *aitelemetry.Attempt
-	defer func() { attempt.Finish(response.Usage) }()
+	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
 		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() { attempt = aitelemetry.Begin(ctx) })
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)

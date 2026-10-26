@@ -282,6 +282,9 @@ func (s *Store) observeRecordLocked(record Record, liveStart bool) {
 }
 
 func sameAttemptIdentity(left, right Record) bool {
+	if left.ConnectorRef != right.ConnectorRef {
+		return false
+	}
 	if left.AccountID != right.AccountID || left.OperationID != right.OperationID || left.Source != right.Source || left.Price != right.Price || left.Capability != right.Capability || left.Route != right.Route || !left.StartedAt.Equal(right.StartedAt) || len(left.Models) != len(right.Models) {
 		return false
 	}
@@ -309,6 +312,16 @@ func (s *Store) changedLocked() {
 // FinishOperation settles only outstanding dispatches of this exact owner
 // operation. An aggregate Job usage cannot be assigned to several attempts.
 func (s *Store) FinishOperation(operationID string, usage *runtimev1.UsageStats) {
+	s.finishOperation(operationID, usage, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED)
+}
+
+// ObserveOperationOutcome is used only for a directly observed remote task
+// terminal. It assigns that observation only when the operation has one attempt.
+func (s *Store) ObserveOperationOutcome(operationID string, usage *runtimev1.UsageStats, outcome runtimev1.DesktopAICloudAttemptOutcome, reason runtimev1.ReasonCode) {
+	s.finishOperation(operationID, usage, outcome, reason)
+}
+
+func (s *Store) finishOperation(operationID string, usage *runtimev1.UsageStats, outcome runtimev1.DesktopAICloudAttemptOutcome, reason runtimev1.ReasonCode) {
 	if s == nil || operationID == "" {
 		return
 	}
@@ -326,7 +339,7 @@ func (s *Store) FinishOperation(operationID string, usage *runtimev1.UsageStats)
 			s.observeRecordLocked(record, false)
 		}
 	}
-	_ = s.enqueueLocked(accountingWrite{at: at, operationID: operationID, usage: cloneUsage(usage)})
+	_ = s.enqueueLocked(accountingWrite{at: at, operationID: operationID, usage: cloneUsage(usage), outcome: outcome, reasonCode: reason})
 }
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-execution

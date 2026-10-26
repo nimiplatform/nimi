@@ -2,6 +2,8 @@ package audit
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
@@ -93,7 +95,15 @@ func (s *Service) GetDesktopAIUsageSummary(ctx context.Context, req *runtimev1.G
 	if !from.Before(to) || to.Sub(from) > aitelemetry.Retention {
 		return nil, status.Error(codes.InvalidArgument, "AI usage interval must be ordered and at most seven days")
 	}
-	summary, err := s.aiObservation.Summary(ctx, accountID, from, to)
+	if len(req.GetConnectorRef()) > 512 || strings.TrimSpace(req.GetConnectorRef()) != req.GetConnectorRef() {
+		return nil, status.Error(codes.InvalidArgument, "invalid connection filter")
+	}
+	var summary *runtimev1.DesktopAIUsageSummary
+	if req.GetConnectorRef() == "" {
+		summary, err = s.aiObservation.Summary(ctx, accountID, from, to)
+	} else {
+		summary, err = s.aiObservation.ConnectorSummary(ctx, accountID, req.GetConnectorRef(), from, to)
+	}
 	if err != nil {
 		return nil, status.Error(codes.Unavailable, "AI accounting is unavailable")
 	}
@@ -101,4 +111,30 @@ func (s *Service) GetDesktopAIUsageSummary(ctx context.Context, req *runtimev1.G
 		return nil, err
 	}
 	return &runtimev1.GetDesktopAIUsageSummaryResponse{Summary: summary}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.home-cloud-connection-observation
+func (s *Service) ListDesktopAICloudHistory(ctx context.Context, req *runtimev1.ListDesktopAICloudHistoryRequest) (*runtimev1.ListDesktopAICloudHistoryResponse, error) {
+	accountID, err := s.desktopAIAccount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.GetFromTime() == nil || req.GetToTime() == nil || req.GetFromTime().CheckValid() != nil || req.GetToTime().CheckValid() != nil || req.GetPageSize() < 0 || req.GetPageSize() > 100 || len(req.GetConnectorRef()) > 512 || strings.TrimSpace(req.GetConnectorRef()) != req.GetConnectorRef() {
+		return nil, status.Error(codes.InvalidArgument, "invalid bounded cloud history query")
+	}
+	from, to := req.GetFromTime().AsTime(), req.GetToTime().AsTime()
+	if !from.Before(to) || to.Sub(from) > aitelemetry.Retention {
+		return nil, status.Error(codes.InvalidArgument, "cloud history requires at most seven days")
+	}
+	result, err := s.aiObservation.CloudHistory(ctx, accountID, req.GetConnectorRef(), from, to, int(req.GetPageSize()), req.GetPageToken())
+	if errors.Is(err, aitelemetry.ErrCloudHistoryCursor) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+	}
+	if err != nil {
+		return nil, status.Error(codes.Unavailable, "cloud history unavailable")
+	}
+	if _, err := s.desktopAIAccount(ctx); err != nil {
+		return nil, err
+	}
+	return result, nil
 }

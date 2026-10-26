@@ -65,7 +65,8 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 	target capabilitydriver.CloudEmbedTarget,
 	request *capabilitydriver.CloudEmbedMappedRequest,
 	audit EmbedDispatchAudit,
-) (capabilitydriver.CloudEmbedTransportResponse, error) {
+) (response capabilitydriver.CloudEmbedTransportResponse, executionErr error) {
+	defer observeConnectionFailure(h.connectors, h.audit, connectorRecord)(&executionErr)
 	if err := h.recordEmbedDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED); err != nil {
 		return capabilitydriver.CloudEmbedTransportResponse{}, err
 	}
@@ -90,7 +91,7 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 		batch := inputs[offset:min(offset+batchSize, len(inputs))]
 		attempt := aitelemetry.Begin(ctx)
 		values, reportedUsage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), batch, request.Dimensions(), request.Protocol(), remoteTarget)
-		attempt.Finish(reportedUsage)
+		finishCloudAttempt(attempt, reportedUsage, err)
 		if err != nil {
 			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
 		}

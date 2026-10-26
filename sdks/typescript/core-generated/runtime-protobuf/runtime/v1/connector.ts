@@ -15,6 +15,7 @@ import { Struct } from "../../google/protobuf/struct";
 import { Ack } from "./common";
 import { FieldMask } from "../../google/protobuf/field_mask";
 import { ErrorInfo } from "./common";
+import { ReasonCode } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
  * @generated from protobuf message nimi.runtime.v1.Connector
@@ -79,6 +80,29 @@ export interface Connector {
      * @generated from protobuf field: nimi.runtime.v1.ConnectorOAuthRegistration oauth_registration = 15
      */
     oauthRegistration?: ConnectorOAuthRegistration;
+    /**
+     * Historical diagnostic for this credential/configuration, never admission.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorCheck last_check = 16
+     */
+    lastCheck?: ConnectorCheck;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorCheck
+ */
+export interface ConnectorCheck {
+    /**
+     * @generated from protobuf field: bool ok = 1
+     */
+    ok: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp checked_at = 3
+     */
+    checkedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ConnectorOAuthRegistration
@@ -288,6 +312,10 @@ export interface TestConnectorResponse {
      * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
      */
     ack?: Ack;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Connector connector = 2
+     */
+    connector?: Connector;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ConnectorModelDescriptor
@@ -1202,7 +1230,8 @@ class Connector$Type extends MessageType<Connector> {
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "auth_kind", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
             { no: 14, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "oauth_registration", kind: "message", T: () => ConnectorOAuthRegistration }
+            { no: 15, name: "oauth_registration", kind: "message", T: () => ConnectorOAuthRegistration },
+            { no: 16, name: "last_check", kind: "message", T: () => ConnectorCheck }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1269,6 +1298,9 @@ class Connector$Type extends MessageType<Connector> {
                 case /* nimi.runtime.v1.ConnectorOAuthRegistration oauth_registration */ 15:
                     message.oauthRegistration = ConnectorOAuthRegistration.internalBinaryRead(reader, reader.uint32(), options, message.oauthRegistration);
                     break;
+                case /* nimi.runtime.v1.ConnectorCheck last_check */ 16:
+                    message.lastCheck = ConnectorCheck.internalBinaryRead(reader, reader.uint32(), options, message.lastCheck);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1323,6 +1355,9 @@ class Connector$Type extends MessageType<Connector> {
         /* nimi.runtime.v1.ConnectorOAuthRegistration oauth_registration = 15; */
         if (message.oauthRegistration)
             ConnectorOAuthRegistration.internalBinaryWrite(message.oauthRegistration, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorCheck last_check = 16; */
+        if (message.lastCheck)
+            ConnectorCheck.internalBinaryWrite(message.lastCheck, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1333,6 +1368,68 @@ class Connector$Type extends MessageType<Connector> {
  * @generated MessageType for protobuf message nimi.runtime.v1.Connector
  */
 export const Connector = new Connector$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorCheck$Type extends MessageType<ConnectorCheck> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorCheck", [
+            { no: 1, name: "ok", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 3, name: "checked_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorCheck>): ConnectorCheck {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.ok = false;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorCheck>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorCheck): ConnectorCheck {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool ok */ 1:
+                    message.ok = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp checked_at */ 3:
+                    message.checkedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.checkedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorCheck, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool ok = 1; */
+        if (message.ok !== false)
+            writer.tag(1, WireType.Varint).bool(message.ok);
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        /* google.protobuf.Timestamp checked_at = 3; */
+        if (message.checkedAt)
+            Timestamp.internalBinaryWrite(message.checkedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorCheck
+ */
+export const ConnectorCheck = new ConnectorCheck$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ConnectorOAuthRegistration$Type extends MessageType<ConnectorOAuthRegistration> {
     constructor() {
@@ -2071,7 +2168,8 @@ export const TestConnectorRequest = new TestConnectorRequest$Type();
 class TestConnectorResponse$Type extends MessageType<TestConnectorResponse> {
     constructor() {
         super("nimi.runtime.v1.TestConnectorResponse", [
-            { no: 1, name: "ack", kind: "message", T: () => Ack }
+            { no: 1, name: "ack", kind: "message", T: () => Ack },
+            { no: 2, name: "connector", kind: "message", T: () => Connector }
         ]);
     }
     create(value?: PartialMessage<TestConnectorResponse>): TestConnectorResponse {
@@ -2088,6 +2186,9 @@ class TestConnectorResponse$Type extends MessageType<TestConnectorResponse> {
                 case /* nimi.runtime.v1.Ack ack */ 1:
                     message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
                     break;
+                case /* nimi.runtime.v1.Connector connector */ 2:
+                    message.connector = Connector.internalBinaryRead(reader, reader.uint32(), options, message.connector);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2103,6 +2204,9 @@ class TestConnectorResponse$Type extends MessageType<TestConnectorResponse> {
         /* nimi.runtime.v1.Ack ack = 1; */
         if (message.ack)
             Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.Connector connector = 2; */
+        if (message.connector)
+            Connector.internalBinaryWrite(message.connector, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

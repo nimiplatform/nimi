@@ -127,7 +127,10 @@ export type NimiDesktopAccountProductRuntimeClient = {
   readonly audit: Pick<DesktopAccountProductRuntimeMethods,
     | 'getDesktopAIActivitySnapshot'
     | 'subscribeDesktopAIActivity'
-    | 'getDesktopAIUsageSummary'>;
+    | 'listDesktopAICloudHistory'> & {
+      readonly getDesktopAIUsageSummary: (request: Omit<Parameters<DesktopAccountProductRuntimeMethods['getDesktopAIUsageSummary']>[0], 'connectorRef'> & { readonly connectorRef?: string }, options?: RuntimeTypedCallOptions) => ReturnType<DesktopAccountProductRuntimeMethods['getDesktopAIUsageSummary']>;
+    };
+  readonly configurationReferences: Pick<DesktopAccountProductRuntimeMethods, 'listDesktopConnectorReferences'>;
   readonly appAIConfig: (appId: string) => NimiAppAIConfigClient;
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
@@ -300,6 +303,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getDesktopAIUsageSummary: (request, options) => protectedGenerated.getDesktopAIUsageSummary(
       validateHomeAIUsageRequest(request), options,
     ),
+    listDesktopAICloudHistory: (request, options) => protectedGenerated.listDesktopAICloudHistory(validateCloudHistoryRequest(request), options),
   });
   const boundProtectedAgents = bindProtectedRuntimeModule(protectedGenerated, RUNTIME_AGENT_METHODS);
   const protectedAgents = Object.freeze({
@@ -540,6 +544,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     }),
     accountProduct: Object.freeze({
       audit: accountAudit,
+      configurationReferences: Object.freeze({
+        listDesktopConnectorReferences: (request: Parameters<DesktopAccountProductRuntimeMethods['listDesktopConnectorReferences']>[0], options?: RuntimeTypedCallOptions) => protectedGenerated.listDesktopConnectorReferences(validateConnectorReferencesRequest(request), options),
+      }),
       appAIConfig,
       profiles,
       agents: accountAgents,
@@ -609,8 +616,8 @@ function homeAITimestamp(value: unknown): { seconds: string; nanos: number } {
   return { seconds: timestamp.seconds, nanos: timestamp.nanos as number };
 }
 
-function validateHomeAIUsageRequest(request: Parameters<DesktopAccountProductRuntimeMethods['getDesktopAIUsageSummary']>[0]) {
-  const value = exactHomeAIRequest(request, ['fromTime', 'toTime'], 'Home AI usage request');
+function validateHomeAIUsageRequest(request: Parameters<NimiDesktopAccountProductRuntimeClient['audit']['getDesktopAIUsageSummary']>[0]) {
+  const value = exactHomeAIRequest(request, ['fromTime', 'toTime', 'connectorRef'], 'Home AI usage request');
   const fromTime = homeAITimestamp(value.fromTime);
   const toTime = homeAITimestamp(value.toTime);
   const fromNanos = BigInt(fromTime.seconds) * 1_000_000_000n + BigInt(fromTime.nanos);
@@ -618,7 +625,30 @@ function validateHomeAIUsageRequest(request: Parameters<DesktopAccountProductRun
   if (fromNanos >= toNanos || toNanos - fromNanos > 7n * 24n * 60n * 60n * 1_000_000_000n) {
     return invalidHomeAIRequest('Home AI usage requires a non-empty half-open interval no longer than seven days.');
   }
-  return { fromTime, toTime };
+  return { fromTime, toTime, connectorRef: homeConnectionRef(value.connectorRef ?? '') };
+}
+
+function homeConnectionRef(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 512 || value.trim() !== value) return invalidHomeAIRequest('Invalid connection reference.');
+  return value;
+}
+
+function boundedHomePage(value: Record<string, unknown>, maximum: number) {
+  if (!Number.isInteger(value.pageSize) || Number(value.pageSize) < 0 || Number(value.pageSize) > maximum || typeof value.pageToken !== 'string' || value.pageToken.length > 2048) return invalidHomeAIRequest('Invalid bounded page request.');
+  return { pageSize: value.pageSize as number, pageToken: value.pageToken };
+}
+
+function validateConnectorReferencesRequest(request: Parameters<DesktopAccountProductRuntimeMethods['listDesktopConnectorReferences']>[0]) {
+  const value = exactHomeAIRequest(request, ['connectorRef', 'pageSize', 'pageToken'], 'Home connection reference request');
+  const connectorRef = homeConnectionRef(value.connectorRef);
+  if (!connectorRef) return invalidHomeAIRequest('Connection reference is required.');
+  return { connectorRef, ...boundedHomePage(value, 200) };
+}
+
+function validateCloudHistoryRequest(request: Parameters<DesktopAccountProductRuntimeMethods['listDesktopAICloudHistory']>[0]) {
+  const value = exactHomeAIRequest(request, ['fromTime', 'toTime', 'connectorRef', 'pageSize', 'pageToken'], 'Home cloud history request');
+  const window = validateHomeAIUsageRequest({ fromTime: homeAITimestamp(value.fromTime), toTime: homeAITimestamp(value.toTime), connectorRef: homeConnectionRef(value.connectorRef) });
+  return { ...window, ...boundedHomePage(value, 100) };
 }
 
 function invalidHomeAIRequest(message: string): never {

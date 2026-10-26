@@ -53,6 +53,14 @@ message Connector {
   // Non-secret identity of a managed OAuth registration, used only to show the
   // account and to start explicit reauthorization. Tokens stay in custody.
   ConnectorOAuthRegistration oauth_registration = 15;
+  // Historical diagnostic for this credential/configuration, never admission.
+  ConnectorCheck last_check = 16;
+}
+
+message ConnectorCheck {
+  bool ok = 1;
+  ReasonCode reason_code = 2;
+  google.protobuf.Timestamp checked_at = 3;
 }
 
 message ConnectorOAuthRegistration {
@@ -140,6 +148,7 @@ message TestConnectorRequest {
 
 message TestConnectorResponse {
   Ack ack = 1;
+  Connector connector = 2;
 }
 
 message ConnectorModelDescriptor {

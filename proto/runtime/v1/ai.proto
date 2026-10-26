@@ -2062,6 +2062,7 @@ message UploadArtifactResponse {
 // CheckTokenProviderHealthResponse (fields 1-2).
 
 service RuntimeAiService {
+  rpc ListDesktopConnectorReferences(ListDesktopConnectorReferencesRequest) returns (ListDesktopConnectorReferencesResponse);
   rpc GetAppAIConfig(GetAppAIConfigRequest) returns (GetAppAIConfigResponse);
   rpc OverwriteAppAIConfig(OverwriteAppAIConfigRequest) returns (OverwriteAppAIConfigResponse);
   rpc ListAppAIConfigOptions(ListAppAIConfigOptionsRequest) returns (ListAppAIConfigOptionsResponse);

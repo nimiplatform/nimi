@@ -42,6 +42,83 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
   },
 ];
 
+test('catalog reads preserve unavailable models and never perform a connection check', async () => {
+  const requested: string[] = [];
+  const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listConnectorModels(request) {
+      requested.push(request.pageToken);
+      assert.equal(request.forceRefresh, false, 'cache bypass does not request provider discovery');
+      return { models: [{ modelLabel: 'Same name', provider: 'test-provider', providerModelId: request.pageToken ? 'model-b' : 'model-a',
+        remoteModelCatalogId: request.pageToken ? 'catalog-b' : 'catalog-a', available: !request.pageToken, capabilities: ['text.generate'] }],
+        nextPageToken: request.pageToken ? '' : 'next' };
+    },
+    async testConnector() { assert.fail('catalog browsing must not test connectivity'); },
+  } as NimiRuntimeConnectorClient });
+  const rows = await inventory.listConnectorCatalog('connection', true);
+  assert.deepEqual(rows.map(row => [row.remoteModelCatalogId, row.available]), [['catalog-a', true], ['catalog-b', false]]);
+  assert.deepEqual(requested, ['', 'next']);
+  assert.deepEqual((await inventory.listConnectorModelDescriptors('connection')).map(row => row.providerModelId), ['model-a']);
+  assert.equal(requested.length, 2, 'descriptor projection reuses the same snapshot');
+});
+
+test('connector lists consume every page and retain disabled management state', async () => {
+  const pages: string[] = [];
+  const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listProviderCatalog() { return { providers: [] }; },
+    async listConnectors(request) {
+      pages.push(request.pageToken);
+      return { connectors: [{ connectorId: request.pageToken ? 'last' : 'first', provider: 'test', endpoint: '', label: 'Same',
+        hasCredential: true, ownerType: ConnectorOwnerType.REALM_USER, kind: ConnectorKind.REMOTE_MANAGED,
+        status: request.pageToken ? ConnectorStatus.DISABLED : ConnectorStatus.ACTIVE,
+        updatedAt: { seconds: '100', nanos: 2 }, lastCheck: { ok: true, reasonCode: 0, checkedAt: { seconds: '90', nanos: 0 } } }],
+        nextPageToken: request.pageToken ? '' : 'next' };
+    },
+  } as NimiRuntimeConnectorClient });
+  const rows = await inventory.listConnectors();
+  assert.deepEqual(pages, ['', 'next']);
+  assert.deepEqual(rows.map(row => row.managementStatus), ['active', 'disabled']);
+  assert.equal(rows[1]!.lastCheck?.ok, true, 'management and diagnostic facts remain separate');
+  assert.equal(rows[1]!.configurationVersion, '100:2');
+});
+
+test('incomplete or cyclic model pagination is rejected instead of cached as complete', async () => {
+  for (const maxModelPages of [1, 4]) {
+    let calls = 0;
+    const inventory = createNimiRuntimeConnectorInventoryClient({ maxModelPages, connectors: {
+      async listConnectorModels() { calls++; return { models: [], nextPageToken: 'repeated' }; },
+    } as NimiRuntimeConnectorClient });
+    await assert.rejects(inventory.listConnectorCatalog('connection'), /did not complete pagination/);
+    const previousCalls = calls;
+    await assert.rejects(inventory.listConnectorCatalog('connection'), /did not complete pagination/);
+    assert.ok(calls > previousCalls, 'failed reads are not cached as empty success');
+  }
+});
+
+test('a malformed catalog identity cannot turn a nonempty owner response into empty success', async () => {
+  const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listConnectorModels() { return { models: [{ provider: 'test', providerModelId: 'model', remoteModelCatalogId: '', capabilities: [], available: true }], nextPageToken: '' }; },
+  } as NimiRuntimeConnectorClient });
+  await assert.rejects(inventory.listConnectorCatalog('connection'), /did not complete pagination/);
+});
+
+test('clearing account caches fences an in-flight catalog from repopulating them', async () => {
+  let finish!: (response: { models: never[]; nextPageToken: string }) => void;
+  let calls = 0;
+  const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listConnectorModels() {
+      calls++;
+      if (calls === 1) return new Promise(resolve => { finish = resolve; });
+      return { models: [], nextPageToken: '' };
+    },
+  } as NimiRuntimeConnectorClient });
+  const old = inventory.listConnectorCatalog('same-id');
+  inventory.clearCaches();
+  finish({ models: [], nextPageToken: '' });
+  await old;
+  await inventory.listConnectorCatalog('same-id');
+  assert.equal(calls, 2);
+});
+
 test('connector edits preserve absent fields so a metadata update never clears the stored credential', async () => {
   const requests: Parameters<NimiRuntimeConnectorClient['updateConnector']>[0][] = [];
   const inventory = createNimiRuntimeConnectorInventoryClient({
@@ -198,6 +275,30 @@ test('Nimi Runtime connector test fails closed on negative Runtime ack', async (
       return true;
     },
   );
+});
+
+test('checks return owner observations and invalidate cached inventory even on failure', async () => {
+  const record = { connectorId: 'checked-1', provider: 'openai', endpoint: '', label: 'Saved', hasCredential: true,
+    ownerType: ConnectorOwnerType.REALM_USER, ownerId: 'account', kind: ConnectorKind.REMOTE_MANAGED,
+    status: ConnectorStatus.ACTIVE, authKind: ConnectorAuthKind.API_KEY, providerAuthProfile: '', createdAt: undefined, updatedAt: undefined };
+  let lastCheck: { ok: boolean; reasonCode: number; checkedAt: { seconds: string; nanos: number } } | undefined;
+  let reads = 0;
+  let pass = true;
+  const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listProviderCatalog() { return { providers: [] }; },
+    async listConnectors() { reads++; return { connectors: [{ ...record, lastCheck }], nextPageToken: '' }; },
+    async testConnector() {
+      lastCheck = { ok: pass, reasonCode: 0, checkedAt: { seconds: '1792976400', nanos: 0 } };
+      return { ack: { ok: pass, reasonCode: 0, actionHint: '' }, connector: { ...record, lastCheck } };
+    },
+  } as NimiRuntimeConnectorClient });
+  assert.equal((await inventory.listConnectors())[0]!.lastCheck, undefined);
+  assert.equal((await inventory.testConnector(record.connectorId)).lastCheck?.ok, true);
+  assert.equal((await inventory.listConnectors())[0]!.lastCheck?.ok, true);
+  pass = false;
+  await assert.rejects(inventory.testConnector(record.connectorId));
+  assert.equal((await inventory.listConnectors())[0]!.lastCheck?.ok, false);
+  assert.equal(reads, 3);
 });
 
 test('Nimi Runtime connector inventory rejects managed OAuth credential carriers', async () => {

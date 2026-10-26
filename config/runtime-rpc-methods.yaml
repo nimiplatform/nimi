@@ -28,6 +28,9 @@ services:
   - name: AIService
     source_rule: K-RPC-002
     methods:
+      - name: ListDesktopConnectorReferences
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences
       - name: GetAppAIConfig
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
@@ -423,6 +426,11 @@ services:
         authority_status: admitted_exact_home_ai_observation
         transport_disposition: protected_desktop_control_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary
+      - name: ListDesktopAICloudHistory
+        type: unary
+        authority_status: admitted_exact_home_ai_observation
+        transport_disposition: protected_desktop_control_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory
       - name: GetRuntimeHealth
         type: unary
         authority_status: admitted_exact_desktop_health_projection

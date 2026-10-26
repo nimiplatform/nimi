@@ -824,6 +824,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAppAIConfigOptionsResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences",
+        service: "RuntimeAiService",
+        method: "ListDesktopConnectorReferences",
+        kind: "unary",
+        request_type: "ListDesktopConnectorReferencesRequest",
+        response_type: "ListDesktopConnectorReferencesResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
         service: "RuntimeAiService",
         method: "ListLocalAppVoiceAssets",
@@ -1390,6 +1398,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListAuditEventsRequest",
         response_type: "ListAuditEventsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory",
+        service: "RuntimeAuditService",
+        method: "ListDesktopAICloudHistory",
+        kind: "unary",
+        request_type: "ListDesktopAICloudHistoryRequest",
+        response_type: "ListDesktopAICloudHistoryResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",

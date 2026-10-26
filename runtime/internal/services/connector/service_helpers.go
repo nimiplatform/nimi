@@ -118,6 +118,7 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		CreatedAt:           timestamppb.New(time.UnixMilli(r.CreatedAt)),
 		UpdatedAt:           timestamppb.New(time.UnixMilli(r.UpdatedAt)),
 		OauthRegistration:   registration,
+		LastCheck:           r.LastCheck.projection(),
 	}
 }
 

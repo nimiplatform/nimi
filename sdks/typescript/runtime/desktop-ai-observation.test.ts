@@ -19,6 +19,32 @@ const ownerSummary = {
   partialReasons: ['accounting-started-within-window'],
 };
 
+test('cloud references and history use protected typed reads and reject account selectors', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> { calls.push(request); return {} as Response; },
+    async *serverStream<Response>(): AsyncIterable<Response> { throw new Error('not a stream'); },
+  };
+  const client = createNimiDesktopFirstPartyRuntimeClients({ appId: 'nimi.desktop', transport }).accountProduct;
+  await client.configurationReferences.listDesktopConnectorReferences({ connectorRef: 'saved', pageSize: 50, pageToken: '' });
+  await client.audit.listDesktopAICloudHistory({ fromTime, toTime, connectorRef: 'deleted', pageSize: 20, pageToken: '' });
+  await client.audit.getDesktopAIUsageSummary({ fromTime, toTime, connectorRef: 'saved' });
+  assert.deepEqual(calls.map(call => call.methodId), [
+    '/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences',
+    '/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory',
+    '/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary',
+  ]);
+  const count = calls.length;
+  assert.throws(() => client.configurationReferences.listDesktopConnectorReferences({ connectorRef: 'saved', pageSize: 50, pageToken: '', accountId: 'foreign' } as never), { reasonCode: 'SDK_AI_INPUT_INVALID' });
+  assert.throws(() => client.audit.listDesktopAICloudHistory({ fromTime, toTime, connectorRef: '', pageSize: 101, pageToken: '' }), { reasonCode: 'SDK_AI_INPUT_INVALID' });
+  assert.throws(() => client.audit.listDesktopAICloudHistory({ fromTime, toTime, connectorRef: '', pageSize: 20, pageToken: '', subjectUserId: 'foreign' } as never), { reasonCode: 'SDK_AI_INPUT_INVALID' });
+  assert.equal(calls.length, count);
+  const ordinary = createRuntime({ appId: 'ordinary.app', transport });
+  await assert.rejects(ordinary.generated.listDesktopConnectorReferences({ connectorRef: 'saved', pageSize: 1, pageToken: '' }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+  await assert.rejects(ordinary.generated.listDesktopAICloudHistory({ fromTime, toTime, connectorRef: '', pageSize: 1, pageToken: '' }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+  assert.equal(calls.length, count);
+});
+
 test('Home AI observation uses only exact account-purpose reads and preserves owner uncertainty', async () => {
   const calls: Array<CoreUnaryRequest | CoreStreamRequest> = [];
   const transport: CoreTransport = {
@@ -37,7 +63,7 @@ test('Home AI observation uses only exact account-purpose reads and preserves ow
     getSubjectUserId: () => { throw new Error('account must be derived by the native owner'); },
   });
   assert.deepEqual(Object.keys(clients.accountProduct.audit).sort(), [
-    'getDesktopAIActivitySnapshot', 'getDesktopAIUsageSummary', 'subscribeDesktopAIActivity',
+    'getDesktopAIActivitySnapshot', 'getDesktopAIUsageSummary', 'listDesktopAICloudHistory', 'subscribeDesktopAIActivity',
   ]);
   assert.equal('getDesktopAIActivitySnapshot' in clients.machineProduct.audit, false);
   const controller = new AbortController();
@@ -51,7 +77,7 @@ test('Home AI observation uses only exact account-purpose reads and preserves ow
     '/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity',
     '/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary',
   ]);
-  assert.deepEqual(calls.map((call) => call.body), [{ limit: 50 }, { limit: 50 }, { fromTime, toTime }]);
+  assert.deepEqual(calls.map((call) => call.body), [{ limit: 50 }, { limit: 50 }, { fromTime, toTime, connectorRef: '' }]);
   assert.strictEqual(calls[0]?.signal, controller.signal);
   assert.strictEqual(calls[1]?.signal, controller.signal);
   for (const call of calls) {
@@ -98,7 +124,7 @@ test('Home AI observation preserves owner failure and public generated reads fai
   assert.equal(calls, 3);
   const ordinary = createRuntime({ appId: 'ordinary.app', transport });
   await assert.rejects(ordinary.generated.getDesktopAIActivitySnapshot({ limit: 50 }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
-  await assert.rejects(ordinary.generated.getDesktopAIUsageSummary({ fromTime, toTime }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+  await assert.rejects(ordinary.generated.getDesktopAIUsageSummary({ fromTime, toTime, connectorRef: '' }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
   const deniedStream = ordinary.generated.subscribeDesktopAIActivity({ limit: 50 });
   assert.equal(typeof deniedStream[Symbol.asyncIterator], 'function');
   await assert.rejects(async () => {

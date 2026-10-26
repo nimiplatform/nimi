@@ -266,6 +266,8 @@ message GetDesktopAIUsageSummaryRequest {
   // covered: effective_to is the earlier of to_time and the consistent read.
   google.protobuf.Timestamp from_time = 1;
   google.protobuf.Timestamp to_time = 2;
+  // Optional exact captured Cloud connection; never an account selector.
+  string connector_ref = 3;
 }
 
 message GetDesktopAIUsageSummaryResponse {
@@ -318,9 +320,57 @@ message DesktopAIUsageSummary {
   google.protobuf.Timestamp coverage_from = 14;
   google.protobuf.Timestamp coverage_to = 15;
   repeated string partial_reasons = 16;
+  bool attribution_complete = 17;
+}
+
+enum DesktopAICloudAttemptOutcome {
+  DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED = 0;
+  DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING = 1;
+  DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED = 2;
+  DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED = 3;
+  DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED = 4;
+  DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN = 5;
+}
+
+// No payload, prompt, output, endpoint or private custody material crosses this projection.
+message DesktopAICloudAttempt {
+  string attempt_id = 1;
+  string connector_ref = 2;
+  string source_kind = 3;
+  string source_id = 4;
+  string source_label = 5;
+  string parent_work_id = 6;
+  string parent_work_kind = 7;
+  string capability = 8;
+  repeated DesktopAIExecutionModel models = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp observed_at = 11;
+  google.protobuf.Timestamp finished_at = 12;
+  DesktopAICloudAttemptOutcome outcome = 13;
+  ReasonCode reason_code = 14;
+  bool usage_measured = 15;
+  UsageStats usage = 16;
+}
+
+message ListDesktopAICloudHistoryRequest {
+  string connector_ref = 1;
+  google.protobuf.Timestamp from_time = 2;
+  google.protobuf.Timestamp to_time = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListDesktopAICloudHistoryResponse {
+  repeated DesktopAICloudAttempt attempts = 1;
+  string next_page_token = 2;
+  google.protobuf.Timestamp read_at = 3;
+  bool attribution_complete = 4;
+  bool records_complete = 5;
+  repeated string partial_reasons = 6;
 }
 
 service RuntimeAuditService {
+  rpc ListDesktopAICloudHistory(ListDesktopAICloudHistoryRequest) returns (ListDesktopAICloudHistoryResponse);
   rpc ListAuditEvents(ListAuditEventsRequest) returns (ListAuditEventsResponse);
   rpc ListDesktopAuditEvents(ListDesktopAuditEventsRequest) returns (ListDesktopAuditEventsResponse);
   rpc ExportAuditEvents(ExportAuditEventsRequest) returns (stream AuditExportChunk);

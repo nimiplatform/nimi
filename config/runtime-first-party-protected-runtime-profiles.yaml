@@ -86,6 +86,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot
       - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity
       - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences
       # Formal App session mechanics. Product coverage remains release/EAS-owned.
       - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession

@@ -133,6 +133,7 @@ DelegatedProviderTrustTier = Literal["DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED"
 DelegatedReplayOutcome = Literal["DELEGATED_REPLAY_OUTCOME_UNSPECIFIED", "DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED", "DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED", "DELEGATED_REPLAY_OUTCOME_PARTIAL_MISSING_EVIDENCE", "DELEGATED_REPLAY_OUTCOME_BLOCKED_BY_POLICY", "DELEGATED_REPLAY_OUTCOME_INVALID_LINEAGE"]
 DelegatedTraceStageKind = Literal["DELEGATED_TRACE_STAGE_KIND_UNSPECIFIED", "DELEGATED_TRACE_STAGE_KIND_REQUEST", "DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE", "DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT", "DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION", "DELEGATED_TRACE_STAGE_KIND_RUNTIME_DECISION", "DELEGATED_TRACE_STAGE_KIND_PROJECTION_DISPOSITION"]
 DelegatedTransportKind = Literal["DELEGATED_TRANSPORT_KIND_UNSPECIFIED"]
+DesktopAICloudAttemptOutcome = Literal["DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED", "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_RUNNING", "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED", "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED", "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_CANCELLED", "DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN"]
 DesktopAIExecutionRoute = Literal["DESKTOP_AI_EXECUTION_ROUTE_UNSPECIFIED", "DESKTOP_AI_EXECUTION_ROUTE_LOCAL", "DESKTOP_AI_EXECUTION_ROUTE_CLOUD"]
 DesktopAIExecutionState = Literal["DESKTOP_AI_EXECUTION_STATE_UNSPECIFIED", "DESKTOP_AI_EXECUTION_STATE_RUNNING", "DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN"]
 DeveloperModeState = Literal["DEVELOPER_MODE_STATE_UNSPECIFIED", "DEVELOPER_MODE_STATE_DISABLED", "DEVELOPER_MODE_STATE_ENABLED", "DEVELOPER_MODE_STATE_UNAVAILABLE"]
@@ -2017,6 +2018,13 @@ class Connector:
     auth_kind: ConnectorAuthKind | None = None
     provider_auth_profile: str | None = None
     oauth_registration: ConnectorOAuthRegistration | None = None
+    last_check: ConnectorCheck | None = None
+
+@dataclass(frozen=True)
+class ConnectorCheck:
+    ok: bool | None = None
+    reason_code: ReasonCode | None = None
+    checked_at: str | None = None
 
 @dataclass(frozen=True)
 class ConnectorModelDescriptor:
@@ -2280,6 +2288,25 @@ class DesktopAIActivitySnapshot:
     partial_reasons: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class DesktopAICloudAttempt:
+    attempt_id: str | None = None
+    connector_ref: str | None = None
+    source_kind: str | None = None
+    source_id: str | None = None
+    source_label: str | None = None
+    parent_work_id: str | None = None
+    parent_work_kind: str | None = None
+    capability: str | None = None
+    models: tuple[DesktopAIExecutionModel, ...] = field(default_factory=tuple)
+    started_at: str | None = None
+    observed_at: str | None = None
+    finished_at: str | None = None
+    outcome: DesktopAICloudAttemptOutcome | None = None
+    reason_code: ReasonCode | None = None
+    usage_measured: bool | None = None
+    usage: UsageStats | None = None
+
+@dataclass(frozen=True)
 class DesktopAICostEstimate:
     currency: str | None = None
     estimated_amount: str | None = None
@@ -2340,6 +2367,7 @@ class DesktopAIUsageSummary:
     coverage_from: str | None = None
     coverage_to: str | None = None
     partial_reasons: tuple[str, ...] = field(default_factory=tuple)
+    attribution_complete: bool | None = None
 
 @dataclass(frozen=True)
 class DesktopAIUsageTotals:
@@ -2365,6 +2393,13 @@ class DesktopAuditEventProjection:
     trace_id: str | None = None
     timestamp: str | None = None
     caller_kind: CallerKind | None = None
+
+@dataclass(frozen=True)
+class DesktopConnectorReference:
+    owner: AIConfigOwner | None = None
+    capability_contract: str | None = None
+    implementation_id: str | None = None
+    config_revision: str | None = None
 
 @dataclass(frozen=True)
 class DisableAutonomyRequest:
@@ -2732,6 +2767,7 @@ class GetDesktopAIActivitySnapshotResponse:
 class GetDesktopAIUsageSummaryRequest:
     from_time: str | None = None
     to_time: str | None = None
+    connector_ref: str | None = None
 
 @dataclass(frozen=True)
 class GetDesktopAIUsageSummaryResponse:
@@ -3445,6 +3481,23 @@ class ListDelegatedProviderProfilesResponse:
     provider_profiles: tuple[DelegatedProviderProfile, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ListDesktopAICloudHistoryRequest:
+    connector_ref: str | None = None
+    from_time: str | None = None
+    to_time: str | None = None
+    page_size: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListDesktopAICloudHistoryResponse:
+    attempts: tuple[DesktopAICloudAttempt, ...] = field(default_factory=tuple)
+    next_page_token: str | None = None
+    read_at: str | None = None
+    attribution_complete: bool | None = None
+    records_complete: bool | None = None
+    partial_reasons: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ListDesktopAuditEventsRequest:
     trace_id: str | None = None
     request_id: str | None = None
@@ -3462,6 +3515,19 @@ class ListDesktopAuditEventsRequest:
 class ListDesktopAuditEventsResponse:
     events: tuple[DesktopAuditEventProjection, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListDesktopConnectorReferencesRequest:
+    connector_ref: str | None = None
+    page_size: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListDesktopConnectorReferencesResponse:
+    references: tuple[DesktopConnectorReference, ...] = field(default_factory=tuple)
+    next_page_token: str | None = None
+    snapshot_revision: str | None = None
+    observed_at: str | None = None
 
 @dataclass(frozen=True)
 class ListFactoryProfileRecommendationsRequest:
@@ -7183,6 +7249,7 @@ class TestConnectorRequest:
 @dataclass(frozen=True)
 class TestConnectorResponse:
     ack: Ack | None = None
+    connector: Connector | None = None
 
 @dataclass(frozen=True)
 class TextAnnotateScenarioSpec:
@@ -8326,6 +8393,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAppAIConfigOptionsResponse, raw)
 
+    async def list_desktop_connector_references(self, request: ListDesktopConnectorReferencesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDesktopConnectorReferencesResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListDesktopConnectorReferences", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListDesktopConnectorReferencesResponse, raw)
+
     async def list_local_app_voice_assets(self, request: ListLocalAppVoiceAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppVoiceAssetsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAppVoiceAssetsResponse, raw)
@@ -8597,6 +8668,10 @@ class RuntimeTypedClient:
     async def list_audit_events(self, request: ListAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAuditEventsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAuditEventsResponse, raw)
+
+    async def list_desktop_aicloud_history(self, request: ListDesktopAICloudHistoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDesktopAICloudHistoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListDesktopAICloudHistory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListDesktopAICloudHistoryResponse, raw)
 
     async def list_desktop_audit_events(self, request: ListDesktopAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDesktopAuditEventsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

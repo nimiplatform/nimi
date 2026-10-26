@@ -47,6 +47,17 @@ test('Runtime config connector projection normalizes draft and connector evidenc
     'tester-image': ['image.generate'],
   });
   assert.equal(normalized.status, 'healthy');
+  const passed = runtimeConnectorProjectionToNimiRuntimeConfigConnector({ ...connector,
+    lastCheck: { ok: true, checkedAt: '2026-10-26T01:00:00.000Z', reasonCode: 'ACTION_EXECUTED' } });
+  assert.equal(passed.status, 'healthy');
+  assert.equal(passed.lastCheckedAt, '2026-10-26T01:00:00.000Z');
+  const failed = runtimeConnectorProjectionToNimiRuntimeConfigConnector({ ...passed,
+    lastCheck: { ...passed.lastCheck!, ok: false, reasonCode: 'AI_PROVIDER_AUTH_FAILED' } });
+  assert.equal(failed.status, 'unreachable');
+  assert.equal(failed.lastDetail, 'AI_PROVIDER_AUTH_FAILED');
+  const replaced = runtimeConnectorProjectionToNimiRuntimeConfigConnector({ ...failed, lastCheck: undefined });
+  assert.equal(replaced.status, 'idle');
+  assert.equal(replaced.lastCheckedAt, null);
 });
 
 test('Runtime local config projection normalizes nodes without ranking', () => {
