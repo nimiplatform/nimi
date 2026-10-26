@@ -106,7 +106,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         <TextField type="search" aria-label={copy.items.search} placeholder={copy.items.searchShort} value={query}
           leading={<Search size={15} aria-hidden="true" />} onChange={event => setQuery(event.target.value)}
           onKeyDown={event => { if (event.key === 'Escape') setQuery(''); }} />
-        <Button tone="secondary" size="sm" leadingIcon={<Plus size={15} aria-hidden="true" />} onClick={() => { switchTab('upcoming'); ui.newItem({ date: today, circleId: circleFilter === 'all' || circleFilter === 'none' ? null : circleFilter }); }}>{copy.item.new}</Button>
+        <Button tone="primary" size="sm" leadingIcon={<Plus size={15} aria-hidden="true" />} onClick={() => { switchTab('upcoming'); ui.newItem({ date: today, circleId: circleFilter === 'all' || circleFilter === 'none' ? null : circleFilter }); }}>{copy.item.new}</Button>
       </div>} />
     <div className="nd-items-workspace">
       <div className="nd-items-toolbar">

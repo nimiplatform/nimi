@@ -454,13 +454,13 @@ function serviceLabel(state: SystemEntryProjection['service'], locale: SystemEnt
 function menuCopy(locale: SystemEntryLocale) {
   return locale === 'zh' ? {
     overview: '快速概览', home: '打开 Nimi Home', chat: '继续聊天', apps: '已打开的 App',
-    downloads: '下载', capabilities: 'AI 能力', usage: '今日用量', settings: '设置', support: '帮助与恢复',
+    downloads: '下载', capabilities: 'AI 能力', usage: 'AI 活动与用量', settings: '设置', support: '帮助与恢复',
     pauseNotifications: '暂停普通提醒 1 小时', resumeNotifications: '恢复普通提醒', notificationSettings: '通知设置', quit: '退出 Nimi Home',
     showAll: '查看全部', observationUnavailable: '活动状态待更新', actionFailed: '操作未完成，请打开概览查看',
     loginRequired: '打开 Home 登录', recoveryRequired: '打开 Home 查看恢复步骤', locked: '已锁定',
   } : {
     overview: 'Quick overview', home: 'Open Nimi Home', chat: 'Continue chatting', apps: 'Open Apps',
-    downloads: 'Downloads', capabilities: 'AI Capabilities', usage: 'Today’s usage', settings: 'Settings', support: 'Help & recovery',
+    downloads: 'Downloads', capabilities: 'AI Capabilities', usage: 'AI activity & usage', settings: 'Settings', support: 'Help & recovery',
     pauseNotifications: 'Pause ordinary notifications for 1 hour', resumeNotifications: 'Resume ordinary notifications', notificationSettings: 'Notification settings', quit: 'Quit Nimi Home',
     showAll: 'Show all', observationUnavailable: 'Activity awaiting update', actionFailed: 'Action failed — open overview for details',
     loginRequired: 'Open Home to sign in', recoveryRequired: 'Open Home for recovery', locked: 'Locked',

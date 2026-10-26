@@ -7,9 +7,11 @@ import { createDesktopExecutionNoticesHost } from '../src-electron/execution-not
 test('interruption drawer preserves failed removals, retries, updates counts, and keeps empty state open', async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
   const host = createDesktopExecutionNoticesHost({ readAdmission: async () => ({ generation: 'current-generation', state: 'ready' }), supported: () => false, notify: () => undefined });
+  const nimiDayIconUrl = 'data:image/png;base64,bmltaWRheQ==';
   for (const key of ['a', 'b', 'c']) {
-    host.observe({ key, displayName: `App ${key}`, state: 'running', executionScopeRef: 'scope-a' });
-    host.observe({ key, displayName: `App ${key}`, state: 'stopped', intentional: true });
+    const displayName = key === 'c' ? 'NimiDay' : `App ${key}`;
+    host.observe({ key, displayName, state: 'running', executionScopeRef: 'scope-a' });
+    host.observe({ key, displayName, state: 'stopped', intentional: true });
   }
   host.observe({ key: 'a', displayName: 'App a', state: 'running', executionScopeRef: 'scope-b' });
   host.observe({ key: 'b', displayName: 'App b', state: 'scope-unknown' });
@@ -54,7 +56,7 @@ test('interruption drawer preserves failed removals, retries, updates counts, an
   const button = (text: string) => [...dom.window.document.querySelectorAll('button')].find(node => node.textContent === text) ?? null;
   const rows = () => dom.window.document.querySelectorAll('[data-testid="execution-notice-row"]');
   try {
-    await act(async () => { root.render(<QueryClientProvider client={client}><DesktopI18nResourceProvider resource={productionDesktopI18n}><DesktopMotionProvider><HomeExecutionNotices /></DesktopMotionProvider></DesktopI18nResourceProvider></QueryClientProvider>); });
+    await act(async () => { root.render(<QueryClientProvider client={client}><DesktopI18nResourceProvider resource={productionDesktopI18n}><DesktopMotionProvider><HomeExecutionNotices appArtworkFor={displayName => displayName === 'NimiDay' ? { appId: 'nimi.day', iconUrl: nimiDayIconUrl } : null} /></DesktopMotionProvider></DesktopI18nResourceProvider></QueryClientProvider>); });
     await settle();
     const trigger = dom.window.document.querySelector('[aria-haspopup="dialog"]');
     assert.match(trigger?.textContent ?? '', /3 records/);
@@ -62,6 +64,16 @@ test('interruption drawer preserves failed removals, retries, updates counts, an
     (trigger as HTMLElement).focus();
     await click(trigger);
     assert.equal(rows().length, 3);
+    const titleIcon = dom.window.document.querySelector('[data-testid="execution-notices-title-icon"] svg');
+    assert.ok(titleIcon?.classList.contains('lucide-bell-ring'));
+    const nimiDayRow = [...rows()].find(row => row.querySelector('h3')?.textContent === 'NimiDay');
+    assert.ok(nimiDayRow);
+    assert.equal(nimiDayRow.querySelector('.execution-notice-app-icon img')?.getAttribute('src'), nimiDayIconUrl);
+    assert.equal(nimiDayRow.querySelector('.lucide-circle-stop'), null);
+    assert.equal(nimiDayRow.querySelectorAll('.nimi-status-badge--warning').length, 1);
+    const availability = nimiDayRow.querySelector('[data-testid="execution-notice-availability"]');
+    assert.ok(availability?.className.includes('text-[var(--nimi-text-secondary)]'));
+    assert.equal(availability?.className.includes('nimi-status-warning'), false);
     assert.match(dom.window.document.body.textContent ?? '', /have been restored/);
     assert.match(dom.window.document.body.textContent ?? '', /Cannot confirm whether execution conditions/);
     assert.match(dom.window.document.body.textContent ?? '', /remain unavailable/);

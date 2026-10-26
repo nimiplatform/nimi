@@ -53,6 +53,11 @@
   color: var(--nimi-action-primary-text);
 }
 
+.nd-brand-mark--image {
+  display: block;
+  background: none;
+}
+
 .nd-brand-name {
   font-weight: 650;
   font-size: 15px;
@@ -64,17 +69,19 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px;
-  border: 1px solid var(--nimi-border-subtle);
-  border-radius: var(--nimi-radius-md);
-  background: var(--nimi-surface-card);
-  color: inherit;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--nimi-radius-sidebar-item);
+  background: transparent;
+  color: var(--nimi-text-primary);
   text-align: left;
   cursor: pointer;
+  transition: background-color var(--nimi-motion-fast) var(--nimi-motion-ease-standard);
 }
 
 .nd-agent-chip:hover {
-  border-color: var(--nimi-border-strong);
+  background: var(--nimi-sidebar-item-hover);
 }
 
 .nd-agent-chip__text {
@@ -1134,7 +1141,7 @@
 .nd-run-summary {
   width: 100%; display: grid; grid-template-columns: 24px minmax(100px, auto) auto 145px minmax(0, 1fr) 20px;
   align-items: center; gap: 12px; padding: 14px 6px; border: 0; border-top: 1px solid var(--nimi-border-subtle);
-  color: var(--nimi-text-primary); background: transparent; text-align: start; cursor: pointer;
+  border-radius: var(--nimi-radius-md); color: var(--nimi-text-primary); background: transparent; text-align: start; cursor: pointer;
 }
 .nd-run-summary:first-child { border-top: 0; }
 .nd-run-summary:hover { background: var(--nimi-action-ghost-hover); }
@@ -1145,7 +1152,8 @@
 .nd-run-summary__reply, .nd-run-summary__changes { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .nd-run-summary__changes { -webkit-line-clamp: 1; }
 .nd-run-summary .nd-chip { justify-self: start; white-space: nowrap; }
-.nd-run-summary:focus-visible, .nd-rhythm-edit:focus-visible { outline: 2px solid var(--nimi-action-primary-bg); outline-offset: 4px; border-radius: 8px; }
+.nd-run-summary:focus-visible, .nd-rhythm-edit:focus-visible { outline: 2px solid var(--nimi-action-primary-bg); outline-offset: 4px; }
+.nd-rhythm-edit:focus-visible { border-radius: 8px; }
 
 @container (min-width: 1100px) {
 }

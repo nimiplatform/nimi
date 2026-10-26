@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { NimiRuntimeAgentSourceContextStatus } from '@nimiplatform/sdk/runtime';
 import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import type { SystemEntryProjection } from '../src/shell/shared/system-entry-types.js';
-import { createHomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
+import { createHomeNavigation, validateHomeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import { executeSystemEntryRendererAction } from '../src/shell/renderer/features/system-entry/system-entry-renderer-actions.js';
 import { characterSourceRefKey } from '../src/shell/renderer/features/realm-source/realm-source-identity.js';
@@ -22,11 +22,22 @@ function setup() {
     published: () => projection, navigation, sdk: {} as DesktopRendererSdkPort, ownerUserId: 'user-a', appEntries: [], agents: [], activityRecords: [],
     openActivity: async () => { opened += 1; throw new Error('unexpected-open'); },
     notifications: { enabled: false, pausedUntil: 0, pause: async () => { pause += 1; }, resume: async () => { pause += 1; } },
-    reading: { openUsage: async () => {}, openCurrentWork: async () => {} },
+    reading: { openAIActivity: async () => { await navigation.push({ id: 'home', homeSection: 'ai-activity' }); } },
     setAgentConversationTargetSnapshot: () => {}, refresh: async () => {},
   };
   return { input, projection, counts: () => ({ pause, opened }) };
 }
+
+test('activity and usage actions share one Home destination and history entry', async () => {
+  const value = setup();
+  for (const kind of ['activity', 'usage'] as const) {
+    await executeSystemEntryRendererAction({ requestId: kind, generation: 'account-a', revision: 1, action: { kind } }, value.input);
+    assert.deepEqual(value.input.navigation.getSnapshot().current.destination, { id: 'home', homeSection: 'ai-activity' });
+  }
+  await value.input.navigation.back();
+  assert.notEqual(value.input.navigation.getSnapshot().current.destination.homeSection, 'ai-activity');
+  for (const homeSection of ['work', 'usage']) assert.throws(() => validateHomeDestination({ id: 'home', homeSection }), /Invalid Home homeSection/);
+});
 
 test('old generation action is rejected before navigation or source effects', async () => {
   const value = setup();

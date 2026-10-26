@@ -23,6 +23,7 @@ import { HomeAgentCard } from './home-agent-card.js';
 import { HomeGettingStarted } from './home-getting-started.js';
 import { HomeIntegrationsCard } from './home-integrations-card.js';
 import { HomeMachineStatus, homeRuntimeState } from './home-machine-status.js';
+import type { ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessageCenter } from './home-message-center.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
@@ -98,7 +99,7 @@ export function NimiOverview() {
   const apps = useAppsOverview();
   const homeEntryDestination = destination.homeSection ?? 'overview';
   const view = homeEntryDestination;
-  const setView = (homeSection: 'overview' | 'center' | 'integrations' | 'work' | 'usage') => void navigation.push({ id: 'home', homeSection });
+  const setView = (homeSection: 'overview' | 'center' | 'integrations' | 'ai-activity') => void navigation.push({ id: 'home', homeSection });
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
   const [centerSource, setCenterSource] = useState<string | null>(null);
   const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
@@ -218,6 +219,12 @@ export function NimiOverview() {
     })),
   ];
   const iconUrls = new Map(entries.map((entry) => [entry.identity.appId, entry.iconUrl]));
+  const appArtworkForNotice: ExecutionNoticeAppArtworkResolver = (noticeDisplayName) => {
+    const matches = entries.filter((entry) => entry.identity.displayName === noticeDisplayName);
+    if (matches.length !== 1) return null;
+    const entry = matches[0]!;
+    return { appId: entry.identity.appId, iconUrl: entry.iconUrl };
+  };
   const cardContext = (messages: HomeMessages): HomeMessageCardContext => ({
     now,
     busy: messages.app.busy,
@@ -303,6 +310,7 @@ export function NimiOverview() {
         <HomeMessagesColumn
           messages={messages}
           context={cardContext(messages)}
+          appArtworkForNotice={appArtworkForNotice}
           onViewAll={() => openCenter('all')}
         />
       ) : null}
@@ -384,8 +392,8 @@ export function NimiOverview() {
     </div>
   );
 
-  const renderPage = (messages: HomeMessages | null) => view === 'work' || view === 'usage' ? (
-    <SystemEntryDetails section={view} onBack={() => setView('overview')} onSectionChange={setView} />
+  const renderPage = (messages: HomeMessages | null) => view === 'ai-activity' ? (
+    <SystemEntryDetails onBack={() => setView('overview')} />
   ) : view === 'integrations' ? (
     <IntegrationsPanel
       appIconUrls={iconUrls}
@@ -404,6 +412,7 @@ export function NimiOverview() {
           <HomeMessageCenter
             messages={messages}
             context={cardContext(messages)}
+            appArtworkForNotice={appArtworkForNotice}
             filter={centerFilter}
             sourceKey={centerSource}
             onFilterChange={setCenterFilter}
@@ -437,7 +446,7 @@ export function NimiOverview() {
               runtime={homeRuntimeState(health)}
               capabilities={status}
               onOpenDiagnostics={openDiagnostics}
-              onOpenUsage={() => setView('usage')}
+              onOpenUsage={() => setView('ai-activity')}
             />
           </footer>
         </>

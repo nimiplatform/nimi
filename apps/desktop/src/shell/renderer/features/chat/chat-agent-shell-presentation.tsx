@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -57,6 +57,16 @@ export function useAgentConversationPresentation(
   | 'transcriptProps'
 > {
   const { i18n } = useTranslation();
+  const composerElement = useRef<HTMLDivElement>(null);
+  const topicFocusAgent = useRef<string | null>(null);
+  useEffect(() => {
+    if (topicFocusAgent.current && topicFocusAgent.current === input.activeTarget?.agentHandle) {
+      const field = composerElement.current?.querySelector('textarea');
+      field?.focus();
+      field?.setSelectionRange(field.value.length, field.value.length);
+    }
+    topicFocusAgent.current = null;
+  }, [input.composerPrefillRequestId, input.activeTarget?.agentHandle]);
   const [restoreNeedsEmptyDraft, setRestoreNeedsEmptyDraft] = useState(false);
   useEffect(() => setRestoreNeedsEmptyDraft(false), [input.activeThreadId]);
   const refusedInput = resolveAgentRefusedInput(input.bundle?.messages);
@@ -169,8 +179,13 @@ export function useAgentConversationPresentation(
       displayName={resolvedAgentDisplayName}
       avatarUrl={characterData.avatarUrl || null}
       locale={i18n.resolvedLanguage ?? i18n.language}
+      imageMaxSize="clamp(160px, calc(100dvh - 560px), 320px)"
       questionsEnabled={Boolean(surfaceState.composer && !surfaceState.composer.disabled && input.onComposerPrefillRequest)}
-      onPrefill={input.onComposerPrefillRequest}
+      onPrefill={text => {
+        const draft = input.currentComposerTextRef.current;
+        topicFocusAgent.current = input.activeTarget?.agentHandle ?? null;
+        input.onComposerPrefillRequest?.(draft.trim() && draft.trim() !== text ? `${draft}\n${text}` : text);
+      }}
     />
   ) : null;
   const emptyStateHeaderLabels = input.activeTarget
@@ -316,7 +331,7 @@ export function useAgentConversationPresentation(
     settingsDrawerWorld: input.activeTarget?.worldName || null,
     composerContent: (
       adapter.composerAdapter ? (
-        <div className="space-y-3">
+        <div ref={composerElement} className="space-y-3">
           {hostFeedbackNode}
           {refusedInput && input.onComposerPrefillRequest ? <div className="px-5 text-sm">
             <Button size="sm" tone="secondary" onClick={() => {

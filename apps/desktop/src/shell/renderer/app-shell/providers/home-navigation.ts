@@ -23,7 +23,7 @@ export type HomeRuntimePosition = {
 
 export type HomeDestination = {
   readonly id: AppTab;
-  readonly homeSection?: 'overview' | 'center' | 'integrations' | 'work' | 'usage';
+  readonly homeSection?: 'overview' | 'center' | 'integrations' | 'ai-activity';
   readonly profileId?: string;
   readonly sourceRef?: CharacterSourceRefV3;
   readonly worldId?: string;
@@ -81,7 +81,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     result.sourceRef = sourceRef;
   }
   const closed = (key: string, allowed: readonly string[]) => { if (result[key] !== undefined && !allowed.includes(result[key] as string)) throw new Error(`Invalid Home ${key}.`); };
-  closed('homeSection', ['overview', 'center', 'integrations', 'work', 'usage']);
+  closed('homeSection', ['overview', 'center', 'integrations', 'ai-activity']);
   closed('exploreSection', ['worlds', 'personas']);
   closed('worldCollection', ['favorites']);
   closed('worldSubpage', ['relationship-explorer']);

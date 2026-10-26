@@ -466,6 +466,7 @@ export function AgentCanonicalComposer(props: {
         text={composerText}
         disabled={props.disabled}
         placeholder={props.placeholder}
+        sendLabel={t('Chat.send')}
         onTextChange={handleComposerTextChange}
         attachmentAdapter={attachmentAdapter}
         attachments={props.pendingAttachments}

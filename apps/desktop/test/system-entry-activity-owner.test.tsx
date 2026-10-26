@@ -42,7 +42,7 @@ test('Home and overview consumers share exactly two activity subscriptions and r
   function Owner({ scope, extra = false }: { scope: string; extra?: boolean }) {
     const owner = useSystemEntryActivityOwner(sdk, scope);
     return <SystemEntryProviderContext.Provider value={{ hostContext: null, homeVisible: true, projection: null, appActivity: owner.activity,
-      ai: null, refresh: async () => {}, openUsage: async () => {}, openCurrentWork: async () => {} }}>
+      ai: null, refresh: async () => {}, openAIActivity: async () => {} }}>
       <Consumer index={0} /><Consumer index={1} />{extra ? <Consumer index={2} /> : null}
     </SystemEntryProviderContext.Provider>;
   }

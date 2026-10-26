@@ -65,7 +65,7 @@ export function CarePage({ circleId, sources }: { readonly circleId?: string; re
         action={<Button tone="primary" size="sm" leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => ui.editCircle(null)}>{copy.care.add}</Button>} />
       <section className="nd-care-content" aria-label={circle?.name ?? copy.care.everyone}>
         <header className="nd-care-context">
-          <div><h2>{circle?.name ?? copy.care.everyone}</h2><p>{circle ? copy.kinds.circle[circle.kind] : copy.care.everyoneHint}</p></div>
+          <div><h2>{circle?.name ?? copy.care.everyone}</h2>{circle ? <p>{copy.kinds.circle[circle.kind]}</p> : null}</div>
           {circle ? <CircleActions key={circle.id} circle={circle} /> : null}
         </header>
         {circle ? <div className="nd-care-focus">

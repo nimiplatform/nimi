@@ -1,4 +1,4 @@
-import { HomeExecutionNotices } from './execution-notices.js';
+import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { ActionMenu, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
@@ -78,10 +78,11 @@ function EmptyHint({ children }: { children: ReactNode }) {
  * One bounded timeline with its navigation and local filters above the list.
  * Source-owned state and the complete Message center remain independent.
  */
-export function HomeMessagesColumn({ messages, context, onViewAll }: {
+export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice }: {
   messages: HomeMessages;
   context: HomeMessageCardContext;
   onViewAll: () => void;
+  appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<HomeTimelineQuickFilter>('all');
@@ -208,7 +209,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll }: {
             </div>
           ) : null}
 
-          <HomeExecutionNotices />
+          <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
           <HomeMessageSourceNotices messages={messages} />
 
           <div

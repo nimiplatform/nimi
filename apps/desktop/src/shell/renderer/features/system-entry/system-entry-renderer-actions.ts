@@ -17,8 +17,7 @@ export type SystemEntryNotificationControls = Readonly<{
   resume(): Promise<void>;
 }>;
 export type SystemEntryReadingNavigation = Readonly<{
-  openUsage(): Promise<void>;
-  openCurrentWork(): Promise<void>;
+  openAIActivity(): Promise<void>;
 }>;
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r065
@@ -65,8 +64,8 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
   switch (action.kind) {
     case 'home': return navigate({ id: 'home', homeSection: 'overview' });
     case 'messages': return navigate({ id: 'home', homeSection: 'center' });
-    case 'activity': await input.reading.openCurrentWork(); guard(); return;
-    case 'usage': await input.reading.openUsage(); guard(); return;
+    case 'activity':
+    case 'usage': await input.reading.openAIActivity(); guard(); return;
     case 'downloads': return navigate({ id: 'downloads' });
     case 'apps': return navigate({ id: 'apps' });
     case 'ai-capabilities': return navigate({ id: 'runtime', runtime: { page: 'aiSettings', section: 'overview' } });

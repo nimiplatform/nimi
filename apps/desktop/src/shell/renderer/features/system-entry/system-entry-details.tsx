@@ -5,12 +5,10 @@ import {
   type DesktopAIExecution,
   type DesktopAIExecutionModel,
   type DesktopAICostEstimate,
-  type DesktopAISourceCoverage,
   type DesktopAIUsageGroup,
-  type DesktopAIUsageSummary,
 } from '@nimiplatform/sdk/runtime/generated';
-import { Activity, ArrowLeft, CalendarDays, Check, ChevronDown, Cloud, Coins, Cpu, Info, Layers3, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { Activity, ArrowLeft, CalendarDays, ChevronDown, Coins, Info, Layers3, Play, RefreshCw } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
@@ -18,8 +16,8 @@ import { projectSystemEntryUsage, type SystemEntryAIState } from './system-entry
 import { useSystemEntry, useSystemEntryAI } from './system-entry-context.js';
 import { systemEntryTimestampIso } from './system-entry-time.js';
 
-export type SystemEntryReadingSection = 'work' | 'usage';
 const PREFIX = 'runtimeConfig.systemEntry';
+const PANEL_CLASS = 'min-w-0 rounded-[20px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-home-card-elevation)]';
 const SOURCE_KEYS: Readonly<Record<string, string>> = {
   home: 'home', app: 'app', 'direct-runtime': 'directRuntime',
   'local-agent': 'localAgent', 'agent-background': 'agentBackground', realtime: 'realtime',
@@ -68,90 +66,88 @@ function RecordedTime({ value, timeZone }: { value: Parameters<typeof systemEntr
   }).format(new Date(iso))}</time>;
 }
 
-function SourceCoverage({ sources, mode, inline = false }: { sources: readonly DesktopAISourceCoverage[]; mode: 'activity' | 'usage'; inline?: boolean }) {
-  const { t } = useTranslation();
-  const content = !sources.length ? <p className="text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.coverageUnknown`)}</p> : <ul className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-    {sources.map(source => <li key={source.source} className="flex items-baseline justify-between gap-3">
-      <span>{SOURCE_KEYS[source.source] ? t(`${PREFIX}.sources.${SOURCE_KEYS[source.source]}`) : source.source}</span>
-      <span className="text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${(mode === 'activity' ? source.activityComplete : source.usageComplete) ? 'covered' : 'notCovered'}`)}</span>
-    </li>)}
-  </ul>;
-  if (inline) return <section aria-label={t(`${PREFIX}.sourceCoverage`)} className="text-sm">
-    <h3 className="font-medium">{t(`${PREFIX}.sourceCoverage`)}</h3><div className="mt-3">{content}</div>
-  </section>;
-  return <details className="rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-sm">
-    <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">{t(`${PREFIX}.sourceCoverage`)}</summary>
-    <div className="mt-3">{content}</div>
-  </details>;
-}
-
-function Estimates({ estimates, emphasis = false, showPricingBasis = true }: {
+function Estimates({ estimates, emphasis = false }: {
   estimates: readonly DesktopAICostEstimate[];
   emphasis?: boolean;
-  showPricingBasis?: boolean;
 }) {
   const { t } = useTranslation();
   const valid = estimates.filter(value => /^[A-Z]{3,8}$/u.test(value.currency)
     && /^\d+(\.\d+)?$/u.test(value.estimatedAmount) && value.estimatedAmount.length <= 40);
   if (!valid.length) return <span className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.costUnknown`)}</span>;
-  return <ul className={emphasis ? 'space-y-4' : 'space-y-1 text-right'}>
+  return <ul className={emphasis ? 'space-y-2' : 'space-y-1 text-right'}>
     {valid.map((estimate, index) => <li key={`${estimate.currency}:${index}`} className="min-w-0 tabular-nums">
       <div className={`flex min-w-0 flex-wrap items-baseline gap-x-2.5 ${emphasis ? '' : 'justify-end'}`}>
         <span className={`${emphasis ? 'text-xs uppercase tracking-[0.08em]' : 'text-xs'} font-medium text-[var(--nimi-text-secondary)]`}>{estimate.currency}</span>
-        <span className={`${emphasis ? 'text-3xl font-semibold tracking-[-0.035em]' : 'text-lg font-semibold'} break-all`}>{estimate.estimatedAmount}</span>
+        <span className={`${emphasis ? 'text-[40px] font-semibold leading-tight tracking-[-0.035em]' : 'text-sm font-medium'} break-all`}>{estimate.estimatedAmount}</span>
       </div>
-      {showPricingBasis ? <p className="mt-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">{estimate.pricingBasis === 'captured_catalog_estimate'
-        ? t(`${PREFIX}.capturedPricing`) : t(`${PREFIX}.pricingBasis`, { value: estimate.pricingBasis || t(`${PREFIX}.unknown`) })}</p> : null}
     </li>)}
     {valid.length !== estimates.length ? <li className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.costUnknown`)}</li> : null}
   </ul>;
 }
 
-function CurrentWorkReading({ ai }: { ai: SystemEntryAIState | null }) {
-  const { t, i18n } = useTranslation();
+function currentWork(ai: SystemEntryAIState | null, locale: string) {
   const read = ai?.activity;
-  if (!read || read.status === 'loading') return <LoadingSkeleton lines={4} label={t(`${PREFIX}.workLoading`)} />;
-  if (read.status !== 'ready' || !read.value) return <InlineAlert tone="warning">{t(`${PREFIX}.workUnavailable`)}</InlineAlert>;
+  if (read?.status !== 'ready' || !read.value) return null;
   const snapshot = read.value;
   const groups = groupWork(snapshot.executions);
   const sourceComplete = snapshot.sourceCoverage.length > 0 && snapshot.sourceCoverage.every(source => source.activityComplete);
-  const workCount = snapshot.workCountKnown && sourceComplete
-    ? count(snapshot.knownWorkCount, i18n.resolvedLanguage ?? 'en') : null;
+  const reportedCount = count(snapshot.knownWorkCount, locale);
+  const workCount = snapshot.workCountKnown && sourceComplete && reportedCount !== null
+    && BigInt(snapshot.knownWorkCount) >= BigInt(groups.length) ? reportedCount : null;
   const complete = sourceComplete && snapshot.recordsComplete && workCount !== null && snapshot.partialReasons.length === 0;
-  return <div className="space-y-5" data-testid="home-current-work-reading">
-    <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <p className="font-medium">{workCount === null ? t(`${PREFIX}.workCountUnknown`) : t(`${PREFIX}.workCount`, { value: workCount })}</p>
-      <p className="text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.lastObserved`)} <RecordedTime value={snapshot.observedAt} timeZone={ai?.range.timeZone} /></p>
-    </div>
-    {!complete ? <InlineAlert tone="info">{t(`${PREFIX}.workPartial`, { count: groups.length })}</InlineAlert> : null}
-    {!groups.length ? <p className="py-5 text-sm text-[var(--nimi-text-secondary)]" role="status">{t(`${PREFIX}.${complete ? 'workEmpty' : 'workEmptyPartial'}`)}</p> : <div className="divide-y divide-[var(--nimi-border-subtle)]">
-      {groups.map(([key, executions]) => {
-        const first = executions[0]!;
-        const unknown = executions.some(execution => execution.state !== DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_RUNNING);
-        return <article key={key} className="py-5 first:pt-0" data-testid="home-current-work-row">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="break-words text-base font-semibold">{first.sourceLabel || t(`${PREFIX}.executionSource`)}</h2>
-              {!first.parentWorkId || !first.parentWorkKind ? <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.unassociated`)}</p> : null}
-            </div>
-            <span className={`text-sm font-medium ${unknown ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-text-secondary)]'}`}>{t(`${PREFIX}.${unknown ? 'stateUnknown' : 'running'}`)}</span>
-          </div>
-          {unknown ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.observationUnknown`)}</p> : null}
-          <ul className="mt-3 space-y-4">
-            {executions.map(execution => <li key={execution.attemptId} className="grid gap-2 sm:grid-cols-[minmax(8rem,0.6fr)_minmax(0,1fr)]">
-              <div><p className="text-sm">{displayRuntimeConfigCapabilityLabel(execution.capability, t)}</p><RouteLabel route={execution.route} /></div>
-              <div className="min-w-0"><ModelList models={execution.models} />
-                <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.startedAt`)} <RecordedTime value={execution.startedAt} timeZone={ai?.range.timeZone} /></p>
-                {execution.state !== DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_RUNNING ? <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.lastObserved`)} <RecordedTime value={execution.observedAt} timeZone={ai?.range.timeZone} /></p> : null}
-              </div>
-            </li>)}
-          </ul>
-        </article>;
-      })}
-    </div>}
-    <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workReadOnly`)}</p>
-    <SourceCoverage sources={snapshot.sourceCoverage} mode="activity" />
+  return { snapshot, groups, workCount, complete };
+}
+
+function CurrentWorkSummary({ ai }: { ai: SystemEntryAIState | null }) {
+  const { t, i18n } = useTranslation();
+  const work = currentWork(ai, i18n.resolvedLanguage ?? 'en');
+  return <div className={PANEL_CLASS} data-testid="home-current-work-summary">
+    <dt className="flex items-center gap-2 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Activity size={17} aria-hidden="true" /></span>{t(`${PREFIX}.workTitle`)}</dt>
+    <dd className="mt-4 break-words text-[40px] font-semibold leading-tight tracking-[-0.035em] tabular-nums" aria-label={work?.workCount == null ? undefined : t(`${PREFIX}.workCount`, { value: work.workCount })}>
+      {work?.workCount ?? t(`${PREFIX}.unknown`)}{work?.workCount != null ? <span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workUnit`)}</span> : null}
+    </dd>
+    <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${!ai || ai.activity.status === 'loading' ? 'workLoading' : work?.workCount == null ? 'workCountUnknown' : 'currentActivity'}`)}</dd>
   </div>;
+}
+
+function CurrentWorkReading({ ai }: { ai: SystemEntryAIState | null }) {
+  const { t, i18n } = useTranslation();
+  const work = currentWork(ai, i18n.resolvedLanguage ?? 'en');
+  return <section aria-labelledby="home-activity-title" className={PANEL_CLASS} data-testid="home-current-work-reading">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 id="home-activity-title" className="text-base font-semibold">{t(`${PREFIX}.currentActivity`)}</h2>
+      {work ? <p className="text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.lastObserved`)} <RecordedTime value={work.snapshot.observedAt} timeZone={ai?.range.timeZone} /></p> : null}
+    </div>
+    {!ai || ai.activity.status === 'loading' ? <div className="mt-4"><LoadingSkeleton lines={2} label={t(`${PREFIX}.workLoading`)} /></div>
+      : !work ? <div className="mt-4"><InlineAlert tone="warning">{t(`${PREFIX}.workUnavailable`)}</InlineAlert></div>
+      : <>
+        {!work.complete ? <UsageNotice testId="home-work-warning"><p>{t(`${PREFIX}.workPartial`, { count: work.groups.length })}</p></UsageNotice> : null}
+        {!work.groups.length ? <p className="py-5 text-sm text-[var(--nimi-text-secondary)]" role="status">{t(`${PREFIX}.${work.complete ? 'workEmpty' : 'workEmptyPartial'}`)}</p>
+          : <div className="mt-2 divide-y divide-[var(--nimi-border-subtle)]">
+            {work.groups.map(([key, executions]) => {
+              const first = executions[0]!;
+              const unknown = executions.some(execution => execution.state !== DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_RUNNING);
+              return <article key={key} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 py-4 md:grid-cols-[minmax(10rem,0.65fr)_minmax(0,2fr)_auto]" data-testid="home-current-work-row">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Layers3 size={17} aria-hidden="true" /></span>
+                  <div className="min-w-0 pt-2"><h3 className="break-words text-sm font-semibold">{first.sourceLabel || t(`${PREFIX}.executionSource`)}</h3>
+                    {!first.parentWorkId || !first.parentWorkKind ? <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.unassociated`)}</p> : null}</div>
+                </div>
+                <span className={`justify-self-end rounded-full px-2.5 py-1 text-xs font-medium md:col-start-3 ${unknown ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]'}`}>{t(`${PREFIX}.${unknown ? 'stateUnknown' : 'running'}`)}</span>
+                <ul className="col-span-2 min-w-0 space-y-3 md:col-span-1 md:col-start-2 md:row-start-1">
+                  {executions.map(execution => <li key={execution.attemptId} className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1">
+                    <div className="min-w-0"><ModelList models={execution.models} /><p className="mt-1 flex flex-wrap gap-x-2 text-xs text-[var(--nimi-text-secondary)]"><span>{displayRuntimeConfigCapabilityLabel(execution.capability, t)}</span><span aria-hidden="true">·</span><RouteLabel route={execution.route} /></p></div>
+                    <div className="text-xs leading-5 text-[var(--nimi-text-secondary)]"><p>{t(`${PREFIX}.startedAt`)} <RecordedTime value={execution.startedAt} timeZone={ai?.range.timeZone} /></p>
+                      {execution.state !== DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_RUNNING ? <p>{t(`${PREFIX}.lastObserved`)} <RecordedTime value={execution.observedAt} timeZone={ai?.range.timeZone} /></p> : null}</div>
+                  </li>)}
+                </ul>
+                {unknown ? <p className="col-span-2 text-sm leading-6 text-[var(--nimi-text-secondary)] md:col-span-3">{t(`${PREFIX}.observationUnknown`)}</p> : null}
+              </article>;
+            })}
+          </div>}
+        {work.groups.length ? <p className="border-t border-[var(--nimi-border-subtle)] pt-3 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workReadOnly`)}</p> : null}
+      </>}
+  </section>;
 }
 
 function hasPositiveCount(value: string | undefined): boolean {
@@ -168,31 +164,19 @@ function UsageRouteSummary({ attempts, localAttempts, cloudAttempts }: { attempt
   const cloud = valid ? BigInt(cloudAttempts!) : 0n;
   const unknown = valid ? total - local - cloud : 0n;
   const showUnknown = unknown > 0n;
-  const showBar = valid && total > 0n && unknown >= 0n;
-  const localPoints = showBar ? Number(local * 10000n / total) : 0;
-  const unknownPoints = showBar ? Number(unknown * 10000n / total) : 0;
-  const cloudPoints = showBar ? 10000 - localPoints - unknownPoints : 0;
-  return <div className="mt-6" data-testid="home-usage-route-summary">
-    <div className="grid grid-cols-2 gap-3">
-      <div className="flex min-w-0 items-center gap-2.5 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)] px-3 py-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]"><Cpu size={15} aria-hidden="true" /></span>
-        <span className="min-w-0"><span className="block text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.local`)}</span><span className="mt-0.5 block text-lg font-semibold tabular-nums">{display(localAttempts)}</span></span>
-      </div>
-      <div className="flex min-w-0 items-center gap-2.5 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)] px-3 py-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Cloud size={15} aria-hidden="true" /></span>
-        <span className="min-w-0"><span className="block text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.cloud`)}</span><span className="mt-0.5 block text-lg font-semibold tabular-nums">{display(cloudAttempts)}</span></span>
-      </div>
-    </div>
-    {showUnknown ? <p className="mt-2 text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.routeUnknown`)} <span className="font-medium text-[var(--nimi-text-primary)] tabular-nums">{display(String(unknown))}</span></p> : null}
-    {showBar ? <div className="mt-4 flex h-1.5 overflow-hidden rounded-full bg-[var(--nimi-border-subtle)]" aria-hidden="true">
-      <span className="bg-[var(--nimi-text-muted)]" style={{ width: `${localPoints / 100}%` }} />
-      <span className="bg-[var(--nimi-action-primary-bg)]" style={{ width: `${cloudPoints / 100}%` }} />
-      <span className="bg-[var(--nimi-status-warning)]" style={{ width: `${unknownPoints / 100}%` }} />
-    </div> : null}
-  </div>;
+  return <p className="mt-2 flex flex-wrap gap-x-2 text-xs leading-5 text-[var(--nimi-text-secondary)]" data-testid="home-usage-route-summary">
+    <span>{t(`${PREFIX}.local`)} {display(localAttempts)}</span><span aria-hidden="true">·</span><span>{t(`${PREFIX}.cloud`)} {display(cloudAttempts)}</span>
+    {showUnknown ? <><span aria-hidden="true">·</span><span>{t(`${PREFIX}.routeUnknown`)} {display(String(unknown))}</span></> : null}
+  </p>;
 }
 
 type UsageRouteFilter = 'all' | 'local' | 'cloud';
+
+function UsageNotice({ children, testId }: { children: ReactNode; testId: string }) {
+  return <div role="status" data-testid={testId} className="mt-4 flex items-start gap-2 rounded-2xl border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] p-3 text-sm leading-6 text-[var(--nimi-status-warning-soft-text)]">
+    <Info size={15} className="mt-1 shrink-0" aria-hidden="true" /><div className="min-w-0 space-y-1">{children}</div>
+  </div>;
+}
 
 function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly DesktopAIUsageGroup[]; attempts: string | null; groupsComplete: boolean }) {
   const { t, i18n } = useTranslation();
@@ -200,11 +184,10 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
   const [route, setRoute] = useState<UsageRouteFilter>('all');
   const locale = i18n.resolvedLanguage ?? 'en';
   const display = (value: string | undefined) => count(value, locale) ?? t(`${PREFIX}.unknown`);
-  if (!groups.length) return <section aria-labelledby="home-usage-detail-title" className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-home-card-elevation)] sm:p-6">
-    <h2 id="home-usage-detail-title" className="text-lg font-semibold tracking-[-0.02em]">{t(`${PREFIX}.modelBreakdown`)}</h2>
-    <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.breakdownDescription`)}</p>
-    <p className="mt-5 rounded-2xl bg-[var(--nimi-surface-panel)] px-4 py-8 text-center text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${groupsComplete && attempts === '0' ? 'usageEmpty' : 'groupsUnavailable'}`)}</p>
-  </section>;
+  if (!groups.length) return <>
+    {!groupsComplete ? <UsageNotice testId="home-usage-details-warning"><p>{t(`${PREFIX}.detailsIncomplete`)}</p></UsageNotice> : null}
+    <p className="py-6 text-center text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${groupsComplete && attempts === '0' ? 'usageEmpty' : 'groupsUnavailable'}`)}</p>
+  </>;
   const normalizedQuery = query.trim().toLocaleLowerCase(locale);
   const filtered = normalizedQuery.length > 0 || route !== 'all';
   const visible = groups.flatMap((group, index) => {
@@ -219,14 +202,11 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
     return !normalizedQuery || searchText.includes(normalizedQuery) ? [{ group, index }] : [];
   });
   const clearFilters = () => { setQuery(''); setRoute('all'); };
-  return <section aria-labelledby="home-usage-detail-title" className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-home-card-elevation)] sm:p-6">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 id="home-usage-detail-title" className="text-lg font-semibold tracking-[-0.02em]">{t(`${PREFIX}.modelBreakdown`)}</h2>
-        <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.breakdownDescription`)}</p></div>
-      {groups.length > 5 || filtered ? <p className="rounded-full bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)] tabular-nums" role="status">
+  return <>
+      {groups.length > 5 || filtered ? <p className="mt-3 inline-block rounded-full bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)] tabular-nums" role="status">
         {t(filtered ? `${PREFIX}.filteredResults` : `${PREFIX}.groupCount`, filtered ? { shown: visible.length, total: groups.length } : { count: groups.length })}
       </p> : null}
-    </div>
+    {!groupsComplete ? <UsageNotice testId="home-usage-details-warning"><p>{t(`${PREFIX}.detailsIncomplete`)}</p></UsageNotice> : null}
     {groups.length > 5 || filtered ? <div className="mt-5 flex flex-wrap items-center gap-2">
       <SearchField value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setQuery(''); }}
         placeholder={t(`${PREFIX}.searchGroups`)} aria-label={t(`${PREFIX}.searchGroups`)} aria-controls="home-usage-group-list" className="min-w-0 flex-1 text-sm sm:max-w-sm" />
@@ -237,146 +217,155 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
       </select>
       {filtered ? <Button tone="ghost" size="sm" onClick={clearFilters}>{t(`${PREFIX}.clearFilters`)}</Button> : null}
     </div> : null}
-    {visible.length ? <ul id="home-usage-group-list" className="mt-5 space-y-3">
-      {visible.map(({ group, index }) => <li key={`${group.sourceKind}:${group.capability}:${index}`} data-testid="home-usage-group"
-        className="grid gap-5 rounded-[20px] bg-[var(--nimi-surface-panel)] p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)] lg:items-center">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Layers3 size={18} aria-hidden="true" /></span>
-          <div className="min-w-0"><ModelList models={group.models} /><p className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
-            <span className="rounded-full bg-[var(--nimi-surface-card)] px-2.5 py-1">{SOURCE_KEYS[group.sourceKind] ? t(`${PREFIX}.sources.${SOURCE_KEYS[group.sourceKind]}`) : group.sourceKind}</span>
-            <span className="rounded-full bg-[var(--nimi-surface-card)] px-2.5 py-1">{displayRuntimeConfigCapabilityLabel(group.capability, t)}</span>
-            <span className="rounded-full bg-[var(--nimi-surface-card)] px-2.5 py-1"><RouteLabel route={group.route} /></span></p></div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 border-t border-[var(--nimi-border-subtle)] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-          <div className="tabular-nums"><span className="block text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.recordedAttemptsShort`)}</span>
-            <span className="mt-1 block text-xl font-semibold">{display(group.totals?.attemptCount)}</span></div>
-          <div className="min-w-0 text-right"><span className="block text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimatedCosts`)}</span>
-            <div className="mt-1"><Estimates estimates={group.estimates} showPricingBasis={false} /></div></div>
-        </div>
-      </li>)}
-    </ul> : <div className="mt-5 rounded-2xl bg-[var(--nimi-surface-panel)] py-10 text-center" role="status">
+    {visible.length ? <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]" tabIndex={0} role="region" aria-labelledby="home-usage-detail-title">
+      <table id="home-usage-group-list" className="w-full min-w-[620px] table-fixed text-left text-sm">
+        <thead className="bg-[var(--nimi-surface-panel)] text-xs text-[var(--nimi-text-secondary)]"><tr>
+          <th scope="col" className="w-[34%] px-4 py-3 font-medium">{t(`${PREFIX}.modelColumn`)}</th>
+          <th scope="col" className="w-[17%] px-3 py-3 font-medium">{t(`${PREFIX}.sourceColumn`)}</th>
+          <th scope="col" className="w-[12%] px-3 py-3 font-medium">{t(`${PREFIX}.routeColumn`)}</th>
+          <th scope="col" className="w-[15%] px-3 py-3 text-right font-medium">{t(`${PREFIX}.recordedAttemptsShort`)}</th>
+          <th scope="col" className="w-[22%] px-4 py-3 text-right font-medium">{t(`${PREFIX}.estimatedCosts`)}</th>
+        </tr></thead>
+        <tbody className="divide-y divide-[var(--nimi-border-subtle)]">{visible.map(({ group, index }) => <tr key={`${group.sourceKind}:${group.capability}:${index}`} data-testid="home-usage-group">
+          <td className="px-4 py-3"><ModelList models={group.models} /><p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{displayRuntimeConfigCapabilityLabel(group.capability, t)}</p></td>
+          <td className="break-words px-3 py-3 text-xs text-[var(--nimi-text-secondary)]">{SOURCE_KEYS[group.sourceKind] ? t(`${PREFIX}.sources.${SOURCE_KEYS[group.sourceKind]}`) : group.sourceKind}</td>
+          <td className="px-3 py-3"><RouteLabel route={group.route} /></td>
+          <td className="break-words px-3 py-3 text-right font-medium tabular-nums">{display(group.totals?.attemptCount)}</td>
+          <td className="px-4 py-3"><Estimates estimates={group.estimates} /></td>
+        </tr>)}</tbody>
+      </table>
+    </div> : <div className="mt-5 rounded-2xl bg-[var(--nimi-surface-panel)] py-10 text-center" role="status">
       <p className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.noMatchingGroups`)}</p>
       <Button tone="ghost" size="sm" className="mt-2" onClick={clearFilters}>{t(`${PREFIX}.clearFilters`)}</Button>
     </div>}
-  </section>;
+  </>;
 }
 
-function UsageDataDetails({ summary, timeZone, partial }: { summary: DesktopAIUsageSummary; timeZone: string; partial: boolean }) {
-  const { t, i18n } = useTranslation();
-  const display = (value: string | undefined) => count(value, i18n.resolvedLanguage ?? 'en') ?? t(`${PREFIX}.unknown`);
-  const coverage = [
-    ['executionSources', summary.sourceComplete && summary.sourceCoverage.length > 0],
-    ['recordedTime', summary.timeComplete], ['usageQuantities', summary.quantityComplete], ['groupDetail', summary.groupsComplete],
-  ] as const;
+function UsageDataDetails({ ai }: { ai: SystemEntryAIState | null }) {
+  const { t } = useTranslation();
+  const pricingBases = ai?.usage.status === 'ready' ? [...new Set(ai.usage.value?.estimates.map(estimate => estimate.pricingBasis).filter(Boolean))] : [];
   return <details className="group rounded-[20px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] px-4 py-1 sm:px-5" data-testid="home-usage-data-details">
     <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-md py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
       <span className="flex min-w-0 flex-wrap items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]"><Info size={15} aria-hidden="true" /></span>
-        <span>{t(`${PREFIX}.coverageTitle`)}</span><span data-testid="home-usage-coverage-status" className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${partial ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]'}`}>
-          {partial ? null : <Check size={12} aria-hidden="true" />}{t(`${PREFIX}.${partial ? 'partial' : 'complete'}`)}</span></span>
+        <span>{t(`${PREFIX}.usageExplanation`)}</span></span>
       <ChevronDown size={16} className="shrink-0 text-[var(--nimi-text-secondary)] transition-transform group-open:rotate-180" aria-hidden="true" />
     </summary>
     <div className="space-y-5 border-t border-[var(--nimi-border-subtle)] py-5">
-      {partial ? <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.usagePartial`)}</p> : null}
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.recordedAttempts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.attemptDefinition`)}</p></section>
-        <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.estimatedCosts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateDisclaimer`)}</p></section>
+        <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.recordedAttempts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workDefinition`)} {t(`${PREFIX}.attemptDefinition`)}</p></section>
+        <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.estimatedCosts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateDisclaimer`)}</p>
+          {pricingBases.map(basis => <p key={basis} className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{basis === 'captured_catalog_estimate' ? t(`${PREFIX}.capturedPricing`) : t(`${PREFIX}.pricingBasis`, { value: basis })}</p>)}
+        </section>
       </div>
-      <dl className="grid gap-x-8 gap-y-3 rounded-2xl bg-[var(--nimi-surface-panel)] p-4 sm:grid-cols-2">
-        {coverage.map(([key, complete]) => <div key={key} className="flex items-baseline justify-between gap-3 text-sm">
-          <dt>{t(`${PREFIX}.${key}`)}</dt><dd className={complete ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-status-warning)]'}>{t(`${PREFIX}.${complete ? 'complete' : 'partial'}`)}</dd>
-        </div>)}
-        {(['pendingUsage', 'unpricedUsage'] as const).map(key => <div key={key} className="flex items-baseline justify-between gap-3 text-sm">
-          <dt>{t(`${PREFIX}.${key}`)}</dt><dd className="text-[var(--nimi-text-secondary)] tabular-nums">{display(summary.totals?.[key === 'pendingUsage' ? 'pendingUsageCount' : 'unpricedAttemptCount'])}</dd>
-        </div>)}
-      </dl>
-      <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.recordedBounds`)} <RecordedTime value={summary.coverageFrom} timeZone={timeZone} /> — <RecordedTime value={summary.coverageTo} timeZone={timeZone} /></p>
-      <SourceCoverage sources={summary.sourceCoverage} mode="usage" inline />
     </div>
   </details>;
 }
 
-function UsageReading({ ai }: { ai: SystemEntryAIState | null }) {
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-coverage
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-usage-summary
+function UsageSummary({ ai }: { ai: SystemEntryAIState | null }) {
   const { t, i18n } = useTranslation();
   const read = ai?.usage;
-  if (!ai || !read || read.status === 'loading') return <LoadingSkeleton lines={4} label={t(`${PREFIX}.usageLoading`)} />;
-  if (read.status !== 'ready' || !read.value?.totals) return <InlineAlert tone="warning">{t(`${PREFIX}.usageUnavailable`)}</InlineAlert>;
+  if (!ai || !read || read.status === 'loading') return <UnavailableUsageSummary loading />;
+  if (read.status !== 'ready' || !read.value?.totals) return <UnavailableUsageSummary />;
   const summary = read.value;
   const locale = i18n.resolvedLanguage ?? 'en';
   const projection = projectSystemEntryUsage(read, ai.range, locale.startsWith('zh') ? 'zh' : 'en');
-  if (projection.status === 'unavailable') return <InlineAlert tone="warning">{t(`${PREFIX}.usageUnavailable`)}</InlineAlert>;
+  if (projection.status === 'unavailable') return <UnavailableUsageSummary />;
   const display = (value: string | undefined | null) => count(value ?? undefined, locale) ?? t(`${PREFIX}.unknown`);
   const pending = hasPositiveCount(summary.totals?.pendingUsageCount);
   const unpriced = hasPositiveCount(summary.totals?.unpricedAttemptCount);
-  const attention = projection.partial || pending || unpriced;
-  return <div className="space-y-6" data-testid="home-ai-usage-reading">
-    <section aria-label={t(`${PREFIX}.usageSummary`)} className="space-y-4" data-testid="home-usage-summary">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">
-        <p className="flex items-center gap-2"><CalendarDays size={14} aria-hidden="true" /><span>{ai.range.date} · {ai.range.timeZone}</span></p>
-        <p>{t(`${PREFIX}.readAt`)} <RecordedTime value={summary.readAt} timeZone={ai.range.timeZone} /></p>
-      </div>
-      <dl className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="relative min-w-0 overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-home-card-elevation)] sm:p-6" data-testid="home-usage-attempts-card">
-          <span className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_7%,transparent)] blur-2xl" aria-hidden="true" />
-          <dt className="relative flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-9 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Activity size={17} aria-hidden="true" /></span>{t(`${PREFIX}.recordedAttempts`)}</dt>
-          <dd className="relative mt-5 text-5xl font-semibold leading-none tracking-[-0.045em] tabular-nums">{display(projection.attempts)}</dd>
+  const uncoveredSources = summary.sourceCoverage.filter(source => !source.usageComplete);
+  const sourceIncomplete = !summary.sourceComplete || !summary.sourceCoverage.length || uncoveredSources.length > 0;
+  const recordsIncomplete = sourceIncomplete || !summary.timeComplete;
+  const quantitiesIncomplete = !summary.quantityComplete || pending;
+  const pricingIncomplete = projection.costs.length !== summary.estimates.length;
+  const unexplainedCoverage = summary.partialReasons.length > 0 && !recordsIncomplete && !quantitiesIncomplete && !unpriced;
+  const costIncomplete = recordsIncomplete || quantitiesIncomplete || unpriced || pricingIncomplete || unexplainedCoverage;
+  return <>
+        <div className={PANEL_CLASS} data-testid="home-usage-attempts-card">
+          <dt className="relative flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Play size={17} aria-hidden="true" /></span>{t(`${PREFIX}.todayExecutions`)}</dt>
+          <dd className="mt-4 break-words text-[40px] font-semibold leading-tight tracking-[-0.035em] tabular-nums">{display(projection.attempts)}<span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.executionUnit`)}</span></dd>
           <dd className="relative"><UsageRouteSummary attempts={projection.attempts} localAttempts={projection.localAttempts} cloudAttempts={projection.cloudAttempts} /></dd>
+          {recordsIncomplete || unexplainedCoverage ? <dd className="relative"><UsageNotice testId="home-usage-count-warning">
+            <p>{t(`${PREFIX}.${recordsIncomplete ? 'attemptsIncomplete' : 'attemptsUnconfirmed'}`)}</p>
+            {uncoveredSources.length ? <p className="text-xs">{t(`${PREFIX}.uncoveredUsageSources`, { sources: uncoveredSources.map(source => SOURCE_KEYS[source.source] ? t(`${PREFIX}.sources.${SOURCE_KEYS[source.source]}`) : source.source).join(' · ') })}</p> : null}
+            {!summary.timeComplete && systemEntryTimestampIso(summary.coverageFrom) && systemEntryTimestampIso(summary.coverageTo) ? <p className="text-xs">{t(`${PREFIX}.recordedBounds`)} <RecordedTime value={summary.coverageFrom} timeZone={ai.range.timeZone} /> — <RecordedTime value={summary.coverageTo} timeZone={ai.range.timeZone} /></p> : null}
+          </UsageNotice></dd> : null}
         </div>
-        <div className="relative min-w-0 overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-home-card-elevation)] sm:p-6" data-testid="home-usage-cost-card">
-          <span className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)] blur-2xl" aria-hidden="true" />
-          <dt className="relative flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]"><Coins size={17} aria-hidden="true" /></span>{t(`${PREFIX}.estimatedCosts`)}</dt>
-          <dd className="relative mt-5"><Estimates estimates={summary.estimates} emphasis /></dd>
-          {summary.estimates.length ? <dd className="relative mt-5 flex items-start gap-2 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)] p-3 text-xs leading-5 text-[var(--nimi-text-secondary)]"><Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />{t(`${PREFIX}.estimateShortDisclaimer`)}</dd> : null}
+        <div className={PANEL_CLASS} data-testid="home-usage-cost-card">
+          <dt className="relative flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Coins size={17} aria-hidden="true" /></span>{t(`${PREFIX}.estimatedCosts`)}</dt>
+          <dd className="mt-4"><Estimates estimates={summary.estimates} emphasis /></dd>
+          {summary.estimates.length ? <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateShortDisclaimer`)}</dd> : null}
+          {projection.costs.length > 1 ? <dd className="relative mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.separateCurrencies`)}</dd> : null}
+          {costIncomplete ? <dd className="relative"><UsageNotice testId="home-usage-cost-warning">
+            <p className="font-medium">{t(`${PREFIX}.costsIncomplete`)}</p>
+            {recordsIncomplete ? <p>{t(`${PREFIX}.costsMissingRecords`)}</p> : null}
+            {pending ? <p>{t(`${PREFIX}.costsPendingUsage`, { value: display(summary.totals?.pendingUsageCount) })}</p> : null}
+            {!pending && quantitiesIncomplete ? <p>{t(`${PREFIX}.costsMissingQuantities`)}</p> : null}
+            {unpriced ? <p>{t(`${PREFIX}.costsUnpriced`, { value: display(summary.totals?.unpricedAttemptCount) })}</p> : null}
+            {pricingIncomplete || unexplainedCoverage ? <p>{t(`${PREFIX}.costsUnconfirmed`)}</p> : null}
+            <p className="text-xs">{t(`${PREFIX}.missingCostsNotZero`)}</p>
+          </UsageNotice></dd> : null}
         </div>
-      </dl>
-    </section>
-    {attention ? <div className="flex items-start gap-3 rounded-2xl border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] px-4 py-3.5 text-sm" data-testid="home-usage-attention">
-      <Info size={17} className="mt-0.5 shrink-0 text-[var(--nimi-status-warning)]" aria-hidden="true" />
-      <div><p className="leading-6 text-[var(--nimi-status-warning-soft-text)]">{t(`${PREFIX}.usagePartialShort`)}</p>
-        {pending || unpriced ? <ul className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-xs text-[var(--nimi-status-warning-soft-text)]">
-          {pending ? <li>{t(`${PREFIX}.pendingUsage`)} <span className="font-medium text-[var(--nimi-text-primary)] tabular-nums">{display(summary.totals?.pendingUsageCount)}</span></li> : null}
-          {unpriced ? <li>{t(`${PREFIX}.unpricedUsage`)} <span className="font-medium text-[var(--nimi-text-primary)] tabular-nums">{display(summary.totals?.unpricedAttemptCount)}</span></li> : null}
-        </ul> : null}
-      </div>
-    </div> : null}
-    <UsageGroups groups={summary.groups} attempts={projection.attempts} groupsComplete={summary.groupsComplete} />
-    <UsageDataDetails summary={summary} timeZone={ai.range.timeZone} partial={attention} />
-  </div>;
+  </>;
 }
 
-export function SystemEntryDetailsView({ section, ai, onBack, onSectionChange, onRefresh, refreshing = false, refreshError = false }: {
-  section: SystemEntryReadingSection;
+function UnavailableUsageSummary({ loading = false }: { loading?: boolean }) {
+  const { t } = useTranslation();
+  return <>{(['todayExecutions', 'estimatedCosts'] as const).map(key => <div key={key} className={PANEL_CLASS}>
+    <dt className="text-sm font-medium text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${key}`)}</dt>
+    <dd className="mt-4 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${loading ? 'usageLoading' : 'unknown'}`)}</dd>
+  </div>)}</>;
+}
+
+function UsageBreakdown({ ai }: { ai: SystemEntryAIState | null }) {
+  const { t, i18n } = useTranslation();
+  const read = ai?.usage;
+  const projection = ai && read?.status === 'ready' ? projectSystemEntryUsage(read, ai.range, (i18n.resolvedLanguage ?? 'en').startsWith('zh') ? 'zh' : 'en') : null;
+  const summary = projection && projection.status !== 'unavailable' ? read?.value : null;
+  return <section aria-labelledby="home-usage-detail-title" className={PANEL_CLASS} data-testid="home-ai-usage-reading">
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div><h2 id="home-usage-detail-title" className="text-base font-semibold">{t(`${PREFIX}.usageDetails`)}</h2>
+        {ai ? <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]"><CalendarDays size={13} aria-hidden="true" />{ai.range.date} · {ai.range.timeZone}</p> : null}</div>
+      {summary ? <p className="text-xs text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.readAt`)} <RecordedTime value={summary.readAt} timeZone={ai?.range.timeZone} /></p> : null}
+    </div>
+    {!read || read.status === 'loading' ? <div className="mt-4"><LoadingSkeleton lines={2} label={t(`${PREFIX}.usageLoading`)} /></div>
+      : !summary || !projection ? <div className="mt-4"><InlineAlert tone="warning">{t(`${PREFIX}.usageUnavailable`)}</InlineAlert></div>
+      : <UsageGroups groups={summary.groups} attempts={projection.attempts} groupsComplete={summary.groupsComplete && projection.localAttempts !== null && projection.cloudAttempts !== null} />}
+  </section>;
+}
+
+export function SystemEntryDetailsView({ ai, onBack, onRefresh, refreshing = false, refreshError = false }: {
   ai: SystemEntryAIState | null;
   onBack(): void;
-  onSectionChange(section: SystemEntryReadingSection): void;
   onRefresh(): void;
   refreshing?: boolean;
   refreshError?: boolean;
 }) {
   const { t } = useTranslation();
   return <div className="flex min-h-0 flex-1 flex-col p-3"><ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent [&>div]:!block" contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-8 pt-5`}>
-    <div className="mx-auto w-full max-w-[1120px] space-y-6">
+    <div className="mx-auto w-full max-w-[1120px] space-y-5">
       <header className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button tone="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft size={16} aria-hidden="true" />{t('runtimeConfig.overview.back')}</Button>
-          <nav className="flex rounded-full bg-[var(--nimi-surface-panel)] p-1" aria-label={t(`${PREFIX}.readingNavigation`)}>
-            {(['work', 'usage'] as const).map(value => <Button key={value} tone="ghost" size="sm" aria-current={value === section ? 'page' : undefined}
-              className={`rounded-full px-4 ${value === section ? 'bg-[var(--nimi-surface-card)] font-semibold text-[var(--nimi-action-primary-bg)] shadow-sm' : 'text-[var(--nimi-text-secondary)]'}`}
-              onClick={() => onSectionChange(value)}>{t(`${PREFIX}.${value === 'work' ? 'workTitle' : 'usageTitle'}`)}</Button>)}
-          </nav>
         </div>
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-[28px] font-semibold tracking-[-0.035em]">{t(`${PREFIX}.${section === 'work' ? 'workTitle' : 'usageTitle'}`)}</h1>
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-[var(--nimi-text-secondary)]"><span>{t(`${PREFIX}.scope`)}</span>{section === 'usage' ? <><span aria-hidden="true">·</span><span>{t(`${PREFIX}.usageSubtitle`)}</span></> : null}</p></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-[28px] font-semibold tracking-[-0.035em]">{t(`${PREFIX}.activityUsageTitle`)}</h1>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-[var(--nimi-text-secondary)]"><span>{t(`${PREFIX}.scope`)}</span></p></div>
           <Button tone="secondary" size="sm" className="rounded-full px-4" disabled={refreshing} aria-busy={refreshing} onClick={onRefresh}><RefreshCw size={15} className={refreshing ? 'motion-safe:animate-spin' : undefined} aria-hidden="true" />{t(refreshing ? 'Common.loading' : 'runtimeConfig.overview.refresh')}</Button>
         </div>
       </header>
       {refreshError ? <InlineAlert tone="warning">{t(`${PREFIX}.refreshFailed`)}</InlineAlert> : null}
-      {section === 'work' ? <CurrentWorkReading ai={ai} /> : <UsageReading ai={ai} />}
+      <dl className="grid gap-4 md:grid-cols-3" data-testid="home-usage-summary"><CurrentWorkSummary ai={ai} /><UsageSummary ai={ai} /></dl>
+      <CurrentWorkReading ai={ai} />
+      <UsageBreakdown ai={ai} />
+      <UsageDataDetails ai={ai} />
     </div>
   </ScrollArea></div>;
 }
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.system-entry-projection
-export function SystemEntryDetails(props: { section: SystemEntryReadingSection; onBack(): void; onSectionChange(section: SystemEntryReadingSection): void }) {
+export function SystemEntryDetails(props: { onBack(): void }) {
   const ai = useSystemEntryAI();
   const { refresh } = useSystemEntry();
   const [refreshing, setRefreshing] = useState(false);

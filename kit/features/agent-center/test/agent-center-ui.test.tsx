@@ -8,6 +8,7 @@ import { AgentCenterAppearanceSection } from '../src/components/AgentCenterAppea
 import type { AgentCenterHostMechanics } from '../src/types.js';
 import { sessionFor } from './session-fixture.js';
 import { TestResourcePackTargetController } from './resource-pack-target-fixture.js';
+import { createAgentCenterShellHostMechanics } from '../src/shell-appearance-adapter.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -356,7 +357,7 @@ describe('AgentCenter UI session contract', () => {
     await flush();
 
     const chooseBackground = Array.from(node.querySelectorAll('button'))
-      .find((button) => button.textContent?.trim() === 'Choose background image') as HTMLButtonElement;
+      .find((button) => button.textContent?.trim() === 'Choose image') as HTMLButtonElement;
     expect(chooseBackground).toBeTruthy();
     act(() => chooseBackground.click());
     const confirm = Array.from(document.body.querySelectorAll('button'))
@@ -420,8 +421,8 @@ describe('AgentCenter UI session contract', () => {
     };
     const assertWritesDisabled = () => {
       for (const label of [
-        'Choose Live2D package', 'Choose VRM file', 'Choose background image',
-        'Restore previous appearance', 'Clear voice selection',
+        'Import Live2D', 'Import VRM', 'Choose image',
+        'Restore previous appearance', 'Clear selection',
       ]) {
         expect(button(label).disabled, label).toBe(true);
       }
@@ -429,8 +430,8 @@ describe('AgentCenter UI session contract', () => {
     };
     try {
       expect(button('Restore previous appearance').disabled).toBe(false);
-      expect(button('Clear voice selection').disabled).toBe(false);
-      act(() => { button('Choose Live2D package').click(); });
+      expect(button('Clear selection').disabled).toBe(false);
+      act(() => { button('Import Live2D').click(); });
       const confirm = Array.from(document.body.querySelectorAll('button'))
         .find((entry) => entry.textContent?.trim() === 'Choose file and replace')!;
       act(() => { confirm.click(); confirm.click(); });
@@ -454,9 +455,9 @@ describe('AgentCenter UI session contract', () => {
       expect(restoreCalls).toHaveBeenCalledTimes(1);
       assertWritesDisabled();
       act(() => {
-        button('Choose VRM file').click();
-        button('Choose background image').click();
-        button('Clear voice selection').click();
+        button('Import VRM').click();
+        button('Choose image').click();
+        button('Clear selection').click();
         (node.querySelector('[role="switch"]') as HTMLButtonElement).click();
       });
       expect(selectAvatar).toHaveBeenCalledTimes(1);
@@ -467,7 +468,7 @@ describe('AgentCenter UI session contract', () => {
         defaultVoiceReference: 'preset_voice_id:original', avatarAutoplay: false,
       });
       expect(node.querySelector('[data-agent-center-appearance-operation="restored"]')).toBeTruthy();
-      expect(button('Choose VRM file').disabled).toBe(false);
+      expect(button('Import VRM').disabled).toBe(false);
     } finally {
       releaseSelection?.();
       restoreCalls.mockRestore();
@@ -508,6 +509,37 @@ describe('AgentCenter UI session contract', () => {
     expect(node.querySelector('[data-agent-center-appearance-operation="restored"]')).toBeTruthy();
   });
 
+  it('keeps the current appearance and shows no failure or success when the file picker is canceled', async () => {
+    const session = await sessionFor({}, createAgentCenterShellHostMechanics({
+      async pickAvatarAssetMaterial() { return null; },
+      async pickBackgroundAssetMaterial() { return null; },
+    }));
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    const before = session.getSnapshot().state.appearance;
+    for (const label of ['Import VRM', 'Choose image']) {
+      const trigger = Array.from(node.querySelectorAll('button')).find(button => button.textContent?.trim() === label)!;
+      act(() => trigger.click());
+      const confirm = Array.from(document.body.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Choose file and replace')!;
+      await act(async () => { confirm.click(); await Promise.resolve(); });
+      await flush();
+      expect(node.querySelector('[data-agent-center-appearance-operation]')).toBeNull();
+      expect(session.getSnapshot().state.appearance).toEqual(before);
+    }
+  });
+
+  it('offers speech setup directly when no voices are available', async () => {
+    const session = await sessionFor({});
+    const openSetup = vi.fn();
+    const node = render(<AgentCenter activeSection="appearance" session={session} placementActions={{ openReferenceVoiceSetup: openSetup }} />);
+    await flush();
+    expect(node.querySelector('[role="combobox"]')).toBeNull();
+    const setup = Array.from(node.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Configure speech')!;
+    act(() => setup.click());
+    expect(openSetup).toHaveBeenCalledWith('synthesis');
+    expect(node.textContent).toContain('Choose a default voice below first');
+  });
+
   it('renders the shared Resource Pack card on a non-Zhiyu mount and routes only its placement entry', async () => {
     let placements = 0;
     const session = await sessionFor({}, undefined, undefined, undefined, {
@@ -526,9 +558,9 @@ describe('AgentCenter UI session contract', () => {
 
     const card = node.querySelector('[data-agent-center-resource-pack-card="true"]') as HTMLElement;
     expect(card).toBeTruthy();
-    expect(card.textContent).toContain('Partner resource pack');
-    expect(card.textContent).toContain('For Zhiyu · Surface V1');
-    expect(card.textContent).toContain('Using the Zhiyu default experience');
+    expect(card.textContent).toContain('Zhiyu appearance');
+    expect(card.textContent).toContain('conversations in Zhiyu only');
+    expect(card.textContent).toContain('Using default appearance');
     expect(card.querySelector('[data-agent-center-resource-pack-action="select"]')).toBeNull();
     expect(card.querySelector('[data-agent-center-resource-pack-action="apply"]')).toBeNull();
     const place = card.querySelector('[data-agent-center-resource-pack-action="place"]') as HTMLButtonElement;
@@ -661,7 +693,7 @@ describe('AgentCenter UI session contract', () => {
     act(() => { controller.prepareApply(); });
     await flush();
 
-    for (const label of ['Choose Live2D package', 'Choose VRM file']) {
+    for (const label of ['Import Live2D', 'Import VRM']) {
       const button = Array.from(node.querySelectorAll('button'))
         .find((entry) => entry.textContent?.trim() === label) as HTMLButtonElement;
       expect(button.disabled).toBe(true);
@@ -699,7 +731,7 @@ describe('AgentCenter UI session contract', () => {
     });
     await flush();
 
-    for (const label of ['Choose Live2D package', 'Choose VRM file']) {
+    for (const label of ['Import Live2D', 'Import VRM']) {
       const button = Array.from(node.querySelectorAll('button'))
         .find((entry) => entry.textContent?.trim() === label) as HTMLButtonElement;
       expect(button.disabled).toBe(true);
@@ -881,7 +913,7 @@ describe('AgentCenter UI session contract', () => {
     await flush();
     expect(session.getSnapshot().state.appearance.resourcePackSelection).toBeNull();
     const status = node.querySelector('[data-agent-center-resource-pack-card="true"] [role="status"]') as HTMLElement;
-    expect(status.textContent).toContain('Using the Zhiyu default experience');
+    expect(status.textContent).toContain('Using default appearance');
     expect(document.activeElement).toBe(status);
   });
 

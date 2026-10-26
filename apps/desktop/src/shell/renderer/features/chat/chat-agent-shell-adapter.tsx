@@ -75,7 +75,7 @@ import { useAgentComposerPersistence } from '@nimiplatform/kit/features/chat/hea
 import { Button } from '@nimiplatform/kit/ui';
 import { AgentFollowUpControl } from './chat-agent-follow-up-control.js';
 import { AgentSubmissionRecovery } from './chat-agent-submission-recovery.js';
-import { CHAT_COMPOSER_RAIL_RESERVE_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout.js';
+import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -594,7 +594,7 @@ export function useAgentConversationModeHost(
     voiceInput,
   });
 
-  // The recovery and follow-up controls can resize the floating input area.
+  // Contextual notices and recovery can resize the floating input area.
   // Reserve its actual height so the last reply and its actions remain reachable.
   const [composerInset, setComposerInset] = useState<number>();
   const measureComposer = useCallback((element: HTMLDivElement | null) => {
@@ -620,10 +620,14 @@ export function useAgentConversationModeHost(
     },
     onSelectTarget: handleSelectAgent,
     composerContent: <div ref={measureComposer}>
+      {activeTarget?.agentHandle && activeConversationAnchorId ? <div className="px-5">
+        <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
+          <AgentFollowUpControl key={`${authUserId}:${activeTarget.agentHandle}:${activeConversationAnchorId}`} agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId} state={history.controlState} conversation={() => bindings.sdk.conversation()} refresh={history.retry} onOpenAgentCenter={() => homeChat.setAgentCenterSection('behavior')} />
+        </div>
+      </div> : null}
       {presentation.composerContent}
-      <div className={CHAT_COMPOSER_RAIL_RESERVE_CLASS}>
+      <div className="px-5">
       <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
-      {activeTarget?.agentHandle && activeConversationAnchorId ? <AgentFollowUpControl key={`${authUserId}:${activeTarget.agentHandle}:${activeConversationAnchorId}`} agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId} state={history.controlState} conversation={() => bindings.sdk.conversation()} refresh={history.retry} onOpenAgentCenter={input.onOpenAgentCenter} /> : null}
       {draftPersistence.submission && !submittingThreadId && draftAgentHandle && input.authStatus === 'authenticated' ? <AgentSubmissionRecovery
         key={`${authUserId}:${draftAgentHandle}:${draftPersistence.submission.requestId}`}
         submission={draftPersistence.submission}
@@ -654,5 +658,5 @@ export function useAgentConversationModeHost(
       </div>
       </div>
     </div>,
-  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, acknowledgeAttachments, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
+  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, input.onOpenAgentCenter, homeChat.setAgentCenterSection, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, acknowledgeAttachments, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
 }

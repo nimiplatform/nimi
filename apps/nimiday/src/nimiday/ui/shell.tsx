@@ -1,5 +1,6 @@
 import { CalendarHeart, HeartHandshake, ListChecks, MessageCircle, Repeat2, Settings, Sun, type LucideIcon } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
+import appIconUrl from '../../../assets/app-icon.png';
 import { isOverdue } from '../domain/reminders.js';
 import { useDayStore, useDesk, useEngine, useNimiDay } from '../app/context.js';
 import type { NavTarget } from '../platform/engine.js';
@@ -83,7 +84,7 @@ export function Shell() {
         aria-label={copy.nav.label}
       >
         <div className="nd-brand">
-          <span className="nd-brand-mark"><CalendarHeart size={16} aria-hidden="true" /></span>
+          <img className="nd-brand-mark nd-brand-mark--image" src={appIconUrl} alt="" />
           <span className="nd-brand-name">{copy.app.name}</span>
         </div>
         <button type="button" className="nd-agent-chip" onClick={() => navigate({ view: 'assistant' })} data-testid="nd-agent-chip">

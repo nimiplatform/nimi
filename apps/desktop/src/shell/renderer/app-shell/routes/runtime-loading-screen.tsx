@@ -38,19 +38,19 @@ export function RuntimeLoadingScreen(props: { slowAfterMs?: number; slowActions?
         data-testid={E2E_IDS.appLoadingScreen}
         className="relative z-10 flex min-h-screen items-center justify-center px-6 py-8"
       >
-        <section className="flex w-full max-w-[420px] flex-col items-center text-center">
+        <section className="flex w-full max-w-[420px] -translate-y-[6vh] flex-col items-center text-center">
           <img
             src={bootstrapLogoImage}
             alt="Nimi"
             data-testid="runtime-loading-logo"
-            className="h-20 w-20 object-contain"
+            className="h-[104px] w-[104px] object-contain"
           />
 
-          <h1 className="mt-10 text-[30px] font-medium leading-snug">
+          <h1 className="-mt-0.5 text-[24px] font-medium leading-none">
             Nimi
           </h1>
 
-          <div role="status" aria-label={t('Common.loading')} className="mt-12 flex flex-col items-center gap-3">
+          <div role="status" aria-label={t('Common.loading')} className="mt-[30px] flex flex-col items-center">
             <div aria-hidden="true" className="nimi-boot-dots">
               <span className="nimi-boot-dot" />
               <span className="nimi-boot-dot" />

@@ -1,4 +1,4 @@
-import { HomeExecutionNotices } from './execution-notices.js';
+import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { Button, LoadingSkeleton, PillTabs } from '@nimiplatform/kit/ui';
 import { ArrowLeft, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -19,9 +19,10 @@ import {
  * owner's listing separately, and claims an empty or complete result only
  * once the relevant listing is complete.
  */
-export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilterChange, onSourceChange, onBack, onOpenSettings }: {
+export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilterChange, onSourceChange, onBack, onOpenSettings, appArtworkForNotice }: {
   messages: HomeMessages;
   context: HomeMessageCardContext;
+  appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
   filter: HomeMessageFilter;
   sourceKey: string | null;
   onFilterChange: (filter: HomeMessageFilter) => void;
@@ -75,7 +76,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
         <HomeMessageSourceFilter options={sourceOptions} value={selectedSource} onChange={onSourceChange} appIconUrl={context.appIconUrl} />
       </div>
 
-      <HomeExecutionNotices />
+      <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
       <HomeMessageSourceNotices messages={messages} app={appRelevant} />
 
       <div className="flex flex-col gap-2.5" data-testid="home-message-center-list">

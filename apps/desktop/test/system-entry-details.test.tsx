@@ -57,9 +57,28 @@ function completeUsageState(groupCount = 1): SystemEntryAIState {
   }));
   return ai;
 }
-function render(section: 'work' | 'usage', ai: SystemEntryAIState | null): string {
-  return renderToStaticMarkup(<SystemEntryDetailsView section={section} ai={ai} onBack={() => {}} onSectionChange={() => {}} onRefresh={() => {}} />);
+function render(ai: SystemEntryAIState | null): string {
+  return renderToStaticMarkup(<SystemEntryDetailsView ai={ai} onBack={() => {}} onRefresh={() => {}} />);
 }
+
+test('one page shows independent work and daily execution counts with separate timestamps', async () => {
+  await initI18n(); await changeLocale('en');
+  const ai = completeUsageState(3);
+  ai.activity.value!.executions.push(execution({ attemptId: 'retry', startedAt: systemEntryTimestamp(now - 86_400_000) }));
+  ai.activity.value!.observedAt = systemEntryTimestamp(now - 60_000);
+  const document = JSDOM.fragment(render(ai));
+  assert.equal(document.querySelector('h1')!.textContent, 'AI activity & usage');
+  assert.equal(document.querySelector('nav'), null);
+  assert.equal(document.querySelectorAll('[data-testid="home-current-work-row"]').length, 1);
+  assert.match(document.querySelector('[data-testid="home-current-work-summary"]')!.textContent!, /1work items/);
+  assert.match(document.querySelector('[data-testid="home-usage-attempts-card"] dd')!.textContent!, /3executions/);
+  const activity = document.querySelector('[data-testid="home-current-work-reading"]')!;
+  assert.equal(activity.querySelector('time')!.getAttribute('datetime'), new Date(now - 60_000).toISOString());
+  assert.ok([...activity.querySelectorAll('time')].some(time => time.getAttribute('datetime') === new Date(now - 86_400_000).toISOString()));
+  assert.equal(document.querySelector('[data-testid="home-ai-usage-reading"] time')!.getAttribute('datetime'), new Date(now).toISOString());
+  assert.equal(document.querySelectorAll('table thead th').length, 5);
+  assert.equal(document.querySelectorAll('table tbody tr').length, 3);
+});
 
 test('current work groups owner parents, shows actual models and keeps unknown execution read-only', async () => {
   await initI18n(); await changeLocale('en');
@@ -69,7 +88,7 @@ test('current work groups owner parents, shows actual models and keeps unknown e
     execution({ attemptId: 'attempt-3', parentWorkId: '', parentWorkKind: '', state: DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN }),
   );
   ai.activity.value!.workCountKnown = false;
-  const html = render('work', ai);
+  const html = render(ai);
   assert.equal((html.match(/data-testid="home-current-work-row"/g) ?? []).length, 2);
   assert.match(html, /Actual Model/); assert.match(html, /Actual Image Model/);
   assert.match(html, /Current status unconfirmed/); assert.match(html, /Reconnecting does not replay/);
@@ -79,7 +98,7 @@ test('current work groups owner parents, shows actual models and keeps unknown e
   assert.doesNotMatch(html, /runtimeConfig\.systemEntry/);
 });
 
-test('usage preserves precise counts, independent currencies and explicit partial coverage', async () => {
+test('usage preserves precise counts, independent currencies and explains missing records', async () => {
   await initI18n(); await changeLocale('en');
   const ai = state();
   const summary = ai.usage.value!;
@@ -93,24 +112,23 @@ test('usage preserves precise counts, independent currencies and explicit partia
     { sourceKind: 'home', capability: 'text.generate', models: [model], route: DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_LOCAL, totals: totals('9007199254740991'), estimates: [] },
     { sourceKind: 'app', capability: 'text.generate', models: [model], route: DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD, totals: totals('2'), estimates: summary.estimates },
   ];
-  const html = render('usage', ai);
+  const html = render(ai);
   assert.match(html, /9,007,199,254,740,993/);
   assert.match(html, /USD/); assert.match(html, /EUR/);
   assert.match(html, /0\.12/); assert.match(html, /0\.34/);
   assert.doesNotMatch(html, /0\.46/);
-  assert.match(html, /Partial/); assert.match(html, /Missing sources, gaps, pending usage/);
+  assert.match(html, /displayed count may be lower/); assert.match(html, /Cost estimate is incomplete/);
   assert.match(html, /not a provider bill/); assert.match(html, /never added together/);
-  assert.match(html, /Catalog price captured for the execution/);
   assert.match(html, /Asia\/Shanghai/);
   await changeLocale('zh');
-  const chinese = render('usage', ai);
-  assert.match(chinese, /今日用量/); assert.match(chinese, /不是供应商账单/); assert.match(chinese, /部分/);
+  const chinese = render(ai);
+  assert.match(chinese, /今日用量/); assert.match(chinese, /不是供应商账单/); assert.match(chinese, /显示次数可能少于实际执行次数/);
   assert.doesNotMatch(chinese, /runtimeConfig\.systemEntry/);
 });
 
-test('complete usage leads with totals and details while quiet zero exceptions stay out of the summary', async () => {
+test('complete usage keeps only concise explanations and hides normal coverage checks', async () => {
   await initI18n(); await changeLocale('en');
-  const html = render('usage', completeUsageState());
+  const html = render(completeUsageState());
   const summaryAt = html.indexOf('data-testid="home-usage-summary"');
   const groupsAt = html.indexOf('data-testid="home-usage-group"');
   const detailsAt = html.indexOf('data-testid="home-usage-data-details"');
@@ -118,44 +136,124 @@ test('complete usage leads with totals and details while quiet zero exceptions s
   assert.match(html, /data-testid="home-usage-attempts-card"/);
   assert.match(html, /data-testid="home-usage-cost-card"/);
   assert.match(html, /data-testid="home-usage-route-summary"/);
-  assert.match(html, /data-testid="home-usage-coverage-status"/);
-  assert.doesNotMatch(html, /home-usage-attention/);
-  assert.doesNotMatch(html.slice(summaryAt, groupsAt), /Executions awaiting usage|Executions without a cost estimate/);
+  assert.doesNotMatch(html, /home-usage-(coverage-status|count-warning|cost-warning|details-warning)/);
+  assert.doesNotMatch(html, /Executions awaiting usage|Executions without a cost estimate|Execution source coverage|Recorded range|Time through the last read|Reported usage quantities|Not fully covered/);
   assert.equal((html.match(/data-testid="home-usage-group"/g) ?? []).length, 1);
   assert.doesNotMatch(html, /Search models, providers or sources/);
   assert.match(html, /0\.0117501/);
-  assert.match(html, /Counting and data coverage/);
+  assert.match(html, /About these numbers/);
+  assert.doesNotMatch(html, /general API requests|Currencies are shown separately/);
+  const explanation = JSDOM.fragment(html).querySelector('[data-testid="home-usage-data-details"]')!;
+  assert.equal(explanation.querySelectorAll('section').length, 2);
+  assert.equal(explanation.hasAttribute('open'), false);
+  assert.equal(explanation.querySelector('dl, [role="status"]'), null);
 });
 
-test('pending measurements and unavailable prices stay visible and mark otherwise complete data partial', async () => {
+test('pending measurements and unavailable prices warn only beside costs without repeating in explanations', async () => {
   await initI18n(); await changeLocale('en');
   const ai = completeUsageState(2);
   ai.usage.value!.totals = { ...ai.usage.value!.totals!, pendingUsageCount: '1', measuredAttemptCount: '1', unpricedAttemptCount: '1' };
-  const html = render('usage', ai);
-  const attentionAt = html.indexOf('data-testid="home-usage-attention"');
-  const groupsAt = html.indexOf('data-testid="home-usage-group"');
-  assert.ok(attentionAt >= 0);
-  const attention = html.slice(attentionAt, groupsAt);
-  assert.match(attention, /Executions awaiting usage/);
-  assert.match(attention, /Executions without a cost estimate/);
-  assert.match(attention, />1<\/span>/);
-  assert.match(html.slice(html.indexOf('data-testid="home-usage-data-details"')), /Partial/);
+  const html = render(ai);
+  const document = JSDOM.fragment(html);
+  const warning = document.querySelector('[data-testid="home-usage-cost-card"] [data-testid="home-usage-cost-warning"]');
+  assert.match(warning?.textContent ?? '', /Executions awaiting usage: 1/);
+  assert.match(warning?.textContent ?? '', /Executions without a cost estimate: 1/);
+  assert.match(warning?.textContent ?? '', /Unknown costs are not counted as zero/);
+  assert.equal(document.querySelector('[data-testid="home-usage-count-warning"], [data-testid="home-usage-details-warning"]'), null);
+  assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /incomplete|awaiting|cannot yet/);
+});
+
+test('each incomplete dimension warns only about the affected numbers', async () => {
+  await initI18n(); await changeLocale('en');
+  type Summary = NonNullable<SystemEntryAIState['usage']['value']>;
+  const cases: Array<{ name: string; change(summary: Summary): void; warnings: string[]; text: RegExp }> = [
+    { name: 'missing source', change: summary => {
+      summary.sourceComplete = false;
+      summary.sourceCoverage.push({ source: 'app', activityComplete: true, usageComplete: false });
+    }, warnings: ['count', 'cost'], text: /Not fully recorded: Apps/ },
+    { name: 'missing source coverage', change: summary => { summary.sourceCoverage = []; }, warnings: ['count', 'cost'], text: /displayed count may be lower/ },
+    { name: 'time gap', change: summary => { summary.timeComplete = false; }, warnings: ['count', 'cost'], text: /Recorded range \(may contain gaps\)/ },
+    { name: 'pending usage', change: summary => {
+      summary.quantityComplete = false; summary.totals!.pendingUsageCount = '1'; summary.partialReasons = ['usage_pending'];
+    }, warnings: ['cost'], text: /Executions awaiting usage: 1/ },
+    { name: 'missing quantities', change: summary => { summary.quantityComplete = false; }, warnings: ['cost'], text: /Some billing quantities are missing/ },
+    { name: 'missing prices', change: summary => {
+      summary.totals!.unpricedAttemptCount = '1'; summary.partialReasons = ['unpriced_usage'];
+    }, warnings: ['cost'], text: /Executions without a cost estimate: 1/ },
+    { name: 'invalid estimate', change: summary => {
+      summary.estimates.push({ currency: 'USD', estimatedAmount: 'unknown', pricingBasis: '' });
+    }, warnings: ['cost'], text: /Some cost data cannot be confirmed/ },
+    { name: 'bounded groups', change: summary => { summary.groupsComplete = false; }, warnings: ['details'], text: /local and cloud counts are unavailable/ },
+    { name: 'groups do not reconcile', change: summary => { summary.groups = summary.groups.slice(0, 1); }, warnings: ['details'], text: /Total executions and costs are still shown from their separate summary records/ },
+    { name: 'unclassified coverage', change: summary => { summary.partialReasons = ['unconfirmed']; }, warnings: ['count', 'cost'], text: /Execution record coverage is not confirmed/ },
+  ];
+  for (const scenario of cases) {
+    const ai = completeUsageState(2);
+    scenario.change(ai.usage.value!);
+    const document = JSDOM.fragment(render(ai));
+    for (const dimension of ['count', 'cost', 'details']) {
+      assert.equal(Boolean(document.querySelector(`[data-testid="home-usage-${dimension}-warning"]`)), scenario.warnings.includes(dimension), `${scenario.name}: ${dimension}`);
+    }
+    assert.match(document.textContent ?? '', scenario.text, scenario.name);
+    assert.match(document.querySelector('[data-testid="home-usage-attempts-card"] dd')!.textContent ?? '', /^2executions$/);
+    assert.match(document.querySelector('[data-testid="home-usage-cost-card"]')!.textContent ?? '', /0\.0117501/);
+    assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /Recorded range|coverage|incomplete|Not fully recorded/);
+    assert.doesNotMatch(document.textContent ?? '', /runtimeConfig\.systemEntry/);
+  }
+});
+
+test('empty complete usage stays quiet while missing details never imply a zero total', async () => {
+  await initI18n(); await changeLocale('en');
+  const empty = completeUsageState(0);
+  empty.usage.value!.estimates = [];
+  const emptyHtml = render(empty);
+  assert.match(emptyHtml, /No AI executions are recorded/);
+  assert.doesNotMatch(emptyHtml, /home-usage-(count|cost|details)-warning|Recorded range|Execution source coverage/);
+  const missingGroups = completeUsageState(1);
+  missingGroups.usage.value!.groups = [];
+  const html = render(missingGroups);
+  assert.match(html, /home-usage-details-warning/);
+  assert.doesNotMatch(html, /No AI executions are recorded|home-usage-count-warning|home-usage-cost-warning/);
 });
 
 test('unavailable or incomplete empty reads never revive old models or fabricate complete zero', async () => {
   await initI18n(); await changeLocale('en');
   const ai = state();
   const stale = { ...ai, activity: { ...ai.activity, status: 'unavailable' as const } };
-  assert.match(render('work', stale), /does not mean work has stopped/);
-  assert.doesNotMatch(render('work', stale), /Actual Model/);
+  assert.match(render(stale), /does not mean work has stopped/);
+  assert.doesNotMatch(render(stale), /Actual Model/);
   ai.activity.value!.executions = [];
   ai.activity.value!.sourceCoverage = [];
   ai.activity.value!.workCountKnown = false;
-  assert.match(render('work', ai), /No execution records have arrived/);
-  assert.doesNotMatch(render('work', ai), /Current work: 0/);
+  assert.match(render(ai), /No execution records have arrived/);
+  assert.doesNotMatch(render(ai), /Current work: 0/);
   const unavailable = { ...ai, usage: { status: 'unavailable' as const, value: null, error: 'owner unavailable' } };
-  assert.match(render('usage', unavailable), /No request count or cost is assumed to be zero/);
-  assert.doesNotMatch(render('usage', unavailable), /Estimated 0|Recorded AI executions<\/dt>/);
+  assert.match(render(unavailable), /No request count or cost is assumed to be zero/);
+  assert.doesNotMatch(render(unavailable), /Estimated 0|Recorded AI executions<\/dt>/);
+});
+
+test('independent loading, unavailable and invalid readers never hide the healthy reader', async () => {
+  await initI18n(); await changeLocale('en');
+  for (const status of ['loading', 'unavailable'] as const) {
+    const ai = completeUsageState();
+    ai.activity.status = status;
+    const document = JSDOM.fragment(render(ai));
+    assert.equal(document.querySelectorAll('[data-testid="home-current-work-row"]').length, 0);
+    assert.equal(document.querySelectorAll('[data-testid="home-usage-group"]').length, 1);
+    assert.match(document.querySelector('[data-testid="home-usage-cost-card"]')!.textContent!, /0\.0117501/);
+    ai.activity.status = 'ready';
+    ai.usage.status = status;
+    const reversed = JSDOM.fragment(render(ai));
+    assert.equal(reversed.querySelectorAll('[data-testid="home-current-work-row"]').length, 1);
+    assert.equal(reversed.querySelectorAll('[data-testid="home-usage-group"]').length, 0);
+    assert.doesNotMatch(reversed.textContent!, /0\.0117501|Model 1/);
+  }
+  const invalid = completeUsageState();
+  invalid.usage.value!.totals!.attemptCount = 'unconfirmed';
+  assert.match(JSDOM.fragment(render(invalid)).textContent!, /Today's AI usage cannot be confirmed/);
+  assert.match(render(invalid), /Actual Model/);
+  invalid.activity.value!.knownWorkCount = '0';
+  assert.match(render(invalid), /complete current work count is not confirmed/);
 });
 
 test('large usage groups support search, route filters, recovery and details without changing totals', async () => {
@@ -191,7 +289,7 @@ test('large usage groups support search, route filters, recovery and details wit
     await act(async () => button.click());
   };
   try {
-    await act(async () => root.render(<SystemEntryDetailsView section="usage" ai={completeUsageState(6)} onBack={() => {}} onSectionChange={() => {}} onRefresh={() => {}} />));
+    await act(async () => root.render(<SystemEntryDetailsView ai={completeUsageState(6)} onBack={() => {}} onRefresh={() => {}} />));
     assert.equal(groups().length, 6);
     const summary = document.querySelector('[data-testid="home-usage-summary"]')!.textContent;
     await setSearch('Model 1');
@@ -221,7 +319,7 @@ test('large usage groups support search, route filters, recovery and details wit
     assert.equal(details.open, false);
     await act(async () => details.querySelector('summary')!.click());
     assert.equal(details.open, true);
-    assert.match(details.textContent ?? '', /Each actual AI execution attempt/);
+    assert.match(details.textContent ?? '', /Each actual AI execution counts once/);
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

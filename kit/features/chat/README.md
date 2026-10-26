@@ -54,7 +54,7 @@ The new shared LocalAgent observation and recovery APIs require matching Runtime
 - **Turn & playback controls**:
   - `LocalAppConversationVoiceButton` uses browser playback mechanics, existing ready artifacts, and explicit render retry; selecting another reply stops current local playback in that conversation.
   - `LocalAppConversationMediaStopButton` interrupts the named media turn and waits for owner state without disabling a newer text turn.
-  - `LocalAppConversationFollowUpControl` accepts localized text and placement while preserving owner policy and revisions.
+  - `LocalAppConversationFollowUpControl` shows a pending continuation with its revision-checked cancel action, or a status-read failure with refresh. It renders nothing when idle; persistent contact preferences remain in AgentCenter. Hosts place it near current conversation activity and route its optional management action to the behavior section.
   - None of these controls enable capabilities implicitly.
 
 ### 3. App-AI Orchestration & Model Replay

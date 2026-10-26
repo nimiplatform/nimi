@@ -12,7 +12,6 @@
     "notices": "App interruption records",
     "summaryCount_one": "App interruption records · {{count}} record",
     "summaryCount_other": "App interruption records · {{count}} records",
-    "summaryDescription": "These records log app stops, connection drops, or expired execution sessions. They do not mean a task failed. Reconnecting will not automatically resume earlier work—check actual progress in the source app. Removing a record does not affect the app or its tasks.",
     "viewAll": "View records",
     "dismiss": "Remove record",
     "stopped": "execution stopped",

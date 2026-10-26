@@ -1,5 +1,5 @@
 import { AgentCenterReferenceVoiceSection } from './AgentCenterReferenceVoiceSection.js';
-import { Box, CheckCircle2, FolderOpen, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { ArrowUpRight, Box, FolderOpen, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
@@ -18,11 +18,7 @@ import type {
   AgentCenterSession,
   AgentCenterSnapshot,
 } from '../types.js';
-import {
-  Card,
-  SectionHeader,
-  SectionShell,
-} from './AgentCenterPrimitives.js';
+import { SectionShell } from './AgentCenterPrimitives.js';
 import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
 
 export interface AgentCenterAppearanceSectionProps {
@@ -128,7 +124,6 @@ function AgentCenterResourcePackCard({
     retry: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.retry', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.retry']),
     select: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.select', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.select']),
     selected: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.selected', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.selected']),
-    target: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.target', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.target']),
     title: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.title', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.title']),
   }), [i18n]);
   const mutationPending = appearance.resourcePackMutationPending
@@ -171,8 +166,9 @@ function AgentCenterResourcePackCard({
             : selection ? copy.selected : copy.empty;
 
   return (
-    <Card
-      className="grid gap-3 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]"
+    <section
+      aria-label={copy.title}
+      className="grid min-w-0 gap-3 border-t border-[var(--nimi-border-subtle)] py-4"
     >
       <div
         className="contents"
@@ -182,17 +178,16 @@ function AgentCenterResourcePackCard({
       >
       <div className="grid gap-1">
         <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.title}</h3>
-        <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{copy.description}</p>
-        <span className="text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-text-secondary)]">{copy.target}</span>
+        <p className="m-0 text-[length:var(--nimi-type-caption-size)] leading-5 text-[var(--nimi-text-secondary)]">{copy.description}</p>
       </div>
       <div
         ref={statusRef}
-        className="grid gap-1 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3"
+        className="grid min-w-0 gap-1 text-[var(--nimi-text-secondary)]"
         role="status"
         aria-live="polite"
         tabIndex={-1}
       >
-        <span className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-primary)]">{status}</span>
+        <span className="text-[length:var(--nimi-type-body-sm-size)]">{status}</span>
         {selection ? (
           <span className="truncate font-mono text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]" title={selection.assetRef}>
             {selection.assetRef}
@@ -218,6 +213,7 @@ function AgentCenterResourcePackCard({
         ) : (
           <Button
             data-agent-center-resource-pack-action="place"
+            trailingIcon={<ArrowUpRight aria-hidden="true" className="h-4 w-4" />}
             disabled={!actionAvailable || busy
               || placementAvailability?.state !== 'available'
               || !session.appearance.openResourcePackInZhiyu}
@@ -303,13 +299,14 @@ function AgentCenterResourcePackCard({
       {persistentNotice ? <InlineAlert tone="warning">{persistentNotice}</InlineAlert> : null}
       {localError && localError !== persistentNotice ? <InlineAlert tone="warning">{localError}</InlineAlert> : null}
       </div>
-    </Card>
+    </section>
   );
 }
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-008
 export function AgentCenterAppearanceSection({ session, snapshot, i18n, placementActions }: AgentCenterAppearanceSectionProps) {
   const appearance = snapshot.state.appearance;
+  const t = (key: keyof typeof agentCenterEnCatalog) => translateAgentCenter(i18n, key, agentCenterEnCatalog[key]);
   const availability = snapshot.availability.replaceAppearance;
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
   const [resourcePackCardBusy, setResourcePackCardBusy] = useState(false);
@@ -331,11 +328,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   ) as AutoSaveCopy, [i18n]);
   const voiceCopy = useMemo(() => ({
     defaultVoiceTitle: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceTitle', agentCenterEnCatalog['AgentCenter.appearance.defaultVoiceTitle']),
-    defaultVoiceDescription: translateAgentCenter(
-      i18n,
-      'AgentCenter.appearance.defaultVoiceDescription',
-      agentCenterEnCatalog['AgentCenter.appearance.defaultVoiceDescription'],
-    ),
+
     defaultVoiceUnset: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceUnset', agentCenterEnCatalog['AgentCenter.appearance.defaultVoiceUnset']),
     avatarAutoplayLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.avatarAutoplayLabel', agentCenterEnCatalog['AgentCenter.appearance.avatarAutoplayLabel']),
     avatarAutoplayDescription: translateAgentCenter(
@@ -344,11 +337,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
       agentCenterEnCatalog['AgentCenter.appearance.avatarAutoplayDescription'],
     ),
     catalogLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogLabel', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogLabel']),
-    catalogDescription: translateAgentCenter(
-      i18n,
-      'AgentCenter.appearance.voiceCatalogDescription',
-      agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogDescription'],
-    ),
+
     catalogUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogUnavailable', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogUnavailable']),
     catalogEmpty: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogEmpty', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogEmpty']),
     catalogTruncated: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogTruncated', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogTruncated']),
@@ -365,7 +354,8 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     voiceKindAsset: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceKindAsset', agentCenterEnCatalog['AgentCenter.appearance.voiceKindAsset']),
   }), [i18n]);
   const actionAvailable = availability.state === 'available';
-  const appearanceOperationBusy = operation.state === 'saving' || operation.state === 'restoring';
+  const appearanceOperationBusy = operation.state === 'saving' || operation.state === 'restoring'
+    || appearance.referenceVoice?.phase === 'creating' || appearance.referenceVoice?.phase === 'binding';
   const resourcePackMutationBusy = resourcePackCardBusy
     || appearance.resourcePackTarget?.phase === 'apply-in-flight'
     || appearance.resourcePackTarget?.phase === 'render-pending'
@@ -425,6 +415,10 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     } catch (error) {
       if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
+      if (failure.reasonCode === 'selection-canceled') {
+        setOperation({ state: 'idle', message: '' });
+        return;
+      }
       setOperation({
         state: 'validation-failed',
         reasonCode: failure.reasonCode,
@@ -496,7 +490,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
 
   return (
     <SectionShell labelledBy="agent-center-appearance-title">
-      <SectionHeader description={copy.description} id="agent-center-appearance-title" title={copy.title} />
+      <h2 id="agent-center-appearance-title" className="sr-only">{copy.title}</h2>
       {!actionAvailable ? (
         <AgentCenterProductActionNotice
           action="replaceAppearance"
@@ -506,178 +500,113 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
           session={session}
         />
       ) : null}
-      <div className="grid gap-3" data-agent-center-appearance-surface="committed-effect">
-        <Card className="border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
-          <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.current}</h3>
-          <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(150px,0.78fr)_minmax(0,1fr)]">
+      <div className="min-w-0" data-agent-center-appearance-surface="committed-effect">
+        <section aria-labelledby="agent-center-avatar-title" className="grid gap-4 pb-4">
+          <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-4">
             <div
-              className="relative grid min-h-[184px] place-items-center overflow-hidden rounded-[14px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_15%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)]"
+              className="grid h-28 place-items-center overflow-hidden rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)]"
               data-agent-center-appearance-live-view={appearance.renderState || 'empty'}
             >
               {committedPreviewReady && appearance.renderImageRef ? (
-                <img alt={copy.liveView} className="max-h-[176px] max-w-full object-contain" src={appearance.renderImageRef} />
-              ) : (
-                <div className="grid max-w-[180px] gap-2 text-center text-[length:var(--nimi-type-overline-size)] leading-4 text-[var(--nimi-text-muted)]">
-                  <ImageIcon aria-hidden="true" className="mx-auto h-10 w-10 text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]" />
-                  <span>{appearance.avatarAssetRef
-                    ? (previewNotRunning ? copy.noRenderer : renderFailed ? copy.rendererUnavailable : copy.noRenderer)
-                    : copy.empty}</span>
-                </div>
-              )}
-              <span className="absolute bottom-3 rounded-full bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-action-primary-bg)]">
-                {copy.liveView}
-              </span>
+                <img alt={copy.liveView} className="h-full w-full object-contain" src={appearance.renderImageRef} />
+              ) : <ImageIcon aria-hidden="true" className="h-7 w-7 text-[var(--nimi-text-muted)]" />}
             </div>
-            <div className="flex min-w-0 flex-col justify-center gap-3">
-              {appearance.avatarAssetRef ? (
-                <div className="grid gap-1">
-                  <span className="inline-flex items-center gap-2 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-bg)]">
-                    <CheckCircle2 className="h-4 w-4" /> {appearance.backendKind?.toUpperCase()}
-                  </span>
-                  <span className="truncate font-mono text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]" title={appearance.avatarAssetRef}>{appearance.avatarAssetRef}</span>
-                  <span className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{voiceCopy.revisionLabel(appearance.presentationRevision || '—')}</span>
-                </div>
-              ) : <p className="m-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{copy.empty}</p>}
-              <Button
-                disabled={!canReplace}
-                leadingIcon={<FolderOpen aria-hidden="true" className="h-4 w-4" />}
-                onClick={() => choose('live2d')}
-                size="sm"
-                tone="secondary"
-              >
-                {copy.replaceLive2d}
-              </Button>
-              <Button
-                disabled={!canReplace}
-                leadingIcon={<Box aria-hidden="true" className="h-4 w-4" />}
-                onClick={() => choose('vrm')}
-                size="sm"
-                tone="secondary"
-              >
-                {copy.replaceVrm}
-              </Button>
-              <Button
-                data-agent-center-background-import="true"
-                disabled={!canImportBackground}
-                leadingIcon={<ImageIcon aria-hidden="true" className="h-4 w-4" />}
-                onClick={() => setPendingKind('background')}
-                size="sm"
-                tone="secondary"
-              >
-                {translateAgentCenter(
-                  i18n,
-                  'AgentCenter.appearance.backgroundImportLabel',
-                  agentCenterEnCatalog['AgentCenter.appearance.backgroundImportLabel'],
-                )}
-              </Button>
-              {canRestore ? (
-                <Button
-                  disabled={appearanceWritesBlocked}
-                  leadingIcon={<RotateCcw aria-hidden="true" className="h-4 w-4" />}
-                  onClick={() => void restore()}
-                  size="sm"
-                  tone="secondary"
-                >
-                  {copy.restore}
+            <div className="grid min-w-0 gap-2">
+              <h3 id="agent-center-avatar-title" className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.current}</h3>
+              <p className="m-0 text-[length:var(--nimi-type-caption-size)] leading-5 text-[var(--nimi-text-secondary)]">
+                {appearance.avatarAssetRef
+                  ? <>{appearance.backendKind?.toUpperCase()} · {committedPreviewReady ? t('AgentCenter.appearance.previewReady') : renderFailed ? copy.rendererUnavailable : copy.noRenderer}</>
+                  : copy.empty}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button disabled={!canReplace} leadingIcon={<FolderOpen aria-hidden="true" className="h-4 w-4" />} onClick={() => choose('live2d')} size="sm" tone="secondary">
+                  {copy.replaceLive2d}
                 </Button>
+                <Button disabled={!canReplace} leadingIcon={<Box aria-hidden="true" className="h-4 w-4" />} onClick={() => choose('vrm')} size="sm" tone="secondary">
+                  {copy.replaceVrm}
+                </Button>
+              </div>
+              {appearance.avatarAssetRef ? (
+                <details className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
+                  <summary className="cursor-pointer">{t('AgentCenter.appearance.fileDetails')}</summary>
+                  <p className="my-2 break-all font-mono">{appearance.avatarAssetRef}</p>
+                  <span>{voiceCopy.revisionLabel(appearance.presentationRevision || '—')}</span>
+                </details>
               ) : null}
             </div>
           </div>
-        </Card>
-
-        <AgentCenterResourcePackCard
-          blocked={appearanceOperationBusy}
-          i18n={i18n}
-          onBusyChange={setResourcePackCardBusy}
-          session={session}
-          snapshot={snapshot}
-        />
-
-        <Card
-          className="grid gap-4 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]"
-        >
-          <div
-            className="grid gap-1"
-            data-agent-center-default-voice={hasDefaultVoice ? 'bound' : 'unset'}
-          >
-            <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{voiceCopy.defaultVoiceTitle}</h3>
-            <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.defaultVoiceDescription}</p>
-            <div
-              className="mt-2 grid gap-1"
-              data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}
-            >
-              <span className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-secondary)]">{voiceCopy.catalogLabel}</span>
-              <SelectField
-                aria-label={voiceCopy.catalogLabel}
-                disabled={!canSetDefaultVoice}
-                onValueChange={(reference) => void setDefaultVoice(reference)}
-                options={[...(selectedVoiceMissing ? [{
-                  value: appearance.defaultVoiceReference!,
-                  label: `${voiceCopy.savedVoice}: ${appearance.defaultVoiceReference}`,
-                  disabled: true,
-                }] : []), ...voiceOptions.map((voice) => ({
-                  value: voice.reference,
-                  label: `${voice.name} · ${voice.kind === 'preset_voice_id' ? voiceCopy.voiceKindPreset : voiceCopy.voiceKindAsset}`,
-                }))]}
-                placeholder={voiceCopy.defaultVoiceUnset}
-                value={appearance.defaultVoiceReference || ''}
-              />
+          {canRestore ? (
+            <Button disabled={appearanceWritesBlocked} leadingIcon={<RotateCcw aria-hidden="true" className="h-4 w-4" />} onClick={() => void restore()} size="sm" tone="secondary">
+              {copy.restore}
+            </Button>
+          ) : null}
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <span className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-primary)]">{voiceCopy.avatarAutoplayLabel}</span>
+              <p id="agent-center-autoplay-help" className="m-0 mt-1 text-[length:var(--nimi-type-caption-size)] leading-5 text-[var(--nimi-text-secondary)]">
+                {!hasDefaultVoice && !appearance.avatarAutoplay ? t('AgentCenter.appearance.autoplayNeedsVoice') : voiceCopy.avatarAutoplayDescription}
+              </p>
             </div>
-            {hasDefaultVoice ? (
-              <Button
-                disabled={!actionAvailable || appearanceWritesBlocked || !session.appearance.setDefaultVoice}
-                onClick={() => void setDefaultVoice('')}
-                size="sm"
-                tone="secondary"
-              >
-                {translateAgentCenter(i18n, 'AgentCenter.appearance.clearDefaultVoice', agentCenterEnCatalog['AgentCenter.appearance.clearDefaultVoice'])}
-              </Button>
+            <span className="inline-flex shrink-0" data-agent-center-avatar-autoplay={appearance.avatarAutoplay ? 'enabled' : 'disabled'}>
+              <Toggle ariaLabel={voiceCopy.avatarAutoplayLabel} checked={appearance.avatarAutoplay === true} disabled={!canToggleAutoplay} onChange={(next) => void toggleAutoplay(next)} />
+            </span>
+          </div>
+        </section>
+
+        <section aria-labelledby="agent-center-background-title" className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] py-4">
+          <div>
+            <h3 id="agent-center-background-title" className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{t('AgentCenter.appearance.backgroundTitle')}</h3>
+            <p className="m-0 mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">{appearance.backgroundRef ? t('AgentCenter.appearance.backgroundCustom') : t('AgentCenter.appearance.backgroundDefault')}</p>
+          </div>
+          <Button data-agent-center-background-import="true" disabled={!canImportBackground} leadingIcon={<ImageIcon aria-hidden="true" className="h-4 w-4" />} onClick={() => setPendingKind('background')} size="sm" tone="secondary">
+            {t('AgentCenter.appearance.backgroundImportLabel')}
+          </Button>
+        </section>
+
+        <section aria-labelledby="agent-center-voice-title" className="grid min-w-0 gap-3 border-t border-[var(--nimi-border-subtle)] py-4">
+          <div className="grid min-w-0 gap-3" data-agent-center-default-voice={hasDefaultVoice ? 'bound' : 'unset'}>
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="agent-center-voice-title" className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{voiceCopy.defaultVoiceTitle}</h3>
+              {hasDefaultVoice ? <Button disabled={!actionAvailable || appearanceWritesBlocked || !session.appearance.setDefaultVoice} onClick={() => void setDefaultVoice('')} size="sm" tone="ghost">{t('AgentCenter.appearance.clearDefaultVoice')}</Button> : null}
+            </div>
+            {voiceOptions.length > 0 || hasDefaultVoice ? (
+              <div className="min-w-0" data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}>
+                <SelectField
+                  aria-label={voiceCopy.catalogLabel}
+                  disabled={!canSetDefaultVoice}
+                  onValueChange={(reference) => void setDefaultVoice(reference)}
+                  options={[...(selectedVoiceMissing ? [{ value: appearance.defaultVoiceReference!, label: `${voiceCopy.savedVoice}: ${appearance.defaultVoiceReference}`, disabled: true }] : []), ...voiceOptions.map((voice) => ({ value: voice.reference, label: `${voice.name} · ${voice.kind === 'preset_voice_id' ? voiceCopy.voiceKindPreset : voiceCopy.voiceKindAsset}` }))]}
+                  placeholder={voiceCopy.defaultVoiceUnset}
+                  value={appearance.defaultVoiceReference || ''}
+                />
+              </div>
             ) : null}
-            <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.catalogDescription}</p>
-            {selectedVoiceMissing && voiceCatalog?.state === 'ready' && !voiceCatalog.truncated ? (
-              <InlineAlert tone="warning">{voiceCopy.currentVoiceMissing}</InlineAlert>
-            ) : null}
+            {selectedVoiceMissing && voiceCatalog?.state === 'ready' && !voiceCatalog.truncated ? <InlineAlert tone="warning">{voiceCopy.currentVoiceMissing}</InlineAlert> : null}
             {voiceCatalog?.state === 'ready' && voiceOptions.length === 0 ? (
-              <InlineAlert tone="warning">{voiceCopy.catalogEmpty}</InlineAlert>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">{voiceCopy.catalogEmpty}</span>
+                {placementActions?.openReferenceVoiceSetup ? <Button onClick={() => placementActions.openReferenceVoiceSetup?.('synthesis')} size="sm" tone="secondary">{t('AgentCenter.appearance.configureSpeech')}</Button> : null}
+              </div>
             ) : null}
-            {voiceCatalog?.state === 'ready' && voiceCatalog.truncated ? (
-              <InlineAlert tone="warning">{voiceCopy.catalogTruncated}</InlineAlert>
-            ) : null}
+            {voiceCatalog?.state === 'ready' && voiceCatalog.truncated ? <InlineAlert tone="warning">{voiceCopy.catalogTruncated}</InlineAlert> : null}
             {!voiceCatalog || voiceCatalog.state === 'unavailable' ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-status-warning-soft-text)]">{voiceCopy.catalogUnavailable}</span>
+                <span className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning-soft-text)]">{voiceCopy.catalogUnavailable}</span>
                 <Button onClick={() => void session.refresh()} size="sm" tone="secondary">{voiceCopy.retryLabel}</Button>
               </div>
             ) : null}
           </div>
-          <AgentCenterReferenceVoiceSection session={session} snapshot={snapshot} i18n={i18n} placementActions={placementActions} />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="grid gap-1">
-              <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{voiceCopy.avatarAutoplayLabel}</span>
-              <span className="text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.avatarAutoplayDescription}</span>
-            </div>
-            <span
-              className="inline-flex"
-              data-agent-center-avatar-autoplay={appearance.avatarAutoplay ? 'enabled' : 'disabled'}
-            >
-              <Toggle
-                ariaLabel={voiceCopy.avatarAutoplayLabel}
-                checked={appearance.avatarAutoplay === true}
-                disabled={!canToggleAutoplay}
-                onChange={(next) => void toggleAutoplay(next)}
-              />
-            </span>
-          </div>
-        </Card>
+          <AgentCenterReferenceVoiceSection session={session} snapshot={snapshot} i18n={i18n} placementActions={placementActions} blocked={appearanceWritesBlocked} />
+        </section>
 
-        {appearance.avatarAssetRef && renderFailed ? (
-          <InlineAlert tone="warning"><strong>{copy.savedRenderFailed}</strong> {copy.rendererUnavailable}</InlineAlert>
-        ) : null}
+        <AgentCenterResourcePackCard blocked={appearanceOperationBusy} i18n={i18n} onBusyChange={setResourcePackCardBusy} session={session} snapshot={snapshot} />
         {operation.message ? (
-          <InlineAlert tone={OPERATION_NOTICE_TONE[operation.state]}>
-            <span data-agent-center-appearance-operation={operation.state}>{operation.message}</span>
-            {operation.state === 'validation-failed' ? <span data-agent-center-validation-reason={operation.reasonCode} /> : null}
-          </InlineAlert>
+          <div className="sticky bottom-0 bg-[var(--nimi-surface-card)] py-2" role="status" aria-live="polite">
+            <InlineAlert tone={OPERATION_NOTICE_TONE[operation.state]}>
+              <span data-agent-center-appearance-operation={operation.state}>{operation.message}</span>
+              {operation.state === 'validation-failed' ? <span data-agent-center-validation-reason={operation.reasonCode} /> : null}
+            </InlineAlert>
+          </div>
         ) : null}
       </div>
 

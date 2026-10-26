@@ -12,7 +12,6 @@
     "notices": "应用中断记录",
     "summaryCount_one": "应用中断记录 · {{count}} 条",
     "summaryCount_other": "应用中断记录 · {{count}} 条",
-    "summaryDescription": "这里记录应用停止、连接中断或执行会话过期的情况，不代表应用内任务失败。重新连接不会自动恢复之前的工作，请回来源应用确认实际进度。移除记录不会改变应用或任务状态。",
     "viewAll": "查看记录",
     "dismiss": "移除记录",
     "stopped": "执行已停止",

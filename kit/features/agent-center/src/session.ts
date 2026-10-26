@@ -937,7 +937,9 @@ class ManagerSession {
         adopt,
       };
     } catch (error) {
-      if (degradeOnError && this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationTokens[domain] === mutationToken) {
+      const canceledSelection = action === 'replaceAppearance'
+        && error instanceof Error && 'reasonCode' in error && error.reasonCode === 'selection-canceled';
+      if (degradeOnError && !canceledSelection && this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationTokens[domain] === mutationToken) {
         this.#degradeAction(action, error);
       }
       throw error;

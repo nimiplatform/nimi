@@ -150,6 +150,7 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
         className={`${ITEM_CLASS} gap-1.5`}
         onClick={onOpenUsage}
         data-testid="home-machine-usage"
+        aria-label={t('runtimeConfig.systemEntry.activityUsageTitle')}
         title={usage?.note}
       >
         <Coins size={14} strokeWidth={1.6} className="shrink-0" />

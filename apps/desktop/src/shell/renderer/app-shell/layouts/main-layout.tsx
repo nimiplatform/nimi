@@ -61,11 +61,11 @@ export function MainLayout() {
   const notifications = useHomeExecutionNotificationControls();
   const [homeVisible, setHomeVisible] = useState(true);
   const reading = useMemo(() => {
-    const open = async (homeSection: 'usage' | 'work'): Promise<void> => {
-      const result = await navigation.push({ id: 'home', homeSection });
+    const openAIActivity = async (): Promise<void> => {
+      const result = await navigation.push({ id: 'home', homeSection: 'ai-activity' });
       if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected');
     };
-    return { openUsage: () => open('usage'), openCurrentWork: () => open('work') };
+    return { openAIActivity };
   }, [navigation]);
   const navigate = useNavigate();
   const bindings = useDesktopRendererBindings();

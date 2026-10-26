@@ -48,7 +48,7 @@ export function createAgentCenterShellHostMechanics(
       kind: 'live2d' | 'vrm',
     ): Promise<AgentCenterHostAppearanceSelection> {
       const material = await shell.pickAvatarAssetMaterial(kind);
-      if (!material) throw new Error('Agent Center avatar selection was canceled.');
+      if (!material) throw Object.assign(new Error('Agent Center avatar selection was canceled.'), { reasonCode: 'selection-canceled' });
       if (material.backendKind !== kind) {
         throw new Error('Shell returned appearance material for the wrong backend.');
       }
@@ -60,7 +60,7 @@ export function createAgentCenterShellHostMechanics(
     ...(shell.pickBackgroundAssetMaterial ? {
       async selectBackground(): Promise<AgentCenterHostAppearanceSelection> {
         const material = await shell.pickBackgroundAssetMaterial!();
-        if (!material) throw new Error('Agent Center background selection was canceled.');
+        if (!material) throw Object.assign(new Error('Agent Center background selection was canceled.'), { reasonCode: 'selection-canceled' });
         return appearanceSelection({}, presentationAssetMaterial(material));
       },
     } : {}),

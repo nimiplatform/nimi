@@ -23,8 +23,7 @@ export type SystemEntryContextValue = Readonly<{
   appActivity: HomeAppActivity;
   ai: SystemEntryAIState | null;
   refresh(): Promise<void>;
-  openUsage(): Promise<void>;
-  openCurrentWork(): Promise<void>;
+  openAIActivity(): Promise<void>;
 }>;
 
 export const SystemEntryProviderContext = createContext<SystemEntryContextValue | null>(null);

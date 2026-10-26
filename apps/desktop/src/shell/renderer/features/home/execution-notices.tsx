@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Button, InlineAlert, OverlayShell } from '@nimiplatform/kit/ui';
-import { ArrowRight, History } from 'lucide-react';
+import { AppCardSurface, Button, InlineAlert, OverlayShell, StatusBadge } from '@nimiplatform/kit/ui';
+import { ArrowRight, BellRing, ChevronDown, History, PanelRightClose, Trash2 } from 'lucide-react';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
+import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
@@ -21,6 +22,11 @@ type Notice = {
   occurredAt: string; availableNow: boolean | null; notification: 'disabled' | 'unsupported' | 'requested' | 'shown' | 'failed';
 };
 type NoticeSnapshot = { notices: readonly Notice[]; systemSupported: boolean };
+
+export type ExecutionNoticeAppArtworkResolver = (displayName: string) => Readonly<{
+  appId: string;
+  iconUrl: string | null;
+}> | null;
 
 function useExecutionNotificationPreferences() {
   const { i18n } = useTranslation();
@@ -218,7 +224,9 @@ function parseSnapshot(value: unknown): NoticeSnapshot {
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.execution-notice
-export function HomeExecutionNotices() {
+export function HomeExecutionNotices({ appArtworkFor }: {
+  appArtworkFor?: ExecutionNoticeAppArtworkResolver;
+} = {}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -249,30 +257,39 @@ export function HomeExecutionNotices() {
         <span>{t('Notifications.execution.viewAll')}</span><ArrowRight size={14} aria-hidden="true" className="shrink-0" />
       </button>
     </section> : null}
-    <OverlayShell open={open} kind="drawer" size="S" title={<div className="flex items-center justify-between gap-3"><span>{t('Notifications.execution.notices')}</span><Button tone="ghost" size="sm" onClick={() => setOpen(false)}>{t('Common.close')}</Button></div>}
-      onClose={() => setOpen(false)} panelClassName="flex h-full flex-col" contentClassName="min-h-0 flex-1 overflow-y-auto pb-6"
+    <OverlayShell open={open} kind="drawer" size="S" title={<div className="flex items-center gap-3">
+      <button type="button" aria-label={t('Common.close')} title={t('Common.close')} data-testid="execution-notices-close" onClick={() => setOpen(false)} className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"><PanelRightClose size={16} aria-hidden="true" /><span className="sr-only">{t('Common.close')}</span></button>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]" data-testid="execution-notices-title-icon"><BellRing size={17} aria-hidden="true" /></span>
+      <div className="flex min-w-0 flex-1 items-center gap-2"><span className="truncate">{t('Notifications.execution.notices')}</span>{notices.length ? <StatusBadge tone="neutral" className="shrink-0">{notices.length}</StatusBadge> : null}</div>
+    </div>}
+      onClose={() => setOpen(false)} panelClassName="flex h-full flex-col" contentClassName="min-h-0 flex-1 overflow-y-auto px-5 pb-6"
       data-testid="execution-notices-drawer">
-      <p className="mb-5 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t('Notifications.execution.summaryDescription')}</p>
-      {query.isError ? <InlineAlert tone="warning" action={<Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button>}>{t('Notifications.execution.unavailable')}</InlineAlert> : null}
-      <ul className="divide-y divide-[var(--nimi-border-subtle)]" data-testid="execution-notices-list">
-        {notices.map(notice => <li key={notice.id} className="py-4 first:pt-0" data-testid="execution-notice-row">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="break-words text-sm font-semibold">{notice.displayName}</p>
-              <p className="mt-1 text-sm">{t(`Notifications.execution.${notice.kind}`)}</p>
+      {query.isError ? <div className="mb-4"><InlineAlert tone="warning" action={<Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button>}>{t('Notifications.execution.unavailable')}</InlineAlert></div> : null}
+      <ul className="flex flex-col gap-3" data-testid="execution-notices-list">
+        {notices.map(notice => {
+          const artwork = appArtworkFor?.(notice.displayName) ?? null;
+          return <AppCardSurface key={notice.id} as="li" kind="operational-solid" className="p-4" data-testid="execution-notice-row">
+            <div className="flex items-start gap-3">
+              <AppArtworkIcon appId={artwork?.appId ?? notice.displayName} displayName={notice.displayName} iconUrl={artwork?.iconUrl} size="md" className="execution-notice-app-icon" />
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words text-sm font-semibold">{notice.displayName}</h3>
+                <div className="mt-2"><StatusBadge tone="warning" shape="dot">{t(`Notifications.execution.${notice.kind}`)}</StatusBadge></div>
+              </div>
             </div>
-            <Button tone="ghost" size="sm" className="shrink-0" disabled={dismiss.isPending} onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.dismiss')}</Button>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(notice.availableNow === null ? 'Notifications.execution.unconfirmed' : notice.availableNow ? 'Notifications.execution.restored' : 'Notifications.execution.noResume')}</p>
-          <time className="mt-1 block text-xs text-[var(--nimi-text-muted)]" dateTime={notice.occurredAt}>{new Date(notice.occurredAt).toLocaleString()}</time>
-          {notice.notification !== 'shown' ? <details className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-            <summary className="cursor-pointer">{t('Notifications.execution.notificationDetails')}</summary>
-            <p className="mt-1 leading-5">{t(`Notifications.execution.notification-${notice.notification}`)}</p>
-          </details> : null}
-          {dismiss.isError && dismiss.variables === notice.id ? <div role="alert" className="mt-2 text-sm text-[var(--nimi-status-danger)]">{t('Notifications.execution.dismissFailed')} <Button tone="ghost" size="sm" onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.retry')}</Button></div> : null}
-        </li>)}
+            <p className={`mt-3 text-[13px] leading-5 ${notice.availableNow ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`} data-testid="execution-notice-availability">{t(notice.availableNow === null ? 'Notifications.execution.unconfirmed' : notice.availableNow ? 'Notifications.execution.restored' : 'Notifications.execution.noResume')}</p>
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] pt-2.5">
+              <time className="text-xs tabular-nums text-[var(--nimi-text-muted)]" dateTime={notice.occurredAt}>{new Date(notice.occurredAt).toLocaleString()}</time>
+              <Button tone="ghost" size="sm" className="-mr-2 shrink-0 text-[var(--nimi-text-secondary)]" leadingIcon={<Trash2 size={13} aria-hidden="true" />} disabled={dismiss.isPending} onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.dismiss')}</Button>
+            </div>
+            {notice.notification !== 'shown' ? <details className="group mt-3 rounded-xl bg-[var(--nimi-status-neutral-soft-bg)] px-3 py-2.5 text-xs text-[var(--nimi-text-muted)]">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md text-[var(--nimi-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden"><span>{t('Notifications.execution.notificationDetails')}</span><ChevronDown size={14} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" /></summary>
+              <p className="mt-2 leading-5">{t(`Notifications.execution.notification-${notice.notification}`)}</p>
+            </details> : null}
+            {dismiss.isError && dismiss.variables === notice.id ? <div role="alert" className="mt-3 text-sm text-[var(--nimi-status-danger)]">{t('Notifications.execution.dismissFailed')} <Button tone="ghost" size="sm" onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.retry')}</Button></div> : null}
+          </AppCardSurface>;
+        })}
       </ul>
-      {!notices.length && !query.isError ? <p role="status" className="py-8 text-center text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.execution.empty')}</p> : null}
+      {!notices.length && !query.isError ? <div role="status" className="flex flex-col items-center px-6 py-14 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]"><History size={22} aria-hidden="true" /></span><p className="mt-4 text-sm font-medium text-[var(--nimi-text-secondary)]">{t('Notifications.execution.empty')}</p></div> : null}
     </OverlayShell>
   </>;
 }

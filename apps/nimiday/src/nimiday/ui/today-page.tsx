@@ -1,6 +1,6 @@
 import { useMemo, type ComponentProps } from 'react';
 import { Button, InlineAlert, nimiToast } from '@nimiplatform/kit/ui';
-import { ArrowUpRight, CalendarClock, CalendarDays, Plus, Sunrise } from 'lucide-react';
+import { ArrowUpRight, CalendarClock, CalendarDays, Sunrise } from 'lucide-react';
 import { activeSkillRun, MORNING_CARE_SKILL, resolveSkills } from '../domain/skills.js';
 import { buildToday } from '../domain/today.js';
 import { formatDate, greeting } from '../i18n/index.js';
@@ -97,7 +97,7 @@ export function TodayPage() {
 
           <SourceCompactEntry />
           <div className="nd-today-details">
-            <TodaySection title={copy.today.schedule} className="nd-today-schedule" action={<Button tone="ghost" size="sm" className="nd-section-action" leadingIcon={<Plus size={16} aria-hidden="true" />} onClick={() => ui.newItem({ date: model.date })}>{copy.common.add}</Button>}>
+            <TodaySection title={copy.today.schedule} className="nd-today-schedule" action={<Button tone="ghost" size="sm" className="nd-section-action" onClick={() => ui.newItem({ date: model.date })}>{copy.today.addSchedule}</Button>}>
               {model.timeline.length === 0 ? <div className="nd-today-empty"><span className="nd-today-empty-icon"><CalendarDays size={28} strokeWidth={1.5} aria-hidden="true" /></span><Hint>{copy.today.scheduleEmpty}</Hint><Button tone="secondary" size="sm" onClick={() => ui.newItem({ date: model.date })}>{copy.today.planSomething}</Button></div> : (
                 <div className="nd-list">
                   {model.timeline.map((entry) => (entry.kind === 'item' ? (
