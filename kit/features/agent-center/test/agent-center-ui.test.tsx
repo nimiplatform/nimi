@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import { AgentCenterBehaviorSection } from '../src/components/AgentCenterBehaviorSection.js';
+import { AgentCenterAppearanceSection } from '../src/components/AgentCenterAppearanceSection.js';
+import type { AgentCenterHostMechanics } from '../src/types.js';
 import { sessionFor } from './session-fixture.js';
 import { TestResourcePackTargetController } from './resource-pack-target-fixture.js';
 
@@ -365,6 +367,145 @@ describe('AgentCenter UI session contract', () => {
 
     expect(backgroundSelections).toBe(1);
     expect(session.getSnapshot().state.appearance.backgroundRef).toBe('asset://background/selected');
+  });
+
+  it.each([true, false])('restores a successful appearance save with preview running=%s and fences concurrent writes', async (previewRunning) => {
+    let releaseSelection: (() => void) | undefined;
+    const selectionGate = new Promise<void>((resolve) => { releaseSelection = resolve; });
+    const selectAvatar = vi.fn<NonNullable<AgentCenterHostMechanics['selectAvatar']>>(async (kind) => {
+      await selectionGate;
+      return {
+        intent: { backendKind: kind, avatarAssetReference: 'avatar:replacement' },
+        importedAssets: [{
+          role: 'avatar', fileName: 'replacement.zip', mediaType: 'application/zip',
+          content: Uint8Array.from([1, 2, 3]), sha256: 'a'.repeat(64),
+        }],
+      };
+    });
+    const selectBackground = vi.fn<NonNullable<AgentCenterHostMechanics['selectBackground']>>(async () => ({
+      intent: { backgroundAssetReference: 'background:replacement' },
+      importedAssets: [{
+        role: 'background', fileName: 'replacement.png', mediaType: 'image/png',
+        content: Uint8Array.from([4, 5, 6]), sha256: 'b'.repeat(64),
+      }],
+    }));
+    const hostMechanics: AgentCenterHostMechanics = {
+      selectAvatar,
+      selectBackground,
+      ...(previewRunning ? {
+        resolveCommittedPreview: async (input) => ({
+          state: 'ready', tier: 'avatar_preview_service',
+          backendKind: input.backendKind, avatarAssetRef: input.avatarAssetRef,
+          previewMaterialRef: `material:${input.avatarAssetRef}`,
+          previewImageRef: '/__nimi/avatar-preview/current.png', warnings: [],
+        }),
+      } satisfies Pick<AgentCenterHostMechanics, 'resolveCommittedPreview'> : {}),
+    };
+    const session = await sessionFor({
+      appearance: {
+        status: 'ready', presentationRevision: '3', backendKind: 'vrm',
+        avatarAssetRef: 'avatar:original', avatarAssetValid: true,
+        defaultVoiceReference: 'preset_voice_id:original',
+        previousSelection: { backendKind: 'live2d', avatarAssetReference: 'avatar:older' },
+      },
+    }, hostMechanics);
+    const restoreCalls = vi.spyOn(session, 'restorePreviousAppearance');
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    const button = (label: string): HTMLButtonElement => {
+      const found = Array.from(node.querySelectorAll('button'))
+        .find((entry) => entry.textContent?.trim() === label);
+      expect(found, label).toBeTruthy();
+      return found!;
+    };
+    const assertWritesDisabled = () => {
+      for (const label of [
+        'Choose Live2D package', 'Choose VRM file', 'Choose background image',
+        'Restore previous appearance', 'Clear voice selection',
+      ]) {
+        expect(button(label).disabled, label).toBe(true);
+      }
+      expect((node.querySelector('[role="switch"]') as HTMLButtonElement).disabled).toBe(true);
+    };
+    try {
+      expect(button('Restore previous appearance').disabled).toBe(false);
+      expect(button('Clear voice selection').disabled).toBe(false);
+      act(() => { button('Choose Live2D package').click(); });
+      const confirm = Array.from(document.body.querySelectorAll('button'))
+        .find((entry) => entry.textContent?.trim() === 'Choose file and replace')!;
+      act(() => { confirm.click(); confirm.click(); });
+      await flush();
+      expect(selectAvatar).toHaveBeenCalledTimes(1);
+      assertWritesDisabled();
+      act(() => { button('Restore previous appearance').click(); });
+      expect(restoreCalls).not.toHaveBeenCalled();
+
+      await act(async () => { releaseSelection?.(); });
+      await flush();
+      expect(session.getSnapshot().state.appearance).toMatchObject({
+        avatarAssetRef: 'avatar:replacement', backendKind: 'live2d', presentationRevision: '4',
+        previousSelection: { avatarAssetReference: 'avatar:original', backendKind: 'vrm' },
+      });
+      expect(node.querySelector('[data-agent-center-appearance-operation="saved"]')).toBeTruthy();
+      if (!previewRunning) expect(node.textContent).toContain('No embedded preview is running.');
+      const restore = button('Restore previous appearance');
+      expect(restore.disabled).toBe(false);
+      act(() => { restore.click(); restore.click(); });
+      expect(restoreCalls).toHaveBeenCalledTimes(1);
+      assertWritesDisabled();
+      act(() => {
+        button('Choose VRM file').click();
+        button('Choose background image').click();
+        button('Clear voice selection').click();
+        (node.querySelector('[role="switch"]') as HTMLButtonElement).click();
+      });
+      expect(selectAvatar).toHaveBeenCalledTimes(1);
+      expect(selectBackground).not.toHaveBeenCalled();
+      await flush();
+      expect(session.getSnapshot().state.appearance).toMatchObject({
+        avatarAssetRef: 'avatar:original', backendKind: 'vrm', presentationRevision: '5',
+        defaultVoiceReference: 'preset_voice_id:original', avatarAutoplay: false,
+      });
+      expect(node.querySelector('[data-agent-center-appearance-operation="restored"]')).toBeTruthy();
+      expect(button('Choose VRM file').disabled).toBe(false);
+    } finally {
+      releaseSelection?.();
+      restoreCalls.mockRestore();
+    }
+  });
+
+  it('allows explicit restore with preview-not-running display metadata and a real Session', async () => {
+    const session = await sessionFor({
+      appearance: {
+        status: 'ready', presentationRevision: '4', backendKind: 'live2d',
+        avatarAssetRef: 'avatar:replacement', avatarAssetValid: true,
+        previousSelection: { backendKind: 'vrm', avatarAssetReference: 'avatar:original' },
+      },
+    });
+    const snapshot = session.getSnapshot();
+    // Exercise the section's typed display boundary. Availability and the
+    // restore mutation still come from the actual nominal Session.
+    const node = render(<AgentCenterAppearanceSection session={session} snapshot={{
+      ...snapshot,
+      state: {
+        ...snapshot.state,
+        appearance: {
+          ...snapshot.state.appearance,
+          renderState: 'unavailable', renderUnavailableReasonCode: 'preview-not-running',
+        },
+      },
+    }} />);
+    expect(node.textContent).toContain('No embedded preview is running.');
+    const restore = Array.from(node.querySelectorAll('button'))
+      .find((entry) => entry.textContent?.trim() === 'Restore previous appearance')!;
+    expect(restore).toBeTruthy();
+    expect(restore.disabled).toBe(false);
+    await act(async () => { restore.click(); });
+    await flush();
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      backendKind: 'vrm', avatarAssetRef: 'avatar:original', presentationRevision: '5',
+    });
+    expect(node.querySelector('[data-agent-center-appearance-operation="restored"]')).toBeTruthy();
   });
 
   it('renders the shared Resource Pack card on a non-Zhiyu mount and routes only its placement entry', async () => {

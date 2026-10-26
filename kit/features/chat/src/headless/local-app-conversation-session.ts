@@ -161,6 +161,7 @@ export function createCanonicalConversationMediaReader(input: {
   const read = async (artifactId: string): Promise<Preview> => {
     try {
       const artifact = await input.conversation.readArtifact({ ...input.scope, artifactId });
+      if (closed) return empty;
       let binary = '';
       for (let i = 0; i < artifact.bytes.length; i += 8192) {
         binary += String.fromCharCode(...artifact.bytes.subarray(i, i + 8192));

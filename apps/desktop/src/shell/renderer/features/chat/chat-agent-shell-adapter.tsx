@@ -271,7 +271,6 @@ export function useAgentConversationModeHost(
     runtimePresentationProfile,
   } = useAgentConversationRuntimeController({
     activeTarget: shellActiveTarget,
-    authStatus: input.authStatus,
     reportHostError: reportRuntimeProductError,
   });
   const accountId = input.runtimeFields.targetAccountId

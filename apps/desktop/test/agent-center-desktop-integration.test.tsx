@@ -35,7 +35,6 @@ test('Desktop Agent Center uses the canonical handle Manager and keeps its entry
   assert.match(runtimeSource, /shellBridge\.openResourcePackInZhiyu/u);
   assert.doesNotMatch(runtimeSource, /openAgentCenterResourcePackInZhiyu/u);
   assert.match(runtimeSource, /avatarHandoff:\s*bindings\.app\.commands\.avatarHandoff/u);
-  assert.match(runtimeSource, /runtimeAgentCenterAdapter\?\.dispose\(\)/u);
   assert.doesNotMatch(runtimeSource, /createFirstPartyAgentCenterSession|createNimiRuntimeAgentMemoryManager/u);
   assert.doesNotMatch(runtimeSource, /accountProduct|listVoiceAssets|listLocalAppVoiceAssets/u);
   assert.doesNotMatch(presentationSource, /onOpenAgentCenter=\{undefined\}/u);

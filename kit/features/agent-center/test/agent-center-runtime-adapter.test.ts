@@ -312,7 +312,7 @@ describe('AgentCenterSession', () => {
     const config = await client.sharedAIConfig.get();
     calls.length = 0;
     let complete!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
-    client.sharedAIConfig.get = () => new Promise(resolve => { complete = resolve; });
+    vi.spyOn(client.sharedAIConfig, 'get').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     const pending = session.refresh();
     await vi.waitFor(() => expect(session.getSnapshot().reads.presentation).toBe('loaded'));
@@ -344,8 +344,8 @@ describe('AgentCenterSession', () => {
     const client = appClient([]);
     const config = await client.sharedAIConfig.get();
     let complete!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
-    client.sharedAIConfig.get = () => new Promise(resolve => { complete = resolve; });
-    client.memory.inspect = async () => { throw new Error('Memory unavailable'); };
+    vi.spyOn(client.sharedAIConfig, 'get').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+    vi.spyOn(client.memory, 'inspect').mockRejectedValue(new Error('Memory unavailable'));
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     const pending = session.refresh();
     await vi.waitFor(() => expect(session.getSnapshot().reads.memory).toBe('failed'));
@@ -445,7 +445,7 @@ describe('AgentCenterSession', () => {
     await session.refresh();
     const previous = session.getSnapshot();
     let complete!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
-    client.sharedAIConfig.get = () => new Promise(resolve => { complete = resolve; });
+    vi.spyOn(client.sharedAIConfig, 'get').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
     const pending = session.refresh();
     await vi.waitFor(() => expect(complete).toBeTypeOf('function'));
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -462,7 +462,7 @@ describe('AgentCenterSession', () => {
     const client = appClient([]);
     const appearance = await client.presentation.snapshot({ agentHandle: HANDLE });
     let complete!: (value: typeof appearance) => void;
-    client.presentation.snapshot = () => new Promise(resolve => { complete = resolve; });
+    vi.spyOn(client.presentation, 'snapshot').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     const pending = session.refresh();
     await vi.waitFor(() => expect(complete).toBeTypeOf('function'));
@@ -481,7 +481,7 @@ describe('AgentCenterSession', () => {
     const inspect = client.memory.inspect;
     let release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });
-    client.memory.inspect = async input => { await gate; return inspect(input); };
+    vi.spyOn(client.memory, 'inspect').mockImplementation(async input => { await gate; return inspect(input); });
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     const countReads = () => calls.filter(call => (call as unknown[])[0] === 'shared.get').length;
     let unsubscribe = session.subscribe(() => {});
@@ -505,16 +505,16 @@ describe('AgentCenterSession', () => {
     const calls: unknown[] = [];
     const client = appClient(calls);
     const presentation = client.presentation.snapshot;
-    client.presentation.snapshot = async input => {
+    vi.spyOn(client.presentation, 'snapshot').mockImplementation(async input => {
       const result = await presentation(input);
       return { ...result, defaultVoiceReference: 'voice_asset_id:bound-voice',
         profile: result.profile ? { ...result.profile, defaultVoiceReference: 'voice_asset_id:bound-voice' } : null };
-    };
+    });
     const options = client.sharedAIConfig.listOptions;
-    client.sharedAIConfig.listOptions = async input => {
+    vi.spyOn(client.sharedAIConfig, 'listOptions').mockImplementation(async input => {
       const result = await options(input);
-      return input.kind === 'voice-assets' ? { kind: 'voice-assets', truncated: false, options: [{ voiceAssetId: 'bound-voice' }] } as Awaited<ReturnType<typeof options>> : result;
-    };
+      return input.kind === 'voice-assets' ? { kind: input.kind, truncated: false, options: [{ voiceAssetId: 'bound-voice' }] } : result;
+    });
     const referenceVoiceClient = { agentConfigure: client,
       agents: { getIntroduction: async () => ({ voiceSampleUrl: null }) },
       aiConfig: { get: async () => ({ config: null, revision: '1', effectiveSelections: [] }) }, ai: {},
@@ -533,7 +533,7 @@ describe('AgentCenterSession', () => {
 
   it('keeps independent domain availability when a shared read throws before returning a Promise', async () => {
     const client = appClient([]);
-    client.sharedAIConfig.get = () => { throw new Error('Shared owner unavailable'); };
+    vi.spyOn(client.sharedAIConfig, 'get').mockImplementation(() => { throw new Error('Shared owner unavailable'); });
     const session = createAppAgentCenterSession({ handle: HANDLE, client });
     await session.refresh();
     expect(session.getSnapshot().phase).toBe('degraded');

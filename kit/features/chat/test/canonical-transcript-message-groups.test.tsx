@@ -18,7 +18,18 @@ it('real virtualizer range and measurement updates retain message slots while ch
     disconnect() { this.targets.clear(); observers.delete(this); }
     deliver(target: Element, blockSize: number) {
       if (!this.targets.has(target)) return;
-      this.callback([{ target, borderBoxSize: [{ inlineSize: 640, blockSize }] } as ResizeObserverEntry], this);
+      const size = { inlineSize: 640, blockSize };
+      const entry: ResizeObserverEntry = {
+        target,
+        contentRect: new DOMRectReadOnly(0, 0, size.inlineSize, size.blockSize),
+        borderBoxSize: [size],
+        contentBoxSize: [size],
+        devicePixelContentBoxSize: [{
+          inlineSize: size.inlineSize * window.devicePixelRatio,
+          blockSize: size.blockSize * window.devicePixelRatio,
+        }],
+      };
+      this.callback([entry], this);
     }
   }
   vi.stubGlobal('ResizeObserver', LayoutObserver);

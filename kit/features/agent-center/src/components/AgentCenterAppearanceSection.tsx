@@ -307,15 +307,18 @@ function AgentCenterResourcePackCard({
   );
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-008
 export function AgentCenterAppearanceSection({ session, snapshot, i18n, placementActions }: AgentCenterAppearanceSectionProps) {
   const appearance = snapshot.state.appearance;
   const availability = snapshot.availability.replaceAppearance;
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
   const [resourcePackCardBusy, setResourcePackCardBusy] = useState(false);
   const [operation, setOperation] = useState<OperationState>({ state: 'idle', message: '' });
+  const appearanceOperationRef = useRef<object | null>(null);
   const activeSessionRef = useRef(session);
   activeSessionRef.current = session;
   useEffect(() => {
+    appearanceOperationRef.current = null;
     setPendingKind(null);
     setResourcePackCardBusy(false);
     setOperation({ state: 'idle', message: '' });
@@ -368,10 +371,10 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     || appearance.resourcePackTarget?.phase === 'render-pending'
     || appearance.resourcePackMutationPending === 'apply'
     || appearance.resourcePackMutationPending === 'clear';
-  const canReplace = actionAvailable && !resourcePackMutationBusy && Boolean(session.appearance.replaceAvatar);
-  const canImportBackground = actionAvailable && !resourcePackMutationBusy && Boolean(session.appearance.importBackground);
+  const appearanceWritesBlocked = appearanceOperationBusy || resourcePackMutationBusy;
+  const canReplace = actionAvailable && !appearanceWritesBlocked && Boolean(session.appearance.replaceAvatar);
+  const canImportBackground = actionAvailable && !appearanceWritesBlocked && Boolean(session.appearance.importBackground);
   const canRestore = snapshot.availability.restorePreviousAppearance.state === 'available'
-    && !resourcePackMutationBusy
     && Boolean(appearance.previousSelection);
   const hasDefaultVoice = Boolean(appearance.defaultVoiceReference?.trim());
   const voiceCatalog = appearance.voiceCatalog;
@@ -379,22 +382,32 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   const selectedVoiceMissing = hasDefaultVoice
     && !voiceOptions.some((voice) => voice.reference === appearance.defaultVoiceReference);
   const canSetDefaultVoice = actionAvailable
-    && !resourcePackMutationBusy
+    && !appearanceWritesBlocked
     && Boolean(session.appearance.setDefaultVoice)
     && voiceOptions.length > 0;
   const canToggleAutoplay = actionAvailable
-    && !resourcePackMutationBusy
+    && !appearanceWritesBlocked
     && Boolean(session.appearance.setAvatarAutoplay)
     && (appearance.avatarAutoplay || hasDefaultVoice);
 
-  const choose = (kind: 'live2d' | 'vrm') => setPendingKind(kind);
+  const beginAppearanceOperation = () => {
+    if (appearanceWritesBlocked || appearanceOperationRef.current) return null;
+    const token = {};
+    appearanceOperationRef.current = token;
+    return token;
+  };
+  const choose = (kind: 'live2d' | 'vrm') => {
+    if (canReplace && !appearanceOperationRef.current) setPendingKind(kind);
+  };
   const replace = async () => {
     const operationSession = session;
     const kind = pendingKind;
     setPendingKind(null);
     if (!kind
-      || (kind === 'background' && !session.appearance.importBackground)
-      || (kind !== 'background' && !session.appearance.replaceAvatar)) return;
+      || (kind === 'background' && !canImportBackground)
+      || (kind !== 'background' && !canReplace)) return;
+    const token = beginAppearanceOperation();
+    if (!token) return;
     setOperation({ state: 'saving', message: copy.saving });
     try {
       if (kind === 'background') {
@@ -417,9 +430,14 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
         reasonCode: failure.reasonCode,
         message: `${copy.validationFailed} ${failure.message}`,
       });
+    } finally {
+      if (appearanceOperationRef.current === token) appearanceOperationRef.current = null;
     }
   };
   const restore = async () => {
+    if (!canRestore) return;
+    const token = beginAppearanceOperation();
+    if (!token) return;
     const operationSession = session;
     setOperation({ state: 'restoring', message: copy.restoring });
     try {
@@ -430,10 +448,14 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
       if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
+    } finally {
+      if (appearanceOperationRef.current === token) appearanceOperationRef.current = null;
     }
   };
   const toggleAutoplay = async (next: boolean) => {
-    if (!session.appearance.setAvatarAutoplay) return;
+    if (!canToggleAutoplay || !session.appearance.setAvatarAutoplay) return;
+    const token = beginAppearanceOperation();
+    if (!token) return;
     const operationSession = session;
     setOperation({ state: 'saving', message: copy.saving });
     try {
@@ -444,10 +466,14 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
       if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
+    } finally {
+      if (appearanceOperationRef.current === token) appearanceOperationRef.current = null;
     }
   };
   const setDefaultVoice = async (reference: string) => {
-    if (!session.appearance.setDefaultVoice) return;
+    if (!actionAvailable || !session.appearance.setDefaultVoice) return;
+    const token = beginAppearanceOperation();
+    if (!token) return;
     const operationSession = session;
     setOperation({ state: 'saving', message: copy.saving });
     try {
@@ -458,6 +484,8 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
       if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
+    } finally {
+      if (appearanceOperationRef.current === token) appearanceOperationRef.current = null;
     }
   };
   const previewNotRunning = appearance.renderState === 'unavailable'
@@ -511,7 +539,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
                 </div>
               ) : <p className="m-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{copy.empty}</p>}
               <Button
-                disabled={!canReplace || operation.state === 'saving'}
+                disabled={!canReplace}
                 leadingIcon={<FolderOpen aria-hidden="true" className="h-4 w-4" />}
                 onClick={() => choose('live2d')}
                 size="sm"
@@ -520,7 +548,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
                 {copy.replaceLive2d}
               </Button>
               <Button
-                disabled={!canReplace || operation.state === 'saving'}
+                disabled={!canReplace}
                 leadingIcon={<Box aria-hidden="true" className="h-4 w-4" />}
                 onClick={() => choose('vrm')}
                 size="sm"
@@ -530,7 +558,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
               </Button>
               <Button
                 data-agent-center-background-import="true"
-                disabled={!canImportBackground || operation.state === 'saving'}
+                disabled={!canImportBackground}
                 leadingIcon={<ImageIcon aria-hidden="true" className="h-4 w-4" />}
                 onClick={() => setPendingKind('background')}
                 size="sm"
@@ -542,9 +570,9 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
                   agentCenterEnCatalog['AgentCenter.appearance.backgroundImportLabel'],
                 )}
               </Button>
-              {(operation.state === 'render-failed' || (appearance.avatarAssetRef && renderFailed))
-                && canRestore ? (
+              {canRestore ? (
                 <Button
+                  disabled={appearanceWritesBlocked}
                   leadingIcon={<RotateCcw aria-hidden="true" className="h-4 w-4" />}
                   onClick={() => void restore()}
                   size="sm"
@@ -581,7 +609,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
               <span className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-secondary)]">{voiceCopy.catalogLabel}</span>
               <SelectField
                 aria-label={voiceCopy.catalogLabel}
-                disabled={!canSetDefaultVoice || operation.state === 'saving'}
+                disabled={!canSetDefaultVoice}
                 onValueChange={(reference) => void setDefaultVoice(reference)}
                 options={[...(selectedVoiceMissing ? [{
                   value: appearance.defaultVoiceReference!,
@@ -597,7 +625,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
             </div>
             {hasDefaultVoice ? (
               <Button
-                disabled={!actionAvailable || resourcePackMutationBusy || !session.appearance.setDefaultVoice || operation.state === 'saving'}
+                disabled={!actionAvailable || appearanceWritesBlocked || !session.appearance.setDefaultVoice}
                 onClick={() => void setDefaultVoice('')}
                 size="sm"
                 tone="secondary"
@@ -635,7 +663,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
               <Toggle
                 ariaLabel={voiceCopy.avatarAutoplayLabel}
                 checked={appearance.avatarAutoplay === true}
-                disabled={!canToggleAutoplay || operation.state === 'saving'}
+                disabled={!canToggleAutoplay}
                 onChange={(next) => void toggleAutoplay(next)}
               />
             </span>
@@ -657,6 +685,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
         cancelLabel={copy.cancel}
         confirmLabel={copy.confirm}
         confirmTone="primary"
+        loading={appearanceOperationBusy}
         message={pendingKind === 'background'
           ? translateAgentCenter(
             i18n,

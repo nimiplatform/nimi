@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Buffer } from 'node:buffer';
 import type { NimiLocalAppConversationClient, NimiLocalAppConversationEvent, NimiLocalAppConversationSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 import { observeLocalAppConversation, createCanonicalConversationMediaReader } from '../src/headless/local-app-conversation-session.js';
 import type { CanonicalConversationProjection } from '../src/headless/local-app-conversation-projection.js';
@@ -215,6 +216,49 @@ describe('shared LocalAgent observation', () => {
     expect(media.get('image').mediaUrl).toBeNull();
     expect(readArtifact).toHaveBeenCalledTimes(1);
     media.close();
+  });
+
+  it('does not convert late artifact bytes or start queued reads after close', async () => {
+    type Artifact = Awaited<ReturnType<NimiLocalAppConversationClient['readArtifact']>>;
+    const pending: Array<{ artifactId: string; promise: Promise<Artifact>; resolve(value: Artifact): void }> = [];
+    const readArtifact = vi.fn((input: Parameters<NimiLocalAppConversationClient['readArtifact']>[0]) => {
+      let resolve!: (value: Artifact) => void;
+      const promise = new Promise<Artifact>(done => { resolve = done; });
+      pending.push({ artifactId: input.artifactId, promise, resolve });
+      return promise;
+    });
+    const change = vi.fn();
+    const bytes = Uint8Array.of(0, 127, 128, 255);
+    const subarray = vi.spyOn(bytes, 'subarray');
+    const encode = vi.spyOn(globalThis, 'btoa');
+    const media = createCanonicalConversationMediaReader({ scope, conversation: { readArtifact }, onChange: change });
+    try {
+      for (let index = 0; index < 6; index++) media.get(`artifact-${index}`);
+      expect(readArtifact).toHaveBeenCalledTimes(4);
+      media.close();
+      for (const read of pending) read.resolve({ artifactId: read.artifactId, bytes, byteLength: bytes.length, mimeType: 'image/png' });
+      await Promise.all(pending.map(read => read.promise));
+      await Promise.resolve();
+      expect(subarray).not.toHaveBeenCalled();
+      expect(encode).not.toHaveBeenCalled();
+      expect(change).not.toHaveBeenCalled();
+      expect(media.get('after-close')).toEqual({ mediaUrl: null, mimeType: null });
+      media.retryFailed();
+      expect(readArtifact).toHaveBeenCalledTimes(4);
+    } finally { media.close(); subarray.mockRestore(); encode.mockRestore(); }
+  });
+
+  it('preserves active binary bytes across the conversion chunk boundary', async () => {
+    const bytes = Uint8Array.from({ length: 8195 }, (_, index) => index % 256);
+    const readArtifact = vi.fn(async () => ({ artifactId: 'active-image', bytes, byteLength: bytes.length, mimeType: 'image/png' }));
+    const change = vi.fn();
+    const media = createCanonicalConversationMediaReader({ scope, conversation: { readArtifact }, onChange: change });
+    try {
+      media.get('active-image');
+      await vi.waitFor(() => expect(change).toHaveBeenCalledTimes(1));
+      expect(media.get('active-image')).toEqual({ mimeType: 'image/png', mediaUrl: `data:image/png;base64,${Buffer.from(bytes).toString('base64')}` });
+      expect(readArtifact).toHaveBeenCalledTimes(1);
+    } finally { media.close(); }
   });
 
   it('explicitly rereads only failed artifacts, coalesces clicks and keeps ready images', async () => {
