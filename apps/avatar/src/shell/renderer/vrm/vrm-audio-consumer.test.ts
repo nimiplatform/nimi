@@ -10,10 +10,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Profile } from 'wlipsync';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
 
-/** Constructs a fake AudioWorkletNode-like object exposing only the
- *  surface the consumer reads from (`weights` / `volume`). The real
- *  worklet writes these from the audio thread; for jsdom tests we set
- *  them directly. */
+/** Supplies the worklet state and teardown surface consumed by the owner.
+ *  The real worklet updates weights/volume from its message port. */
 function fakeNode(): AudioWorkletNode & {
   weights: Record<string, number>;
   volume: number;
@@ -21,6 +19,8 @@ function fakeNode(): AudioWorkletNode & {
   return {
     weights: { A: 0, E: 0, I: 0, O: 0, U: 0, S: 0 },
     volume: 0,
+    disconnect: vi.fn(),
+    port: { onmessage: vi.fn(), close: vi.fn() },
   } as unknown as AudioWorkletNode & {
     weights: Record<string, number>;
     volume: number;
@@ -89,14 +89,26 @@ describe('createVrmAudioConsumer', () => {
   });
 
   it('attachAudioSource with a NEW AudioContext re-creates the wLipSyncNode', async () => {
-    const create = vi.fn(async () => fakeNode());
+    const previous = fakeNode();
+    const current = fakeNode();
+    const create = vi.fn().mockResolvedValueOnce(previous).mockResolvedValueOnce(current);
     const consumer = createVrmAudioConsumer({
       profile: TEST_PROFILE,
       createNode: create,
     });
-    await consumer.attachAudioSource(fakeSource(), fakeAudioContext());
-    await consumer.attachAudioSource(fakeSource(), fakeAudioContext());
+    const previousSource = fakeSource();
+    const currentSource = fakeSource();
+    await consumer.attachAudioSource(previousSource, fakeAudioContext());
+    await consumer.attachAudioSource(currentSource, fakeAudioContext());
     expect(create).toHaveBeenCalledTimes(2);
+    expect(previousSource.disconnect).toHaveBeenCalledExactlyOnceWith(previous);
+    expect(previous.disconnect).toHaveBeenCalledOnce();
+    expect(previous.port.onmessage).toBeNull();
+    expect(previous.port.close).toHaveBeenCalledOnce();
+    expect(currentSource.connect).toHaveBeenCalledExactlyOnceWith(current);
+    expect(currentSource.disconnect).not.toHaveBeenCalled();
+    expect(current.disconnect).not.toHaveBeenCalled();
+    expect(current.port.close).not.toHaveBeenCalled();
   });
 
   it('detachAudioSource disconnects source, hides stale weights, and preserves the node for reuse', async () => {

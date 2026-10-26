@@ -120,22 +120,16 @@ export class AudioPipelineController {
     if (this.currentSource && this.context) {
       const source = this.currentSource;
       const context = this.context;
+      const playId = this.playId;
       void consumer.attachAudioSource(source, context).catch((err) => {
+        if (this.playId !== playId || this.sink !== consumer
+          || this.currentSource !== source || this.context !== context
+          || this.snapshot.state !== 'started') return;
         this.logger.warn('audio_sink_attach_failed_on_register', {
           error: errorMessage(err),
         });
         consumer.silent();
-        if (
-          this.sink === consumer
-          && this.currentSource === source
-          && this.context === context
-          && this.snapshot.state === 'started'
-        ) {
-          this.publish({
-            ...this.snapshot,
-            reason: 'lipsync_sink_failed',
-          });
-        }
+        this.publish({ ...this.snapshot, reason: 'lipsync_sink_failed' });
       });
     }
     return () => {
@@ -162,6 +156,8 @@ export class AudioPipelineController {
     const audioArtifactId = input.audioArtifactId.trim();
     const audioMimeType = input.audioMimeType.trim();
     const audioMimeTypeKey = audioMimeType.toLowerCase();
+    // Settle the retired request before a replacement can reuse its identity.
+    this.stop('interrupted');
     if (!audioArtifactId || !audioMimeType) {
       this.sink?.silent();
       this.publish({
@@ -173,7 +169,6 @@ export class AudioPipelineController {
       return;
     }
 
-    this.cancelCurrentSource();
     const playId = ++this.playId;
 
     this.publish({
@@ -283,6 +278,7 @@ export class AudioPipelineController {
     const audioArtifactId = input.audioSourceId.trim();
     const audioMimeType = input.audioMimeType.trim();
     const audioMimeTypeKey = audioMimeType.toLowerCase();
+    this.stop('interrupted');
     if (!audioArtifactId || !audioMimeType) {
       this.sink?.silent();
       this.publish({
@@ -294,7 +290,6 @@ export class AudioPipelineController {
       return;
     }
 
-    this.cancelCurrentSource();
     const playId = ++this.playId;
 
     this.publish({
@@ -389,6 +384,8 @@ export class AudioPipelineController {
     this.currentSource = source;
     source.onended = () => {
       if (this.playId !== playId) return;
+      source.onended = null;
+      try { source.disconnect(); } catch { /* Already disconnected. */ }
       this.currentSource = null;
       this.sink?.detachAudioSource();
       if (this.snapshot.state === 'started') {
@@ -407,6 +404,8 @@ export class AudioPipelineController {
         ...input.logFields,
         error: errorMessage(err),
       });
+      source.onended = null;
+      try { source.disconnect(); } catch { /* Already disconnected. */ }
       this.currentSource = null;
       this.sink?.silent();
       this.publish({
@@ -425,27 +424,20 @@ export class AudioPipelineController {
       reason: null,
     });
 
-    if (this.sink) {
+    if (this.sink && this.playId === playId && this.currentSource === source) {
       // attachAudioSource is async (lazy createWLipSyncNode on first call).
       // Failure inside the sink is bounded: lipsync goes silent, audio
       // playback continues unimpeded.
       const sink = this.sink;
       void sink.attachAudioSource(source, context).catch((err) => {
+        if (this.playId !== playId || this.sink !== sink
+          || this.currentSource !== source || this.snapshot.state !== 'started') return;
         this.logger.warn('audio_sink_attach_failed', {
           ...input.logFields,
           error: errorMessage(err),
         });
         sink.silent();
-        if (
-          this.playId === playId
-          && this.currentSource === source
-          && this.snapshot.state === 'started'
-        ) {
-          this.publish({
-            ...this.snapshot,
-            reason: 'lipsync_sink_failed',
-          });
-        }
+        this.publish({ ...this.snapshot, reason: 'lipsync_sink_failed' });
       });
     }
   }
@@ -468,7 +460,7 @@ export class AudioPipelineController {
   }
 
   reset(): void {
-    this.cancelCurrentSource();
+    this.stop('interrupted');
     this.sink?.silent();
     this.publish(idleSnapshot);
   }
@@ -481,6 +473,7 @@ export class AudioPipelineController {
       } catch {
         // Already stopped or never started.
       }
+      try { this.currentSource.disconnect(); } catch { /* Already disconnected. */ }
       this.currentSource = null;
       this.sink?.detachAudioSource();
     }

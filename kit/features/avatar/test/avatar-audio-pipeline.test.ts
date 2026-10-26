@@ -24,6 +24,7 @@ type FakeBufferSource = {
   start: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
   connect: ReturnType<typeof vi.fn>;
+  disconnect: ReturnType<typeof vi.fn>;
 };
 
 function createFakeContext(decode?: () => Promise<AudioBuffer>): {
@@ -37,6 +38,7 @@ function createFakeContext(decode?: () => Promise<AudioBuffer>): {
     start: vi.fn(),
     stop: vi.fn(),
     connect: vi.fn(),
+    disconnect: vi.fn(),
   };
   const decodeAudioData = vi.fn(decode ?? (async () => ({ duration: 1.2 } as AudioBuffer)));
   const context = {
@@ -414,6 +416,74 @@ describe('AudioPipelineController — sink registration', () => {
 });
 
 describe('AudioPipelineController — interrupt + reset', () => {
+  it.each(['play', 'playBytes'] as const)('settles a superseded pending %s request before publishing its replacement', async (method) => {
+    let finishDecode!: (buffer: AudioBuffer) => void;
+    const firstDecode = new Promise<AudioBuffer>(resolve => { finishDecode = resolve; });
+    const fake = createFakeContext();
+    fake.decodeAudioData.mockReturnValueOnce(firstDecode);
+    const controller = new AudioPipelineController({ audioContextFactory: () => fake.context });
+    controller.setRuntime(createRuntimeMock(async () => ({ bytes: bytesOf(8), mimeType: 'audio/wav' })) as never);
+    const { snapshots } = recordSnapshots(controller);
+    const start = (id: string) => method === 'play'
+      ? controller.play({ audioArtifactId: id, audioMimeType: 'audio/wav' })
+      : controller.playBytes({ audioSourceId: id, audioMimeType: 'audio/wav', bytes: bytesOf(8) });
+    const first = start('same-id');
+    await vi.waitFor(() => expect(fake.decodeAudioData).toHaveBeenCalledOnce());
+    await start('same-id');
+    expect(snapshots.map(snapshot => snapshot.state)).toEqual(['idle', 'requested', 'interrupted', 'requested', 'started']);
+    finishDecode({ duration: 1 } as AudioBuffer);
+    await first;
+    expect(fake.source.start).toHaveBeenCalledOnce();
+    controller.stop();
+  });
+
+  it('reset settles pending playback before clearing its identity', async () => {
+    let finishDecode!: (buffer: AudioBuffer) => void;
+    const fake = createFakeContext(() => new Promise(resolve => { finishDecode = resolve; }));
+    const controller = new AudioPipelineController({ audioContextFactory: () => fake.context });
+    const { snapshots } = recordSnapshots(controller);
+    const pending = controller.playBytes({ audioSourceId: 'pending', audioMimeType: 'audio/wav', bytes: bytesOf(8) });
+    controller.reset();
+    expect(snapshots.slice(-2)).toMatchObject([
+      { state: 'interrupted', audioArtifactId: 'pending' },
+      { state: 'idle', audioArtifactId: null },
+    ]);
+    finishDecode({ duration: 1 } as AudioBuffer);
+    await pending;
+    expect(fake.source.start).not.toHaveBeenCalled();
+  });
+
+  it.each(['start', 'register'] as const)('ignores a stale %s sink failure after another playback owns the sink', async (attachment) => {
+    let failAttach!: (error: Error) => void;
+    const pendingAttach = new Promise<void>((_, reject) => { failAttach = reject; });
+    const fake = createFakeContext();
+    const controller = new AudioPipelineController({ audioContextFactory: () => fake.context, logger: { warn: vi.fn(), error: vi.fn() } });
+    const sink = createSinkMock();
+    sink.attachAudioSource.mockReturnValueOnce(pendingAttach);
+    if (attachment === 'start') controller.registerLipsyncSink(sink);
+    await controller.playBytes({ audioSourceId: 'first', audioMimeType: 'audio/wav', bytes: bytesOf(8) });
+    if (attachment === 'register') controller.registerLipsyncSink(sink);
+    await controller.playBytes({ audioSourceId: 'second', audioMimeType: 'audio/wav', bytes: bytesOf(8) });
+    const silenceCalls = sink.silent.mock.calls.length;
+    failAttach(new Error('retired attach failed'));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(sink.silent).toHaveBeenCalledTimes(silenceCalls);
+    expect(controller.getSnapshot()).toMatchObject({ state: 'started', audioArtifactId: 'second', reason: null });
+    controller.stop();
+  });
+
+  it('disconnects the speaker source on completion and cancellation', async () => {
+    const fake = createFakeContext();
+    const controller = new AudioPipelineController({ audioContextFactory: () => fake.context });
+    await controller.playBytes({ audioSourceId: 'ended', audioMimeType: 'audio/wav', bytes: bytesOf(8) });
+    fake.source.onended?.();
+    expect(fake.source.disconnect).toHaveBeenCalledOnce();
+    await controller.playBytes({ audioSourceId: 'stopped', audioMimeType: 'audio/wav', bytes: bytesOf(8) });
+    controller.stop();
+    expect(fake.source.disconnect).toHaveBeenCalledTimes(2);
+  });
+
   it('stop() interrupts an in-flight playback and emits sink.silent()', async () => {
     const fake = createFakeContext();
     const runtime = createRuntimeMock(async () => ({

@@ -4,27 +4,34 @@
 // does not provide WebGL. The real-WebGL path is exercised via a
 // `typeof WebGLRenderingContext` guard.
 
-import { describe, expect, it } from 'vitest';
+import { Vector2, WebGLRenderTarget } from 'three';
+import { describe, expect, it, vi } from 'vitest';
 
-import { createVrmRenderTarget } from './vrm-render-target.js';
+import { createVrmRenderTarget, type VrmRenderTarget } from './vrm-render-target.js';
 
 const VIEWPORT = { left: 100, top: 50, width: 400, height: 600 };
 
-function makeFakeRenderer(width = 800, height = 1200): {
-  // We intentionally use `any` for the shape: the real Three.js
-  // WebGLRenderer surface is huge, but the render-target only consumes
-  // a small subset of it. The stub branch only calls
-  // getDrawingBufferSize when present.
-   
-  renderer: any;
-} {
+type CaptureInput = Parameters<VrmRenderTarget['capture']>[0];
+type DrawingBufferTarget = Parameters<CaptureInput['renderer']['getDrawingBufferSize']>[0];
+
+function makeFakeRenderer(width = 800, height = 1200) {
+  const previousTarget = {};
   return {
+    previousTarget,
     renderer: {
-      getDrawingBufferSize: (out: { x: number; y: number }) => {
-        out.x = width;
-        out.y = height;
-        return out;
-      },
+      // Mirror the installed Three.js receiver contract, including its actual
+      // Vector2 methods. A plain x/y object must fail this boundary.
+      getDrawingBufferSize: vi.fn((out: DrawingBufferTarget) => {
+        expect(out).toBeInstanceOf(Vector2);
+        return out.set(width, height).floor();
+      }),
+      getRenderTarget: vi.fn(() => previousTarget),
+      setRenderTarget: vi.fn((_target: unknown) => {}),
+      render: vi.fn((_scene: unknown, _camera: unknown) => {}),
+      readRenderTargetPixels: vi.fn((
+        _target: unknown, _x: number, _y: number, _width: number, _height: number, _buffer: Uint8Array,
+      ) => {}),
+      getContext(): never { throw new Error('Unit tests do not create a GPU context'); },
     },
   };
 }
@@ -184,6 +191,59 @@ describe('createVrmRenderTarget (stub mode)', () => {
         vrm: {} as any,
       }),
     ).toThrow();
+  });
+});
+
+describe('createVrmRenderTarget production allocation and readback contracts', () => {
+  // Real Three.js Vector2 and WebGLRenderTarget; renderer calls are observed
+  // at the GPU boundary. These assertions do not claim real pixel output.
+  it('uses half the actual drawing buffer, reuses the FBO, and reads only one RGBA pixel', () => {
+    const target = createVrmRenderTarget();
+    const { renderer, previousTarget } = makeFakeRenderer(801.9, 1201.9);
+    const input: CaptureInput = { renderer, scene: {}, camera: {}, vrm: {} as CaptureInput['vrm'] };
+    expect(target.capture(input)).toMatchObject({ fboWidth: 400, fboHeight: 600 });
+    const fbo = renderer.setRenderTarget.mock.calls[0]?.[0] as { dispose(): void };
+    expect(fbo).toBeInstanceOf(WebGLRenderTarget);
+    expect(fbo).toMatchObject({ width: 400, height: 600 });
+    const dispose = vi.spyOn(fbo, 'dispose');
+    target.capture(input);
+    expect(renderer.setRenderTarget.mock.calls.map(([value]) => value))
+      .toEqual([fbo, previousTarget, fbo, previousTarget]);
+    expect(dispose).not.toHaveBeenCalled();
+    expect(renderer.render).toHaveBeenCalledTimes(2);
+    expect(renderer.readRenderTargetPixels).not.toHaveBeenCalled();
+
+    target.probeAlphaAtClient({ clientX: 300, clientY: 350, viewport: VIEWPORT });
+    expect(renderer.readRenderTargetPixels).toHaveBeenCalledExactlyOnceWith(
+      fbo, 200, 299, 1, 1, expect.any(Uint8Array),
+    );
+    expect(renderer.readRenderTargetPixels.mock.calls[0]?.[5].byteLength).toBe(4);
+
+    renderer.getDrawingBufferSize.mockImplementation((out) => out.set(400, 600).floor());
+    expect(target.capture(input)).toMatchObject({ fboWidth: 200, fboHeight: 300 });
+    expect(dispose).toHaveBeenCalledTimes(1);
+    const resized = renderer.setRenderTarget.mock.calls[4]?.[0] as { dispose(): void };
+    expect(resized).not.toBe(fbo);
+    const disposeResized = vi.spyOn(resized, 'dispose');
+    target.dispose();
+    target.dispose();
+    expect(disposeResized).toHaveBeenCalledTimes(1);
+    expect(target.probeAlphaAtClient({ clientX: 300, clientY: 350, viewport: VIEWPORT })).toBeNull();
+    expect(renderer.readRenderTargetPixels).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the minimum-size and failed-read fallback and restores the target after render failure', () => {
+    const target = createVrmRenderTarget();
+    const { renderer, previousTarget } = makeFakeRenderer();
+    const input: CaptureInput = { renderer, scene: {}, camera: {}, vrm: {} as CaptureInput['vrm'] };
+    renderer.getDrawingBufferSize.mockImplementation(() => { throw new Error('renderer unavailable'); });
+    expect(target.capture(input)).toMatchObject({ fboWidth: 64, fboHeight: 64 });
+    renderer.readRenderTargetPixels.mockImplementation(() => { throw new Error('readback unavailable'); });
+    expect(target.probeAlphaAtClient({ clientX: 300, clientY: 350, viewport: VIEWPORT })).toBeNull();
+    renderer.render.mockImplementation(() => { throw new Error('context lost'); });
+    expect(() => target.capture(input)).toThrow('context lost');
+    expect(renderer.setRenderTarget).toHaveBeenLastCalledWith(previousTarget);
+    target.dispose();
   });
 });
 

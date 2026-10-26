@@ -37,7 +37,7 @@ type ConsumerState = {
   audioContext: AudioContext | null;
   source: AudioBufferSourceNode | null;
   node: WLipSyncAudioNode | null;
-  pendingNodePromise: Promise<unknown> | null;
+  pendingNodePromise: Promise<void> | null;
   warnedNoProfile: boolean;
   attachRevision: number;
 };
@@ -58,6 +58,7 @@ function projectWeights(weights: Record<string, number>): Record<VisemeKey, numb
   return out;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r005
 export function createWLipSyncAudioConsumer(
   deps: WLipSyncAudioConsumerDeps,
 ): WLipSyncAudioConsumer {
@@ -89,8 +90,16 @@ export function createWLipSyncAudioConsumer(
     state.source = null;
   }
 
+  function releaseNode(node: WLipSyncAudioNode): void {
+    try { node.disconnect(); } catch { /* Already disconnected. */ }
+    node.port.onmessage = null;
+    node.port.close();
+  }
+
   return {
     async attachAudioSource(source, audioContext) {
+      detach();
+      const attachRevision = state.attachRevision;
       if (!deps.profile) {
         if (!state.warnedNoProfile) {
           state.warnedNoProfile = true;
@@ -100,24 +109,29 @@ export function createWLipSyncAudioConsumer(
         return;
       }
 
-      detach();
-      const attachRevision = state.attachRevision;
-
-      if (!state.node || state.audioContext !== audioContext) {
+      if (state.audioContext !== audioContext) {
+        if (state.node) releaseNode(state.node);
         state.audioContext = audioContext;
         state.node = null;
+        state.pendingNodePromise = null;
+      }
+      if (!state.node && !state.pendingNodePromise) {
         const profile = deps.profile;
         const pending = factory(audioContext, profile)
           .then((node) => {
-            if (state.audioContext !== audioContext) return;
+            // Context identity alone is insufficient for an A/B/A switch.
+            if (state.audioContext !== audioContext || state.pendingNodePromise !== pending) {
+              releaseNode(node);
+              return;
+            }
             state.node = node;
           })
           .catch((err: unknown) => {
+            if (state.audioContext !== audioContext || state.pendingNodePromise !== pending) return;
             console.warn(
               deps.createFailureMessage ?? '[avatar:lipsync] createWLipSyncNode failed; lipsync silent',
               err,
             );
-            deps.onSilent?.();
           })
           .finally(() => {
             if (state.pendingNodePromise === pending) {
@@ -125,8 +139,8 @@ export function createWLipSyncAudioConsumer(
             }
           });
         state.pendingNodePromise = pending;
-        await pending;
       }
+      if (state.pendingNodePromise) await state.pendingNodePromise;
 
       if (attachRevision !== state.attachRevision) {
         return;

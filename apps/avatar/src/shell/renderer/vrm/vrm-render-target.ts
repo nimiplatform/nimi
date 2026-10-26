@@ -29,7 +29,7 @@
 // alpha=0; this is intentionally crude and only meant to exercise the
 // surrounding wiring, not the real pixel-accurate probe.
 
-import { WebGLRenderTarget } from 'three';
+import { Vector2, WebGLRenderTarget } from 'three';
 import type { VRM } from '@pixiv/three-vrm';
 
 // `three` is declared as an opaque module in three-loader-shim.d.ts (no
@@ -37,7 +37,12 @@ import type { VRM } from '@pixiv/three-vrm';
 // classes. We instead declare narrow structural types covering only the
 // surface this module consumes. If @types/three is admitted later, swap
 // these for the real imports.
-type Vector2Like = { x: number; y: number };
+type Vector2Like = {
+  x: number;
+  y: number;
+  set(x: number, y: number): Vector2Like;
+  floor(): Vector2Like;
+};
 type ThreeScene = unknown;
 type ThreeCamera = unknown;
 type ThreeWebGLRenderTarget = {
@@ -294,8 +299,8 @@ function readDrawingBufferSize(
   const fn = (renderer as { getDrawingBufferSize?: unknown }).getDrawingBufferSize;
   if (typeof fn !== 'function') return null;
   try {
-    const target = { x: 0, y: 0 };
-    const result = (fn as (out: { x: number; y: number }) => unknown).call(
+    const target = new Vector2();
+    const result = (fn as (out: Vector2Like) => unknown).call(
       renderer,
       target,
     );

@@ -57,6 +57,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
 }): AvatarVoiceLipsyncPipeline {
   const canceled = new Set<string>();
   const playbackChains = new Map<string, Promise<void>>();
+  const playbackWaiters = new Set<{ identity: string; cancel: () => void }>();
   let disposed = false;
   let activeIdentity: string | null = null;
   const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
@@ -69,6 +70,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     for (const identity of playbackChains.keys()) canceled.add(identity);
     activeIdentity = null;
     audioPipeline.stop('interrupted');
+    cancelPlaybackWaiters();
     audioPipeline.reset();
     stateBus.publish({ kind: 'deactivate' });
     publishPlaybackState('idle');
@@ -78,12 +80,19 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     stateBus.publish({ kind: 'audio_playback_state', state });
   }
 
+  function cancelPlaybackWaiters(identity?: string): void {
+    for (const waiter of playbackWaiters) {
+      if (identity === undefined || waiter.identity === identity) waiter.cancel();
+    }
+  }
+
   function handleInterrupt(event: AgentEvent, detail: Record<string, unknown>): void {
     const turnId = readString(detail, 'turn_id');
     if (!turnId) return;
     for (const identity of playbackChains.keys()) canceled.add(identity);
     activeIdentity = null;
     audioPipeline.stop('interrupted');
+    cancelPlaybackWaiters();
     stateBus.publish({ kind: 'deactivate' });
     publishPlaybackState('interrupted');
     input.driver.emit({
@@ -96,24 +105,39 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     });
   }
 
-  function playVoiceBytesAndWait(voiceInput: VoiceBytesInput): Promise<AudioPlaybackState> {
+  function playVoiceBytesAndWait(identity: string, voiceInput: VoiceBytesInput): Promise<AudioPlaybackState> {
+    if (disposed || isAvatarLocalQuiet() || canceled.has(identity)) return Promise.resolve('interrupted');
     return new Promise((resolve) => {
       let settled = false;
+      let subscribed = false;
+      let requested = false;
       let unsubscribe: () => void = () => {};
       const settle = (state: AudioPlaybackState) => {
         if (settled) return;
         settled = true;
         unsubscribe();
+        playbackWaiters.delete(waiter);
         resolve(state);
       };
+      const waiter = { identity, cancel: () => settle('interrupted') };
+      playbackWaiters.add(waiter);
       unsubscribe = audioPipeline.subscribe((snapshot) => {
-        if (snapshot.audioArtifactId !== voiceInput.audioSourceId) return;
+        // subscribe immediately replays the previous snapshot. A replacement
+        // also settles its predecessor before publishing its own requested;
+        // neither observation belongs to this invocation, even for the same ID.
+        if (!subscribed || snapshot.audioArtifactId !== voiceInput.audioSourceId) return;
+        if (snapshot.state === 'requested') {
+          requested = true;
+          return;
+        }
+        if (!requested) return;
         if (snapshot.state === 'completed'
           || snapshot.state === 'failed'
           || snapshot.state === 'interrupted') {
           settle(snapshot.state);
         }
       });
+      subscribed = true;
       void audioPipeline.playBytes(voiceInput).catch(() => settle('failed'));
     });
   }
@@ -131,12 +155,21 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         activeIdentity = identity;
         stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioSourceId });
         publishPlaybackState('requested');
-        await playVoiceBytesAndWait({
+        const terminal = await playVoiceBytesAndWait(identity, {
           audioSourceId: voiceInput.audioSourceId,
           audioMimeType: voiceInput.audioMimeType,
           bytes: voiceInput.bytes,
         });
-        if (activeIdentity === identity) activeIdentity = null;
+        if (disposed) return;
+        // Retired or failed playback must not let an older queued chunk
+        // supersede the new voice that caused its terminal event.
+        if (terminal !== 'completed') canceled.add(identity);
+        if (activeIdentity === identity
+          && (terminal !== 'completed' || playbackChains.get(identity) === next)) {
+          activeIdentity = null;
+          stateBus.publish({ kind: 'deactivate' });
+          publishPlaybackState(terminal);
+        }
       })
       .finally(() => {
         if (playbackChains.get(identity) === next) playbackChains.delete(identity);
@@ -179,6 +212,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     if (!voiceId) return true;
     const identity = `conversation:${voiceId}`;
     canceled.add(identity);
+    cancelPlaybackWaiters(identity);
     if (activeIdentity === identity) {
       activeIdentity = null;
       audioPipeline.stop('interrupted');
@@ -204,8 +238,10 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       }
     },
     dispose() {
+      if (disposed) return;
       disposed = true;
       audioPipeline.stop('interrupted');
+      cancelPlaybackWaiters();
       stateBus.publish({ kind: 'deactivate' });
       publishPlaybackState('idle');
       canceled.clear();
