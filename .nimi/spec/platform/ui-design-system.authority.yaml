@@ -531,7 +531,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-004 Runtime-owned voice split
     modality: must
-    statement: AgentCenter reads and commits the default voice reference only through the admitted Runtime presentation-profile operation, discovers preset and current-session-owned bindable custom voice options only through the same canonical agent.configure client and Manager Session, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and may explicitly clone the current Agent introduction voiceSample through the same covered App SDK client and its configured voice.create ScenarioJob. A greeting is an eligible reference when it is the selected sound asset; no separate demo field, minimum recommended duration gate, provider-handle binding, implicit route change or automatic creation on mount is admitted. The Manager Session checks declared reference-audio support and compatibility with shared audio.synthesize, resumes the retained submission when present, binds only a successful durable owner VoiceAsset through presentation compare-and-swap, and preserves the previous voice on cancellation or failure. Text remains available without voice setup, creation and synthesis costs are visible, and transcription execution and voice ownership stay with Runtime.
+    statement: AgentCenter reads and commits the default voice reference only through the admitted Runtime presentation-profile operation, discovers preset and current-session-owned bindable custom voice options only through the same canonical agent.configure client and Manager Session, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and may explicitly clone only the original current Agent introduction voiceSample, using its verified content hash rather than an expiring URL as managed-input identity and its separate preview for listening, through the same covered App SDK client and its configured voice.create ScenarioJob. A greeting is an eligible reference when it is the selected sound asset; no separate demo field, minimum recommended duration gate, provider-handle binding, implicit route change or automatic creation on mount is admitted. The Manager Session checks declared reference-audio support and compatibility with shared audio.synthesize, resumes the retained submission when present, binds only a successful durable owner VoiceAsset through presentation compare-and-swap, and preserves the previous voice on cancellation or failure. Text remains available without voice setup, creation and synthesis costs are visible, and transcription execution and voice ownership stay with Runtime.
     condition: Whenever LocalAgent voice, transcription, or audio configuration is read, changed, generated, or executed.
     failure: Reject provider-handle bindings, a second voice owner, creation without an explicit action or admitted reference, incompatible configuration, automatic route selection or fabricated voice success; preserve the prior presentation on failed or canceled actions and reconcile an uncertain commit before claiming an outcome.
     relations:
@@ -1338,3 +1338,19 @@ units:
         target: definition.nimi.platform.ui-design-system.app-chrome
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-public-surface
+  - id: definition.nimi.platform.ui-design-system.media-surface
+    kind: definition
+    title: Shared Realm media consumption
+    meaning: Kit features/media is the shared image, avatar and video consumption surface for Nimi Home world/source cards, detail views, profile avatars and chat attachments. Realm and its generated SDK own Resource identity, delivery descriptors, rendition policy, authorization and lifecycle. Kit selects complete supplied source families, composes responsive media and playback, and receives refresh and failure handling through the authorized reading surface; it owns no cloud URL construction, credentials, persisted signed URLs or original-byte mutation.
+  - id: rule.nimi.platform.ui-design-system.media-delivery
+    kind: rule
+    title: Media delivery consumption remains owner-driven
+    modality: must
+    statement: Kit media consumes current Realm SDK descriptors through kit/core/sdk-contract, selects a complete format family for the requested image purpose and actual layout sizes, preserves declared pixel widths, and distinguishes managed media from explicit external URLs and Runtime-local byte contracts. Missing, denied or failed media remains an explicit unavailable state without automatic original or legacy provider fallback. The caller reading surface supplies authorized refresh; Kit never obtains access through a generic Resource-manager lookup or a private REST bypass. Video uses native HLS when supported and one shared HLS adapter otherwise, with bounded preloading, playback position preservation on authorized refresh and truthful failure state.
+    condition: Whenever Home or an App renders managed Realm media through Kit.
+    failure: Reject inconsistent descriptors or unsupported playback and show the caller failure surface without fabricated success, credential persistence or unauthorized source substitution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-family
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.media-surface

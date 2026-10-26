@@ -20,7 +20,7 @@ export type AgentIntroductionProps = {
 export function AgentIntroduction({ introduction, displayName, avatarUrl, locale, questionsEnabled, onPrefill, unavailable, onRetry, imageMaxSize = 'clamp(180px, calc(100dvh - 540px), 420px)' }: AgentIntroductionProps) {
   const zh = locale.startsWith('zh');
   const subtitle = agentIntroductionSubtitle(introduction, locale);
-  const rich = Boolean(subtitle || introduction?.greeting || introduction?.referenceImageUrl || introduction?.voiceSampleUrl);
+  const rich = Boolean(subtitle || introduction?.greeting || introduction?.referenceImageUrl || introduction?.voicePreviewUrl);
   const imageUrl = introduction?.referenceImageUrl || avatarUrl || null;
   return (
     <div className="flex w-full min-w-0 flex-col items-center gap-6 text-center [overflow-wrap:anywhere]" data-agent-introduction="true">
@@ -40,10 +40,10 @@ export function AgentIntroduction({ introduction, displayName, avatarUrl, locale
       {rich ? <div className="flex w-full max-w-[420px] flex-col items-center">
         {imageUrl ? <div className="relative aspect-square w-full overflow-hidden rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-surface-panel)] shadow-[var(--nimi-elevation-raised)]" style={{ maxWidth: imageMaxSize }} data-agent-empty-character-image="true">
           <img src={imageUrl} alt="" className="h-full w-full object-cover object-top" />
-          {introduction?.voiceSampleUrl ? <div className="absolute right-3 top-3"><IntroductionVoice src={introduction.voiceSampleUrl} duration={introduction.voiceSampleDurationSec} locale={locale} /></div> : null}
+          {introduction?.voicePreviewUrl ? <div className="absolute right-3 top-3"><IntroductionVoice src={introduction.voicePreviewUrl} duration={introduction.voiceSampleDurationSec} locale={locale} /></div> : null}
         </div> : null}
         {introduction?.greeting ? <p className={`${imageUrl ? 'mt-5 ' : ''}w-full whitespace-pre-line text-[length:var(--nimi-type-body-size)] leading-7 text-[var(--nimi-text-primary)]`} data-agent-empty-character-greeting="true">{agentIntroductionDisplayText(introduction.greeting, locale)}</p> : null}
-        {!imageUrl && introduction?.voiceSampleUrl ? <div className="mt-3"><IntroductionVoice src={introduction.voiceSampleUrl} duration={introduction.voiceSampleDurationSec} locale={locale} /></div> : null}
+        {!imageUrl && introduction?.voicePreviewUrl ? <div className="mt-3"><IntroductionVoice src={introduction.voicePreviewUrl} duration={introduction.voiceSampleDurationSec} locale={locale} /></div> : null}
       </div> : null}
       {questionsEnabled && onPrefill ? <div className="flex flex-wrap justify-center gap-2.5" data-agent-empty-suggestions="true">
         {agentIntroductionQuestions(introduction, locale).map(question => <button key={question} type="button" onClick={() => onPrefill(question)} className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 text-sm text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">

@@ -497,9 +497,13 @@ message LocalAppAgentIntroduction {
   optional string role = 3;
   optional string greeting = 4;
   optional string reference_image_url = 5;
+  // Original reference audio; never a lossy playback preview.
   optional string voice_sample_url = 6;
   optional double voice_sample_duration_sec = 7;
   repeated LocalAppAgentIntroductionTopic question_topics = 8;
+  optional string voice_preview_url = 9;
+  optional string voice_sample_content_hash = 10;
+  optional string voice_sample_mime_type = 11;
 }
 message LocalAppAgentIntroductionTopic {
   LocalAppAgentIntroductionTopicKind kind = 1;

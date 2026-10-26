@@ -1,3 +1,4 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import type { CSSProperties, ReactNode } from 'react';
 import { WORLD_EXPLORER_THEME, WORLD_NEUTRAL_COVER_BACKGROUND } from './world-list-theme';
 import type { WorldListItem } from './world-list-model';
@@ -7,14 +8,6 @@ type WorldCoverVariant = 'thumb' | 'featured' | 'panel' | 'row' | 'banner' | 'ca
 // A World without a banner gets one neutral abstract cover. The cover never
 // classifies the World from its name, genre, era, themes, or entity kinds,
 // because WorldListItem declares no cover style.
-function coverBackground(world: WorldListItem): string {
-  if (!world.bannerUrl) {
-    return WORLD_NEUTRAL_COVER_BACKGROUND;
-  }
-  const safeUrl = world.bannerUrl.replace(/"/g, '%22');
-  return `url("${safeUrl}") center/cover no-repeat`;
-}
-
 const variantClassName: Record<WorldCoverVariant, string> = {
   catalog: 'relative block h-44 w-full shrink-0 overflow-hidden',
   thumb: 'relative block h-[86px] w-[86px] shrink-0 overflow-hidden rounded-[16px]',
@@ -38,7 +31,7 @@ export function WorldCover({
   overlay?: boolean;
 }) {
   const style: CSSProperties = {
-    background: coverBackground(world),
+    background: WORLD_NEUTRAL_COVER_BACKGROUND,
   };
   return (
     <span
@@ -48,6 +41,7 @@ export function WorldCover({
       className={`${variantClassName[variant]} ${className}`}
       style={style}
     >
+      <MediaImage delivery={world.bannerMedia ?? world.heroMedia} externalUrl={world.bannerUrl} purpose={variant === 'banner' || variant === 'panel' || variant === 'featured' ? 'hero' : 'card'} sizes="auto, 320px" alt="" className="absolute inset-0 h-full w-full object-cover" />
       {overlay ? <span aria-hidden="true" className="absolute inset-0" style={WORLD_EXPLORER_THEME.coverOverlay} /> : null}
       {children}
     </span>

@@ -109,11 +109,19 @@ components:
       type: string
     AttachmentEnvelopeDto:
       properties:
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         displayKind:
           allOf:
             - $ref: '#/components/schemas/AttachmentDisplayKind'
         duration:
           type: number
+        externalUrl:
+          nullable: true
+          type: string
         height:
           type: number
         preview:
@@ -125,12 +133,10 @@ components:
         targetType:
           allOf:
             - $ref: '#/components/schemas/AttachmentTargetType'
-        thumbnail:
-          type: string
         title:
           type: string
-        url:
-          type: string
+        unavailable:
+          type: boolean
         width:
           type: number
       required:
@@ -475,6 +481,11 @@ components:
       type: object
     BlockedUserDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         avatarUrl:
           nullable: true
           type: string
@@ -1674,6 +1685,14 @@ components:
         - accountId
         - onboardingUrl
       type: object
+    ContentRatingString:
+      enum:
+        - UNRATED
+        - G
+        - PG13
+        - R18
+        - EXPLICIT
+      type: string
     CreateAssetDto:
       properties:
         authorId:
@@ -1736,63 +1755,6 @@ components:
         - originKind
         - transferPolicy
         - clonePolicy
-      type: object
-    CreateAudioDirectUploadDto:
-      properties:
-        controllerId:
-          type: string
-        controllerKind:
-          enum:
-            - ACCOUNT
-            - WORLD
-          type: string
-        deliveryAccess:
-          enum:
-            - PUBLIC
-            - SIGNED
-          type: string
-        durationSec:
-          type: number
-        filename:
-          description: Original filename for extension inference
-          type: string
-        hashSha256:
-          type: string
-        height:
-          type: number
-        instrumental:
-          type: boolean
-        label:
-          type: string
-        lyricsSource:
-          type: string
-        metadata:
-          additionalProperties: true
-          type: object
-        mimeType:
-          type: string
-        sizeBytes:
-          type: number
-        sourceArtifactId:
-          type: string
-        sourceJobId:
-          type: string
-        sourceRef:
-          type: string
-        style:
-          type: string
-        tags:
-          items:
-            type: string
-          type: array
-        title:
-          type: string
-        traceId:
-          type: string
-        width:
-          type: number
-        worldId:
-          type: string
       type: object
     CreateBundleDto:
       properties:
@@ -1878,6 +1840,63 @@ components:
         - type
         - description
       type: object
+    CreateMediaDirectUploadDto:
+      properties:
+        controllerId:
+          type: string
+        controllerKind:
+          enum:
+            - ACCOUNT
+            - WORLD
+          type: string
+        deliveryAccess:
+          enum:
+            - PUBLIC
+            - SIGNED
+          type: string
+        hashSha256:
+          type: string
+        instrumental:
+          type: boolean
+        label:
+          type: string
+        lyricsSource:
+          type: string
+        metadata:
+          additionalProperties: true
+          type: object
+        mimeType:
+          type: string
+        requestId:
+          type: string
+        sizeBytes:
+          maximum: 2147483647
+          minimum: 1
+          type: number
+        sourceArtifactId:
+          type: string
+        sourceJobId:
+          type: string
+        sourceRef:
+          type: string
+        style:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        title:
+          type: string
+        traceId:
+          type: string
+        worldId:
+          type: string
+      required:
+        - requestId
+        - hashSha256
+        - sizeBytes
+        - mimeType
+      type: object
     CreatePersonaCharacterCoreDto:
       additionalProperties: false
       properties:
@@ -1912,6 +1931,34 @@ components:
           type: string
       required:
         - returnUrl
+      type: object
+    CreatePostAttachmentDto:
+      properties:
+        targetId:
+          type: string
+        targetType:
+          allOf:
+            - $ref: '#/components/schemas/AttachmentTargetType'
+      required:
+        - targetType
+        - targetId
+      type: object
+    CreatePostDto:
+      properties:
+        attachments:
+          items:
+            $ref: '#/components/schemas/CreatePostAttachmentDto'
+          type: array
+        caption:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
+        tags:
+          items:
+            type: string
+          type: array
+      required:
+        - attachments
       type: object
     CreateReportDto:
       properties:
@@ -2022,12 +2069,6 @@ components:
             - PUBLIC
             - SIGNED
           type: string
-        durationSec:
-          type: number
-        hashSha256:
-          type: string
-        height:
-          type: number
         instrumental:
           type: boolean
         label:
@@ -2039,8 +2080,8 @@ components:
           type: object
         mimeType:
           type: string
-        sizeBytes:
-          type: number
+        requestId:
+          type: string
         sourceArtifactId:
           type: string
         sourceJobId:
@@ -2057,11 +2098,10 @@ components:
           type: string
         traceId:
           type: string
-        width:
-          type: number
         worldId:
           type: string
       required:
+        - requestId
         - content
       type: object
     CreateTransitDto:
@@ -2272,14 +2312,14 @@ components:
       type: object
     CursorPageMetaDto:
       properties:
-        hasNext:
-          type: boolean
+        cursor:
+          nullable: true
+          type: string
+        limit:
+          type: number
         nextCursor:
           nullable: true
           type: string
-      required:
-        - nextCursor
-        - hasNext
       type: object
     EditMessageInputDto:
       properties:
@@ -2336,6 +2376,29 @@ components:
       required:
         - email
         - code
+      type: object
+    FeedPageMetaDto:
+      properties:
+        cursor:
+          nullable: true
+          type: string
+        limit:
+          type: number
+        nextCursor:
+          nullable: true
+          type: string
+      type: object
+    FeedResponseDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/PostDto'
+          type: array
+        page:
+          $ref: '#/components/schemas/FeedPageMetaDto'
+      required:
+        - items
+        - page
       type: object
     FeedbackListResponseDto:
       properties:
@@ -2400,60 +2463,21 @@ components:
       type: object
     FinalizeResourceDto:
       properties:
-        controllerId:
+        requestId:
           type: string
-        controllerKind:
-          enum:
-            - ACCOUNT
-            - WORLD
-          type: string
-        deliveryAccess:
-          enum:
-            - PUBLIC
-            - SIGNED
-          type: string
-        durationSec:
-          type: number
-        hashSha256:
-          type: string
-        height:
-          type: number
-        instrumental:
-          type: boolean
-        label:
-          type: string
-        lyricsSource:
-          type: string
-        metadata:
-          additionalProperties: true
-          type: object
-        mimeType:
-          type: string
-        sizeBytes:
-          type: number
-        sourceArtifactId:
-          type: string
-        sourceJobId:
-          type: string
-        sourceRef:
-          type: string
-        style:
-          type: string
-        tags:
-          items:
-            type: string
-          type: array
-        title:
-          type: string
-        traceId:
-          type: string
-        width:
-          type: number
-        worldId:
-          type: string
+      required:
+        - requestId
       type: object
     FriendProfileDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        avatarResourceId:
+          nullable: true
+          type: string
         avatarUrl:
           nullable: true
           type: string
@@ -2500,6 +2524,14 @@ components:
           nullable: true
           type: string
         presenceText:
+          nullable: true
+          type: string
+        profileCoverMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        profileCoverResourceId:
           nullable: true
           type: string
         profileCoverUrl:
@@ -3199,6 +3231,131 @@ components:
       required:
         - code
       type: object
+    MediaDeliveryDto:
+      properties:
+        contentVersion:
+          type: string
+        expiresAt:
+          nullable: true
+          type: string
+        images:
+          items:
+            $ref: '#/components/schemas/MediaImageSetDto'
+          type: array
+        originalUrl:
+          nullable: true
+          type: string
+        policyVersion:
+          type: string
+        previewUrl:
+          nullable: true
+          type: string
+        publicationGeneration:
+          type: number
+        resourceId:
+          type: string
+        video:
+          allOf:
+            - $ref: '#/components/schemas/MediaVideoDto'
+          nullable: true
+          type: object
+      required:
+        - resourceId
+        - contentVersion
+        - publicationGeneration
+        - policyVersion
+        - expiresAt
+        - images
+        - previewUrl
+        - originalUrl
+        - video
+      type: object
+    MediaDeliveryStateDto:
+      properties:
+        failureCode:
+          nullable: true
+          type: string
+        revocationNotBefore:
+          nullable: true
+          type: string
+        state:
+          enum:
+            - PROCESSING
+            - PUBLISHING
+            - READY
+            - REVOKING
+            - REVOKED
+            - FAILED
+            - UNAVAILABLE
+          type: string
+      required:
+        - state
+        - failureCode
+        - revocationNotBefore
+      type: object
+    MediaImageFamilyDto:
+      properties:
+        mimeType:
+          type: string
+        sources:
+          items:
+            $ref: '#/components/schemas/MediaImageSourceDto'
+          type: array
+      required:
+        - mimeType
+        - sources
+      type: object
+    MediaImageSetDto:
+      properties:
+        families:
+          items:
+            $ref: '#/components/schemas/MediaImageFamilyDto'
+          type: array
+        purpose:
+          enum:
+            - avatar
+            - card
+            - hero
+            - detail
+            - chat
+            - poster
+          type: string
+      required:
+        - purpose
+        - families
+      type: object
+    MediaImageSourceDto:
+      properties:
+        height:
+          type: number
+        mimeType:
+          type: string
+        url:
+          type: string
+        width:
+          type: number
+      required:
+        - url
+        - width
+        - height
+        - mimeType
+      type: object
+    MediaVideoDto:
+      properties:
+        dashUrl:
+          type: string
+        expiresAt:
+          type: string
+        hlsUrl:
+          type: string
+        posterUrl:
+          type: string
+      required:
+        - hlsUrl
+        - dashUrl
+        - posterUrl
+        - expiresAt
+      type: object
     MessageReplyViewDto:
       properties:
         id:
@@ -3311,6 +3468,13 @@ components:
         - isRead
         - createdAt
       type: object
+    ModerationStatusString:
+      enum:
+        - ACTIVE
+        - UNDER_REVIEW
+        - FLAGGED
+        - BANNED
+      type: string
     MutualFriendCountDto:
       properties:
         count:
@@ -3320,6 +3484,11 @@ components:
       type: object
     MutualFriendDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         avatarUrl:
           nullable: true
           type: string
@@ -3374,6 +3543,11 @@ components:
       type: object
     NotificationActorDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         avatarUrl:
           nullable: true
           type: string
@@ -3448,6 +3622,11 @@ components:
           type: string
         isRead:
           type: boolean
+        preview:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         target:
           allOf:
             - $ref: '#/components/schemas/NotificationTargetDto'
@@ -3960,6 +4139,148 @@ components:
       required:
         - url
       type: object
+    PostAttachmentDto:
+      properties:
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        displayKind:
+          allOf:
+            - $ref: '#/components/schemas/AttachmentDisplayKind'
+        duration:
+          type: number
+        externalUrl:
+          nullable: true
+          type: string
+        height:
+          type: number
+        preview:
+          $ref: '#/components/schemas/AttachmentEnvelopeDto'
+        subtitle:
+          type: string
+        targetId:
+          type: string
+        targetType:
+          allOf:
+            - $ref: '#/components/schemas/AttachmentTargetType'
+        title:
+          type: string
+        unavailable:
+          type: boolean
+        width:
+          type: number
+      required:
+        - targetType
+        - targetId
+      type: object
+    PostDto:
+      properties:
+        attachments:
+          items:
+            $ref: '#/components/schemas/PostAttachmentDto'
+          type: array
+        author:
+          $ref: '#/components/schemas/UserLiteDto'
+        authorId:
+          type: string
+        authorKind:
+          enum:
+            - human
+            - worldCharacter
+            - personaCharacter
+          type: string
+        caption:
+          nullable: true
+          type: string
+        contentRating:
+          allOf:
+            - $ref: '#/components/schemas/ContentRatingString'
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        likedByCurrentUser:
+          type: boolean
+        moderationStatus:
+          allOf:
+            - $ref: '#/components/schemas/ModerationStatusString'
+        runtimeSourceRef:
+          nullable: true
+          type: string
+        sourceAuthor:
+          allOf:
+            - $ref: '#/components/schemas/PostSourceAuthorDto'
+          nullable: true
+          type: object
+        sourceRef:
+          allOf:
+            - $ref: '#/components/schemas/CharacterSourceRefV3Dto'
+          nullable: true
+          type: object
+        tags:
+          items:
+            type: string
+          type: array
+        updatedAt:
+          format: date-time
+          nullable: true
+          type: string
+        visibility:
+          allOf:
+            - $ref: '#/components/schemas/Visibility'
+        worldId:
+          type: string
+      required:
+        - id
+        - authorId
+        - author
+        - authorKind
+        - attachments
+        - visibility
+        - createdAt
+      type: object
+    PostSourceAuthorDto:
+      properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        avatarUrl:
+          nullable: true
+          type: string
+        displayName:
+          type: string
+        handle:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+            - personaCharacter
+          type: string
+        runtimeSourceRef:
+          type: string
+        sourceAuthorityAccountId:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
+        worldId:
+          type: string
+      required:
+        - kind
+        - id
+        - worldId
+        - displayName
+        - handle
+        - sourceAuthorityAccountId
+        - sourceRef
+        - runtimeSourceRef
+      type: object
     PresenceStatus:
       enum:
         - online
@@ -4383,27 +4704,6 @@ components:
         - status
         - createdAt
       type: object
-    ResourceBinaryDirectUploadTransportDto:
-      additionalProperties: false
-      properties:
-        bodyKind:
-          enum:
-            - BINARY
-          type: string
-        contentType:
-          description: >-
-            Exact Content-Type header bound into the binary presigned upload
-            request.
-          type: string
-        method:
-          enum:
-            - PUT
-          type: string
-      required:
-        - method
-        - bodyKind
-        - contentType
-      type: object
     ResourceControllerKind:
       enum:
         - ACCOUNT
@@ -4420,14 +4720,25 @@ components:
           type: string
         createdAt:
           type: string
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         deliveryAccess:
           enum:
             - PUBLIC
             - SIGNED
           type: string
+        deliveryStatus:
+          $ref: '#/components/schemas/MediaDeliveryStateDto'
         durationSec:
           nullable: true
           type: number
+        externalUrl:
+          description: Explicit externally owned URL; never a managed origin locator.
+          nullable: true
+          type: string
         hashSha256:
           nullable: true
           type: string
@@ -4492,8 +4803,6 @@ components:
             - FAILED
             - DELETED
           type: string
-        storageRef:
-          type: string
         style:
           nullable: true
           type: string
@@ -4511,9 +4820,6 @@ components:
           type: string
         uploaderAccountId:
           type: string
-        url:
-          nullable: true
-          type: string
         width:
           nullable: true
           type: number
@@ -4525,7 +4831,9 @@ components:
         - resourceType
         - provider
         - status
-        - storageRef
+        - delivery
+        - deliveryStatus
+        - externalUrl
         - provenance
         - uploaderAccountId
         - controllerKind
@@ -4545,12 +4853,7 @@ components:
         expiresIn:
           nullable: true
           type: number
-        provider:
-          enum:
-            - CF_IMAGE
-            - CF_STREAM
-            - S3_OBJECT
-            - EXTERNAL_URL
+        requestId:
           type: string
         resourceId:
           type: string
@@ -4568,8 +4871,6 @@ components:
             - FAILED
             - DELETED
           type: string
-        storageRef:
-          type: string
         transport:
           $ref: '#/components/schemas/ResourceDirectUploadTransportDto'
         uploadUrl:
@@ -4577,22 +4878,30 @@ components:
       required:
         - resourceId
         - resourceType
-        - provider
-        - storageRef
+        - requestId
         - uploadUrl
         - transport
         - status
         - deliveryAccess
       type: object
     ResourceDirectUploadTransportDto:
-      discriminator:
-        mapping:
-          BINARY: '#/components/schemas/ResourceBinaryDirectUploadTransportDto'
-          MULTIPART_FORM_DATA: '#/components/schemas/ResourceMultipartDirectUploadTransportDto'
-        propertyName: bodyKind
-      oneOf:
-        - $ref: '#/components/schemas/ResourceMultipartDirectUploadTransportDto'
-        - $ref: '#/components/schemas/ResourceBinaryDirectUploadTransportDto'
+      additionalProperties: false
+      properties:
+        bodyKind:
+          enum:
+            - BINARY
+          type: string
+        contentType:
+          type: string
+        method:
+          enum:
+            - PUT
+          type: string
+      required:
+        - method
+        - bodyKind
+        - contentType
+      type: object
     ResourceListDto:
       properties:
         items:
@@ -4606,24 +4915,6 @@ components:
       required:
         - items
         - nextCursor
-      type: object
-    ResourceMultipartDirectUploadTransportDto:
-      additionalProperties: false
-      properties:
-        bodyKind:
-          enum:
-            - MULTIPART_FORM_DATA
-          type: string
-        formField:
-          type: string
-        method:
-          enum:
-            - POST
-          type: string
-      required:
-        - method
-        - bodyKind
-        - formField
       type: object
     ResourceStatus:
       enum:
@@ -4698,10 +4989,9 @@ components:
           type: string
         payload:
           description: >-
-            Every message requires its type-specific payload; TEXT requires
-            payload.content. Canonical attachment writes use payload.attachment
-            with targetType and targetId. Provider-specific media keys are not
-            allowed, and targetType may be RESOURCE, ASSET, or BUNDLE.
+            Canonical attachment writes use payload.attachment with targetType
+            and targetId. Provider-specific media keys are not allowed, and
+            targetType may be RESOURCE, ASSET, or BUNDLE.
           example:
             attachment:
               targetId: bundle_01hxyz
@@ -4730,7 +5020,6 @@ components:
       required:
         - clientMessageId
         - type
-        - payload
       type: object
     SocialProfileDto:
       properties:
@@ -5505,6 +5794,12 @@ components:
       required:
         - newPassword
       type: object
+    UpdatePostDto:
+      properties:
+        visibility:
+          allOf:
+            - $ref: '#/components/schemas/Visibility'
+      type: object
     UpdateResourceDto:
       properties:
         controllerId:
@@ -5519,12 +5814,6 @@ components:
             - PUBLIC
             - SIGNED
           type: string
-        durationSec:
-          type: number
-        hashSha256:
-          type: string
-        height:
-          type: number
         instrumental:
           type: boolean
         label:
@@ -5534,10 +5823,6 @@ components:
         metadata:
           additionalProperties: true
           type: object
-        mimeType:
-          type: string
-        sizeBytes:
-          type: number
         sourceArtifactId:
           type: string
         sourceJobId:
@@ -5554,27 +5839,33 @@ components:
           type: string
         traceId:
           type: string
-        width:
-          type: number
         worldId:
           type: string
       type: object
     UpdateUserDto:
       properties:
+        avatarResourceId:
+          nullable: true
+          type: string
         avatarUrl:
-          description: Avatar URL
+          description: Explicit external avatar URL. Managed media uses avatarResourceId.
+          nullable: true
           type: string
         bio:
           description: User biography
+          nullable: true
           type: string
         birthYear:
           description: Birth year
+          nullable: true
           type: number
         city:
           description: City name
+          nullable: true
           type: string
         countryCode:
           description: Country code (ISO 3166-1 alpha-2)
+          nullable: true
           type: string
         displayName:
           description: Display name of the user
@@ -5583,13 +5874,20 @@ components:
           allOf:
             - $ref: '#/components/schemas/Gender'
           description: Gender
+          nullable: true
         languages:
           description: Spoken languages
           items:
             type: string
           type: array
+        profileCoverResourceId:
+          nullable: true
+          type: string
         profileCoverUrl:
-          description: Profile cover URL
+          description: >-
+            Explicit external profile cover URL. Managed media uses
+            profileCoverResourceId.
+          nullable: true
           type: string
         tags:
           description: User tags/interests
@@ -5728,6 +6026,14 @@ components:
       type: object
     UserLiteDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        avatarResourceId:
+          nullable: true
+          type: string
         avatarUrl:
           nullable: true
           type: string
@@ -5755,6 +6061,14 @@ components:
         presenceText:
           nullable: true
           type: string
+        profileCoverMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        profileCoverResourceId:
+          nullable: true
+          type: string
         profileCoverUrl:
           nullable: true
           type: string
@@ -5778,6 +6092,14 @@ components:
       type: object
     UserPrivateDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        avatarResourceId:
+          nullable: true
+          type: string
         avatarUrl:
           nullable: true
           type: string
@@ -5834,6 +6156,14 @@ components:
         presenceText:
           nullable: true
           type: string
+        profileCoverMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        profileCoverResourceId:
+          nullable: true
+          type: string
         profileCoverUrl:
           nullable: true
           type: string
@@ -5871,6 +6201,14 @@ components:
       type: object
     UserProfileDto:
       properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        avatarResourceId:
+          nullable: true
+          type: string
         avatarUrl:
           nullable: true
           type: string
@@ -5915,6 +6253,14 @@ components:
         presenceText:
           nullable: true
           type: string
+        profileCoverMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        profileCoverResourceId:
+          nullable: true
+          type: string
         profileCoverUrl:
           nullable: true
           type: string
@@ -5938,6 +6284,18 @@ components:
         - handle
         - displayName
         - createdAt
+      type: object
+    UserSearchResponseDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserLiteDto'
+          type: array
+        page:
+          $ref: '#/components/schemas/CursorPageMetaDto'
+      required:
+        - items
+        - page
       type: object
     UserSettingsDto:
       properties:
@@ -7334,9 +7692,17 @@ components:
       type: object
     WorldPublicAssetDto:
       properties:
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
         durationSec:
           nullable: true
           type: number
+        externalUrl:
+          nullable: true
+          type: string
         height:
           nullable: true
           type: number
@@ -7365,15 +7731,14 @@ components:
         sha256:
           nullable: true
           type: string
-        url:
-          type: string
         width:
           nullable: true
           type: number
       required:
         - id
         - kind
-        - url
+        - delivery
+        - externalUrl
         - provider
         - provenance
       type: object
@@ -7386,9 +7751,6 @@ components:
           nullable: true
           type: string
         publicationRecordId:
-          nullable: true
-          type: string
-        storageRef:
           nullable: true
           type: string
       type: object
@@ -7593,6 +7955,24 @@ components:
         - id
         - kind
       type: object
+    WorldPublicExternalMediaDto:
+      properties:
+        bannerUrl:
+          nullable: true
+          type: string
+        heroUrl:
+          nullable: true
+          type: string
+        highlightUrls:
+          items:
+            type: string
+          type: array
+        iconUrl:
+          nullable: true
+          type: string
+      required:
+        - highlightUrls
+      type: object
     WorldPublicItemDto:
       properties:
         createdAt:
@@ -7714,29 +8094,16 @@ components:
       properties:
         assets:
           $ref: '#/components/schemas/WorldPublicMediaAssetsDto'
-        bannerUrl:
-          nullable: true
-          type: string
-        heroUrl:
-          nullable: true
-          type: string
-        highlightUrls:
-          items:
-            type: string
-          type: array
-        iconUrl:
-          nullable: true
-          type: string
+        external:
+          $ref: '#/components/schemas/WorldPublicExternalMediaDto'
         unavailableResourceRefs:
-          description: >-
-            Declared World Resource references that cannot currently be publicly
-            projected. Summary lists retain the World and its available media.
           items:
             type: string
           type: array
       required:
         - unavailableResourceRefs
-        - highlightUrls
+        - external
+        - assets
       type: object
     WorldPublicSceneCountsDto:
       properties:
@@ -7938,6 +8305,24 @@ components:
         - hasMore
         - totalCount
       type: object
+    WorldPublicSourceExternalMediaDto:
+      properties:
+        avatarUrl:
+          nullable: true
+          type: string
+        portraitUrl:
+          nullable: true
+          type: string
+        profileCoverUrl:
+          nullable: true
+          type: string
+        referenceImageUrl:
+          nullable: true
+          type: string
+        voiceSampleUrl:
+          nullable: true
+          type: string
+      type: object
     WorldPublicSourceMediaAssetsDto:
       properties:
         avatar:
@@ -7970,21 +8355,16 @@ components:
       properties:
         assets:
           $ref: '#/components/schemas/WorldPublicSourceMediaAssetsDto'
-        avatarUrl:
-          nullable: true
-          type: string
-        portraitUrl:
-          nullable: true
-          type: string
-        profileCoverUrl:
-          nullable: true
-          type: string
-        referenceImageUrl:
-          nullable: true
-          type: string
-        voiceSampleUrl:
-          nullable: true
-          type: string
+        external:
+          $ref: '#/components/schemas/WorldPublicSourceExternalMediaDto'
+        unavailableResourceRefs:
+          items:
+            type: string
+          type: array
+      required:
+        - unavailableResourceRefs
+        - external
+        - assets
       type: object
     WorldPublicSourceSectionsDto:
       properties:
@@ -9902,6 +10282,78 @@ paths:
       summary: Publish bundle
       tags:
         - Bundles
+  /api/discover/recommendations:
+    get:
+      description: >-
+        Returns personalized user recommendations based on the 4-layer
+        recommendation algorithm.
+      operationId: getRecommendations
+      parameters:
+        - in: query
+          name: seed
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponseDto'
+          description: ''
+        '503':
+          description: Discovery recommendation recall is unavailable
+      security:
+        - bearer: []
+      summary: Get personalized user recommendations
+      tags:
+        - Discover
+  /api/discover/recommendations/posts:
+    get:
+      description: >-
+        Returns personalized post recommendations based on the 4-layer
+        recommendation algorithm.
+      operationId: getPostRecommendations
+      parameters:
+        - in: query
+          name: seed
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
+        '503':
+          description: Discovery recommendation recall is unavailable
+      security:
+        - bearer: []
+      summary: Get personalized post recommendations
+      tags:
+        - Discover
   /api/economy/balances:
     get:
       operationId: EconomyController_getBalances
@@ -10331,28 +10783,58 @@ paths:
       summary: Get withdrawal history
       tags:
         - Economy (Currency)
-  /api/health/live:
+  /api/explore:
     get:
-      operationId: HealthController_live
-      parameters: []
+      description: Returns the explore feed for the current user.
+      operationId: getExploreFeed
+      parameters:
+        - in: query
+          name: seed
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
       responses:
         '200':
-          description: API process is accepting requests
-      summary: Check API process liveness
-      tags:
-        - Health
-  /api/health/ready:
-    get:
-      operationId: HealthController_ready
-      parameters: []
-      responses:
-        '200':
-          description: Required data services are available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
         '503':
-          description: A required data service is unavailable
-      summary: Check PostgreSQL and Redis readiness
+          description: Discovery engine is not ready
+      security:
+        - bearer: []
+      summary: Get explore feed
       tags:
-        - Health
+        - Explore
+  /api/explore/status:
+    get:
+      operationId: ExploreController_checkStatus
+      parameters: []
+      responses:
+        '200':
+          description: Explore engine health status
+        '503':
+          description: Explore engine is not ready
+      security:
+        - bearer: []
+      tags:
+        - Explore
   /api/human/accounts/{id}:
     get:
       operationId: getUser
@@ -11449,6 +11931,89 @@ paths:
       summary: List online user ids
       tags:
         - User
+  /api/human/search:
+    get:
+      description: Search users by keyword with pagination and filtering options.
+      operationId: searchHumanUsers
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: ageMax
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: ageMin
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: city
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: countryCode
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: gender
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: minVitalityScore
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: minInteractionTier
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: minInfluenceTier
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: minAssetTier
+          required: false
+          schema:
+            type: number
+        - description: Search keyword
+          in: query
+          name: q
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Search users
+      tags:
+        - User
   /api/human/visibility/check/dm:
     get:
       operationId: VisibilityController_checkCanDm
@@ -12386,7 +12951,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateAudioDirectUploadDto'
+              $ref: '#/components/schemas/CreateMediaDirectUploadDto'
         required: true
       responses:
         '201':
@@ -12397,19 +12962,19 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Create audio resource upload session
+      summary: Prepare immutable audio upload
       tags:
         - Resources
   /api/resources/images/direct-upload:
     post:
       operationId: createImageDirectUpload
-      parameters:
-        - description: Whether to require signed image delivery URLs. Defaults to true.
-          in: query
-          name: requireSignedUrls
-          required: false
-          schema:
-            type: string
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMediaDirectUploadDto'
+        required: true
       responses:
         '201':
           content:
@@ -12419,7 +12984,7 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Create image resource upload session
+      summary: Prepare immutable image upload
       tags:
         - Resources
   /api/resources/texts:
@@ -12441,19 +13006,19 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Create text resource
+      summary: Submit text resource for verified publication
       tags:
         - Resources
   /api/resources/videos/direct-upload:
     post:
       operationId: createVideoDirectUpload
-      parameters:
-        - description: Whether to require signed playback URLs. Defaults to true.
-          in: query
-          name: requireSignedUrls
-          required: false
-          schema:
-            type: string
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMediaDirectUploadDto'
+        required: true
       responses:
         '201':
           content:
@@ -12463,7 +13028,7 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Create video resource upload session
+      summary: Prepare immutable video upload
       tags:
         - Resources
   /api/resources/{resourceId}:
@@ -12476,11 +13041,15 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceDetailDto'
           description: ''
       security:
         - bearer: []
-      summary: Delete resource
+      summary: Delete resource and report actual delivery revocation state
       tags:
         - Resources
     get:
@@ -12500,7 +13069,7 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Get resource by id
+      summary: Get managed resource and delivery operation state
       tags:
         - Resources
     patch:
@@ -12526,12 +13095,12 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Update resource metadata
+      summary: Update resource metadata and delivery policy
       tags:
         - Resources
-  /api/resources/{resourceId}/finalize:
+  /api/resources/{resourceId}/cancel-upload:
     post:
-      operationId: finalizeResource
+      operationId: cancelResourceUpload
       parameters:
         - in: path
           name: resourceId
@@ -12553,9 +13122,188 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Finalize uploaded resource
+      summary: Cancel a pending resource upload
       tags:
         - Resources
+  /api/resources/{resourceId}/finalize:
+    post:
+      operationId: finalizeResource
+      parameters:
+        - in: path
+          name: resourceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizeResourceDto'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceDetailDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Submit immutable upload for verification and publication
+      tags:
+        - Resources
+  /api/search/posts:
+    get:
+      operationId: searchPosts
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: authorAgeMax
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: authorAgeMin
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: authorIsAi
+          required: false
+          schema:
+            type: boolean
+        - in: query
+          name: authorCity
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: authorCountryCode
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: authorGender
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: minLikeCount
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Search posts
+      tags:
+        - Search
+  /api/search/users:
+    get:
+      operationId: searchIndexedUsers
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: ageMax
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: ageMin
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: city
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: countryCode
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: gender
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: minVitalityScore
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: minInteractionTier
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: minInfluenceTier
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: minAssetTier
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Search users
+      tags:
+        - Search
   /api/support/feedback:
     get:
       operationId: FeedbackController_getMyFeedbacks
@@ -12717,6 +13465,62 @@ paths:
       summary: Get a public world detail projection with source cards
       tags:
         - World
+  /api/world/by-id/{worldId}/posts:
+    get:
+      operationId: getWorldPosts
+      parameters:
+        - in: query
+          name: visibility
+          required: false
+          schema:
+            enum:
+              - PUBLIC
+              - FRIENDS
+              - PRIVATE
+            type: string
+        - in: query
+          name: authorId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - description: Canonical feed scope (rule.realm.feed.r005). Defaults to personal.
+          in: query
+          name: scope
+          required: false
+          schema:
+            enum:
+              - personal
+              - friends
+              - persona_activity
+              - world_character_activity
+            type: string
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get posts scoped to a specific world
+      tags:
+        - WorldPost
   /api/world/catalog:
     get:
       operationId: WorldPublicController_listWorldCatalog
@@ -12849,6 +13653,243 @@ paths:
         search
       tags:
         - World
+  /api/world/posts:
+    get:
+      operationId: getHomeFeed
+      parameters:
+        - in: query
+          name: visibility
+          required: false
+          schema:
+            enum:
+              - PUBLIC
+              - FRIENDS
+              - PRIVATE
+            type: string
+        - in: query
+          name: worldId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: authorId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - description: Canonical feed scope (rule.realm.feed.r005). Defaults to personal.
+          in: query
+          name: scope
+          required: false
+          schema:
+            enum:
+              - personal
+              - friends
+              - persona_activity
+              - world_character_activity
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get home feed
+      tags:
+        - Posts
+    post:
+      operationId: createPost
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Create post
+      tags:
+        - Posts
+  /api/world/posts/by-id/{id}:
+    delete:
+      operationId: deletePost
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Post deleted
+      security:
+        - bearer: []
+      summary: Delete post
+      tags:
+        - Posts
+    get:
+      operationId: getPost
+      parameters:
+        - in: query
+          name: worldId
+          required: false
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get post by id
+      tags:
+        - Posts
+    patch:
+      operationId: updatePost
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Update post
+      tags:
+        - Posts
+  /api/world/posts/by-id/{postId}/like:
+    delete:
+      operationId: unlikePost
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      security:
+        - bearer: []
+      summary: Unlike post
+      tags:
+        - Posts
+    post:
+      operationId: likePost
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      security:
+        - bearer: []
+      summary: Like post
+      tags:
+        - Posts
+  /api/world/posts/liked:
+    get:
+      operationId: listLikedPosts
+      parameters:
+        - in: query
+          name: worldId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: List liked posts
+      tags:
+        - Posts
+  /api/world/posts/public/{id}:
+    get:
+      operationId: getPublicPost
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDto'
+          description: ''
+        '404':
+          description: ''
+      security:
+        - bearer: []
+      summary: Get public post by ID (no auth required)
+      tags:
+        - Posts
   /api/world/topics:
     get:
       operationId: WorldPublicController_listWorldTopics

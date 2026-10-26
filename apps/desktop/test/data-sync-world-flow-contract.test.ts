@@ -42,11 +42,7 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
     era: null,
     entityKinds: ['person', 'place', 'office', 'text'],
     relationshipTypes: ['serves', 'locatedIn'],
-    media: {
-      iconUrl: 'https://cdn.example.com/song-icon.png',
-      bannerUrl: 'https://cdn.example.com/song-banner.png',
-      heroUrl: 'https://cdn.example.com/song-hero.png',
-      highlightUrls: ['https://cdn.example.com/song-highlight.png'],
+    media: {external: { iconUrl: 'https://cdn.example.com/song-icon.png', bannerUrl: 'https://cdn.example.com/song-banner.png', heroUrl: 'https://cdn.example.com/song-hero.png', highlightUrls: ['https://cdn.example.com/song-highlight.png'] },
     },
     time: {
       mode: 'wallClockAnchored',
@@ -116,9 +112,7 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
     role: 'Steward',
     traits: ['Meticulous'],
     topics: ['Archive'],
-    media: {
-      avatarUrl: 'https://cdn.example.com/song-steward.png',
-      profileCoverUrl: null,
+    media: {external: { avatarUrl: 'https://cdn.example.com/song-steward.png', profileCoverUrl: null },
     },
     relation: {
       state: 'connectable',

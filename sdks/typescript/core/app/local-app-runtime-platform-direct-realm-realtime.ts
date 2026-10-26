@@ -9,6 +9,7 @@ import type {
   OpenRealmRealtimeChannelRequest,
   OpenRealmRealtimeChannelResponse,
   RealmChatAttachmentPayload,
+  RealmMediaDelivery,
   RealmChatDurableEvent,
   RealmChatMessage,
   RealmChatMessagePayload,
@@ -217,6 +218,8 @@ export function projectDirectRealmChatUserSummary(value: RealmChatUserSummary) {
     handle: value.handle,
     displayName: value.displayName,
     avatarUrl: nullableText(value.avatarUrl),
+    avatarResourceId: nullableText(value.avatarResourceId),
+    avatarMedia: value.avatarMedia ? projectMediaDelivery(value.avatarMedia) : null,
     status: nullableText(value.status),
     presenceStatus: nullableText(value.presenceStatus),
     presenceText: nullableText(value.presenceText),
@@ -278,8 +281,9 @@ function projectAttachment(value: RealmChatAttachmentPayload): Record<string, un
     }, 'Realm attachment display kind'),
     title: nullableText(value.title),
     subtitle: nullableText(value.subtitle),
-    url: nullableText(value.url),
-    thumbnail: nullableText(value.thumbnail),
+    delivery: value.delivery ? projectMediaDelivery(value.delivery) : null,
+    externalUrl: nullableText(value.externalUrl),
+    unavailable: value.unavailable,
     width: value.width,
     height: value.height,
     duration: value.duration,
@@ -320,4 +324,10 @@ function decimal(value: unknown): string {
   return typeof value === 'string' && /^(0|[1-9][0-9]*)$/u.test(value)
     ? value
     : invalid('Realm Realtime decimal');
+}
+
+function projectMediaDelivery(value: RealmMediaDelivery): Record<string, unknown> {
+  return { resourceId: value.resourceId, contentVersion: value.contentVersion, publicationGeneration: value.publicationGeneration,
+    policyVersion: value.policyVersion, expiresAt: nullableText(value.expiresAt), images: value.images,
+    previewUrl: nullableText(value.previewUrl), originalUrl: nullableText(value.originalUrl), video: value.video ?? null };
 }

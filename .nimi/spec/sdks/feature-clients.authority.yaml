@@ -1083,7 +1083,7 @@ units:
     kind: rule
     title: Shared SDK Agent introduction
     modality: must
-    statement: The formal App agents namespace exposes getIntroduction with exactly agentHandle input and the closed safe introduction result through the same protected typed Runtime operation for Home and every App. SDK validates bounded text, typed topics, duration and safe media without forwarding source identity or unknown fields; Kit supplies reusable localization, question composition and presentation without making a second source truth.
+    statement: The formal App agents namespace exposes getIntroduction with exactly agentHandle input and the closed safe introduction result through the same protected typed Runtime operation for Home and every App. SDK validates bounded text, typed topics, duration and safe media, keeps voiceSampleUrl as the original reference audio and voicePreviewUrl as playback, and carries the optional verified original-content hash and MIME type without forwarding Realm source or account identity or unknown fields; Kit supplies reusable localization, question composition and presentation without making a second source truth.
     condition: Whenever this surface consumes or renders a LocalAgent introduction.
     failure: Reject divergent private data paths, fabricated source facts or execution authority in display code.
     relations:

@@ -1,3 +1,4 @@
+export { parseRealmMediaDelivery } from './media-delivery.js';
 import { CoreClient, type CoreClientOptions, type CoreTransport } from '../core-client';
 import { RealmTypedClient } from '../core-generated/realm-typed-client';
 import { createNimiError } from '../types';
@@ -88,6 +89,7 @@ export const REALM_HUMAN_CHAT_METHODS = [
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_RESOURCE_METHODS = [
+  'cancelResourceUpload',
   'createAudioDirectUpload',
   'createImageDirectUpload',
   'createVideoDirectUpload',

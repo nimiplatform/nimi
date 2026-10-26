@@ -56,6 +56,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/me/blocks/{id}"),
     },
     RealmOperationDescriptor {
+        operation_id: "cancelResourceUpload",
+        service: "Resources",
+        method: "POST",
+        path: Some("/api/resources/{resourceId}/cancel-upload"),
+    },
+    RealmOperationDescriptor {
         operation_id: "changeEmail",
         service: "Auth",
         method: "PATCH",
@@ -104,6 +110,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/resources/images/direct-upload"),
     },
     RealmOperationDescriptor {
+        operation_id: "createPost",
+        service: "Posts",
+        method: "POST",
+        path: Some("/api/world/posts"),
+    },
+    RealmOperationDescriptor {
         operation_id: "createTextResource",
         service: "Resources",
         method: "POST",
@@ -114,6 +126,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Resources",
         method: "POST",
         path: Some("/api/resources/videos/direct-upload"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "deletePost",
+        service: "Posts",
+        method: "DELETE",
+        path: Some("/api/world/posts/by-id/{id}"),
     },
     RealmOperationDescriptor {
         operation_id: "deleteResource",
@@ -272,6 +290,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/me/2fa/enable"),
     },
     RealmOperationDescriptor {
+        operation_id: "ExploreController_checkStatus",
+        service: "Explore",
+        method: "GET",
+        path: Some("/api/explore/status"),
+    },
+    RealmOperationDescriptor {
         operation_id: "FeedbackController_getMyFeedbacks",
         service: "Support (Feedback)",
         method: "GET",
@@ -312,6 +336,18 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "GET",
         path: Some("/api/human/chats/{chatId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getExploreFeed",
+        service: "Explore",
+        method: "GET",
+        path: Some("/api/explore"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getHomeFeed",
+        service: "Posts",
+        method: "GET",
+        path: Some("/api/world/posts"),
     },
     RealmOperationDescriptor {
         operation_id: "getMe",
@@ -386,6 +422,30 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/me/wallets"),
     },
     RealmOperationDescriptor {
+        operation_id: "getPost",
+        service: "Posts",
+        method: "GET",
+        path: Some("/api/world/posts/by-id/{id}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getPostRecommendations",
+        service: "Discover",
+        method: "GET",
+        path: Some("/api/discover/recommendations/posts"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getPublicPost",
+        service: "Posts",
+        method: "GET",
+        path: Some("/api/world/posts/public/{id}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getRecommendations",
+        service: "Discover",
+        method: "GET",
+        path: Some("/api/discover/recommendations"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getResource",
         service: "Resources",
         method: "GET",
@@ -416,22 +476,22 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/accounts/{id}/friends"),
     },
     RealmOperationDescriptor {
-        operation_id: "HealthController_live",
-        service: "Health",
+        operation_id: "getWorldPosts",
+        service: "WorldPost",
         method: "GET",
-        path: Some("/api/health/live"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "HealthController_ready",
-        service: "Health",
-        method: "GET",
-        path: Some("/api/health/ready"),
+        path: Some("/api/world/by-id/{worldId}/posts"),
     },
     RealmOperationDescriptor {
         operation_id: "introspectSession",
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/sessions/introspect"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "likePost",
+        service: "Posts",
+        method: "POST",
+        path: Some("/api/world/posts/by-id/{postId}/like"),
     },
     RealmOperationDescriptor {
         operation_id: "linkOauth",
@@ -456,6 +516,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "GET",
         path: Some("/api/human/chats"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "listLikedPosts",
+        service: "Posts",
+        method: "GET",
+        path: Some("/api/world/posts/liked"),
     },
     RealmOperationDescriptor {
         operation_id: "listMessages",
@@ -602,6 +668,24 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/email/otp/request"),
     },
     RealmOperationDescriptor {
+        operation_id: "searchHumanUsers",
+        service: "User",
+        method: "GET",
+        path: Some("/api/human/search"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "searchIndexedUsers",
+        service: "Search",
+        method: "GET",
+        path: Some("/api/search/users"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "searchPosts",
+        service: "Search",
+        method: "GET",
+        path: Some("/api/search/posts"),
+    },
+    RealmOperationDescriptor {
         operation_id: "sendMessage",
         service: "Human Chats",
         method: "POST",
@@ -686,6 +770,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/me/blocks/{id}"),
     },
     RealmOperationDescriptor {
+        operation_id: "unlikePost",
+        service: "Posts",
+        method: "DELETE",
+        path: Some("/api/world/posts/by-id/{postId}/like"),
+    },
+    RealmOperationDescriptor {
         operation_id: "unlinkOauth",
         service: "Auth",
         method: "DELETE",
@@ -738,6 +828,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Auth",
         method: "PUT",
         path: Some("/api/auth/me/password"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "updatePost",
+        service: "Posts",
+        method: "PATCH",
+        path: Some("/api/world/posts/by-id/{id}"),
     },
     RealmOperationDescriptor {
         operation_id: "updateResource",

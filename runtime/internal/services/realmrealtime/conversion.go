@@ -9,6 +9,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/realmmedia"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -254,8 +255,9 @@ type wireAttachment struct {
 	DisplayKind string          `json:"displayKind,omitempty"`
 	Title       string          `json:"title,omitempty"`
 	Subtitle    string          `json:"subtitle,omitempty"`
-	URL         string          `json:"url,omitempty"`
-	Thumbnail   string          `json:"thumbnail,omitempty"`
+	Delivery    json.RawMessage `json:"delivery,omitempty"`
+	ExternalURL string          `json:"externalUrl,omitempty"`
+	Unavailable bool            `json:"unavailable,omitempty"`
 	Width       int32           `json:"width,omitempty"`
 	Height      int32           `json:"height,omitempty"`
 	Duration    float64         `json:"duration,omitempty"`
@@ -305,9 +307,14 @@ func convertAttachment(input wireAttachment) (*runtimev1.RealmChatAttachmentPayl
 	}
 	result := &runtimev1.RealmChatAttachmentPayload{
 		TargetType: targetType, TargetId: input.TargetID, DisplayKind: displayKind,
-		Title: input.Title, Subtitle: input.Subtitle, Url: input.URL, Thumbnail: input.Thumbnail,
+		Title: input.Title, Subtitle: input.Subtitle, ExternalUrl: input.ExternalURL, Unavailable: input.Unavailable,
 		Width: input.Width, Height: input.Height, Duration: input.Duration,
 	}
+	delivery, err := convertMediaDelivery(input.Delivery)
+	if err != nil {
+		return nil, err
+	}
+	result.Delivery = delivery
 	if input.Preview != nil {
 		preview, err := convertAttachment(*input.Preview)
 		if err != nil {
@@ -407,9 +414,18 @@ func convertWireChatUserSummary(other wireChatUserSummary) (*runtimev1.RealmChat
 	if other.PresenceEmoji != nil {
 		presenceEmoji = *other.PresenceEmoji
 	}
+	avatar, err := convertMediaDelivery(other.AvatarMedia)
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.RealmChatUserSummary{
 		Id: other.ID, Handle: other.Handle, DisplayName: other.DisplayName,
-		AvatarUrl: avatarURL, Status: other.Status, PresenceStatus: presenceStatus,
+		AvatarUrl: avatarURL, AvatarResourceId: other.AvatarResourceID, AvatarMedia: avatar, Status: other.Status, PresenceStatus: presenceStatus,
 		PresenceText: presenceText, PresenceEmoji: presenceEmoji, CreatedAt: createdAt,
 	}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.realm-realtime.r001
+func convertMediaDelivery(raw json.RawMessage) (*runtimev1.RealmMediaDelivery, error) {
+	return realmmedia.Decode(raw)
 }

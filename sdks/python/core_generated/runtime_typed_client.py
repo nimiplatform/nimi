@@ -3989,6 +3989,9 @@ class LocalAppAgentIntroduction:
     voice_sample_url: str | None = None
     voice_sample_duration_sec: float | None = None
     question_topics: tuple[LocalAppAgentIntroductionTopic, ...] = field(default_factory=tuple)
+    voice_preview_url: str | None = None
+    voice_sample_content_hash: str | None = None
+    voice_sample_mime_type: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentIntroductionTopic:
@@ -5818,12 +5821,13 @@ class RealmChatAttachmentPayload:
     display_kind: RealmAttachmentDisplayKind | None = None
     title: str | None = None
     subtitle: str | None = None
-    url: str | None = None
-    thumbnail: str | None = None
     width: int | None = None
     height: int | None = None
     duration: float | None = None
     preview: RealmChatAttachmentPayload | None = None
+    delivery: RealmMediaDelivery | None = None
+    external_url: str | None = None
+    unavailable: bool | None = None
 
 @dataclass(frozen=True)
 class RealmChatDurableEvent:
@@ -5974,6 +5978,44 @@ class RealmChatUserSummary:
     presence_text: str | None = None
     presence_emoji: str | None = None
     created_at: str | None = None
+    avatar_resource_id: str | None = None
+    avatar_media: RealmMediaDelivery | None = None
+
+@dataclass(frozen=True)
+class RealmMediaDelivery:
+    resource_id: str | None = None
+    content_version: str | None = None
+    publication_generation: int | None = None
+    policy_version: str | None = None
+    expires_at: str | None = None
+    images: tuple[RealmMediaImageSet, ...] = field(default_factory=tuple)
+    preview_url: str | None = None
+    original_url: str | None = None
+    video: RealmMediaVideo | None = None
+
+@dataclass(frozen=True)
+class RealmMediaImageFamily:
+    mime_type: str | None = None
+    sources: tuple[RealmMediaImageSource, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class RealmMediaImageSet:
+    purpose: str | None = None
+    families: tuple[RealmMediaImageFamily, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class RealmMediaImageSource:
+    url: str | None = None
+    width: int | None = None
+    height: int | None = None
+    mime_type: str | None = None
+
+@dataclass(frozen=True)
+class RealmMediaVideo:
+    hls_url: str | None = None
+    dash_url: str | None = None
+    poster_url: str | None = None
+    expires_at: str | None = None
 
 @dataclass(frozen=True)
 class RealmPresenceEvent:

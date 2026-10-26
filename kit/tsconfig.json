@@ -1,38 +1,102 @@
 {
   "compilerOptions": {
     "paths": {
-      "#nimi-shell-account-projection": ["./shell/shared/runtime-account-projection.ts"],
-      "@nimiplatform/kit/ui": ["./ui/src/index.ts"],
-      "@nimiplatform/kit/ui/*": ["./ui/src/*"],
-      "@nimiplatform/kit/auth": ["./auth/src/index.ts"],
-      "@nimiplatform/kit/auth/*": ["./auth/src/*"],
-      "@nimiplatform/kit/core/*": ["./core/src/*"],
-      "@nimiplatform/kit/telemetry": ["./telemetry/src/telemetry/index.ts"],
-      "@nimiplatform/kit/telemetry/*": ["./telemetry/src/*"],
-      "@nimiplatform/kit/features/avatar": ["./features/avatar/src/index.ts"],
-      "@nimiplatform/kit/features/avatar/*": ["./features/avatar/src/*"],
-      "@nimiplatform/kit/features/chat": ["./features/chat/src/index.ts"],
-      "@nimiplatform/kit/features/chat/*": ["./features/chat/src/*"],
-      "@nimiplatform/kit/features/generation": ["./features/generation/src/index.ts"],
-      "@nimiplatform/kit/features/generation/*": ["./features/generation/src/*"],
-      "@nimiplatform/kit/features/model-config": ["./features/model-config/src/index.ts"],
-      "@nimiplatform/kit/features/model-config/*": ["./features/model-config/src/*"],
-      "@nimiplatform/kit/features/model-picker": ["./features/model-picker/src/index.ts"],
-      "@nimiplatform/kit/features/model-picker/*": ["./features/model-picker/src/*"],
-      "@nimiplatform/kit/shell/renderer/*": ["./shell/renderer/src/*"],
-      "@nimiplatform/kit/shell/capabilities": ["./shell/capabilities/src/index.ts"],
-      "@nimiplatform/kit/shell/capabilities/*": ["./shell/capabilities/src/*"],
-      "@nimiplatform/kit/shell/electron/main": ["./shell/electron/src/main/index.ts"],
-      "@nimiplatform/kit/shell/electron/host-profile": ["./shell/electron/src/main/app-host-profile.ts"],
-      "@nimiplatform/kit/shell/electron/preload":["./shell/electron/src/preload/index.ts"],
-      "@nimiplatform/kit/shell/electron/preload-cjs": ["./shell/electron/src/preload/cjs.cts"],
-      "@nimiplatform/kit/shell/electron/*": ["./shell/electron/src/*"],
-      "@nimiplatform/kit/core/runtime-capabilities": ["./core/src/runtime-capabilities/index.ts"]
+      "#nimi-shell-account-projection": [
+        "./shell/shared/runtime-account-projection.ts"
+      ],
+      "@nimiplatform/kit/ui": [
+        "./ui/src/index.ts"
+      ],
+      "@nimiplatform/kit/ui/*": [
+        "./ui/src/*"
+      ],
+      "@nimiplatform/kit/auth": [
+        "./auth/src/index.ts"
+      ],
+      "@nimiplatform/kit/auth/*": [
+        "./auth/src/*"
+      ],
+      "@nimiplatform/kit/core/*": [
+        "./core/src/*"
+      ],
+      "@nimiplatform/kit/telemetry": [
+        "./telemetry/src/telemetry/index.ts"
+      ],
+      "@nimiplatform/kit/telemetry/*": [
+        "./telemetry/src/*"
+      ],
+      "@nimiplatform/kit/features/avatar": [
+        "./features/avatar/src/index.ts"
+      ],
+      "@nimiplatform/kit/features/avatar/*": [
+        "./features/avatar/src/*"
+      ],
+      "@nimiplatform/kit/features/chat": [
+        "./features/chat/src/index.ts"
+      ],
+      "@nimiplatform/kit/features/chat/*": [
+        "./features/chat/src/*"
+      ],
+      "@nimiplatform/kit/features/generation": [
+        "./features/generation/src/index.ts"
+      ],
+      "@nimiplatform/kit/features/generation/*": [
+        "./features/generation/src/*"
+      ],
+      "@nimiplatform/kit/features/model-config": [
+        "./features/model-config/src/index.ts"
+      ],
+      "@nimiplatform/kit/features/model-config/*": [
+        "./features/model-config/src/*"
+      ],
+      "@nimiplatform/kit/features/model-picker": [
+        "./features/model-picker/src/index.ts"
+      ],
+      "@nimiplatform/kit/features/model-picker/*": [
+        "./features/model-picker/src/*"
+      ],
+      "@nimiplatform/kit/shell/renderer/*": [
+        "./shell/renderer/src/*"
+      ],
+      "@nimiplatform/kit/shell/capabilities": [
+        "./shell/capabilities/src/index.ts"
+      ],
+      "@nimiplatform/kit/shell/capabilities/*": [
+        "./shell/capabilities/src/*"
+      ],
+      "@nimiplatform/kit/shell/electron/main": [
+        "./shell/electron/src/main/index.ts"
+      ],
+      "@nimiplatform/kit/shell/electron/host-profile": [
+        "./shell/electron/src/main/app-host-profile.ts"
+      ],
+      "@nimiplatform/kit/shell/electron/preload": [
+        "./shell/electron/src/preload/index.ts"
+      ],
+      "@nimiplatform/kit/shell/electron/preload-cjs": [
+        "./shell/electron/src/preload/cjs.cts"
+      ],
+      "@nimiplatform/kit/shell/electron/*": [
+        "./shell/electron/src/*"
+      ],
+      "@nimiplatform/kit/core/runtime-capabilities": [
+        "./core/src/runtime-capabilities/index.ts"
+      ],
+      "@nimiplatform/kit/features/media": [
+        "./features/media/src/index.ts"
+      ],
+      "@nimiplatform/kit/features/media/*": [
+        "./features/media/src/*"
+      ]
     },
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
@@ -41,7 +105,11 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "types": ["node", "react", "react-dom"]
+    "types": [
+      "node",
+      "react",
+      "react-dom"
+    ]
   },
   "include": [
     "ui/src/**/*.ts",

@@ -75,11 +75,7 @@ function publicWorld(overrides: PublicWorld = {}) {
     genre: 'Fantasy',
     themes: ['Adventure'],
     era: null,
-    media: {
-      iconUrl: 'https://cdn.example.com/world-icon.png',
-      bannerUrl: 'https://cdn.example.com/world-banner.png',
-      heroUrl: 'https://cdn.example.com/world-hero.png',
-      highlightUrls: ['https://cdn.example.com/world-highlight.png'],
+    media: {external: { iconUrl: 'https://cdn.example.com/world-icon.png', bannerUrl: 'https://cdn.example.com/world-banner.png', heroUrl: 'https://cdn.example.com/world-hero.png', highlightUrls: ['https://cdn.example.com/world-highlight.png'] },
     },
     time: publicTime(),
     stats: {
@@ -127,9 +123,7 @@ function publicSource(overrides: PublicSource = {}) {
     worldName: 'Eldoria',
     traits: ['Patient'],
     topics: ['Lore'],
-    media: {
-      avatarUrl: 'https://cdn.example.com/liora.png',
-      profileCoverUrl: null,
+    media: {external: { avatarUrl: 'https://cdn.example.com/liora.png', profileCoverUrl: null },
     },
     relation: {
       state: 'connectable',
@@ -230,28 +224,19 @@ test('World Atlas catalog pages consume public product DTOs without raw WorldCor
 
 test('World list model accepts allowlisted public DTOs and rejects reliance on raw core fields', () => {
   const item = toWorldListItem(publicWorld({
-    media: {
-      iconUrl: 'file:///tmp/nimi-forge/world/icon.png',
-      bannerUrl: 'file:///tmp/nimi-forge/world/banner.png',
-      heroUrl: 'file:///tmp/nimi-forge/world/hero.png',
-      highlightUrls: [
+    media: {external: { iconUrl: 'file:///tmp/nimi-forge/world/icon.png', bannerUrl: 'file:///tmp/nimi-forge/world/banner.png', heroUrl: 'file:///tmp/nimi-forge/world/hero.png', highlightUrls: [
         'file:///tmp/nimi-forge/world/highlight-1.png',
         'file:///tmp/nimi-forge/world/highlight-2.png',
         'file:///tmp/nimi-forge/world/highlight-3.png',
-      ],
+      ] },
     },
   }));
 
   assert.equal(item.id, 'world-1');
-  assert.equal(item.iconUrl, 'file:///tmp/nimi-forge/world/icon.png');
-  assert.equal(item.bannerUrl, 'file:///tmp/nimi-forge/world/banner.png');
+  assert.equal(item.iconUrl, null);
+  assert.equal(item.bannerUrl, null);
   assert.deepEqual(
-    (item as { highlightUrls?: string[] }).highlightUrls,
-    [
-      'file:///tmp/nimi-forge/world/highlight-1.png',
-      'file:///tmp/nimi-forge/world/highlight-2.png',
-      'file:///tmp/nimi-forge/world/highlight-3.png',
-    ],
+    (item as { highlightUrls?: string[] }).highlightUrls, [],
   );
   assert.equal(item.type, 'CREATOR');
   assert.equal(item.status, 'DISCOVERABLE');
@@ -358,9 +343,7 @@ test('World detail consumes public source sections for characters and personas',
     displayName: 'Mira Vale',
     handle: 'mira',
     role: 'Traveler',
-    media: {
-      avatarUrl: 'https://cdn.example.com/mira-avatar.png',
-      profileCoverUrl: 'https://cdn.example.com/mira-cover.png',
+    media: {external: { avatarUrl: 'https://cdn.example.com/mira-avatar.png', profileCoverUrl: 'https://cdn.example.com/mira-cover.png' },
     },
   });
   const { callApi, calls } = createWorldPublicCallApi({
@@ -448,40 +431,32 @@ test('World detail projects public source sections into atlas recommended people
 test('World detail consumes public resource media for forged world and character products', async () => {
   const errors: RealmWorldDataError[] = [];
   const resourceWorld = publicWorld({
-    media: {
-      iconUrl: 'file:///tmp/nimi-forge/world/icon.png',
-      bannerUrl: 'file:///tmp/nimi-forge/world/banner.png',
-      heroUrl: 'file:///tmp/nimi-forge/world/hero.png',
-      highlightUrls: [
+    media: {external: { iconUrl: 'file:///tmp/nimi-forge/world/icon.png', bannerUrl: 'file:///tmp/nimi-forge/world/banner.png', heroUrl: 'file:///tmp/nimi-forge/world/hero.png', highlightUrls: [
         'file:///tmp/nimi-forge/world/highlight-1.png',
-      ],
+      ] },
       assets: {
-        icon: { id: 'world-icon-resource', kind: 'icon', url: 'https://cdn.example.test/world/icon.png', provider: 'CF_IMAGE' },
-        banner: { id: 'world-banner-resource', kind: 'banner', url: 'https://cdn.example.test/world/banner.png', provider: 'CF_IMAGE' },
-        hero: { id: 'world-hero-resource', kind: 'hero', url: 'https://cdn.example.test/world/hero.png', provider: 'CF_IMAGE' },
+        icon: { id: 'world-icon-resource', kind: 'icon', externalUrl: 'https://cdn.example.test/world/icon.png', provider: 'EXTERNAL_URL' },
+        banner: { id: 'world-banner-resource', kind: 'banner', externalUrl: 'https://cdn.example.test/world/banner.png', provider: 'EXTERNAL_URL' },
+        hero: { id: 'world-hero-resource', kind: 'hero', externalUrl: 'https://cdn.example.test/world/hero.png', provider: 'EXTERNAL_URL' },
         highlights: [
-          { id: 'world-highlight-1-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-1.png', provider: 'CF_IMAGE' },
-          { id: 'world-highlight-2-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-2.png', provider: 'CF_IMAGE' },
-          { id: 'world-highlight-3-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-3.png', provider: 'CF_IMAGE' },
+          { id: 'world-highlight-1-resource', kind: 'highlight', externalUrl: 'https://cdn.example.test/world/highlight-1.png', provider: 'EXTERNAL_URL' },
+          { id: 'world-highlight-2-resource', kind: 'highlight', externalUrl: 'https://cdn.example.test/world/highlight-2.png', provider: 'EXTERNAL_URL' },
+          { id: 'world-highlight-3-resource', kind: 'highlight', externalUrl: 'https://cdn.example.test/world/highlight-3.png', provider: 'EXTERNAL_URL' },
         ],
       },
     },
   });
   const resourceCharacter = publicSource({
-    media: {
-      avatarUrl: '/tmp/nimi-forge/character/avatar.png',
-      profileCoverUrl: '/tmp/nimi-forge/character/profile-cover.png',
-      referenceImageUrl: '/tmp/nimi-forge/character/reference.png',
-      voiceSampleUrl: '/tmp/nimi-forge/character/voice.wav',
+    media: {external: { avatarUrl: '/tmp/nimi-forge/character/avatar.png', profileCoverUrl: '/tmp/nimi-forge/character/profile-cover.png', referenceImageUrl: '/tmp/nimi-forge/character/reference.png', voiceSampleUrl: '/tmp/nimi-forge/character/voice.wav' },
       assets: {
-        avatar: { id: 'character-avatar-resource', kind: 'avatar', url: 'https://cdn.example.test/character/avatar.png', provider: 'CF_IMAGE' },
-        profileCover: { id: 'character-cover-resource', kind: 'profileCover', url: 'https://cdn.example.test/character/profile-cover.png', provider: 'CF_IMAGE' },
-        referenceImage: { id: 'character-reference-resource', kind: 'referenceImage', url: 'https://cdn.example.test/character/reference.png', provider: 'CF_IMAGE' },
+        avatar: { id: 'character-avatar-resource', kind: 'avatar', externalUrl: 'https://cdn.example.test/character/avatar.png', provider: 'EXTERNAL_URL' },
+        profileCover: { id: 'character-cover-resource', kind: 'profileCover', externalUrl: 'https://cdn.example.test/character/profile-cover.png', provider: 'EXTERNAL_URL' },
+        referenceImage: { id: 'character-reference-resource', kind: 'referenceImage', externalUrl: 'https://cdn.example.test/character/reference.png', provider: 'EXTERNAL_URL' },
         voiceSample: {
           id: 'character-voice-resource',
           kind: 'voiceSample',
-          url: 'https://cdn.example.test/character/voice.wav',
-          provider: 'S3_OBJECT',
+          externalUrl: 'https://cdn.example.test/character/voice.wav',
+          provider: 'EXTERNAL_URL',
           mimeType: 'audio/wav',
           durationSec: 8.42,
           sha256: 'sha256-voice',
@@ -530,13 +505,13 @@ test('World assets projection exposes hero banner icon and accepted public highl
     detail: publicWorld({
       media: {
         assets: {
-          icon: { id: 'world-icon-resource', kind: 'icon', url: 'https://cdn.example.test/world/icon.png', provider: 'CF_IMAGE' },
-          banner: { id: 'world-banner-resource', kind: 'banner', url: 'https://cdn.example.test/world/banner.png', provider: 'CF_IMAGE' },
-          hero: { id: 'world-hero-resource', kind: 'hero', url: 'https://cdn.example.test/world/hero.png', provider: 'CF_IMAGE' },
+          icon: { id: 'world-icon-resource', kind: 'icon', externalUrl: 'https://cdn.example.test/world/icon.png', provider: 'EXTERNAL_URL' },
+          banner: { id: 'world-banner-resource', kind: 'banner', externalUrl: 'https://cdn.example.test/world/banner.png', provider: 'EXTERNAL_URL' },
+          hero: { id: 'world-hero-resource', kind: 'hero', externalUrl: 'https://cdn.example.test/world/hero.png', provider: 'EXTERNAL_URL' },
           highlights: [
-            { id: 'world-highlight-1-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-1.png', provider: 'CF_IMAGE' },
-            { id: 'world-highlight-2-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-2.png', provider: 'CF_IMAGE' },
-            { id: 'world-highlight-3-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-3.png', provider: 'CF_IMAGE' },
+            { id: 'world-highlight-1-resource', kind: 'highlight', externalUrl: 'https://cdn.example.test/world/highlight-1.png', provider: 'EXTERNAL_URL' },
+            { id: 'world-highlight-2-resource', kind: 'highlight', externalUrl: 'https://cdn.example.test/world/highlight-2.png', provider: 'EXTERNAL_URL' },
+            { id: 'world-highlight-3-resource', kind: 'highlight', externalUrl: 'https://cdn.example.test/world/highlight-3.png', provider: 'EXTERNAL_URL' },
           ],
         },
       },
@@ -549,14 +524,8 @@ test('World assets projection exposes hero banner icon and accepted public highl
     'world-1',
   );
 
-  assert.deepEqual(assets.externalRefs.map((ref) => [ref.kind, ref.uri]), [
-    ['icon', 'https://cdn.example.test/world/icon.png'],
-    ['banner', 'https://cdn.example.test/world/banner.png'],
-    ['hero', 'https://cdn.example.test/world/hero.png'],
-    ['highlight', 'https://cdn.example.test/world/highlight-1.png'],
-    ['highlight', 'https://cdn.example.test/world/highlight-2.png'],
-    ['highlight', 'https://cdn.example.test/world/highlight-3.png'],
-  ]);
+  assert.deepEqual(assets.externalRefs, []);
+  assert.equal((assets.mediaAssets as Array<{ id: string }>).length, 6);
   assert.deepEqual(assets.resourceRefs.map((ref) => [ref.kind, ref.refId]), [
     ['icon', 'world-icon-resource'],
     ['banner', 'world-banner-resource'],

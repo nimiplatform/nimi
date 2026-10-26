@@ -1,3 +1,4 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
@@ -23,10 +24,10 @@ export function WorldCharacterQuickSheet({
     : relationState === 'unavailable'
       ? t('WorldDetail.xianxia.v2.characters.sourceUnavailable')
       : t('WorldDetail.xianxia.v2.characters.materializeSource');
-  const profileCoverUrl = character.profileCoverUrl ?? character.mediaAssets?.profileCover?.url ?? null;
-  const referenceImageUrl = character.referenceImageUrl ?? character.mediaAssets?.referenceImage?.url ?? null;
+  const profileCoverUrl = character.profileCoverUrl ?? character.mediaAssets?.profileCover?.externalUrl ?? null;
+  const referenceImageUrl = character.referenceImageUrl ?? character.mediaAssets?.referenceImage?.externalUrl ?? null;
   const voiceSample = character.mediaAssets?.voiceSample ?? null;
-  const voiceSampleUrl = character.voiceSampleUrl ?? voiceSample?.url ?? null;
+  const voiceSampleUrl = character.voiceSampleUrl ?? voiceSample?.delivery?.previewUrl ?? voiceSample?.externalUrl ?? null;
   const voiceDuration = typeof voiceSample?.durationSec === 'number' && Number.isFinite(voiceSample.durationSec)
     ? Math.round(voiceSample.durationSec)
     : null;
@@ -59,10 +60,10 @@ export function WorldCharacterQuickSheet({
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--nimi-action-primary-bg)]/50 to-transparent" />
       <ScrollArea className="min-h-0 flex-1" contentClassName="px-6 pb-6 pt-3">
-            {profileCoverUrl ? (
+            {profileCoverUrl || character.mediaAssets?.profileCover?.delivery ? (
               <div data-testid="world-character-profile-cover" className="mb-5 overflow-hidden rounded-[20px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
-                <img
-                  src={profileCoverUrl}
+                <MediaImage
+                  delivery={character.mediaAssets?.profileCover?.delivery} externalUrl={profileCoverUrl} purpose="hero" sizes="auto, 580px"
                   alt=""
                   className="h-40 w-full object-cover"
                 />
@@ -73,6 +74,7 @@ export function WorldCharacterQuickSheet({
               <div className="flex justify-center md:justify-start">
                 <EntityAvatar
                   imageUrl={character.avatarUrl}
+                  media={character.avatarMedia}
                   name={character.name}
                   kind="source"
                   sizeClassName="h-28 w-28"
@@ -121,10 +123,10 @@ export function WorldCharacterQuickSheet({
                   </div>
                 ) : null}
 
-                {referenceImageUrl ? (
+                {referenceImageUrl || character.mediaAssets?.referenceImage?.delivery ? (
                   <div data-testid="world-character-reference-image" className="overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
-                    <img
-                      src={referenceImageUrl}
+                    <MediaImage
+                      delivery={character.mediaAssets?.referenceImage?.delivery} externalUrl={referenceImageUrl} purpose="detail" sizes="auto, 440px"
                       alt=""
                       className="max-h-72 w-full object-cover"
                     />

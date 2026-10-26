@@ -2,6 +2,18 @@
 
 # Changelog
 
+## 0.22.0 — Realm media delivery (development)
+
+Agent introduction now separates `voiceSampleUrl` (original reference audio), `voiceSampleContentHash` / `voiceSampleMimeType` (verified original facts), and `voicePreviewUrl` (playback). Agent Center's reference-voice view exposes `previewUrl`; cloning continues to use the original and keys managed input by content hash, so renewing its URL does not change input identity. Rebuild native carriers with the matching protocol. Private media capabilities are omitted from durable account identity; Home uses one fenced `getMe` query for live profile/media display.
+
+
+Breaking 0.x change: Resource and attachment reads carry `delivery`, explicit `externalUrl` and availability instead of provider `url`, `storageRef` or `thumbnail`. Upload preparation requires request ID, SHA-256, byte length and MIME; binary PUT is followed by asynchronous finalize and publication readiness. Profile writes store `avatarResourceId` / `profileCoverResourceId`, never temporary signed URLs. Upgrade Realm, Runtime, SDK, Kit and the native carrier together. No npm or production deployment is implied.
+
+Human Chat now uses the same canonical media bubble. Consumers with a restricted native window supply `metadata.openMediaOriginal` through their existing host opener. Native HLS retains play intent and position while refreshing expired grants with `preload="none"`.
+
+Kit `features/media` owns responsive images, avatars and HLS playback. Pass an authorized read-owner refresh callback for expiring media. Preserve `originalUrl` for explicit byte-exact download; `previewUrl` is an audio preview.
+
+
 ## Unreleased — Agent Center initial-read progress (0.x minor)
 
 Canonical Agent Center snapshots now include `reads`, a read-only completion map for the published manager, shared AIConfig, autonomy, presentation and memory observations. Consumers may show a partial read-only overview during initial loading; pending is not canonical absence or action permission. The original initial mutation gate, per-domain failure handling, explicit refresh and revision checks remain in force. Use the canonical factory and rebuild consumers of the widened snapshot type; there is no wire protocol or Runtime authority change.

@@ -19,8 +19,6 @@ import type { RealmChatViewDto } from '@nimiplatform/kit/features/chat/realm';
 import {
   type CanonicalMessageAccessorySlot,
   type CanonicalMessageAvatarSlot,
-  type CanonicalMessageContentSlot,
-  type ConversationCanonicalMessage,
   type ConversationCharacterData,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
@@ -41,61 +39,6 @@ import {
   type HumanVoiceUiState,
 } from './chat-human-voice-ui';
 export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
-
-function HumanMediaMessageCard(props: {
-  message: ConversationCanonicalMessage;
-  imageLabel: string;
-  videoLabel: string;
-  uploadingLabel: string;
-}) {
-  const metadata = props.message.metadata as Record<string, unknown> | undefined;
-  const display = metadata?.display as HumanRealmChatTimelineDisplay | undefined;
-  const mediaUrl = typeof metadata?.mediaUrl === 'string' ? metadata.mediaUrl : '';
-  const mediaLabel = typeof metadata?.mediaLabel === 'string' && metadata.mediaLabel
-    ? metadata.mediaLabel
-    : props.message.kind === 'video'
-      ? props.videoLabel
-      : props.imageLabel;
-  const isUser = props.message.role === 'human' || props.message.role === 'user';
-
-  return (
-    <div className={`overflow-hidden rounded-[24px] border shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${isUser ? 'border-[var(--nimi-action-primary-bg)]/40 bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,transparent)]' : 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_95%,transparent)]'}`}>
-      {props.message.kind === 'video' ? (
-        <div className="relative h-52 w-[min(22rem,72vw)] overflow-hidden bg-slate-950">
-          {mediaUrl ? (
-            <video
-              src={mediaUrl}
-              className="block h-full w-full object-cover"
-              controls={!display?.isUploadingMedia}
-              muted={display?.isUploadingMedia}
-              playsInline
-              preload="metadata"
-            />
-          ) : null}
-        </div>
-      ) : mediaUrl ? (
-        <img
-          src={mediaUrl}
-          alt={mediaLabel}
-          className="block max-h-[22rem] w-[min(22rem,72vw)] object-cover"
-        />
-      ) : (
-        <div className="flex h-52 w-[min(22rem,72vw)] items-center justify-center bg-[var(--nimi-surface-panel)] text-sm text-[var(--nimi-text-muted)]">
-          {mediaLabel}
-        </div>
-      )}
-      <div className="space-y-1 px-4 py-3">
-        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{mediaLabel}</p>
-        {display?.isUploadingMedia ? (
-          <p className="text-xs text-[var(--nimi-text-muted)]">{props.uploadingLabel}</p>
-        ) : null}
-        {props.message.error ? (
-          <p className="text-xs text-[var(--nimi-status-danger)]">{props.message.error}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 function HumanStreamFooter(props: {
   selectedChatId: string | null;
@@ -199,20 +142,6 @@ function useHumanMessageRenderers(input: {
     );
   }, [input.model.contactAvatarUrl, input.model.contactName, input.model.currentUserAvatarUrl, profilePanelTarget, t, toggleProfilePanel]);
 
-  const renderMessageContent = useCallback<CanonicalMessageContentSlot>((message) => {
-    if (message.kind === 'image' || message.kind === 'video') {
-      return (
-        <HumanMediaMessageCard
-          message={message}
-          imageLabel={t('ChatTimeline.imageMessage', 'Image')}
-          videoLabel={t('ChatTimeline.videoMessage', 'Video')}
-          uploadingLabel={t('ChatTimeline.uploadingMedia', 'Uploading...')}
-        />
-      );
-    }
-    return undefined;
-  }, [t]);
-
   const renderMessageAccessory = useCallback<CanonicalMessageAccessorySlot>((message) => {
     if (!message.error && message.status !== 'pending') {
       return undefined;
@@ -236,7 +165,6 @@ function useHumanMessageRenderers(input: {
 
   return {
     renderMessageAvatar,
-    renderMessageContent,
     renderMessageAccessory,
     footerContent,
   };
@@ -310,7 +238,6 @@ function createHumanCanonicalTranscriptProps(input: {
     agentAvatarUrl: input.model.contactAvatarUrl,
     agentName: input.model.contactName,
     renderMessageAvatar: input.renderers.renderMessageAvatar,
-    renderMessageContent: input.renderers.renderMessageContent,
     renderMessageAccessory: input.renderers.renderMessageAccessory,
     voicePlayingMessageId: input.voiceUi?.playingVoiceMessageId || null,
     isVoiceTranscriptVisible: input.voiceUi?.isVoiceTranscriptVisible,
@@ -373,7 +300,6 @@ function createHumanCanonicalStagePanelProps(input: {
     onPlayVoiceMessage: input.voiceUi?.onPlayVoiceMessage,
     onVoiceContextMenu: input.voiceUi?.onVoiceContextMenu,
     renderMessageAvatar: input.renderers.renderMessageAvatar,
-    renderMessageContent: input.renderers.renderMessageContent,
     renderMessageAccessory: input.renderers.renderMessageAccessory,
     footerContent: input.renderers.footerContent,
   };

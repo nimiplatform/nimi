@@ -1,7 +1,8 @@
+import { MediaImage, MediaAvatar } from '@nimiplatform/kit/features/media';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpRight, BookOpen, Bookmark, Compass, MapPin, ScrollText, X } from 'lucide-react';
-import { Avatar, Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField } from '@nimiplatform/kit/ui';
+import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField } from '@nimiplatform/kit/ui';
 import type { WorldDetailPageProps } from './world-detail-template.js';
 import type { WorldCharacter, WorldPeopleCatalogState, WorldSceneItem } from './world-detail-types.js';
 import { PeopleCatalogFirstPageStatus, PeopleCatalogMoreControl } from './world-detail-people-catalog-status.js';
@@ -39,7 +40,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
       {loading ? <LoadingSkeleton lines={3} label={t('WorldDetail.charactersLoading')} /> : catalog.status !== 'ready' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : characters.length ? (
         <div className={PEOPLE_GALLERY_GRID}>
           {characters.map((character) => {
-            const image = character.portraitUrl || character.mediaAssets?.portrait?.url || character.avatarUrl || character.mediaAssets?.avatar?.url || null;
+            const image = character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || character.avatarUrl || character.mediaAssets?.avatar?.externalUrl || null;
             const identity = character.role || character.faction || '';
             return (
               <button
@@ -50,7 +51,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
                 className="group min-w-0 text-left"
                 data-testid="world-person-card"
               >
-                <Avatar src={image} alt={character.name} shape="rounded" tone="neutral" className="aspect-[5/4] h-auto w-full rounded-[12px] bg-[var(--nimi-surface-panel)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5 [&_img]:object-[50%_30%]" />
+                <MediaImage delivery={character.mediaAssets?.portrait?.delivery ?? character.avatarMedia} externalUrl={image} purpose="detail" sizes="auto, 220px" alt={character.name} className="aspect-[5/4] h-auto w-full rounded-[12px] bg-[var(--nimi-surface-panel)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5 [&_img]:object-[50%_30%]" />
                 <div className="mt-2.5 flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <NimiText as="span" role="card-title" className="block line-clamp-1 break-words" title={character.name}>{character.name}</NimiText>
@@ -84,7 +85,7 @@ function WorldSceneRow({ scene, onViewCharacter }: {
         {scene.relatedCharacters.length ? (
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-2">
             {scene.relatedCharacters.map((character) => {
-              const avatar = character.avatarUrl || character.mediaAssets?.avatar?.url || character.portraitUrl || character.mediaAssets?.portrait?.url || null;
+              const avatar = character.avatarUrl || character.mediaAssets?.avatar?.externalUrl || character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || null;
               return (
                 <button
                   key={`${scene.id}:${character.sourceRef.kind}:${character.id}`}
@@ -93,7 +94,7 @@ function WorldSceneRow({ scene, onViewCharacter }: {
                   aria-label={t('WorldDetail.discovery.viewNamedCharacter', { name: character.name })}
                   className="group/person flex min-w-0 items-center gap-2"
                 >
-                  <Avatar src={avatar} alt={character.name} size="sm" shape="circle" tone="neutral" className="transition-transform duration-200 group-hover/person:-translate-y-0.5" />
+                  <MediaAvatar delivery={character.avatarMedia ?? character.mediaAssets?.portrait?.delivery} externalUrl={avatar} alt={character.name} size="sm" shape="circle" tone="neutral" className="transition-transform duration-200 group-hover/person:-translate-y-0.5" />
                   <NimiText as="span" role="caption" className="line-clamp-1 break-words transition-colors group-hover/person:text-[var(--nimi-text-primary)]">{character.name}</NimiText>
                 </button>
               );
@@ -126,7 +127,7 @@ export function WorldDetailDiscovery({ props, scenes, onViewCharacter }: {
   const heroCaption = [world.motto, world.tagline]
     .map((value) => value?.trim() ?? '')
     .find((value) => value && value !== summary.trim()) || null;
-  const showBanner = Boolean(world.bannerUrl && !bannerFailed);
+  const showBanner = Boolean((world.bannerMedia || world.bannerUrl) && !bannerFailed);
   const aboutSystems = props.semantic.powerSystems;
   const aboutRules = aboutSystems.length === 0 ? props.semantic.operationRules.slice(0, 3) : [];
   const showAbout = aboutSystems.length > 0 || aboutRules.length > 0;
@@ -146,9 +147,9 @@ export function WorldDetailDiscovery({ props, scenes, onViewCharacter }: {
             {summary || settings.length ? <Button tone="primary" size="sm" className="rounded-full px-4 shadow-[var(--nimi-elevation-base)]" leadingIcon={<BookOpen size={16} />} onClick={() => setReaderOpen(true)} data-testid="world-detail-open-reader">{t('WorldDetail.discovery.readWorld')}</Button> : null}
           </div>
         </div>
-        {showBanner && world.bannerUrl ? (
+        {showBanner ? (
           <div className="relative order-1 @min-[1120px]:order-2">
-            <img src={world.bannerUrl} alt="" className="h-60 w-full rounded-[14px] object-cover @min-[640px]:h-80 @min-[1120px]:h-[380px]" onError={() => setBannerFailed(true)} data-testid="world-detail-banner" />
+            <MediaImage delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="hero" sizes="auto, 960px" loading="eager" fetchPriority="high" alt="" className="h-60 w-full rounded-[14px] object-cover @min-[640px]:h-80 @min-[1120px]:h-[380px]" onUnavailable={() => setBannerFailed(true)} data-testid="world-detail-banner" />
             {heroCaption ? <NimiText as="span" role="caption" className="absolute right-3 bottom-3 line-clamp-1 max-w-[70%] text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]" title={heroCaption}>{heroCaption}</NimiText> : null}
           </div>
         ) : null}

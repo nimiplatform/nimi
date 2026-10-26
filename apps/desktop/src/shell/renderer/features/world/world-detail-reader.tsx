@@ -1,3 +1,4 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, OverlayShell, ScrollArea, Timeline, TimelineGroup } from '@nimiplatform/kit/ui';
@@ -222,12 +223,12 @@ export function WorldDetailReader({ world, semantic, history, loading, incomplet
       contentClassName="flex min-h-0 flex-1 flex-col px-0 py-0"
       title={(
         <div className="flex items-start gap-3 px-2 pt-4">
-          {world.bannerUrl && !bannerFailed ? (
-            <img
-              src={world.bannerUrl}
+          {(world.bannerMedia || world.bannerUrl) && !bannerFailed ? (
+            <MediaImage
+              delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="avatar" sizes="44px"
               alt=""
               className="h-11 w-11 shrink-0 rounded-[var(--nimi-radius-md)] object-cover"
-              onError={() => setBannerFailed(true)}
+              onUnavailable={() => setBannerFailed(true)}
               data-testid="world-detail-reader-banner"
             />
           ) : (

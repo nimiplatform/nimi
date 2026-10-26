@@ -141,5 +141,7 @@
     "state": "州/省",
     "tags": "标签",
     "visibility": "可见性"
-  }
+  },
+  "removePhoto": "移除头像",
+  "photoUploaded": "头像已上传。"
 }

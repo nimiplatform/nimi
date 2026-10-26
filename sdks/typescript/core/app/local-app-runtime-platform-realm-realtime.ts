@@ -1,3 +1,5 @@
+import type { MediaDeliveryDto } from '../../core-generated/realm-typed-client.js';
+import { parseRealmMediaDelivery } from '../../realm/media-delivery.js';
 import type { NimiRealtimeControlStatus } from './local-app-runtime-platform-realtime.js';
 import {
   asRecord,
@@ -27,8 +29,9 @@ export type NimiRealmChatAttachment = {
   readonly displayKind: 'image' | 'video' | 'audio' | 'text' | 'card' | null;
   readonly title: string | null;
   readonly subtitle: string | null;
-  readonly url: string | null;
-  readonly thumbnail: string | null;
+  readonly delivery: MediaDeliveryDto | null;
+  readonly externalUrl: string | null;
+  readonly unavailable: boolean;
   readonly width: number;
   readonly height: number;
   readonly duration: number;
@@ -43,6 +46,8 @@ export type NimiRealmChatUserSnapshot = {
 };
 
 export type NimiRealmChatUserSummary = NimiRealmChatUserSnapshot & {
+  readonly avatarResourceId: string | null;
+  readonly avatarMedia: MediaDeliveryDto | null;
   readonly status: string | null;
   readonly presenceStatus: string | null;
   readonly presenceText: string | null;
@@ -265,9 +270,9 @@ function projectMessageReply(value: unknown): NimiRealmRealtimeMessageReply {
 
 export function projectRealmChatAttachment(value: unknown): NimiRealmChatAttachment {
   const record=requiredRecord(value,'Realm Chat attachment');
-  assertExactProjectionKeys(record,['targetType','targetId','displayKind','title','subtitle','url','thumbnail','width','height','duration','preview'],'Realm Chat attachment');
+  assertExactProjectionKeys(record,['targetType','targetId','displayKind','title','subtitle','delivery','externalUrl','unavailable','width','height','duration','preview'],'Realm Chat attachment');
   if(!Number.isSafeInteger(record.width)||!Number.isSafeInteger(record.height)||typeof record.duration!=='number'||!Number.isFinite(record.duration)||(record.width as number)<0||(record.height as number)<0||record.duration<0)fail('Realm Chat attachment');
-  return Object.freeze({targetType:oneOf(record.targetType,['resource','asset','bundle']),targetId:selector(record.targetId),displayKind:record.displayKind===null?null:oneOf(record.displayKind,['image','video','audio','text','card']),title:nullableText(record.title),subtitle:nullableText(record.subtitle),url:nullableText(record.url),thumbnail:nullableText(record.thumbnail),width:record.width as number,height:record.height as number,duration:record.duration,preview:record.preview===null?null:projectRealmChatAttachment(record.preview)});
+  return Object.freeze({targetType:oneOf(record.targetType,['resource','asset','bundle']),targetId:selector(record.targetId),displayKind:record.displayKind===null?null:oneOf(record.displayKind,['image','video','audio','text','card']),title:nullableText(record.title),subtitle:nullableText(record.subtitle),delivery:projectRealmMediaDelivery(record.delivery),externalUrl:nullableText(record.externalUrl),unavailable:requiredBoolean(record.unavailable),width:record.width as number,height:record.height as number,duration:record.duration,preview:record.preview===null?null:projectRealmChatAttachment(record.preview)});
 }
 
 export function projectRealmChatUserSnapshot(value: unknown): NimiRealmChatUserSnapshot {
@@ -278,8 +283,8 @@ export function projectRealmChatUserSnapshot(value: unknown): NimiRealmChatUserS
 
 export function projectRealmChatUserSummary(value: unknown): NimiRealmChatUserSummary {
   const record=requiredRecord(value,'Realm Chat user summary');
-  assertExactProjectionKeys(record,['id','handle','displayName','avatarUrl','status','presenceStatus','presenceText','presenceEmoji','createdAt'],'Realm Chat user summary');
-  return Object.freeze({id:selector(record.id),handle:text(record.handle,'handle',false,256),displayName:text(record.displayName,'displayName',false,512),avatarUrl:nullableText(record.avatarUrl),status:nullableText(record.status),presenceStatus:nullableText(record.presenceStatus),presenceText:nullableText(record.presenceText),presenceEmoji:nullableText(record.presenceEmoji),createdAt:requiredTimestamp(record.createdAt)});
+  assertExactProjectionKeys(record,['id','handle','displayName','avatarUrl','avatarResourceId','avatarMedia','status','presenceStatus','presenceText','presenceEmoji','createdAt'],'Realm Chat user summary');
+  return Object.freeze({id:selector(record.id),handle:text(record.handle,'handle',false,256),displayName:text(record.displayName,'displayName',false,512),avatarUrl:nullableText(record.avatarUrl),avatarResourceId:nullableText(record.avatarResourceId),avatarMedia:projectRealmMediaDelivery(record.avatarMedia),status:nullableText(record.status),presenceStatus:nullableText(record.presenceStatus),presenceText:nullableText(record.presenceText),presenceEmoji:nullableText(record.presenceEmoji),createdAt:requiredTimestamp(record.createdAt)});
 }
 
 function projectControl(value: unknown): NimiRealtimeControlStatus {
@@ -296,3 +301,9 @@ function oneOf<const T extends string>(value: unknown, allowed: readonly T[]): T
 function requiredRecord(value: unknown, label: string): Record<string, unknown> { return asRecord(value) || fail(label); }
 function text(value: unknown, label: string, allowEmpty: boolean, maxBytes: number): string { if(typeof value!=='string'||value.trim()!==value||value.length>maxBytes||(!allowEmpty&&value.length===0))return fail(label); return value; }
 function fail(label:string):never { return localAppProjectionError(`${label} projection is invalid.`); }
+
+function requiredBoolean(value: unknown): boolean { if (typeof value !== "boolean") return fail("Realm attachment unavailable"); return value; }
+
+function projectRealmMediaDelivery(value: unknown): MediaDeliveryDto | null {
+  try { return parseRealmMediaDelivery(value); } catch { return fail('Realm media delivery'); }
+}

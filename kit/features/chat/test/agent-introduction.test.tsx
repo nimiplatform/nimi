@@ -9,7 +9,7 @@ import { useAgentIntroduction } from '../src/runtime/agent-introduction.js';
 import { CanonicalTranscriptView } from '../src/components/canonical-transcript-view.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-const intro: NimiLocalAppAgentIntroduction = { worldName: '清代', era: 'qing-dynasty', role: '学者', greeting: '與你談談讀書。', referenceImageUrl: 'https://cdn.example.test/full.png', voiceSampleUrl: null, voiceSampleDurationSec: null, questionTopics: [{kind:'role',text:'学者'},{kind:'work',text:'潛研堂集'}] };
+const intro: NimiLocalAppAgentIntroduction = { worldName: '清代', era: 'qing-dynasty', role: '学者', greeting: '與你談談讀書。', referenceImageUrl: 'https://cdn.example.test/full.png', voiceSampleUrl: null, voicePreviewUrl: null, voiceSampleContentHash: null, voiceSampleMimeType: null, voiceSampleDurationSec: null, questionTopics: [{kind:'role',text:'学者'},{kind:'work',text:'潛研堂集'}] };
 
 describe('shared Agent introduction', () => {
  it('keeps the empty introduction at the top when a footer arrives', async () => {
@@ -45,7 +45,7 @@ describe('shared Agent introduction', () => {
  it('keeps the partner image visible when an introduction has no reference image', () => {
   const avatarUrl = 'https://cdn.example.test/avatar.png';
   const render = (introduction: NimiLocalAppAgentIntroduction) => renderToStaticMarkup(<AgentIntroduction introduction={introduction} displayName="Partner" avatarUrl={avatarUrl} locale="en" questionsEnabled={false} />);
-  const html = render({...intro, referenceImageUrl:null, voiceSampleUrl:'https://cdn.example.test/voice.mp3'});
+  const html = render({...intro, referenceImageUrl:null, voicePreviewUrl:'https://cdn.example.test/voice.mp3'});
   expect(html).toContain('data-agent-empty-character-image="true"');
   expect(html).toContain(`src="${avatarUrl}"`);
   expect(html.match(/<audio /g)).toHaveLength(1);
@@ -94,7 +94,7 @@ describe('shared Agent introduction', () => {
   const pausedGetter = vi.spyOn(HTMLMediaElement.prototype,'paused','get').mockImplementation(() => paused);
   const container = document.createElement('div'); const root = createRoot(container);
   try {
-   await act(async () => root.render(<AgentIntroduction introduction={{...intro,voiceSampleUrl:'https://cdn.example.test/voice.mp3'}} displayName="钱大昕" locale="zh" questionsEnabled={false} />));
+   await act(async () => root.render(<AgentIntroduction introduction={{...intro,voicePreviewUrl:'https://cdn.example.test/voice.mp3'}} displayName="钱大昕" locale="zh" questionsEnabled={false} />));
    expect(play).not.toHaveBeenCalled();
    await act(async () => container.querySelector<HTMLButtonElement>('[data-agent-empty-character-voice]')!.click());
    expect(play).toHaveBeenCalledOnce();

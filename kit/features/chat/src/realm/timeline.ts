@@ -37,7 +37,6 @@ export function toRealmChatTimelineUploadPlaceholder(
         targetType: 'RESOURCE',
         targetId: '',
         displayKind: placeholder.kind === 'image' ? 'IMAGE' : 'VIDEO',
-        url: placeholder.previewUrl,
       },
     },
     senderId: placeholder.senderId,

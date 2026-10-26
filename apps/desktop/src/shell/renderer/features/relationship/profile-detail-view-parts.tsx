@@ -1,3 +1,4 @@
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { ReactNode } from 'react';
 import type { HumanProfileData } from '../profile/profile-model';
 
@@ -8,6 +9,8 @@ export const TOPBAR_TOOLTIP_CLASS = 'rounded-full border border-[var(--nimi-bord
 export type EditableProfileDraft = {
   displayName: string;
   avatarUrl: string;
+  avatarResourceId: string | null;
+  avatarMedia: RealmModel<'MediaDeliveryDto'> | null;
   bio: string;
   city: string;
   countryCode: string;
@@ -20,6 +23,8 @@ export function buildEditableDraft(profile: HumanProfileData): EditableProfileDr
   return {
     displayName: profile.displayName || '',
     avatarUrl: profile.avatarUrl || '',
+    avatarResourceId: profile.avatarResourceId ?? null,
+    avatarMedia: profile.avatarMedia ?? null,
     bio: profile.bio || '',
     city: profile.city || '',
     countryCode: profile.countryCode || '',

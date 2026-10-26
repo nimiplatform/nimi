@@ -1,8 +1,10 @@
+import { MediaImage, MediaVideo, readMediaDelivery } from '@nimiplatform/kit/features/media';
 import { useEffect, useState, type ReactNode } from 'react';
 import { cn, EmptyState } from '@nimiplatform/kit/ui';
 import {
   getRealmChatTimelineDisplayModel,
   resolveRealmChatMediaUrl,
+  resolveTimelineAttachmentRecord,
   type RealmChatTimelineDisplayModel,
   type RealmChatTimelineMessage,
 } from '../realm.js';
@@ -209,8 +211,8 @@ function ResolvedImage({
   }
 
   return (
-    <img
-      src={resolvedSrc}
+    <MediaImage
+      delivery={readMediaDelivery(resolveTimelineAttachmentRecord(message.payload)?.delivery)} externalUrl={resolvedSrc} purpose="chat" sizes="auto, 260px"
       alt={alt}
       className="max-h-[320px] max-w-[260px] rounded-xl object-contain"
     />
@@ -240,8 +242,8 @@ function ResolvedVideo({
   }
 
   return (
-    <video
-      src={resolvedSrc}
+    <MediaVideo
+      delivery={readMediaDelivery(resolveTimelineAttachmentRecord(message.payload)?.delivery)} externalUrl={resolvedSrc}
       controls={!uploading}
       muted={uploading}
       playsInline

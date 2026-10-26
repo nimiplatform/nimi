@@ -1,3 +1,4 @@
+export { parseRealmMediaDelivery } from '@nimiplatform/sdk/realm';
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-030
 /**
  * `@nimiplatform/kit/core/sdk-contract`
@@ -430,3 +431,11 @@ export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic,
 export type { NimiLocalAppAgentAutonomyConfig, NimiLocalAppConversationFollowUpCancelInput, NimiLocalAppAgentLife, NimiLocalAppAgentLifeFrame, } from '@nimiplatform/sdk/app';
 
 export type { NimiLocalAppConversationState, NimiLocalAppConversationAction, NimiLocalAppConversationLiveAction, NimiLocalAppConversationLiveTool, NimiLocalAppConversationTurn, NimiLocalAppConversationVoice } from '@nimiplatform/sdk/app';
+
+// Realm remains the owner of rendition identity, policy and delivery URLs.
+export type MediaDeliveryDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaDeliveryDto'>;
+export type MediaImageSetDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaImageSetDto'>;
+export type MediaImageFamilyDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaImageFamilyDto'>;
+export type MediaImageSourceDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaImageSourceDto'>;
+export type MediaVideoDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaVideoDto'>;
+export type MediaDeliveryStateDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaDeliveryStateDto'>;

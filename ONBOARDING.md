@@ -9,6 +9,24 @@
 
 ---
 
+## 媒体0.22开发检查点升级
+
+`media-cdn-preview-2026-10-26` 是配套Realm媒体合同的开发检查点，不是生产发布。
+SDK / Kit 0.22.0、Runtime、原生承载与Home必须使用匹配源码重新构建；只拉取前端代码或只改
+依赖版本字符串，不能让旧Runtime的broker/protobuf支持新媒体操作。
+
+两仓独立更新，配套Realm代码SHA见该checkpoint的Nimi媒体提交中的 `Companion-Realm`。
+Realm仓库根的 `MEDIA-CHECKPOINT.md` 是跨机数据适配入口，包含现有数据库保护和工具适用边界。
+仅运行客户端的机器配置实际可访问的Realm并正常登录，不运行Realm数据迁移，也不需要R2写凭据。
+`localhost:3002`指本机；没有可访问的共享Realm时，不把它当作远端服务。
+
+自行运行Realm的机器先确认数据库与媒体发布owner：不同数据库不得直接向同一预览发布空间写入。
+不复制用户token、Runtime数据目录或整份 `.env`，不重置旧数据库；当前一次性媒体工具不是任意
+机器通用迁移器。独立App同时采用新介绍合同的，还需要根 `NIMI_APP.md`，没有README回退。
+
+本检查点的冷MISS主图p95尚未达到2.5秒目标；Windows、管理员界面和多POP仍有未验证范围。
+代码、协议、数据准备与真实产品验收应分别核对，不将构建通过或这个checkpoint称为发布就绪。
+
 ## 1. 核心架构与代码目录
 
 Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：

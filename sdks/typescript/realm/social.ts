@@ -359,7 +359,7 @@ async function fetchNimiRealmBlockedUsers(
       path: {},
       query: { limit: 100 },
     }, options));
-    return response.items.map((item) => ({ ...item }));
+    return response.items.map((item) => ({ ...item }) as unknown as NimiRealmSocialContactRecord);
   } catch (error) {
     emitRealmDataError('load-blocked-users', error);
     throw error;

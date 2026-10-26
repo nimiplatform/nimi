@@ -120,6 +120,7 @@ export type AppStoreState = {
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAuthBootstrapping: () => void;
   applyRuntimeAccountProjection: (projection: RuntimeAccountAuthProjection) => void;
+  applyCurrentUserProfile: (profile: Record<string, unknown>, realmEnvironmentId: string) => void;
   setAuthSession: (user: Record<string, unknown> | null) => void;
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;

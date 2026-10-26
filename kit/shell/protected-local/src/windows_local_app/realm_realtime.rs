@@ -9,7 +9,7 @@ use crate::generated::subscribe_realm_realtime_events_response::Event;
 use crate::generated::{
     Ack, AckRealmRealtimeEventsRequest, CloseRealmRealtimeChannelRequest,
     CloseRealmRealtimeSubscriptionRequest, ListRealmChatsRequest, OpenRealmRealtimeChannelRequest,
-    RealmChatAttachmentPayload, RealmChatDurableEvent, RealmChatInboxSubscriptionTarget,
+    RealmMediaDelivery, RealmChatAttachmentPayload, RealmChatDurableEvent, RealmChatInboxSubscriptionTarget,
     RealmChatMessage, RealmChatMessagePayload, RealmChatMessageReply, RealmChatSubscriptionTarget,
     RealmPresenceSubscriptionTarget, SubscribeRealmRealtimeEventsRequest,
     SubscribeRealmRealtimeEventsResponse,
@@ -55,6 +55,8 @@ pub(super) async fn list_chats(
                     "handle": other_user.handle,
                     "displayName": other_user.display_name,
                     "avatarUrl": nullable_text(other_user.avatar_url),
+                    "avatarResourceId": nullable_text(other_user.avatar_resource_id),
+                    "avatarMedia": other_user.avatar_media.map(project_media_delivery),
                     "status": nullable_text(other_user.status),
                     "presenceStatus": nullable_text(other_user.presence_status),
                     "presenceText": nullable_text(other_user.presence_text),
@@ -231,7 +233,7 @@ fn project_event(
         }),
         Event::Snapshot(snapshot) => json!({
             "type":"snapshot","chatId":snapshot.chat_id,"otherUser":snapshot.other_user.map(|user|json!({
-                "id":user.id,"handle":user.handle,"displayName":user.display_name,"avatarUrl":user.avatar_url,
+                "id":user.id,"handle":user.handle,"displayName":user.display_name,"avatarUrl":user.avatar_url,"avatarResourceId":nullable_text(user.avatar_resource_id),"avatarMedia":user.avatar_media.map(project_media_delivery),
                 "status":user.status,"presenceStatus":user.presence_status,"presenceText":user.presence_text,"presenceEmoji":user.presence_emoji,
                 "createdAt":project_timestamp(user.created_at),
             })),"messages":snapshot.messages.into_iter().map(project_message).collect::<Result<Vec<_>,_>>()?,
@@ -327,7 +329,7 @@ fn project_attachment(
     Ok(json!({
         "targetType":attachment_target(value.target_type)?,"targetId":value.target_id,
         "displayKind":attachment_display(value.display_kind)?,"title":nullable_text(value.title),
-        "subtitle":nullable_text(value.subtitle),"url":nullable_text(value.url),"thumbnail":nullable_text(value.thumbnail),
+        "subtitle":nullable_text(value.subtitle),"delivery":value.delivery.map(project_media_delivery),"externalUrl":nullable_text(value.external_url),"unavailable":value.unavailable,
         "width":value.width,"height":value.height,"duration":value.duration,
         "preview":value.preview.map(|preview|project_attachment(*preview)).transpose()?,
     }))
@@ -405,5 +407,18 @@ fn attachment_display(value: i32) -> Result<JsonValue, LocalAppOperationError> {
         4 => json!("text"),
         5 => json!("card"),
         _ => return Err(untrusted()),
+    })
+}
+
+// @nimi-authority: rule.nimi.runtime.realm-realtime.r001
+fn project_media_delivery(value: RealmMediaDelivery) -> JsonValue {
+    json!({ "resourceId": value.resource_id, "contentVersion": value.content_version,
+        "publicationGeneration": value.publication_generation, "policyVersion": value.policy_version,
+        "expiresAt": nullable_text(value.expires_at), "previewUrl": nullable_text(value.preview_url), "originalUrl": nullable_text(value.original_url),
+        "images": value.images.into_iter().map(|set| json!({ "purpose": set.purpose,
+            "families": set.families.into_iter().map(|family| json!({ "mimeType": family.mime_type,
+                "sources": family.sources.into_iter().map(|source| json!({ "url":source.url, "width":source.width, "height":source.height, "mimeType":source.mime_type })).collect::<Vec<_>>()
+            })).collect::<Vec<_>>() })).collect::<Vec<_>>(),
+        "video": value.video.map(|video| json!({ "hlsUrl":video.hls_url, "dashUrl":video.dash_url, "posterUrl":video.poster_url, "expiresAt":video.expires_at })),
     })
 }

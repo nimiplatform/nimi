@@ -132,11 +132,11 @@ func TestResolveRealmCharacterPublicAvatarRejectsNonHTTPSNestedAsset(t *testing.
 
 func realmCharacterPublicAvatarAsset(kind, url string) map[string]any {
 	return map[string]any{
-		"id":         "asset-" + kind,
-		"kind":       kind,
-		"url":        url,
-		"provider":   "test",
-		"provenance": map[string]any{},
+		"id":          "asset-" + kind,
+		"kind":        kind,
+		"externalUrl": url,
+		"provider":    "EXTERNAL_URL",
+		"provenance":  map[string]any{},
 	}
 }
 
@@ -145,6 +145,15 @@ func realmCharacterPublicAvatarServer(
 	sourceRef RealmSourceMaterializationSourceRefV3,
 	media map[string]any,
 ) *httptest.Server {
+	external := map[string]any{}
+	for _, key := range []string{"avatarUrl", "portraitUrl", "referenceImageUrl", "voiceSampleUrl"} {
+		if value, ok := media[key]; ok {
+			external[key] = value
+			delete(media, key)
+		}
+	}
+	media["external"] = external
+
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if request.Method == http.MethodGet && (request.URL.Path == "/api/realm/core/world-characters/by-id/"+sourceRef.ID || request.URL.Path == "/api/realm/core/persona-characters/by-id/"+sourceRef.ID) {
@@ -261,7 +270,7 @@ func TestPublicSourceRevisionResolutionKeepsIdentityAndPublicationGuards(t *test
 						current.SourceHash = strings.Repeat("c", 64)
 						expected, _ = realmSourceMaterializationSourceRefJSON(current)
 					}
-					_ = json.NewEncoder(w).Encode(map[string]any{"sourceRef": expected, "media": map[string]any{"avatarUrl": "https://cdn.example.test/avatar.png"}})
+					_ = json.NewEncoder(w).Encode(map[string]any{"sourceRef": expected, "media": map[string]any{"external": map[string]any{"avatarUrl": "https://cdn.example.test/avatar.png"}}})
 				}))
 				defer server.Close()
 				svc := newRealmUnaryHarnessService(t, server.URL)
@@ -281,5 +290,21 @@ func TestPublicSourceRevisionResolutionKeepsIdentityAndPublicationGuards(t *test
 				}
 			})
 		}
+	}
+}
+
+func TestIntroductionSeparatesOriginalReferenceAudioFromPlayback(t *testing.T) {
+	source := realmCharacterPublicAvatarTestSourceRef()
+	hash := strings.Repeat("a", 64)
+	original, preview := "https://assets.example/original.wav", "https://assets.example/preview.mp3"
+	server := realmCharacterPublicAvatarServer(t, source, map[string]any{"assets": map[string]any{"voiceSample": map[string]any{
+		"id": "voice-1", "durationSec": 8.0, "mimeType": "audio/wav", "delivery": map[string]any{"resourceId": "voice-1", "contentVersion": hash, "publicationGeneration": 1, "policyVersion": "v1", "images": []any{}, "originalUrl": original, "previewUrl": preview},
+	}}})
+	defer server.Close()
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	value, err := svc.ResolveRealmCharacterPublicIntroduction(context.Background(), "acct-1", source)
+	if err != nil || value.VoiceSampleURL == nil || *value.VoiceSampleURL != original || value.VoicePreviewURL == nil || *value.VoicePreviewURL != preview || value.VoiceSampleContentHash == nil || *value.VoiceSampleContentHash != hash || value.VoiceSampleMimeType == nil || *value.VoiceSampleMimeType != "audio/wav" {
+		t.Fatal("original/preview contract was lost")
 	}
 }

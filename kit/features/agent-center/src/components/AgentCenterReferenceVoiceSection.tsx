@@ -37,7 +37,7 @@ export function AgentCenterReferenceVoiceSection({ session, snapshot, i18n, plac
       <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform group-open:rotate-180" />
     </summary>
     <div className="grid gap-3 pb-1 pt-2">
-        {voice.sampleUrl ? <audio controls preload="none" src={voice.sampleUrl} aria-label={t('sample', 'Current voice sample')} className="h-10 w-full min-w-0" /> : null}
+        {voice.previewUrl ? <audio controls preload="none" src={voice.previewUrl} aria-label={t('sample', 'Current voice sample')} className="h-10 w-full min-w-0" /> : null}
       {voice.phase === 'bound' ? <p className="m-0 text-[length:var(--nimi-type-caption-size)] leading-5 text-[var(--nimi-text-secondary)]">{t('bound', 'A voice is already selected for new speech.')}</p> : <>
         <p className="m-0 text-[length:var(--nimi-type-caption-size)] leading-5 text-[var(--nimi-text-secondary)]">{t('description', 'Create a reusable voice from this sample for future speech.')}</p>
         {voice.reason === 'reference-missing' ? <p className="m-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">{t('missing', 'This character has no available sound sample.')}</p> : null}

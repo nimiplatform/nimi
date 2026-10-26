@@ -141,5 +141,7 @@
     "state": "State",
     "tags": "Tags",
     "visibility": "Visibility"
-  }
+  },
+  "removePhoto": "Remove photo",
+  "photoUploaded": "Photo uploaded."
 }

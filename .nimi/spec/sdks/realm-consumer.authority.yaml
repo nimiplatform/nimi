@@ -310,3 +310,13 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.runtime-realtime-facade-plane
+  - id: rule.nimi.sdks.realm-consumer.media-capabilities
+    kind: rule
+    title: Resource-scoped media capabilities cross the existing protected carrier
+    modality: must
+    statement: Desktop profile and direct-human Chat media use the existing Runtime-mediated typed Realm Resource prepare, finalize, status, cancellation and revocation operations. A Realm-issued expiring binary PUT URL binds one staging object, request identity and MIME and is not an account credential; the immutable Resource owner verifies accepted size and hash before READY. Realm-issued delivery descriptors bind Resource identity, content version, publication generation, finite purposes and expiry, and may contain bounded Stream playback capabilities. Runtime keeps account bearer, refresh and provider signing keys private, admits only exact media operations and validates scoped upload response shape, destination, transport and expiry; typed media URL fields never authorize a generic proxy, arbitrary credential field, account token, automatic replay, original-byte fallback or new formal App operation. SDK performs the declared upload and truthful processing wait; Kit only consumes the descriptor and asks the containing authorized read surface for refresh. Existing formal App admission remains closed and unchanged.
+    condition: Whenever a supported Desktop media upload or an admitted Realm read carries a Resource-scoped media capability.
+    failure: Reject malformed, mismatched, overlong, unadmitted or credential-bearing responses while preserving the Resource identity for recovery and never reporting READY before verified publication.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane

@@ -10,6 +10,7 @@ type AuthSlice = Pick<AppStoreState,
   | 'setAuthBootstrapping'
   | 'applyRuntimeAccountProjection'
   | 'setAuthSession'
+  | 'applyCurrentUserProfile'
   | 'clearAuthSession'
 >;
 
@@ -110,6 +111,13 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         }
         return { auth };
       }),
+    applyCurrentUserProfile: (profile, realmEnvironmentId) => set((state) => {
+      const current = state.auth.user;
+      if (state.auth.status !== 'authenticated' || !current || profile.id !== current.id
+        || !realmEnvironmentId || current.realmEnvironmentId !== realmEnvironmentId) return state;
+      if (Object.entries(profile).every(([key, value]) => key === 'realmEnvironmentId' || current[key] === value)) return state;
+      return { auth: { ...state.auth, user: { ...current, ...profile, id: current.id, realmEnvironmentId: current.realmEnvironmentId } } };
+    }),
     setAuthSession: (user) =>
       set((state) => ({
         auth: state.auth.status === 'authenticated'

@@ -1,41 +1,27 @@
 import type {
-  CreateAudioDirectUploadDto,
-  FinalizeResourceDto,
-  RealmCreateAudioDirectUploadOperationRequest,
-  RealmCreateImageDirectUploadOperationRequest,
-  RealmCreateVideoDirectUploadOperationRequest,
-  RealmFinalizeResourceOperationRequest,
-  RealmTypedCallOptions,
-  ResourceDetailDto,
+  CreateMediaDirectUploadDto, RealmCreateAudioDirectUploadOperationRequest,
+  RealmCreateImageDirectUploadOperationRequest, RealmCreateVideoDirectUploadOperationRequest,
+  RealmFinalizeResourceOperationRequest, RealmGetResourceOperationRequest,
+  RealmCancelResourceUploadOperationRequest, RealmTypedCallOptions, ResourceDetailDto,
   ResourceDirectUploadSessionDto,
 } from '../core-generated/realm-typed-client';
-import { createNimiError, type JsonObject } from '../types';
+import { createNimiError } from '../types';
+import { createSha256Hasher } from '../types/sha256.js';
 
 export type NimiRealmResourceUploadKind = 'image' | 'video' | 'audio';
-
 export type NimiRealmResourceUploadDeliveryAccess = 'PUBLIC' | 'SIGNED';
 export type NimiRealmResourceUploadSession = ResourceDirectUploadSessionDto;
 export type NimiRealmResourceUploadResource = ResourceDetailDto;
-export type NimiRealmResourceUploadFinalizeInput = FinalizeResourceDto;
+export type NimiRealmResourceUploadMetadata = Omit<CreateMediaDirectUploadDto, 'requestId' | 'hashSha256' | 'sizeBytes' | 'mimeType' | 'deliveryAccess'>;
 
 export interface NimiRealmResourceUploadApi {
   readonly resources: {
-    createAudioDirectUpload(
-      request: RealmCreateAudioDirectUploadOperationRequest,
-      options?: RealmTypedCallOptions,
-    ): Promise<ResourceDirectUploadSessionDto>;
-    createImageDirectUpload(
-      request: RealmCreateImageDirectUploadOperationRequest,
-      options?: RealmTypedCallOptions,
-    ): Promise<ResourceDirectUploadSessionDto>;
-    createVideoDirectUpload(
-      request: RealmCreateVideoDirectUploadOperationRequest,
-      options?: RealmTypedCallOptions,
-    ): Promise<ResourceDirectUploadSessionDto>;
-    finalizeResource(
-      request: RealmFinalizeResourceOperationRequest,
-      options?: RealmTypedCallOptions,
-    ): Promise<ResourceDetailDto>;
+    createAudioDirectUpload(request: RealmCreateAudioDirectUploadOperationRequest, options?: RealmTypedCallOptions): Promise<ResourceDirectUploadSessionDto>;
+    createImageDirectUpload(request: RealmCreateImageDirectUploadOperationRequest, options?: RealmTypedCallOptions): Promise<ResourceDirectUploadSessionDto>;
+    createVideoDirectUpload(request: RealmCreateVideoDirectUploadOperationRequest, options?: RealmTypedCallOptions): Promise<ResourceDirectUploadSessionDto>;
+    finalizeResource(request: RealmFinalizeResourceOperationRequest, options?: RealmTypedCallOptions): Promise<ResourceDetailDto>;
+    getResource(request: RealmGetResourceOperationRequest, options?: RealmTypedCallOptions): Promise<ResourceDetailDto>;
+    cancelResourceUpload(request: RealmCancelResourceUploadOperationRequest, options?: RealmTypedCallOptions): Promise<ResourceDetailDto>;
   };
 }
 
@@ -46,328 +32,98 @@ export interface NimiRealmResourceUploadInput {
   readonly fileName?: string;
   readonly contentType?: string;
   readonly deliveryAccess?: NimiRealmResourceUploadDeliveryAccess;
-  readonly finalizePayload?: FinalizeResourceDto;
+  readonly metadata?: NimiRealmResourceUploadMetadata;
+  readonly requestId?: string;
+  readonly processingTimeoutMs?: number;
+  readonly onProgress?: (progress: { phase: 'hashing' | 'uploading' | 'processing'; bytes: number; totalBytes: number }) => void;
   readonly failureMessage?: string;
   readonly options?: RealmTypedCallOptions;
 }
-
 export interface NimiRealmResourceUploadResult {
   readonly resourceId: string;
   readonly session: ResourceDirectUploadSessionDto;
   readonly resource: ResourceDetailDto;
 }
 
-type UploadPhase = 'input' | 'prepare' | 'transport' | 'finalize';
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
+function fail(phase: string, message: string, resourceId?: string, code?: string, requestId?: string): never {
+  throw createNimiError({ message, reasonCode: phase === 'input' ? 'SDK_REALM_RESOURCE_UPLOAD_INPUT_INVALID' : 'REALM_RESOURCE_UPLOAD_FAILED', actionHint: phase === 'processing' ? 'inspect_or_resume_resource_processing' : 'inspect_realm_resource_upload', retryable: phase === 'processing', source: 'realm', details: { phase, ...(requestId ? { requestId } : {}), ...(resourceId ? { resourceId } : {}), ...(code ? { code } : {}) } });
 }
 
-function toRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
+async function hashFile(file: Blob, signal: AbortSignal | undefined, progress: NimiRealmResourceUploadInput['onProgress']): Promise<string> {
+  const hash = createSha256Hasher();
+  for (let offset = 0; offset < file.size; offset += 1024 * 1024) {
+    signal?.throwIfAborted();
+    const end = Math.min(offset + 1024 * 1024, file.size);
+    hash.update(new Uint8Array(await file.slice(offset, end).arrayBuffer()));
+    progress?.({ phase: 'hashing', bytes: end, totalBytes: file.size });
   }
-  return value as Record<string, unknown>;
+  return hash.hex();
 }
 
-function hasExactKeys(record: Record<string, unknown>, expected: readonly string[]): boolean {
-  const keys = Object.keys(record).sort();
-  return keys.length === expected.length && keys.every((key, index) => key === expected[index]);
-}
-
-function isBlobLike(value: unknown): value is Blob {
-  const record = toRecord(value);
-  return typeof record.size === 'number'
-    && typeof record.type === 'string'
-    && typeof record.arrayBuffer === 'function';
-}
-
-function fail(input: {
-  readonly phase: UploadPhase;
-  readonly kind?: unknown;
-  readonly message: string;
-  readonly actionHint: string;
-  readonly retryable?: boolean;
-  readonly details?: JsonObject;
-}): never {
-  throw createNimiError({
-    message: input.message,
-    reasonCode: input.phase === 'input'
-      ? 'SDK_REALM_RESOURCE_UPLOAD_INPUT_INVALID'
-      : 'REALM_RESOURCE_UPLOAD_FAILED',
-    actionHint: input.actionHint,
-    retryable: input.retryable,
-    source: 'realm',
-    details: {
-      phase: input.phase,
-      ...(input.kind !== undefined && input.kind !== null ? { kind: normalizeText(input.kind) } : {}),
-      ...(input.details || {}),
-    },
-  });
-}
-
-function normalizeKind(kind: unknown): NimiRealmResourceUploadKind {
-  if (kind === 'image' || kind === 'video' || kind === 'audio') {
-    return kind;
-  }
-  fail({
-    phase: 'input',
-    kind,
-    message: 'Realm resource upload kind must be image, video, or audio.',
-    actionHint: 'pass_supported_realm_resource_upload_kind',
-  });
-}
-
-function resolveFetch(fetchImpl?: typeof fetch): typeof fetch {
-  const resolved = fetchImpl || globalThis.fetch?.bind(globalThis);
-  if (typeof resolved !== 'function') {
-    fail({
-      phase: 'input',
-      message: 'Realm resource upload requires an explicit fetch implementation.',
-      actionHint: 'pass_fetch_impl_or_run_in_fetch_capable_runtime',
-    });
-  }
-  return resolved;
-}
-
-function resolveDeliveryAccess(access: NimiRealmResourceUploadDeliveryAccess | undefined): NimiRealmResourceUploadDeliveryAccess {
-  return access === 'PUBLIC' ? 'PUBLIC' : 'SIGNED';
-}
-
-function fileNameFromBlob(file: Blob): string | undefined {
-  const name = (file as { readonly name?: unknown }).name;
-  const normalized = normalizeText(name);
-  return normalized || undefined;
-}
-
-function contentTypeFromInput(input: NimiRealmResourceUploadInput): string | undefined {
-  const explicit = normalizeText(input.contentType);
-  if (explicit) {
-    return explicit;
-  }
-  return normalizeText(input.file.type) || undefined;
-}
-
-function sizeBytesFromFile(file: Blob): number | undefined {
-  return Number.isFinite(file.size) ? file.size : undefined;
-}
-
-function buildMultipartBody(file: Blob, formField: string, fileName?: string): FormData {
-  if (typeof FormData !== 'function') {
-    fail({
-      phase: 'input',
-      message: 'Realm resource multipart upload requires FormData.',
-      actionHint: 'run_in_form_data_capable_runtime',
-    });
-  }
-  const body = new FormData();
-  const normalizedFileName = normalizeText(fileName) || fileNameFromBlob(file);
-  if (normalizedFileName) {
-    body.append(formField, file, normalizedFileName);
-  } else {
-    body.append(formField, file);
-  }
-  return body;
-}
-
-function buildAudioDirectUploadBody(input: NimiRealmResourceUploadInput): CreateAudioDirectUploadDto {
-  const finalizePayload = input.finalizePayload || {};
-  const filename = normalizeText(input.fileName) || fileNameFromBlob(input.file);
-  return {
-    ...finalizePayload,
-    deliveryAccess: finalizePayload.deliveryAccess ?? resolveDeliveryAccess(input.deliveryAccess),
-    ...(filename ? { filename } : {}),
-    mimeType: finalizePayload.mimeType ?? contentTypeFromInput(input),
-    sizeBytes: finalizePayload.sizeBytes ?? sizeBytesFromFile(input.file),
-  };
-}
-
-function buildFinalizeBody(input: NimiRealmResourceUploadInput): FinalizeResourceDto {
-  const finalizePayload = input.finalizePayload || {};
-  return {
-    ...finalizePayload,
-    deliveryAccess: finalizePayload.deliveryAccess ?? resolveDeliveryAccess(input.deliveryAccess),
-    mimeType: finalizePayload.mimeType ?? contentTypeFromInput(input),
-    sizeBytes: finalizePayload.sizeBytes ?? sizeBytesFromFile(input.file),
-  };
-}
-
-async function createUploadSession(input: {
-  readonly realm: NimiRealmResourceUploadApi;
-  readonly kind: NimiRealmResourceUploadKind;
-  readonly upload: NimiRealmResourceUploadInput;
-}): Promise<ResourceDirectUploadSessionDto> {
-  if (input.kind === 'image') {
-    return input.realm.resources.createImageDirectUpload({
-      path: {},
-      query: { requireSignedUrls: resolveDeliveryAccess(input.upload.deliveryAccess) === 'SIGNED' ? 'true' : 'false' },
-    }, input.upload.options);
-  }
-  if (input.kind === 'video') {
-    return input.realm.resources.createVideoDirectUpload({
-      path: {},
-      query: { requireSignedUrls: resolveDeliveryAccess(input.upload.deliveryAccess) === 'SIGNED' ? 'true' : 'false' },
-    }, input.upload.options);
-  }
-  return input.realm.resources.createAudioDirectUpload({
-    path: {},
-    body: buildAudioDirectUploadBody(input.upload),
-  }, input.upload.options);
-}
-
-async function uploadBinaryPut(input: {
-  readonly fetchImpl: typeof fetch;
-  readonly uploadUrl: string;
-  readonly file: Blob;
-  readonly contentType: string;
-}): Promise<Response> {
-  return input.fetchImpl(input.uploadUrl, {
-    method: 'PUT',
-    body: input.file,
-    headers: {
-      'Content-Type': input.contentType,
-    },
-  });
-}
-
-async function uploadMultipartPost(input: {
-  readonly fetchImpl: typeof fetch;
-  readonly uploadUrl: string;
-  readonly file: Blob;
-  readonly formField: string;
-  readonly fileName?: string;
-}): Promise<Response> {
-  return input.fetchImpl(input.uploadUrl, {
-    method: 'POST',
-    body: buildMultipartBody(input.file, input.formField, input.fileName),
+function wait(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const abort = () => { clearTimeout(timer); signal?.removeEventListener('abort', abort); reject(signal?.reason ?? new DOMException('Aborted', 'AbortError')); };
+    const timer = setTimeout(() => { signal?.removeEventListener('abort', abort); resolve(); }, milliseconds);
+    signal?.addEventListener('abort', abort, { once: true });
   });
 }
 
 // @nimi-authority: rule.nimi.sdks.realm-consumer.r007
-async function uploadWithSessionTransport(input: {
-  readonly fetchImpl: typeof fetch;
-  readonly uploadUrl: string;
-  readonly file: Blob;
-  readonly fileName?: string;
-  readonly session: Record<string, unknown>;
-  readonly kind: NimiRealmResourceUploadKind;
-}): Promise<Response> {
-  const transport = toRecord(input.session.transport);
-  const method = transport.method;
-  const bodyKind = transport.bodyKind;
-
-  if (
-    hasExactKeys(transport, ['bodyKind', 'formField', 'method']) &&
-    method === 'POST' &&
-    bodyKind === 'MULTIPART_FORM_DATA' &&
-    typeof transport.formField === 'string' &&
-    transport.formField.trim().length > 0 &&
-    transport.formField === transport.formField.trim() &&
-    transport.contentType === undefined
-  ) {
-    return uploadMultipartPost({
-      fetchImpl: input.fetchImpl,
-      uploadUrl: input.uploadUrl,
-      file: input.file,
-      fileName: input.fileName,
-      formField: transport.formField,
-    });
+export async function uploadNimiRealmResourceFile(realm: NimiRealmResourceUploadApi, input: NimiRealmResourceUploadInput): Promise<NimiRealmResourceUploadResult> {
+  if (!['image', 'audio', 'video'].includes(input.kind) || !input.file || typeof input.file.slice !== 'function' || !Number.isSafeInteger(input.file.size) || input.file.size < 1 || input.file.size > 2147483647) fail('input', 'A supported non-empty media file is required.');
+  const declaredType = (input.contentType || input.file.type || '').split(';', 1)[0].trim().toLowerCase();
+  const contentType = ({ 'image/jpg': 'image/jpeg', 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav', 'audio/mp3': 'audio/mpeg', 'audio/x-m4a': 'audio/mp4' } as Record<string, string>)[declaredType] ?? declaredType;
+  if (!contentType) fail('input', 'A media Content-Type is required.');
+  if (input.deliveryAccess !== undefined && !['PUBLIC', 'SIGNED'].includes(input.deliveryAccess)) fail('input', 'Unknown media delivery strategy.');
+  const fetchImpl = input.fetchImpl ?? globalThis.fetch?.bind(globalThis);
+  if (!fetchImpl) fail('input', 'Resource upload requires fetch.');
+  const processingTimeout = input.processingTimeoutMs ?? 600000;
+  if (!Number.isFinite(processingTimeout) || processingTimeout < 1 || processingTimeout > 7200000) fail('input', 'Invalid media processing timeout.');
+  const signal = input.options?.signal;
+  signal?.throwIfAborted();
+  const requestId = input.requestId ?? globalThis.crypto.randomUUID();
+  const hashSha256 = await hashFile(input.file, signal, input.onProgress);
+  const body: CreateMediaDirectUploadDto = { ...input.metadata, requestId, hashSha256, sizeBytes: input.file.size, mimeType: contentType, deliveryAccess: input.deliveryAccess ?? 'SIGNED', label: input.metadata?.label ?? input.fileName };
+  const request = { path: {}, body };
+  const session = input.kind === 'image' ? await realm.resources.createImageDirectUpload(request, input.options)
+    : input.kind === 'video' ? await realm.resources.createVideoDirectUpload(request, input.options)
+      : await realm.resources.createAudioDirectUpload(request, input.options);
+  const resourceId = session.resourceId;
+  function failIntent(phase: string, message: string, id = resourceId, code?: string): never { return fail(phase, message, id, code, requestId); }
+  if (!resourceId || session.requestId !== requestId || session.resourceType !== input.kind.toUpperCase() || session.status !== 'PENDING') failIntent('prepare', 'Invalid resource upload identity or lifecycle.', resourceId);
+  const transport = session.transport;
+  const keys = Object.keys(transport ?? {}).sort();
+  if (keys.join(',') !== 'bodyKind,contentType,method' || transport.method !== 'PUT' || transport.bodyKind !== 'BINARY' || !transport.contentType?.trim()) failIntent('prepare', 'Unknown resource upload transport; regenerate the SDK from the current Realm contract.', resourceId);
+  let completed = false;
+  try {
+    signal?.throwIfAborted();
+    input.onProgress?.({ phase: 'uploading', bytes: 0, totalBytes: input.file.size });
+    let response: Response;
+    try { response = await fetchImpl(session.uploadUrl, { method: 'PUT', body: input.file, headers: { 'Content-Type': transport.contentType }, credentials: 'omit', redirect: 'error', signal }); }
+    catch { signal?.throwIfAborted(); failIntent('transport', input.failureMessage || 'Resource transport failed; the upload URL is not included in diagnostics.', resourceId); }
+    if (!response.ok) failIntent('transport', input.failureMessage || `Resource upload returned HTTP ${response.status}.`, resourceId);
+    signal?.throwIfAborted();
+    let resource = await realm.resources.finalizeResource({ path: { resourceId }, body: { requestId } }, input.options);
+    const deadline = Date.now() + processingTimeout;
+    while (true) {
+      signal?.throwIfAborted();
+      if (resource.id !== resourceId || resource.resourceType !== session.resourceType) failIntent('finalize', 'Resource identity changed during finalization.', resourceId);
+      if (resource.status === 'FAILED' || resource.status === 'DELETED' || resource.deliveryStatus.state === 'FAILED') failIntent('finalize', input.failureMessage || 'The media could not be verified or processed.', resourceId, resource.deliveryStatus.failureCode ?? undefined);
+      if (resource.status === 'READY' && resource.deliveryStatus.state === 'READY') {
+        if (!resource.delivery || resource.hashSha256 !== hashSha256 || resource.sizeBytes !== input.file.size || resource.mimeType !== transport.contentType || resource.delivery.contentVersion !== hashSha256) failIntent('finalize', 'The accepted original does not match the uploaded bytes.', resourceId);
+        completed = true;
+        return { resourceId, session, resource };
+      }
+      input.onProgress?.({ phase: 'processing', bytes: input.file.size, totalBytes: input.file.size });
+      if (Date.now() >= deadline) failIntent('processing', 'Upload was received and is still processing. Check the resource status before retrying.', resourceId);
+      await wait(Math.min(1000, Math.max(1, deadline - Date.now())), signal);
+      resource = await realm.resources.getResource({ path: { resourceId } }, input.options);
+    }
+  } finally {
+    if (!completed && signal?.aborted) {
+      // Best-effort cancellation is never reported as confirmed server cancellation.
+      try { await realm.resources.cancelResourceUpload({ path: { resourceId }, body: { requestId } }, { ...input.options, signal: undefined, timeoutMs: 5000 }); } catch { /* The persisted Resource remains queryable. */ }
+    }
   }
-
-  if (
-    hasExactKeys(transport, ['bodyKind', 'contentType', 'method']) &&
-    method === 'PUT' &&
-    bodyKind === 'BINARY' &&
-    transport.formField === undefined &&
-    typeof transport.contentType === 'string' &&
-    transport.contentType.trim().length > 0 &&
-    transport.contentType === transport.contentType.trim()
-  ) {
-    return uploadBinaryPut({
-      fetchImpl: input.fetchImpl,
-      uploadUrl: input.uploadUrl,
-      file: input.file,
-      contentType: transport.contentType,
-    });
-  }
-
-  fail({
-    phase: 'prepare',
-    kind: input.kind,
-    message: 'Realm direct upload session has an invalid transport contract.',
-    actionHint: 'regenerate_realm_sdk_from_current_openapi',
-    details: { method: normalizeText(method), bodyKind: normalizeText(bodyKind) },
-  });
-}
-
-export async function uploadNimiRealmResourceFile(
-  realm: NimiRealmResourceUploadApi,
-  input: NimiRealmResourceUploadInput,
-): Promise<NimiRealmResourceUploadResult> {
-  const kind = normalizeKind(input.kind);
-  if (!isBlobLike(input.file)) {
-    fail({
-      phase: 'input',
-      kind,
-      message: 'Realm resource upload requires a Blob-like file.',
-      actionHint: 'pass_blob_or_file',
-    });
-  }
-
-  const fetchImpl = resolveFetch(input.fetchImpl);
-  const session = await createUploadSession({ realm, kind, upload: input });
-  const sessionRecord = toRecord(session);
-  const resourceId = normalizeText(sessionRecord.resourceId);
-  const uploadUrl = normalizeText(sessionRecord.uploadUrl);
-  const expectedResourceType = kind === 'image' ? 'IMAGE' : kind === 'video' ? 'VIDEO' : 'AUDIO';
-  if (
-    !resourceId ||
-    !uploadUrl ||
-    sessionRecord.resourceType !== expectedResourceType ||
-    sessionRecord.status !== 'PENDING'
-  ) {
-    fail({
-      phase: 'prepare',
-      kind,
-      message:
-        input.failureMessage || 'Realm direct upload session has invalid identity or lifecycle fields.',
-      actionHint: 'inspect_realm_resource_prepare_response',
-      details: {
-        resourceId,
-        hasUploadUrl: Boolean(uploadUrl),
-        resourceType: normalizeText(sessionRecord.resourceType),
-        status: normalizeText(sessionRecord.status),
-      },
-    });
-  }
-
-  const uploadResponse = await uploadWithSessionTransport({
-    fetchImpl,
-    uploadUrl,
-    file: input.file,
-    fileName: input.fileName,
-    session: sessionRecord,
-    kind,
-  });
-  if (!uploadResponse.ok) {
-    fail({
-      phase: 'transport',
-      kind,
-      message: input.failureMessage || `Realm resource upload transport failed with status ${uploadResponse.status}.`,
-      actionHint: 'inspect_direct_upload_endpoint_response',
-      retryable: uploadResponse.status >= 500,
-      details: { status: uploadResponse.status },
-    });
-  }
-
-  const resource = await realm.resources.finalizeResource({
-    path: { resourceId },
-    body: buildFinalizeBody(input),
-  }, input.options);
-
-  return {
-    resourceId,
-    session,
-    resource,
-  };
 }

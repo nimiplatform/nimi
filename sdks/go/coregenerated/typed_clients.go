@@ -6044,6 +6044,9 @@ type LocalAppAgentIntroduction struct {
 	VoiceSampleUrl         *string                          `json:"voice_sample_url,omitempty"`
 	VoiceSampleDurationSec *float64                         `json:"voice_sample_duration_sec,omitempty"`
 	QuestionTopics         []LocalAppAgentIntroductionTopic `json:"question_topics,omitempty"`
+	VoicePreviewUrl        *string                          `json:"voice_preview_url,omitempty"`
+	VoiceSampleContentHash *string                          `json:"voice_sample_content_hash,omitempty"`
+	VoiceSampleMimeType    *string                          `json:"voice_sample_mime_type,omitempty"`
 }
 
 type LocalAppAgentIntroductionTopic struct {
@@ -7870,12 +7873,13 @@ type RealmChatAttachmentPayload struct {
 	DisplayKind RealmAttachmentDisplayKind  `json:"display_kind,omitempty"`
 	Title       string                      `json:"title,omitempty"`
 	Subtitle    string                      `json:"subtitle,omitempty"`
-	Url         string                      `json:"url,omitempty"`
-	Thumbnail   string                      `json:"thumbnail,omitempty"`
 	Width       int32                       `json:"width,omitempty"`
 	Height      int32                       `json:"height,omitempty"`
 	Duration    float64                     `json:"duration,omitempty"`
 	Preview     *RealmChatAttachmentPayload `json:"preview,omitempty"`
+	Delivery    *RealmMediaDelivery         `json:"delivery,omitempty"`
+	ExternalUrl string                      `json:"external_url,omitempty"`
+	Unavailable bool                        `json:"unavailable,omitempty"`
 }
 
 type RealmChatDurableEvent struct {
@@ -8016,15 +8020,53 @@ type RealmChatUserSnapshot struct {
 }
 
 type RealmChatUserSummary struct {
-	Id             string `json:"id,omitempty"`
-	Handle         string `json:"handle,omitempty"`
-	DisplayName    string `json:"display_name,omitempty"`
-	AvatarUrl      string `json:"avatar_url,omitempty"`
-	Status         string `json:"status,omitempty"`
-	PresenceStatus string `json:"presence_status,omitempty"`
-	PresenceText   string `json:"presence_text,omitempty"`
-	PresenceEmoji  string `json:"presence_emoji,omitempty"`
-	CreatedAt      string `json:"created_at,omitempty"`
+	Id               string              `json:"id,omitempty"`
+	Handle           string              `json:"handle,omitempty"`
+	DisplayName      string              `json:"display_name,omitempty"`
+	AvatarUrl        string              `json:"avatar_url,omitempty"`
+	Status           string              `json:"status,omitempty"`
+	PresenceStatus   string              `json:"presence_status,omitempty"`
+	PresenceText     string              `json:"presence_text,omitempty"`
+	PresenceEmoji    string              `json:"presence_emoji,omitempty"`
+	CreatedAt        string              `json:"created_at,omitempty"`
+	AvatarResourceId string              `json:"avatar_resource_id,omitempty"`
+	AvatarMedia      *RealmMediaDelivery `json:"avatar_media,omitempty"`
+}
+
+type RealmMediaDelivery struct {
+	ResourceId            string               `json:"resource_id,omitempty"`
+	ContentVersion        string               `json:"content_version,omitempty"`
+	PublicationGeneration int32                `json:"publication_generation,omitempty"`
+	PolicyVersion         string               `json:"policy_version,omitempty"`
+	ExpiresAt             string               `json:"expires_at,omitempty"`
+	Images                []RealmMediaImageSet `json:"images,omitempty"`
+	PreviewUrl            string               `json:"preview_url,omitempty"`
+	OriginalUrl           string               `json:"original_url,omitempty"`
+	Video                 *RealmMediaVideo     `json:"video,omitempty"`
+}
+
+type RealmMediaImageFamily struct {
+	MimeType string                  `json:"mime_type,omitempty"`
+	Sources  []RealmMediaImageSource `json:"sources,omitempty"`
+}
+
+type RealmMediaImageSet struct {
+	Purpose  string                  `json:"purpose,omitempty"`
+	Families []RealmMediaImageFamily `json:"families,omitempty"`
+}
+
+type RealmMediaImageSource struct {
+	Url      string `json:"url,omitempty"`
+	Width    int32  `json:"width,omitempty"`
+	Height   int32  `json:"height,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+}
+
+type RealmMediaVideo struct {
+	HlsUrl    string `json:"hls_url,omitempty"`
+	DashUrl   string `json:"dash_url,omitempty"`
+	PosterUrl string `json:"poster_url,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
 }
 
 type RealmPresenceEvent struct {
@@ -12383,16 +12425,17 @@ func (value *AttachmentDisplayKind) UnmarshalJSON(data []byte) error {
 }
 
 type AttachmentEnvelopeDto struct {
+	Delivery    *MediaDeliveryDto      `json:"delivery,omitempty"`
 	DisplayKind *AttachmentDisplayKind `json:"displayKind,omitempty"`
 	Duration    float64                `json:"duration,omitempty"`
+	ExternalUrl *string                `json:"externalUrl,omitempty"`
 	Height      float64                `json:"height,omitempty"`
 	Preview     *AttachmentEnvelopeDto `json:"preview,omitempty"`
 	Subtitle    string                 `json:"subtitle,omitempty"`
 	TargetId    string                 `json:"targetId"`
 	TargetType  *AttachmentTargetType  `json:"targetType"`
-	Thumbnail   string                 `json:"thumbnail,omitempty"`
 	Title       string                 `json:"title,omitempty"`
-	Url         string                 `json:"url,omitempty"`
+	Unavailable bool                   `json:"unavailable,omitempty"`
 	Width       float64                `json:"width,omitempty"`
 }
 
@@ -12846,13 +12889,14 @@ func (value *BindEmailDto) UnmarshalJSON(data []byte) error {
 }
 
 type BlockedUserDto struct {
-	AvatarUrl   *string `json:"avatarUrl"`
-	Bio         *string `json:"bio"`
-	BlockedAt   string  `json:"blockedAt"`
-	DisplayName *string `json:"displayName"`
-	Handle      *string `json:"handle"`
-	Id          string  `json:"id"`
-	Reason      *string `json:"reason"`
+	AvatarMedia *MediaDeliveryDto `json:"avatarMedia,omitempty"`
+	AvatarUrl   *string           `json:"avatarUrl"`
+	Bio         *string           `json:"bio"`
+	BlockedAt   string            `json:"blockedAt"`
+	DisplayName *string           `json:"displayName"`
+	Handle      *string           `json:"handle"`
+	Id          string            `json:"id"`
+	Reason      *string           `json:"reason"`
 }
 
 func (value *BlockedUserDto) UnmarshalJSON(data []byte) error {
@@ -14391,6 +14435,22 @@ func (value *ConnectOnboardingResponseDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type ContentRatingString string
+
+func (value *ContentRatingString) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ContentRatingString: %w", err)
+	}
+	switch decoded {
+	case "UNRATED", "G", "PG13", "R18", "EXPLICIT":
+		*value = ContentRatingString(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ContentRatingString: unknown value %q", decoded)
+	}
+}
+
 type CreateAssetDto struct {
 	AuthorId          string         `json:"authorId,omitempty"`
 	ClonePolicy       string         `json:"clonePolicy"`
@@ -14433,46 +14493,6 @@ func (value *CreateAssetDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode CreateAssetDto: %w", err)
 	}
 	*value = CreateAssetDto(decoded)
-	return nil
-}
-
-type CreateAudioDirectUploadDto struct {
-	ControllerId     string         `json:"controllerId,omitempty"`
-	ControllerKind   string         `json:"controllerKind,omitempty"`
-	DeliveryAccess   string         `json:"deliveryAccess,omitempty"`
-	DurationSec      float64        `json:"durationSec,omitempty"`
-	Filename         string         `json:"filename,omitempty"`
-	HashSha256       string         `json:"hashSha256,omitempty"`
-	Height           float64        `json:"height,omitempty"`
-	Instrumental     bool           `json:"instrumental,omitempty"`
-	Label            string         `json:"label,omitempty"`
-	LyricsSource     string         `json:"lyricsSource,omitempty"`
-	Metadata         map[string]any `json:"metadata,omitempty"`
-	MimeType         string         `json:"mimeType,omitempty"`
-	SizeBytes        float64        `json:"sizeBytes,omitempty"`
-	SourceArtifactId string         `json:"sourceArtifactId,omitempty"`
-	SourceJobId      string         `json:"sourceJobId,omitempty"`
-	SourceRef        string         `json:"sourceRef,omitempty"`
-	Style            string         `json:"style,omitempty"`
-	Tags             []string       `json:"tags,omitempty"`
-	Title            string         `json:"title,omitempty"`
-	TraceId          string         `json:"traceId,omitempty"`
-	Width            float64        `json:"width,omitempty"`
-	WorldId          string         `json:"worldId,omitempty"`
-}
-
-func (value *CreateAudioDirectUploadDto) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode CreateAudioDirectUploadDto: %w", err)
-	}
-
-	type modelAlias CreateAudioDirectUploadDto
-	var decoded modelAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode CreateAudioDirectUploadDto: %w", err)
-	}
-	*value = CreateAudioDirectUploadDto(decoded)
 	return nil
 }
 
@@ -14570,6 +14590,54 @@ func (value *CreateFeedbackDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type CreateMediaDirectUploadDto struct {
+	ControllerId     string         `json:"controllerId,omitempty"`
+	ControllerKind   string         `json:"controllerKind,omitempty"`
+	DeliveryAccess   string         `json:"deliveryAccess,omitempty"`
+	HashSha256       string         `json:"hashSha256"`
+	Instrumental     bool           `json:"instrumental,omitempty"`
+	Label            string         `json:"label,omitempty"`
+	LyricsSource     string         `json:"lyricsSource,omitempty"`
+	Metadata         map[string]any `json:"metadata,omitempty"`
+	MimeType         string         `json:"mimeType"`
+	RequestId        string         `json:"requestId"`
+	SizeBytes        float64        `json:"sizeBytes"`
+	SourceArtifactId string         `json:"sourceArtifactId,omitempty"`
+	SourceJobId      string         `json:"sourceJobId,omitempty"`
+	SourceRef        string         `json:"sourceRef,omitempty"`
+	Style            string         `json:"style,omitempty"`
+	Tags             []string       `json:"tags,omitempty"`
+	Title            string         `json:"title,omitempty"`
+	TraceId          string         `json:"traceId,omitempty"`
+	WorldId          string         `json:"worldId,omitempty"`
+}
+
+func (value *CreateMediaDirectUploadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateMediaDirectUploadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "hashSha256", false); err != nil {
+		return fmt.Errorf("decode CreateMediaDirectUploadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mimeType", false); err != nil {
+		return fmt.Errorf("decode CreateMediaDirectUploadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requestId", false); err != nil {
+		return fmt.Errorf("decode CreateMediaDirectUploadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sizeBytes", false); err != nil {
+		return fmt.Errorf("decode CreateMediaDirectUploadDto: %w", err)
+	}
+	type modelAlias CreateMediaDirectUploadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateMediaDirectUploadDto: %w", err)
+	}
+	*value = CreateMediaDirectUploadDto(decoded)
+	return nil
+}
+
 type CreatePersonaCharacterCoreDto struct {
 	Id                  string                             `json:"id,omitempty"`
 	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
@@ -14623,6 +14691,55 @@ func (value *CreatePortalSessionDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode CreatePortalSessionDto: %w", err)
 	}
 	*value = CreatePortalSessionDto(decoded)
+	return nil
+}
+
+type CreatePostAttachmentDto struct {
+	TargetId   string                `json:"targetId"`
+	TargetType *AttachmentTargetType `json:"targetType"`
+}
+
+func (value *CreatePostAttachmentDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	type modelAlias CreatePostAttachmentDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	*value = CreatePostAttachmentDto(decoded)
+	return nil
+}
+
+type CreatePostDto struct {
+	Attachments []CreatePostAttachmentDto `json:"attachments"`
+	Caption     string                    `json:"caption,omitempty"`
+	SourceRef   *CharacterSourceRefV3Dto  `json:"sourceRef,omitempty"`
+	Tags        []string                  `json:"tags,omitempty"`
+}
+
+func (value *CreatePostDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "attachments", false); err != nil {
+		return fmt.Errorf("decode CreatePostDto: %w", err)
+	}
+	type modelAlias CreatePostDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatePostDto: %w", err)
+	}
+	*value = CreatePostDto(decoded)
 	return nil
 }
 
@@ -14764,15 +14881,12 @@ type CreateTextResourceDto struct {
 	ControllerId     string         `json:"controllerId,omitempty"`
 	ControllerKind   string         `json:"controllerKind,omitempty"`
 	DeliveryAccess   string         `json:"deliveryAccess,omitempty"`
-	DurationSec      float64        `json:"durationSec,omitempty"`
-	HashSha256       string         `json:"hashSha256,omitempty"`
-	Height           float64        `json:"height,omitempty"`
 	Instrumental     bool           `json:"instrumental,omitempty"`
 	Label            string         `json:"label,omitempty"`
 	LyricsSource     string         `json:"lyricsSource,omitempty"`
 	Metadata         map[string]any `json:"metadata,omitempty"`
 	MimeType         string         `json:"mimeType,omitempty"`
-	SizeBytes        float64        `json:"sizeBytes,omitempty"`
+	RequestId        string         `json:"requestId"`
 	SourceArtifactId string         `json:"sourceArtifactId,omitempty"`
 	SourceJobId      string         `json:"sourceJobId,omitempty"`
 	SourceRef        string         `json:"sourceRef,omitempty"`
@@ -14780,7 +14894,6 @@ type CreateTextResourceDto struct {
 	Tags             []string       `json:"tags,omitempty"`
 	Title            string         `json:"title,omitempty"`
 	TraceId          string         `json:"traceId,omitempty"`
-	Width            float64        `json:"width,omitempty"`
 	WorldId          string         `json:"worldId,omitempty"`
 }
 
@@ -14790,6 +14903,9 @@ func (value *CreateTextResourceDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode CreateTextResourceDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "content", false); err != nil {
+		return fmt.Errorf("decode CreateTextResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requestId", false); err != nil {
 		return fmt.Errorf("decode CreateTextResourceDto: %w", err)
 	}
 	type modelAlias CreateTextResourceDto
@@ -15122,8 +15238,9 @@ func (value *CurrencyTransactionHistoryDto) UnmarshalJSON(data []byte) error {
 }
 
 type CursorPageMetaDto struct {
-	HasNext    bool    `json:"hasNext"`
-	NextCursor *string `json:"nextCursor"`
+	Cursor     *string `json:"cursor,omitempty"`
+	Limit      float64 `json:"limit,omitempty"`
+	NextCursor *string `json:"nextCursor,omitempty"`
 }
 
 func (value *CursorPageMetaDto) UnmarshalJSON(data []byte) error {
@@ -15131,12 +15248,7 @@ func (value *CursorPageMetaDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode CursorPageMetaDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "hasNext", false); err != nil {
-		return fmt.Errorf("decode CursorPageMetaDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
-		return fmt.Errorf("decode CursorPageMetaDto: %w", err)
-	}
+
 	type modelAlias CursorPageMetaDto
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
@@ -15310,28 +15422,54 @@ func (value *FeedbackResponseDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type FeedPageMetaDto struct {
+	Cursor     *string `json:"cursor,omitempty"`
+	Limit      float64 `json:"limit,omitempty"`
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+func (value *FeedPageMetaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FeedPageMetaDto: %w", err)
+	}
+
+	type modelAlias FeedPageMetaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FeedPageMetaDto: %w", err)
+	}
+	*value = FeedPageMetaDto(decoded)
+	return nil
+}
+
+type FeedResponseDto struct {
+	Items []PostDto        `json:"items"`
+	Page  *FeedPageMetaDto `json:"page"`
+}
+
+func (value *FeedResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "page", false); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	type modelAlias FeedResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	*value = FeedResponseDto(decoded)
+	return nil
+}
+
 type FinalizeResourceDto struct {
-	ControllerId     string         `json:"controllerId,omitempty"`
-	ControllerKind   string         `json:"controllerKind,omitempty"`
-	DeliveryAccess   string         `json:"deliveryAccess,omitempty"`
-	DurationSec      float64        `json:"durationSec,omitempty"`
-	HashSha256       string         `json:"hashSha256,omitempty"`
-	Height           float64        `json:"height,omitempty"`
-	Instrumental     bool           `json:"instrumental,omitempty"`
-	Label            string         `json:"label,omitempty"`
-	LyricsSource     string         `json:"lyricsSource,omitempty"`
-	Metadata         map[string]any `json:"metadata,omitempty"`
-	MimeType         string         `json:"mimeType,omitempty"`
-	SizeBytes        float64        `json:"sizeBytes,omitempty"`
-	SourceArtifactId string         `json:"sourceArtifactId,omitempty"`
-	SourceJobId      string         `json:"sourceJobId,omitempty"`
-	SourceRef        string         `json:"sourceRef,omitempty"`
-	Style            string         `json:"style,omitempty"`
-	Tags             []string       `json:"tags,omitempty"`
-	Title            string         `json:"title,omitempty"`
-	TraceId          string         `json:"traceId,omitempty"`
-	Width            float64        `json:"width,omitempty"`
-	WorldId          string         `json:"worldId,omitempty"`
+	RequestId string `json:"requestId"`
 }
 
 func (value *FinalizeResourceDto) UnmarshalJSON(data []byte) error {
@@ -15339,7 +15477,9 @@ func (value *FinalizeResourceDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode FinalizeResourceDto: %w", err)
 	}
-
+	if err := requireRealmJSONField(raw, "requestId", false); err != nil {
+		return fmt.Errorf("decode FinalizeResourceDto: %w", err)
+	}
 	type modelAlias FinalizeResourceDto
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
@@ -15350,29 +15490,33 @@ func (value *FinalizeResourceDto) UnmarshalJSON(data []byte) error {
 }
 
 type FriendProfileDto struct {
-	AvatarUrl       *string             `json:"avatarUrl,omitempty"`
-	Bio             *string             `json:"bio,omitempty"`
-	BirthYear       *float64            `json:"birthYear,omitempty"`
-	City            *string             `json:"city,omitempty"`
-	CountryCode     *string             `json:"countryCode,omitempty"`
-	CreatedAt       string              `json:"createdAt"`
-	DisplayName     string              `json:"displayName"`
-	FriendCount     float64             `json:"friendCount,omitempty"`
-	FriendsSince    *string             `json:"friendsSince,omitempty"`
-	Gender          *Gender             `json:"gender,omitempty"`
-	Handle          string              `json:"handle"`
-	Id              string              `json:"id"`
-	IsOnline        bool                `json:"isOnline,omitempty"`
-	Languages       []string            `json:"languages,omitempty"`
-	PresenceEmoji   *string             `json:"presenceEmoji,omitempty"`
-	PresenceStatus  *string             `json:"presenceStatus,omitempty"`
-	PresenceText    *string             `json:"presenceText,omitempty"`
-	ProfileCoverUrl *string             `json:"profileCoverUrl,omitempty"`
-	SocialProfiles  []SocialProfileDto  `json:"socialProfiles,omitempty"`
-	Stats           *UserStatsDto       `json:"stats,omitempty"`
-	Status          *AccountStatus      `json:"status,omitempty"`
-	Tags            []string            `json:"tags,omitempty"`
-	Tiers           *UserTierSummaryDto `json:"tiers,omitempty"`
+	AvatarMedia            *MediaDeliveryDto   `json:"avatarMedia,omitempty"`
+	AvatarResourceId       *string             `json:"avatarResourceId,omitempty"`
+	AvatarUrl              *string             `json:"avatarUrl,omitempty"`
+	Bio                    *string             `json:"bio,omitempty"`
+	BirthYear              *float64            `json:"birthYear,omitempty"`
+	City                   *string             `json:"city,omitempty"`
+	CountryCode            *string             `json:"countryCode,omitempty"`
+	CreatedAt              string              `json:"createdAt"`
+	DisplayName            string              `json:"displayName"`
+	FriendCount            float64             `json:"friendCount,omitempty"`
+	FriendsSince           *string             `json:"friendsSince,omitempty"`
+	Gender                 *Gender             `json:"gender,omitempty"`
+	Handle                 string              `json:"handle"`
+	Id                     string              `json:"id"`
+	IsOnline               bool                `json:"isOnline,omitempty"`
+	Languages              []string            `json:"languages,omitempty"`
+	PresenceEmoji          *string             `json:"presenceEmoji,omitempty"`
+	PresenceStatus         *string             `json:"presenceStatus,omitempty"`
+	PresenceText           *string             `json:"presenceText,omitempty"`
+	ProfileCoverMedia      *MediaDeliveryDto   `json:"profileCoverMedia,omitempty"`
+	ProfileCoverResourceId *string             `json:"profileCoverResourceId,omitempty"`
+	ProfileCoverUrl        *string             `json:"profileCoverUrl,omitempty"`
+	SocialProfiles         []SocialProfileDto  `json:"socialProfiles,omitempty"`
+	Stats                  *UserStatsDto       `json:"stats,omitempty"`
+	Status                 *AccountStatus      `json:"status,omitempty"`
+	Tags                   []string            `json:"tags,omitempty"`
+	Tiers                  *UserTierSummaryDto `json:"tiers,omitempty"`
 }
 
 func (value *FriendProfileDto) UnmarshalJSON(data []byte) error {
@@ -16531,6 +16675,204 @@ func (value *Me2faVerifyDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type MediaDeliveryDto struct {
+	ContentVersion        string             `json:"contentVersion"`
+	ExpiresAt             *string            `json:"expiresAt"`
+	Images                []MediaImageSetDto `json:"images"`
+	OriginalUrl           *string            `json:"originalUrl"`
+	PolicyVersion         string             `json:"policyVersion"`
+	PreviewUrl            *string            `json:"previewUrl"`
+	PublicationGeneration float64            `json:"publicationGeneration"`
+	ResourceId            string             `json:"resourceId"`
+	Video                 *MediaVideoDto     `json:"video"`
+}
+
+func (value *MediaDeliveryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentVersion", false); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", true); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "images", false); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "originalUrl", true); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "policyVersion", false); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "previewUrl", true); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publicationGeneration", false); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceId", false); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "video", true); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	type modelAlias MediaDeliveryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MediaDeliveryDto: %w", err)
+	}
+	*value = MediaDeliveryDto(decoded)
+	return nil
+}
+
+type MediaDeliveryStateDto struct {
+	FailureCode         *string `json:"failureCode"`
+	RevocationNotBefore *string `json:"revocationNotBefore"`
+	State               string  `json:"state"`
+}
+
+func (value *MediaDeliveryStateDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MediaDeliveryStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "failureCode", true); err != nil {
+		return fmt.Errorf("decode MediaDeliveryStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "revocationNotBefore", true); err != nil {
+		return fmt.Errorf("decode MediaDeliveryStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode MediaDeliveryStateDto: %w", err)
+	}
+	type modelAlias MediaDeliveryStateDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MediaDeliveryStateDto: %w", err)
+	}
+	*value = MediaDeliveryStateDto(decoded)
+	return nil
+}
+
+type MediaImageFamilyDto struct {
+	MimeType string                `json:"mimeType"`
+	Sources  []MediaImageSourceDto `json:"sources"`
+}
+
+func (value *MediaImageFamilyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MediaImageFamilyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mimeType", false); err != nil {
+		return fmt.Errorf("decode MediaImageFamilyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sources", false); err != nil {
+		return fmt.Errorf("decode MediaImageFamilyDto: %w", err)
+	}
+	type modelAlias MediaImageFamilyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MediaImageFamilyDto: %w", err)
+	}
+	*value = MediaImageFamilyDto(decoded)
+	return nil
+}
+
+type MediaImageSetDto struct {
+	Families []MediaImageFamilyDto `json:"families"`
+	Purpose  string                `json:"purpose"`
+}
+
+func (value *MediaImageSetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MediaImageSetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "families", false); err != nil {
+		return fmt.Errorf("decode MediaImageSetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "purpose", false); err != nil {
+		return fmt.Errorf("decode MediaImageSetDto: %w", err)
+	}
+	type modelAlias MediaImageSetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MediaImageSetDto: %w", err)
+	}
+	*value = MediaImageSetDto(decoded)
+	return nil
+}
+
+type MediaImageSourceDto struct {
+	Height   float64 `json:"height"`
+	MimeType string  `json:"mimeType"`
+	Url      string  `json:"url"`
+	Width    float64 `json:"width"`
+}
+
+func (value *MediaImageSourceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MediaImageSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "height", false); err != nil {
+		return fmt.Errorf("decode MediaImageSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mimeType", false); err != nil {
+		return fmt.Errorf("decode MediaImageSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode MediaImageSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "width", false); err != nil {
+		return fmt.Errorf("decode MediaImageSourceDto: %w", err)
+	}
+	type modelAlias MediaImageSourceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MediaImageSourceDto: %w", err)
+	}
+	*value = MediaImageSourceDto(decoded)
+	return nil
+}
+
+type MediaVideoDto struct {
+	DashUrl   string `json:"dashUrl"`
+	ExpiresAt string `json:"expiresAt"`
+	HlsUrl    string `json:"hlsUrl"`
+	PosterUrl string `json:"posterUrl"`
+}
+
+func (value *MediaVideoDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MediaVideoDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "dashUrl", false); err != nil {
+		return fmt.Errorf("decode MediaVideoDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode MediaVideoDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "hlsUrl", false); err != nil {
+		return fmt.Errorf("decode MediaVideoDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "posterUrl", false); err != nil {
+		return fmt.Errorf("decode MediaVideoDto: %w", err)
+	}
+	type modelAlias MediaVideoDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MediaVideoDto: %w", err)
+	}
+	*value = MediaVideoDto(decoded)
+	return nil
+}
+
 type MessageReplyViewDto struct {
 	Id       string `json:"id"`
 	Payload  *any   `json:"payload"`
@@ -16633,6 +16975,22 @@ func (value *MessageViewDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type ModerationStatusString string
+
+func (value *ModerationStatusString) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ModerationStatusString: %w", err)
+	}
+	switch decoded {
+	case "ACTIVE", "UNDER_REVIEW", "FLAGGED", "BANNED":
+		*value = ModerationStatusString(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ModerationStatusString: unknown value %q", decoded)
+	}
+}
+
 type MutualFriendCountDto struct {
 	Count float64 `json:"count"`
 }
@@ -16655,11 +17013,12 @@ func (value *MutualFriendCountDto) UnmarshalJSON(data []byte) error {
 }
 
 type MutualFriendDto struct {
-	AvatarUrl   *string `json:"avatarUrl"`
-	Bio         *string `json:"bio"`
-	DisplayName *string `json:"displayName"`
-	Handle      *string `json:"handle"`
-	Id          string  `json:"id"`
+	AvatarMedia *MediaDeliveryDto `json:"avatarMedia,omitempty"`
+	AvatarUrl   *string           `json:"avatarUrl"`
+	Bio         *string           `json:"bio"`
+	DisplayName *string           `json:"displayName"`
+	Handle      *string           `json:"handle"`
+	Id          string            `json:"id"`
 }
 
 func (value *MutualFriendDto) UnmarshalJSON(data []byte) error {
@@ -16743,6 +17102,7 @@ func (value *NotificationActivityDto) UnmarshalJSON(data []byte) error {
 }
 
 type NotificationActorDto struct {
+	AvatarMedia *MediaDeliveryDto                `json:"avatarMedia,omitempty"`
 	AvatarUrl   *string                          `json:"avatarUrl,omitempty"`
 	Bio         *string                          `json:"bio,omitempty"`
 	CreatedAt   string                           `json:"createdAt"`
@@ -16840,6 +17200,7 @@ type NotificationDto struct {
 	Data      *map[string]any        `json:"data"`
 	Id        string                 `json:"id"`
 	IsRead    bool                   `json:"isRead"`
+	Preview   *MediaDeliveryDto      `json:"preview,omitempty"`
 	Target    *NotificationTargetDto `json:"target"`
 	Title     string                 `json:"title"`
 	Type      *NotificationType      `json:"type"`
@@ -17559,6 +17920,147 @@ func (value *PortalSessionDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type PostAttachmentDto struct {
+	Delivery    *MediaDeliveryDto      `json:"delivery,omitempty"`
+	DisplayKind *AttachmentDisplayKind `json:"displayKind,omitempty"`
+	Duration    float64                `json:"duration,omitempty"`
+	ExternalUrl *string                `json:"externalUrl,omitempty"`
+	Height      float64                `json:"height,omitempty"`
+	Preview     *AttachmentEnvelopeDto `json:"preview,omitempty"`
+	Subtitle    string                 `json:"subtitle,omitempty"`
+	TargetId    string                 `json:"targetId"`
+	TargetType  *AttachmentTargetType  `json:"targetType"`
+	Title       string                 `json:"title,omitempty"`
+	Unavailable bool                   `json:"unavailable,omitempty"`
+	Width       float64                `json:"width,omitempty"`
+}
+
+func (value *PostAttachmentDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	type modelAlias PostAttachmentDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	*value = PostAttachmentDto(decoded)
+	return nil
+}
+
+type PostDto struct {
+	Attachments        []PostAttachmentDto      `json:"attachments"`
+	Author             *UserLiteDto             `json:"author"`
+	AuthorId           string                   `json:"authorId"`
+	AuthorKind         string                   `json:"authorKind"`
+	Caption            *string                  `json:"caption,omitempty"`
+	ContentRating      *ContentRatingString     `json:"contentRating,omitempty"`
+	CreatedAt          string                   `json:"createdAt"`
+	Id                 string                   `json:"id"`
+	LikedByCurrentUser bool                     `json:"likedByCurrentUser,omitempty"`
+	ModerationStatus   *ModerationStatusString  `json:"moderationStatus,omitempty"`
+	RuntimeSourceRef   *string                  `json:"runtimeSourceRef,omitempty"`
+	SourceAuthor       *PostSourceAuthorDto     `json:"sourceAuthor,omitempty"`
+	SourceRef          *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	Tags               []string                 `json:"tags,omitempty"`
+	UpdatedAt          *string                  `json:"updatedAt,omitempty"`
+	Visibility         *Visibility              `json:"visibility"`
+	WorldId            string                   `json:"worldId,omitempty"`
+}
+
+func (value *PostDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "attachments", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "author", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorId", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorKind", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	type modelAlias PostDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	*value = PostDto(decoded)
+	return nil
+}
+
+type PostSourceAuthorDto struct {
+	AvatarMedia              *MediaDeliveryDto        `json:"avatarMedia,omitempty"`
+	AvatarUrl                *string                  `json:"avatarUrl,omitempty"`
+	DisplayName              string                   `json:"displayName"`
+	Handle                   string                   `json:"handle"`
+	Id                       string                   `json:"id"`
+	Kind                     string                   `json:"kind"`
+	RuntimeSourceRef         string                   `json:"runtimeSourceRef"`
+	SourceAuthorityAccountId string                   `json:"sourceAuthorityAccountId"`
+	SourceRef                *CharacterSourceRefV3Dto `json:"sourceRef"`
+	WorldId                  string                   `json:"worldId"`
+}
+
+func (value *PostSourceAuthorDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeSourceRef", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceAuthorityAccountId", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	type modelAlias PostSourceAuthorDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	*value = PostSourceAuthorDto(decoded)
+	return nil
+}
+
 type PPSlotConfigDto struct {
 	Slot1 *PPSlotItemDto `json:"slot1,omitempty"`
 	Slot2 *PPSlotItemDto `json:"slot2,omitempty"`
@@ -18259,49 +18761,6 @@ func (value *ReportResponseDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type ResourceBinaryDirectUploadTransportDto struct {
-	BodyKind    string `json:"bodyKind"`
-	ContentType string `json:"contentType"`
-	Method      string `json:"method"`
-}
-
-func (value *ResourceBinaryDirectUploadTransportDto) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "bodyKind", false); err != nil {
-		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "contentType", false); err != nil {
-		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "method", false); err != nil {
-		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
-	}
-	type modelAlias ResourceBinaryDirectUploadTransportDto
-	var decoded modelAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
-	}
-	if _, present := raw["bodyKind"]; present {
-		switch decoded.BodyKind {
-		case "BINARY":
-		default:
-			return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: field bodyKind has unknown literal %v", decoded.BodyKind)
-		}
-	}
-	if _, present := raw["method"]; present {
-		switch decoded.Method {
-		case "PUT":
-		default:
-			return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: field method has unknown literal %v", decoded.Method)
-		}
-	}
-	*value = ResourceBinaryDirectUploadTransportDto(decoded)
-	return nil
-}
-
 type ResourceControllerKind string
 
 func (value *ResourceControllerKind) UnmarshalJSON(data []byte) error {
@@ -18319,37 +18778,38 @@ func (value *ResourceControllerKind) UnmarshalJSON(data []byte) error {
 }
 
 type ResourceDetailDto struct {
-	ControllerId      string          `json:"controllerId"`
-	ControllerKind    string          `json:"controllerKind"`
-	CreatedAt         string          `json:"createdAt"`
-	DeliveryAccess    string          `json:"deliveryAccess"`
-	DurationSec       *float64        `json:"durationSec,omitempty"`
-	HashSha256        *string         `json:"hashSha256,omitempty"`
-	Height            *float64        `json:"height,omitempty"`
-	Id                string          `json:"id"`
-	Instrumental      *bool           `json:"instrumental,omitempty"`
-	Label             *string         `json:"label,omitempty"`
-	LyricsSource      *string         `json:"lyricsSource,omitempty"`
-	Metadata          *map[string]any `json:"metadata,omitempty"`
-	MimeType          *string         `json:"mimeType,omitempty"`
-	Provenance        string          `json:"provenance"`
-	Provider          string          `json:"provider"`
-	ResourceType      string          `json:"resourceType"`
-	SizeBytes         *float64        `json:"sizeBytes,omitempty"`
-	SourceArtifactId  *string         `json:"sourceArtifactId,omitempty"`
-	SourceJobId       *string         `json:"sourceJobId,omitempty"`
-	SourceRef         *string         `json:"sourceRef,omitempty"`
-	Status            string          `json:"status"`
-	StorageRef        string          `json:"storageRef"`
-	Style             *string         `json:"style,omitempty"`
-	Tags              []string        `json:"tags"`
-	Title             *string         `json:"title,omitempty"`
-	TraceId           *string         `json:"traceId,omitempty"`
-	UpdatedAt         string          `json:"updatedAt"`
-	UploaderAccountId string          `json:"uploaderAccountId"`
-	Url               *string         `json:"url,omitempty"`
-	Width             *float64        `json:"width,omitempty"`
-	WorldId           *string         `json:"worldId,omitempty"`
+	ControllerId      string                 `json:"controllerId"`
+	ControllerKind    string                 `json:"controllerKind"`
+	CreatedAt         string                 `json:"createdAt"`
+	Delivery          *MediaDeliveryDto      `json:"delivery"`
+	DeliveryAccess    string                 `json:"deliveryAccess"`
+	DeliveryStatus    *MediaDeliveryStateDto `json:"deliveryStatus"`
+	DurationSec       *float64               `json:"durationSec,omitempty"`
+	ExternalUrl       *string                `json:"externalUrl"`
+	HashSha256        *string                `json:"hashSha256,omitempty"`
+	Height            *float64               `json:"height,omitempty"`
+	Id                string                 `json:"id"`
+	Instrumental      *bool                  `json:"instrumental,omitempty"`
+	Label             *string                `json:"label,omitempty"`
+	LyricsSource      *string                `json:"lyricsSource,omitempty"`
+	Metadata          *map[string]any        `json:"metadata,omitempty"`
+	MimeType          *string                `json:"mimeType,omitempty"`
+	Provenance        string                 `json:"provenance"`
+	Provider          string                 `json:"provider"`
+	ResourceType      string                 `json:"resourceType"`
+	SizeBytes         *float64               `json:"sizeBytes,omitempty"`
+	SourceArtifactId  *string                `json:"sourceArtifactId,omitempty"`
+	SourceJobId       *string                `json:"sourceJobId,omitempty"`
+	SourceRef         *string                `json:"sourceRef,omitempty"`
+	Status            string                 `json:"status"`
+	Style             *string                `json:"style,omitempty"`
+	Tags              []string               `json:"tags"`
+	Title             *string                `json:"title,omitempty"`
+	TraceId           *string                `json:"traceId,omitempty"`
+	UpdatedAt         string                 `json:"updatedAt"`
+	UploaderAccountId string                 `json:"uploaderAccountId"`
+	Width             *float64               `json:"width,omitempty"`
+	WorldId           *string                `json:"worldId,omitempty"`
 }
 
 func (value *ResourceDetailDto) UnmarshalJSON(data []byte) error {
@@ -18366,7 +18826,16 @@ func (value *ResourceDetailDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
 		return fmt.Errorf("decode ResourceDetailDto: %w", err)
 	}
+	if err := requireRealmJSONField(raw, "delivery", true); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
 	if err := requireRealmJSONField(raw, "deliveryAccess", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "deliveryStatus", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "externalUrl", true); err != nil {
 		return fmt.Errorf("decode ResourceDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
@@ -18382,9 +18851,6 @@ func (value *ResourceDetailDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ResourceDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "status", false); err != nil {
-		return fmt.Errorf("decode ResourceDetailDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "storageRef", false); err != nil {
 		return fmt.Errorf("decode ResourceDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "tags", false); err != nil {
@@ -18408,11 +18874,10 @@ func (value *ResourceDetailDto) UnmarshalJSON(data []byte) error {
 type ResourceDirectUploadSessionDto struct {
 	DeliveryAccess string                            `json:"deliveryAccess"`
 	ExpiresIn      *float64                          `json:"expiresIn,omitempty"`
-	Provider       string                            `json:"provider"`
+	RequestId      string                            `json:"requestId"`
 	ResourceId     string                            `json:"resourceId"`
 	ResourceType   string                            `json:"resourceType"`
 	Status         string                            `json:"status"`
-	StorageRef     string                            `json:"storageRef"`
 	Transport      *ResourceDirectUploadTransportDto `json:"transport"`
 	UploadUrl      string                            `json:"uploadUrl"`
 }
@@ -18425,7 +18890,7 @@ func (value *ResourceDirectUploadSessionDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "deliveryAccess", false); err != nil {
 		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "provider", false); err != nil {
+	if err := requireRealmJSONField(raw, "requestId", false); err != nil {
 		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "resourceId", false); err != nil {
@@ -18435,9 +18900,6 @@ func (value *ResourceDirectUploadSessionDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "status", false); err != nil {
-		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "storageRef", false); err != nil {
 		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "transport", false); err != nil {
@@ -18456,52 +18918,46 @@ func (value *ResourceDirectUploadSessionDto) UnmarshalJSON(data []byte) error {
 }
 
 type ResourceDirectUploadTransportDto struct {
-	MULTIPARTFORMDATA *ResourceMultipartDirectUploadTransportDto `json:"-"`
-	BINARY            *ResourceBinaryDirectUploadTransportDto    `json:"-"`
-}
-
-func (value ResourceDirectUploadTransportDto) MarshalJSON() ([]byte, error) {
-	var selected any
-	selectedCount := 0
-	if value.MULTIPARTFORMDATA != nil {
-		selected = value.MULTIPARTFORMDATA
-		selectedCount++
-	}
-	if value.BINARY != nil {
-		selected = value.BINARY
-		selectedCount++
-	}
-	if selectedCount != 1 {
-		return nil, fmt.Errorf("encode ResourceDirectUploadTransportDto: exactly one typed variant is required")
-	}
-	return json.Marshal(selected)
+	BodyKind    string `json:"bodyKind"`
+	ContentType string `json:"contentType"`
+	Method      string `json:"method"`
 }
 
 func (value *ResourceDirectUploadTransportDto) UnmarshalJSON(data []byte) error {
-	var probe struct {
-		BodyKind string `json:"bodyKind"`
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto: %w", err)
 	}
-	if err := json.Unmarshal(data, &probe); err != nil {
-		return fmt.Errorf("decode ResourceDirectUploadTransportDto discriminator: %w", err)
+	if err := requireRealmJSONField(raw, "bodyKind", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto: %w", err)
 	}
-	switch probe.BodyKind {
-	case "MULTIPART_FORM_DATA":
-		var decoded ResourceMultipartDirectUploadTransportDto
-		if err := json.Unmarshal(data, &decoded); err != nil {
-			return fmt.Errorf("decode ResourceDirectUploadTransportDto MULTIPART_FORM_DATA: %w", err)
+	if err := requireRealmJSONField(raw, "contentType", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "method", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto: %w", err)
+	}
+	type modelAlias ResourceDirectUploadTransportDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto: %w", err)
+	}
+	if _, present := raw["bodyKind"]; present {
+		switch decoded.BodyKind {
+		case "BINARY":
+		default:
+			return fmt.Errorf("decode ResourceDirectUploadTransportDto: field bodyKind has unknown literal %v", decoded.BodyKind)
 		}
-		*value = ResourceDirectUploadTransportDto{MULTIPARTFORMDATA: &decoded}
-		return nil
-	case "BINARY":
-		var decoded ResourceBinaryDirectUploadTransportDto
-		if err := json.Unmarshal(data, &decoded); err != nil {
-			return fmt.Errorf("decode ResourceDirectUploadTransportDto BINARY: %w", err)
-		}
-		*value = ResourceDirectUploadTransportDto{BINARY: &decoded}
-		return nil
-	default:
-		return fmt.Errorf("decode ResourceDirectUploadTransportDto: unknown discriminator %q", probe.BodyKind)
 	}
+	if _, present := raw["method"]; present {
+		switch decoded.Method {
+		case "PUT":
+		default:
+			return fmt.Errorf("decode ResourceDirectUploadTransportDto: field method has unknown literal %v", decoded.Method)
+		}
+	}
+	*value = ResourceDirectUploadTransportDto(decoded)
+	return nil
 }
 
 type ResourceListDto struct {
@@ -18526,49 +18982,6 @@ func (value *ResourceListDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ResourceListDto: %w", err)
 	}
 	*value = ResourceListDto(decoded)
-	return nil
-}
-
-type ResourceMultipartDirectUploadTransportDto struct {
-	BodyKind  string `json:"bodyKind"`
-	FormField string `json:"formField"`
-	Method    string `json:"method"`
-}
-
-func (value *ResourceMultipartDirectUploadTransportDto) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "bodyKind", false); err != nil {
-		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "formField", false); err != nil {
-		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "method", false); err != nil {
-		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
-	}
-	type modelAlias ResourceMultipartDirectUploadTransportDto
-	var decoded modelAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
-	}
-	if _, present := raw["bodyKind"]; present {
-		switch decoded.BodyKind {
-		case "MULTIPART_FORM_DATA":
-		default:
-			return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: field bodyKind has unknown literal %v", decoded.BodyKind)
-		}
-	}
-	if _, present := raw["method"]; present {
-		switch decoded.Method {
-		case "POST":
-		default:
-			return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: field method has unknown literal %v", decoded.Method)
-		}
-	}
-	*value = ResourceMultipartDirectUploadTransportDto(decoded)
 	return nil
 }
 
@@ -18710,7 +19123,7 @@ func (value *RevenueSourceOriginRequestDto) UnmarshalJSON(data []byte) error {
 
 type SendMessageInputDto struct {
 	ClientMessageId  string       `json:"clientMessageId"`
-	Payload          any          `json:"payload"`
+	Payload          any          `json:"payload,omitempty"`
 	ReplyToMessageId string       `json:"replyToMessageId,omitempty"`
 	Text             string       `json:"text,omitempty"`
 	Type             *MessageType `json:"type"`
@@ -18722,9 +19135,6 @@ func (value *SendMessageInputDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode SendMessageInputDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "clientMessageId", false); err != nil {
-		return fmt.Errorf("decode SendMessageInputDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "payload", false); err != nil {
 		return fmt.Errorf("decode SendMessageInputDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "type", false); err != nil {
@@ -19893,6 +20303,25 @@ func (value *UpdatePasswordRequestDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type UpdatePostDto struct {
+	Visibility *Visibility `json:"visibility,omitempty"`
+}
+
+func (value *UpdatePostDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdatePostDto: %w", err)
+	}
+
+	type modelAlias UpdatePostDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdatePostDto: %w", err)
+	}
+	*value = UpdatePostDto(decoded)
+	return nil
+}
+
 type UpdatePPSlotConfigDto struct {
 	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig"`
 }
@@ -19918,15 +20347,10 @@ type UpdateResourceDto struct {
 	ControllerId     string         `json:"controllerId,omitempty"`
 	ControllerKind   string         `json:"controllerKind,omitempty"`
 	DeliveryAccess   string         `json:"deliveryAccess,omitempty"`
-	DurationSec      float64        `json:"durationSec,omitempty"`
-	HashSha256       string         `json:"hashSha256,omitempty"`
-	Height           float64        `json:"height,omitempty"`
 	Instrumental     bool           `json:"instrumental,omitempty"`
 	Label            string         `json:"label,omitempty"`
 	LyricsSource     string         `json:"lyricsSource,omitempty"`
 	Metadata         map[string]any `json:"metadata,omitempty"`
-	MimeType         string         `json:"mimeType,omitempty"`
-	SizeBytes        float64        `json:"sizeBytes,omitempty"`
 	SourceArtifactId string         `json:"sourceArtifactId,omitempty"`
 	SourceJobId      string         `json:"sourceJobId,omitempty"`
 	SourceRef        string         `json:"sourceRef,omitempty"`
@@ -19934,7 +20358,6 @@ type UpdateResourceDto struct {
 	Tags             []string       `json:"tags,omitempty"`
 	Title            string         `json:"title,omitempty"`
 	TraceId          string         `json:"traceId,omitempty"`
-	Width            float64        `json:"width,omitempty"`
 	WorldId          string         `json:"worldId,omitempty"`
 }
 
@@ -19954,16 +20377,18 @@ func (value *UpdateResourceDto) UnmarshalJSON(data []byte) error {
 }
 
 type UpdateUserDto struct {
-	AvatarUrl       string   `json:"avatarUrl,omitempty"`
-	Bio             string   `json:"bio,omitempty"`
-	BirthYear       float64  `json:"birthYear,omitempty"`
-	City            string   `json:"city,omitempty"`
-	CountryCode     string   `json:"countryCode,omitempty"`
-	DisplayName     string   `json:"displayName,omitempty"`
-	Gender          *Gender  `json:"gender,omitempty"`
-	Languages       []string `json:"languages,omitempty"`
-	ProfileCoverUrl string   `json:"profileCoverUrl,omitempty"`
-	Tags            []string `json:"tags,omitempty"`
+	AvatarResourceId       *string  `json:"avatarResourceId,omitempty"`
+	AvatarUrl              *string  `json:"avatarUrl,omitempty"`
+	Bio                    *string  `json:"bio,omitempty"`
+	BirthYear              *float64 `json:"birthYear,omitempty"`
+	City                   *string  `json:"city,omitempty"`
+	CountryCode            *string  `json:"countryCode,omitempty"`
+	DisplayName            string   `json:"displayName,omitempty"`
+	Gender                 *Gender  `json:"gender,omitempty"`
+	Languages              []string `json:"languages,omitempty"`
+	ProfileCoverResourceId *string  `json:"profileCoverResourceId,omitempty"`
+	ProfileCoverUrl        *string  `json:"profileCoverUrl,omitempty"`
+	Tags                   []string `json:"tags,omitempty"`
 }
 
 func (value *UpdateUserDto) UnmarshalJSON(data []byte) error {
@@ -20119,20 +20544,24 @@ func (value *UserFeatureCapabilitiesDto) UnmarshalJSON(data []byte) error {
 }
 
 type UserLiteDto struct {
-	AvatarUrl       *string             `json:"avatarUrl,omitempty"`
-	Bio             *string             `json:"bio,omitempty"`
-	CreatedAt       string              `json:"createdAt"`
-	DisplayName     string              `json:"displayName"`
-	FriendCount     float64             `json:"friendCount,omitempty"`
-	Handle          string              `json:"handle"`
-	Id              string              `json:"id"`
-	IsOnline        bool                `json:"isOnline,omitempty"`
-	PresenceEmoji   *string             `json:"presenceEmoji,omitempty"`
-	PresenceStatus  *string             `json:"presenceStatus,omitempty"`
-	PresenceText    *string             `json:"presenceText,omitempty"`
-	ProfileCoverUrl *string             `json:"profileCoverUrl,omitempty"`
-	Status          *AccountStatus      `json:"status,omitempty"`
-	Tiers           *UserTierSummaryDto `json:"tiers,omitempty"`
+	AvatarMedia            *MediaDeliveryDto   `json:"avatarMedia,omitempty"`
+	AvatarResourceId       *string             `json:"avatarResourceId,omitempty"`
+	AvatarUrl              *string             `json:"avatarUrl,omitempty"`
+	Bio                    *string             `json:"bio,omitempty"`
+	CreatedAt              string              `json:"createdAt"`
+	DisplayName            string              `json:"displayName"`
+	FriendCount            float64             `json:"friendCount,omitempty"`
+	Handle                 string              `json:"handle"`
+	Id                     string              `json:"id"`
+	IsOnline               bool                `json:"isOnline,omitempty"`
+	PresenceEmoji          *string             `json:"presenceEmoji,omitempty"`
+	PresenceStatus         *string             `json:"presenceStatus,omitempty"`
+	PresenceText           *string             `json:"presenceText,omitempty"`
+	ProfileCoverMedia      *MediaDeliveryDto   `json:"profileCoverMedia,omitempty"`
+	ProfileCoverResourceId *string             `json:"profileCoverResourceId,omitempty"`
+	ProfileCoverUrl        *string             `json:"profileCoverUrl,omitempty"`
+	Status                 *AccountStatus      `json:"status,omitempty"`
+	Tiers                  *UserTierSummaryDto `json:"tiers,omitempty"`
 }
 
 func (value *UserLiteDto) UnmarshalJSON(data []byte) error {
@@ -20182,36 +20611,40 @@ func (value *UserNotificationSettingsDto) UnmarshalJSON(data []byte) error {
 }
 
 type UserPrivateDto struct {
-	AvatarUrl          *string             `json:"avatarUrl,omitempty"`
-	Bio                *string             `json:"bio,omitempty"`
-	BirthYear          *float64            `json:"birthYear,omitempty"`
-	City               string              `json:"city,omitempty"`
-	CountryCode        *string             `json:"countryCode,omitempty"`
-	CreatedAt          string              `json:"createdAt"`
-	DisplayName        string              `json:"displayName"`
-	Email              string              `json:"email,omitempty"`
-	FriendCount        float64             `json:"friendCount,omitempty"`
-	Gender             *Gender             `json:"gender,omitempty"`
-	Handle             string              `json:"handle"`
-	HasPassword        bool                `json:"hasPassword,omitempty"`
-	Id                 string              `json:"id"`
-	IsOnline           bool                `json:"isOnline,omitempty"`
-	IsTwoFactorEnabled bool                `json:"isTwoFactorEnabled,omitempty"`
-	Languages          []string            `json:"languages,omitempty"`
-	LastHandleChangeAt string              `json:"lastHandleChangeAt,omitempty"`
-	OauthProviders     []OAuthProvider     `json:"oauthProviders,omitempty"`
-	PresenceEmoji      *string             `json:"presenceEmoji,omitempty"`
-	PresenceStatus     *string             `json:"presenceStatus,omitempty"`
-	PresenceText       *string             `json:"presenceText,omitempty"`
-	ProfileCoverUrl    *string             `json:"profileCoverUrl,omitempty"`
-	Role               *PublicAccountRole  `json:"role"`
-	SocialProfiles     []SocialProfileDto  `json:"socialProfiles,omitempty"`
-	Stats              *UserStatsDto       `json:"stats,omitempty"`
-	Status             *AccountStatus      `json:"status,omitempty"`
-	Tags               []string            `json:"tags,omitempty"`
-	Tiers              *UserTierSummaryDto `json:"tiers,omitempty"`
-	UpdatedAt          string              `json:"updatedAt,omitempty"`
-	Wallets            []UserWalletDto     `json:"wallets,omitempty"`
+	AvatarMedia            *MediaDeliveryDto   `json:"avatarMedia,omitempty"`
+	AvatarResourceId       *string             `json:"avatarResourceId,omitempty"`
+	AvatarUrl              *string             `json:"avatarUrl,omitempty"`
+	Bio                    *string             `json:"bio,omitempty"`
+	BirthYear              *float64            `json:"birthYear,omitempty"`
+	City                   string              `json:"city,omitempty"`
+	CountryCode            *string             `json:"countryCode,omitempty"`
+	CreatedAt              string              `json:"createdAt"`
+	DisplayName            string              `json:"displayName"`
+	Email                  string              `json:"email,omitempty"`
+	FriendCount            float64             `json:"friendCount,omitempty"`
+	Gender                 *Gender             `json:"gender,omitempty"`
+	Handle                 string              `json:"handle"`
+	HasPassword            bool                `json:"hasPassword,omitempty"`
+	Id                     string              `json:"id"`
+	IsOnline               bool                `json:"isOnline,omitempty"`
+	IsTwoFactorEnabled     bool                `json:"isTwoFactorEnabled,omitempty"`
+	Languages              []string            `json:"languages,omitempty"`
+	LastHandleChangeAt     string              `json:"lastHandleChangeAt,omitempty"`
+	OauthProviders         []OAuthProvider     `json:"oauthProviders,omitempty"`
+	PresenceEmoji          *string             `json:"presenceEmoji,omitempty"`
+	PresenceStatus         *string             `json:"presenceStatus,omitempty"`
+	PresenceText           *string             `json:"presenceText,omitempty"`
+	ProfileCoverMedia      *MediaDeliveryDto   `json:"profileCoverMedia,omitempty"`
+	ProfileCoverResourceId *string             `json:"profileCoverResourceId,omitempty"`
+	ProfileCoverUrl        *string             `json:"profileCoverUrl,omitempty"`
+	Role                   *PublicAccountRole  `json:"role"`
+	SocialProfiles         []SocialProfileDto  `json:"socialProfiles,omitempty"`
+	Stats                  *UserStatsDto       `json:"stats,omitempty"`
+	Status                 *AccountStatus      `json:"status,omitempty"`
+	Tags                   []string            `json:"tags,omitempty"`
+	Tiers                  *UserTierSummaryDto `json:"tiers,omitempty"`
+	UpdatedAt              string              `json:"updatedAt,omitempty"`
+	Wallets                []UserWalletDto     `json:"wallets,omitempty"`
 }
 
 func (value *UserPrivateDto) UnmarshalJSON(data []byte) error {
@@ -20244,28 +20677,32 @@ func (value *UserPrivateDto) UnmarshalJSON(data []byte) error {
 }
 
 type UserProfileDto struct {
-	AvatarUrl       *string             `json:"avatarUrl,omitempty"`
-	Bio             *string             `json:"bio,omitempty"`
-	BirthYear       *float64            `json:"birthYear,omitempty"`
-	City            *string             `json:"city,omitempty"`
-	CountryCode     *string             `json:"countryCode,omitempty"`
-	CreatedAt       string              `json:"createdAt"`
-	DisplayName     string              `json:"displayName"`
-	FriendCount     float64             `json:"friendCount,omitempty"`
-	Gender          *Gender             `json:"gender,omitempty"`
-	Handle          string              `json:"handle"`
-	Id              string              `json:"id"`
-	IsOnline        bool                `json:"isOnline,omitempty"`
-	Languages       []string            `json:"languages,omitempty"`
-	PresenceEmoji   *string             `json:"presenceEmoji,omitempty"`
-	PresenceStatus  *string             `json:"presenceStatus,omitempty"`
-	PresenceText    *string             `json:"presenceText,omitempty"`
-	ProfileCoverUrl *string             `json:"profileCoverUrl,omitempty"`
-	SocialProfiles  []SocialProfileDto  `json:"socialProfiles,omitempty"`
-	Stats           *UserStatsDto       `json:"stats,omitempty"`
-	Status          *AccountStatus      `json:"status,omitempty"`
-	Tags            []string            `json:"tags,omitempty"`
-	Tiers           *UserTierSummaryDto `json:"tiers,omitempty"`
+	AvatarMedia            *MediaDeliveryDto   `json:"avatarMedia,omitempty"`
+	AvatarResourceId       *string             `json:"avatarResourceId,omitempty"`
+	AvatarUrl              *string             `json:"avatarUrl,omitempty"`
+	Bio                    *string             `json:"bio,omitempty"`
+	BirthYear              *float64            `json:"birthYear,omitempty"`
+	City                   *string             `json:"city,omitempty"`
+	CountryCode            *string             `json:"countryCode,omitempty"`
+	CreatedAt              string              `json:"createdAt"`
+	DisplayName            string              `json:"displayName"`
+	FriendCount            float64             `json:"friendCount,omitempty"`
+	Gender                 *Gender             `json:"gender,omitempty"`
+	Handle                 string              `json:"handle"`
+	Id                     string              `json:"id"`
+	IsOnline               bool                `json:"isOnline,omitempty"`
+	Languages              []string            `json:"languages,omitempty"`
+	PresenceEmoji          *string             `json:"presenceEmoji,omitempty"`
+	PresenceStatus         *string             `json:"presenceStatus,omitempty"`
+	PresenceText           *string             `json:"presenceText,omitempty"`
+	ProfileCoverMedia      *MediaDeliveryDto   `json:"profileCoverMedia,omitempty"`
+	ProfileCoverResourceId *string             `json:"profileCoverResourceId,omitempty"`
+	ProfileCoverUrl        *string             `json:"profileCoverUrl,omitempty"`
+	SocialProfiles         []SocialProfileDto  `json:"socialProfiles,omitempty"`
+	Stats                  *UserStatsDto       `json:"stats,omitempty"`
+	Status                 *AccountStatus      `json:"status,omitempty"`
+	Tags                   []string            `json:"tags,omitempty"`
+	Tiers                  *UserTierSummaryDto `json:"tiers,omitempty"`
 }
 
 func (value *UserProfileDto) UnmarshalJSON(data []byte) error {
@@ -20291,6 +20728,31 @@ func (value *UserProfileDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode UserProfileDto: %w", err)
 	}
 	*value = UserProfileDto(decoded)
+	return nil
+}
+
+type UserSearchResponseDto struct {
+	Items []UserLiteDto      `json:"items"`
+	Page  *CursorPageMetaDto `json:"page"`
+}
+
+func (value *UserSearchResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "page", false); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	type modelAlias UserSearchResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	*value = UserSearchResponseDto(decoded)
 	return nil
 }
 
@@ -22363,7 +22825,9 @@ func (value *WorldLorebookDeclarationV1Dto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicAssetDto struct {
+	Delivery    *MediaDeliveryDto              `json:"delivery"`
 	DurationSec *float64                       `json:"durationSec,omitempty"`
+	ExternalUrl *string                        `json:"externalUrl"`
 	Height      *float64                       `json:"height,omitempty"`
 	Id          string                         `json:"id"`
 	Kind        string                         `json:"kind"`
@@ -22371,13 +22835,18 @@ type WorldPublicAssetDto struct {
 	Provenance  *WorldPublicAssetProvenanceDto `json:"provenance"`
 	Provider    string                         `json:"provider"`
 	Sha256      *string                        `json:"sha256,omitempty"`
-	Url         string                         `json:"url"`
 	Width       *float64                       `json:"width,omitempty"`
 }
 
 func (value *WorldPublicAssetDto) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "delivery", true); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "externalUrl", true); err != nil {
 		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
@@ -22390,9 +22859,6 @@ func (value *WorldPublicAssetDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "provider", false); err != nil {
-		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "url", false); err != nil {
 		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
 	}
 	type modelAlias WorldPublicAssetDto
@@ -22408,7 +22874,6 @@ type WorldPublicAssetProvenanceDto struct {
 	LedgerRecordId      *string `json:"ledgerRecordId,omitempty"`
 	PublicationId       *string `json:"publicationId,omitempty"`
 	PublicationRecordId *string `json:"publicationRecordId,omitempty"`
-	StorageRef          *string `json:"storageRef,omitempty"`
 }
 
 func (value *WorldPublicAssetProvenanceDto) UnmarshalJSON(data []byte) error {
@@ -22665,6 +23130,30 @@ func (value *WorldPublicEntityCardDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type WorldPublicExternalMediaDto struct {
+	BannerUrl     *string  `json:"bannerUrl,omitempty"`
+	HeroUrl       *string  `json:"heroUrl,omitempty"`
+	HighlightUrls []string `json:"highlightUrls"`
+	IconUrl       *string  `json:"iconUrl,omitempty"`
+}
+
+func (value *WorldPublicExternalMediaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicExternalMediaDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "highlightUrls", false); err != nil {
+		return fmt.Errorf("decode WorldPublicExternalMediaDto: %w", err)
+	}
+	type modelAlias WorldPublicExternalMediaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicExternalMediaDto: %w", err)
+	}
+	*value = WorldPublicExternalMediaDto(decoded)
+	return nil
+}
+
 type WorldPublicItemDto struct {
 	CreatedAt         string               `json:"createdAt"`
 	EntityKinds       []string             `json:"entityKinds"`
@@ -22772,12 +23261,9 @@ func (value *WorldPublicMediaAssetsDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicMediaDto struct {
-	Assets                  *WorldPublicMediaAssetsDto `json:"assets,omitempty"`
-	BannerUrl               *string                    `json:"bannerUrl,omitempty"`
-	HeroUrl                 *string                    `json:"heroUrl,omitempty"`
-	HighlightUrls           []string                   `json:"highlightUrls"`
-	IconUrl                 *string                    `json:"iconUrl,omitempty"`
-	UnavailableResourceRefs []string                   `json:"unavailableResourceRefs"`
+	Assets                  *WorldPublicMediaAssetsDto   `json:"assets"`
+	External                *WorldPublicExternalMediaDto `json:"external"`
+	UnavailableResourceRefs []string                     `json:"unavailableResourceRefs"`
 }
 
 func (value *WorldPublicMediaDto) UnmarshalJSON(data []byte) error {
@@ -22785,7 +23271,10 @@ func (value *WorldPublicMediaDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "highlightUrls", false); err != nil {
+	if err := requireRealmJSONField(raw, "assets", false); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "external", false); err != nil {
 		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "unavailableResourceRefs", false); err != nil {
@@ -23049,6 +23538,29 @@ func (value *WorldPublicSourceCardPageDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type WorldPublicSourceExternalMediaDto struct {
+	AvatarUrl         *string `json:"avatarUrl,omitempty"`
+	PortraitUrl       *string `json:"portraitUrl,omitempty"`
+	ProfileCoverUrl   *string `json:"profileCoverUrl,omitempty"`
+	ReferenceImageUrl *string `json:"referenceImageUrl,omitempty"`
+	VoiceSampleUrl    *string `json:"voiceSampleUrl,omitempty"`
+}
+
+func (value *WorldPublicSourceExternalMediaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceExternalMediaDto: %w", err)
+	}
+
+	type modelAlias WorldPublicSourceExternalMediaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceExternalMediaDto: %w", err)
+	}
+	*value = WorldPublicSourceExternalMediaDto(decoded)
+	return nil
+}
+
 type WorldPublicSourceMediaAssetsDto struct {
 	Avatar         *WorldPublicAssetDto `json:"avatar,omitempty"`
 	Portrait       *WorldPublicAssetDto `json:"portrait,omitempty"`
@@ -23073,12 +23585,9 @@ func (value *WorldPublicSourceMediaAssetsDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicSourceMediaDto struct {
-	Assets            *WorldPublicSourceMediaAssetsDto `json:"assets,omitempty"`
-	AvatarUrl         *string                          `json:"avatarUrl,omitempty"`
-	PortraitUrl       *string                          `json:"portraitUrl,omitempty"`
-	ProfileCoverUrl   *string                          `json:"profileCoverUrl,omitempty"`
-	ReferenceImageUrl *string                          `json:"referenceImageUrl,omitempty"`
-	VoiceSampleUrl    *string                          `json:"voiceSampleUrl,omitempty"`
+	Assets                  *WorldPublicSourceMediaAssetsDto   `json:"assets"`
+	External                *WorldPublicSourceExternalMediaDto `json:"external"`
+	UnavailableResourceRefs []string                           `json:"unavailableResourceRefs"`
 }
 
 func (value *WorldPublicSourceMediaDto) UnmarshalJSON(data []byte) error {
@@ -23086,7 +23595,15 @@ func (value *WorldPublicSourceMediaDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceMediaDto: %w", err)
 	}
-
+	if err := requireRealmJSONField(raw, "assets", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "external", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "unavailableResourceRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaDto: %w", err)
+	}
 	type modelAlias WorldPublicSourceMediaDto
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
@@ -23845,6 +24362,23 @@ type RealmBlockUserOperationRequest struct {
 	Body    BlockUserBodyDto               `json:"body,omitempty"`
 }
 
+type RealmCancelResourceUploadOperationPath struct {
+	ResourceId string `json:"resourceId,omitempty"`
+}
+
+type RealmCancelResourceUploadOperationQuery struct {
+}
+
+type RealmCancelResourceUploadOperationHeaders struct {
+}
+
+type RealmCancelResourceUploadOperationRequest struct {
+	Path    RealmCancelResourceUploadOperationPath    `json:"path,omitempty"`
+	Query   RealmCancelResourceUploadOperationQuery   `json:"query,omitempty"`
+	Headers RealmCancelResourceUploadOperationHeaders `json:"headers,omitempty"`
+	Body    FinalizeResourceDto                       `json:"body,omitempty"`
+}
+
 type RealmChangeEmailOperationPath struct {
 }
 
@@ -23940,7 +24474,7 @@ type RealmCreateAudioDirectUploadOperationRequest struct {
 	Path    RealmCreateAudioDirectUploadOperationPath    `json:"path,omitempty"`
 	Query   RealmCreateAudioDirectUploadOperationQuery   `json:"query,omitempty"`
 	Headers RealmCreateAudioDirectUploadOperationHeaders `json:"headers,omitempty"`
-	Body    CreateAudioDirectUploadDto                   `json:"body,omitempty"`
+	Body    CreateMediaDirectUploadDto                   `json:"body,omitempty"`
 }
 
 type RealmCreateBundleOperationPath struct {
@@ -23963,7 +24497,6 @@ type RealmCreateImageDirectUploadOperationPath struct {
 }
 
 type RealmCreateImageDirectUploadOperationQuery struct {
-	RequireSignedUrls string `json:"requireSignedUrls,omitempty"`
 }
 
 type RealmCreateImageDirectUploadOperationHeaders struct {
@@ -23973,7 +24506,23 @@ type RealmCreateImageDirectUploadOperationRequest struct {
 	Path    RealmCreateImageDirectUploadOperationPath    `json:"path,omitempty"`
 	Query   RealmCreateImageDirectUploadOperationQuery   `json:"query,omitempty"`
 	Headers RealmCreateImageDirectUploadOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                                     `json:"body,omitempty"`
+	Body    CreateMediaDirectUploadDto                   `json:"body,omitempty"`
+}
+
+type RealmCreatePostOperationPath struct {
+}
+
+type RealmCreatePostOperationQuery struct {
+}
+
+type RealmCreatePostOperationHeaders struct {
+}
+
+type RealmCreatePostOperationRequest struct {
+	Path    RealmCreatePostOperationPath    `json:"path,omitempty"`
+	Query   RealmCreatePostOperationQuery   `json:"query,omitempty"`
+	Headers RealmCreatePostOperationHeaders `json:"headers,omitempty"`
+	Body    CreatePostDto                   `json:"body,omitempty"`
 }
 
 type RealmCreateTextResourceOperationPath struct {
@@ -23996,7 +24545,6 @@ type RealmCreateVideoDirectUploadOperationPath struct {
 }
 
 type RealmCreateVideoDirectUploadOperationQuery struct {
-	RequireSignedUrls string `json:"requireSignedUrls,omitempty"`
 }
 
 type RealmCreateVideoDirectUploadOperationHeaders struct {
@@ -24006,7 +24554,24 @@ type RealmCreateVideoDirectUploadOperationRequest struct {
 	Path    RealmCreateVideoDirectUploadOperationPath    `json:"path,omitempty"`
 	Query   RealmCreateVideoDirectUploadOperationQuery   `json:"query,omitempty"`
 	Headers RealmCreateVideoDirectUploadOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                                     `json:"body,omitempty"`
+	Body    CreateMediaDirectUploadDto                   `json:"body,omitempty"`
+}
+
+type RealmDeletePostOperationPath struct {
+	Id string `json:"id,omitempty"`
+}
+
+type RealmDeletePostOperationQuery struct {
+}
+
+type RealmDeletePostOperationHeaders struct {
+}
+
+type RealmDeletePostOperationRequest struct {
+	Path    RealmDeletePostOperationPath    `json:"path,omitempty"`
+	Query   RealmDeletePostOperationQuery   `json:"query,omitempty"`
+	Headers RealmDeletePostOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                        `json:"body,omitempty"`
 }
 
 type RealmDeleteResourceOperationPath struct {
@@ -24436,6 +25001,22 @@ type RealmEnable2FaOperationRequest struct {
 	Body    Me2faEnableDto                 `json:"body,omitempty"`
 }
 
+type RealmExploreControllerCheckStatusOperationPath struct {
+}
+
+type RealmExploreControllerCheckStatusOperationQuery struct {
+}
+
+type RealmExploreControllerCheckStatusOperationHeaders struct {
+}
+
+type RealmExploreControllerCheckStatusOperationRequest struct {
+	Path    RealmExploreControllerCheckStatusOperationPath    `json:"path,omitempty"`
+	Query   RealmExploreControllerCheckStatusOperationQuery   `json:"query,omitempty"`
+	Headers RealmExploreControllerCheckStatusOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                          `json:"body,omitempty"`
+}
+
 type RealmFeedbackControllerGetMyFeedbacksOperationPath struct {
 }
 
@@ -24551,6 +25132,48 @@ type RealmGetChatByIdOperationRequest struct {
 	Path    RealmGetChatByIdOperationPath    `json:"path,omitempty"`
 	Query   RealmGetChatByIdOperationQuery   `json:"query,omitempty"`
 	Headers RealmGetChatByIdOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                         `json:"body,omitempty"`
+}
+
+type RealmGetExploreFeedOperationPath struct {
+}
+
+type RealmGetExploreFeedOperationQuery struct {
+	Seed   string  `json:"seed,omitempty"`
+	Tag    string  `json:"tag,omitempty"`
+	Limit  float64 `json:"limit,omitempty"`
+	Cursor string  `json:"cursor,omitempty"`
+}
+
+type RealmGetExploreFeedOperationHeaders struct {
+}
+
+type RealmGetExploreFeedOperationRequest struct {
+	Path    RealmGetExploreFeedOperationPath    `json:"path,omitempty"`
+	Query   RealmGetExploreFeedOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetExploreFeedOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                            `json:"body,omitempty"`
+}
+
+type RealmGetHomeFeedOperationPath struct {
+}
+
+type RealmGetHomeFeedOperationQuery struct {
+	Visibility string  `json:"visibility,omitempty"`
+	WorldId    string  `json:"worldId,omitempty"`
+	AuthorId   string  `json:"authorId,omitempty"`
+	Limit      float64 `json:"limit,omitempty"`
+	Cursor     string  `json:"cursor,omitempty"`
+	Scope      string  `json:"scope,omitempty"`
+}
+
+type RealmGetHomeFeedOperationHeaders struct {
+}
+
+type RealmGetHomeFeedOperationRequest struct {
+	Path    RealmGetHomeFeedOperationPath    `json:"path,omitempty"`
+	Query   RealmGetHomeFeedOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetHomeFeedOperationHeaders `json:"headers,omitempty"`
 	Body    struct{}                         `json:"body,omitempty"`
 }
 
@@ -24752,6 +25375,79 @@ type RealmGetMyWalletsOperationRequest struct {
 	Body    struct{}                          `json:"body,omitempty"`
 }
 
+type RealmGetPostOperationPath struct {
+	Id string `json:"id,omitempty"`
+}
+
+type RealmGetPostOperationQuery struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmGetPostOperationHeaders struct {
+}
+
+type RealmGetPostOperationRequest struct {
+	Path    RealmGetPostOperationPath    `json:"path,omitempty"`
+	Query   RealmGetPostOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetPostOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                     `json:"body,omitempty"`
+}
+
+type RealmGetPostRecommendationsOperationPath struct {
+}
+
+type RealmGetPostRecommendationsOperationQuery struct {
+	Seed   float64 `json:"seed,omitempty"`
+	Cursor string  `json:"cursor,omitempty"`
+	Limit  float64 `json:"limit,omitempty"`
+}
+
+type RealmGetPostRecommendationsOperationHeaders struct {
+}
+
+type RealmGetPostRecommendationsOperationRequest struct {
+	Path    RealmGetPostRecommendationsOperationPath    `json:"path,omitempty"`
+	Query   RealmGetPostRecommendationsOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetPostRecommendationsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                    `json:"body,omitempty"`
+}
+
+type RealmGetPublicPostOperationPath struct {
+	Id string `json:"id,omitempty"`
+}
+
+type RealmGetPublicPostOperationQuery struct {
+}
+
+type RealmGetPublicPostOperationHeaders struct {
+}
+
+type RealmGetPublicPostOperationRequest struct {
+	Path    RealmGetPublicPostOperationPath    `json:"path,omitempty"`
+	Query   RealmGetPublicPostOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetPublicPostOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                           `json:"body,omitempty"`
+}
+
+type RealmGetRecommendationsOperationPath struct {
+}
+
+type RealmGetRecommendationsOperationQuery struct {
+	Seed   float64 `json:"seed,omitempty"`
+	Cursor string  `json:"cursor,omitempty"`
+	Limit  float64 `json:"limit,omitempty"`
+}
+
+type RealmGetRecommendationsOperationHeaders struct {
+}
+
+type RealmGetRecommendationsOperationRequest struct {
+	Path    RealmGetRecommendationsOperationPath    `json:"path,omitempty"`
+	Query   RealmGetRecommendationsOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetRecommendationsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                `json:"body,omitempty"`
+}
+
 type RealmGetResourceOperationPath struct {
 	ResourceId string `json:"resourceId,omitempty"`
 }
@@ -24836,36 +25532,26 @@ type RealmGetUserFriendsOperationRequest struct {
 	Body    struct{}                            `json:"body,omitempty"`
 }
 
-type RealmHealthControllerLiveOperationPath struct {
+type RealmGetWorldPostsOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmHealthControllerLiveOperationQuery struct {
+type RealmGetWorldPostsOperationQuery struct {
+	Visibility string  `json:"visibility,omitempty"`
+	AuthorId   string  `json:"authorId,omitempty"`
+	Limit      float64 `json:"limit,omitempty"`
+	Cursor     string  `json:"cursor,omitempty"`
+	Scope      string  `json:"scope,omitempty"`
 }
 
-type RealmHealthControllerLiveOperationHeaders struct {
+type RealmGetWorldPostsOperationHeaders struct {
 }
 
-type RealmHealthControllerLiveOperationRequest struct {
-	Path    RealmHealthControllerLiveOperationPath    `json:"path,omitempty"`
-	Query   RealmHealthControllerLiveOperationQuery   `json:"query,omitempty"`
-	Headers RealmHealthControllerLiveOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                                  `json:"body,omitempty"`
-}
-
-type RealmHealthControllerReadyOperationPath struct {
-}
-
-type RealmHealthControllerReadyOperationQuery struct {
-}
-
-type RealmHealthControllerReadyOperationHeaders struct {
-}
-
-type RealmHealthControllerReadyOperationRequest struct {
-	Path    RealmHealthControllerReadyOperationPath    `json:"path,omitempty"`
-	Query   RealmHealthControllerReadyOperationQuery   `json:"query,omitempty"`
-	Headers RealmHealthControllerReadyOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                                   `json:"body,omitempty"`
+type RealmGetWorldPostsOperationRequest struct {
+	Path    RealmGetWorldPostsOperationPath    `json:"path,omitempty"`
+	Query   RealmGetWorldPostsOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetWorldPostsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                           `json:"body,omitempty"`
 }
 
 type RealmIntrospectSessionOperationPath struct {
@@ -24882,6 +25568,23 @@ type RealmIntrospectSessionOperationRequest struct {
 	Query   RealmIntrospectSessionOperationQuery   `json:"query,omitempty"`
 	Headers RealmIntrospectSessionOperationHeaders `json:"headers,omitempty"`
 	Body    IntrospectSessionRequestDto            `json:"body,omitempty"`
+}
+
+type RealmLikePostOperationPath struct {
+	PostId string `json:"postId,omitempty"`
+}
+
+type RealmLikePostOperationQuery struct {
+}
+
+type RealmLikePostOperationHeaders struct {
+}
+
+type RealmLikePostOperationRequest struct {
+	Path    RealmLikePostOperationPath    `json:"path,omitempty"`
+	Query   RealmLikePostOperationQuery   `json:"query,omitempty"`
+	Headers RealmLikePostOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                      `json:"body,omitempty"`
 }
 
 type RealmLinkOauthOperationPath struct {
@@ -24953,6 +25656,26 @@ type RealmListChatsOperationRequest struct {
 	Query   RealmListChatsOperationQuery   `json:"query,omitempty"`
 	Headers RealmListChatsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{}                       `json:"body,omitempty"`
+}
+
+type RealmListLikedPostsOperationPath struct {
+}
+
+type RealmListLikedPostsOperationQuery struct {
+	WorldId string  `json:"worldId,omitempty"`
+	Limit   float64 `json:"limit,omitempty"`
+	Cursor  string  `json:"cursor,omitempty"`
+	UserId  string  `json:"userId,omitempty"`
+}
+
+type RealmListLikedPostsOperationHeaders struct {
+}
+
+type RealmListLikedPostsOperationRequest struct {
+	Path    RealmListLikedPostsOperationPath    `json:"path,omitempty"`
+	Query   RealmListLikedPostsOperationQuery   `json:"query,omitempty"`
+	Headers RealmListLikedPostsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                            `json:"body,omitempty"`
 }
 
 type RealmListMessagesOperationPath struct {
@@ -25377,6 +26100,91 @@ type RealmRequestEmailOtpOperationRequest struct {
 	Body    EmailOtpRequestDto                   `json:"body,omitempty"`
 }
 
+type RealmSearchHumanUsersOperationPath struct {
+}
+
+type RealmSearchHumanUsersOperationQuery struct {
+	Limit              float64 `json:"limit,omitempty"`
+	Cursor             string  `json:"cursor,omitempty"`
+	AgeMax             float64 `json:"ageMax,omitempty"`
+	AgeMin             float64 `json:"ageMin,omitempty"`
+	City               string  `json:"city,omitempty"`
+	CountryCode        string  `json:"countryCode,omitempty"`
+	Gender             string  `json:"gender,omitempty"`
+	Tag                string  `json:"tag,omitempty"`
+	MinVitalityScore   float64 `json:"minVitalityScore,omitempty"`
+	MinInteractionTier float64 `json:"minInteractionTier,omitempty"`
+	MinInfluenceTier   float64 `json:"minInfluenceTier,omitempty"`
+	MinAssetTier       float64 `json:"minAssetTier,omitempty"`
+	Q                  string  `json:"q,omitempty"`
+}
+
+type RealmSearchHumanUsersOperationHeaders struct {
+}
+
+type RealmSearchHumanUsersOperationRequest struct {
+	Path    RealmSearchHumanUsersOperationPath    `json:"path,omitempty"`
+	Query   RealmSearchHumanUsersOperationQuery   `json:"query,omitempty"`
+	Headers RealmSearchHumanUsersOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                              `json:"body,omitempty"`
+}
+
+type RealmSearchIndexedUsersOperationPath struct {
+}
+
+type RealmSearchIndexedUsersOperationQuery struct {
+	Limit              float64 `json:"limit,omitempty"`
+	Cursor             string  `json:"cursor,omitempty"`
+	AgeMax             float64 `json:"ageMax,omitempty"`
+	AgeMin             float64 `json:"ageMin,omitempty"`
+	City               string  `json:"city,omitempty"`
+	CountryCode        string  `json:"countryCode,omitempty"`
+	Gender             string  `json:"gender,omitempty"`
+	Tag                string  `json:"tag,omitempty"`
+	MinVitalityScore   float64 `json:"minVitalityScore,omitempty"`
+	MinInteractionTier float64 `json:"minInteractionTier,omitempty"`
+	MinInfluenceTier   float64 `json:"minInfluenceTier,omitempty"`
+	MinAssetTier       float64 `json:"minAssetTier,omitempty"`
+	Q                  string  `json:"q,omitempty"`
+}
+
+type RealmSearchIndexedUsersOperationHeaders struct {
+}
+
+type RealmSearchIndexedUsersOperationRequest struct {
+	Path    RealmSearchIndexedUsersOperationPath    `json:"path,omitempty"`
+	Query   RealmSearchIndexedUsersOperationQuery   `json:"query,omitempty"`
+	Headers RealmSearchIndexedUsersOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                `json:"body,omitempty"`
+}
+
+type RealmSearchPostsOperationPath struct {
+}
+
+type RealmSearchPostsOperationQuery struct {
+	Limit             float64 `json:"limit,omitempty"`
+	Cursor            string  `json:"cursor,omitempty"`
+	AuthorAgeMax      float64 `json:"authorAgeMax,omitempty"`
+	AuthorAgeMin      float64 `json:"authorAgeMin,omitempty"`
+	AuthorIsAi        bool    `json:"authorIsAi,omitempty"`
+	AuthorCity        string  `json:"authorCity,omitempty"`
+	AuthorCountryCode string  `json:"authorCountryCode,omitempty"`
+	AuthorGender      string  `json:"authorGender,omitempty"`
+	Tag               string  `json:"tag,omitempty"`
+	MinLikeCount      float64 `json:"minLikeCount,omitempty"`
+	Q                 string  `json:"q,omitempty"`
+}
+
+type RealmSearchPostsOperationHeaders struct {
+}
+
+type RealmSearchPostsOperationRequest struct {
+	Path    RealmSearchPostsOperationPath    `json:"path,omitempty"`
+	Query   RealmSearchPostsOperationQuery   `json:"query,omitempty"`
+	Headers RealmSearchPostsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                         `json:"body,omitempty"`
+}
+
 type RealmSendMessageOperationPath struct {
 	ChatId string `json:"chatId,omitempty"`
 }
@@ -25616,6 +26424,23 @@ type RealmUnblockUserOperationRequest struct {
 	Body    struct{}                         `json:"body,omitempty"`
 }
 
+type RealmUnlikePostOperationPath struct {
+	PostId string `json:"postId,omitempty"`
+}
+
+type RealmUnlikePostOperationQuery struct {
+}
+
+type RealmUnlikePostOperationHeaders struct {
+}
+
+type RealmUnlikePostOperationRequest struct {
+	Path    RealmUnlikePostOperationPath    `json:"path,omitempty"`
+	Query   RealmUnlikePostOperationQuery   `json:"query,omitempty"`
+	Headers RealmUnlikePostOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                        `json:"body,omitempty"`
+}
+
 type RealmUnlinkOauthOperationPath struct {
 	Provider string `json:"provider,omitempty"`
 }
@@ -25761,6 +26586,23 @@ type RealmUpdatePasswordOperationRequest struct {
 	Query   RealmUpdatePasswordOperationQuery   `json:"query,omitempty"`
 	Headers RealmUpdatePasswordOperationHeaders `json:"headers,omitempty"`
 	Body    UpdatePasswordRequestDto            `json:"body,omitempty"`
+}
+
+type RealmUpdatePostOperationPath struct {
+	Id string `json:"id,omitempty"`
+}
+
+type RealmUpdatePostOperationQuery struct {
+}
+
+type RealmUpdatePostOperationHeaders struct {
+}
+
+type RealmUpdatePostOperationRequest struct {
+	Path    RealmUpdatePostOperationPath    `json:"path,omitempty"`
+	Query   RealmUpdatePostOperationQuery   `json:"query,omitempty"`
+	Headers RealmUpdatePostOperationHeaders `json:"headers,omitempty"`
+	Body    UpdatePostDto                   `json:"body,omitempty"`
 }
 
 type RealmUpdateResourceOperationPath struct {
@@ -26575,6 +27417,14 @@ func (c RealmTypedClient) BlockUser(ctx context.Context, request RealmBlockUserO
 	return decodeTypedResponse[struct{}](raw)
 }
 
+func (c RealmTypedClient) CancelResourceUpload(ctx context.Context, request RealmCancelResourceUploadOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "cancelResourceUpload", request, metadata, timeoutMS)
+	if err != nil {
+		return ResourceDetailDto{}, err
+	}
+	return decodeTypedResponse[ResourceDetailDto](raw)
+}
+
 func (c RealmTypedClient) ChangeEmail(ctx context.Context, request RealmChangeEmailOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "changeEmail", request, metadata, timeoutMS)
 	if err != nil {
@@ -26639,6 +27489,14 @@ func (c RealmTypedClient) CreateImageDirectUpload(ctx context.Context, request R
 	return decodeTypedResponse[ResourceDirectUploadSessionDto](raw)
 }
 
+func (c RealmTypedClient) CreatePost(ctx context.Context, request RealmCreatePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PostDto, error) {
+	raw, err := c.operationTyped(ctx, "createPost", request, metadata, timeoutMS)
+	if err != nil {
+		return PostDto{}, err
+	}
+	return decodeTypedResponse[PostDto](raw)
+}
+
 func (c RealmTypedClient) CreateTextResource(ctx context.Context, request RealmCreateTextResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "createTextResource", request, metadata, timeoutMS)
 	if err != nil {
@@ -26655,12 +27513,20 @@ func (c RealmTypedClient) CreateVideoDirectUpload(ctx context.Context, request R
 	return decodeTypedResponse[ResourceDirectUploadSessionDto](raw)
 }
 
-func (c RealmTypedClient) DeleteResource(ctx context.Context, request RealmDeleteResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "deleteResource", request, metadata, timeoutMS)
+func (c RealmTypedClient) DeletePost(ctx context.Context, request RealmDeletePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "deletePost", request, metadata, timeoutMS)
 	if err != nil {
 		return struct{}{}, err
 	}
 	return decodeTypedResponse[struct{}](raw)
+}
+
+func (c RealmTypedClient) DeleteResource(ctx context.Context, request RealmDeleteResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "deleteResource", request, metadata, timeoutMS)
+	if err != nil {
+		return ResourceDetailDto{}, err
+	}
+	return decodeTypedResponse[ResourceDetailDto](raw)
 }
 
 func (c RealmTypedClient) Disable2Fa(ctx context.Context, request RealmDisable2FaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Me2faOperationResultDto, error) {
@@ -26863,6 +27729,14 @@ func (c RealmTypedClient) Enable2Fa(ctx context.Context, request RealmEnable2FaO
 	return decodeTypedResponse[Me2faOperationResultDto](raw)
 }
 
+func (c RealmTypedClient) ExploreControllerCheckStatus(ctx context.Context, request RealmExploreControllerCheckStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "ExploreController_checkStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return struct{}{}, err
+	}
+	return decodeTypedResponse[struct{}](raw)
+}
+
 func (c RealmTypedClient) FeedbackControllerGetMyFeedbacks(ctx context.Context, request RealmFeedbackControllerGetMyFeedbacksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedbackListResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "FeedbackController_getMyFeedbacks", request, metadata, timeoutMS)
 	if err != nil {
@@ -26917,6 +27791,22 @@ func (c RealmTypedClient) GetChatById(ctx context.Context, request RealmGetChatB
 		return ChatViewDto{}, err
 	}
 	return decodeTypedResponse[ChatViewDto](raw)
+}
+
+func (c RealmTypedClient) GetExploreFeed(ctx context.Context, request RealmGetExploreFeedOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getExploreFeed", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
+}
+
+func (c RealmTypedClient) GetHomeFeed(ctx context.Context, request RealmGetHomeFeedOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getHomeFeed", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
 func (c RealmTypedClient) GetMe(ctx context.Context, request RealmGetMeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserPrivateDto, error) {
@@ -27015,6 +27905,38 @@ func (c RealmTypedClient) GetMyWallets(ctx context.Context, request RealmGetMyWa
 	return decodeTypedResponse[UserWalletListResponseDto](raw)
 }
 
+func (c RealmTypedClient) GetPost(ctx context.Context, request RealmGetPostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PostDto, error) {
+	raw, err := c.operationTyped(ctx, "getPost", request, metadata, timeoutMS)
+	if err != nil {
+		return PostDto{}, err
+	}
+	return decodeTypedResponse[PostDto](raw)
+}
+
+func (c RealmTypedClient) GetPostRecommendations(ctx context.Context, request RealmGetPostRecommendationsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getPostRecommendations", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
+}
+
+func (c RealmTypedClient) GetPublicPost(ctx context.Context, request RealmGetPublicPostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PostDto, error) {
+	raw, err := c.operationTyped(ctx, "getPublicPost", request, metadata, timeoutMS)
+	if err != nil {
+		return PostDto{}, err
+	}
+	return decodeTypedResponse[PostDto](raw)
+}
+
+func (c RealmTypedClient) GetRecommendations(ctx context.Context, request RealmGetRecommendationsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getRecommendations", request, metadata, timeoutMS)
+	if err != nil {
+		return UserSearchResponseDto{}, err
+	}
+	return decodeTypedResponse[UserSearchResponseDto](raw)
+}
+
 func (c RealmTypedClient) GetResource(ctx context.Context, request RealmGetResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "getResource", request, metadata, timeoutMS)
 	if err != nil {
@@ -27055,20 +27977,12 @@ func (c RealmTypedClient) GetUserFriends(ctx context.Context, request RealmGetUs
 	return decodeTypedResponse[[]string](raw)
 }
 
-func (c RealmTypedClient) HealthControllerLive(ctx context.Context, request RealmHealthControllerLiveOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "HealthController_live", request, metadata, timeoutMS)
+func (c RealmTypedClient) GetWorldPosts(ctx context.Context, request RealmGetWorldPostsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getWorldPosts", request, metadata, timeoutMS)
 	if err != nil {
-		return struct{}{}, err
+		return FeedResponseDto{}, err
 	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) HealthControllerReady(ctx context.Context, request RealmHealthControllerReadyOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "HealthController_ready", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
+	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
 func (c RealmTypedClient) IntrospectSession(ctx context.Context, request RealmIntrospectSessionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IntrospectSessionResponseDto, error) {
@@ -27077,6 +27991,14 @@ func (c RealmTypedClient) IntrospectSession(ctx context.Context, request RealmIn
 		return IntrospectSessionResponseDto{}, err
 	}
 	return decodeTypedResponse[IntrospectSessionResponseDto](raw)
+}
+
+func (c RealmTypedClient) LikePost(ctx context.Context, request RealmLikePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "likePost", request, metadata, timeoutMS)
+	if err != nil {
+		return struct{}{}, err
+	}
+	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) LinkOauth(ctx context.Context, request RealmLinkOauthOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OAuthLinkResponseDto, error) {
@@ -27109,6 +28031,14 @@ func (c RealmTypedClient) ListChats(ctx context.Context, request RealmListChatsO
 		return ListChatsResultDto{}, err
 	}
 	return decodeTypedResponse[ListChatsResultDto](raw)
+}
+
+func (c RealmTypedClient) ListLikedPosts(ctx context.Context, request RealmListLikedPostsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "listLikedPosts", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
 func (c RealmTypedClient) ListMessages(ctx context.Context, request RealmListMessagesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListMessagesResultDto, error) {
@@ -27303,6 +28233,30 @@ func (c RealmTypedClient) RequestEmailOtp(ctx context.Context, request RealmRequ
 	return decodeTypedResponse[EmailOtpResponseDto](raw)
 }
 
+func (c RealmTypedClient) SearchHumanUsers(ctx context.Context, request RealmSearchHumanUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "searchHumanUsers", request, metadata, timeoutMS)
+	if err != nil {
+		return UserSearchResponseDto{}, err
+	}
+	return decodeTypedResponse[UserSearchResponseDto](raw)
+}
+
+func (c RealmTypedClient) SearchIndexedUsers(ctx context.Context, request RealmSearchIndexedUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "searchIndexedUsers", request, metadata, timeoutMS)
+	if err != nil {
+		return UserSearchResponseDto{}, err
+	}
+	return decodeTypedResponse[UserSearchResponseDto](raw)
+}
+
+func (c RealmTypedClient) SearchPosts(ctx context.Context, request RealmSearchPostsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "searchPosts", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
+}
+
 func (c RealmTypedClient) SendMessage(ctx context.Context, request RealmSendMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MessageViewDto, error) {
 	raw, err := c.operationTyped(ctx, "sendMessage", request, metadata, timeoutMS)
 	if err != nil {
@@ -27415,6 +28369,14 @@ func (c RealmTypedClient) UnblockUser(ctx context.Context, request RealmUnblockU
 	return decodeTypedResponse[struct{}](raw)
 }
 
+func (c RealmTypedClient) UnlikePost(ctx context.Context, request RealmUnlikePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "unlikePost", request, metadata, timeoutMS)
+	if err != nil {
+		return struct{}{}, err
+	}
+	return decodeTypedResponse[struct{}](raw)
+}
+
 func (c RealmTypedClient) UnlinkOauth(ctx context.Context, request RealmUnlinkOauthOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "unlinkOauth", request, metadata, timeoutMS)
 	if err != nil {
@@ -27485,6 +28447,14 @@ func (c RealmTypedClient) UpdatePassword(ctx context.Context, request RealmUpdat
 		return struct{}{}, err
 	}
 	return decodeTypedResponse[struct{}](raw)
+}
+
+func (c RealmTypedClient) UpdatePost(ctx context.Context, request RealmUpdatePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PostDto, error) {
+	raw, err := c.operationTyped(ctx, "updatePost", request, metadata, timeoutMS)
+	if err != nil {
+		return PostDto{}, err
+	}
+	return decodeTypedResponse[PostDto](raw)
 }
 
 func (c RealmTypedClient) UpdateResource(ctx context.Context, request RealmUpdateResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {

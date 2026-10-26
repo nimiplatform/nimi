@@ -1,3 +1,4 @@
+import { selectMediaImage } from '@nimiplatform/kit/features/media/headless';
 import { type ChangeEvent, type RefObject, useEffect, useRef, useState } from 'react';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
@@ -143,11 +144,12 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
         file,
         failureMessage: t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),
       });
-      const avatarUrl = uploaded.resource.url;
+      const avatarMedia = uploaded.resource.delivery;
+      const avatarUrl = selectMediaImage(avatarMedia, 'avatar')?.src;
       if (!avatarUrl) {
         throw new Error(t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }
-      setDraft((current) => ({ ...current, avatarUrl }));
+      setDraft((current) => ({ ...current, avatarUrl, avatarMedia, avatarResourceId: uploaded.resourceId }));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
     } finally {

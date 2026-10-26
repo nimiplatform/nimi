@@ -2159,7 +2159,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.agent-introduction
     kind: definition
     title: Shared LocalAgent introduction
-    meaning: A non-authoritative bounded display projection of the current owned LocalAgent source containing optional world name, authored era, public role, greeting, reference image, static voice sample and duration, and typed public question topics, without source or account identity, private context, execution state, Memory or Knowledge contents.
+    meaning: A non-authoritative bounded display projection of the current owned LocalAgent source containing optional world name, authored era, public role, greeting, reference display image, original voice-sample URL with optional verified original-content hash and MIME type, separate playback-preview URL and duration, and typed public question topics, without source or account identity, private context, execution state, Memory or Knowledge contents.
   - id: rule.nimi.platform.app-ecosystem.agent-introduction
     kind: rule
     title: Equal Agent introduction access for every covered App

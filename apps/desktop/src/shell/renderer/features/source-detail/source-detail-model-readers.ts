@@ -1,3 +1,5 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
+import { readPublicAssetDto } from '../world/data/world-public-projection.js';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { SourceDetailVoiceSample } from './source-detail-model.js';
 
@@ -109,58 +111,37 @@ export function readMilestoneTimeLabel(
   return null;
 }
 
-export function readPublicMediaAsset(value: unknown): JsonObject | null {
-  const record = parseOptionalJsonObject(value);
-  const id = readScalarString(record?.id);
-  const kind = readScalarString(record?.kind);
-  const url = readPublicUrlValue(record?.url);
-  if (!id || !kind || !url) {
-    return null;
-  }
-  return {
-    ...record,
-    id,
-    kind,
-    url,
-  };
-}
+export const readPublicMediaAsset = readPublicAssetDto;
 
-export function readSourceMediaAsset(raw: JsonObject, kind: string): JsonObject | null {
+export function readSourceMediaAsset(raw: JsonObject, kind: string) {
   const media = parseOptionalJsonObject(raw.media);
   const assets = parseOptionalJsonObject(media?.assets) ?? parseOptionalJsonObject(raw.mediaAssets);
   return readPublicMediaAsset(assets?.[kind]);
 }
 
+export function readSourceMediaDelivery(raw: JsonObject, kind: string) {
+  return readMediaDelivery(readSourceMediaAsset(raw, kind)?.delivery);
+}
+
 export function readSourceMediaUrl(raw: JsonObject, kind: string, scalarKey: string): string | null {
   const asset = readSourceMediaAsset(raw, kind);
-  const assetUrl = readPublicUrlValue(asset?.url);
-  if (assetUrl) {
-    return assetUrl;
-  }
+  if (asset?.delivery) return null;
   const media = parseOptionalJsonObject(raw.media);
-  return readPublicUrlValue(media?.[scalarKey]) ?? readPublicUrlValue(raw[scalarKey]);
+  const external = parseOptionalJsonObject(media?.external);
+  return readPublicUrlValue(asset?.externalUrl) ?? readPublicUrlValue(external?.[scalarKey]) ?? readPublicUrlValue(raw[scalarKey]);
 }
 
 export function readVoiceSample(raw: JsonObject): SourceDetailVoiceSample | null {
   const asset = readSourceMediaAsset(raw, 'voiceSample');
-  const media = parseOptionalJsonObject(raw.media);
-  const url = readPublicUrlValue(asset?.url)
-    ?? readPublicUrlValue(media?.voiceSampleUrl)
-    ?? readPublicUrlValue(raw.voiceSampleUrl);
-  const id = readScalarString(asset?.id) ?? readScalarString(raw.voiceSampleId);
-  if (!id || !url) {
-    return null;
-  }
-  const provenance = parseOptionalJsonObject(asset?.provenance);
+  const previewUrl = asset?.delivery?.previewUrl ?? readSourceMediaUrl(raw, 'voiceSample', 'voiceSampleUrl');
+  if (!asset?.id || !previewUrl) return null;
+  const provenance = parseOptionalJsonObject(asset.provenance);
   return {
-    id,
-    url,
-    provider: readScalarString(asset?.provider),
-    mimeType: readScalarString(asset?.mimeType),
-    durationSec: readFiniteNumber(asset?.durationSec),
-    sha256: readScalarString(asset?.sha256),
-    transcript: readScalarString(asset?.transcript) ?? readScalarString(provenance?.transcript),
-    previewText: readScalarString(asset?.previewText) ?? readScalarString(provenance?.previewText),
+    id: asset.id, previewUrl,
+    originalUrl: asset.delivery?.originalUrl ?? null,
+    durationSec: readFiniteNumber(asset.durationSec),
+    transcript: readScalarString(provenance?.transcript),
+    previewText: readScalarString(provenance?.previewText),
   };
 }
 

@@ -24,6 +24,117 @@ export interface RealmChatTextPayload {
     content: string;
 }
 /**
+ * Realm-issued delivery facts. Runtime carries these without minting URLs or grants.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RealmMediaImageSource
+ */
+export interface RealmMediaImageSource {
+    /**
+     * @generated from protobuf field: string url = 1
+     */
+    url: string;
+    /**
+     * @generated from protobuf field: int32 width = 2
+     */
+    width: number;
+    /**
+     * @generated from protobuf field: int32 height = 3
+     */
+    height: number;
+    /**
+     * @generated from protobuf field: string mime_type = 4
+     */
+    mimeType: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealmMediaImageFamily
+ */
+export interface RealmMediaImageFamily {
+    /**
+     * @generated from protobuf field: string mime_type = 1
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RealmMediaImageSource sources = 2
+     */
+    sources: RealmMediaImageSource[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealmMediaImageSet
+ */
+export interface RealmMediaImageSet {
+    /**
+     * @generated from protobuf field: string purpose = 1
+     */
+    purpose: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RealmMediaImageFamily families = 2
+     */
+    families: RealmMediaImageFamily[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealmMediaVideo
+ */
+export interface RealmMediaVideo {
+    /**
+     * @generated from protobuf field: string hls_url = 1
+     */
+    hlsUrl: string;
+    /**
+     * @generated from protobuf field: string dash_url = 2
+     */
+    dashUrl: string;
+    /**
+     * @generated from protobuf field: string poster_url = 3
+     */
+    posterUrl: string;
+    /**
+     * @generated from protobuf field: string expires_at = 4
+     */
+    expiresAt: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RealmMediaDelivery
+ */
+export interface RealmMediaDelivery {
+    /**
+     * @generated from protobuf field: string resource_id = 1
+     */
+    resourceId: string;
+    /**
+     * @generated from protobuf field: string content_version = 2
+     */
+    contentVersion: string;
+    /**
+     * @generated from protobuf field: int32 publication_generation = 3
+     */
+    publicationGeneration: number;
+    /**
+     * @generated from protobuf field: string policy_version = 4
+     */
+    policyVersion: string;
+    /**
+     * @generated from protobuf field: string expires_at = 5
+     */
+    expiresAt: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RealmMediaImageSet images = 6
+     */
+    images: RealmMediaImageSet[];
+    /**
+     * @generated from protobuf field: string preview_url = 7
+     */
+    previewUrl: string;
+    /**
+     * @generated from protobuf field: string original_url = 8
+     */
+    originalUrl: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealmMediaVideo video = 9
+     */
+    video?: RealmMediaVideo;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RealmChatAttachmentPayload
  */
 export interface RealmChatAttachmentPayload {
@@ -48,14 +159,6 @@ export interface RealmChatAttachmentPayload {
      */
     subtitle: string;
     /**
-     * @generated from protobuf field: string url = 6
-     */
-    url: string;
-    /**
-     * @generated from protobuf field: string thumbnail = 7
-     */
-    thumbnail: string;
-    /**
      * @generated from protobuf field: int32 width = 8
      */
     width: number;
@@ -71,6 +174,18 @@ export interface RealmChatAttachmentPayload {
      * @generated from protobuf field: nimi.runtime.v1.RealmChatAttachmentPayload preview = 11
      */
     preview?: RealmChatAttachmentPayload;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealmMediaDelivery delivery = 12
+     */
+    delivery?: RealmMediaDelivery;
+    /**
+     * @generated from protobuf field: string external_url = 13
+     */
+    externalUrl: string;
+    /**
+     * @generated from protobuf field: bool unavailable = 14
+     */
+    unavailable: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RealmChatPostRefPayload
@@ -473,6 +588,14 @@ export interface RealmChatUserSummary {
      * @generated from protobuf field: google.protobuf.Timestamp created_at = 9
      */
     createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string avatar_resource_id = 11
+     */
+    avatarResourceId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealmMediaDelivery avatar_media = 12
+     */
+    avatarMedia?: RealmMediaDelivery;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RealmChatSnapshot
@@ -937,6 +1060,368 @@ class RealmChatTextPayload$Type extends MessageType<RealmChatTextPayload> {
  */
 export const RealmChatTextPayload = new RealmChatTextPayload$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class RealmMediaImageSource$Type extends MessageType<RealmMediaImageSource> {
+    constructor() {
+        super("nimi.runtime.v1.RealmMediaImageSource", [
+            { no: 1, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "width", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RealmMediaImageSource>): RealmMediaImageSource {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.url = "";
+        message.width = 0;
+        message.height = 0;
+        message.mimeType = "";
+        if (value !== undefined)
+            reflectionMergePartial<RealmMediaImageSource>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealmMediaImageSource): RealmMediaImageSource {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string url */ 1:
+                    message.url = reader.string();
+                    break;
+                case /* int32 width */ 2:
+                    message.width = reader.int32();
+                    break;
+                case /* int32 height */ 3:
+                    message.height = reader.int32();
+                    break;
+                case /* string mime_type */ 4:
+                    message.mimeType = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealmMediaImageSource, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string url = 1; */
+        if (message.url !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.url);
+        /* int32 width = 2; */
+        if (message.width !== 0)
+            writer.tag(2, WireType.Varint).int32(message.width);
+        /* int32 height = 3; */
+        if (message.height !== 0)
+            writer.tag(3, WireType.Varint).int32(message.height);
+        /* string mime_type = 4; */
+        if (message.mimeType !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.mimeType);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealmMediaImageSource
+ */
+export const RealmMediaImageSource = new RealmMediaImageSource$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealmMediaImageFamily$Type extends MessageType<RealmMediaImageFamily> {
+    constructor() {
+        super("nimi.runtime.v1.RealmMediaImageFamily", [
+            { no: 1, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "sources", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RealmMediaImageSource }
+        ]);
+    }
+    create(value?: PartialMessage<RealmMediaImageFamily>): RealmMediaImageFamily {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mimeType = "";
+        message.sources = [];
+        if (value !== undefined)
+            reflectionMergePartial<RealmMediaImageFamily>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealmMediaImageFamily): RealmMediaImageFamily {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string mime_type */ 1:
+                    message.mimeType = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.RealmMediaImageSource sources */ 2:
+                    message.sources.push(RealmMediaImageSource.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealmMediaImageFamily, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string mime_type = 1; */
+        if (message.mimeType !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.mimeType);
+        /* repeated nimi.runtime.v1.RealmMediaImageSource sources = 2; */
+        for (let i = 0; i < message.sources.length; i++)
+            RealmMediaImageSource.internalBinaryWrite(message.sources[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealmMediaImageFamily
+ */
+export const RealmMediaImageFamily = new RealmMediaImageFamily$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealmMediaImageSet$Type extends MessageType<RealmMediaImageSet> {
+    constructor() {
+        super("nimi.runtime.v1.RealmMediaImageSet", [
+            { no: 1, name: "purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "families", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RealmMediaImageFamily }
+        ]);
+    }
+    create(value?: PartialMessage<RealmMediaImageSet>): RealmMediaImageSet {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.purpose = "";
+        message.families = [];
+        if (value !== undefined)
+            reflectionMergePartial<RealmMediaImageSet>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealmMediaImageSet): RealmMediaImageSet {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string purpose */ 1:
+                    message.purpose = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.RealmMediaImageFamily families */ 2:
+                    message.families.push(RealmMediaImageFamily.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealmMediaImageSet, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string purpose = 1; */
+        if (message.purpose !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.purpose);
+        /* repeated nimi.runtime.v1.RealmMediaImageFamily families = 2; */
+        for (let i = 0; i < message.families.length; i++)
+            RealmMediaImageFamily.internalBinaryWrite(message.families[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealmMediaImageSet
+ */
+export const RealmMediaImageSet = new RealmMediaImageSet$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealmMediaVideo$Type extends MessageType<RealmMediaVideo> {
+    constructor() {
+        super("nimi.runtime.v1.RealmMediaVideo", [
+            { no: 1, name: "hls_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "dash_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "poster_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RealmMediaVideo>): RealmMediaVideo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.hlsUrl = "";
+        message.dashUrl = "";
+        message.posterUrl = "";
+        message.expiresAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<RealmMediaVideo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealmMediaVideo): RealmMediaVideo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string hls_url */ 1:
+                    message.hlsUrl = reader.string();
+                    break;
+                case /* string dash_url */ 2:
+                    message.dashUrl = reader.string();
+                    break;
+                case /* string poster_url */ 3:
+                    message.posterUrl = reader.string();
+                    break;
+                case /* string expires_at */ 4:
+                    message.expiresAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealmMediaVideo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string hls_url = 1; */
+        if (message.hlsUrl !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.hlsUrl);
+        /* string dash_url = 2; */
+        if (message.dashUrl !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.dashUrl);
+        /* string poster_url = 3; */
+        if (message.posterUrl !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.posterUrl);
+        /* string expires_at = 4; */
+        if (message.expiresAt !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expiresAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealmMediaVideo
+ */
+export const RealmMediaVideo = new RealmMediaVideo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RealmMediaDelivery$Type extends MessageType<RealmMediaDelivery> {
+    constructor() {
+        super("nimi.runtime.v1.RealmMediaDelivery", [
+            { no: 1, name: "resource_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "content_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "publication_generation", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "policy_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "images", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RealmMediaImageSet },
+            { no: 7, name: "preview_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "original_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "video", kind: "message", T: () => RealmMediaVideo }
+        ]);
+    }
+    create(value?: PartialMessage<RealmMediaDelivery>): RealmMediaDelivery {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.resourceId = "";
+        message.contentVersion = "";
+        message.publicationGeneration = 0;
+        message.policyVersion = "";
+        message.expiresAt = "";
+        message.images = [];
+        message.previewUrl = "";
+        message.originalUrl = "";
+        if (value !== undefined)
+            reflectionMergePartial<RealmMediaDelivery>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealmMediaDelivery): RealmMediaDelivery {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string resource_id */ 1:
+                    message.resourceId = reader.string();
+                    break;
+                case /* string content_version */ 2:
+                    message.contentVersion = reader.string();
+                    break;
+                case /* int32 publication_generation */ 3:
+                    message.publicationGeneration = reader.int32();
+                    break;
+                case /* string policy_version */ 4:
+                    message.policyVersion = reader.string();
+                    break;
+                case /* string expires_at */ 5:
+                    message.expiresAt = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.RealmMediaImageSet images */ 6:
+                    message.images.push(RealmMediaImageSet.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string preview_url */ 7:
+                    message.previewUrl = reader.string();
+                    break;
+                case /* string original_url */ 8:
+                    message.originalUrl = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RealmMediaVideo video */ 9:
+                    message.video = RealmMediaVideo.internalBinaryRead(reader, reader.uint32(), options, message.video);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RealmMediaDelivery, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string resource_id = 1; */
+        if (message.resourceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.resourceId);
+        /* string content_version = 2; */
+        if (message.contentVersion !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.contentVersion);
+        /* int32 publication_generation = 3; */
+        if (message.publicationGeneration !== 0)
+            writer.tag(3, WireType.Varint).int32(message.publicationGeneration);
+        /* string policy_version = 4; */
+        if (message.policyVersion !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.policyVersion);
+        /* string expires_at = 5; */
+        if (message.expiresAt !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.expiresAt);
+        /* repeated nimi.runtime.v1.RealmMediaImageSet images = 6; */
+        for (let i = 0; i < message.images.length; i++)
+            RealmMediaImageSet.internalBinaryWrite(message.images[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string preview_url = 7; */
+        if (message.previewUrl !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.previewUrl);
+        /* string original_url = 8; */
+        if (message.originalUrl !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.originalUrl);
+        /* nimi.runtime.v1.RealmMediaVideo video = 9; */
+        if (message.video)
+            RealmMediaVideo.internalBinaryWrite(message.video, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RealmMediaDelivery
+ */
+export const RealmMediaDelivery = new RealmMediaDelivery$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPayload> {
     constructor() {
         super("nimi.runtime.v1.RealmChatAttachmentPayload", [
@@ -945,12 +1430,13 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
             { no: 3, name: "display_kind", kind: "enum", T: () => ["nimi.runtime.v1.RealmAttachmentDisplayKind", RealmAttachmentDisplayKind, "REALM_ATTACHMENT_DISPLAY_KIND_"] },
             { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "subtitle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "thumbnail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "width", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 9, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 10, name: "duration", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
-            { no: 11, name: "preview", kind: "message", T: () => RealmChatAttachmentPayload }
+            { no: 11, name: "preview", kind: "message", T: () => RealmChatAttachmentPayload },
+            { no: 12, name: "delivery", kind: "message", T: () => RealmMediaDelivery },
+            { no: 13, name: "external_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "unavailable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<RealmChatAttachmentPayload>): RealmChatAttachmentPayload {
@@ -960,11 +1446,11 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
         message.displayKind = 0;
         message.title = "";
         message.subtitle = "";
-        message.url = "";
-        message.thumbnail = "";
         message.width = 0;
         message.height = 0;
         message.duration = 0;
+        message.externalUrl = "";
+        message.unavailable = false;
         if (value !== undefined)
             reflectionMergePartial<RealmChatAttachmentPayload>(this, message, value);
         return message;
@@ -989,12 +1475,6 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
                 case /* string subtitle */ 5:
                     message.subtitle = reader.string();
                     break;
-                case /* string url */ 6:
-                    message.url = reader.string();
-                    break;
-                case /* string thumbnail */ 7:
-                    message.thumbnail = reader.string();
-                    break;
                 case /* int32 width */ 8:
                     message.width = reader.int32();
                     break;
@@ -1006,6 +1486,15 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
                     break;
                 case /* nimi.runtime.v1.RealmChatAttachmentPayload preview */ 11:
                     message.preview = RealmChatAttachmentPayload.internalBinaryRead(reader, reader.uint32(), options, message.preview);
+                    break;
+                case /* nimi.runtime.v1.RealmMediaDelivery delivery */ 12:
+                    message.delivery = RealmMediaDelivery.internalBinaryRead(reader, reader.uint32(), options, message.delivery);
+                    break;
+                case /* string external_url */ 13:
+                    message.externalUrl = reader.string();
+                    break;
+                case /* bool unavailable */ 14:
+                    message.unavailable = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1034,12 +1523,6 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
         /* string subtitle = 5; */
         if (message.subtitle !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.subtitle);
-        /* string url = 6; */
-        if (message.url !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.url);
-        /* string thumbnail = 7; */
-        if (message.thumbnail !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.thumbnail);
         /* int32 width = 8; */
         if (message.width !== 0)
             writer.tag(8, WireType.Varint).int32(message.width);
@@ -1052,6 +1535,15 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
         /* nimi.runtime.v1.RealmChatAttachmentPayload preview = 11; */
         if (message.preview)
             RealmChatAttachmentPayload.internalBinaryWrite(message.preview, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealmMediaDelivery delivery = 12; */
+        if (message.delivery)
+            RealmMediaDelivery.internalBinaryWrite(message.delivery, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* string external_url = 13; */
+        if (message.externalUrl !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.externalUrl);
+        /* bool unavailable = 14; */
+        if (message.unavailable !== false)
+            writer.tag(14, WireType.Varint).bool(message.unavailable);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2174,7 +2666,9 @@ class RealmChatUserSummary$Type extends MessageType<RealmChatUserSummary> {
             { no: 6, name: "presence_status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "presence_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "presence_emoji", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "created_at", kind: "message", T: () => Timestamp }
+            { no: 9, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 11, name: "avatar_resource_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "avatar_media", kind: "message", T: () => RealmMediaDelivery }
         ]);
     }
     create(value?: PartialMessage<RealmChatUserSummary>): RealmChatUserSummary {
@@ -2187,6 +2681,7 @@ class RealmChatUserSummary$Type extends MessageType<RealmChatUserSummary> {
         message.presenceStatus = "";
         message.presenceText = "";
         message.presenceEmoji = "";
+        message.avatarResourceId = "";
         if (value !== undefined)
             reflectionMergePartial<RealmChatUserSummary>(this, message, value);
         return message;
@@ -2222,6 +2717,12 @@ class RealmChatUserSummary$Type extends MessageType<RealmChatUserSummary> {
                     break;
                 case /* google.protobuf.Timestamp created_at */ 9:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* string avatar_resource_id */ 11:
+                    message.avatarResourceId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RealmMediaDelivery avatar_media */ 12:
+                    message.avatarMedia = RealmMediaDelivery.internalBinaryRead(reader, reader.uint32(), options, message.avatarMedia);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2262,6 +2763,12 @@ class RealmChatUserSummary$Type extends MessageType<RealmChatUserSummary> {
         /* google.protobuf.Timestamp created_at = 9; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string avatar_resource_id = 11; */
+        if (message.avatarResourceId !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.avatarResourceId);
+        /* nimi.runtime.v1.RealmMediaDelivery avatar_media = 12; */
+        if (message.avatarMedia)
+            RealmMediaDelivery.internalBinaryWrite(message.avatarMedia, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -22747,12 +22747,21 @@ pub struct LocalAppAgentIntroduction {
     pub greeting: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "5")]
     pub reference_image_url: ::core::option::Option<::prost::alloc::string::String>,
+    /// Original reference audio; never a lossy playback preview.
     #[prost(string, optional, tag = "6")]
     pub voice_sample_url: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(double, optional, tag = "7")]
     pub voice_sample_duration_sec: ::core::option::Option<f64>,
     #[prost(message, repeated, tag = "8")]
     pub question_topics: ::prost::alloc::vec::Vec<LocalAppAgentIntroductionTopic>,
+    #[prost(string, optional, tag = "9")]
+    pub voice_preview_url: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "10")]
+    pub voice_sample_content_hash: ::core::option::Option<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, optional, tag = "11")]
+    pub voice_sample_mime_type: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentIntroductionTopic {

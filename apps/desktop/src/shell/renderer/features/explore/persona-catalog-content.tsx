@@ -1,3 +1,4 @@
+import { MediaAvatar } from '@nimiplatform/kit/features/media';
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -65,15 +66,15 @@ export function PersonaCatalogContent({
 
   const content = (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:flex-row">
-      <SidebarShell className="min-h-0 w-full lg:w-[272px]" data-testid="persona-rail">
-        <div className="shrink-0 px-4 pb-3 pt-5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-lg font-semibold text-[var(--nimi-text-primary)]">
+      <SidebarShell className="desktop-sidebar min-h-0 w-full lg:w-[272px]" data-testid="persona-rail">
+        <div className="desktop-sidebar__header">
+          <div className="flex flex-col items-start gap-3">
+            <div className="min-w-0 w-full">
+              <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">
                 {t('Explore.sectionPersonas')}
               </h1>
               {!loading && !error ? (
-                <p className="truncate text-xs text-[var(--nimi-text-secondary)]" data-testid="persona-rail-count">
+                <p className="text-xs text-[var(--nimi-text-secondary)]" data-testid="persona-rail-count">
                   {t('Explore.personaCount', { count: totalCount ?? personas.length })}
                 </p>
               ) : null}
@@ -82,7 +83,7 @@ export function PersonaCatalogContent({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 px-2 pb-2" data-testid="persona-rail-search">
+        <div className="desktop-sidebar__search flex items-center" data-testid="persona-rail-search">
           <SearchField
             value={query}
             onChange={(event) => onSearchQueryChange?.(event.target.value)}
@@ -91,14 +92,13 @@ export function PersonaCatalogContent({
             }}
             placeholder={t('Explore.searchPlaceholder')}
             aria-label={t('Explore.searchPlaceholder')}
-            className="min-h-8 flex-1"
-            inputClassName="text-xs"
+            className="min-h-10 flex-1"
           />
         </div>
 
         <ScrollShell
           data-persona-rail-list
-          className="flex min-h-0 flex-1 gap-2 overflow-x-auto px-2 pb-2 lg:flex-col lg:gap-0 lg:overflow-x-hidden"
+          className="desktop-sidebar__body flex min-h-0 flex-1 gap-4 overflow-x-auto lg:flex-col lg:overflow-x-hidden"
         >
           {loading ? (
             <div aria-hidden="true" className="w-full space-y-2 px-2 py-3">
@@ -115,7 +115,7 @@ export function PersonaCatalogContent({
               {t('Explore.personaSourcesEmpty')}
             </p>
           ) : (
-            <div className="flex gap-2 lg:flex-col lg:gap-0.5">
+            <div className="flex gap-1 lg:flex-col">
               {personas.map((persona, index) => (
                 <PersonaRailRow
                   key={persona.id}
@@ -145,7 +145,7 @@ export function PersonaCatalogContent({
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-[24px] border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)] max-lg:min-h-[420px]"
+        className="desktop-module-panel flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)] max-lg:min-h-[420px]"
       >
         {loading ? (
           <div className="flex min-h-0 flex-1 items-center p-6">
@@ -249,27 +249,27 @@ function PersonaRailRow({
       tabIndex={tabIndex}
       onClick={onSelect}
       onKeyDown={onKeyDown}
-      className={`flex w-[208px] min-w-0 shrink-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] lg:w-full ${selected
+      className={`desktop-sidebar__row flex w-[208px] min-w-0 shrink-0 items-center text-left transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] lg:w-full ${selected
         ? 'bg-[var(--nimi-surface-active)]'
         : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
       }`}
     >
-      <Avatar
-        alt={persona.name}
-        src={persona.avatarUrl}
+      <MediaAvatar
+        delivery={persona.avatarMedia} alt={persona.name}
+        externalUrl={persona.avatarUrl}
         size="sm"
         fallback={persona.name.trim().charAt(0).toUpperCase() || 'P'}
         fallbackClassName="bg-[image:var(--nimi-surface-hero)] text-[var(--nimi-text-primary)]"
       />
       <span className="min-w-0 flex-1">
         <span
-          className={`block truncate text-[13px] leading-5 text-[color:var(--nimi-text-primary)] ${selected ? 'font-semibold' : 'font-medium'}`}
+          className={`desktop-sidebar__label block text-[color:var(--nimi-text-primary)] ${selected ? 'font-semibold' : 'font-medium'}`}
           title={persona.name}
         >
           {persona.name}
         </span>
         {subtitle ? (
-          <span className="block truncate text-[11px] leading-4 text-[color:var(--nimi-text-muted)]">{subtitle}</span>
+          <span className="desktop-sidebar__caption block truncate text-[color:var(--nimi-text-muted)]" title={subtitle}>{subtitle}</span>
         ) : null}
       </span>
       {persona.isOnline ? (

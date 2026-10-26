@@ -28,8 +28,8 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_listWorldCatalog":             {method: http.MethodGet, path: "/api/world/catalog"},
 		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 	}
-	if len(realmBrokerOperations) != 68 {
-		t.Fatalf("Realm broker operation count = %d, want 68", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 75 {
+		t.Fatalf("Realm broker operation count = %d, want 75", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -299,7 +299,6 @@ func TestInvokeRealmUnaryRejectsEveryUnlistedOperation(t *testing.T) {
 		"WorldCoreController_listWorldCores",
 		"getPublicPost",
 		"requestDataExport",
-		"createImageDirectUpload",
 	} {
 		t.Run(operationID, func(t *testing.T) {
 			resp, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
@@ -333,12 +332,12 @@ func TestInvokeRealmUnaryRejectsNonDesktopCaller(t *testing.T) {
 	}
 }
 
-func TestInvokeRealmUnaryRejectsSignedUploadCredentialOperations(t *testing.T) {
+func TestInvokeRealmUnaryRejectsUnadmittedCredentialOperations(t *testing.T) {
 	svc := newRealmUnaryHarnessService(t, "https://realm.example.test")
 	completeLogin(t, svc)
 	response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 		Caller:      realmDesktopShellCaller(),
-		MethodId:    "createImageDirectUpload",
+		MethodId:    "createArbitrarySignedUpload",
 		RequestJson: `{"body":{"filename":"image.png"}}`,
 	})
 	if err != nil {

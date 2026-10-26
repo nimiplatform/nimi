@@ -741,7 +741,7 @@ test('all formal Apps receive the canonical typed Realm Realtime facade includin
           items: [{
             chatId: 'chat-1',
             otherUser: {
-              id: 'user-2', handle: 'friend', displayName: 'Friend', avatarUrl: null,
+              id: 'user-2', handle: 'friend', displayName: 'Friend', avatarUrl: null, avatarResourceId: null, avatarMedia: null,
               status: 'ACTIVE', presenceStatus: 'online', presenceText: null, presenceEmoji: null,
               createdAt: { seconds: '1750000000', nanos: 0 },
             },

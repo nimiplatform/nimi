@@ -1,10 +1,12 @@
+import { useCurrentUserProfileProjection } from '../profile/current-user-profile.js';
+import { readMediaDelivery, selectMediaImage } from '@nimiplatform/kit/features/media/headless';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useEffect, useRef, useState } from 'react';
 import {
   loadNimiRealmCreatorEligibility,
   uploadNimiRealmResourceFile,
 } from '@nimiplatform/sdk/realm';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   FieldShell,
@@ -43,17 +45,24 @@ export function ProfilePage() {
   const { t } = useTranslation();
   const user = useAppStore((s) => s.auth.user);
   const realmBaseUrl = useAppStore((s) => String(s.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
-  const setAuthSession = useAppStore((s) => s.setAuthSession);
+  const applyCurrentUserProfile = useAppStore((s) => s.applyCurrentUserProfile);
   const displayName = String(user?.displayName || user?.handle || 'User');
   const userHandle = String(user?.handle || 'me');
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
+  const userAvatarResourceId = typeof user?.avatarResourceId === 'string' ? user.avatarResourceId : null;
+  const userAvatarMedia = readMediaDelivery(user?.avatarMedia);
 
   const [name, setName] = useState(displayName);
   const [avatarUrl, setAvatarUrl] = useState(userAvatarUrl);
+  const [avatarResourceId, setAvatarResourceId] = useState(userAvatarResourceId);
+  const [avatarMedia, setAvatarMedia] = useState(userAvatarMedia);
   const email = String(user?.email || '');
   const [bio, setBio] = useState(String(user?.bio || ''));
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<ProfileSaveStatus>('idle');
+
+  const queryClient = useQueryClient();
+  const { queryKey: profileQueryKey } = useCurrentUserProfileProjection();
 
   const eligibilityQuery = useQuery({
     queryKey: ['settings-creator-eligibility'],
@@ -107,12 +116,14 @@ export function ProfilePage() {
   const appliedEditVersionRef = useRef(0);
   const profileDraft = {
     displayName: name.trim() || displayName,
-    avatarUrl,
+    avatarResourceId,
+    avatarUrl: avatarResourceId ? null : avatarUrl,
     bio: bio.trim(),
   };
   const persistedProfile = {
     displayName,
-    avatarUrl: userAvatarUrl,
+    avatarResourceId: userAvatarResourceId,
+    avatarUrl: userAvatarResourceId ? null : userAvatarUrl,
     bio: String(user?.bio || ''),
   };
 
@@ -137,8 +148,10 @@ export function ProfilePage() {
     }
     setName(displayName);
     setAvatarUrl(userAvatarUrl);
+    setAvatarResourceId(userAvatarResourceId);
+    setAvatarMedia(userAvatarMedia);
     setBio(String(user?.bio || ''));
-  }, [displayName, user?.bio, userAvatarUrl]);
+  }, [displayName, user?.bio, userAvatarUrl, userAvatarResourceId, user?.avatarMedia]);
 
   useEffect(() => () => {
     profileAutosaveTimerRef.current?.();
@@ -147,6 +160,7 @@ export function ProfilePage() {
   const hasPendingProfileChanges = (
     profileDraft.displayName !== persistedProfile.displayName
     || profileDraft.avatarUrl !== persistedProfile.avatarUrl
+    || profileDraft.avatarResourceId !== persistedProfile.avatarResourceId
     || profileDraft.bio !== persistedProfile.bio
   );
 
@@ -160,20 +174,21 @@ export function ProfilePage() {
     try {
       const payload = {
         displayName: profileDraft.displayName,
-        avatarUrl: profileDraft.avatarUrl,
+        ...(profileDraft.avatarResourceId ? { avatarResourceId: profileDraft.avatarResourceId } : { avatarUrl: profileDraft.avatarUrl }),
         bio: profileDraft.bio,
       };
       const updated = await realmSocialData.updateUserProfile(payload);
       const updatedUser = parseOptionalJsonObject(updated) ?? null;
       if (updatedUser) {
-        if (typeof updatedUser.avatarUrl !== 'string') {
-          updatedUser.avatarUrl = avatarUrl;
-        }
-        setAuthSession(updatedUser);
+        if ((updatedUser.avatarResourceId ?? null) !== profileDraft.avatarResourceId) throw new Error(t('Profile.avatarUploadFailed'));
+        queryClient.setQueryData(profileQueryKey, updated);
+        applyCurrentUserProfile(updatedUser, String(user?.realmEnvironmentId || ''));
         if (editVersionRef.current === editSnapshot) {
           appliedEditVersionRef.current = editSnapshot;
           setName(String(updatedUser.displayName || updatedUser.handle || name || 'User'));
           setAvatarUrl(typeof updatedUser.avatarUrl === 'string' ? updatedUser.avatarUrl : null);
+          setAvatarResourceId(typeof updatedUser.avatarResourceId === 'string' ? updatedUser.avatarResourceId : null);
+          setAvatarMedia(readMediaDelivery(updatedUser.avatarMedia));
           setBio(typeof updatedUser.bio === 'string' ? updatedUser.bio : '');
         }
       }
@@ -231,15 +246,17 @@ export function ProfilePage() {
         file,
         failureMessage: t('Profile.avatarUploadFailed'),
       });
-      const nextAvatarUrl = uploaded.resource.url;
+      const nextAvatarUrl = selectMediaImage(uploaded.resource.delivery, 'avatar')?.src;
       if (!nextAvatarUrl) {
         throw new Error(t('Profile.avatarUploadFailed'));
       }
       markLocalEdit();
       setAvatarUrl(nextAvatarUrl);
+      setAvatarResourceId(uploaded.resourceId);
+      setAvatarMedia(uploaded.resource.delivery);
       setFeedback({
         kind: 'success',
-        message: t('Profile.avatarUploadSuccess'),
+        message: t('Profile.photoUploaded'),
       });
     } catch (error) {
       setFeedback({
@@ -269,6 +286,7 @@ export function ProfilePage() {
     };
   }, [
     avatarUrl,
+    avatarResourceId,
     bindings,
     bio,
     displayName,
@@ -311,6 +329,8 @@ export function ProfilePage() {
             />
             <EntityAvatar
               imageUrl={avatarUrl}
+              media={avatarMedia}
+              refreshMedia={async () => { const next = await realmSocialData.loadCurrentUser(); queryClient.setQueryData(profileQueryKey, next); applyCurrentUserProfile({ ...next }, String(user?.realmEnvironmentId || '')); return next.avatarMedia ?? null; }}
               name={name.trim() || displayName}
               kind="human"
               sizeClassName="h-16 w-16"
@@ -335,6 +355,13 @@ export function ProfilePage() {
             <NimiText role="caption" className="mt-0.5 block">
               @{userHandle.replace(/^@/, '')}
             </NimiText>
+            {avatarResourceId || avatarUrl ? (
+              <button type="button" disabled={uploadingAvatar || saving} onClick={() => {
+                markLocalEdit(); setFeedback(null); setAvatarResourceId(null); setAvatarMedia(null); setAvatarUrl(null);
+              }} className="mt-1 text-xs text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]">
+                {t('Profile.removePhoto')}
+              </button>
+            ) : null}
             {uploadingAvatar ? (
               <NimiText role="helper" className="mt-1">
                 {t('Profile.avatarUploading')}

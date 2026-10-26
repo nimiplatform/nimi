@@ -5955,15 +5955,19 @@ func (x *GetLocalAppAgentIntroductionResponse) GetIntroduction() *LocalAppAgentI
 }
 
 type LocalAppAgentIntroduction struct {
-	state                  protoimpl.MessageState            `protogen:"open.v1"`
-	WorldName              *string                           `protobuf:"bytes,1,opt,name=world_name,json=worldName,proto3,oneof" json:"world_name,omitempty"`
-	Era                    *string                           `protobuf:"bytes,2,opt,name=era,proto3,oneof" json:"era,omitempty"`
-	Role                   *string                           `protobuf:"bytes,3,opt,name=role,proto3,oneof" json:"role,omitempty"`
-	Greeting               *string                           `protobuf:"bytes,4,opt,name=greeting,proto3,oneof" json:"greeting,omitempty"`
-	ReferenceImageUrl      *string                           `protobuf:"bytes,5,opt,name=reference_image_url,json=referenceImageUrl,proto3,oneof" json:"reference_image_url,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	WorldName         *string                `protobuf:"bytes,1,opt,name=world_name,json=worldName,proto3,oneof" json:"world_name,omitempty"`
+	Era               *string                `protobuf:"bytes,2,opt,name=era,proto3,oneof" json:"era,omitempty"`
+	Role              *string                `protobuf:"bytes,3,opt,name=role,proto3,oneof" json:"role,omitempty"`
+	Greeting          *string                `protobuf:"bytes,4,opt,name=greeting,proto3,oneof" json:"greeting,omitempty"`
+	ReferenceImageUrl *string                `protobuf:"bytes,5,opt,name=reference_image_url,json=referenceImageUrl,proto3,oneof" json:"reference_image_url,omitempty"`
+	// Original reference audio; never a lossy playback preview.
 	VoiceSampleUrl         *string                           `protobuf:"bytes,6,opt,name=voice_sample_url,json=voiceSampleUrl,proto3,oneof" json:"voice_sample_url,omitempty"`
 	VoiceSampleDurationSec *float64                          `protobuf:"fixed64,7,opt,name=voice_sample_duration_sec,json=voiceSampleDurationSec,proto3,oneof" json:"voice_sample_duration_sec,omitempty"`
 	QuestionTopics         []*LocalAppAgentIntroductionTopic `protobuf:"bytes,8,rep,name=question_topics,json=questionTopics,proto3" json:"question_topics,omitempty"`
+	VoicePreviewUrl        *string                           `protobuf:"bytes,9,opt,name=voice_preview_url,json=voicePreviewUrl,proto3,oneof" json:"voice_preview_url,omitempty"`
+	VoiceSampleContentHash *string                           `protobuf:"bytes,10,opt,name=voice_sample_content_hash,json=voiceSampleContentHash,proto3,oneof" json:"voice_sample_content_hash,omitempty"`
+	VoiceSampleMimeType    *string                           `protobuf:"bytes,11,opt,name=voice_sample_mime_type,json=voiceSampleMimeType,proto3,oneof" json:"voice_sample_mime_type,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -6052,6 +6056,27 @@ func (x *LocalAppAgentIntroduction) GetQuestionTopics() []*LocalAppAgentIntroduc
 		return x.QuestionTopics
 	}
 	return nil
+}
+
+func (x *LocalAppAgentIntroduction) GetVoicePreviewUrl() string {
+	if x != nil && x.VoicePreviewUrl != nil {
+		return *x.VoicePreviewUrl
+	}
+	return ""
+}
+
+func (x *LocalAppAgentIntroduction) GetVoiceSampleContentHash() string {
+	if x != nil && x.VoiceSampleContentHash != nil {
+		return *x.VoiceSampleContentHash
+	}
+	return ""
+}
+
+func (x *LocalAppAgentIntroduction) GetVoiceSampleMimeType() string {
+	if x != nil && x.VoiceSampleMimeType != nil {
+		return *x.VoiceSampleMimeType
+	}
+	return ""
 }
 
 type LocalAppAgentIntroductionTopic struct {
@@ -13639,7 +13664,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"#GetLocalAppAgentIntroductionRequest\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\"v\n" +
 	"$GetLocalAppAgentIntroductionResponse\x12N\n" +
-	"\fintroduction\x18\x01 \x01(\v2*.nimi.runtime.v1.LocalAppAgentIntroductionR\fintroduction\"\x86\x04\n" +
+	"\fintroduction\x18\x01 \x01(\v2*.nimi.runtime.v1.LocalAppAgentIntroductionR\fintroduction\"\x80\x06\n" +
 	"\x19LocalAppAgentIntroduction\x12\"\n" +
 	"\n" +
 	"world_name\x18\x01 \x01(\tH\x00R\tworldName\x88\x01\x01\x12\x15\n" +
@@ -13649,14 +13674,21 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x13reference_image_url\x18\x05 \x01(\tH\x04R\x11referenceImageUrl\x88\x01\x01\x12-\n" +
 	"\x10voice_sample_url\x18\x06 \x01(\tH\x05R\x0evoiceSampleUrl\x88\x01\x01\x12>\n" +
 	"\x19voice_sample_duration_sec\x18\a \x01(\x01H\x06R\x16voiceSampleDurationSec\x88\x01\x01\x12X\n" +
-	"\x0fquestion_topics\x18\b \x03(\v2/.nimi.runtime.v1.LocalAppAgentIntroductionTopicR\x0equestionTopicsB\r\n" +
+	"\x0fquestion_topics\x18\b \x03(\v2/.nimi.runtime.v1.LocalAppAgentIntroductionTopicR\x0equestionTopics\x12/\n" +
+	"\x11voice_preview_url\x18\t \x01(\tH\aR\x0fvoicePreviewUrl\x88\x01\x01\x12>\n" +
+	"\x19voice_sample_content_hash\x18\n" +
+	" \x01(\tH\bR\x16voiceSampleContentHash\x88\x01\x01\x128\n" +
+	"\x16voice_sample_mime_type\x18\v \x01(\tH\tR\x13voiceSampleMimeType\x88\x01\x01B\r\n" +
 	"\v_world_nameB\x06\n" +
 	"\x04_eraB\a\n" +
 	"\x05_roleB\v\n" +
 	"\t_greetingB\x16\n" +
 	"\x14_reference_image_urlB\x13\n" +
 	"\x11_voice_sample_urlB\x1c\n" +
-	"\x1a_voice_sample_duration_sec\"}\n" +
+	"\x1a_voice_sample_duration_secB\x14\n" +
+	"\x12_voice_preview_urlB\x1c\n" +
+	"\x1a_voice_sample_content_hashB\x19\n" +
+	"\x17_voice_sample_mime_type\"}\n" +
 	"\x1eLocalAppAgentIntroductionTopic\x12G\n" +
 	"\x04kind\x18\x01 \x01(\x0e23.nimi.runtime.v1.LocalAppAgentIntroductionTopicKindR\x04kind\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\"M\n" +

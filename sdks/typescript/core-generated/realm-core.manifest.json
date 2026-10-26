@@ -534,6 +534,75 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "cancelResourceUpload",
+      "method": "POST",
+      "path": "/api/resources/{resourceId}/cancel-upload",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "parameters": [
+        {
+          "name": "resourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "resourceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/FinalizeResourceDto",
+        "ref_name": "FinalizeResourceDto"
+      },
+      "request_schema_ref": "#/components/schemas/FinalizeResourceDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceDetailDto",
+            "ref_name": "ResourceDetailDto"
+          },
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
+    },
+    {
       "operation_id": "changeEmail",
       "method": "PATCH",
       "path": "/api/auth/me/email",
@@ -885,10 +954,10 @@
       "header_parameters": [],
       "request_schema": {
         "kind": "ref",
-        "ref": "#/components/schemas/CreateAudioDirectUploadDto",
-        "ref_name": "CreateAudioDirectUploadDto"
+        "ref": "#/components/schemas/CreateMediaDirectUploadDto",
+        "ref_name": "CreateMediaDirectUploadDto"
       },
-      "request_schema_ref": "#/components/schemas/CreateAudioDirectUploadDto",
+      "request_schema_ref": "#/components/schemas/CreateMediaDirectUploadDto",
       "request_content_type": "application/json",
       "response_schemas": [
         {
@@ -953,47 +1022,17 @@
       "tags": [
         "Resources"
       ],
-      "parameters": [
-        {
-          "name": "requireSignedUrls",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
+      "parameters": [],
       "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "requireSignedUrls",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
+      "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "unknown"
+        "kind": "ref",
+        "ref": "#/components/schemas/CreateMediaDirectUploadDto",
+        "ref_name": "CreateMediaDirectUploadDto"
       },
-      "request_schema_ref": null,
-      "request_content_type": null,
+      "request_schema_ref": "#/components/schemas/CreateMediaDirectUploadDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1009,6 +1048,43 @@
         {
           "status": "201",
           "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createPost",
+      "method": "POST",
+      "path": "/api/world/posts",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/CreatePostDto",
+        "ref_name": "CreatePostDto"
+      },
+      "request_schema_ref": "#/components/schemas/CreatePostDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PostDto",
+            "ref_name": "PostDto"
+          },
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PostDto"
         }
       ]
     },
@@ -1057,47 +1133,17 @@
       "tags": [
         "Resources"
       ],
-      "parameters": [
-        {
-          "name": "requireSignedUrls",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
+      "parameters": [],
       "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "requireSignedUrls",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
+      "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "unknown"
+        "kind": "ref",
+        "ref": "#/components/schemas/CreateMediaDirectUploadDto",
+        "ref_name": "CreateMediaDirectUploadDto"
       },
-      "request_schema_ref": null,
-      "request_content_type": null,
+      "request_schema_ref": "#/components/schemas/CreateMediaDirectUploadDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1115,6 +1161,58 @@
           "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
         }
       ]
+    },
+    {
+      "operation_id": "deletePost",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [],
+      "response_schema_refs": []
     },
     {
       "operation_id": "deleteResource",
@@ -1165,8 +1263,23 @@
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceDetailDto",
+            "ref_name": "ResourceDetailDto"
+          },
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
     },
     {
       "operation_id": "disable2Fa",
@@ -2517,6 +2630,26 @@
       ]
     },
     {
+      "operation_id": "ExploreController_checkStatus",
+      "method": "GET",
+      "path": "/api/explore/status",
+      "service": "Explore",
+      "tags": [
+        "Explore"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "FeedbackController_getMyFeedbacks",
       "method": "GET",
       "path": "/api/support/feedback",
@@ -2703,7 +2836,7 @@
       "request_content_type": "application/json",
       "response_schemas": [
         {
-          "status": "200",
+          "status": "202",
           "schema": {
             "kind": "ref",
             "ref": "#/components/schemas/ResourceDetailDto",
@@ -2714,7 +2847,7 @@
       ],
       "response_schema_refs": [
         {
-          "status": "200",
+          "status": "202",
           "schema_ref": "#/components/schemas/ResourceDetailDto"
         }
       ]
@@ -2965,6 +3098,378 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ChatViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getExploreFeed",
+      "method": "GET",
+      "path": "/api/explore",
+      "service": "Explore",
+      "tags": [
+        "Explore"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getHomeFeed",
+      "method": "GET",
+      "path": "/api/world/posts",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "visibility",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "PUBLIC",
+              "FRIENDS",
+              "PRIVATE"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "scope",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "personal",
+              "friends",
+              "persona_activity",
+              "world_character_activity"
+            ],
+            "type": "string"
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "visibility",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "PUBLIC",
+              "FRIENDS",
+              "PRIVATE"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "scope",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "personal",
+              "friends",
+              "persona_activity",
+              "world_character_activity"
+            ],
+            "type": "string"
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
         }
       ]
     },
@@ -3576,6 +4081,425 @@
       ]
     },
     {
+      "operation_id": "getPost",
+      "method": "GET",
+      "path": "/api/world/posts/by-id/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PostDto",
+            "ref_name": "PostDto"
+          },
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getPostRecommendations",
+      "method": "GET",
+      "path": "/api/discover/recommendations/posts",
+      "service": "Discover",
+      "tags": [
+        "Discover"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getPublicPost",
+      "method": "GET",
+      "path": "/api/world/posts/public/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PostDto",
+            "ref_name": "PostDto"
+          },
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getRecommendations",
+      "method": "GET",
+      "path": "/api/discover/recommendations",
+      "service": "Discover",
+      "tags": [
+        "Discover"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserSearchResponseDto",
+            "ref_name": "UserSearchResponseDto"
+          },
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ]
+    },
+    {
       "operation_id": "getResource",
       "method": "GET",
       "path": "/api/resources/{resourceId}",
@@ -3884,44 +4808,220 @@
       "response_schema_refs": []
     },
     {
-      "operation_id": "HealthController_live",
+      "operation_id": "getWorldPosts",
       "method": "GET",
-      "path": "/api/health/live",
-      "service": "Health",
+      "path": "/api/world/by-id/{worldId}/posts",
+      "service": "WorldPost",
       "tags": [
-        "Health"
+        "WorldPost"
       ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
+      "parameters": [
+        {
+          "name": "visibility",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "PUBLIC",
+              "FRIENDS",
+              "PRIVATE"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "authorId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "scope",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "personal",
+              "friends",
+              "persona_activity",
+              "world_character_activity"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [
+        {
+          "name": "visibility",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "PUBLIC",
+              "FRIENDS",
+              "PRIVATE"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "authorId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "scope",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "personal",
+              "friends",
+              "persona_activity",
+              "world_character_activity"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
-    },
-    {
-      "operation_id": "HealthController_ready",
-      "method": "GET",
-      "path": "/api/health/ready",
-      "service": "Health",
-      "tags": [
-        "Health"
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
       ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
     },
     {
       "operation_id": "introspectSession",
@@ -3985,6 +5085,58 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
+    },
+    {
+      "operation_id": "likePost",
+      "method": "POST",
+      "path": "/api/world/posts/by-id/{postId}/like",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "postId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "postId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [],
+      "response_schema_refs": []
     },
     {
       "operation_id": "linkOauth",
@@ -4389,6 +5541,163 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ListChatsResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listLikedPosts",
+      "method": "GET",
+      "path": "/api/world/posts/liked",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "userId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "userId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
         }
       ]
     },
@@ -6721,6 +8030,1227 @@
       ]
     },
     {
+      "operation_id": "searchHumanUsers",
+      "method": "GET",
+      "path": "/api/human/search",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMax",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMin",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "city",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "countryCode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minVitalityScore",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInteractionTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInfluenceTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minAssetTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMax",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMin",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "city",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "countryCode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minVitalityScore",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInteractionTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInfluenceTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minAssetTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserSearchResponseDto",
+            "ref_name": "UserSearchResponseDto"
+          },
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "searchIndexedUsers",
+      "method": "GET",
+      "path": "/api/search/users",
+      "service": "Search",
+      "tags": [
+        "Search"
+      ],
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMax",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMin",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "city",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "countryCode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minVitalityScore",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInteractionTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInfluenceTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minAssetTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMax",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "ageMin",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "city",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "countryCode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minVitalityScore",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInteractionTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minInfluenceTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minAssetTier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserSearchResponseDto",
+            "ref_name": "UserSearchResponseDto"
+          },
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "searchPosts",
+      "method": "GET",
+      "path": "/api/search/posts",
+      "service": "Search",
+      "tags": [
+        "Search"
+      ],
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorAgeMax",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorAgeMin",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorIsAi",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "boolean",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorCity",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorCountryCode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorGender",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minLikeCount",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorAgeMax",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorAgeMin",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorIsAi",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "boolean",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorCity",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorCountryCode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "authorGender",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "minLikeCount",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
       "operation_id": "sendMessage",
       "method": "POST",
       "path": "/api/human/chats/{chatId}/messages",
@@ -7773,6 +10303,58 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "unlikePost",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{postId}/like",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "postId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "postId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "unlinkOauth",
       "method": "DELETE",
       "path": "/api/auth/oauth/{provider}",
@@ -8300,6 +10882,75 @@
         {
           "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updatePost",
+      "method": "PATCH",
+      "path": "/api/world/posts/by-id/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdatePostDto",
+        "ref_name": "UpdatePostDto"
+      },
+      "request_schema_ref": "#/components/schemas/UpdatePostDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PostDto",
+            "ref_name": "PostDto"
+          },
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PostDto"
         }
       ]
     },
@@ -12099,6 +14750,12 @@
       "path": "/api/human/me/blocks/{id}"
     },
     {
+      "operation_id": "cancelResourceUpload",
+      "service": "Resources",
+      "method": "POST",
+      "path": "/api/resources/{resourceId}/cancel-upload"
+    },
+    {
       "operation_id": "changeEmail",
       "service": "Auth",
       "method": "PATCH",
@@ -12147,6 +14804,12 @@
       "path": "/api/resources/images/direct-upload"
     },
     {
+      "operation_id": "createPost",
+      "service": "Posts",
+      "method": "POST",
+      "path": "/api/world/posts"
+    },
+    {
       "operation_id": "createTextResource",
       "service": "Resources",
       "method": "POST",
@@ -12157,6 +14820,12 @@
       "service": "Resources",
       "method": "POST",
       "path": "/api/resources/videos/direct-upload"
+    },
+    {
+      "operation_id": "deletePost",
+      "service": "Posts",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{id}"
     },
     {
       "operation_id": "deleteResource",
@@ -12315,6 +14984,12 @@
       "path": "/api/auth/me/2fa/enable"
     },
     {
+      "operation_id": "ExploreController_checkStatus",
+      "service": "Explore",
+      "method": "GET",
+      "path": "/api/explore/status"
+    },
+    {
       "operation_id": "FeedbackController_getMyFeedbacks",
       "service": "Support (Feedback)",
       "method": "GET",
@@ -12355,6 +15030,18 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats/{chatId}"
+    },
+    {
+      "operation_id": "getExploreFeed",
+      "service": "Explore",
+      "method": "GET",
+      "path": "/api/explore"
+    },
+    {
+      "operation_id": "getHomeFeed",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts"
     },
     {
       "operation_id": "getMe",
@@ -12429,6 +15116,30 @@
       "path": "/api/human/me/wallets"
     },
     {
+      "operation_id": "getPost",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts/by-id/{id}"
+    },
+    {
+      "operation_id": "getPostRecommendations",
+      "service": "Discover",
+      "method": "GET",
+      "path": "/api/discover/recommendations/posts"
+    },
+    {
+      "operation_id": "getPublicPost",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts/public/{id}"
+    },
+    {
+      "operation_id": "getRecommendations",
+      "service": "Discover",
+      "method": "GET",
+      "path": "/api/discover/recommendations"
+    },
+    {
       "operation_id": "getResource",
       "service": "Resources",
       "method": "GET",
@@ -12459,22 +15170,22 @@
       "path": "/api/human/accounts/{id}/friends"
     },
     {
-      "operation_id": "HealthController_live",
-      "service": "Health",
+      "operation_id": "getWorldPosts",
+      "service": "WorldPost",
       "method": "GET",
-      "path": "/api/health/live"
-    },
-    {
-      "operation_id": "HealthController_ready",
-      "service": "Health",
-      "method": "GET",
-      "path": "/api/health/ready"
+      "path": "/api/world/by-id/{worldId}/posts"
     },
     {
       "operation_id": "introspectSession",
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/sessions/introspect"
+    },
+    {
+      "operation_id": "likePost",
+      "service": "Posts",
+      "method": "POST",
+      "path": "/api/world/posts/by-id/{postId}/like"
     },
     {
       "operation_id": "linkOauth",
@@ -12499,6 +15210,12 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats"
+    },
+    {
+      "operation_id": "listLikedPosts",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts/liked"
     },
     {
       "operation_id": "listMessages",
@@ -12645,6 +15362,24 @@
       "path": "/api/auth/email/otp/request"
     },
     {
+      "operation_id": "searchHumanUsers",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/search"
+    },
+    {
+      "operation_id": "searchIndexedUsers",
+      "service": "Search",
+      "method": "GET",
+      "path": "/api/search/users"
+    },
+    {
+      "operation_id": "searchPosts",
+      "service": "Search",
+      "method": "GET",
+      "path": "/api/search/posts"
+    },
+    {
       "operation_id": "sendMessage",
       "service": "Human Chats",
       "method": "POST",
@@ -12729,6 +15464,12 @@
       "path": "/api/human/me/blocks/{id}"
     },
     {
+      "operation_id": "unlikePost",
+      "service": "Posts",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{postId}/like"
+    },
+    {
       "operation_id": "unlinkOauth",
       "service": "Auth",
       "method": "DELETE",
@@ -12781,6 +15522,12 @@
       "service": "Auth",
       "method": "PUT",
       "path": "/api/auth/me/password"
+    },
+    {
+      "operation_id": "updatePost",
+      "service": "Posts",
+      "method": "PATCH",
+      "path": "/api/world/posts/by-id/{id}"
     },
     {
       "operation_id": "updateResource",
@@ -13085,6 +15832,13 @@
       ]
     },
     {
+      "name": "Discover",
+      "operation_ids": [
+        "getPostRecommendations",
+        "getRecommendations"
+      ]
+    },
+    {
       "name": "Economy (Currency)",
       "operation_ids": [
         "EconomyController_calculateWithdrawal",
@@ -13112,16 +15866,16 @@
       ]
     },
     {
-      "name": "Governance",
+      "name": "Explore",
       "operation_ids": [
-        "ReportController_createReport"
+        "ExploreController_checkStatus",
+        "getExploreFeed"
       ]
     },
     {
-      "name": "Health",
+      "name": "Governance",
       "operation_ids": [
-        "HealthController_live",
-        "HealthController_ready"
+        "ReportController_createReport"
       ]
     },
     {
@@ -13189,6 +15943,20 @@
       ]
     },
     {
+      "name": "Posts",
+      "operation_ids": [
+        "createPost",
+        "deletePost",
+        "getHomeFeed",
+        "getPost",
+        "getPublicPost",
+        "likePost",
+        "listLikedPosts",
+        "unlikePost",
+        "updatePost"
+      ]
+    },
+    {
       "name": "Realm Core",
       "operation_ids": [
         "WorldCoreController_createPersonaCharacter",
@@ -13222,6 +15990,7 @@
     {
       "name": "Resources",
       "operation_ids": [
+        "cancelResourceUpload",
         "createAudioDirectUpload",
         "createImageDirectUpload",
         "createTextResource",
@@ -13231,6 +16000,13 @@
         "getResource",
         "listResources",
         "updateResource"
+      ]
+    },
+    {
+      "name": "Search",
+      "operation_ids": [
+        "searchIndexedUsers",
+        "searchPosts"
       ]
     },
     {
@@ -13270,7 +16046,8 @@
         "getUserByHandle",
         "getUserFriends",
         "listOnlineUsers",
-        "removeFriend"
+        "removeFriend",
+        "searchHumanUsers"
       ]
     },
     {
@@ -13292,6 +16069,12 @@
         "WorldPublicController_listWorldCatalog",
         "WorldPublicController_listWorldCharacterCatalog",
         "WorldPublicController_listWorldTopics"
+      ]
+    },
+    {
+      "name": "WorldPost",
+      "operation_ids": [
+        "getWorldPosts"
       ]
     }
   ],
@@ -13507,10 +16290,10 @@
       "name": "ConnectOnboardingResponseDto"
     },
     {
-      "name": "CreateAssetDto"
+      "name": "ContentRatingString"
     },
     {
-      "name": "CreateAudioDirectUploadDto"
+      "name": "CreateAssetDto"
     },
     {
       "name": "CreateBundleDto"
@@ -13522,10 +16305,19 @@
       "name": "CreateFeedbackDto"
     },
     {
+      "name": "CreateMediaDirectUploadDto"
+    },
+    {
       "name": "CreatePersonaCharacterCoreDto"
     },
     {
       "name": "CreatePortalSessionDto"
+    },
+    {
+      "name": "CreatePostAttachmentDto"
+    },
+    {
+      "name": "CreatePostDto"
     },
     {
       "name": "CreateReportDto"
@@ -13592,6 +16384,12 @@
     },
     {
       "name": "FeedbackResponseDto"
+    },
+    {
+      "name": "FeedPageMetaDto"
+    },
+    {
+      "name": "FeedResponseDto"
     },
     {
       "name": "FinalizeResourceDto"
@@ -13696,6 +16494,24 @@
       "name": "Me2faVerifyDto"
     },
     {
+      "name": "MediaDeliveryDto"
+    },
+    {
+      "name": "MediaDeliveryStateDto"
+    },
+    {
+      "name": "MediaImageFamilyDto"
+    },
+    {
+      "name": "MediaImageSetDto"
+    },
+    {
+      "name": "MediaImageSourceDto"
+    },
+    {
+      "name": "MediaVideoDto"
+    },
+    {
       "name": "MessageReplyViewDto"
     },
     {
@@ -13703,6 +16519,9 @@
     },
     {
       "name": "MessageViewDto"
+    },
+    {
+      "name": "ModerationStatusString"
     },
     {
       "name": "MutualFriendCountDto"
@@ -13792,6 +16611,15 @@
       "name": "PortalSessionDto"
     },
     {
+      "name": "PostAttachmentDto"
+    },
+    {
+      "name": "PostDto"
+    },
+    {
+      "name": "PostSourceAuthorDto"
+    },
+    {
       "name": "PPSlotConfigDto"
     },
     {
@@ -13864,9 +16692,6 @@
       "name": "ReportResponseDto"
     },
     {
-      "name": "ResourceBinaryDirectUploadTransportDto"
-    },
-    {
       "name": "ResourceControllerKind"
     },
     {
@@ -13880,9 +16705,6 @@
     },
     {
       "name": "ResourceListDto"
-    },
-    {
-      "name": "ResourceMultipartDirectUploadTransportDto"
     },
     {
       "name": "ResourceStatus"
@@ -14002,6 +16824,9 @@
       "name": "UpdatePasswordRequestDto"
     },
     {
+      "name": "UpdatePostDto"
+    },
+    {
       "name": "UpdatePPSlotConfigDto"
     },
     {
@@ -14036,6 +16861,9 @@
     },
     {
       "name": "UserProfileDto"
+    },
+    {
+      "name": "UserSearchResponseDto"
     },
     {
       "name": "UserSettingsDto"
@@ -14254,6 +17082,9 @@
       "name": "WorldPublicEntityCardDto"
     },
     {
+      "name": "WorldPublicExternalMediaDto"
+    },
+    {
       "name": "WorldPublicItemDto"
     },
     {
@@ -14276,6 +17107,9 @@
     },
     {
       "name": "WorldPublicSourceCardPageDto"
+    },
+    {
+      "name": "WorldPublicSourceExternalMediaDto"
     },
     {
       "name": "WorldPublicSourceMediaAssetsDto"
@@ -14670,6 +17504,16 @@
         "kind": "object",
         "properties": [
           {
+            "name": "delivery",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
             "name": "displayKind",
             "required": false,
             "schema": {
@@ -14690,6 +17534,21 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "externalUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -14753,20 +17612,6 @@
             }
           },
           {
-            "name": "thumbnail",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "title",
             "required": false,
             "schema": {
@@ -14781,11 +17626,11 @@
             }
           },
           {
-            "name": "url",
+            "name": "unavailable",
             "required": false,
             "schema": {
               "kind": "scalar",
-              "type": "string",
+              "type": "boolean",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -15978,6 +18823,16 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
           {
             "name": "avatarUrl",
             "required": true,
@@ -20617,6 +23472,20 @@
       }
     },
     {
+      "name": "ContentRatingString",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "UNRATED",
+          "G",
+          "PG13",
+          "R18",
+          "EXPLICIT"
+        ],
+        "type": "string"
+      }
+    },
+    {
       "name": "CreateAssetDto",
       "schema": {
         "kind": "object",
@@ -20807,325 +23676,6 @@
           "transferPolicy",
           "clonePolicy"
         ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CreateAudioDirectUploadDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "controllerId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "controllerKind",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "ACCOUNT",
-                "WORLD"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "deliveryAccess",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "PUBLIC",
-                "SIGNED"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "durationSec",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "filename",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "hashSha256",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "height",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "instrumental",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "label",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "lyricsSource",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "metadata",
-            "required": false,
-            "schema": {
-              "kind": "object",
-              "properties": [],
-              "required_properties": [],
-              "closed": false,
-              "additional_properties": {
-                "kind": "unknown"
-              }
-            }
-          },
-          {
-            "name": "mimeType",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sizeBytes",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceArtifactId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceJobId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "style",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "tags",
-            "required": false,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "title",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "traceId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "width",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "worldId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [],
         "closed": false,
         "additional_properties": null
       }
@@ -21416,6 +23966,288 @@
       }
     },
     {
+      "name": "CreateMediaDirectUploadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "controllerId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "controllerKind",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "ACCOUNT",
+                "WORLD"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryAccess",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "SIGNED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "hashSha256",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "instrumental",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "label",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "lyricsSource",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "metadata",
+            "required": false,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "required_properties": [],
+              "closed": false,
+              "additional_properties": {
+                "kind": "unknown"
+              }
+            }
+          },
+          {
+            "name": "mimeType",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sizeBytes",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": 1,
+              "maximum": 2147483647,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sourceArtifactId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sourceJobId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sourceRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "style",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "title",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "traceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "requestId",
+          "hashSha256",
+          "sizeBytes",
+          "mimeType"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "CreatePersonaCharacterCoreDto",
       "schema": {
         "kind": "object",
@@ -21522,6 +24354,112 @@
         ],
         "required_properties": [
           "returnUrl"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatePostAttachmentDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "targetType",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AttachmentTargetType",
+              "ref_name": "AttachmentTargetType"
+            }
+          }
+        ],
+        "required_properties": [
+          "targetType",
+          "targetId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatePostDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "attachments",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/CreatePostAttachmentDto",
+                "ref_name": "CreatePostAttachmentDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "caption",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sourceRef",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
+              "ref_name": "CharacterSourceRefV3Dto"
+            }
+          },
+          {
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "attachments"
         ],
         "closed": false,
         "additional_properties": null
@@ -21865,48 +24803,6 @@
             }
           },
           {
-            "name": "durationSec",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "hashSha256",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "height",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "instrumental",
             "required": false,
             "schema": {
@@ -21976,11 +24872,11 @@
             }
           },
           {
-            "name": "sizeBytes",
-            "required": false,
+            "name": "requestId",
+            "required": true,
             "schema": {
               "kind": "scalar",
-              "type": "number",
+              "type": "string",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -22093,20 +24989,6 @@
             }
           },
           {
-            "name": "width",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "worldId",
             "required": false,
             "schema": {
@@ -22122,6 +25004,7 @@
           }
         ],
         "required_properties": [
+          "requestId",
           "content"
         ],
         "closed": false,
@@ -22854,11 +25737,26 @@
         "kind": "object",
         "properties": [
           {
-            "name": "hasNext",
-            "required": true,
+            "name": "cursor",
+            "required": false,
             "schema": {
               "kind": "scalar",
-              "type": "boolean",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -22869,7 +25767,7 @@
           },
           {
             "name": "nextCursor",
-            "required": true,
+            "required": false,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -22883,10 +25781,7 @@
             }
           }
         ],
-        "required_properties": [
-          "nextCursor",
-          "hasNext"
-        ],
+        "required_properties": [],
         "closed": false,
         "additional_properties": null
       }
@@ -23293,12 +26188,12 @@
       }
     },
     {
-      "name": "FinalizeResourceDto",
+      "name": "FeedPageMetaDto",
       "schema": {
         "kind": "object",
         "properties": [
           {
-            "name": "controllerId",
+            "name": "cursor",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -23308,35 +26203,12 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
-            "name": "controllerKind",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "ACCOUNT",
-                "WORLD"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "deliveryAccess",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "PUBLIC",
-                "SIGNED"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "durationSec",
+            "name": "limit",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -23350,7 +26222,7 @@
             }
           },
           {
-            "name": "hashSha256",
+            "name": "nextCursor",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -23360,226 +26232,61 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
-          },
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "FeedResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
           {
-            "name": "height",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "instrumental",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "label",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "lyricsSource",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "metadata",
-            "required": false,
-            "schema": {
-              "kind": "object",
-              "properties": [],
-              "required_properties": [],
-              "closed": false,
-              "additional_properties": {
-                "kind": "unknown"
-              }
-            }
-          },
-          {
-            "name": "mimeType",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sizeBytes",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceArtifactId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceJobId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "style",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "tags",
-            "required": false,
+            "name": "items",
+            "required": true,
             "schema": {
               "kind": "array",
               "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
+                "kind": "ref",
+                "ref": "#/components/schemas/PostDto",
+                "ref_name": "PostDto"
               },
               "min_items": null,
               "max_items": null
             }
           },
           {
-            "name": "title",
-            "required": false,
+            "name": "page",
+            "required": true,
             "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
+              "kind": "ref",
+              "ref": "#/components/schemas/FeedPageMetaDto",
+              "ref_name": "FeedPageMetaDto"
             }
-          },
+          }
+        ],
+        "required_properties": [
+          "items",
+          "page"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "FinalizeResourceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
           {
-            "name": "traceId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "width",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "worldId",
-            "required": false,
+            "name": "requestId",
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -23592,7 +26299,9 @@
             }
           }
         ],
-        "required_properties": [],
+        "required_properties": [
+          "requestId"
+        ],
         "closed": false,
         "additional_properties": null
       }
@@ -23602,6 +26311,31 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "avatarResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
           {
             "name": "avatarUrl",
             "required": false,
@@ -23837,6 +26571,31 @@
           },
           {
             "name": "presenceText",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCoverMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCoverResourceId",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -26223,6 +28982,444 @@
       }
     },
     {
+      "name": "MediaDeliveryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "contentVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "images",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/MediaImageSetDto",
+                "ref_name": "MediaImageSetDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "originalUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "policyVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "previewUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "publicationGeneration",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "resourceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "video",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaVideoDto",
+              "ref_name": "MediaVideoDto",
+              "nullable": true
+            }
+          }
+        ],
+        "required_properties": [
+          "resourceId",
+          "contentVersion",
+          "publicationGeneration",
+          "policyVersion",
+          "expiresAt",
+          "images",
+          "previewUrl",
+          "originalUrl",
+          "video"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "MediaDeliveryStateDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "failureCode",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "revocationNotBefore",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PROCESSING",
+                "PUBLISHING",
+                "READY",
+                "REVOKING",
+                "REVOKED",
+                "FAILED",
+                "UNAVAILABLE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "state",
+          "failureCode",
+          "revocationNotBefore"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "MediaImageFamilyDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "mimeType",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sources",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/MediaImageSourceDto",
+                "ref_name": "MediaImageSourceDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "mimeType",
+          "sources"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "MediaImageSetDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "families",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/MediaImageFamilyDto",
+                "ref_name": "MediaImageFamilyDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "purpose",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "avatar",
+                "card",
+                "hero",
+                "detail",
+                "chat",
+                "poster"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "purpose",
+          "families"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "MediaImageSourceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "height",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "mimeType",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "url",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "width",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "url",
+          "width",
+          "height",
+          "mimeType"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "MediaVideoDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "dashUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "hlsUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "posterUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "hlsUrl",
+          "dashUrl",
+          "posterUrl",
+          "expiresAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "MessageReplyViewDto",
       "schema": {
         "kind": "object",
@@ -26586,6 +29783,19 @@
       }
     },
     {
+      "name": "ModerationStatusString",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "ACTIVE",
+          "UNDER_REVIEW",
+          "FLAGGED",
+          "BANNED"
+        ],
+        "type": "string"
+      }
+    },
+    {
       "name": "MutualFriendCountDto",
       "schema": {
         "kind": "object",
@@ -26617,6 +29827,16 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
           {
             "name": "avatarUrl",
             "required": true,
@@ -26833,6 +30053,16 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
           {
             "name": "avatarUrl",
             "required": false,
@@ -27157,6 +30387,16 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "preview",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
             }
           },
           {
@@ -28603,6 +31843,556 @@
         ],
         "required_properties": [
           "url"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PostAttachmentDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "delivery",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "displayKind",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AttachmentDisplayKind",
+              "ref_name": "AttachmentDisplayKind"
+            }
+          },
+          {
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "externalUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "height",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "preview",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AttachmentEnvelopeDto",
+              "ref_name": "AttachmentEnvelopeDto"
+            }
+          },
+          {
+            "name": "subtitle",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "targetType",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AttachmentTargetType",
+              "ref_name": "AttachmentTargetType"
+            }
+          },
+          {
+            "name": "title",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "unavailable",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "width",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "targetType",
+          "targetId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PostDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "attachments",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/PostAttachmentDto",
+                "ref_name": "PostAttachmentDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "author",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/UserLiteDto",
+              "ref_name": "UserLiteDto"
+            }
+          },
+          {
+            "name": "authorId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "authorKind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "human",
+                "worldCharacter",
+                "personaCharacter"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "caption",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "contentRating",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ContentRatingString",
+              "ref_name": "ContentRatingString"
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "likedByCurrentUser",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "moderationStatus",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ModerationStatusString",
+              "ref_name": "ModerationStatusString"
+            }
+          },
+          {
+            "name": "runtimeSourceRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "sourceAuthor",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PostSourceAuthorDto",
+              "ref_name": "PostSourceAuthorDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sourceRef",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
+              "ref_name": "CharacterSourceRefV3Dto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "visibility",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/Visibility",
+              "ref_name": "Visibility"
+            }
+          },
+          {
+            "name": "worldId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "id",
+          "authorId",
+          "author",
+          "authorKind",
+          "attachments",
+          "visibility",
+          "createdAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PostSourceAuthorDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "avatarUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "worldCharacter",
+                "personaCharacter"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "runtimeSourceRef",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sourceAuthorityAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sourceRef",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
+              "ref_name": "CharacterSourceRefV3Dto"
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "kind",
+          "id",
+          "worldId",
+          "displayName",
+          "handle",
+          "sourceAuthorityAccountId",
+          "sourceRef",
+          "runtimeSourceRef"
         ],
         "closed": false,
         "additional_properties": null
@@ -30167,57 +33957,6 @@
       }
     },
     {
-      "name": "ResourceBinaryDirectUploadTransportDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "bodyKind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "BINARY"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "contentType",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "method",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "PUT"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "required_properties": [
-          "method",
-          "bodyKind",
-          "contentType"
-        ],
-        "closed": true,
-        "additional_properties": null
-      }
-    },
-    {
       "name": "ResourceControllerKind",
       "schema": {
         "kind": "enum",
@@ -30274,6 +34013,16 @@
             }
           },
           {
+            "name": "delivery",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
             "name": "deliveryAccess",
             "required": true,
             "schema": {
@@ -30286,11 +34035,35 @@
             }
           },
           {
+            "name": "deliveryStatus",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryStateDto",
+              "ref_name": "MediaDeliveryStateDto"
+            }
+          },
+          {
             "name": "durationSec",
             "required": false,
             "schema": {
               "kind": "scalar",
               "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "externalUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -30535,20 +34308,6 @@
             }
           },
           {
-            "name": "storageRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "style",
             "required": false,
             "schema": {
@@ -30641,21 +34400,6 @@
             }
           },
           {
-            "name": "url",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
             "name": "width",
             "required": false,
             "schema": {
@@ -30691,7 +34435,9 @@
           "resourceType",
           "provider",
           "status",
-          "storageRef",
+          "delivery",
+          "deliveryStatus",
+          "externalUrl",
           "provenance",
           "uploaderAccountId",
           "controllerKind",
@@ -30738,17 +34484,17 @@
             }
           },
           {
-            "name": "provider",
+            "name": "requestId",
             "required": true,
             "schema": {
-              "kind": "enum",
-              "values": [
-                "CF_IMAGE",
-                "CF_STREAM",
-                "S3_OBJECT",
-                "EXTERNAL_URL"
-              ],
-              "type": "string"
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
             }
           },
           {
@@ -30794,20 +34540,6 @@
             }
           },
           {
-            "name": "storageRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "transport",
             "required": true,
             "schema": {
@@ -30834,8 +34566,7 @@
         "required_properties": [
           "resourceId",
           "resourceType",
-          "provider",
-          "storageRef",
+          "requestId",
           "uploadUrl",
           "transport",
           "status",
@@ -30848,24 +34579,52 @@
     {
       "name": "ResourceDirectUploadTransportDto",
       "schema": {
-        "kind": "union",
-        "variants": [
+        "kind": "object",
+        "properties": [
           {
-            "kind": "ref",
-            "ref": "#/components/schemas/ResourceMultipartDirectUploadTransportDto",
-            "ref_name": "ResourceMultipartDirectUploadTransportDto"
+            "name": "bodyKind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "BINARY"
+              ],
+              "type": "string"
+            }
           },
           {
-            "kind": "ref",
-            "ref": "#/components/schemas/ResourceBinaryDirectUploadTransportDto",
-            "ref_name": "ResourceBinaryDirectUploadTransportDto"
+            "name": "contentType",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "method",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUT"
+              ],
+              "type": "string"
+            }
           }
         ],
-        "discriminator": "bodyKind",
-        "discriminator_mapping": {
-          "BINARY": "#/components/schemas/ResourceBinaryDirectUploadTransportDto",
-          "MULTIPART_FORM_DATA": "#/components/schemas/ResourceMultipartDirectUploadTransportDto"
-        }
+        "required_properties": [
+          "method",
+          "bodyKind",
+          "contentType"
+        ],
+        "closed": true,
+        "additional_properties": null
       }
     },
     {
@@ -30908,57 +34667,6 @@
           "nextCursor"
         ],
         "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "ResourceMultipartDirectUploadTransportDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "bodyKind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "MULTIPART_FORM_DATA"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "formField",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "method",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "POST"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "required_properties": [
-          "method",
-          "bodyKind",
-          "formField"
-        ],
-        "closed": true,
         "additional_properties": null
       }
     },
@@ -31182,7 +34890,7 @@
           },
           {
             "name": "payload",
-            "required": true,
+            "required": false,
             "schema": {
               "kind": "union",
               "variants": [
@@ -31280,8 +34988,7 @@
         ],
         "required_properties": [
           "clientMessageId",
-          "type",
-          "payload"
+          "type"
         ],
         "closed": false,
         "additional_properties": null
@@ -33958,6 +37665,26 @@
       }
     },
     {
+      "name": "UpdatePostDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/Visibility",
+              "ref_name": "Visibility"
+            }
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "UpdatePPSlotConfigDto",
       "schema": {
         "kind": "object",
@@ -34023,48 +37750,6 @@
             }
           },
           {
-            "name": "durationSec",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "hashSha256",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "height",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "instrumental",
             "required": false,
             "schema": {
@@ -34117,34 +37802,6 @@
               "additional_properties": {
                 "kind": "unknown"
               }
-            }
-          },
-          {
-            "name": "mimeType",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sizeBytes",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
             }
           },
           {
@@ -34251,20 +37908,6 @@
             }
           },
           {
-            "name": "width",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "worldId",
             "required": false,
             "schema": {
@@ -34290,6 +37933,21 @@
         "kind": "object",
         "properties": [
           {
+            "name": "avatarResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "avatarUrl",
             "required": false,
             "schema": {
@@ -34300,7 +37958,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -34314,7 +37973,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -34328,7 +37988,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -34342,7 +38003,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -34356,7 +38018,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -34379,7 +38042,8 @@
             "schema": {
               "kind": "ref",
               "ref": "#/components/schemas/Gender",
-              "ref_name": "Gender"
+              "ref_name": "Gender",
+              "nullable": true
             }
           },
           {
@@ -34402,6 +38066,21 @@
             }
           },
           {
+            "name": "profileCoverResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "profileCoverUrl",
             "required": false,
             "schema": {
@@ -34412,7 +38091,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -34864,6 +38544,31 @@
         "kind": "object",
         "properties": [
           {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "avatarResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "avatarUrl",
             "required": false,
             "schema": {
@@ -35023,6 +38728,31 @@
             }
           },
           {
+            "name": "profileCoverMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCoverResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "profileCoverUrl",
             "required": false,
             "schema": {
@@ -35100,6 +38830,31 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "avatarResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
           {
             "name": "avatarUrl",
             "required": false,
@@ -35403,6 +39158,31 @@
             }
           },
           {
+            "name": "profileCoverMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCoverResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "profileCoverUrl",
             "required": false,
             "schema": {
@@ -35531,6 +39311,31 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "avatarMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "avatarResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
           {
             "name": "avatarUrl",
             "required": false,
@@ -35765,6 +39570,31 @@
             }
           },
           {
+            "name": "profileCoverMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCoverResourceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "profileCoverUrl",
             "required": false,
             "schema": {
@@ -35845,6 +39675,43 @@
           "handle",
           "displayName",
           "createdAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "UserSearchResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/UserLiteDto",
+                "ref_name": "UserLiteDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CursorPageMetaDto",
+              "ref_name": "CursorPageMetaDto"
+            }
+          }
+        ],
+        "required_properties": [
+          "items",
+          "page"
         ],
         "closed": false,
         "additional_properties": null
@@ -40964,11 +44831,36 @@
         "kind": "object",
         "properties": [
           {
+            "name": "delivery",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
             "name": "durationSec",
             "required": false,
             "schema": {
               "kind": "scalar",
               "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "externalUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -41081,20 +44973,6 @@
             }
           },
           {
-            "name": "url",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "width",
             "required": false,
             "schema": {
@@ -41113,7 +44991,8 @@
         "required_properties": [
           "id",
           "kind",
-          "url",
+          "delivery",
+          "externalUrl",
           "provider",
           "provenance"
         ],
@@ -41158,21 +45037,6 @@
           },
           {
             "name": "publicationRecordId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "storageRef",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -41851,6 +45715,83 @@
       }
     },
     {
+      "name": "WorldPublicExternalMediaDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bannerUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "heroUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "highlightUrls",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "iconUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          }
+        ],
+        "required_properties": [
+          "highlightUrls"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicItemDto",
       "schema": {
         "kind": "object",
@@ -42200,7 +46141,7 @@
         "properties": [
           {
             "name": "assets",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "ref",
               "ref": "#/components/schemas/WorldPublicMediaAssetsDto",
@@ -42208,67 +46149,12 @@
             }
           },
           {
-            "name": "bannerUrl",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "heroUrl",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "highlightUrls",
+            "name": "external",
             "required": true,
             "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "iconUrl",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicExternalMediaDto",
+              "ref_name": "WorldPublicExternalMediaDto"
             }
           },
           {
@@ -42293,7 +46179,8 @@
         ],
         "required_properties": [
           "unavailableResourceRefs",
-          "highlightUrls"
+          "external",
+          "assets"
         ],
         "closed": false,
         "additional_properties": null
@@ -43018,80 +46905,10 @@
       }
     },
     {
-      "name": "WorldPublicSourceMediaAssetsDto",
+      "name": "WorldPublicSourceExternalMediaDto",
       "schema": {
         "kind": "object",
         "properties": [
-          {
-            "name": "avatar",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicAssetDto",
-              "ref_name": "WorldPublicAssetDto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "portrait",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicAssetDto",
-              "ref_name": "WorldPublicAssetDto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "profileCover",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicAssetDto",
-              "ref_name": "WorldPublicAssetDto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "referenceImage",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicAssetDto",
-              "ref_name": "WorldPublicAssetDto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "voiceSample",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicAssetDto",
-              "ref_name": "WorldPublicAssetDto",
-              "nullable": true
-            }
-          }
-        ],
-        "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "WorldPublicSourceMediaDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "assets",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicSourceMediaAssetsDto",
-              "ref_name": "WorldPublicSourceMediaAssetsDto"
-            }
-          },
           {
             "name": "avatarUrl",
             "required": false,
@@ -43169,6 +46986,119 @@
           }
         ],
         "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceMediaAssetsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatar",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "portrait",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCover",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "referenceImage",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "voiceSample",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceMediaDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "assets",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceMediaAssetsDto",
+              "ref_name": "WorldPublicSourceMediaAssetsDto"
+            }
+          },
+          {
+            "name": "external",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceExternalMediaDto",
+              "ref_name": "WorldPublicSourceExternalMediaDto"
+            }
+          },
+          {
+            "name": "unavailableResourceRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "unavailableResourceRefs",
+          "external",
+          "assets"
+        ],
         "closed": false,
         "additional_properties": null
       }

@@ -129,8 +129,8 @@ test('fetchWorldPublicAssets decodes canonical WorldCore asset references withou
         media: [{
           id: 'scene-image-1',
           kind: 'highlight',
-          url: 'https://example.com/scene.png',
-          provider: 'cloudflare',
+          externalUrl: 'https://example.com/scene.png',
+          provider: 'EXTERNAL_URL',
           provenance: {},
         }],
       }],
@@ -154,7 +154,7 @@ test('fetchWorldPublicAssets decodes canonical WorldCore asset references withou
       readonly relatedEventCount?: number;
       readonly relatedResourceCount?: number;
     };
-    readonly media?: readonly { readonly url?: string }[];
+    readonly media?: readonly { readonly externalUrl?: string }[];
   };
   assert.equal(scene.name, '花果山');
   assert.deepEqual(scene.activeEntities, [
@@ -170,7 +170,7 @@ test('fetchWorldPublicAssets decodes canonical WorldCore asset references withou
     relatedEventCount: 1,
     relatedResourceCount: 1,
   });
-  assert.equal(scene.media?.[0]?.url, 'https://example.com/scene.png');
+  assert.equal(scene.media?.[0]?.externalUrl, 'https://example.com/scene.png');
 });
 
 test('world public detail projection preserves structured scene records from the canonical detail payload', () => {
@@ -199,8 +199,8 @@ test('world public detail projection preserves structured scene records from the
       media: [{
         id: 'scene-image-1',
         kind: 'highlight',
-        url: 'https://example.com/scene.png',
-        provider: 'cloudflare',
+        externalUrl: 'https://example.com/scene.png',
+        provider: 'EXTERNAL_URL',
         provenance: {},
       }],
       relatedCharacters: [],
@@ -220,7 +220,7 @@ test('world public detail projection preserves structured scene records from the
   assert.equal(scenes.items.length, 1);
   assert.equal(scenes.items[0]?.sceneId, 'scene-1');
   assert.equal(scenes.items[0]?.name, '花果山');
-  assert.equal((scenes.items[0]?.media as Array<{ url?: string }> | undefined)?.[0]?.url, 'https://example.com/scene.png');
+  assert.equal((scenes.items[0]?.media as Array<{ externalUrl?: string }> | undefined)?.[0]?.externalUrl, 'https://example.com/scene.png');
 });
 
 test('fetchWorldPublicAssets drops malformed external refs instead of inventing URLs', async () => {

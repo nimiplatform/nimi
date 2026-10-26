@@ -1,3 +1,5 @@
+import { MediaAvatar } from '@nimiplatform/kit/features/media';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { CSSProperties, ReactNode } from 'react';
 import { Avatar, Button, IconButton, NimiText, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import type { LucideIcon } from 'lucide-react';
@@ -90,10 +92,12 @@ export function IconChevron(props: IconProps) {
 export function PaperAvatar({
   name,
   imageUrl,
+  media,
   size = 54,
 }: {
   name: string;
   imageUrl?: string | null;
+  media?: RealmModel<'MediaDeliveryDto'> | null;
   size?: number;
 }) {
   const radius = size >= 48 ? Math.round(size * 0.26) : '50%';
@@ -109,9 +113,9 @@ export function PaperAvatar({
         background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 10%, var(--nimi-surface-panel))',
       }}
     >
-      <Avatar
+      <MediaAvatar
         alt={name}
-        src={imageUrl}
+        externalUrl={imageUrl} delivery={media} pixelSize={size}
         size="lg"
         shape={size >= 48 ? 'rounded' : 'circle'}
         className="h-full w-full bg-transparent"

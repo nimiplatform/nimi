@@ -1,3 +1,4 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useEffect, useState } from 'react';
 import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
@@ -65,9 +66,9 @@ export function ProfileDetailViewContent(input: {
   const friendCount = profile.stats?.friendsCount ?? 0;
   const postCount = profile.stats?.postsCount ?? 0;
   const likesCount = profile.stats?.likesCount ?? 0;
-  const headerStyle = profile.coverUrl
+  const headerStyle = profile.coverMedia || profile.coverUrl
     ? {
-        backgroundImage: `linear-gradient(120deg, rgba(7, 20, 17, 0.58), rgba(7, 20, 17, 0.18)), url(${profile.coverUrl})`,
+        backgroundImage: 'linear-gradient(120deg, rgba(7, 20, 17, 0.58), rgba(7, 20, 17, 0.18))',
         backgroundPosition: 'center',
         backgroundSize: 'cover',
       }
@@ -108,6 +109,7 @@ export function ProfileDetailViewContent(input: {
   const profileDetailBody = (
           <section className="relative">
             <div className="relative h-[168px] overflow-hidden px-8 py-5 [mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)] [-webkit-mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)]" style={headerStyle}>
+              {profile.coverMedia || profile.coverUrl ? <MediaImage delivery={profile.coverMedia} externalUrl={profile.coverUrl} purpose="hero" sizes="auto, 960px" loading="eager" alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
               {!input.isOwnProfile && !input.hideBackButton ? (
                 <button
                   type="button"
@@ -122,7 +124,7 @@ export function ProfileDetailViewContent(input: {
                   </svg>
                 </button>
               ) : null}
-              {!profile.coverUrl ? (
+              {!profile.coverMedia && !profile.coverUrl ? (
                 <>
                   <div className="pointer-events-none absolute -left-6 top-4 h-40 w-44 rounded-full bg-[var(--nimi-ambient-mesh-color-1)] blur-[44px]" />
                   <div className="pointer-events-none absolute left-[34%] top-[-2%] h-36 w-40 rounded-full bg-[var(--nimi-ambient-mesh-color-2)] blur-[48px]" />
@@ -168,6 +170,7 @@ export function ProfileDetailViewContent(input: {
                             <div className="relative">
                               <EntityAvatar
                                 imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
+                                media={isEditing ? draft.avatarMedia : profile.avatarMedia}
                                 name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
                                 kind="human"
                                 sizeClassName="h-24 w-24"

@@ -1,7 +1,10 @@
-import { Avatar } from '@nimiplatform/kit/ui';
+import { MediaAvatar } from '@nimiplatform/kit/features/media';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 
 type EntityAvatarProps = {
   imageUrl?: string | null;
+  media?: RealmModel<'MediaDeliveryDto'> | null;
+  refreshMedia?: () => Promise<RealmModel<'MediaDeliveryDto'> | null>;
   name: string;
   kind: 'agent' | 'source' | 'human';
   sizeClassName?: string;
@@ -35,8 +38,10 @@ export function EntityAvatar(props: EntityAvatarProps) {
         className={`${sizeClassName} ${radiusClassName} overflow-hidden p-[2px] ${props.className || ''}`.trim()}
         style={SYNTHETIC_ENTITY_BORDER_STYLE}
       >
-        <Avatar
-          src={props.imageUrl}
+        <MediaAvatar
+          externalUrl={props.imageUrl}
+          delivery={props.media}
+          refresh={props.refreshMedia}
           alt={props.name}
           shape="rounded"
           tone="accent"
@@ -48,8 +53,10 @@ export function EntityAvatar(props: EntityAvatarProps) {
   }
 
   return (
-    <Avatar
-      src={props.imageUrl}
+    <MediaAvatar
+      externalUrl={props.imageUrl}
+          delivery={props.media}
+          refresh={props.refreshMedia}
       alt={props.name}
       shape={props.shape ?? 'circle'}
       tone="neutral"

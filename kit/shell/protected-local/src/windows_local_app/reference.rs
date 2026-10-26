@@ -20,17 +20,20 @@ pub(super) async fn introduction(channel: Channel, request: crate::LocalAppAgent
     for (text, limit) in [(&value.world_name, 256), (&value.era, 256), (&value.role, 256), (&value.greeting, 4096)] {
         if text.as_deref().is_some_and(|v| !introduction_text(v, limit)) { return Err(untrusted()); }
     }
-    for url in [&value.reference_image_url, &value.voice_sample_url] {
+    for url in [&value.reference_image_url, &value.voice_preview_url] {
         if url.as_deref().is_some_and(|v| !safe_avatar_url(v)) { return Err(untrusted()); }
     }
-    if value.voice_sample_duration_sec.is_some_and(|v| !v.is_finite() || v <= 0.0 || value.voice_sample_url.is_none()) || value.question_topics.len() > 16 { return Err(untrusted()); }
+    if value.voice_sample_url.as_deref().is_some_and(|v| !safe_original_url(v, value.voice_sample_content_hash.as_deref())) { return Err(untrusted()); }
+    if value.voice_sample_content_hash.as_deref().is_some_and(|v| v.len() != 64 || !v.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) || value.voice_sample_url.is_none()) { return Err(untrusted()); }
+    if value.voice_sample_mime_type.as_deref().is_some_and(|v| !v.starts_with("audio/") || !introduction_text(v,128) || value.voice_sample_url.is_none()) { return Err(untrusted()); }
+    if value.voice_sample_duration_sec.is_some_and(|v| !v.is_finite() || v <= 0.0 || (value.voice_sample_url.is_none() && value.voice_preview_url.is_none())) || value.question_topics.len() > 16 { return Err(untrusted()); }
     let topics = value.question_topics.into_iter().map(|topic| {
         let kind = match topic.kind { 1 => "role", 2 => "work", 3 => "relationship", 4 => "topic", _ => return Err(untrusted()) };
         if !introduction_text(&topic.text, 256) { return Err(untrusted()); }
         Ok(serde_json::json!({"kind": kind, "text": topic.text}))
     }).collect::<Result<Vec<_>, LocalAppOperationError>>()?;
     Ok(serde_json::json!({"worldName": value.world_name, "era": value.era, "role": value.role, "greeting": value.greeting,
-        "referenceImageUrl": value.reference_image_url, "voiceSampleUrl": value.voice_sample_url, "voiceSampleDurationSec": value.voice_sample_duration_sec, "questionTopics": topics}))
+        "referenceImageUrl": value.reference_image_url, "voiceSampleUrl": value.voice_sample_url, "voicePreviewUrl": value.voice_preview_url, "voiceSampleContentHash": value.voice_sample_content_hash, "voiceSampleMimeType": value.voice_sample_mime_type, "voiceSampleDurationSec": value.voice_sample_duration_sec, "questionTopics": topics}))
 }
 
 fn introduction_text(value: &str, limit: usize) -> bool {
@@ -137,4 +140,17 @@ mod tests {
             assert!(!safe_avatar_url(value), "{value}");
         }
     }
+}
+
+fn safe_original_url(value: &str, content_hash: Option<&str>) -> bool {
+    if safe_avatar_url(value) { return true; }
+    if value.len() > MAX_AVATAR_URL_BYTES { return false; }
+    let (Some(hash), Ok(mut url)) = (content_hash, Url::parse(value)) else { return false; };
+    let parts: Vec<_> = url.path().trim_start_matches('/').split('/').collect();
+    if parts.len() != 5 || parts[0] != "m" || parts[2] != hash || parts[3] != "v1" || parts[4] != "original.bin" { return false; }
+    let pairs: Vec<_> = url.query_pairs().collect();
+    if pairs.len() != 1 || pairs[0].0 != "grant" { return false; }
+    let token: Vec<_> = pairs[0].1.split('.').collect();
+    if token.len() != 2 || token[1].len() != 43 || token.iter().any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')) { return false; }
+    url.set_query(None); safe_avatar_url(url.as_str())
 }

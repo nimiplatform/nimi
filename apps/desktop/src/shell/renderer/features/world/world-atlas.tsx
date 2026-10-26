@@ -1,3 +1,4 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,9 +9,10 @@ export type WorldAtlasTopic = { id: string; title: string; titleEn: string; desc
 export type WorldPeopleRenderer = (world: WorldListItem) => ReactNode;
 
 export function WorldAtlasImage({ world, eager = false }: { world: WorldListItem; eager?: boolean }) {
-  const [failedUrl, setFailedUrl] = useState<string>();
+  const delivery = eager ? world.heroMedia ?? world.bannerMedia : world.bannerMedia ?? world.heroMedia;
   return <span className="world-atlas-image" role="img" aria-label={world.name}>
-    {world.bannerUrl && failedUrl !== world.bannerUrl ? <img src={world.bannerUrl} alt="" loading={eager ? 'eager' : 'lazy'} onError={() => setFailedUrl(world.bannerUrl!)} /> : null}
+    <MediaImage delivery={delivery} externalUrl={world.bannerUrl} purpose={eager ? 'hero' : 'card'} sizes={eager ? 'auto' : 'auto, 320px'} alt=""
+      className="h-full w-full object-cover" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} />
   </span>;
 }
 
@@ -31,7 +33,7 @@ export function WorldAlbumCard({ world, renderPeople }: { world: WorldListItem; 
 export function WorldAtlasHero({ worlds }: { worlds: WorldListItem[] }) {
   const { t } = useTranslation();
   const navigation = useHomeNavigation();
-  const candidates = worlds.filter((world) => !isMainWorld(world) && world.bannerUrl).slice(0, 5);
+  const candidates = worlds.filter((world) => !isMainWorld(world) && (world.heroMedia || world.bannerMedia || world.bannerUrl)).slice(0, 5);
   const [index, setIndex] = useState(0);
   const position = index % (candidates.length || 1);
   const world = candidates[position];

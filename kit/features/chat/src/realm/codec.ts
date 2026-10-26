@@ -1,3 +1,4 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
 
 type RealmGeneratedMessageViewDto = RealmModel<'MessageViewDto'>;
@@ -9,8 +10,9 @@ export type RealmAttachmentEnvelope = {
   targetType: RealmAttachmentTargetType;
   targetId: string;
   displayKind?: RealmAttachmentDisplayKind;
-  url?: string;
-  thumbnail?: string;
+  delivery?: RealmModel<'MediaDeliveryDto'> | null;
+  externalUrl?: string | null;
+  unavailable?: boolean;
   title?: string;
   subtitle?: string;
   width?: number;
@@ -102,14 +104,9 @@ function normalizeAttachmentEnvelope(input: unknown): RealmAttachmentEnvelope | 
   if (displayKind) {
     normalized.displayKind = displayKind;
   }
-  const url = normalizeString(record.url);
-  if (url) {
-    normalized.url = url;
-  }
-  const thumbnail = normalizeString(record.thumbnail);
-  if (thumbnail) {
-    normalized.thumbnail = thumbnail;
-  }
+  normalized.delivery = readMediaDelivery(record.delivery);
+  normalized.externalUrl = normalizeString(record.externalUrl) || null;
+  normalized.unavailable = record.unavailable === true;
   const title = normalizeString(record.title);
   if (title) {
     normalized.title = title;

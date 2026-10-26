@@ -826,7 +826,7 @@ declare const AGENT_CENTER_SESSION: unique symbol;
 
 export type AgentCenterReferenceVoiceProjection = Readonly<{
   phase: 'loading' | 'unavailable' | 'ready' | 'creating' | 'binding' | 'bound' | 'failed' | 'canceled';
-  sampleUrl: string | null;
+  previewUrl: string | null;
   reason: 'reference-missing' | 'creation-configuration-required' | 'synthesis-configuration-required' | 'reference-input-unsupported' | 'configuration-incompatible' | 'owner-unavailable' | 'creation-failed' | 'binding-unconfirmed' | null;
   reasonCode: string | null;
 }>;

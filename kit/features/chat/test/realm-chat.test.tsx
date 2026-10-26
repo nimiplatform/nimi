@@ -520,7 +520,7 @@ describe('chat realm helpers', () => {
           targetType: 'RESOURCE',
           targetId: 'resource-preview-upload-1',
           displayKind: 'IMAGE',
-          url: '/preview.png',
+          externalUrl: '/preview.png',
         },
       },
       createdAt: '2026-03-24T09:01:00.000Z',
@@ -556,7 +556,7 @@ describe('chat realm helpers', () => {
             targetType: 'RESOURCE',
             targetId: 'resource-preview-1',
             displayKind: 'IMAGE',
-            url: '/resources/resource-preview-1',
+            externalUrl: '/resources/resource-preview-1',
           },
         },
       },
@@ -580,7 +580,7 @@ describe('chat realm helpers', () => {
           displayKind: 'CARD',
           preview: {
             displayKind: 'IMAGE',
-            url: '/resources/resource-preview-1',
+            externalUrl: '/resources/resource-preview-1',
           },
         },
       }, 'https://realm.example'),
@@ -590,17 +590,17 @@ describe('chat realm helpers', () => {
         attachment: {
           displayKind: 'CARD',
           preview: {
-            url: '/resources/resource-preview-without-kind',
+            externalUrl: '/resources/resource-preview-without-kind',
           },
         },
       }, 'https://realm.example'),
-    ).toBe('https://realm.example/resources/resource-preview-without-kind');
+    ).toBe('');
 
     expect(
       resolveRealmChatMediaUrl({
         attachment: {
           displayKind: 'IMAGE',
-          url: '/resources/resource-2',
+          externalUrl: '/resources/resource-2',
         },
       }, ''),
     ).toBe('');
@@ -608,7 +608,7 @@ describe('chat realm helpers', () => {
       resolveRealmChatMediaUrl({
         attachment: {
           displayKind: 'IMAGE',
-          url: 'https://cdn.example/resource-2',
+          externalUrl: 'https://cdn.example/resource-2',
         },
       }, ''),
     ).toBe('https://cdn.example/resource-2');
@@ -642,16 +642,16 @@ describe('chat realm helpers', () => {
 
   it('resolves canonical attachment urls and nested previews without legacy ids', () => {
     expect(resolveRealmChatMediaUrl({
-      attachment: { url: 'https://cdn.example.com/media.mp4' },
+      attachment: { externalUrl: 'https://cdn.example.com/media.mp4' },
       imageId: 'legacy-image',
     }, '')).toBe('https://cdn.example.com/media.mp4');
     expect(resolveRealmChatMediaUrl({
-      attachment: { url: '/resources/resource-1' },
+      attachment: { externalUrl: '/resources/resource-1' },
     }, 'https://realm.example.com/')).toBe('https://realm.example.com/resources/resource-1');
     expect(resolveRealmChatMediaUrl({
       attachment: {
         displayKind: 'CARD',
-        preview: { url: '/resources/resource-preview-1' },
+        preview: { displayKind: 'IMAGE', externalUrl: '/resources/resource-preview-1' },
       },
     }, 'https://realm.example.com/')).toBe('https://realm.example.com/resources/resource-preview-1');
     expect(resolveRealmChatMediaUrl({ imageId: 'legacy-image' }, 'https://realm.example.com')).toBe('');
@@ -748,7 +748,7 @@ describe('chat realm helpers', () => {
                   targetType: 'RESOURCE',
                   targetId: 'resource-preview-upload-1',
                   displayKind: 'IMAGE',
-                  url: '/preview.png',
+                  externalUrl: '/preview.png',
                 },
               },
               createdAt: '2026-03-24T09:10:00.000Z',
@@ -797,7 +797,7 @@ describe('chat realm helpers', () => {
                 targetType: 'RESOURCE',
                 targetId: 'resource-1',
                 displayKind: 'IMAGE',
-                url: 'https://realm.example.test/media/resource-1',
+                externalUrl: 'https://realm.example.test/media/resource-1',
               },
             },
             createdAt: '2026-03-24T09:20:00.000Z',

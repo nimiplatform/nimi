@@ -261,19 +261,12 @@ export function HumanCanonicalComposer(props: {
         return;
       }
       if (attachments.length > 0) {
-        try {
-          await handleSendAttachments(attachments);
-          setPendingAttachments((current) => {
-            clearPendingAttachments(current, (url) => URL.revokeObjectURL(url));
-            return [];
-          });
-        } catch (error) {
-          setFeedback({
-            kind: 'error',
-            message: error instanceof Error ? error.message : t('TurnInput.uploadFailed'),
-          });
-          return;
-        }
+        // Propagate failures so the composer retains its draft and attachments.
+        await handleSendAttachments(attachments);
+        setPendingAttachments((current) => {
+          clearPendingAttachments(current, (url) => URL.revokeObjectURL(url));
+          return [];
+        });
       }
       if (text.trim()) {
         await sendText({ text, attachments: [] });

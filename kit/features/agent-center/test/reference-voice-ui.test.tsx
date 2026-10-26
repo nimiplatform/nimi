@@ -17,13 +17,13 @@ async function render(voice: AgentCenterReferenceVoiceProjection, appearance: Pa
   return { useVoice, openSetup, button: (text: string) => Array.from(container!.querySelectorAll('button')).find(x => x.textContent === text)! };
 }
 it('shows the selected sound and cost before an explicit create action', async () => {
-  const f = await render({ phase: 'ready', sampleUrl: 'https://assets.example.test/greeting.wav', reason: null, reasonCode: null });
+  const f = await render({ phase: 'ready', previewUrl: 'https://assets.example.test/greeting.wav', reason: null, reasonCode: null });
   expect(container!.querySelector('audio')?.getAttribute('src')).toBe('https://assets.example.test/greeting.wav');
   expect(container!.textContent).toContain('provider charges'); expect(f.useVoice).not.toHaveBeenCalled();
   await act(async () => f.button('Create and use voice').click()); expect(f.useVoice).toHaveBeenCalledTimes(1);
 });
 it('opens the correct existing setup scope without creating a voice', async () => {
-  const f = await render({ phase: 'unavailable', sampleUrl: 'https://assets.example.test/greeting.wav', reason: 'creation-configuration-required', reasonCode: null });
+  const f = await render({ phase: 'unavailable', previewUrl: 'https://assets.example.test/greeting.wav', reason: 'creation-configuration-required', reasonCode: null });
   expect(f.button('Create and use voice')).toBeUndefined(); await act(async () => f.button('Configure service').click());
   expect(f.openSetup).toHaveBeenCalledWith('creation'); expect(f.useVoice).not.toHaveBeenCalled();
 });
@@ -31,7 +31,7 @@ it('opens the correct existing setup scope without creating a voice', async () =
 it.each(['create', 'cancel'] as const)('ignores a late %s failure after the Agent session changes', async (action) => {
   let reject!: (error: Error) => void;
   const operation = vi.fn(() => new Promise<void>((_, fail) => { reject = fail; }));
-  const voice = { phase: 'ready' as const, sampleUrl: 'https://assets.example.test/greeting.wav', reason: null, reasonCode: null };
+  const voice = { phase: 'ready' as const, previewUrl: 'https://assets.example.test/greeting.wav', reason: null, reasonCode: null };
   const previous = await render({ ...voice, phase: action === 'create' ? 'ready' : 'creating' }, action === 'create'
     ? { useReferenceVoice: operation } : { cancelReferenceVoice: operation });
   await act(async () => {
@@ -47,7 +47,7 @@ it.each(['create', 'cancel'] as const)('ignores a late %s failure after the Agen
 
 it('retains a voice failure while its Agent session is still current', async () => {
   const operation = vi.fn(async () => { throw new Error('current Agent failed'); });
-  const current = await render({ phase: 'ready', sampleUrl: null, reason: null, reasonCode: null }, { useReferenceVoice: operation });
+  const current = await render({ phase: 'ready', previewUrl: null, reason: null, reasonCode: null }, { useReferenceVoice: operation });
   await act(async () => { current.button('Create and use voice').click(); });
   expect(container!.textContent).toContain('Voice setup did not complete');
 });

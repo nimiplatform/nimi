@@ -21,6 +21,18 @@ function createTestOfflinePort() {
 }
 
 describe('desktop human chat behavior', () => {
+  test('attachment-only messages retain their Resource reference without requiring text', async () => {
+    const payload = { attachment: { targetType: 'RESOURCE' as const, targetId: 'resource-image' } };
+    let captured: Record<string, unknown> | undefined;
+    await sendChatMessage('chat-1', '', { type: 'ATTACHMENT', payload, clientMessageId: 'attachment-1' }, {
+      sendMessage: async (_chatId: string, body: Record<string, unknown>) => { captured = body; return { id: 'message-1' }; },
+    } as never);
+    assert.deepEqual(captured, { type: 'ATTACHMENT', payload, clientMessageId: 'attachment-1' });
+    await assert.rejects(() => sendChatMessage('chat-1', '', {}, {
+      sendMessage: async () => assert.fail('Empty text must not reach Realm'),
+    } as never), /Chat message text is required/);
+  });
+
   test('failed send remains explicit retry and does not enter a durable outbox', async () => {
     const offline = createTestOfflinePort();
     await assert.rejects(() => sendChatMessage('chat-1', 'hello', {}, {

@@ -11,7 +11,7 @@ function fixture() {
   const result: any = { job: { jobId: 'job-1', status: 'completed', reasonCode: '', reasonDetail: '' }, asset: { voiceAssetId: 'owned-voice', status: 'active' }, voiceReference: { kind: 'voice_asset_id', voiceAssetId: 'owned-voice' } };
   const missing = () => createNimiError({ reasonCode: 'AI_MEDIA_JOB_NOT_FOUND', message: 'not found', source: 'runtime', actionHint: 'submit' });
   const client: any = {
-    agents: { getIntroduction: vi.fn(async () => ({ voiceSampleUrl: 'https://assets.example.test/current-greeting.wav' })) },
+    agents: { getIntroduction: vi.fn(async () => ({ voiceSampleUrl: 'https://assets.example.test/current-greeting.wav', voicePreviewUrl: 'https://assets.example.test/playback.mp3', voiceSampleContentHash: 'a'.repeat(64), voiceSampleMimeType: 'audio/wav' })) },
     aiConfig: { get: vi.fn(async () => app) },
     agentConfigure: {
       sharedAIConfig: { get: vi.fn(async () => shared), listOptions: vi.fn(async () => ({ kind: 'voice-assets', options: [{ voiceAssetId: 'owned-voice' }] })) },
@@ -26,6 +26,17 @@ function fixture() {
 }
 
 describe('Agent reference voice owner journey', () => {
+  it('previews the derivative but clones original bytes and ignores URL lease changes in source identity', async () => {
+    const f = fixture(); let lease = 0;
+    f.client.agents.getIntroduction.mockImplementation(async () => ({ voiceSampleUrl: `https://assets.example.test/original.wav?grant=lease-${++lease}`, voicePreviewUrl: 'https://assets.example.test/preview.mp3', voiceSampleContentHash: 'a'.repeat(64), voiceSampleMimeType: 'audio/wav' }));
+    await f.controller.refresh(); expect(f.controller.getSnapshot().previewUrl).toBe('https://assets.example.test/preview.mp3');
+    await f.controller.start();
+    expect(f.client.ai.scenarioJobs.submit.mock.calls[0][0].referenceAudio.uri).toContain('/original.wav?grant=');
+    expect(f.client.ai.scenarioJobs.submit.mock.calls[0][0].referenceAudioMime).toBe('audio/wav');
+    expect(f.client.agentConfigure.presentation.commit).toHaveBeenCalledTimes(1);
+    expect(f.controller.getSnapshot().phase).toBe('bound');
+  });
+
   it('uses same-read observations only for refresh, then verifies owners afresh before submit and bind', async () => {
     const f = fixture();
     const presentation = await f.client.agentConfigure.presentation.snapshot();
@@ -55,7 +66,7 @@ describe('Agent reference voice owner journey', () => {
   });
   it('keeps an already bound voice even when no source sample is available', async () => {
     const f = fixture(); f.setPresentation({ presentationRevision: '2', defaultVoiceReference: 'voice_asset_id:owned-voice', profile: null });
-    f.client.agents.getIntroduction.mockResolvedValue({ voiceSampleUrl: null }); await f.controller.refresh();
+    f.client.agents.getIntroduction.mockResolvedValue({ voiceSampleUrl: null, voicePreviewUrl: null, voiceSampleContentHash: null, voiceSampleMimeType: null }); await f.controller.refresh();
     expect(f.controller.getSnapshot().phase).toBe('bound'); await f.controller.start(); expect(f.client.ai.scenarioJobs.submit).not.toHaveBeenCalled();
   });
   it('uses a retained successful job without another paid create', async () => {

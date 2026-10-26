@@ -1,3 +1,5 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
+import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -5,6 +7,7 @@ import {
   normalizeRealmMessagePayload,
   resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
+  resolveTimelineAttachmentRecord,
   sameRealmChatTimelineIdentity,
   useRealmMessageTimeline,
   type RealmChatTimelineMessage,
@@ -185,6 +188,9 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
         senderKind: 'human' as const,
         metadata: {
           realmMessage: message,
+          mediaDelivery: readMediaDelivery(resolveTimelineAttachmentRecord(message.payload)?.delivery),
+          refreshMedia: () => realmHumanChatData.refreshMessageMedia(String(selectedChatId), String(message.id)),
+          openMediaOriginal: openExternalUrl,
           display,
           mediaUrl,
           mediaLabel,
@@ -197,7 +203,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
         },
       };
     }),
-    [contactAvatarUrl, contactName, currentUserAvatarUrl, currentUserId, realmBaseUrl, selectedChat?.otherUser?.handle, selectedChat?.otherUser?.id, selectedChatId, timelineMessages],
+    [contactAvatarUrl, contactName, currentUserAvatarUrl, currentUserId, realmBaseUrl, selectedChat?.otherUser?.handle, selectedChat?.otherUser?.id, selectedChatId, timelineMessages, realmHumanChatData],
   );
 
   return {

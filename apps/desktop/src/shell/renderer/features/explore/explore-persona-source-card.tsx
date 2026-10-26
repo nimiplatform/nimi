@@ -107,7 +107,7 @@ export function PersonaSourceCard({
       />
       {/* Glyph tile + name + role + public pill */}
       <div className="relative flex items-start gap-3">
-        {source.avatarUrl ? (
+        {source.avatarMedia || source.avatarUrl ? (
           <div
             className="shrink-0 overflow-hidden"
             style={{
@@ -118,7 +118,7 @@ export function PersonaSourceCard({
             }}
           >
             <EntityAvatar
-              imageUrl={source.avatarUrl}
+              imageUrl={source.avatarUrl} media={source.avatarMedia}
               name={source.name}
               kind="source"
               sizeClassName="h-12 w-12"

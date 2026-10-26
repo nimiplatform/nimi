@@ -50,6 +50,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/blocks/{id}"
   },
   {
+    "operation_id": "cancelResourceUpload",
+    "service": "Resources",
+    "method": "POST",
+    "path": "/api/resources/{resourceId}/cancel-upload"
+  },
+  {
     "operation_id": "changeEmail",
     "service": "Auth",
     "method": "PATCH",
@@ -98,6 +104,12 @@ REALM_OPERATIONS = [
     "path": "/api/resources/images/direct-upload"
   },
   {
+    "operation_id": "createPost",
+    "service": "Posts",
+    "method": "POST",
+    "path": "/api/world/posts"
+  },
+  {
     "operation_id": "createTextResource",
     "service": "Resources",
     "method": "POST",
@@ -108,6 +120,12 @@ REALM_OPERATIONS = [
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/videos/direct-upload"
+  },
+  {
+    "operation_id": "deletePost",
+    "service": "Posts",
+    "method": "DELETE",
+    "path": "/api/world/posts/by-id/{id}"
   },
   {
     "operation_id": "deleteResource",
@@ -266,6 +284,12 @@ REALM_OPERATIONS = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operation_id": "ExploreController_checkStatus",
+    "service": "Explore",
+    "method": "GET",
+    "path": "/api/explore/status"
+  },
+  {
     "operation_id": "FeedbackController_getMyFeedbacks",
     "service": "Support (Feedback)",
     "method": "GET",
@@ -306,6 +330,18 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}"
+  },
+  {
+    "operation_id": "getExploreFeed",
+    "service": "Explore",
+    "method": "GET",
+    "path": "/api/explore"
+  },
+  {
+    "operation_id": "getHomeFeed",
+    "service": "Posts",
+    "method": "GET",
+    "path": "/api/world/posts"
   },
   {
     "operation_id": "getMe",
@@ -380,6 +416,30 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/wallets"
   },
   {
+    "operation_id": "getPost",
+    "service": "Posts",
+    "method": "GET",
+    "path": "/api/world/posts/by-id/{id}"
+  },
+  {
+    "operation_id": "getPostRecommendations",
+    "service": "Discover",
+    "method": "GET",
+    "path": "/api/discover/recommendations/posts"
+  },
+  {
+    "operation_id": "getPublicPost",
+    "service": "Posts",
+    "method": "GET",
+    "path": "/api/world/posts/public/{id}"
+  },
+  {
+    "operation_id": "getRecommendations",
+    "service": "Discover",
+    "method": "GET",
+    "path": "/api/discover/recommendations"
+  },
+  {
     "operation_id": "getResource",
     "service": "Resources",
     "method": "GET",
@@ -410,22 +470,22 @@ REALM_OPERATIONS = [
     "path": "/api/human/accounts/{id}/friends"
   },
   {
-    "operation_id": "HealthController_live",
-    "service": "Health",
+    "operation_id": "getWorldPosts",
+    "service": "WorldPost",
     "method": "GET",
-    "path": "/api/health/live"
-  },
-  {
-    "operation_id": "HealthController_ready",
-    "service": "Health",
-    "method": "GET",
-    "path": "/api/health/ready"
+    "path": "/api/world/by-id/{worldId}/posts"
   },
   {
     "operation_id": "introspectSession",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/sessions/introspect"
+  },
+  {
+    "operation_id": "likePost",
+    "service": "Posts",
+    "method": "POST",
+    "path": "/api/world/posts/by-id/{postId}/like"
   },
   {
     "operation_id": "linkOauth",
@@ -450,6 +510,12 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats"
+  },
+  {
+    "operation_id": "listLikedPosts",
+    "service": "Posts",
+    "method": "GET",
+    "path": "/api/world/posts/liked"
   },
   {
     "operation_id": "listMessages",
@@ -596,6 +662,24 @@ REALM_OPERATIONS = [
     "path": "/api/auth/email/otp/request"
   },
   {
+    "operation_id": "searchHumanUsers",
+    "service": "User",
+    "method": "GET",
+    "path": "/api/human/search"
+  },
+  {
+    "operation_id": "searchIndexedUsers",
+    "service": "Search",
+    "method": "GET",
+    "path": "/api/search/users"
+  },
+  {
+    "operation_id": "searchPosts",
+    "service": "Search",
+    "method": "GET",
+    "path": "/api/search/posts"
+  },
+  {
     "operation_id": "sendMessage",
     "service": "Human Chats",
     "method": "POST",
@@ -680,6 +764,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/blocks/{id}"
   },
   {
+    "operation_id": "unlikePost",
+    "service": "Posts",
+    "method": "DELETE",
+    "path": "/api/world/posts/by-id/{postId}/like"
+  },
+  {
     "operation_id": "unlinkOauth",
     "service": "Auth",
     "method": "DELETE",
@@ -732,6 +822,12 @@ REALM_OPERATIONS = [
     "service": "Auth",
     "method": "PUT",
     "path": "/api/auth/me/password"
+  },
+  {
+    "operation_id": "updatePost",
+    "service": "Posts",
+    "method": "PATCH",
+    "path": "/api/world/posts/by-id/{id}"
   },
   {
     "operation_id": "updateResource",

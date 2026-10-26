@@ -33,7 +33,7 @@
       "reason": "Remove the unreachable protected SYNC image contract; public image generation remains ASYNC_JOB with formal typed results. Reserve deleted field numbers and names. This is an explicitly documented 0.x minor wire hard cut.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.21.0 / Kit and native 0.18.0 — Unified asynchronous Job lifecycle (development)"
+        "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
       }
     },
     {
@@ -43,7 +43,7 @@
       "reason": "Remove the unreachable protected SYNC image contract; public image generation remains ASYNC_JOB with formal typed results. Reserve deleted field numbers and names. This is an explicitly documented 0.x minor wire hard cut.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.21.0 / Kit and native 0.18.0 — Unified asynchronous Job lifecycle (development)"
+        "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
       }
     },
     {
@@ -53,7 +53,7 @@
       "reason": "Remove the unreachable protected SYNC image contract; public image generation remains ASYNC_JOB with formal typed results. Reserve deleted field numbers and names. This is an explicitly documented 0.x minor wire hard cut.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.21.0 / Kit and native 0.18.0 — Unified asynchronous Job lifecycle (development)"
+        "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
       }
     },
     {
@@ -63,7 +63,7 @@
       "reason": "The approved source-only LocalAgent recovery hard cut restores an optional originating request correlation at new field 3; old field 2 stays reserved. Matching Runtime/native/SDK/Kit are required for this next 0.x minor, with no legacy carrier fallback. This declaration documents the existing recovery change; it does not refresh or replace the published baseline.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "Unreleased — LocalAgent Conversation recovery and controls"
+        "heading": "Unreleased \u2014 LocalAgent Conversation recovery and controls"
       }
     },
     {
@@ -73,7 +73,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -83,7 +83,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -93,7 +93,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -103,7 +103,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -113,7 +113,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -123,7 +123,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -133,7 +133,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -143,7 +143,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -153,7 +153,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -163,7 +163,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -173,7 +173,7 @@
       "reason": "Unreleased LocalAgent life-frame hard cut removes the old hook scheduler API and hook-named configuration. Use retained own intentions, independent free contact and background output/planning controls with matching Runtime, native, SDK and Kit.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
       }
     },
     {
@@ -183,7 +183,27 @@
       "reason": "Replace the terminal-only life fact with actual activity state, stable change identity and independent self-action/object. Explicitly authorized pre-release hard cut; field 3 and its name remain reserved.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "SDK 0.22.0 — LocalAgent life frames (development)"
+        "heading": "SDK 0.22.0 \u2014 LocalAgent life frames (development)"
+      }
+    },
+    {
+      "rule": "FIELD_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present field \"6\" with name \"url\" on message \"RealmChatAttachmentPayload\" was deleted.",
+      "reason": "Authorized pre-release Realm media hard cut: carry the typed Resource delivery descriptor and explicit external URL instead of ambiguous provider URL aliases. Old field numbers and names remain reserved; deploy matching Runtime, Realm, SDK, Kit and native carriers together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "0.22.0 \u2014 Realm media delivery (development)"
+      }
+    },
+    {
+      "rule": "FIELD_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present field \"7\" with name \"thumbnail\" on message \"RealmChatAttachmentPayload\" was deleted.",
+      "reason": "Authorized pre-release Realm media hard cut: carry the typed Resource delivery descriptor and explicit external URL instead of ambiguous provider URL aliases. Old field numbers and names remain reserved; deploy matching Runtime, Realm, SDK, Kit and native carriers together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "0.22.0 \u2014 Realm media delivery (development)"
       }
     }
   ]

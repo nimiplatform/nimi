@@ -1,3 +1,4 @@
+import type { RealmMediaDeliveryDto, WorldPublicAssetDto } from './data/world-public-projection.js';
 import type { WorldComputedTime } from './world-list-model';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
@@ -14,23 +15,13 @@ export type WorldRecommendedCharacter = {
   readonly name: string;
   readonly handle?: string | null;
   readonly avatarUrl?: string | null;
+  readonly avatarMedia?: RealmMediaDeliveryDto | null;
   readonly sourceRef?: CharacterSourceRefV3 | null;
   readonly importance?: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | null;
   readonly display?: WorldRecommendedCharacterDisplay | null;
 };
 
-export type WorldPublicMediaAsset = {
-  readonly id: string;
-  readonly kind: string;
-  readonly url: string;
-  readonly provider?: string | null;
-  readonly mimeType?: string | null;
-  readonly width?: number | null;
-  readonly height?: number | null;
-  readonly durationSec?: number | null;
-  readonly sha256?: string | null;
-  readonly provenance?: Record<string, unknown> | null;
-};
+export type WorldPublicMediaAsset = WorldPublicAssetDto;
 
 export type WorldCharacterMediaAssets = {
   readonly avatar?: WorldPublicMediaAsset | null;
@@ -51,6 +42,8 @@ export type WorldDetailData = {
   readonly contentRating?: string | null;
   readonly iconUrl: string | null;
   readonly bannerUrl: string | null;
+  readonly iconMedia?: RealmMediaDeliveryDto | null;
+  readonly bannerMedia?: RealmMediaDeliveryDto | null;
   readonly type: 'OASIS' | 'CREATOR';
   readonly status: 'DISCOVERABLE' | 'PUBLIC' | 'SYSTEM';
   readonly level: number;
@@ -115,6 +108,7 @@ export type WorldCharacter = {
   readonly topics?: readonly string[];
   readonly createdAt: string;
   readonly avatarUrl?: string | null;
+  readonly avatarMedia?: RealmMediaDeliveryDto | null;
   readonly portraitUrl?: string | null;
   readonly profileCoverUrl?: string | null;
   readonly referenceImageUrl?: string | null;

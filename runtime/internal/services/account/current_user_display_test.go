@@ -119,3 +119,10 @@ func TestCurrentUserDisplayDoesNotEstablishAnotherAccountSession(t *testing.T) {
 		t.Fatalf("CurrentUserDisplay = %+v, %v", projection, err)
 	}
 }
+
+func TestManagedAvatarDoesNotPersistACapabilityOrDiscardIdentity(t *testing.T) {
+	profile, err := decodeCurrentUserProfile([]byte(`{"id":"account-1","handle":"halliday","displayName":"Halliday","avatarResourceId":"resource-1","avatarUrl":"https://assets.example/a.webp?grant=temporary-capability"}`), "https://realm.example")
+	if err != nil || profile.Display.Handle != "halliday" || profile.Display.AvatarURL != nil {
+		t.Fatal("managed media contaminated the durable identity projection")
+	}
+}

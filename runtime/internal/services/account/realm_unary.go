@@ -36,6 +36,7 @@ type realmUnaryOperation struct {
 	requestBodyAllowed     bool
 	requestBodyRequired    bool
 	responseMaxBytes       int64
+	mediaUpload            bool
 }
 
 type realmUnaryParameterKind uint8
@@ -197,7 +198,9 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	}
 	var projected *runtimev1.InvokeRealmUnaryResponse
 	desktopWorldRead := desktopWorldSourceReadOperation(methodID)
-	if localAppOperation == LocalAppOperationPersonaDelete {
+	if operation.mediaUpload && result.status >= http.StatusOK && result.status < http.StatusMultipleChoices {
+		projected = projectRealmMediaUpload(result, parsedRequest)
+	} else if localAppOperation == LocalAppOperationPersonaDelete {
 		personaCharacterID, _ := parsedRequest.Path["personaCharacterId"].(string)
 		projected = projectLocalAppPersonaCharacterDeleteResponse(result, personaCharacterID)
 	} else if isLocalAppPersonaCharacterOperation(localAppOperation) || isLocalAppWorldCreatorOperation(localAppOperation) {

@@ -1,9 +1,11 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
 } from '../../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
+export type RealmMediaDeliveryDto = RealmModel<'MediaDeliveryDto'>;
 export type WorldPublicItemDto = RealmModel<'WorldPublicItemDto'>;
 export type WorldPublicDetailDto = RealmModel<'WorldPublicDetailDto'>;
 export type WorldPublicDetailWithCharactersDto = RealmModel<'WorldPublicDetailWithCharactersDto'>;
@@ -34,6 +36,7 @@ export type WorldCharacterSummaryDto = {
   lifeStageDescription?: string | null;
 
   avatarUrl?: string | null;
+  avatarMedia?: RealmMediaDeliveryDto | null;
   portraitUrl?: string | null;
   profileCoverUrl?: string | null;
   referenceImageUrl?: string | null;
@@ -158,20 +161,14 @@ function readBoolean(record: CoreRecord, ...keys: string[]): boolean | null {
   return null;
 }
 
-function readPublicAssetDto(value: unknown): WorldPublicAssetDto | null {
+export function readPublicAssetDto(value: unknown): WorldPublicAssetDto | null {
   const record = asRecord(value);
   const id = readString(record, 'id');
   const kind = readString(record, 'kind');
-  const url = readPublicUrl(record, 'url');
-  if (!id || !kind || !url) {
-    return null;
-  }
-  return {
-    ...(record as unknown as WorldPublicAssetDto),
-    id,
-    kind: kind as WorldPublicAssetDto['kind'],
-    url,
-  };
+  const delivery = readMediaDelivery(record.delivery);
+  const externalUrl = readPublicUrlValue(record.externalUrl);
+  if (!id || !kind || (!delivery && !externalUrl) || (delivery && delivery.resourceId !== id)) return null;
+  return { ...(record as unknown as WorldPublicAssetDto), id, kind: kind as WorldPublicAssetDto['kind'], delivery, externalUrl };
 }
 
 function readPublicAssetFromRecord(record: CoreRecord, key: string): WorldPublicAssetDto | null {
@@ -183,7 +180,7 @@ function requirePublicAssetDto(value: unknown, context: string): WorldPublicAsse
   if (!asset) {
     failRealmWorldContract(
       'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
-      `${context} must be a public asset with id, kind, and url`,
+      `${context} must be a public asset with identity and explicit delivery`,
     );
   }
   return asset;
@@ -432,21 +429,16 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     .map((item) => item.trim());
   // Display order is the explicit genre, then themes, then the optional era; nothing is inferred.
   const tags = [...new Set([genre, ...themes, era].filter((item): item is string => Boolean(item)))];
-  const iconUrl = iconAsset?.url ?? readPublicUrl(media, 'iconUrl');
-  const bannerUrl = bannerAsset?.url ?? readPublicUrl(media, 'bannerUrl') ?? heroAsset?.url ?? readPublicUrl(media, 'heroUrl');
-  const heroUrl = heroAsset?.url ?? readPublicUrl(media, 'heroUrl');
-  const highlightUrls = highlightAssets.length > 0
-    ? highlightAssets.map((asset) => asset.url)
-    : readArray<string>(media, 'highlightUrls')
-      .map(readPublicUrlValue)
-      .filter((item): item is string => Boolean(item));
-  const projectedMedia = {
-    ...media,
-    iconUrl,
-    bannerUrl,
-    heroUrl,
-    highlightUrls,
-  };
+  const external = asRecord(media.external);
+  const iconUrl = iconAsset?.externalUrl ?? readPublicUrl(external, 'iconUrl');
+  const bannerUrl = bannerAsset?.externalUrl ?? readPublicUrl(external, 'bannerUrl') ?? heroAsset?.externalUrl ?? readPublicUrl(external, 'heroUrl');
+  const heroUrl = heroAsset?.externalUrl ?? readPublicUrl(external, 'heroUrl');
+  const highlightUrls = [...new Set([...highlightAssets.filter((asset) => !asset.delivery).map((asset) => asset.externalUrl), ...readArray<string>(external, 'highlightUrls')].map(readPublicUrlValue).filter((item): item is string => Boolean(item)))];
+  const iconMedia = iconAsset?.delivery ?? null;
+  const bannerMedia = bannerAsset?.delivery ?? heroAsset?.delivery ?? null;
+  const heroMedia = heroAsset?.delivery ?? bannerAsset?.delivery ?? null;
+  const highlightMedia = highlightAssets.map((asset) => asset.delivery).filter((delivery): delivery is RealmMediaDeliveryDto => Boolean(delivery));
+  const projectedMedia = { external: { iconUrl: readPublicUrl(external, 'iconUrl'), bannerUrl: readPublicUrl(external, 'bannerUrl'), heroUrl: readPublicUrl(external, 'heroUrl'), highlightUrls: readArray<string>(external, 'highlightUrls').map(readPublicUrlValue).filter(Boolean) }, assets: { icon: iconAsset, banner: bannerAsset, hero: heroAsset, highlights: highlightAssets }, unavailableResourceRefs: readArray<string>(media, 'unavailableResourceRefs'), iconMedia, bannerMedia, heroMedia, highlightMedia };
   return {
     id: world.id,
     name: world.name,
@@ -466,6 +458,7 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     bannerUrl,
     heroUrl,
     highlightUrls,
+    iconMedia, bannerMedia, heroMedia, highlightMedia,
     status: 'DISCOVERABLE',
     entityCount: readNumber(stats, 'entityCount') ?? 0,
     relationshipCount: readNumber(stats, 'relationshipCount') ?? 0,
@@ -534,18 +527,12 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
     bodyDescription: source.bodyDescription,
     lifeStageDescription: source.lifeStageDescription,
 
-    avatarUrl:
-      avatarAsset?.url ??
-      readPublicUrl(media, 'avatarUrl') ??
-      portraitAsset?.url ??
-      readPublicUrl(media, 'portraitUrl') ??
-      referenceImageAsset?.url ??
-      readPublicUrl(media, 'referenceImageUrl') ??
-      null,
-    portraitUrl: portraitAsset?.url ?? readPublicUrl(media, 'portraitUrl'),
-    profileCoverUrl: profileCoverAsset?.url ?? readPublicUrl(media, 'profileCoverUrl'),
-    referenceImageUrl: referenceImageAsset?.url ?? readPublicUrl(media, 'referenceImageUrl'),
-    voiceSampleUrl: voiceSampleAsset?.url ?? readPublicUrl(media, 'voiceSampleUrl'),
+    avatarUrl: avatarAsset?.externalUrl ?? portraitAsset?.externalUrl ?? referenceImageAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'avatarUrl', 'portraitUrl', 'referenceImageUrl'),
+    avatarMedia: avatarAsset?.delivery ?? portraitAsset?.delivery ?? referenceImageAsset?.delivery ?? null,
+    portraitUrl: portraitAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'portraitUrl'),
+    profileCoverUrl: profileCoverAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'profileCoverUrl'),
+    referenceImageUrl: referenceImageAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'referenceImageUrl'),
+    voiceSampleUrl: voiceSampleAsset?.delivery?.previewUrl ?? voiceSampleAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'voiceSampleUrl'),
     mediaAssets: {
       avatar: avatarAsset,
       portrait: portraitAsset,
@@ -682,20 +669,11 @@ export function buildWorldPublicAssets(world: CoreRecord): WorldAssetListPayload
     readPublicAssetFromRecord(mediaAssetsRecord, 'hero'),
     ...readArray<unknown>(mediaAssetsRecord, 'highlights').map(readPublicAssetDto),
   ].filter((asset): asset is WorldPublicAssetDto => Boolean(asset));
-  const fallbackExternalRefs = structuredAssets.length > 0
-    ? []
-    : [
-        ['icon', readPublicUrl(media, 'iconUrl')],
-        ['banner', readPublicUrl(media, 'bannerUrl')],
-        ['hero', readPublicUrl(media, 'heroUrl')],
-        ...readArray<string>(media, 'highlightUrls')
-          .map((url, index) => [`highlight-${index + 1}`, readPublicUrlValue(url)] as const),
-      ].flatMap(([kind, uri]) => uri ? [{ refId: `world-media-${kind}`, kind, uri }] : []);
-  const structuredExternalRefs = structuredAssets.map((asset, index) => ({
-    refId: asset.id || `world-media-${asset.kind}-${index + 1}`,
-    kind: asset.kind,
-    uri: asset.url,
-  }));
+  const external = asRecord(media.external);
+  const fallbackExternalRefs = [
+    ['icon', readPublicUrl(external, 'iconUrl')], ['banner', readPublicUrl(external, 'bannerUrl')], ['hero', readPublicUrl(external, 'heroUrl')],
+    ...readArray<string>(external, 'highlightUrls').map((url, index) => [`highlight-${index + 1}`, readPublicUrlValue(url)] as const),
+  ].flatMap(([kind, uri]) => uri ? [{ refId: `world-external-${kind}`, kind, uri }] : []);
   const structuredResourceRefs = structuredAssets.map((asset) => ({
     refId: asset.id,
     kind: asset.kind,
@@ -704,7 +682,8 @@ export function buildWorldPublicAssets(world: CoreRecord): WorldAssetListPayload
   }));
   return {
     resourceRefs: structuredResourceRefs,
-    externalRefs: [...structuredExternalRefs, ...fallbackExternalRefs],
+    mediaAssets: structuredAssets,
+    externalRefs: fallbackExternalRefs,
     intents: [],
   };
 }

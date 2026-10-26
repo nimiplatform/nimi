@@ -4,7 +4,7 @@ import { createNimiLocalAppAgentIntroductionClient, createNimiLocalAppAgentIntro
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 
 const agentHandle = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
-const value = { worldName: '清代', era: 'qing', role: '学者', greeting: '你好', referenceImageUrl: 'https://cdn.example.test/full.png', voiceSampleUrl: null, voiceSampleDurationSec: null, questionTopics: [{kind: 'work', text: '潜研堂集'}] };
+const value = { worldName: '清代', era: 'qing', role: '学者', greeting: '你好', referenceImageUrl: 'https://cdn.example.test/full.png', voiceSampleUrl: null, voicePreviewUrl: null, voiceSampleContentHash: null, voiceSampleMimeType: null, voiceSampleDurationSec: null, questionTopics: [{kind: 'work', text: '潜研堂集'}] };
 
 test('Agent introduction uses the exact handle and preserves optional display facts', async () => {
  const client = createNimiLocalAppAgentIntroductionClient({ getIntroduction: async input => { assert.deepEqual(input, {agentHandle}); return value; } });
@@ -40,5 +40,18 @@ test('Introduction rejects coerced topic kinds and browser-normalized unsafe med
    const client=createNimiLocalAppAgentIntroductionClient({getIntroduction:async()=>({...value,[field]:url})});
    await assert.rejects(()=>client.getIntroduction({agentHandle}));
   }
+ }
+});
+
+test('introduction keeps hash-bound original capabilities separate from playback previews', async () => {
+ const hash='a'.repeat(64); const grant=`${Buffer.from('{}').toString('base64url')}.${'A'.repeat(43)}`;
+ const original=`https://assets.example.test/m/voice-1/${hash}/v1/original.bin?grant=${grant}`;
+ const projection={...value,voiceSampleUrl:original,voicePreviewUrl:'https://assets.example.test/preview.mp3',voiceSampleContentHash:hash,voiceSampleDurationSec:8};
+ const client=createNimiLocalAppAgentIntroductionClient({getIntroduction:async()=>projection});
+ const result=await client.getIntroduction({agentHandle});
+ assert.equal(result.voiceSampleUrl,original); assert.equal(result.voicePreviewUrl,projection.voicePreviewUrl);
+ for(const changed of [{voiceSampleContentHash:'b'.repeat(64)},{voicePreviewUrl:original},{voiceSampleUrl:original+'&extra=1'}]){
+  const invalid=createNimiLocalAppAgentIntroductionClient({getIntroduction:async()=>({...projection,...changed})});
+  await assert.rejects(()=>invalid.getIntroduction({agentHandle}));
  }
 });

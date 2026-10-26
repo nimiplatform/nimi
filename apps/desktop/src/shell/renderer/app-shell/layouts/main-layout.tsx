@@ -1,3 +1,4 @@
+import { CurrentUserProfileObserver } from '../../features/profile/current-user-profile.js';
 import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { GlobalDownloadsProvider } from '../../features/runtime-config/global-downloads-context.js';
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
@@ -138,6 +139,7 @@ export function MainLayout() {
     <AppsDownloadsProvider nativeVisible={homeVisible}>
       <GlobalDownloadsProvider nativeVisible={homeVisible}>
         <SystemEntryProvider notifications={notifications} reading={reading} onHomeVisibility={setHomeVisible}>
+        <CurrentUserProfileObserver />
         <MainLayoutView
         activeTab={activeTab}
         authStatus={authStatus}

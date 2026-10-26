@@ -6,6 +6,13 @@ table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_realm_broker_operations
 surfaces:
+  - createImageDirectUpload
+  - createVideoDirectUpload
+  - createAudioDirectUpload
+  - finalizeResource
+  - getResource
+  - cancelResourceUpload
+  - deleteResource
   - WorldCoreController_createPersonaCharacter
   - WorldCoreController_getWorldCreationEligibility
   - WorldCoreController_createWorldCore
@@ -107,6 +114,7 @@ operation_schema:
     - protected_local_app_persona_character_owner
   credential_response_policy_values:
     - forbidden
+    - resource_scoped_upload
 
 policy_templates:
   desktop_source_read: &desktop_source_read
@@ -736,20 +744,69 @@ operations:
     request_schema_ref: realm-openapi://operation/EconomyController_getWithdrawalHistory/request
     response_schema_ref: realm-openapi://operation/EconomyController_getWithdrawalHistory/response
 
+  - <<: *desktop_product
+    operation_id: createImageDirectUpload
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: POST
+    path_template: /api/resources/images/direct-upload
+    request_schema_ref: realm-openapi://operation/createImageDirectUpload/request
+    response_schema_ref: realm-openapi://operation/createImageDirectUpload/response
+    credential_response_policy: resource_scoped_upload
+
+  - <<: *desktop_product
+    operation_id: createVideoDirectUpload
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: POST
+    path_template: /api/resources/videos/direct-upload
+    request_schema_ref: realm-openapi://operation/createVideoDirectUpload/request
+    response_schema_ref: realm-openapi://operation/createVideoDirectUpload/response
+    credential_response_policy: resource_scoped_upload
+
+  - <<: *desktop_product
+    operation_id: createAudioDirectUpload
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: POST
+    path_template: /api/resources/audio/direct-upload
+    request_schema_ref: realm-openapi://operation/createAudioDirectUpload/request
+    response_schema_ref: realm-openapi://operation/createAudioDirectUpload/response
+    credential_response_policy: resource_scoped_upload
+
+  - <<: *desktop_product
+    operation_id: finalizeResource
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: POST
+    path_template: /api/resources/{resourceId}/finalize
+    request_schema_ref: realm-openapi://operation/finalizeResource/request
+    response_schema_ref: realm-openapi://operation/finalizeResource/response
+
+  - <<: *desktop_product
+    operation_id: getResource
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: GET
+    path_template: /api/resources/{resourceId}
+    request_schema_ref: realm-openapi://operation/getResource/request
+    response_schema_ref: realm-openapi://operation/getResource/response
+
+  - <<: *desktop_product
+    operation_id: cancelResourceUpload
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: POST
+    path_template: /api/resources/{resourceId}/cancel-upload
+    request_schema_ref: realm-openapi://operation/cancelResourceUpload/request
+    response_schema_ref: realm-openapi://operation/cancelResourceUpload/response
+
+  - <<: *desktop_product
+    operation_id: deleteResource
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.media-capabilities
+    http_method: DELETE
+    path_template: /api/resources/{resourceId}
+    request_schema_ref: realm-openapi://operation/deleteResource/request
+    response_schema_ref: realm-openapi://operation/deleteResource/response
+
 forbidden_operation_classes:
   - every_realm_operation_not_listed_in_operations
   - auth_login_refresh_token_exchange
-  - credential_or_session_issuance
-  - direct_upload_url_or_signed_credential_issuance
+  - account_credential_or_session_issuance
+  - unbounded_upload_or_arbitrary_signed_credential_issuance
   - arbitrary_http_proxy
-
-explicitly_not_admitted:
-  - operation_id: createImageDirectUpload
-    authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
-    reason: response_may_issue_signed_upload_credentials
-  - operation_id: createVideoDirectUpload
-    authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
-    reason: response_may_issue_signed_upload_credentials
-  - operation_id: createAudioDirectUpload
-    authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
-    reason: response_may_issue_signed_upload_credentials
+explicitly_not_admitted: []

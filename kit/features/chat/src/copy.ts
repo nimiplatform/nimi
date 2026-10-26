@@ -74,6 +74,8 @@ export type ChatCopy = {
   bubbleImagePreviewTitle?: string;
   /** CanonicalMessageBubble aria label for opening the image preview. */
   bubbleOpenImagePreviewLabel?: string;
+  bubbleDownloadOriginalLabel?: string;
+  bubbleDownloadFailedLabel?: string;
   /** CanonicalMessageBubble aria label for closing the image preview. */
   bubbleCloseImagePreviewLabel?: string;
   /** CanonicalMessageBubble image fallback alt text. */
@@ -136,6 +138,8 @@ export const DEFAULT_CHAT_COPY: Required<ChatCopy> = Object.freeze({
   bubbleGeneratingVideoLabel: 'Generating video…',
   bubbleImagePreviewTitle: 'Image preview',
   bubbleOpenImagePreviewLabel: 'Open image preview',
+  bubbleDownloadOriginalLabel: 'Download original',
+  bubbleDownloadFailedLabel: 'Could not download the original. Try again.',
   bubbleCloseImagePreviewLabel: 'Close image preview',
   bubbleImageLabel: 'Image',
   bubbleImageUnavailableLabel: 'Image unavailable',

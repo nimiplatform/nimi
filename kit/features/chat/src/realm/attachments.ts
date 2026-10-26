@@ -1,3 +1,4 @@
+import { readMediaDelivery, selectMediaImage } from '@nimiplatform/kit/features/media/headless';
 import { resolveNimiRealmMediaUrl } from '@nimiplatform/kit/core/sdk-contract';
 import type { RealmMessageInputPayload, RealmMessageViewDto } from './codec.js';
 import type { RealmChatTimelineDisplayModel, RealmChatTimelineMessage } from './types.js';
@@ -68,7 +69,7 @@ export function resolveRealmChatAttachmentPreviewText(payload: unknown): string 
   }
 }
 
-function resolveTimelineAttachmentRecord(payload: unknown): Record<string, unknown> | null {
+export function resolveTimelineAttachmentRecord(payload: unknown): Record<string, unknown> | null {
   const record = asRecord(payload);
   const attachment = asRecord(record?.attachment);
   if (!attachment) {
@@ -87,15 +88,11 @@ function resolveTimelineAttachmentRecord(payload: unknown): Record<string, unkno
 }
 
 export function resolveRealmChatMediaUrl(payload: unknown, realmBaseUrl: string): string {
-  const record = asRecord(payload);
-  const attachment = asRecord(record?.attachment);
-  const preview = asRecord(attachment?.preview);
-  const timelineAttachment = resolveTimelineAttachmentRecord(payload);
-  const url = normalizeString(timelineAttachment?.url || attachment?.url || preview?.url || record?.url);
-  if (!url) {
-    return '';
-  }
-  return resolveNimiRealmMediaUrl({ realmBaseUrl, mediaUrl: url }) || '';
+  const attachment = resolveTimelineAttachmentRecord(payload);
+  const delivery = readMediaDelivery(attachment?.delivery);
+  if (delivery) return delivery.previewUrl ?? delivery.video?.hlsUrl ?? selectMediaImage(delivery, 'chat')?.src ?? '';
+  return resolveNimiRealmMediaUrl({ realmBaseUrl, mediaUrl: normalizeString(attachment?.externalUrl) }) || '';
+
 }
 
 export function getRealmChatTimelineDisplayModel(

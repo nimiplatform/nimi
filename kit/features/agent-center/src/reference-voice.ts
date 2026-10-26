@@ -27,7 +27,7 @@ function terminal(job: JobResult['job']): boolean {
 /** Coordinates existing owner calls; it owns no voice, route, source, or durable job store. */
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-004
 export function createAgentReferenceVoiceController(client: Client, handle: Handle) {
-  let state: AgentCenterReferenceVoiceProjection = { phase: 'loading', sampleUrl: null, reason: null, reasonCode: null };
+  let state: AgentCenterReferenceVoiceProjection = { phase: 'loading', previewUrl: null, reason: null, reasonCode: null };
   const listeners = new Set<() => void>();
   let disposed = false;
   let epoch = 0;
@@ -53,34 +53,38 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
       }), observation?.shared ?? client.agentConfigure.sharedAIConfig.get(),
     ]);
     const sampleUrl = introduction.voiceSampleUrl;
+    const previewUrl = introduction.voicePreviewUrl;
+    const originalMimeType = introduction.voiceSampleMimeType;
+    const sourceIdentity = introduction.voiceSampleContentHash ? { contentHash: introduction.voiceSampleContentHash } : { externalUrl: sampleUrl };
     const existing = presentation.defaultVoiceReference || presentation.profile?.defaultVoiceReference;
     if (existing?.startsWith('voice_asset_id:')) {
       const options = await (observation?.voiceAssets ?? client.agentConfigure.sharedAIConfig.listOptions({ kind: 'voice-assets' }));
       if (options.kind === 'voice-assets' && options.options.some(x => `voice_asset_id:${x.voiceAssetId}` === existing)) {
-        return { presentation, sampleUrl, reason: null, existing: true as const };
+        return { presentation, sampleUrl, previewUrl, originalMimeType, reason: null, existing: true as const };
       }
     }
-    if (!sampleUrl) return { presentation, sampleUrl, reason: 'reference-missing' as const };
+    if (!sampleUrl) return { presentation, sampleUrl, previewUrl, originalMimeType, reason: 'reference-missing' as const };
     const creation = app.effectiveSelections.find(x => x.capabilityContract === 'voice.create');
     const synthesis = shared.effectiveSelections.find(x => x.capabilityContract === 'audio.synthesize');
     if (creation?.state !== 'ready' || creation.resource?.oneofKind !== 'cloud') {
-      return { presentation, sampleUrl, reason: 'creation-configuration-required' as const };
+      return { presentation, sampleUrl, previewUrl, originalMimeType, reason: 'creation-configuration-required' as const };
     }
     if (synthesis?.state !== 'ready' || synthesis.resource?.oneofKind !== 'cloud') {
-      return { presentation, sampleUrl, reason: 'synthesis-configuration-required' as const };
+      return { presentation, sampleUrl, previewUrl, originalMimeType, reason: 'synthesis-configuration-required' as const };
     }
     const create = creation.resource.cloud;
     const speech = synthesis.resource.cloud;
     const audio = create.target.referenceAudioInput;
-    if (!create.target.supportedFeatures.includes('input.audio') || !audio?.supportsUri || audio.textMode === 'required') {
-      return { presentation, sampleUrl, reason: 'reference-input-unsupported' as const };
+    if (!create.target.supportedFeatures.includes('input.audio') || !audio?.supportsUri || audio.textMode === 'required'
+      || (originalMimeType && audio.mimeTypes.length > 0 && !audio.mimeTypes.includes(originalMimeType))) {
+      return { presentation, sampleUrl, previewUrl, originalMimeType, reason: 'reference-input-unsupported' as const };
     }
     if (create.connector.connectorRef !== speech.connector.connectorRef
       || canonical(create.target.providerModelTarget) !== canonical(speech.target.providerModelTarget)) {
-      return { presentation, sampleUrl, reason: 'configuration-incompatible' as const };
+      return { presentation, sampleUrl, previewUrl, originalMimeType, reason: 'configuration-incompatible' as const };
     }
-    return { presentation, sampleUrl, reason: null,
-      identity: canonical({ sampleUrl, connector: create.connector.connectorRef, target: create.target.providerModelTarget }) };
+    return { presentation, sampleUrl, previewUrl, originalMimeType, reason: null,
+      identity: canonical({ source: sourceIdentity, connector: create.connector.connectorRef, target: create.target.providerModelTarget }) };
   };
   // Only the same factory-owned read may supply observations. start() and its
   // final pre-commit prepare() always reread their owners independently.
@@ -90,11 +94,11 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
     try {
       const prepared = await prepare(observation);
       if (disposed || version !== epoch || pending) return;
-      publish({ phase: prepared.existing ? 'bound' : prepared.reason ? 'unavailable' : 'ready', sampleUrl: prepared.sampleUrl,
+      publish({ phase: prepared.existing ? 'bound' : prepared.reason ? 'unavailable' : 'ready', previewUrl: prepared.previewUrl,
         reason: prepared.reason, reasonCode: null });
     } catch (error) {
       if (disposed || version !== epoch || pending) return;
-      publish({ phase: 'unavailable', sampleUrl: null, reason: 'owner-unavailable', reasonCode: asNimiError(error).reasonCode });
+      publish({ phase: 'unavailable', previewUrl: null, reason: 'owner-unavailable', reasonCode: asNimiError(error).reasonCode });
     }
   };
   const start = (): Promise<Presentation> => {
@@ -108,13 +112,13 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
         assertCurrent(version);
         if (prepared.existing) return prepared.presentation;
         if (prepared.reason || !prepared.identity || !prepared.sampleUrl) {
-          publish({ phase: 'unavailable', sampleUrl: prepared.sampleUrl, reason: prepared.reason ?? 'owner-unavailable', reasonCode: null });
+          publish({ phase: 'unavailable', previewUrl: prepared.previewUrl, reason: prepared.reason ?? 'owner-unavailable', reasonCode: null });
           throw new Error('Reference voice setup is required.');
         }
         const sourceIdentity = prepared.identity;
         const id = await submissionId(sourceIdentity + (failedJobId ? `\nretry:${failedJobId}` : ''));
         assertCurrent(version);
-        publish({ phase: 'creating', sampleUrl: prepared.sampleUrl, reason: null, reasonCode: null });
+        publish({ phase: 'creating', previewUrl: prepared.previewUrl, reason: null, reasonCode: null });
         let result: JobResult | null = null;
         try { result = await client.ai.scenarioJobs.lookupSubmission(id); }
         catch (error) {
@@ -126,7 +130,7 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
         assertCurrent(version);
         if (!result) {
           const submitted = await client.ai.scenarioJobs.submit({ type: 'voice-create', creationSource: 'reference-audio',
-            referenceAudio: { type: 'uri', uri: prepared.sampleUrl }, referenceAudioMime: '', languageHints: [], preferredName: '', text: '' },
+            referenceAudio: { type: 'uri', uri: prepared.sampleUrl }, referenceAudioMime: prepared.originalMimeType ?? '', languageHints: [], preferredName: '', text: '' },
           { clientSubmissionId: id });
           jobId = submitted.job.jobId;
           if (disposed || epoch !== version || canceled) {
@@ -143,7 +147,7 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
         assertCurrent(version);
         if (result.job.status !== 'completed' || !result.asset || !result.voiceReference || result.asset.status !== 'active') {
           failedJobId = result.job.jobId;
-          publish({ phase: result.job.status === 'canceled' ? 'canceled' : 'failed', sampleUrl: prepared.sampleUrl,
+          publish({ phase: result.job.status === 'canceled' ? 'canceled' : 'failed', previewUrl: prepared.previewUrl,
             reason: 'creation-failed', reasonCode: result.job.reasonCode || null });
           throw new Error(result.job.reasonDetail || 'Voice creation did not complete.');
         }
@@ -153,7 +157,7 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
           || current.presentation.presentationRevision !== prepared.presentation.presentationRevision) {
           throw new Error('Voice source, configuration or presentation changed. The created voice remains in your voice library.');
         }
-        publish({ phase: 'binding', sampleUrl: prepared.sampleUrl, reason: null, reasonCode: null });
+        publish({ phase: 'binding', previewUrl: prepared.previewUrl, reason: null, reasonCode: null });
         const reference = `voice_asset_id:${result.voiceReference.voiceAssetId}`;
         let projection: Presentation;
         try {
@@ -178,7 +182,7 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
           }
         }
         assertCurrent(version);
-        publish({ phase: 'bound', sampleUrl: prepared.sampleUrl, reason: null, reasonCode: null });
+        publish({ phase: 'bound', previewUrl: prepared.previewUrl, reason: null, reasonCode: null });
         failedJobId = null;
         return projection;
       } catch (error) {

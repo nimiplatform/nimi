@@ -99,6 +99,7 @@ export async function loadExplorePersonas(
           name: card.displayName,
           handle: card.handle || card.displayName,
           avatarUrl: projected.avatarUrl ?? null,
+          avatarMedia: projected.avatarMedia ?? null,
           bio: card.summary,
           tags: [...card.traits, ...card.topics],
           sourceRef,

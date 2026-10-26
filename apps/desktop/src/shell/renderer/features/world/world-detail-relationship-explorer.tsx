@@ -52,7 +52,7 @@ function CharacterMiniList({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 7 }}>
           {characters.map((character) => (
             <button key={character.id} type="button" onClick={() => onSelect(character.id)} style={{ ...softPanelStyle(), padding: '9px 10px', display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={30} />
+              <PaperAvatar name={character.name} imageUrl={character.avatarUrl} media={character.avatarMedia} size={30} />
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 12.5, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{character.name}</span>
                 <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: 'var(--nimi-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{characterMeta(character)}</span>
@@ -95,7 +95,7 @@ function CharacterProfile({
   return (
     <div data-testid="world-relationship-profile" style={{ ...panelStyle(), padding: 22, minHeight: 452 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
-        <PaperAvatar name={center.name} imageUrl={center.avatarUrl} size={64} />
+        <PaperAvatar name={center.name} imageUrl={center.avatarUrl} media={center.avatarMedia} size={64} />
         <div style={{ minWidth: 0 }}>
           <PaperTag>{t('WorldDetail.paper.relationshipExplorer.profile.status')}</PaperTag>
           <h3 style={{ margin: '10px 0 6px', fontSize: 24, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{center.name}</h3>
@@ -208,7 +208,7 @@ function PeoplePanel({
                     background: selected ? 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)' : 'transparent',
                   }}
                 >
-                  <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={38} />
+                  <PaperAvatar name={character.name} imageUrl={character.avatarUrl} media={character.avatarMedia} size={38} />
                   <span style={{ minWidth: 0, flex: 1 }}>
                     <span data-testid="world-relationship-person-title-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
                       <span style={{ minWidth: 0, fontSize: 13, fontWeight: 900, color: 'var(--nimi-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{character.name}</span>

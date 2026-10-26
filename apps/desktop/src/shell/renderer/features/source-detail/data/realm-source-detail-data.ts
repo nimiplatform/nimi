@@ -225,7 +225,8 @@ async function loadProfileProjection(
   // The source card carries character media only. Resolve the world's public
   // banner when the character has no cover, using the same projection as World.
   let worldBannerUrl: string | null = null;
-  if (!projection.profileCoverUrl) {
+  let worldBannerMedia: unknown = null;
+  if (!projection.mediaAssets.profileCover && !projection.profileCoverUrl) {
     // An unavailable optional image must not hide a successfully loaded
     // character. Validate successful replies outside the transport catch so
     // malformed or mismatched public projections still fail closed.
@@ -233,13 +234,15 @@ async function loadProfileProjection(
       path: { worldId: source.worldId },
     }).then(value => ({ value })).catch(() => null);
     if (world !== null) {
-      const banner = projectWorldPublicItem(requireWorldPublicDetailDto(world.value, source.worldId)).bannerUrl;
-      worldBannerUrl = typeof banner === 'string' ? banner : null;
+      const projected = projectWorldPublicItem(requireWorldPublicDetailDto(world.value, source.worldId));
+      worldBannerUrl = typeof projected.bannerUrl === 'string' ? projected.bannerUrl : null;
+      worldBannerMedia = projected.bannerMedia;
     }
   }
   return {
     ...projection,
     worldBannerUrl,
+    worldBannerMedia,
     runtimeSourceRef: projection.viewerRelation.runtimeSourceRef ?? runtimeSourceRef,
   } as unknown as JsonObject;
 }

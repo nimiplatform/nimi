@@ -67,6 +67,8 @@ function worldListItemToDisplayData(listItem: WorldListItem): WorldDetailData {
     contentRating: listItem.contentRating ?? null,
     iconUrl: listItem.iconUrl,
     bannerUrl: listItem.bannerUrl,
+    iconMedia: listItem.iconMedia,
+    bannerMedia: listItem.heroMedia ?? listItem.bannerMedia,
     type: normalizeDisplayType(listItem.type),
     status: normalizeDisplayStatus(listItem.status),
     level: listItem.level,
@@ -97,6 +99,7 @@ function worldListItemToDisplayData(listItem: WorldListItem): WorldDetailData {
       name: character.name,
       handle: character.handle ?? null,
       avatarUrl: character.avatarUrl ?? null,
+      avatarMedia: character.avatarMedia ?? null,
       importance: null,
       display: null,
     })),
@@ -154,14 +157,15 @@ export function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt:
     topics: readStringArray(display.topics),
     createdAt: readString(character, 'createdAt') || worldCreatedAt,
     avatarUrl: readPublicUrlValue(character.avatarUrl)
-      || mediaAssets?.avatar?.url
-      || mediaAssets?.portrait?.url
-      || mediaAssets?.referenceImage?.url
+      || mediaAssets?.avatar?.externalUrl
+      || mediaAssets?.portrait?.externalUrl
+      || mediaAssets?.referenceImage?.externalUrl
       || null,
-    portraitUrl: readPublicUrlValue(character.portraitUrl) || mediaAssets?.portrait?.url || null,
-    profileCoverUrl: readPublicUrlValue(character.profileCoverUrl) || mediaAssets?.profileCover?.url || null,
-    referenceImageUrl: readPublicUrlValue(character.referenceImageUrl) || mediaAssets?.referenceImage?.url || null,
-    voiceSampleUrl: readPublicUrlValue(character.voiceSampleUrl) || mediaAssets?.voiceSample?.url || null,
+    avatarMedia: mediaAssets?.avatar?.delivery ?? mediaAssets?.portrait?.delivery ?? mediaAssets?.referenceImage?.delivery ?? null,
+    portraitUrl: readPublicUrlValue(character.portraitUrl) || mediaAssets?.portrait?.externalUrl || null,
+    profileCoverUrl: readPublicUrlValue(character.profileCoverUrl) || mediaAssets?.profileCover?.externalUrl || null,
+    referenceImageUrl: readPublicUrlValue(character.referenceImageUrl) || mediaAssets?.referenceImage?.externalUrl || null,
+    voiceSampleUrl: readPublicUrlValue(character.voiceSampleUrl) || mediaAssets?.voiceSample?.delivery?.previewUrl || null,
     mediaAssets,
     importance: importance === 'SECONDARY' || importance === 'BACKGROUND' ? importance : 'PRIMARY',
     stats: Object.keys(stats).length > 0 ? stats as WorldCharacterStats : null,

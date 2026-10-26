@@ -1,3 +1,4 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   buildRealmTextMessageInput,
@@ -6,6 +7,8 @@ import {
   listRealmChatMessages,
   markRealmChatRead,
   normalizeRealmChatLimit,
+  normalizeRealmMessagePayload,
+  resolveTimelineAttachmentRecord,
   startRealmChatWithTarget,
   type RealmMessageViewDto,
   type RealmChatViewDto,
@@ -70,6 +73,8 @@ function projectCanonicalRealmChatListItem(item: NimiRealmChatListItem): RealmCh
       handle: item.otherUser.handle,
       displayName: item.otherUser.displayName,
       avatarUrl: item.otherUser.avatarUrl,
+      avatarResourceId: item.otherUser.avatarResourceId,
+      avatarMedia: item.otherUser.avatarMedia,
       ...(item.otherUser.status ? { status: item.otherUser.status as RealmChatViewDto['otherUser']['status'] } : {}),
       isOnline: item.otherUser.presenceStatus?.toLowerCase() === 'online',
       presenceStatus: item.otherUser.presenceStatus,
@@ -128,8 +133,9 @@ function projectCanonicalRealmAttachment(attachment: NimiRealmChatAttachment): D
     targetType: attachment.targetType.toUpperCase() as DesktopRealmAttachmentEnvelope['targetType'],
     targetId: attachment.targetId,
     ...(attachment.displayKind ? { displayKind: attachment.displayKind.toUpperCase() as NonNullable<DesktopRealmAttachmentEnvelope['displayKind']> } : {}),
-    ...(attachment.url ? { url: attachment.url } : {}),
-    ...(attachment.thumbnail ? { thumbnail: attachment.thumbnail } : {}),
+    delivery: attachment.delivery,
+    externalUrl: attachment.externalUrl,
+    unavailable: attachment.unavailable,
     ...(attachment.title ? { title: attachment.title } : {}),
     ...(attachment.subtitle ? { subtitle: attachment.subtitle } : {}),
     ...(attachment.width > 0 ? { width: attachment.width } : {}),
@@ -302,12 +308,12 @@ export async function sendChatMessage(
 ) {
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
   try {
+    const input: RealmSendMessageInputDto = options.type && options.type !== 'TEXT'
+      ? { ...options, type: options.type, clientMessageId, ...(content ? { text: content } : {}) }
+      : buildRealmTextMessageInput(content, { ...options, clientMessageId });
     return await service.sendMessage(
       chatId,
-      buildRealmTextMessageInput(content, {
-        ...options,
-        clientMessageId,
-      }),
+      input,
     );
   } catch (error) {
     if (offline && isRealmOfflineError(error)) {
@@ -341,6 +347,13 @@ export function createRealmHumanChatData(sdk: DesktopRendererSdkPort) {
       startChatWithTarget(targetAccountId, initialMessage, service, emit),
     loadChatMessages: (chatId: string, limit: number, markRead?: (chatId: string) => Promise<void>) =>
       loadChatMessages(chatId, limit, markRead, service, emit, sdk.offline),
+    refreshMessageMedia: async (chatId: string, messageId: string) => {
+      // Re-read the containing message even when it is older than the newest page.
+      // `around` is the existing Realm-owned message-id read, not a synthesized paging cursor.
+      const result = await sdk.realm().humanChats.listMessages({ path: { chatId }, query: { around: messageId, limit: 1 } });
+      const message = result.items.find((item) => item.id === messageId && item.chatId === chatId);
+      return readMediaDelivery(resolveTimelineAttachmentRecord(normalizeRealmMessagePayload(message?.payload))?.delivery);
+    },
     loadMoreChatMessages: (chatId: string, cursor?: string, pageSize = 20) =>
       loadMoreChatMessages(chatId, cursor, pageSize, service, emit),
     sendChatMessage: (chatId: string, content: string, options: Partial<RealmSendMessageInputDto>) =>

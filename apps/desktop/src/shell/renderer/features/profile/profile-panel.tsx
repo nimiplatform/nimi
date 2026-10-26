@@ -1,3 +1,4 @@
+import { useCurrentUserProfileProjection } from './current-user-profile.js';
 import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
@@ -46,7 +47,8 @@ export function ProfilePanel() {
   const i18n = useDesktopI18nResource().instance;
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
-  const setAuthSession = useAppStore((state) => state.setAuthSession);
+  const { queryKey: currentProfileQueryKey } = useCurrentUserProfileProjection();
+  const applyCurrentUserProfile = useAppStore((state) => state.applyCurrentUserProfile);
   const selectedProfileId = useHomeDestination().profileId ?? null;
 
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
@@ -241,7 +243,7 @@ export function ProfilePanel() {
 
     const updated = await realmSocialData.updateUserProfile({
       displayName: nextDisplayName,
-      avatarUrl: draft.avatarUrl.trim() || null,
+      ...(draft.avatarResourceId ? { avatarResourceId: draft.avatarResourceId } : { avatarUrl: draft.avatarUrl.trim() || null }),
       bio: draft.bio.trim() || null,
       city: draft.city.trim() || null,
       countryCode: draft.countryCode.trim() || null,
@@ -251,15 +253,11 @@ export function ProfilePanel() {
     });
 
     const updatedUser = parseOptionalJsonObject(updated) ?? {};
-    const updatedAuthUser = {
-      ...updated,
-      ...updatedUser,
-      avatarUrl: typeof updated.avatarUrl === 'string'
-        ? updated.avatarUrl
-        : draft.avatarUrl.trim() || null,
-    };
+    if ((updated.avatarResourceId ?? null) !== draft.avatarResourceId) throw new Error(i18n.t('Profile.avatarUploadFailed'));
+    const updatedAuthUser = { ...updated, ...updatedUser };
 
-    setAuthSession(updatedAuthUser);
+    queryClient.setQueryData(currentProfileQueryKey, updated);
+    applyCurrentUserProfile(updatedAuthUser, String(currentUser?.realmEnvironmentId || ''));
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
       queryClient.invalidateQueries({ queryKey: ['contacts'] }),

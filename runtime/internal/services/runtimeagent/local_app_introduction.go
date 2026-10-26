@@ -1,10 +1,16 @@
 package runtimeagent
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"math"
+	"net/url"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -72,14 +78,21 @@ func (s *Service) GetLocalAppAgentIntroduction(ctx context.Context, req *runtime
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	result := &runtimev1.LocalAppAgentIntroduction{
-		WorldName:         introductionText(&public.WorldName, 256),
-		Era:               introductionText(world.Identity.Era, 256),
-		Role:              introductionText(public.Role, 256),
-		Greeting:          introductionText(profile.InteractionProfile.Greeting, 4096),
-		ReferenceImageUrl: introductionMediaURL(public.ReferenceImageURL),
-		VoiceSampleUrl:    introductionMediaURL(public.VoiceSampleURL),
+		WorldName:              introductionText(&public.WorldName, 256),
+		Era:                    introductionText(world.Identity.Era, 256),
+		Role:                   introductionText(public.Role, 256),
+		Greeting:               introductionText(profile.InteractionProfile.Greeting, 4096),
+		ReferenceImageUrl:      introductionMediaURL(public.ReferenceImageURL),
+		VoiceSampleUrl:         introductionOriginalMediaURL(public.VoiceSampleURL, public.VoiceSampleContentHash),
+		VoicePreviewUrl:        introductionMediaURL(public.VoicePreviewURL),
+		VoiceSampleContentHash: public.VoiceSampleContentHash,
+		VoiceSampleMimeType:    public.VoiceSampleMimeType,
 	}
-	if result.VoiceSampleUrl != nil && public.VoiceSampleDurationSec != nil {
+	if result.VoiceSampleUrl == nil {
+		result.VoiceSampleContentHash = nil
+		result.VoiceSampleMimeType = nil
+	}
+	if (result.VoiceSampleUrl != nil || result.VoicePreviewUrl != nil) && public.VoiceSampleDurationSec != nil {
 		duration := *public.VoiceSampleDurationSec
 		if !math.IsNaN(duration) && !math.IsInf(duration, 0) && duration > 0 {
 			result.VoiceSampleDurationSec = &duration
@@ -126,6 +139,77 @@ func introductionText(value *string, limit int) *string {
 
 func introductionMediaURL(value *string) *string {
 	if value == nil || !safeLocalAppAgentAvatarURL(*value) {
+		return nil
+	}
+	return value
+}
+
+// A reference-audio capability is short lived and hash-bound; it is not an account token.
+func introductionOriginalMediaURL(value, contentHash *string) *string {
+	if value == nil {
+		return nil
+	}
+	if safeLocalAppAgentAvatarURL(*value) {
+		return value
+	}
+	if contentHash == nil || len(*contentHash) != 64 || strings.ToLower(*contentHash) != *contentHash {
+		return nil
+	}
+	if decoded, err := hex.DecodeString(*contentHash); err != nil || len(decoded) != 32 {
+		return nil
+	}
+	parsed, err := url.Parse(*value)
+	if err != nil {
+		return nil
+	}
+	query := parsed.Query()
+	if len(query) != 1 || len(query["grant"]) != 1 {
+		return nil
+	}
+	pieces := strings.Split(query.Get("grant"), ".")
+	if len(pieces) != 2 {
+		return nil
+	}
+	signature, err := base64.RawURLEncoding.DecodeString(pieces[1])
+	if err != nil || len(signature) != 32 {
+		return nil
+	}
+	body, err := base64.RawURLEncoding.DecodeString(pieces[0])
+	if err != nil {
+		return nil
+	}
+	var grant struct {
+		V        int      `json:"v"`
+		Aud      string   `json:"aud"`
+		Env      string   `json:"env"`
+		Sub      string   `json:"sub"`
+		Ver      string   `json:"ver"`
+		Gen      int      `json:"gen"`
+		Purposes []string `json:"purposes"`
+		Iat      int64    `json:"iat"`
+		Exp      int64    `json:"exp"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&grant) != nil {
+		return nil
+	}
+	parts := strings.Split(strings.TrimPrefix(parsed.Path, "/"), "/")
+	if len(parts) != 5 || parts[0] != "m" || parts[2] != *contentHash || parts[3] != "v1" || parts[4] != "original.bin" || grant.Sub != parts[1] || grant.Ver != *contentHash || grant.V != 1 || grant.Aud != "nimi-media" || (grant.Env != "preview" && grant.Env != "production") || grant.Gen < 1 || grant.Exp <= grant.Iat || grant.Exp-grant.Iat > 300 || grant.Exp < time.Now().Unix() || grant.Iat > time.Now().Unix()+30 {
+		return nil
+	}
+	allowed := false
+	for _, purpose := range grant.Purposes {
+		if purpose == "original" {
+			allowed = true
+		}
+	}
+	if !allowed {
+		return nil
+	}
+	parsed.RawQuery = ""
+	parsed.ForceQuery = false
+	if !safeLocalAppAgentAvatarURL(parsed.String()) {
 		return nil
 	}
 	return value

@@ -82,6 +82,13 @@ export const NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS = [
   "EconomyController_getSparkPackages",
   "EconomyController_getSubscription",
   "EconomyController_getWithdrawalHistory",
+  "createImageDirectUpload",
+  "createVideoDirectUpload",
+  "createAudioDirectUpload",
+  "finalizeResource",
+  "getResource",
+  "cancelResourceUpload",
+  "deleteResource",
 ] as const;
 
 export type NimiDesktopProductRealmOperationID =

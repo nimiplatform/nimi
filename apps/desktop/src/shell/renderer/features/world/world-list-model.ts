@@ -1,9 +1,10 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
 } from '../realm-source/realm-source-identity.js';
 import { isMainWorldType } from './shared';
-import { projectWorldPublicTime } from './data/world-public-projection.js';
+import { projectWorldPublicTime, type RealmMediaDeliveryDto } from './data/world-public-projection.js';
 
 type LooseObject = { [key: string]: unknown };
 type WorldDetailDto = LooseObject;
@@ -14,6 +15,7 @@ type WorldCharacterSummaryDto = {
   handle?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
+  avatarMedia?: RealmMediaDeliveryDto | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
   sourceRef?: CharacterSourceRefV3 | null;
@@ -28,6 +30,7 @@ export type WorldCharacterItem = {
   handle?: string;
   bio?: string;
   avatarUrl?: string | null;
+  avatarMedia?: RealmMediaDeliveryDto | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
   sourceRef?: CharacterSourceRefV3 | null;
@@ -60,6 +63,7 @@ export type WorldComputedEntryCharacter = {
   name: string;
   handle?: string | null;
   avatarUrl?: string | null;
+  avatarMedia?: RealmMediaDeliveryDto | null;
 };
 
 export type WorldComputed = {
@@ -87,6 +91,9 @@ export type WorldListItem = {
   era: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
+  iconMedia?: RealmMediaDeliveryDto | null;
+  bannerMedia?: RealmMediaDeliveryDto | null;
+  heroMedia?: RealmMediaDeliveryDto | null;
   highlightUrls: string[];
   type: string;
   status: string;
@@ -204,6 +211,7 @@ function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
     name: typeof record.name === 'string' ? record.name : 'Unknown',
     handle: readString(record.handle),
     avatarUrl: readString(record.avatarUrl),
+    avatarMedia: readMediaDelivery(record.avatarMedia),
   };
 }
 
@@ -310,6 +318,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
         handle: character.handle ?? undefined,
         bio: character.bio ?? undefined,
         avatarUrl: character.avatarUrl ?? null,
+        avatarMedia: character.avatarMedia ?? null,
         profileCoverUrl: character.profileCoverUrl ?? null,
         createdAt: character.createdAt,
         sourceRef,
@@ -365,6 +374,9 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     genre: readString(raw.genre),
     themes: readStringArray(raw.themes),
     era: readString(raw.era),
+    iconMedia: readMediaDelivery(raw.iconMedia),
+    bannerMedia: readMediaDelivery(raw.bannerMedia),
+    heroMedia: readMediaDelivery(raw.heroMedia),
     iconUrl: readString(raw.iconUrl) ?? readNamedString(media, 'iconUrl'),
     bannerUrl: readString(raw.bannerUrl)
       ?? readNamedString(media, 'bannerUrl', 'heroUrl'),

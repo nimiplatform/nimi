@@ -103,6 +103,8 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
     bubbleGeneratingVideoLabel: t('Chat.generatingVideo', { defaultValue: 'Generating video…' }),
     bubbleImagePreviewTitle: t('Chat.imagePreview', { defaultValue: 'Image preview' }),
     bubbleOpenImagePreviewLabel: t('Chat.openImagePreview', { defaultValue: 'Open image preview' }),
+    bubbleDownloadOriginalLabel: t('Chat.downloadOriginal', { defaultValue: 'Download original' }),
+    bubbleDownloadFailedLabel: t('Chat.downloadFailed', { defaultValue: 'Could not download the original. Try again.' }),
     bubbleCloseImagePreviewLabel: t('Chat.closeImagePreview', { defaultValue: 'Close image preview' }),
     bubbleImageLabel: t('Chat.image', { defaultValue: 'Image' }),
     bubbleImageUnavailableLabel: t('Chat.imageUnavailable', { defaultValue: 'Image unavailable' }),

@@ -535,3 +535,20 @@ test('runtime config navigation retains pre-subscription actions and isolates re
   first.openPage('modelLibrary');
   assert.deepEqual(revisions, [1]);
 });
+
+test('profile media updates preserve Runtime authorization and reject stale account/environment writes', () => {
+  const store = createAppStore(createDependencies({ preferences: [] }));
+  store.getState().clearAuthSession();
+  store.getState().applyCurrentUserProfile({ id: 'account-1', avatarResourceId: 'media-1' }, 'realm-1');
+  assert.equal(store.getState().auth.status, 'anonymous');
+  assert.equal(store.getState().auth.user, null);
+  store.getState().applyRuntimeAccountProjection({ status: 'authenticated', user: { id: 'account-1', displayName: 'Before', realmEnvironmentId: 'realm-1' }, sequence: '1', reasonCode: 0, accountReasonCode: 0, authorizationRevision: 'runtime-revision' });
+  store.getState().applyCurrentUserProfile({ id: 'account-1', displayName: 'After', avatarResourceId: 'media-1', realmEnvironmentId: 'untrusted-profile-field' }, 'realm-1');
+  assert.equal(store.getState().auth.authorizationRevision, 'runtime-revision');
+  assert.equal(store.getState().auth.user?.realmEnvironmentId, 'realm-1');
+  assert.equal(store.getState().auth.user?.avatarResourceId, 'media-1');
+  const accepted = store.getState().auth.user;
+  store.getState().applyCurrentUserProfile({ id: 'account-1', displayName: 'Wrong environment' }, 'realm-2');
+  store.getState().applyCurrentUserProfile({ id: 'other-account', displayName: 'Wrong account' }, 'realm-1');
+  assert.equal(store.getState().auth.user, accepted);
+});

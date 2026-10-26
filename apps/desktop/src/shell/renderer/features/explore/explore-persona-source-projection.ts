@@ -1,3 +1,4 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
 import { resolveCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
@@ -115,6 +116,7 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     name: displayName,
     handle,
     avatarUrl,
+    avatarMedia: readMediaDelivery(source.avatarMedia),
     bio,
     sourceRef,
     viewerRelation,

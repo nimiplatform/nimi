@@ -79,7 +79,7 @@ export function toWorldDisplayFallback(world: WorldListItem) {
 
 // Memory-only catalog pages are keyed by contract version, Realm target and server query; they
 // never share a key with another query or Realm and are not persisted as offline results.
-export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v2';
+export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v3-media';
 
 export function worldCatalogQueryKey(realmBaseUrl: string, query: string, filters: { topicId?: string; genre?: string; theme?: string } = {}) {
   return ['world-catalog', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, query.trim(), filters.topicId ?? null, filters.genre ?? null, filters.theme ?? null] as const;

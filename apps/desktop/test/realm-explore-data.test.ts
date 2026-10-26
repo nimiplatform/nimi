@@ -72,7 +72,7 @@ function callerFor(
 
 test('Explore Persona projection never treats an avatar resource id as an image URL', async () => {
   const result = await loadExplorePersonas(callerFor([publicSourceCard({
-    media: { avatarUrl: 'forge-publication-ledger-record-persona-avatar' },
+    media: {external: { avatarUrl: 'forge-publication-ledger-record-persona-avatar' },  },
   })]), () => undefined);
   assert.equal(result.items[0]?.avatarUrl, null);
 });
@@ -80,7 +80,7 @@ test('Explore Persona projection never treats an avatar resource id as an image 
 test('Explore Persona projection gets its avatar only from the public source card', async () => {
   const avatarUrl = 'https://media.nimi.test/persona/avatar.png';
   const result = await loadExplorePersonas(callerFor([publicSourceCard({
-    media: { avatarUrl },
+    media: { external: { avatarUrl } },
   })]), () => undefined);
   assert.equal(result.items[0]?.avatarUrl, avatarUrl);
 });
@@ -88,13 +88,13 @@ test('Explore Persona projection gets its avatar only from the public source car
 test('Explore Persona projection falls back through public portrait and reference image URLs', async () => {
   const portraitUrl = 'https://media.nimi.test/persona/portrait.png';
   const portraitResult = await loadExplorePersonas(callerFor([
-    publicSourceCard({ media: { portraitUrl } }),
+    publicSourceCard({ media: { external: { portraitUrl } } }),
   ]), () => undefined);
   assert.equal(portraitResult.items[0]?.avatarUrl, portraitUrl);
 
   const referenceImageUrl = 'https://media.nimi.test/persona/reference.png';
   const referenceResult = await loadExplorePersonas(callerFor([
-    publicSourceCard({ media: { referenceImageUrl } }),
+    publicSourceCard({ media: { external: { referenceImageUrl } } }),
   ]), () => undefined);
   assert.equal(referenceResult.items[0]?.avatarUrl, referenceImageUrl);
 });

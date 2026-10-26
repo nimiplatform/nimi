@@ -134,6 +134,7 @@ export default defineConfig(({ mode }) => {
     publicDir: path.resolve(import.meta.dirname, 'src/shell/renderer/public'),
     optimizeDeps: {
       include: [
+        'hls.js',
         'zustand',
         'zustand/traditional',
         // The overview is opened after Home. With HMR disabled, discovering
@@ -157,6 +158,7 @@ export default defineConfig(({ mode }) => {
         'react-dom',
         'react-i18next',
         'scheduler',
+        'hls.js',
         'zustand',
       ],
       alias: [
@@ -218,6 +220,7 @@ export default defineConfig(({ mode }) => {
         { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(import.meta.dirname, '../../kit/features/avatar/src') },
         { find: '@nimiplatform/kit/features/agent-center', replacement: path.resolve(import.meta.dirname, '../../kit/features/agent-center/src') },
         { find: '@nimiplatform/kit/features/chat', replacement: path.resolve(import.meta.dirname, '../../kit/features/chat/src') },
+        { find: '@nimiplatform/kit/features/media', replacement: path.resolve(import.meta.dirname, '../../kit/features/media/src') },
         { find: '@nimiplatform/kit/features/generation', replacement: path.resolve(import.meta.dirname, '../../kit/features/generation/src') },
         { find: '@nimiplatform/kit/features/model-config', replacement: path.resolve(import.meta.dirname, '../../kit/features/model-config/src') },
         { find: '@nimiplatform/kit/features/model-picker', replacement: path.resolve(import.meta.dirname, '../../kit/features/model-picker/src') },

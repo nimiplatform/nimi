@@ -1,3 +1,4 @@
+import { MediaImage, MediaVideo, readMediaDelivery, type MediaImageProps } from '@nimiplatform/kit/features/media';
 import { Component, Suspense, lazy, memo, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
@@ -314,9 +315,14 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   const animationDelayMs = Math.min(Math.max(Number((message.metadata as Record<string, unknown> | undefined)?.beatIndex || 0), 0) * 90, 320);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [originalDownloadFailed, setOriginalDownloadFailed] = useState(false);
   const [videoLoadError, setVideoLoadError] = useState(false);
   const [resolvedMediaSize, setResolvedMediaSize] = useState<{ width: number; height: number } | null>(null);
   const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
+  const mediaDelivery = readMediaDelivery(metadata.mediaDelivery);
+  const refreshMedia = typeof metadata.refreshMedia === 'function' ? metadata.refreshMedia as MediaImageProps['refresh'] : undefined;
+  const openMediaOriginal = typeof metadata.openMediaOriginal === 'function'
+    ? metadata.openMediaOriginal as (url: string) => Promise<unknown> : undefined;
   const mediaUri = String(metadata.mediaUrl || metadata.voiceUrl || '').trim();
   const transcriptText = String(metadata.voiceTranscript || '').trim();
   const stageMediaKind: StageMediaPreviewKind | null = isImage
@@ -358,6 +364,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
 
   useEffect(() => {
     setImageLoadError(false);
+    setOriginalDownloadFailed(false);
     setVideoLoadError(false);
     setResolvedMediaSize(null);
   }, [message.id, mediaUri]);
@@ -400,8 +407,8 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
                 : 'bg-gray-50'}`}
               style={stageMediaFrameStyle}
             >
-              <img
-                src={mediaUri}
+              <MediaImage
+                delivery={mediaDelivery} externalUrl={mediaUri} purpose="chat" sizes="auto, 360px" refresh={refreshMedia}
                 alt={message.text || copyResolved.bubbleImageLabel}
                 className={`transition-transform duration-[var(--nimi-motion-slow)] group-hover:scale-[1.02] ${displayContext === 'stage'
                   ? 'h-full w-full object-contain'
@@ -414,7 +421,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
                     height: target.naturalHeight,
                   });
                 }}
-                onError={() => setImageLoadError(true)}
+                onUnavailable={() => setImageLoadError(true)}
               />
             </button>
           ) : (
@@ -428,15 +435,15 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
         </div>
       ) : isVideo ? (
         mediaUri && !videoLoadError ? (
-          <video
-            src={mediaUri}
+          <MediaVideo
+            delivery={mediaDelivery} externalUrl={mediaUri} refresh={refreshMedia}
             controls
-            preload="metadata"
+            preload="none"
             className={`${displayContext === 'stage'
               ? 'h-full w-full object-contain bg-slate-950'
               : 'max-h-[360px] w-full bg-black'}`}
             style={stageMediaFrameStyle}
-            poster={String(metadata.previewUrl || '') || undefined}
+            externalPosterUrl={String(metadata.previewUrl || '') || undefined}
             onLoadedMetadata={(event) => {
               const target = event.currentTarget;
               setResolvedMediaSize({
@@ -444,7 +451,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
                 height: target.videoHeight,
               });
             }}
-            onError={() => setVideoLoadError(true)}
+            onUnavailable={() => setVideoLoadError(true)}
           />
         ) : (
           <p className="text-xs italic opacity-70">{String(metadata.mediaError || copyResolved.bubbleVideoUnavailableLabel)}</p>
@@ -522,8 +529,21 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             aria-label={copyResolved.bubbleCloseImagePreviewLabel}
             icon={<span aria-hidden>×</span>}
           />
+          {mediaDelivery?.originalUrl ? <a href={mediaDelivery.originalUrl} target="_blank" rel="noopener noreferrer" onClick={async (event) => {
+            const expired = Boolean(mediaDelivery.expiresAt && Date.parse(mediaDelivery.expiresAt) <= Date.now() + 5000);
+            if (!expired && !openMediaOriginal) return;
+            event.preventDefault();
+            setOriginalDownloadFailed(false);
+            try {
+              const next = expired ? await refreshMedia?.() : mediaDelivery;
+              if (!next?.originalUrl || next.resourceId !== mediaDelivery.resourceId) { setOriginalDownloadFailed(true); return; }
+              if (openMediaOriginal) await openMediaOriginal(next.originalUrl);
+              else window.open(next.originalUrl, '_blank', 'noopener,noreferrer');
+            } catch { setOriginalDownloadFailed(true); }
+          }} className="absolute bottom-3 left-3 rounded bg-black/70 px-3 py-2 text-sm text-white">{copyResolved.bubbleDownloadOriginalLabel}</a> : null}
+          {originalDownloadFailed ? <p role="alert" className="absolute bottom-14 left-3 rounded bg-black/70 px-3 py-2 text-sm text-white">{copyResolved.bubbleDownloadFailedLabel}</p> : null}
           {mediaUri ? (
-            <img src={mediaUri} alt={message.text || copyResolved.bubbleImageLabel} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />
+            <MediaImage delivery={mediaDelivery} externalUrl={mediaUri} purpose="detail" sizes="calc(100vw - 3rem)" refresh={refreshMedia} alt={message.text || copyResolved.bubbleImageLabel} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />
           ) : null}
         </DialogContent>
       </Dialog> : null}

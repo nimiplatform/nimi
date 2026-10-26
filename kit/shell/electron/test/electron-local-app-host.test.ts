@@ -1500,7 +1500,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppRealmRealtimeAck: record('localAppRealmRealtimeAck', {}),
     localAppRealmRealtimeSubscriptionClose: record('localAppRealmRealtimeSubscriptionClose', {}),
     localAppRealmRealtimeChannelClose: record('localAppRealmRealtimeChannelClose', {}),
-    localAppAgentIntroductionGet: record('localAppAgentIntroductionGet', {worldName:null,era:null,role:null,greeting:null,referenceImageUrl:null,voiceSampleUrl:null,voiceSampleDurationSec:null,questionTopics:[]}),
+    localAppAgentIntroductionGet: record('localAppAgentIntroductionGet', {worldName:null,era:null,role:null,greeting:null,referenceImageUrl:null,voiceSampleUrl:null,voicePreviewUrl:null,voiceSampleContentHash:null,voiceSampleMimeType:null,voiceSampleDurationSec:null,questionTopics:[]}),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',

@@ -752,5 +752,7 @@
   "agentSubmissionWorking": "正在确认上次发送…",
   "agentSubmissionSaveFailed": "消息尚未发出：草稿保存失败。你写的内容仍保留在输入框中，请先重试保存，再发送。",
   "agentSubmissionSaveLimit": "消息尚未发出：草稿已超出存储限额。你写的内容仍保留在输入框中，请删减后再试，或先复制出来再调整。",
-  "followUpManage": "管理生活与联系"
+  "followUpManage": "管理生活与联系",
+  "downloadOriginal": "下载原图",
+  "downloadFailed": "原图下载失败，请重试。"
 }

@@ -40,18 +40,54 @@ message RealmChatTextPayload {
   string content = 1;
 }
 
+// Realm-issued delivery facts. Runtime carries these without minting URLs or grants.
+message RealmMediaImageSource {
+  string url = 1;
+  int32 width = 2;
+  int32 height = 3;
+  string mime_type = 4;
+}
+message RealmMediaImageFamily {
+  string mime_type = 1;
+  repeated RealmMediaImageSource sources = 2;
+}
+message RealmMediaImageSet {
+  string purpose = 1;
+  repeated RealmMediaImageFamily families = 2;
+}
+message RealmMediaVideo {
+  string hls_url = 1;
+  string dash_url = 2;
+  string poster_url = 3;
+  string expires_at = 4;
+}
+message RealmMediaDelivery {
+  string resource_id = 1;
+  string content_version = 2;
+  int32 publication_generation = 3;
+  string policy_version = 4;
+  string expires_at = 5;
+  repeated RealmMediaImageSet images = 6;
+  string preview_url = 7;
+  string original_url = 8;
+  RealmMediaVideo video = 9;
+}
+
 message RealmChatAttachmentPayload {
   RealmAttachmentTargetType target_type = 1;
   string target_id = 2;
   RealmAttachmentDisplayKind display_kind = 3;
   string title = 4;
   string subtitle = 5;
-  string url = 6;
-  string thumbnail = 7;
+  reserved 6, 7;
+  reserved "url", "thumbnail";
   int32 width = 8;
   int32 height = 9;
   double duration = 10;
   RealmChatAttachmentPayload preview = 11;
+  RealmMediaDelivery delivery = 12;
+  string external_url = 13;
+  bool unavailable = 14;
 }
 
 message RealmChatPostRefPayload {
@@ -176,6 +212,8 @@ message RealmChatUserSummary {
   string presence_text = 7;
   string presence_emoji = 8;
   google.protobuf.Timestamp created_at = 9;
+  string avatar_resource_id = 11;
+  RealmMediaDelivery avatar_media = 12;
 }
 
 message RealmChatSnapshot {

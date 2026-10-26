@@ -22,12 +22,13 @@ const message = (kind: ConversationCanonicalMessage['kind']): ConversationCanoni
   kind, text: 'Caption', createdAt: '2026-10-25T00:00:00Z',
   metadata: { mediaUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' },
 });
-async function show(kind: ConversationCanonicalMessage['kind']) {
+async function show(kind: ConversationCanonicalMessage['kind'], metadata: Record<string, unknown> = {}) {
   if (!root) {
     container = document.createElement('div'); document.body.appendChild(container);
     root = createRoot(container);
   }
-  await act(async () => root!.render(<CanonicalMessageBubble key={kind} message={message(kind)} copy={copy} />));
+  const value = message(kind);
+  await act(async () => root!.render(<CanonicalMessageBubble key={kind} message={{ ...value, metadata: { ...value.metadata, ...metadata } }} copy={copy} />));
 }
 afterEach(async () => {
   if (root) await act(async () => root!.unmount());
@@ -57,4 +58,25 @@ it('keeps real image preview opening, close motion, focus return and reopening',
   });
   await act(async () => { trigger.click(); });
   expect(document.querySelector('[role="dialog"] img')?.getAttribute('alt')).toBe('Caption');
+});
+
+it('opens originals through the consumer host and reauthorizes expired grants without an image fallback', async () => {
+  const delivery = { resourceId: 'image-1', contentVersion: 'a'.repeat(64), publicationGeneration: 1,
+    policyVersion: 'v1', expiresAt: '2099-01-01T00:00:00Z', images: [], previewUrl: null, video: null,
+    originalUrl: 'https://media.example/original?grant=initial' };
+  const openMediaOriginal = vi.fn(async (_url: string) => undefined);
+  const refreshMedia = vi.fn(async () => ({ ...delivery, originalUrl: 'https://media.example/original?grant=renewed' }));
+  await show('image', { mediaDelivery: delivery, openMediaOriginal, refreshMedia });
+  await act(async () => (container!.querySelector('[aria-label="Open picture"]') as HTMLButtonElement).click());
+  const download = () => document.querySelector('[role="dialog"] a') as HTMLAnchorElement;
+  await act(async () => download().click());
+  expect(openMediaOriginal).toHaveBeenLastCalledWith(delivery.originalUrl);
+  expect(refreshMedia).not.toHaveBeenCalled();
+  await show('image', { mediaDelivery: { ...delivery, expiresAt: '2000-01-01T00:00:00Z' }, openMediaOriginal, refreshMedia });
+  await act(async () => download().click());
+  expect(openMediaOriginal).toHaveBeenLastCalledWith('https://media.example/original?grant=renewed');
+  refreshMedia.mockRejectedValueOnce(new Error('Access revoked'));
+  await act(async () => download().click());
+  expect(openMediaOriginal).toHaveBeenCalledTimes(2);
+  expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent).toContain('Could not download');
 });

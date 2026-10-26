@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/realmmedia"
 	"net/http"
 	"net/url"
 	"strings"
@@ -27,12 +28,16 @@ type realmCharacterPublicSourceProjection struct {
 	Media     *realmCharacterPublicSourceMedia `json:"media"`
 }
 
+type realmCharacterPublicExternalMedia struct {
+	VoiceSampleURL    *string `json:"voiceSampleUrl"`
+	AvatarURL         *string `json:"avatarUrl"`
+	PortraitURL       *string `json:"portraitUrl"`
+	ReferenceImageURL *string `json:"referenceImageUrl"`
+}
+
 type realmCharacterPublicSourceMedia struct {
-	VoiceSampleURL    *string                                `json:"voiceSampleUrl"`
-	AvatarURL         *string                                `json:"avatarUrl"`
-	PortraitURL       *string                                `json:"portraitUrl"`
-	ReferenceImageURL *string                                `json:"referenceImageUrl"`
-	Assets            *realmCharacterPublicSourceMediaAssets `json:"assets"`
+	External realmCharacterPublicExternalMedia      `json:"external"`
+	Assets   *realmCharacterPublicSourceMediaAssets `json:"assets"`
 }
 
 type realmCharacterPublicSourceMediaAssets struct {
@@ -43,8 +48,11 @@ type realmCharacterPublicSourceMediaAssets struct {
 }
 
 type realmCharacterPublicAsset struct {
-	DurationSec *float64 `json:"durationSec"`
-	URL         *string  `json:"url"`
+	MimeType    *string         `json:"mimeType"`
+	DurationSec *float64        `json:"durationSec"`
+	ID          string          `json:"id"`
+	ExternalURL *string         `json:"externalUrl"`
+	Delivery    json.RawMessage `json:"delivery"`
 }
 
 // ResolveRealmCharacterPublicAvatar is a Runtime-private fixed Realm
@@ -201,20 +209,18 @@ func projectRealmCharacterPublicAvatar(projection *realmCharacterPublicSourcePro
 	if projection.Media == nil {
 		return nil, nil
 	}
-	var avatarAssetURL, portraitAssetURL, referenceImageAssetURL *string
-	if projection.Media.Assets != nil {
-		avatarAssetURL = realmCharacterPublicAssetURL(projection.Media.Assets.Avatar)
-		portraitAssetURL = realmCharacterPublicAssetURL(projection.Media.Assets.Portrait)
-		referenceImageAssetURL = realmCharacterPublicAssetURL(projection.Media.Assets.ReferenceImage)
+	var candidates []*string
+	if assets := projection.Media.Assets; assets != nil {
+		for _, asset := range []*realmCharacterPublicAsset{assets.Avatar, assets.Portrait, assets.ReferenceImage} {
+			selected, err := realmCharacterPublicAssetURL(asset, "avatar")
+			if err != nil {
+				return nil, err
+			}
+			candidates = append(candidates, selected)
+		}
 	}
-	for _, candidate := range []*string{
-		projection.Media.AvatarURL,
-		avatarAssetURL,
-		projection.Media.PortraitURL,
-		portraitAssetURL,
-		projection.Media.ReferenceImageURL,
-		referenceImageAssetURL,
-	} {
+	candidates = append(candidates, projection.Media.External.AvatarURL, projection.Media.External.PortraitURL, projection.Media.External.ReferenceImageURL)
+	for _, candidate := range candidates {
 		if candidate == nil || *candidate == "" {
 			continue
 		}
@@ -238,11 +244,37 @@ func canonicalPublicAvatarURL(value *string) bool {
 	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil && parsed.Fragment == ""
 }
 
-func realmCharacterPublicAssetURL(asset *realmCharacterPublicAsset) *string {
+func realmCharacterPublicAssetURL(asset *realmCharacterPublicAsset, purpose string) (*string, error) {
 	if asset == nil {
-		return nil
+		return nil, nil
 	}
-	return asset.URL
+	delivery, err := realmmedia.Decode(asset.Delivery)
+	if err != nil {
+		return nil, err
+	}
+	if delivery == nil {
+		return asset.ExternalURL, nil
+	}
+	if delivery.ResourceId != asset.ID {
+		return nil, fmt.Errorf("Realm media Resource identity mismatch")
+	}
+	if purpose == "original" {
+		if delivery.OriginalUrl == "" {
+			return nil, nil
+		}
+		return &delivery.OriginalUrl, nil
+	}
+	if purpose == "audio-preview" {
+		if delivery.PreviewUrl == "" {
+			return nil, nil
+		}
+		return &delivery.PreviewUrl, nil
+	}
+	width := int32(160)
+	if purpose == "detail" {
+		width = 960
+	}
+	return realmmedia.Image(delivery, purpose, width), nil
 }
 
 func canonicalRealmCharacterPublicAvatarJSON(value any) ([]byte, error) {

@@ -1551,6 +1551,8 @@ export interface LocalAppAgentIntroduction {
      */
     referenceImageUrl?: string;
     /**
+     * Original reference audio; never a lossy playback preview.
+     *
      * @generated from protobuf field: optional string voice_sample_url = 6
      */
     voiceSampleUrl?: string;
@@ -1562,6 +1564,18 @@ export interface LocalAppAgentIntroduction {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentIntroductionTopic question_topics = 8
      */
     questionTopics: LocalAppAgentIntroductionTopic[];
+    /**
+     * @generated from protobuf field: optional string voice_preview_url = 9
+     */
+    voicePreviewUrl?: string;
+    /**
+     * @generated from protobuf field: optional string voice_sample_content_hash = 10
+     */
+    voiceSampleContentHash?: string;
+    /**
+     * @generated from protobuf field: optional string voice_sample_mime_type = 11
+     */
+    voiceSampleMimeType?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentIntroductionTopic
@@ -8649,7 +8663,10 @@ class LocalAppAgentIntroduction$Type extends MessageType<LocalAppAgentIntroducti
             { no: 5, name: "reference_image_url", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "voice_sample_url", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "voice_sample_duration_sec", kind: "scalar", opt: true, T: 1 /*ScalarType.DOUBLE*/ },
-            { no: 8, name: "question_topics", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentIntroductionTopic }
+            { no: 8, name: "question_topics", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentIntroductionTopic },
+            { no: 9, name: "voice_preview_url", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "voice_sample_content_hash", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "voice_sample_mime_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentIntroduction>): LocalAppAgentIntroduction {
@@ -8688,6 +8705,15 @@ class LocalAppAgentIntroduction$Type extends MessageType<LocalAppAgentIntroducti
                 case /* repeated nimi.runtime.v1.LocalAppAgentIntroductionTopic question_topics */ 8:
                     message.questionTopics.push(LocalAppAgentIntroductionTopic.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* optional string voice_preview_url */ 9:
+                    message.voicePreviewUrl = reader.string();
+                    break;
+                case /* optional string voice_sample_content_hash */ 10:
+                    message.voiceSampleContentHash = reader.string();
+                    break;
+                case /* optional string voice_sample_mime_type */ 11:
+                    message.voiceSampleMimeType = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8724,6 +8750,15 @@ class LocalAppAgentIntroduction$Type extends MessageType<LocalAppAgentIntroducti
         /* repeated nimi.runtime.v1.LocalAppAgentIntroductionTopic question_topics = 8; */
         for (let i = 0; i < message.questionTopics.length; i++)
             LocalAppAgentIntroductionTopic.internalBinaryWrite(message.questionTopics[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* optional string voice_preview_url = 9; */
+        if (message.voicePreviewUrl !== undefined)
+            writer.tag(9, WireType.LengthDelimited).string(message.voicePreviewUrl);
+        /* optional string voice_sample_content_hash = 10; */
+        if (message.voiceSampleContentHash !== undefined)
+            writer.tag(10, WireType.LengthDelimited).string(message.voiceSampleContentHash);
+        /* optional string voice_sample_mime_type = 11; */
+        if (message.voiceSampleMimeType !== undefined)
+            writer.tag(11, WireType.LengthDelimited).string(message.voiceSampleMimeType);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

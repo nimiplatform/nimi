@@ -1,10 +1,9 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ScrollArea } from '@nimiplatform/kit/ui';
 import { ArrowLeft, ChevronRight, CirclePlus, MessageCircle, Pause, Play, RefreshCw, ScrollText } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
-import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import {
@@ -248,12 +247,9 @@ type WorldCharacterDialogueSample = {
 // on the right.
 export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps) {
   const { t } = useTranslation();
-  const bindings = useDesktopRendererBindings();
   const { source } = props;
-  const bannerImage = toSafeBackgroundImage(
-    source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl,
-    bindings.app.projection.resourceBaseUrl(),
-  );
+  const bannerMedia = source.profileCoverMedia ?? source.worldBannerMedia ?? source.referenceImageMedia;
+  const bannerUrl = source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl;
   const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';
   const primaryActionJoining = props.primaryActionJoining === true && !canStartChat;
@@ -324,12 +320,12 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
               data-testid="world-character-hero-banner"
               className="relative h-[280px] max-[720px]:h-[190px]"
               style={{
-                backgroundImage: bannerImage
-                  ?? 'var(--nimi-surface-hero)',
+                backgroundImage: 'var(--nimi-surface-hero)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center 20%',
               }}
             >
+              {bannerMedia || bannerUrl ? <MediaImage delivery={bannerMedia} externalUrl={bannerUrl} purpose="hero" sizes="auto, 1100px" loading="eager" fetchPriority="high" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_20%]" /> : null}
               {props.onBack ? (
                 <button
                   type="button"
@@ -365,7 +361,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                   style={{ boxShadow: '0 0 0 4px var(--nimi-surface-card), var(--nimi-elevation-raised)' }}
                 >
                   <EntityAvatar
-                    imageUrl={source.avatarUrl}
+                    imageUrl={source.avatarUrl} media={source.avatarMedia}
                     name={source.displayName}
                     kind="human"
                     shape="rounded"
@@ -384,7 +380,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                           {source.displayName}
                         </h1>
                         {voiceSample ? (
-                          <WorldCharacterVoicePill src={voiceSample.url} durationText={voiceDurationText} />
+                          <WorldCharacterVoicePill src={voiceSample.previewUrl} durationText={voiceDurationText} />
                         ) : null}
                       </div>
                       {heroSubtitle ? (
@@ -516,7 +512,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                                     ) : null}
                                     <div data-testid="world-character-dialogue-character" className="flex min-w-0 items-start gap-3">
                                       <EntityAvatar
-                                        imageUrl={source.avatarUrl}
+                                        imageUrl={source.avatarUrl} media={source.avatarMedia}
                                         name={source.displayName}
                                         kind="human"
                                         shape="circle"

@@ -86,20 +86,24 @@ type wireChatReply struct {
 }
 
 type wireChatUserSummary struct {
-	ID              string          `json:"id"`
-	Handle          string          `json:"handle"`
-	DisplayName     string          `json:"displayName"`
-	AvatarURL       *string         `json:"avatarUrl,omitempty"`
-	Bio             *string         `json:"bio,omitempty"`
-	Status          string          `json:"status,omitempty"`
-	CreatedAt       string          `json:"createdAt"`
-	FriendCount     *int            `json:"friendCount,omitempty"`
-	IsOnline        *bool           `json:"isOnline,omitempty"`
-	PresenceStatus  *string         `json:"presenceStatus,omitempty"`
-	PresenceText    *string         `json:"presenceText,omitempty"`
-	PresenceEmoji   *string         `json:"presenceEmoji,omitempty"`
-	ProfileCoverURL *string         `json:"profileCoverUrl,omitempty"`
-	Tiers           json.RawMessage `json:"tiers,omitempty"`
+	ID                     string          `json:"id"`
+	Handle                 string          `json:"handle"`
+	DisplayName            string          `json:"displayName"`
+	AvatarURL              *string         `json:"avatarUrl,omitempty"`
+	AvatarResourceID       string          `json:"avatarResourceId,omitempty"`
+	AvatarMedia            json.RawMessage `json:"avatarMedia,omitempty"`
+	ProfileCoverResourceID *string         `json:"profileCoverResourceId,omitempty"`
+	ProfileCoverMedia      json.RawMessage `json:"profileCoverMedia,omitempty"`
+	Bio                    *string         `json:"bio,omitempty"`
+	Status                 string          `json:"status,omitempty"`
+	CreatedAt              string          `json:"createdAt"`
+	FriendCount            *int            `json:"friendCount,omitempty"`
+	IsOnline               *bool           `json:"isOnline,omitempty"`
+	PresenceStatus         *string         `json:"presenceStatus,omitempty"`
+	PresenceText           *string         `json:"presenceText,omitempty"`
+	PresenceEmoji          *string         `json:"presenceEmoji,omitempty"`
+	ProfileCoverURL        *string         `json:"profileCoverUrl,omitempty"`
+	Tiers                  json.RawMessage `json:"tiers,omitempty"`
 }
 
 type wireChatListResult struct {

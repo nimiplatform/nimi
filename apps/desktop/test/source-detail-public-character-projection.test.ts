@@ -81,8 +81,7 @@ function publicSourceCard(ref: CharacterSourceRefV3, displayName: string) {
       connectionId: null,
       runtimeSourceRef: null,
     },
-    media: {
-      avatarUrl: 'https://cdn.example.test/song-lian-avatar.png',
+    media: {external: { avatarUrl: 'https://cdn.example.test/song-lian-avatar.png' },
       assets: {},
     },
     characterBiography: null,
@@ -193,7 +192,7 @@ test('source detail loads one public Character projection without the full-world
     setting: null,
     type: 'CREATOR',
     visibility: 'public',
-    media: { bannerUrl: 'https://cdn.example.test/ming-world-banner.png' },
+    media: {external: { bannerUrl: 'https://cdn.example.test/ming-world-banner.png' },  },
     stats: {},
     entityKinds: [],
     relationshipTypes: [],
@@ -260,7 +259,7 @@ test('source detail loads one public Character projection without the full-world
   assert.equal(result.displayName, '宋濂');
   assert.deepEqual(result.relationshipTargets, { 'entity-mentor': { kind: 'person', name: '导师' } });
   assert.equal(result.avatarUrl, 'https://cdn.example.test/song-lian-avatar.png');
-  assert.equal(result.worldBannerUrl, publicWorld.media.bannerUrl);
+  assert.equal(result.worldBannerUrl, publicWorld.media.external.bannerUrl);
   assert.deepEqual(result.viewerRelation, {
     state: 'connectable',
     connectionId: null,
@@ -272,7 +271,7 @@ test('source detail loads one public Character projection without the full-world
     realm: () => realm,
   } as never);
   assert.equal(displayDetail?.stats, null);
-  assert.equal(displayDetail?.source.worldBannerUrl, publicWorld.media.bannerUrl);
+  assert.equal(displayDetail?.source.worldBannerUrl, publicWorld.media.external.bannerUrl);
   assert.deepEqual(calls, [
     'worldPublicControllerGetCharacterSource',
     'worldPublicControllerGetWorld',
@@ -294,7 +293,7 @@ test('source detail loads one public Character projection without the full-world
   assert.equal(withoutBanner?.source.displayName, '宋濂');
   realm.worldPublic.worldPublicControllerGetWorld = getWorld;
 
-  Object.assign(publicSource.media, { profileCoverUrl: 'https://cdn.example.test/personal-cover.png' });
+  Object.assign(publicSource.media.external, { profileCoverUrl: 'https://cdn.example.test/personal-cover.png' });
   calls.length = 0;
   const coveredDetail = await fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never);
   assert.equal(coveredDetail?.source.profileCoverUrl, 'https://cdn.example.test/personal-cover.png');
@@ -337,7 +336,7 @@ test('persona relationships recognize authored entity kinds through paginated pu
     },
     worldPublic: {
       worldPublicControllerGetCharacterSource: async () => ({
-        ...publicSourceCard(personaRef, 'Persona'), media: { profileCoverUrl: 'https://example.test/cover.png', assets: {} },
+        ...publicSourceCard(personaRef, 'Persona'), media: {external: { profileCoverUrl: 'https://example.test/cover.png' }, assets: {} },
       }),
       worldPublicControllerListWorldCharacterCatalog: async ({ query }: { query: { cursor?: string } }) => {
         cursors.push(query.cursor);

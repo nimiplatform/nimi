@@ -18,6 +18,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_createWorldCore": {
 		method: "POST",
@@ -32,6 +33,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_getWorldCreationEligibility": {
 		method: "GET",
@@ -46,6 +48,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_getWorldCore": {
 		method: "GET",
@@ -60,6 +63,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_replaceWorldCore": {
 		method: "PUT",
@@ -74,6 +78,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_listWorldCharacters": {
 		method: "GET",
@@ -88,6 +93,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_createWorldCharacter": {
 		method: "POST",
@@ -102,6 +108,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_replaceWorldCharacter": {
 		method: "PUT",
@@ -116,6 +123,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_listWorldEntities": {
 		method: "GET",
@@ -130,6 +138,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_createWorldEntity": {
 		method: "POST",
@@ -144,6 +153,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_getWorldRelationship": {
 		method: "GET",
@@ -158,6 +168,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_getCharacterSource": {
 		method: "POST",
@@ -172,6 +183,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_createPersonaCharacter": {
 		method: "POST",
@@ -186,6 +198,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_getPersonaCharacter": {
 		method: "GET",
@@ -201,6 +214,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_getWorldCharacter": {
 		method: "GET",
@@ -216,6 +230,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_getWorldEntity": {
 		method: "GET",
@@ -231,6 +246,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_listPersonaCharacters": {
 		method: "GET",
@@ -247,6 +263,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_replacePersonaCharacter": {
 		method: "PUT",
@@ -261,6 +278,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_deletePersonaCharacter": {
 		method: "DELETE",
@@ -275,6 +293,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_discoverPersonaCharacters": {
 		method: "GET",
@@ -289,6 +308,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldCoreController_listWorldRelationships": {
 		method: "GET",
@@ -304,6 +324,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_getWorld": {
 		method: "GET",
@@ -318,6 +339,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_getWorldDetailWithCharacters": {
 		method: "GET",
@@ -332,6 +354,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_listWorldTopics": {
 		method: "GET",
@@ -346,6 +369,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_listWorldCatalog": {
 		method: "GET",
@@ -360,6 +384,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_listWorldCharacterCatalog": {
 		method: "GET",
@@ -374,6 +399,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"WorldPublicController_listPersonaCharacterCatalog": {
 		method: "GET",
@@ -388,6 +414,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getMe": {
 		method: "GET",
@@ -402,6 +429,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"updateMe": {
 		method: "PATCH",
@@ -416,6 +444,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"listMyFriendsWithDetails": {
 		method: "GET",
@@ -430,6 +459,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getMyPendingFriendRequests": {
 		method: "GET",
@@ -444,6 +474,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getMyBlockedUsers": {
 		method: "GET",
@@ -458,6 +489,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getUser": {
 		method: "GET",
@@ -472,6 +504,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"addFriend": {
 		method: "POST",
@@ -486,6 +519,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"addFriendByHandle": {
 		method: "POST",
@@ -500,6 +534,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"removeFriend": {
 		method: "DELETE",
@@ -514,6 +549,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"blockUser": {
 		method: "POST",
@@ -528,6 +564,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"unblockUser": {
 		method: "DELETE",
@@ -542,6 +579,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"ReportController_createReport": {
 		method: "POST",
@@ -556,6 +594,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getChatById": {
 		method: "GET",
@@ -570,6 +609,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"listChats": {
 		method: "GET",
@@ -584,6 +624,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"listMessages": {
 		method: "GET",
@@ -598,6 +639,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"markChatRead": {
 		method: "POST",
@@ -612,6 +654,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"sendMessage": {
 		method: "POST",
@@ -626,6 +669,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"startChat": {
 		method: "POST",
@@ -640,6 +684,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"syncChatEvents": {
 		method: "GET",
@@ -654,6 +699,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getUnreadCount": {
 		method: "GET",
@@ -668,6 +714,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"listNotifications": {
 		method: "GET",
@@ -682,6 +729,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"markNotificationRead": {
 		method: "POST",
@@ -696,6 +744,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"markNotificationsRead": {
 		method: "POST",
@@ -710,6 +759,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getMyCreatorEligibility": {
 		method: "GET",
@@ -724,6 +774,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getMyNotificationSettings": {
 		method: "GET",
@@ -738,6 +789,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"getMySettings": {
 		method: "GET",
@@ -752,6 +804,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"updateMyNotificationSettings": {
 		method: "PATCH",
@@ -766,6 +819,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"updateMySettings": {
 		method: "PATCH",
@@ -780,6 +834,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"updatePassword": {
 		method: "PUT",
@@ -794,6 +849,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"prepare2Fa": {
 		method: "POST",
@@ -808,6 +864,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"enable2Fa": {
 		method: "POST",
@@ -822,6 +879,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"disable2Fa": {
 		method: "POST",
@@ -836,6 +894,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_canWithdraw": {
 		method: "GET",
@@ -850,6 +909,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_createSparkCheckout": {
 		method: "POST",
@@ -864,6 +924,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_createWithdrawal": {
 		method: "POST",
@@ -878,6 +939,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     true,
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_getBalances": {
 		method: "GET",
@@ -892,6 +954,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_getGemHistory": {
 		method: "GET",
@@ -906,6 +969,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_getSparkHistory": {
 		method: "GET",
@@ -920,6 +984,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_getSparkPackages": {
 		method: "GET",
@@ -934,6 +999,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_getSubscription": {
 		method: "GET",
@@ -948,6 +1014,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 	"EconomyController_getWithdrawalHistory": {
 		method: "GET",
@@ -962,5 +1029,111 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
+		mediaUpload:            false,
+	},
+	"createImageDirectUpload": {
+		method: "POST",
+		path:   "/api/resources/images/direct-upload",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{},
+		requiredPathParameters: map[string]struct{}{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     true,
+		requestBodyRequired:    true,
+		responseMaxBytes:       1048576,
+		mediaUpload:            true,
+	},
+	"createVideoDirectUpload": {
+		method: "POST",
+		path:   "/api/resources/videos/direct-upload",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{},
+		requiredPathParameters: map[string]struct{}{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     true,
+		requestBodyRequired:    true,
+		responseMaxBytes:       1048576,
+		mediaUpload:            true,
+	},
+	"createAudioDirectUpload": {
+		method: "POST",
+		path:   "/api/resources/audio/direct-upload",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{},
+		requiredPathParameters: map[string]struct{}{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     true,
+		requestBodyRequired:    true,
+		responseMaxBytes:       1048576,
+		mediaUpload:            true,
+	},
+	"finalizeResource": {
+		method: "POST",
+		path:   "/api/resources/{resourceId}/finalize",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{"resourceId": realmUnaryParameterString},
+		requiredPathParameters: map[string]struct{}{"resourceId": {}},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     true,
+		requestBodyRequired:    true,
+		responseMaxBytes:       1048576,
+		mediaUpload:            false,
+	},
+	"getResource": {
+		method: "GET",
+		path:   "/api/resources/{resourceId}",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{"resourceId": realmUnaryParameterString},
+		requiredPathParameters: map[string]struct{}{"resourceId": {}},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+		mediaUpload:            false,
+	},
+	"cancelResourceUpload": {
+		method: "POST",
+		path:   "/api/resources/{resourceId}/cancel-upload",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{"resourceId": realmUnaryParameterString},
+		requiredPathParameters: map[string]struct{}{"resourceId": {}},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     true,
+		requestBodyRequired:    true,
+		responseMaxBytes:       1048576,
+		mediaUpload:            false,
+	},
+	"deleteResource": {
+		method: "DELETE",
+		path:   "/api/resources/{resourceId}",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_product",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{"resourceId": realmUnaryParameterString},
+		requiredPathParameters: map[string]struct{}{"resourceId": {}},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+		mediaUpload:            false,
 	},
 }

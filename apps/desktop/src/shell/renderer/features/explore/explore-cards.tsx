@@ -1,3 +1,4 @@
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { CharacterSourceState } from './character-source-materialization';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { CharacterSourceViewerRelationProjection } from '../realm-source/character-source-profile-projection.js';
@@ -9,6 +10,7 @@ export type ExplorePersonaSourceCardData = {
   id: string;
   name: string;
   handle: string;
+  avatarMedia: RealmModel<'MediaDeliveryDto'> | null;
   avatarUrl: string | null;
   bio: string | null;
   sourceRef: CharacterSourceRefV3;

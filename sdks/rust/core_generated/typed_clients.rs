@@ -10348,6 +10348,9 @@ pub struct LocalAppAgentIntroduction {
     pub voice_sample_url: Option<String>,
     pub voice_sample_duration_sec: Option<f64>,
     pub question_topics: Vec<Box<LocalAppAgentIntroductionTopic>>,
+    pub voice_preview_url: Option<String>,
+    pub voice_sample_content_hash: Option<String>,
+    pub voice_sample_mime_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12679,12 +12682,13 @@ pub struct RealmChatAttachmentPayload {
     pub display_kind: Option<RealmAttachmentDisplayKind>,
     pub title: Option<String>,
     pub subtitle: Option<String>,
-    pub url: Option<String>,
-    pub thumbnail: Option<String>,
     pub width: Option<i32>,
     pub height: Option<i32>,
     pub duration: Option<f64>,
     pub preview: Option<Box<RealmChatAttachmentPayload>>,
+    pub delivery: Option<Box<RealmMediaDelivery>>,
+    pub external_url: Option<String>,
+    pub unavailable: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12856,6 +12860,49 @@ pub struct RealmChatUserSummary {
     pub presence_text: Option<String>,
     pub presence_emoji: Option<String>,
     pub created_at: Option<String>,
+    pub avatar_resource_id: Option<String>,
+    pub avatar_media: Option<Box<RealmMediaDelivery>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmMediaDelivery {
+    pub resource_id: Option<String>,
+    pub content_version: Option<String>,
+    pub publication_generation: Option<i32>,
+    pub policy_version: Option<String>,
+    pub expires_at: Option<String>,
+    pub images: Vec<Box<RealmMediaImageSet>>,
+    pub preview_url: Option<String>,
+    pub original_url: Option<String>,
+    pub video: Option<Box<RealmMediaVideo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmMediaImageFamily {
+    pub mime_type: Option<String>,
+    pub sources: Vec<Box<RealmMediaImageSource>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmMediaImageSet {
+    pub purpose: Option<String>,
+    pub families: Vec<Box<RealmMediaImageFamily>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmMediaImageSource {
+    pub url: Option<String>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub mime_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmMediaVideo {
+    pub hls_url: Option<String>,
+    pub dash_url: Option<String>,
+    pub poster_url: Option<String>,
+    pub expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -16777,16 +16824,17 @@ pub type AttachmentDisplayKind = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AttachmentEnvelopeDto {
+    pub delivery: Option<Box<MediaDeliveryDto>>,
     pub display_kind: Box<AttachmentDisplayKind>,
     pub duration: f64,
+    pub external_url: Option<String>,
     pub height: f64,
     pub preview: Box<AttachmentEnvelopeDto>,
     pub subtitle: String,
     pub target_id: String,
     pub target_type: Box<AttachmentTargetType>,
-    pub thumbnail: String,
     pub title: String,
-    pub url: String,
+    pub unavailable: bool,
     pub width: f64,
 }
 
@@ -16905,6 +16953,7 @@ pub struct BindEmailDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BlockedUserDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub blocked_at: String,
@@ -17327,6 +17376,8 @@ pub struct ConnectOnboardingResponseDto {
     pub onboarding_url: String,
 }
 
+pub type ContentRatingString = String;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAssetDto {
     pub author_id: String,
@@ -17342,32 +17393,6 @@ pub struct CreateAssetDto {
     pub structured_payload: BTreeMap<String, String>,
     pub transfer_policy: String,
     pub use_policy: Option<Box<UsePolicyDto>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAudioDirectUploadDto {
-    pub controller_id: String,
-    pub controller_kind: String,
-    pub delivery_access: String,
-    pub duration_sec: f64,
-    pub filename: String,
-    pub hash_sha256: String,
-    pub height: f64,
-    pub instrumental: bool,
-    pub label: String,
-    pub lyrics_source: String,
-    pub metadata: BTreeMap<String, String>,
-    pub mime_type: String,
-    pub size_bytes: f64,
-    pub source_artifact_id: String,
-    pub source_job_id: String,
-    pub source_ref: String,
-    pub style: String,
-    pub tags: Vec<String>,
-    pub title: String,
-    pub trace_id: String,
-    pub width: f64,
-    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -17399,6 +17424,29 @@ pub struct CreateFeedbackDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateMediaDirectUploadDto {
+    pub controller_id: String,
+    pub controller_kind: String,
+    pub delivery_access: String,
+    pub hash_sha256: String,
+    pub instrumental: bool,
+    pub label: String,
+    pub lyrics_source: String,
+    pub metadata: BTreeMap<String, String>,
+    pub mime_type: String,
+    pub request_id: String,
+    pub size_bytes: f64,
+    pub source_artifact_id: String,
+    pub source_job_id: String,
+    pub source_ref: String,
+    pub style: String,
+    pub tags: Vec<String>,
+    pub title: String,
+    pub trace_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatePersonaCharacterCoreDto {
     pub id: String,
     pub lorebook_declaration: Box<CharacterLorebookDeclarationV1Dto>,
@@ -17411,6 +17459,20 @@ pub struct CreatePersonaCharacterCoreDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatePortalSessionDto {
     pub return_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatePostAttachmentDto {
+    pub target_id: String,
+    pub target_type: Box<AttachmentTargetType>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatePostDto {
+    pub attachments: Vec<CreatePostAttachmentDto>,
+    pub caption: String,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -17452,15 +17514,12 @@ pub struct CreateTextResourceDto {
     pub controller_id: String,
     pub controller_kind: String,
     pub delivery_access: String,
-    pub duration_sec: f64,
-    pub hash_sha256: String,
-    pub height: f64,
     pub instrumental: bool,
     pub label: String,
     pub lyrics_source: String,
     pub metadata: BTreeMap<String, String>,
     pub mime_type: String,
-    pub size_bytes: f64,
+    pub request_id: String,
     pub source_artifact_id: String,
     pub source_job_id: String,
     pub source_ref: String,
@@ -17468,7 +17527,6 @@ pub struct CreateTextResourceDto {
     pub tags: Vec<String>,
     pub title: String,
     pub trace_id: String,
-    pub width: f64,
     pub world_id: String,
 }
 
@@ -17559,7 +17617,8 @@ pub struct CurrencyTransactionHistoryDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CursorPageMetaDto {
-    pub has_next: bool,
+    pub cursor: Option<String>,
+    pub limit: f64,
     pub next_cursor: Option<String>,
 }
 
@@ -17607,32 +17666,27 @@ pub struct FeedbackResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct FeedPageMetaDto {
+    pub cursor: Option<String>,
+    pub limit: f64,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FeedResponseDto {
+    pub items: Vec<PostDto>,
+    pub page: Box<FeedPageMetaDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FinalizeResourceDto {
-    pub controller_id: String,
-    pub controller_kind: String,
-    pub delivery_access: String,
-    pub duration_sec: f64,
-    pub hash_sha256: String,
-    pub height: f64,
-    pub instrumental: bool,
-    pub label: String,
-    pub lyrics_source: String,
-    pub metadata: BTreeMap<String, String>,
-    pub mime_type: String,
-    pub size_bytes: f64,
-    pub source_artifact_id: String,
-    pub source_job_id: String,
-    pub source_ref: String,
-    pub style: String,
-    pub tags: Vec<String>,
-    pub title: String,
-    pub trace_id: String,
-    pub width: f64,
-    pub world_id: String,
+    pub request_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FriendProfileDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
+    pub avatar_resource_id: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub birth_year: Option<f64>,
@@ -17650,6 +17704,8 @@ pub struct FriendProfileDto {
     pub presence_emoji: Option<String>,
     pub presence_status: Option<String>,
     pub presence_text: Option<String>,
+    pub profile_cover_media: Option<Box<MediaDeliveryDto>>,
+    pub profile_cover_resource_id: Option<String>,
     pub profile_cover_url: Option<String>,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
@@ -17933,6 +17989,54 @@ pub struct Me2faVerifyDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaDeliveryDto {
+    pub content_version: String,
+    pub expires_at: Option<String>,
+    pub images: Vec<MediaImageSetDto>,
+    pub original_url: Option<String>,
+    pub policy_version: String,
+    pub preview_url: Option<String>,
+    pub publication_generation: f64,
+    pub resource_id: String,
+    pub video: Option<Box<MediaVideoDto>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaDeliveryStateDto {
+    pub failure_code: Option<String>,
+    pub revocation_not_before: Option<String>,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaImageFamilyDto {
+    pub mime_type: String,
+    pub sources: Vec<MediaImageSourceDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaImageSetDto {
+    pub families: Vec<MediaImageFamilyDto>,
+    pub purpose: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaImageSourceDto {
+    pub height: f64,
+    pub mime_type: String,
+    pub url: String,
+    pub width: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaVideoDto {
+    pub dash_url: String,
+    pub expires_at: String,
+    pub hls_url: String,
+    pub poster_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MessageReplyViewDto {
     pub id: String,
     pub payload: Option<String>,
@@ -17958,6 +18062,8 @@ pub struct MessageViewDto {
     pub r#type: Box<MessageType>,
 }
 
+pub type ModerationStatusString = String;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MutualFriendCountDto {
     pub count: f64,
@@ -17965,6 +18071,7 @@ pub struct MutualFriendCountDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MutualFriendDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub display_name: Option<String>,
@@ -17989,6 +18096,7 @@ pub struct NotificationActivityDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NotificationActorDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub created_at: String,
@@ -18022,6 +18130,7 @@ pub struct NotificationDto {
     pub data: Option<BTreeMap<String, String>>,
     pub id: String,
     pub is_read: bool,
+    pub preview: Option<Box<MediaDeliveryDto>>,
     pub target: Option<Box<NotificationTargetDto>>,
     pub title: String,
     pub r#type: Box<NotificationType>,
@@ -18180,6 +18289,57 @@ pub struct PersonaCharacterSourceRefV3Dto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PortalSessionDto {
     pub url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PostAttachmentDto {
+    pub delivery: Option<Box<MediaDeliveryDto>>,
+    pub display_kind: Box<AttachmentDisplayKind>,
+    pub duration: f64,
+    pub external_url: Option<String>,
+    pub height: f64,
+    pub preview: Box<AttachmentEnvelopeDto>,
+    pub subtitle: String,
+    pub target_id: String,
+    pub target_type: Box<AttachmentTargetType>,
+    pub title: String,
+    pub unavailable: bool,
+    pub width: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PostDto {
+    pub attachments: Vec<PostAttachmentDto>,
+    pub author: Box<UserLiteDto>,
+    pub author_id: String,
+    pub author_kind: String,
+    pub caption: Option<String>,
+    pub content_rating: Box<ContentRatingString>,
+    pub created_at: String,
+    pub id: String,
+    pub liked_by_current_user: bool,
+    pub moderation_status: Box<ModerationStatusString>,
+    pub runtime_source_ref: Option<String>,
+    pub source_author: Option<Box<PostSourceAuthorDto>>,
+    pub source_ref: Option<Box<CharacterSourceRefV3Dto>>,
+    pub tags: Vec<String>,
+    pub updated_at: Option<String>,
+    pub visibility: Box<Visibility>,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PostSourceAuthorDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
+    pub avatar_url: Option<String>,
+    pub display_name: String,
+    pub handle: String,
+    pub id: String,
+    pub kind: String,
+    pub runtime_source_ref: String,
+    pub source_authority_account_id: String,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18365,13 +18525,6 @@ pub struct ReportResponseDto {
     pub target_user_id: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceBinaryDirectUploadTransportDto {
-    pub body_kind: String,
-    pub content_type: String,
-    pub method: String,
-}
-
 pub type ResourceControllerKind = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18379,8 +18532,11 @@ pub struct ResourceDetailDto {
     pub controller_id: String,
     pub controller_kind: String,
     pub created_at: String,
+    pub delivery: Option<Box<MediaDeliveryDto>>,
     pub delivery_access: String,
+    pub delivery_status: Box<MediaDeliveryStateDto>,
     pub duration_sec: Option<f64>,
+    pub external_url: Option<String>,
     pub hash_sha256: Option<String>,
     pub height: Option<f64>,
     pub id: String,
@@ -18397,14 +18553,12 @@ pub struct ResourceDetailDto {
     pub source_job_id: Option<String>,
     pub source_ref: Option<String>,
     pub status: String,
-    pub storage_ref: String,
     pub style: Option<String>,
     pub tags: Vec<String>,
     pub title: Option<String>,
     pub trace_id: Option<String>,
     pub updated_at: String,
     pub uploader_account_id: String,
-    pub url: Option<String>,
     pub width: Option<f64>,
     pub world_id: Option<String>,
 }
@@ -18413,48 +18567,25 @@ pub struct ResourceDetailDto {
 pub struct ResourceDirectUploadSessionDto {
     pub delivery_access: String,
     pub expires_in: Option<f64>,
-    pub provider: String,
+    pub request_id: String,
     pub resource_id: String,
     pub resource_type: String,
     pub status: String,
-    pub storage_ref: String,
     pub transport: Box<ResourceDirectUploadTransportDto>,
     pub upload_url: String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum ResourceDirectUploadTransportDto {
-    ResourceMultipartDirectUploadTransport(Box<ResourceMultipartDirectUploadTransportDto>),
-    ResourceBinaryDirectUploadTransport(Box<ResourceBinaryDirectUploadTransportDto>),
-}
-
-impl Default for ResourceDirectUploadTransportDto {
-    fn default() -> Self {
-        Self::ResourceMultipartDirectUploadTransport(Box::new(ResourceMultipartDirectUploadTransportDto::default()))
-    }
-}
-
-impl ResourceDirectUploadTransportDto {
-    pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
-        match value {
-            "MULTIPART_FORM_DATA" => Ok(Self::ResourceMultipartDirectUploadTransport(Box::new(ResourceMultipartDirectUploadTransportDto::default()))),
-            "BINARY" => Ok(Self::ResourceBinaryDirectUploadTransport(Box::new(ResourceBinaryDirectUploadTransportDto::default()))),
-            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown ResourceDirectUploadTransportDto discriminator {}", value)),
-        }
-    }
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResourceDirectUploadTransportDto {
+    pub body_kind: String,
+    pub content_type: String,
+    pub method: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResourceListDto {
     pub items: Vec<ResourceDetailDto>,
     pub next_cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceMultipartDirectUploadTransportDto {
-    pub body_kind: String,
-    pub form_field: String,
-    pub method: String,
 }
 
 pub type ResourceStatus = String;
@@ -18793,6 +18924,11 @@ pub struct UpdatePasswordRequestDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdatePostDto {
+    pub visibility: Box<Visibility>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePPSlotConfigDto {
     pub pp_slot_config: Box<PPSlotConfigDto>,
 }
@@ -18802,15 +18938,10 @@ pub struct UpdateResourceDto {
     pub controller_id: String,
     pub controller_kind: String,
     pub delivery_access: String,
-    pub duration_sec: f64,
-    pub hash_sha256: String,
-    pub height: f64,
     pub instrumental: bool,
     pub label: String,
     pub lyrics_source: String,
     pub metadata: BTreeMap<String, String>,
-    pub mime_type: String,
-    pub size_bytes: f64,
     pub source_artifact_id: String,
     pub source_job_id: String,
     pub source_ref: String,
@@ -18818,21 +18949,22 @@ pub struct UpdateResourceDto {
     pub tags: Vec<String>,
     pub title: String,
     pub trace_id: String,
-    pub width: f64,
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateUserDto {
-    pub avatar_url: String,
-    pub bio: String,
-    pub birth_year: f64,
-    pub city: String,
-    pub country_code: String,
+    pub avatar_resource_id: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
+    pub birth_year: Option<f64>,
+    pub city: Option<String>,
+    pub country_code: Option<String>,
     pub display_name: String,
-    pub gender: Box<Gender>,
+    pub gender: Option<Box<Gender>>,
     pub languages: Vec<String>,
-    pub profile_cover_url: String,
+    pub profile_cover_resource_id: Option<String>,
+    pub profile_cover_url: Option<String>,
     pub tags: Vec<String>,
 }
 
@@ -18887,6 +19019,8 @@ pub struct UserFeatureCapabilitiesDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserLiteDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
+    pub avatar_resource_id: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub created_at: String,
@@ -18898,6 +19032,8 @@ pub struct UserLiteDto {
     pub presence_emoji: Option<String>,
     pub presence_status: Option<String>,
     pub presence_text: Option<String>,
+    pub profile_cover_media: Option<Box<MediaDeliveryDto>>,
+    pub profile_cover_resource_id: Option<String>,
     pub profile_cover_url: Option<String>,
     pub status: Box<AccountStatus>,
     pub tiers: Box<UserTierSummaryDto>,
@@ -18911,6 +19047,8 @@ pub struct UserNotificationSettingsDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserPrivateDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
+    pub avatar_resource_id: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub birth_year: Option<f64>,
@@ -18932,6 +19070,8 @@ pub struct UserPrivateDto {
     pub presence_emoji: Option<String>,
     pub presence_status: Option<String>,
     pub presence_text: Option<String>,
+    pub profile_cover_media: Option<Box<MediaDeliveryDto>>,
+    pub profile_cover_resource_id: Option<String>,
     pub profile_cover_url: Option<String>,
     pub role: Box<PublicAccountRole>,
     pub social_profiles: Vec<SocialProfileDto>,
@@ -18945,6 +19085,8 @@ pub struct UserPrivateDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserProfileDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
+    pub avatar_resource_id: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub birth_year: Option<f64>,
@@ -18961,12 +19103,20 @@ pub struct UserProfileDto {
     pub presence_emoji: Option<String>,
     pub presence_status: Option<String>,
     pub presence_text: Option<String>,
+    pub profile_cover_media: Option<Box<MediaDeliveryDto>>,
+    pub profile_cover_resource_id: Option<String>,
     pub profile_cover_url: Option<String>,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
     pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
     pub tiers: Box<UserTierSummaryDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UserSearchResponseDto {
+    pub items: Vec<UserLiteDto>,
+    pub page: Box<CursorPageMetaDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19540,7 +19690,9 @@ pub struct WorldLorebookDeclarationV1Dto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicAssetDto {
+    pub delivery: Option<Box<MediaDeliveryDto>>,
     pub duration_sec: Option<f64>,
+    pub external_url: Option<String>,
     pub height: Option<f64>,
     pub id: String,
     pub kind: String,
@@ -19548,7 +19700,6 @@ pub struct WorldPublicAssetDto {
     pub provenance: Box<WorldPublicAssetProvenanceDto>,
     pub provider: String,
     pub sha256: Option<String>,
-    pub url: String,
     pub width: Option<f64>,
 }
 
@@ -19557,7 +19708,6 @@ pub struct WorldPublicAssetProvenanceDto {
     pub ledger_record_id: Option<String>,
     pub publication_id: Option<String>,
     pub publication_record_id: Option<String>,
-    pub storage_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19623,6 +19773,14 @@ pub struct WorldPublicEntityCardDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicExternalMediaDto {
+    pub banner_url: Option<String>,
+    pub hero_url: Option<String>,
+    pub highlight_urls: Vec<String>,
+    pub icon_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicItemDto {
     pub created_at: String,
     pub entity_kinds: Vec<String>,
@@ -19654,10 +19812,7 @@ pub struct WorldPublicMediaAssetsDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicMediaDto {
     pub assets: Box<WorldPublicMediaAssetsDto>,
-    pub banner_url: Option<String>,
-    pub hero_url: Option<String>,
-    pub highlight_urls: Vec<String>,
-    pub icon_url: Option<String>,
+    pub external: Box<WorldPublicExternalMediaDto>,
     pub unavailable_resource_refs: Vec<String>,
 }
 
@@ -19726,6 +19881,15 @@ pub struct WorldPublicSourceCardPageDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceExternalMediaDto {
+    pub avatar_url: Option<String>,
+    pub portrait_url: Option<String>,
+    pub profile_cover_url: Option<String>,
+    pub reference_image_url: Option<String>,
+    pub voice_sample_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceMediaAssetsDto {
     pub avatar: Option<Box<WorldPublicAssetDto>>,
     pub portrait: Option<Box<WorldPublicAssetDto>>,
@@ -19737,11 +19901,8 @@ pub struct WorldPublicSourceMediaAssetsDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceMediaDto {
     pub assets: Box<WorldPublicSourceMediaAssetsDto>,
-    pub avatar_url: Option<String>,
-    pub portrait_url: Option<String>,
-    pub profile_cover_url: Option<String>,
-    pub reference_image_url: Option<String>,
-    pub voice_sample_url: Option<String>,
+    pub external: Box<WorldPublicSourceExternalMediaDto>,
+    pub unavailable_resource_refs: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

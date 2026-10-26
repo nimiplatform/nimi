@@ -32,7 +32,7 @@ const NOTIFICATION_LIST_FIXTURE = {
     target: { accountId: 'user-1' },
     data: { accountId: 'user-1' },
   }],
-  page: { nextCursor: 'cursor-2', hasNext: true },
+  page: { nextCursor: 'cursor-2' },
 } satisfies NotificationListResultDto;
 
 test('Realm notification helpers map to generated notification requests', async () => {

@@ -1,3 +1,5 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { CharacterSourceState } from '../explore/character-source-materialization';
 import {
@@ -7,6 +9,7 @@ import {
 import {
   readOptionalString,
   readSourceMediaUrl,
+  readSourceMediaDelivery,
   readStringArray,
   readVoiceSample,
 } from './source-detail-model-readers.js';
@@ -27,6 +30,10 @@ export type SourceDetailData = {
   id: string;
   displayName: string;
   handle: string;
+  avatarMedia: RealmModel<'MediaDeliveryDto'> | null;
+  profileCoverMedia: RealmModel<'MediaDeliveryDto'> | null;
+  referenceImageMedia: RealmModel<'MediaDeliveryDto'> | null;
+  worldBannerMedia: RealmModel<'MediaDeliveryDto'> | null;
   avatarUrl: string | null;
   profileCoverUrl: string | null;
   referenceImageUrl: string | null;
@@ -99,11 +106,9 @@ export type SourceDetailRelationshipClue = {
 
 export type SourceDetailVoiceSample = {
   id: string;
-  url: string;
-  provider: string | null;
-  mimeType: string | null;
+  previewUrl: string;
+  originalUrl: string | null;
   durationSec: number | null;
-  sha256: string | null;
   transcript: string | null;
   previewText: string | null;
 };
@@ -227,6 +232,10 @@ export function toSourceDetailData(
     id: sourceId,
     displayName,
     handle: String(raw.handle || ''),
+    avatarMedia: readSourceMediaDelivery(raw, 'avatar') ?? readSourceMediaDelivery(raw, 'portrait') ?? readSourceMediaDelivery(raw, 'referenceImage'),
+    profileCoverMedia: readSourceMediaDelivery(raw, 'profileCover'),
+    referenceImageMedia: readSourceMediaDelivery(raw, 'referenceImage'),
+    worldBannerMedia: readMediaDelivery(raw.worldBannerMedia),
     avatarUrl,
     profileCoverUrl,
     referenceImageUrl,

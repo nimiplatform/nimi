@@ -1,3 +1,4 @@
+import { readPublicAssetDto } from './data/world-public-projection.js';
 import type { WorldPublicMediaAsset } from './world-detail-types.js';
 
 export type JsonRecord = Record<string, unknown>;
@@ -49,27 +50,7 @@ export function readRecordArray(value: unknown): JsonRecord[] {
 }
 
 export function readPublicMediaAsset(value: unknown): WorldPublicMediaAsset | null {
-  const record = asRecord(value);
-  const id = readString(record, 'id');
-  const kind = readString(record, 'kind');
-  const url = readPublicUrlValue(record.url);
-  if (!id || !kind || !url) {
-    return null;
-  }
-  return {
-    id,
-    kind,
-    url,
-    provider: readString(record, 'provider') || null,
-    mimeType: readString(record, 'mimeType') || null,
-    width: readNumber(record.width) ?? null,
-    height: readNumber(record.height) ?? null,
-    durationSec: readNumber(record.durationSec) ?? null,
-    sha256: readString(record, 'sha256') || null,
-    provenance: Object.keys(asRecord(record.provenance)).length > 0
-      ? asRecord(record.provenance)
-      : null,
-  };
+  return readPublicAssetDto(value);
 }
 
 export function formatMixedLabel(source: string): string {

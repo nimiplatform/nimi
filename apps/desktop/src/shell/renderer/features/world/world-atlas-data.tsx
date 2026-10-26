@@ -1,3 +1,4 @@
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useEffect, useRef, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -64,6 +65,6 @@ export function WorldAtlasPeople({ world, source }: { world: WorldListItem; sour
   });
   const count = world.characterCount + world.personaCharacterCount;
   return <span ref={anchor} className="world-atlas-people" aria-label={t('WorldDetail.discovery.peopleCount', { count })} title={t('WorldDetail.discovery.peopleCount', { count })}>
-    {people.data?.length ? <>{people.data.map((person) => <span key={`${person.sourceKind}:${person.id}`} className="world-atlas-avatar" title={person.name}><span>{person.name.slice(0, 1)}</span>{person.avatarUrl ? <img key={person.avatarUrl} src={person.avatarUrl} alt={person.name} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} /> : null}</span>)}{count > people.data.length ? <span className="world-atlas-remainder">+{count - people.data.length}</span> : null}</> : <span className="world-album-count">{t('WorldDetail.discovery.peopleCount', { count })}</span>}
+    {people.data?.length ? <>{people.data.map((person) => <span key={`${person.sourceKind}:${person.id}`} className="world-atlas-avatar" title={person.name}><span>{person.name.slice(0, 1)}</span><MediaImage delivery={person.avatarMedia} externalUrl={person.avatarUrl} purpose="avatar" sizes="20px" alt={person.name} className="h-full w-full object-cover" /></span>)}{count > people.data.length ? <span className="world-atlas-remainder">+{count - people.data.length}</span> : null}</> : <span className="world-album-count">{t('WorldDetail.discovery.peopleCount', { count })}</span>}
   </span>;
 }

@@ -752,5 +752,7 @@
   "agentSubmissionWorking": "Checking last send…",
   "agentSubmissionSaveFailed": "Message not sent because the draft could not be saved. Your text is still in the input box—retry saving before sending again.",
   "agentSubmissionSaveLimit": "Message not sent because the draft reached its storage limit. Your text is still in the input box—shorten it or copy it out before editing.",
-  "followUpManage": "Manage life and contact"
+  "followUpManage": "Manage life and contact",
+  "downloadOriginal": "Download original",
+  "downloadFailed": "Could not download the original. Try again."
 }

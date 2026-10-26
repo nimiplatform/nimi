@@ -8,6 +8,9 @@ export type HumanProfileData = {
   displayName: string;
   handle: string;
   avatarUrl: string | null;
+  avatarResourceId?: string | null;
+  avatarMedia?: RealmModel<'MediaDeliveryDto'> | null;
+  coverMedia?: RealmModel<'MediaDeliveryDto'> | null;
   coverUrl: string | null;
   bio: string | null;
   isOnline: boolean;
@@ -87,6 +90,9 @@ export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
     displayName: String(raw.displayName || raw.handle || 'Unknown'),
     handle: String(raw.handle || ''),
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
+    avatarResourceId: raw.avatarResourceId ?? null,
+    avatarMedia: raw.avatarMedia ?? null,
+    coverMedia: raw.profileCoverMedia ?? null,
     coverUrl: typeof raw.profileCoverUrl === 'string' ? raw.profileCoverUrl : null,
     bio: typeof raw.bio === 'string' ? raw.bio : null,
     isOnline: raw.isOnline === true,

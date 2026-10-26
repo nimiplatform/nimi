@@ -178,7 +178,7 @@ test('Desktop protected Runtime projects the authoritative Realm Chat list throu
         items: [{
           chatId: 'chat-1', unreadCount: 2,
           otherUser: {
-            id: 'user-2', handle: 'friend', displayName: 'Friend', avatarUrl: '', status: 'ACTIVE',
+            id: 'user-2', handle: 'friend', displayName: 'Friend', avatarUrl: '', avatarResourceId: '', avatarMedia: undefined, status: 'ACTIVE',
             presenceStatus: 'online', presenceText: '', presenceEmoji: '', createdAt: { seconds: '1', nanos: 0 },
           },
           createdAt: { seconds: '1', nanos: 0 }, updatedAt: { seconds: '2', nanos: 0 },

@@ -327,14 +327,13 @@ test('world character hero shows the world pill, an age-qualified subtitle, and 
     const source = toSourceDetailData({
       ...ouYangDeRaw,
       worldName: '东南秋声',
-      media: {
-        voiceSampleUrl: 'https://cdn.example.test/voice.wav',
+      media: {external: { voiceSampleUrl: 'https://cdn.example.test/voice.wav' },
         assets: {
           voiceSample: {
             id: 'voice-1',
             kind: 'voiceSample',
-            url: 'https://cdn.example.test/voice.wav',
-            provider: 'S3_OBJECT',
+            externalUrl: 'https://cdn.example.test/voice.wav',
+            provider: 'EXTERNAL_URL',
             mimeType: 'audio/wav',
             width: null,
             height: null,

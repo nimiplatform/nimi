@@ -107,10 +107,18 @@ func scanMalformedRealmBrokerBodyForCredentials(body []byte) bool {
 }
 
 func scanRealmBrokerJSONValue(value any) bool {
+	if object, ok := value.(map[string]any); ok {
+		if matched, forbidden := scanRealmMediaDescriptor(object); matched {
+			return forbidden
+		}
+	}
 	switch typed := value.(type) {
 	case map[string]any:
 		for key, child := range typed {
 			if _, forbidden := realmBrokerCredentialKeys[normalizeRealmBrokerCredentialKey(key)]; forbidden {
+				return true
+			}
+			if (key == "metadata" || key == "data") && scanRealmBrokerJSONValueWithoutMedia(child) {
 				return true
 			}
 			if scanRealmBrokerJSONValue(child) {

@@ -92,7 +92,7 @@ test('chat subscribes only to its Session display fields and resets on Session r
     await act(async () => first.publish({
       ...first.getSnapshot(), error: 'manager-only diagnostic', directoryRevision: 2,
       state: { ...first.getSnapshot().state, appearance: { ...first.getSnapshot().state.appearance,
-        presentationRevision: '2', referenceVoice: { phase: 'creating', sampleUrl: null, reason: null, reasonCode: null },
+        presentationRevision: '2', referenceVoice: { phase: 'creating', previewUrl: null, reason: null, reasonCode: null },
       } },
     }));
     assert.equal(renders, before, 'reference voice, directory and diagnostic updates do not rerender the chat parent');

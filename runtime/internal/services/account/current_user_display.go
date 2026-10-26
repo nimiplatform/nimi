@@ -150,13 +150,22 @@ func decodeCurrentUserProfile(raw []byte, realmBaseURL string) (currentUserProfi
 		return currentUserProfile{}, err
 	}
 	var avatarURL *string
+	// Resource capabilities belong to authorized media reads, not durable AccountMaterial.
+	managedAvatar := false
+	if rawID, exists := object["avatarResourceId"]; exists && !bytes.Equal(bytes.TrimSpace(rawID), []byte("null")) {
+		var id string
+		if json.Unmarshal(rawID, &id) != nil || !mediaIdentifier.MatchString(id) {
+			return currentUserProfile{}, ErrCurrentUserDisplayUnavailable
+		}
+		managedAvatar = true
+	}
 	if avatar, exists := object["avatarUrl"]; exists && !bytes.Equal(bytes.TrimSpace(avatar), []byte("null")) {
 		var value string
 		if err := json.Unmarshal(avatar, &value); err != nil {
 			return currentUserProfile{}, ErrCurrentUserDisplayUnavailable
 		}
 		avatarURL, err = safeCurrentUserAvatarURL(value, realmBaseURL)
-		if err != nil {
+		if err != nil && !managedAvatar {
 			return currentUserProfile{}, err
 		}
 	}

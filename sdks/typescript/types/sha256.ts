@@ -13,25 +13,18 @@ function rotateRight(value: number, count: number): number {
   return ((value >>> count) | (value << (32 - count))) >>> 0;
 }
 
-/** Browser-safe synchronous SHA-256 for small canonical identity payloads. */
-export function sha256Hex(data: Uint8Array): string {
-  const bitLength = data.length * 8;
-  const paddedLength = (((data.length + 8) >>> 6) + 1) << 6;
-  const buffer = new Uint8Array(paddedLength);
-  buffer.set(data);
-  buffer[data.length] = 0x80;
-  const view = new DataView(buffer.buffer);
-  view.setUint32(paddedLength - 8, Math.floor(bitLength / 0x100000000));
-  view.setUint32(paddedLength - 4, bitLength >>> 0);
-
-  const hash = new Uint32Array([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
-  ]);
+/** Incremental browser-safe SHA-256; no complete-file allocation. */
+export function createSha256Hasher(): { update(data: Uint8Array): void; hex(): string } {
+  const hash = new Uint32Array([0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]);
   const words = new Uint32Array(64);
-  for (let block = 0; block < paddedLength; block += 64) {
+  const remainder = new Uint8Array(64);
+  const remainderView = new DataView(remainder.buffer);
+  let used = 0;
+  let length = 0;
+  let finished = false;
+  function compress(view: DataView, offset: number): void {
     for (let index = 0; index < 16; index += 1) {
-      words[index] = view.getUint32(block + index * 4);
+      words[index] = view.getUint32(offset + index * 4);
     }
     for (let index = 16; index < 64; index += 1) {
       const left = words[index - 15];
@@ -66,14 +59,37 @@ export function sha256Hex(data: Uint8Array): string {
     hash[6] = (hash[6] + g) >>> 0;
     hash[7] = (hash[7] + h) >>> 0;
   }
+  return {
+    update(data) {
+      if (finished) throw new Error('SHA256 already finalized');
+      length += data.length;
+      if (!Number.isSafeInteger(length * 8)) throw new Error('SHA256 input is too large');
+      let offset = 0;
+      if (used) {
+        const count = Math.min(64 - used, data.length);
+        remainder.set(data.subarray(0, count), used); used += count; offset += count;
+        if (used === 64) { compress(remainderView, 0); used = 0; }
+      }
+      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      while (offset + 64 <= data.length) { compress(view, offset); offset += 64; }
+      if (offset < data.length) { remainder.set(data.subarray(offset), 0); used = data.length - offset; }
+    },
+    hex() {
+      if (finished) throw new Error('SHA256 already finalized');
+      finished = true;
+      const tail = new Uint8Array(used < 56 ? 64 : 128);
+      tail.set(remainder.subarray(0, used)); tail[used] = 0x80;
+      const view = new DataView(tail.buffer);
+      const bits = length * 8;
+      view.setUint32(tail.length - 8, Math.floor(bits / 0x100000000));
+      view.setUint32(tail.length - 4, bits >>> 0);
+      for (let offset = 0; offset < tail.length; offset += 64) compress(view, offset);
+      return [...hash].map((word) => word.toString(16).padStart(8, '0')).join('');
+    },
+  };
+}
 
-  let output = '';
-  const digest = new DataView(new ArrayBuffer(32));
-  for (let index = 0; index < hash.length; index += 1) {
-    digest.setUint32(index * 4, hash[index]);
-  }
-  for (const byte of new Uint8Array(digest.buffer)) {
-    output += byte.toString(16).padStart(2, '0');
-  }
-  return output;
+/** Browser-safe synchronous SHA-256 for canonical identity payloads. */
+export function sha256Hex(data: Uint8Array): string {
+  const hash = createSha256Hasher(); hash.update(data); return hash.hex();
 }
