@@ -12,6 +12,7 @@ import {
   type NimiRuntimeConnectorAuthOption,
   type NimiRuntimeConnectorClient,
   type NimiRuntimeConnectorModelInfo,
+  type NimiRuntimeConnectorCatalogEntry,
   type NimiRuntimeConnectorDeleteResult,
   type NimiRuntimeConnectorProjection,
   type NimiRuntimeConnectorProjectionInput,
@@ -62,8 +63,9 @@ export type RuntimeConfigConnectorSdkService = Readonly<{
     authMode?: 'api_key';
   }): Promise<ApiConnector | null>;
   sdkDeleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
-  sdkTestConnector(connectorId: string): Promise<void>;
+  sdkTestConnector(connectorId: string): Promise<ApiConnector>;
   sdkListConnectorModels(connectorId: string, forceRefresh?: boolean): Promise<string[]>;
+  sdkListConnectorCatalog(connectorId: string, bypassCache?: boolean): Promise<readonly NimiRuntimeConnectorCatalogEntry[]>;
   sdkListConnectorModelDescriptors(
     connectorId: string,
     forceRefresh?: boolean,
@@ -129,7 +131,7 @@ export function createRuntimeConfigConnectorSdkService(
       return inventory.deleteConnector(connectorId);
     },
     async sdkTestConnector(connectorId) {
-      await inventory.testConnector(connectorId);
+      return runtimeConnectorProjectionToApiConnector(await inventory.testConnector(connectorId));
     },
     async sdkListConnectorModels(connectorId, forceRefresh = false) {
       return [...await inventory.listConnectorModels(connectorId, forceRefresh)];
@@ -137,6 +139,7 @@ export function createRuntimeConfigConnectorSdkService(
     async sdkListConnectorModelDescriptors(connectorId, forceRefresh = false) {
       return [...await inventory.listConnectorModelDescriptors(connectorId, forceRefresh)];
     },
+    sdkListConnectorCatalog: (connectorId, bypassCache = false) => inventory.listConnectorCatalog(connectorId, bypassCache),
   });
 }
 

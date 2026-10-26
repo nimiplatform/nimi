@@ -80,7 +80,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
   const [targetsError, setTargetsError] = useState('');
   const [selectedConnectorRef, setSelectedConnectorRef] = useState(task.draft?.cloudConnectorRef ?? '');
   const [selectedTargetKey, setSelectedTargetKey] = useState(() => normalizedCloudTargetKey(task.draft?.cloudTargetKey));
-  const [targetQuery, setTargetQuery] = useState('');
+  const [targetQuery, setTargetQuery] = useState(task.draft?.cloudTargetSearch ?? '');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState('');
@@ -106,8 +106,13 @@ export function RuntimeSetupTaskCloudPanel(props: {
   }, [aiConfig, reloadNonce, task.capabilityContract]);
 
   useEffect(() => {
-    if (!aiConfig || !selectedConnectorRef) {
+    if (!aiConfig || !selectedConnectorRef || connectors === null) {
       setTargets(null);
+      return undefined;
+    }
+    if (!connectors.some(option => option.connectorRef === selectedConnectorRef)) {
+      setTargets([]);
+      setTargetsError(t('runtimeConfig.cloudWorkspace.connectionNotSelectable'));
       return undefined;
     }
     let active = true;
@@ -134,7 +139,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
     return () => {
       active = false;
     };
-  }, [aiConfig, reloadNonce, selectedConnectorRef, task.capabilityContract]);
+  }, [aiConfig, connectors, reloadNonce, selectedConnectorRef, task.capabilityContract, t]);
 
   // Prefill only after the user chooses a connection, and never replace an
   // explicit target selection with a late recommendation response.
@@ -185,7 +190,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
 
   const selectedTarget = (targets ?? []).find((target) => runtimeSetupCloudTargetKey(target) === selectedTargetKey) ?? null;
   const visibleTargets = (targets ?? []).filter((target) => target.label.toLocaleLowerCase().includes(targetQuery.trim().toLocaleLowerCase()));
-  const selectedTargetReady = selectedTarget?.state === 'ready';
+  const selectedTargetReady = selectedTarget?.state === 'ready' && Boolean(connectors?.some(option => option.connectorRef === selectedConnectorRef));
   const onSave = useCallback(() => {
     if (!selectedTarget || !selectedTargetReady) return;
     setBusy(true);

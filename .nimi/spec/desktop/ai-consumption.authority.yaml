@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.desktop
 scope: desktop.ai-consumption
 units:
+  - id: rule.nimi.desktop.ai-consumption.cloud-connection-observation
+    kind: rule
+    title: Cloud Services separates saved references from actual device usage
+    modality: must
+    statement: Cloud Services reads current configuration references only from the protected Runtime AIConfig reference index and actual Cloud attempts and estimates only from protected Runtime AI observation. It labels current-account and device scope, observation time, pagination and coverage; a declared App capability is not a connection reference and a saved reference is not running usage. The same bounded cloud history remains reachable without any current Connector, including after deletion, without restoring credentials; unavailable identity is labeled as historical rather than inferred deleted. Delete confirmation may show a current reference snapshot but never guarantees absence of concurrent new references, rewrites configurations or promises to stop admitted outbound IO. Only currently admitted owner configuration entries are editable, safe index visibility grants no additional access, and account replacement discards pending or previous-account results.
+    condition: Whenever Home presents connection references, cloud history, estimates or deletion impact.
+    failure: Reject inferred attribution, hidden read failures, unpriced or incomplete data displayed as zero, private payload inspection, account leakage and index visibility used as configuration authorization.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: definition.nimi.desktop.ai-consumption.profile-config
     kind: definition
     title: Desktop AI profile configuration consumption surface
@@ -732,6 +742,16 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
+  - id: rule.nimi.desktop.ai-consumption.cloud-services-workspace
+    kind: rule
+    title: Cloud Services connects catalog browsing to explicit consumer configuration
+    modality: must
+    statement: Cloud Services presents Connector management status separately from credential presence and historical diagnostics, independently reads the admitted Runtime model catalog without requiring Test Connector, preserves unavailable catalog entries and explicit empty, failed or incomplete reads, and exposes safe identity, account scope, billing-mode disclosure and actionable diagnostic reasons without claiming model execution readiness. Configure-use first chooses the existing Nimi Chat, projected App or singular shared LocalAgent owner and capability, preserves any existing draft, and resolves exact current owner options before the user explicitly commits a whole AIConfig with its expected revision; browsing, prefill, navigation and cancellation never commit configuration, execute AI or invent target identity. Connection search and filtering never change configuration, and selected identity remains clear. All navigation uses the existing Home owner, system-managed connections stay immutable, and account or connection replacement rejects stale asynchronous projections.
+    condition: Whenever Home renders or operates the Cloud Services workspace.
+    failure: Reject catalog-check coupling, a hidden empty or failed catalog, a diagnostic projected as current availability, inferred account or billing facts, guessed execution targets, overwritten drafts, implicit consumer writes, and cross-account or stale results.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.model-verification-claims
     kind: rule
     title: Content verification is a file fact, never a runnability claim

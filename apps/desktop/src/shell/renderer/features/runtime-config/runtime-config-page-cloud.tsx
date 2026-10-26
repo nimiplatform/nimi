@@ -1,6 +1,7 @@
 import {
   isNimiBrowserManagedConnectorProfile,
   NIMI_CHATGPT_PLAN_REVOCATION_UNCONFIRMED_ACTION_HINT,
+  type NimiRuntimeConnectorCatalogEntry,
 } from '@nimiplatform/sdk/runtime';
 import {
   ChatGPTPlanWelcomeDialog,
@@ -10,7 +11,7 @@ import {
 import {
   formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
 } from '@nimiplatform/sdk/runtime';
-import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
+import { type ProviderCatalogEntry, type DesktopConnectorReference } from '@nimiplatform/sdk/runtime/wire-types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store';
@@ -26,6 +27,11 @@ import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-con
 import { defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
+import { CloudConnectorUseDialog } from './runtime-config-cloud-use-dialog.js';
+import { CloudHistoryDialog } from './runtime-config-cloud-observation.js';
+import { openRuntimeSetupTaskFromEntry } from './runtime-setup-task-open.js';
+import { currentDesktopAccountIdForSetup } from './runtime-setup-task-ports.js';
+import { getRuntimeSetupTaskStore } from './runtime-setup-task-store.js';
 import { Button, CloudEmptyState, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -64,7 +70,12 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const [deletingConnectorId, setDeletingConnectorId] = useState('');
   const [chatGPTPlanWelcomeOpen, setChatGPTPlanWelcomeOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [configureEntry, setConfigureEntry] = useState<{ connectorId: string; entry: NimiRuntimeConnectorCatalogEntry } | null>(null);
+  const [historyConnectorRef, setHistoryConnectorRef] = useState<string | null>(null);
   const [catalogOverrideProviderId, setCatalogOverrideProviderId] = useState('');
+  const [connectorsLoaded, setConnectorsLoaded] = useState(false);
+  const [autoCheckingId, setAutoCheckingId] = useState('');
+  const autoChecked = useRef(new Set<string>());
   const connectorsRef = useRef(state.connectors);
   connectorsRef.current = state.connectors;
   const reportError = useCallback((label: string, error: unknown) => {
@@ -86,6 +97,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         setChatGPTPlanWelcomeOpen(true);
       }
       const acquiredConnectorId = acquired.connectorId;
+      autoChecked.current.delete(acquiredConnectorId);
+      connectorSdk.clearCaches();
       setTokenSavedConnectorId(acquiredConnectorId);
       if (operation.connector.isDraft) {
         try {
@@ -123,12 +136,16 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         }
         if (isCurrent()) refineConnector(operation.connector.id, acquiredConnectorId);
       } else {
-        updateState((prev) => {
-          const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
-          return isCurrent(currentConnector ?? null)
-            ? updateConnectorField(prev, acquiredConnectorId, { hasCredential: true })
-            : prev;
-        });
+        try {
+          const connectors = await sdkListConnectors();
+          updateState((prev) => {
+            const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
+            return isCurrent(currentConnector ?? null)
+              ? replaceConnectorsInState(prev, [...connectors, ...prev.connectors.filter(connector => connector.isDraft)]) : prev;
+          });
+        } catch (error) {
+          if (isCurrent()) reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
+        }
       }
       if (isCurrent()) {
         model.onVaultChanged();
@@ -147,9 +164,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const connectorScope = selectedConnector?.scope || 'user';
   const isRuntimeSystem = connectorScope === 'runtime-system';
   const isMachineGlobal = connectorScope === 'machine-global';
-  const isSystemOwned = isRuntimeSystem;
+  const isSystemOwned = isRuntimeSystem || Boolean(selectedConnector?.isSystemOwned);
   const isDraft = selectedConnector?.isDraft || false;
-  const canEditVendor = !isRuntimeSystem && isDraft && !managedOAuthBusy;
+  const canEditVendor = !isSystemOwned && isDraft && !managedOAuthBusy;
   const authOptions = useMemo(
     () => listConnectorAuthOptionsForProvider(selectedConnector?.provider || '', providerCatalog),
     [providerCatalog, selectedConnector?.provider],
@@ -163,10 +180,11 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     }
     return 'api_key';
   }, [selectedConnector]);
-  const canEditCredentialMode = !isRuntimeSystem && isDraft && !managedOAuthBusy && authOptions.length > 1;
+  const canEditCredentialMode = !isSystemOwned && isDraft && !managedOAuthBusy && authOptions.length > 1;
   const isBrowserManagedConnector = selectedConnector?.authMode === 'oauth_managed'
     && isNimiBrowserManagedConnectorProfile(selectedConnector?.providerAuthProfile);
   const canStartManagedOAuth = Boolean(selectedConnectorId)
+    && !isSystemOwned
     && isBrowserManagedConnector
     && authStatus === 'authenticated'
     && !savingToken
@@ -263,6 +281,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
           const drafts = prev.connectors.filter((c) => c.isDraft);
           return replaceConnectorsInState(prev, [...connectors, ...drafts]);
         });
+        setConnectorsLoaded(true);
       })
       .catch((error) => {
         if (!cancelled) {
@@ -273,6 +292,18 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       cancelled = true;
     };
   }, []);
+  // @nimi-authority: rule.nimi.runtime.ai-provider.r025
+  useEffect(() => {
+    if (!connectorsLoaded || autoCheckingId || model.testingConnector) return;
+    const candidate = state.connectors.find(connector => connector.hasCredential && !connector.isDraft && connector.managementStatus !== 'disabled'
+      && !connector.lastCheckedAt && !autoChecked.current.has(connector.id));
+    if (!candidate) return;
+    autoChecked.current.add(candidate.id);
+    setAutoCheckingId(candidate.id);
+    void testSelectedConnectorCommand({ state, selectedConnector: candidate, connectorSdk, now: bindings.clock.now,
+      testingConnector: false, updateState, setStatusBanner: () => {}, setControlFeedback: () => {} })
+      .finally(() => setAutoCheckingId(''));
+  }, [connectorsLoaded, autoCheckingId, state, model.testingConnector, connectorSdk, bindings.clock.now, updateState]);
   useEffect(() => {
     let cancelled = false;
     void loadProviderCatalog()
@@ -328,12 +359,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     if (connectorId !== selectedConnectorId && managedOAuthBusy) {
       invalidateManagedOAuth('Managed connector selection changed');
     }
-    const connector = state.connectors.find((item) => item.id === connectorId) || null;
-    if (connector) {
-      setConnectorLabelDraft(String(connector.label || ''));
-    }
     void navigation.push({ id: 'cloud', runtime: { connectorId } });
-  }, [invalidateManagedOAuth, selectedConnectorId, state.connectors, navigation]);
+  }, [invalidateManagedOAuth, selectedConnectorId, navigation]);
   const onAcquireManagedOAuth = useCallback(() => {
     if (!selectedConnector || !selectedConnectorId || !isBrowserManagedConnector) {
       return;
@@ -404,42 +431,48 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         ? await sdkCreateConnector({ provider: selected.provider, endpoint: draft.endpoint.trim(), label: draft.label.trim() || selected.label, credentialValue, authMode: 'api_key' })
         : await sdkUpdateConnector({ connectorId: selected.id, label: draft.label.trim() || selected.label, endpoint: draft.endpoint.trim(), ...(credentialValue ? { credentialValue, authMode: 'api_key' as const } : {}) });
       if (!saved) throw new Error(t('runtimeConfig.product.connectionSaveFailed'));
+      if (!saved.lastCheckedAt) autoChecked.current.delete(saved.id);
       updateState(prev => ({ ...prev, connectors: prev.connectors.map(item => item.id === selected.id ? saved : item) }));
       refineConnector(selected.id, saved.id);
       setTokenDraft('');
       setTokenSavedConnectorId(saved.id);
       model.onVaultChanged();
-      await testSelectedConnectorCommand({ state, selectedConnector: saved, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
     } catch (error) {
       setTokenSaveError(error instanceof Error ? error.message : String(error));
       throw error;
     } finally { setSavingToken(false); }
   };
   const uncheckedConnectors = state.connectors.filter((connector) => connector.hasCredential && !connector.isDraft && connector.status === 'idle');
-  const [checkingAll, setCheckingAll] = useState(false);
-  const onCheckAll = useCallback(async () => {
-    if (checkingAll) return;
-    setCheckingAll(true);
-    try {
-      for (const connector of uncheckedConnectors) {
-        await testSelectedConnectorCommand({ state, selectedConnector: connector, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
-      }
-    } finally {
-      setCheckingAll(false);
-    }
-  }, [bindings.clock.now, checkingAll, connectorSdk, model.setPageFeedback, state, uncheckedConnectors, updateState]);
   const hasConnectors = state.connectors.length > 0;
+  const openReferencedOwner = (reference: DesktopConnectorReference) => {
+    const owner = reference.owner?.owner;
+    if (!selectedConnector || !owner || (owner.oneofKind !== 'app' && owner.oneofKind !== 'runtimeLocalAgentSubsystem')) return;
+    const connectorRef = selectedConnector.id;
+    const store = getRuntimeSetupTaskStore();
+    void openRuntimeSetupTaskFromEntry(store, {
+      navigation, capabilityContract: reference.capabilityContract,
+      loadSource: async origin => {
+        const accountId = await currentDesktopAccountIdForSetup();
+        if (!accountId) throw new Error('Account required');
+        return { kind: owner.oneofKind === 'app' ? 'app' : 'local-agent',
+          ...(owner.oneofKind === 'app' ? { ownerAppId: owner.app.appId } : {}), accountId,
+          returnFocus: 'home:' + encodeURIComponent(JSON.stringify(origin)) };
+      },
+      openTask: taskId => {
+        const task = store.getSnapshot().tasks.find(item => item.taskId === taskId);
+        if (task && !task.draft) store.updateTask(taskId, () => ({ draft: { route: 'cloud', cloudConnectorRef: connectorRef } }));
+        model.onOpenSetupTask(taskId);
+      },
+    }).catch(() => model.setPageFeedback({ kind: 'error', message: t('runtimeConfig.cloudWorkspace.configureFailed') }));
+  };
   return (
     <RuntimePageShell className='space-y-6 pt-2 lg:pt-4'>
       <RuntimePageHeader
         title={t('runtimeConfig.nav.cloudServices', { defaultValue: 'Cloud Services' })}
-        actions={hasConnectors ? (
+        actions={(
           <>
-            {uncheckedConnectors.length > 1 ? (
-              <Button variant='secondary' size='sm' disabled={checkingAll || model.testingConnector} onClick={() => { void onCheckAll(); }}>
-                {t(checkingAll ? 'runtimeConfig.cloud.testing' : 'runtimeConfig.product.checkAll', { count: uncheckedConnectors.length })}
-              </Button>
-            ) : null}
+            <Button variant="ghost" size="sm" onClick={() => setHistoryConnectorRef('')}>{t('runtimeConfig.cloudWorkspace.historyTitle')}</Button>
+            {hasConnectors ? (
             <Button
               variant='primary'
               size='sm'
@@ -448,11 +481,12 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             >
               {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
             </Button>
+            ) : null}
           </>
-        ) : null}
+        )}
       />
       {hasConnectors ? (
-        <>
+        <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
           <CloudConnectorListPanel
             defaultEndpointFor={(connector) => resolveProviderEndpoint(connector.provider || vendorToProvider(connector.vendor), providerCatalog)}
             connectors={orderedConnectors}
@@ -460,11 +494,15 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
             onSelectConnector={onSelectConnector}
             selectedConnectorId={selectedConnectorId}
+            checkingConnectorId={autoCheckingId || (model.testingConnector ? selectedConnectorId : '')}
             uncheckedCount={uncheckedConnectors.length}
             t={t}
           />
           <CloudConnectorDetailPanel
             key={selectedConnector?.id ?? 'empty'}
+            onConfigure={entry => { if (selectedConnector) setConfigureEntry({ connectorId: selectedConnector.id, entry }); }}
+            onOpenHistory={() => { if (selectedConnector) setHistoryConnectorRef(selectedConnector.id); }}
+            onOpenOwner={openReferencedOwner}
             onSaveConnection={saveConnectionDetails}
             authOptions={authOptions}
             authStatus={authStatus}
@@ -481,7 +519,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             isMachineGlobal={isMachineGlobal}
             isRuntimeSystem={isRuntimeSystem}
             isSystemOwned={isSystemOwned}
-            model={model}
+            model={{ ...model, testingConnector: model.testingConnector || autoCheckingId === selectedConnectorId }}
             onAcquireManagedOAuth={onAcquireManagedOAuth}
             onCancelManagedOAuth={() => invalidateManagedOAuth('ChatGPT sign-in was canceled')}
             onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
@@ -502,7 +540,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             tokenSavedConnectorId={tokenSavedConnectorId}
             vendorOptions={vendorOptions}
           />
-        </>
+        </div>
       ) : (
         <CloudEmptyState onAddConnector={onAddConnector} t={t} />
       )}
@@ -511,6 +549,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         providerId={catalogOverrideProviderId}
         onClose={() => setCatalogOverrideProviderId('')}
       />
+      {configureEntry ? <CloudConnectorUseDialog key={configureEntry.connectorId} connectorId={configureEntry.connectorId} entry={configureEntry.entry} onClose={() => setConfigureEntry(null)} onOpenTask={model.onOpenSetupTask} /> : null}
+      {historyConnectorRef !== null ? <CloudHistoryDialog connectorId={historyConnectorRef} onClose={() => setHistoryConnectorRef(null)} /> : null}
       <RuntimeConfigConnectorCreateDialog
         submitLabel={t('runtimeConfig.product.saveAndCheck')}
         open={createDialogOpen}
@@ -520,7 +560,6 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
           const entry = navigation.getSnapshot();
           setCreateDialogOpen(false);
           void (async () => {
-            setSavingToken(true);
             try {
               const connectors = await sdkListConnectors();
               updateState((prev) => {
@@ -533,10 +572,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
               if (created && created.authMode === 'oauth_managed' && isNimiBrowserManagedConnectorProfile(created.providerAuthProfile) && !chatGPTPlanDisclosureSeen()) {
                 setChatGPTPlanWelcomeOpen(true);
               }
-              if (created) await testSelectedConnectorCommand({ state, selectedConnector: created, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
             } catch (error) {
               reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
-            } finally { setSavingToken(false); }
+            }
             model.onVaultChanged();
           })();
         }}

@@ -42,11 +42,18 @@ export function RuntimeConfigConnectorCreateForm(props: {
   readonly submitLabel?: string;
   /** Provider ids that already have a connection; listed first in the picker. */
   readonly connectedProviders?: readonly string[];
+  /** API-key creation is already submitted and cannot be dismissed as cancellation. */
+  readonly onSavingChange?: (saving: boolean) => void;
 }) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const { sdkCreateConnector, sdkListProviderCatalog } = useRuntimeConfigConnectorSdk();
   const authStatus = useAppStore((s) => s.auth.status);
+  const authContext = useAppStore((s) => JSON.stringify([s.auth.status, s.auth.user?.id, s.auth.authorizationRevision]));
+  const currentAuthContext = useRef(authContext);
+  currentAuthContext.current = authContext;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const testId = props.testIdPrefix ?? 'runtime-connector-create';
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
   const [catalogError, setCatalogError] = useState('');
@@ -124,13 +131,15 @@ export function RuntimeConfigConnectorCreateForm(props: {
   const oauthBusy = oauth.busy;
 
   // Account changes mid-flow invalidate the in-flight OAuth operation.
-  const authStatusRef = useRef(authStatus);
+  const authContextRef = useRef(authContext);
   useEffect(() => {
-    if (authStatusRef.current !== authStatus) {
-      authStatusRef.current = authStatus;
+    if (authContextRef.current !== authContext) {
+      authContextRef.current = authContext;
       oauth.invalidate('Account changed');
+      setTokenDraft('');
+      setSaveError('');
     }
-  }, [authStatus, oauth]);
+  }, [authContext, oauth]);
 
   const onChangeField = useCallback((apply: () => void) => {
     if (oauthBusy) oauth.invalidate('Connector configuration changed');
@@ -141,7 +150,9 @@ export function RuntimeConfigConnectorCreateForm(props: {
   const submitApiKey = useCallback(async () => {
     const secret = tokenDraft.trim();
     if (!secret || !resolvedProvider || saving || oauthBusy) return;
+    const submittedAuthContext = currentAuthContext.current;
     setSaving(true);
+    props.onSavingChange?.(true);
     setSaveError('');
     try {
       const created = await sdkCreateConnector({
@@ -152,11 +163,14 @@ export function RuntimeConfigConnectorCreateForm(props: {
         authMode: 'api_key',
       });
       if (!created) throw new Error('create connector returned empty payload');
-      props.onCreated(created.id);
+      if (mounted.current && currentAuthContext.current === submittedAuthContext) props.onCreated(created.id);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : String(error || 'Save failed'));
+      if (mounted.current && currentAuthContext.current === submittedAuthContext) {
+        setSaveError(error instanceof Error ? error.message : String(error || 'Save failed'));
+      }
     } finally {
-      setSaving(false);
+      if (mounted.current) setSaving(false);
+      props.onSavingChange?.(false);
     }
   }, [label, oauthBusy, props, resolvedEndpoint, resolvedProvider, saving, sdkCreateConnector, tokenDraft]);
 
@@ -234,7 +248,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
             value={label}
             onChange={(next) => onChangeField(() => setLabel(next))}
             placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
-            disabled={oauthBusy}
+            disabled={saving || oauthBusy}
             icon={<ServerIcon />}
           />
           <div>
@@ -248,7 +262,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
                 setEndpoint('');
                 setAuthOptionValue('');
               })}
-              disabled={oauthBusy || managedProviders.length === 0}
+              disabled={saving || oauthBusy || managedProviders.length === 0}
               className="w-full"
               options={managedProviders.map((entry) => ({
                 value: entry.provider,
@@ -266,7 +280,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
               label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
               value={resolvedEndpoint}
               onChange={(next) => onChangeField(() => setEndpoint(next))}
-              disabled={oauthBusy}
+              disabled={saving || oauthBusy}
             />
           ) : null}
           {authOptions.length > 1 ? (
@@ -280,7 +294,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
                   setAuthOptionValue(next);
                   setTokenDraft('');
                 })}
-                disabled={oauthBusy}
+                disabled={saving || oauthBusy}
                 className="w-full"
                 options={authOptions}
               />
@@ -296,7 +310,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
           type="password"
           placeholder={t('runtimeConfig.product.keyPlaceholder')}
           icon={<KeyIcon />}
-          disabled={oauthBusy}
+          disabled={saving || oauthBusy}
         />
       ) : (
         <p className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 text-xs text-[var(--nimi-text-muted)]">
@@ -358,20 +372,23 @@ export function RuntimeConfigConnectorCreateDialog(props: {
   readonly connectedProviders?: readonly string[];
 }) {
   const { t } = useTranslation();
+  const saving = useRef(false);
+  const close = () => { if (!saving.current) props.onClose(); };
   if (!props.open) return null;
   return (
     <OverlayShell
       open
       kind="dialog"
       size="md"
-      onClose={props.onClose}
+      onClose={close}
       title={t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
       dataTestId="runtime-connector-create-dialog"
     >
       <RuntimeConfigConnectorCreateForm
         submitLabel={props.submitLabel}
         onCreated={props.onCreated}
-        onCancel={props.onClose}
+        onCancel={close}
+        onSavingChange={(value) => { saving.current = value; }}
         testIdPrefix="runtime-connector-create"
         connectedProviders={props.connectedProviders}
       />

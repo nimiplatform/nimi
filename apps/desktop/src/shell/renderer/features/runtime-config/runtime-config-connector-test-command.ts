@@ -6,8 +6,9 @@ import {
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
-import { discoverConnectorModelsAndHealth } from './runtime-config-connector-discovery';
+import { checkConnectorHealth } from './runtime-config-connector-discovery';
 import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
+import { replaceConnectorsInState } from './runtime-config-connector-actions.js';
 
 function connectorTestFailureKind(status: string): InlineFeedbackState['kind'] {
   return status === 'degraded' ? 'warning' : 'error';
@@ -24,11 +25,10 @@ export async function runSelectedConnectorTestCommand(input: {
   const flowId = createRendererFlowId('runtime-config-connector');
   const {
     endpoint,
-    discovered,
-    modelCapabilities,
+    configurationVersion,
     health,
     normalizedStatus,
-  } = await discoverConnectorModelsAndHealth({
+  } = await checkConnectorHealth({
     connector: input.selectedConnector,
     connectorSdk: input.connectorSdk,
     now: input.now,
@@ -38,11 +38,13 @@ export async function runSelectedConnectorTestCommand(input: {
     ...prev,
     connectors: prev.connectors.map((connector) => {
       if (connector.id !== input.selectedConnector.id) return connector;
+      // A completed check belongs to its captured configuration and observation.
+      // A delayed renderer response cannot revive it after an owner update.
+      if (connector.configurationVersion !== configurationVersion
+        || (connector.lastCheckedAt && Date.parse(connector.lastCheckedAt) > Date.parse(health.checkedAt))) return connector;
       return {
         ...connector,
         endpoint,
-        models: discovered,
-        modelCapabilities,
         status: normalizedStatus,
         lastCheckedAt: health.checkedAt,
         lastDetail: health.detail,
@@ -57,10 +59,8 @@ export async function runSelectedConnectorTestCommand(input: {
     details: {
       connectorId: input.selectedConnector.id,
       vendor: input.selectedConnector.vendor,
-      modelCount: discovered.length,
       health: health.status,
       success: health.status === 'healthy',
-      discoveryOk: true,
     },
   });
 
@@ -74,33 +74,28 @@ export async function runSelectedConnectorTestCommand(input: {
 
   input.setControlFeedback({
     kind: 'success',
-    message: `${input.selectedConnector.label} test passed (${discovered.length} models)`,
+    message: `${input.selectedConnector.label} test passed`,
   });
 }
 
-export function markSelectedConnectorTestFailedCommand(input: {
+export async function markSelectedConnectorTestFailedCommand(input: {
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
   now: () => number;
   updateState: RuntimeConfigStateUpdater;
   setControlFeedback: (banner: InlineFeedbackState | null) => void;
   error: unknown;
+  connectorSdk: RuntimeConfigConnectorSdkService;
 }) {
   const flowId = createRendererFlowId('runtime-config-connector');
   const errorText = formatRuntimeConfigErrorDetail(input.error);
 
-  input.updateState((prev) => ({
-    ...prev,
-    connectors: prev.connectors.map((connector) => {
-      if (connector.id !== input.selectedConnector.id) return connector;
-      return {
-        ...connector,
-        status: 'unreachable',
-        lastCheckedAt: new Date(input.now()).toISOString(),
-        lastDetail: errorText,
-      };
-    }),
-  }));
+  try {
+    const connectors = await input.connectorSdk.sdkListConnectors();
+    input.updateState(prev => replaceConnectorsInState(prev, [...connectors, ...prev.connectors.filter(connector => connector.isDraft)]));
+  } catch {
+    // A failed owner read cannot manufacture a new connection observation.
+  }
 
   logRendererEvent({
     level: 'warn',

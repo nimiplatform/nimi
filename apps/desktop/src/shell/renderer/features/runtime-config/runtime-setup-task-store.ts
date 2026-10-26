@@ -103,6 +103,8 @@ export type RuntimeSetupTaskDraft = {
   /** Picks in a pending review; retained across navigation, never an execution authorization. */
   readonly reviewChoices?: Readonly<Record<string, string>>;
   readonly cloudConnectorRef?: string;
+  /** Display-only catalog search hint, never a target or an execution selection. */
+  readonly cloudTargetSearch?: string;
   readonly cloudTargetLabel?: string;
   /** Stable identity of the chosen cloud target for draft restore. */
   readonly cloudTargetKey?: string;
@@ -458,6 +460,7 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
     ...(Object.keys(preferredOffers).length > 0 ? { preferredOffers } : {}),
     ...(Object.keys(reviewChoices).length > 0 ? { reviewChoices } : {}),
     ...(normalizeText(record.cloudConnectorRef) ? { cloudConnectorRef: normalizeText(record.cloudConnectorRef) } : {}),
+    ...(normalizeText(record.cloudTargetSearch) ? { cloudTargetSearch: normalizeText(record.cloudTargetSearch) } : {}),
     ...(normalizeText(record.cloudTargetLabel) ? { cloudTargetLabel: normalizeText(record.cloudTargetLabel) } : {}),
     ...(normalizeText(record.cloudTargetKey) ? { cloudTargetKey: normalizeText(record.cloudTargetKey) } : {}),
     ...(cloudRecommendation ? { cloudRecommendation } : {}),

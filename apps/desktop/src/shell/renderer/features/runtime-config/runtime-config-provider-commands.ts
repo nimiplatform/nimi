@@ -40,13 +40,14 @@ export async function testSelectedConnectorCommand(input: TestConnectorCommandCo
       setControlFeedback: input.setControlFeedback,
     });
   } catch (error) {
-    markSelectedConnectorTestFailedCommand({
+    await markSelectedConnectorTestFailedCommand({
       state: input.state,
       selectedConnector: input.selectedConnector,
       now: input.now,
       updateState: input.updateState,
       setControlFeedback: input.setControlFeedback,
       error,
+      connectorSdk: input.connectorSdk,
     });
   }
 }

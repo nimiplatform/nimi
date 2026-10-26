@@ -45,38 +45,24 @@ export async function checkLocalHealth(sdk: DesktopRendererSdkPort): Promise<{
   }
 }
 
-export async function discoverConnectorModelsAndHealth(input: {
+export async function checkConnectorHealth(input: {
   connector: RuntimeConfigStateV11['connectors'][number];
   connectorSdk: RuntimeConfigConnectorSdkService;
   now: () => number;
 }): Promise<{
   endpoint: string;
-  discovered: string[];
-  modelCapabilities: Record<string, string[]>;
+  configurationVersion: string;
   health: HealthResult;
   normalizedStatus: RuntimeConfigStatusV11;
 }> {
-  const endpoint = input.connector.endpoint;
-  await input.connectorSdk.sdkTestConnector(input.connector.id);
-  const descriptors = await input.connectorSdk.sdkListConnectorModelDescriptors(
-    input.connector.id,
-    true,
-  );
-  const discovered = descriptors.map((d) => d.providerModelId);
-  const modelCapabilities: Record<string, string[]> = {};
-  for (const d of descriptors) {
-    if (d.capabilities.length > 0) {
-      modelCapabilities[d.providerModelId] = [...d.capabilities];
-    }
-  }
+  const checked = await input.connectorSdk.sdkTestConnector(input.connector.id);
   return {
-    endpoint,
-    discovered,
-    modelCapabilities,
+    endpoint: checked.endpoint,
+    configurationVersion: checked.configurationVersion,
     health: {
       status: 'healthy',
       detail: '',
-      checkedAt: new Date(input.now()).toISOString(),
+      checkedAt: checked.lastCheckedAt!,
     },
     normalizedStatus: 'healthy',
   };

@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type { TFunction } from 'i18next';
 
-import { humanizeConnectorError } from '../src/shell/renderer/features/runtime-config/runtime-config-page-cloud-detail-panel.js';
+import { humanizeConnectorError } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-error-copy.js';
 
 const t = ((key: string) => key) as unknown as TFunction;
 
@@ -21,6 +21,7 @@ test('a temporarily unavailable provider reads as such for both a save and a che
 
 test('credential, reachability and unsupported-service failures keep their specific reading', () => {
   assert.equal(humanizeConnectorError('AI_PROVIDER_AUTH_FAILED', t, 'check'), 'runtimeConfig.product.errorCredentialRejected');
+  assert.equal(humanizeConnectorError('AI_CONNECTOR_CREDENTIAL_MISSING', t, 'check'), 'runtimeConfig.product.errorCredentialRejected');
   assert.equal(humanizeConnectorError('dial tcp: ECONNREFUSED', t, 'check'), 'runtimeConfig.product.errorEndpointUnreachable');
   assert.equal(humanizeConnectorError('AI_CONNECTOR_INVALID', t, 'check'), 'runtimeConfig.product.errorConnectorUnsupported');
 });

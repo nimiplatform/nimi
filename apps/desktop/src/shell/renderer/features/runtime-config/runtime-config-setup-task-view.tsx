@@ -2,6 +2,9 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { DESKTOP_NIMI_APP_ID } from '../chat/chat-nimi-app-ai-config.js';
+import { resolveRuntimeSetupReturnTarget } from './runtime-setup-task-open.js';
 import type {
   NimiLoadoutRecipe,
   NimiLoadoutRecipeContextFit,
@@ -1291,6 +1294,8 @@ export function RuntimeConfigSetupTaskView(props: {
         );
       case 'done': {
         const isCloudRoute = task.draft?.route === 'cloud' && !task.candidateLoadoutId;
+        const returnTarget = resolveRuntimeSetupReturnTarget(task.source.returnFocus);
+        const fromCloud = returnTarget?.kind === 'destination' && returnTarget.destination.id === 'cloud';
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-done">
             <InlineAlert tone="success">
@@ -1313,10 +1318,11 @@ export function RuntimeConfigSetupTaskView(props: {
               })}
             </p>
             <Button tone="primary" onClick={props.onReturnToSource ?? props.onClose} data-testid="runtime-setup-task-return">
-              {task.source.kind === 'runtime'
+              {fromCloud ? t('runtimeConfig.cloudWorkspace.backToCloud') : task.source.kind === 'runtime'
                 ? t('runtimeConfig.setupTask.back', { defaultValue: 'Back' })
                 : t('runtimeConfig.setupTask.returnToSource', { defaultValue: 'Return to {{source}}', source: sourceOwnerLabel(task, t) })}
             </Button>
+            {fromCloud && task.source.kind !== 'runtime' ? <RuntimeSetupConsumerAction source={task.source} /> : null}
           </div>
         );
       }
@@ -1510,4 +1516,14 @@ function setupPlanDownloadBytes(plan: RuntimeSetupPreparationPlan, choices: Read
 
 function EmptyStateLike(props: { readonly message: string }) {
   return <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">{props.message}</p>;
+}
+
+function RuntimeSetupConsumerAction({ source }: { source: RuntimeSetupTask['source'] }) {
+  const { t } = useTranslation();
+  const navigation = useHomeNavigation();
+  return <Button tone="secondary" onClick={() => {
+    if (source.kind === 'local-agent') void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
+    else if (source.ownerAppId === DESKTOP_NIMI_APP_ID) void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
+    else if (source.ownerAppId) void navigation.push({ id: 'apps', appId: source.ownerAppId });
+  }}>{t('runtimeConfig.cloudWorkspace.goToConsumer')}</Button>;
 }

@@ -1,10 +1,15 @@
-import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
+import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
+import type { ProviderCatalogEntry, DesktopConnectorReference } from '@nimiplatform/sdk/runtime/wire-types';
 import type { TFunction } from 'i18next';
-import { CheckCircle2, CircleAlert, CircleHelp, KeyRound, LoaderCircle, PencilLine } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useState } from 'react';
+import { KeyRound, PencilLine } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
+import type { NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { homeRuntimeDestination } from '../../app-shell/providers/home-navigation.js';
+import { CloudConnectorCatalog } from './runtime-config-cloud-catalog.js';
+import { CloudConnectorReferences, CloudConnectorUsage } from './runtime-config-cloud-observation.js';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
-import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion';
 import type { ManagedOAuthPendingState } from './runtime-config-managed-oauth';
 import { ChatGPTPlanAccountNotice, ChatGPTPlanPendingNotice, chatGPTPlanSignInLabel } from './runtime-config-chatgpt-plan';
 import {
@@ -14,11 +19,10 @@ import {
   EyeOffIcon,
   Input,
   KeyIcon,
-  SearchIcon,
   ServerIcon,
   endpointHost,
 } from './runtime-config-page-cloud-primitives';
-import { connectorPresentationState } from './runtime-config-page-cloud-connector-list';
+import { CloudConnectorStatus, connectorPresentationState } from './runtime-config-page-cloud-connector-list';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimeSelect } from './runtime-config-primitives';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -37,6 +41,9 @@ type CloudConnectorVendorOption = {
 };
 
 type CloudConnectorDetailPanelProps = {
+  onConfigure?: (entry: NimiRuntimeConnectorCatalogEntry) => void;
+  onOpenHistory: () => void;
+  onOpenOwner: (reference: DesktopConnectorReference) => void;
   onSaveConnection: (draft: { label: string; endpoint: string; credentialValue: string; }) => Promise<void>;
   authOptions: CloudConnectorAuthOption[];
   authStatus: string;
@@ -73,26 +80,6 @@ type CloudConnectorDetailPanelProps = {
   vendorOptions: CloudConnectorVendorOption[];
 };
 
-/**
- * Plain-language reading of a save or check failure; the raw text stays in
- * details. A failed check leaves the saved connection in place, so its
- * fallback never says the connection could not be saved.
- */
-export function humanizeConnectorError(raw: string, t: TFunction, operation: 'save' | 'check'): string {
-  const text = raw.toUpperCase();
-  // Runtime rejects a Connector whose service or settings it no longer admits,
-  // such as a retired provider; a new key cannot repair that.
-  if (text.includes('AI_CONNECTOR_INVALID'))
-    return t('runtimeConfig.product.errorConnectorUnsupported');
-  if (text.includes('AI_PROVIDER_AUTH_FAILED') || text.includes('UNAUTHORIZED') || text.includes('401') || text.includes('INVALID_API_KEY'))
-    return t('runtimeConfig.product.errorCredentialRejected');
-  if (text.includes('UNREACHABLE') || text.includes('ECONNREFUSED') || text.includes('ENOTFOUND') || text.includes('TIMEOUT') || text.includes('NETWORK'))
-    return t('runtimeConfig.product.errorEndpointUnreachable');
-  if (text.includes('AI_PROVIDER_UNAVAILABLE'))
-    return t('runtimeConfig.product.errorProviderUnavailable');
-  return t(operation === 'check' ? 'runtimeConfig.product.connectionCheckFailed' : 'runtimeConfig.product.connectionSaveFailed');
-}
-
 // One card per service: identity and state on the hero band, then its
 // settings while editing and, once a check returns them, its models.
 // Nothing here reads as a form until the person asks to edit.
@@ -127,10 +114,36 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     tokenSavedConnectorId,
     vendorOptions,
   } = props;
-  const reducedMotion = useDesktopReducedMotion();
-  const [editing, setEditing] = useState(isDraft || !selectedConnector?.hasCredential);
+  const navigation = useHomeNavigation();
+  const [editing, setEditing] = useState(!isSystemOwned && (isDraft || !selectedConnector?.hasCredential));
   const [endpointDraft, setEndpointDraft] = useState(selectedConnector?.endpoint ?? '');
   const pendingEdits = connectorLabelDraft.trim() !== selectedConnector?.label || endpointDraft.trim() !== selectedConnector?.endpoint || !!tokenDraft.trim();
+  const leaveState = useRef({ dirty: editing && pendingEdits, busy: savingToken || managedOAuthBusy });
+  leaveState.current = { dirty: editing && pendingEdits, busy: savingToken || managedOAuthBusy };
+  const [leavePrompt, setLeavePrompt] = useState<null | ((discard: boolean) => void)>(null);
+  const cancelLeave = useRef<(() => void) | null>(null);
+  const needsLeaveGuard = Boolean(selectedConnector) && (editing && pendingEdits || savingToken || managedOAuthBusy);
+  useEffect(() => {
+    if (!needsLeaveGuard) return undefined;
+    const unregister = navigation.registerLeaveGuard(({ signal }) => {
+      if (signal.aborted) return 'cancel';
+      if (leaveState.current.busy) return 'busy';
+      if (!leaveState.current.dirty) return 'allow';
+      return new Promise<'allow' | 'cancel'>(resolve => {
+        const finish = (discard: boolean) => {
+          signal.removeEventListener('abort', abort);
+          cancelLeave.current = null;
+          setLeavePrompt(null);
+          resolve(discard ? 'allow' : 'cancel');
+        };
+        const abort = () => finish(false);
+        cancelLeave.current = abort;
+        signal.addEventListener('abort', abort, { once: true });
+        setLeavePrompt(() => finish);
+      });
+    });
+    return () => { unregister(); cancelLeave.current?.(); };
+  }, [navigation, needsLeaveGuard]);
   const save = async () => {
     try { await props.onSaveConnection({ label: connectorLabelDraft, endpoint: endpointDraft, credentialValue: tokenDraft }); setEditing(false); } catch { /* The owner projects the saved/failed state and error. */ }
   };
@@ -140,18 +153,9 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   const presentation = connectorPresentationState(selectedConnector);
   const vendorLabel = vendorOptions.find(item => item.value === selectedConnector.vendor)?.label ?? selectedConnector.vendor;
   const checking = model.testingConnector;
-  const statusPill = {
-    healthy: { Icon: CheckCircle2, className: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]', title: t('runtimeConfig.product.connectionChecked') },
-    unchecked: { Icon: CircleHelp, className: 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]', title: t('runtimeConfig.product.connectionUnchecked') },
-    'needs-credential': { Icon: KeyRound, className: 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]', title: t('runtimeConfig.product.connectionNeedsCredential') },
-    attention: { Icon: CircleAlert, className: 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]', title: t('runtimeConfig.product.connectionNeedsAttention') },
-  }[presentation];
-  const modelCount = selectedConnector.models.length;
-  // Models appear only after a check has returned some; until then the
-  // status line above already says what to do next.
-  const showModels = modelCount > 0 && (presentation === 'healthy' || presentation === 'attention');
+  const credentialRejected = ['AI_PROVIDER_AUTH_FAILED', 'AI_CONNECTOR_CREDENTIAL_MISSING'].includes(selectedConnector.lastDetail);
+  const canRepairCredential = !isSystemOwned && (isBrowserManagedConnector || selectedConnector.authMode === 'api_key');
   const humanError = tokenSaveError ? humanizeConnectorError(tokenSaveError, t, 'save') : '';
-  const detailError = selectedConnector.lastDetail && presentation === 'attention' ? humanizeConnectorError(selectedConnector.lastDetail, t, 'check') : '';
   const subtitle = [
     vendorLabel.toLowerCase() !== selectedConnector.label.toLowerCase() ? vendorLabel : '',
     selectedConnector.endpoint ? endpointHost(selectedConnector.endpoint) : '',
@@ -185,13 +189,13 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {!isSystemOwned ? (
-              <Button variant="ghost" size="sm" disabled={savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
+            {!isSystemOwned && (editing || !credentialRejected || !canRepairCredential) ? (
+              <Button variant="ghost" size="sm" disabled={checking || savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
                 {t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}
               </Button>
             ) : null}
-            {!editing && presentation !== 'needs-credential' ? (
-              <Button variant={presentation === 'healthy' ? 'secondary' : 'primary'} size="sm" disabled={checking || savingToken || isDraft} onClick={() => { void model.testSelectedConnector(); }}>
+            {!editing && presentation !== 'needs-credential' && presentation !== 'disabled' ? (
+              <Button variant="ghost" size="sm" disabled={checking || savingToken || isDraft} onClick={() => { void model.testSelectedConnector(); }}>
                 {t(presentation === 'healthy' ? 'runtimeConfig.product.checkAgain' : 'runtimeConfig.product.checkConnection')}
               </Button>
             ) : null}
@@ -203,37 +207,23 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
           </div>
         </div>
 
-        <motion.div
-          key={`${presentation}:${selectedConnector.lastCheckedAt ?? ''}:${modelCount}:${checking ? 'checking' : 'idle'}`}
-          initial={reducedMotion ? false : { opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2"
-          data-testid={`cloud-connection-state:${presentation}`}
-        >
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${statusPill.className}`}>
-            {checking
-              ? <LoaderCircle size={15} className="shrink-0 animate-spin" />
-              : <statusPill.Icon size={15} className="shrink-0" />}
-            {checking
-              ? t('runtimeConfig.cloud.testing')
-              : presentation === 'healthy' && modelCount > 0
-                ? t('runtimeConfig.product.connectionCheckedModels', { count: modelCount })
-                : statusPill.title}
-          </span>
-          {selectedConnector.lastCheckedAt && !checking ? (
-            <span className="text-xs text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.product.lastConnectionCheck', { time: new Date(selectedConnector.lastCheckedAt).toLocaleString() })}
-            </span>
-          ) : null}
-          {selectedConnector.lastDetail ? (
-            <details className="text-xs text-[var(--nimi-text-muted)]">
-              <summary className="cursor-pointer rounded-md hover:text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.checkDetails')}</summary>
-              <p className="mt-2 max-w-2xl break-words rounded-[var(--nimi-radius-field)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--nimi-text-secondary)]">{selectedConnector.lastDetail}</p>
-            </details>
-          ) : null}
-        </motion.div>
-        {detailError && !checking ? <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{detailError}</p> : null}
+        <div className="mt-5" data-testid={`cloud-connection-state:${presentation}`}>
+          <CloudConnectorStatus connector={selectedConnector} checking={checking} t={t} />
+          {selectedConnector.lastCheckedAt ? <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.lastConnectionCheck', { time: new Date(selectedConnector.lastCheckedAt).toLocaleString() })}</p> : null}
+          {presentation === 'attention' ? <div className="mt-3 space-y-2" role="alert">
+            <p className="text-sm text-[var(--nimi-status-danger-soft-text)]">{humanizeConnectorError(selectedConnector.lastDetail, t, 'check')}</p>
+            {!editing && credentialRejected && canRepairCredential ? <Button size="sm" variant="primary" disabled={checking || savingToken || (isBrowserManagedConnector && !canStartManagedOAuth)} onClick={() => { startEditing(); if (isBrowserManagedConnector) props.onAcquireManagedOAuth(); }}>
+              {isBrowserManagedConnector ? chatGPTPlanSignInLabel({ busy: managedOAuthBusy, isDraft, hasCredential: selectedConnector.hasCredential, t }) : t('runtimeConfig.product.replaceKey')}
+            </Button> : null}
+            <Button size="sm" variant="secondary" onClick={() => { void navigation.push(homeRuntimeDestination('advancedDiagnostics', { pane: 'activity' })); }}>{t('runtimeConfig.cloudWorkspace.openDiagnostics')}</Button>
+          </div> : null}
+          {presentation === 'disabled' ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.disabledHelp')}</p> : null}
+        </div>
+        {!editing ? <div className="mt-4 text-xs text-[var(--nimi-text-secondary)]">
+          {isBrowserManagedConnector ? <ChatGPTPlanAccountNotice connector={selectedConnector} t={t} /> : <p>{t('runtimeConfig.cloudWorkspace.apiBilling')}</p>}
+          <p className="mt-2">{t(isMachineGlobal ? 'runtimeConfig.cloud.managedMachineGlobal' : isRuntimeSystem ? 'runtimeConfig.cloudWorkspace.systemScope' : 'runtimeConfig.cloudWorkspace.accountScope')}</p>
+          <details className="mt-2"><summary className="cursor-pointer">{t('runtimeConfig.cloudWorkspace.cloudDataTitle')}</summary><p className="mt-2">{t('runtimeConfig.cloudWorkspace.cloudDataBody')}</p></details>
+        </div> : null}
       </section>
 
       {editing ? (
@@ -416,53 +406,16 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             {tokenSaveError && (
               <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-sm text-[var(--nimi-status-danger-soft-text)]">
                 <p>{humanError}</p>
-                <details className="mt-2 text-xs"><summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary><p className="mt-1 break-words">{tokenSaveError}</p></details>
               </div>
             )}
           </div>
         </section>
       ) : null}
 
-      {showModels ? (
-        <motion.section
-          initial={reducedMotion ? false : { opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className={SECTION_CLASS}
-          aria-label={t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="flex items-baseline gap-2 text-base font-semibold text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
-              <span className="text-sm font-normal text-[var(--nimi-text-muted)]">{modelCount}</span>
-            </h3>
-            {modelCount > 6 ? (
-              <div className="w-full sm:w-60">
-                <Input
-                  value={model.connectorModelQuery}
-                  onChange={model.setConnectorModelQuery}
-                  placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
-                  icon={<SearchIcon />}
-                />
-              </div>
-            ) : null}
-          </div>
-          {model.filteredConnectorModels.length ? (
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {model.filteredConnectorModels.map((name) => (
-                <li
-                  key={`connector-${selectedConnector.id}-${name}`}
-                  className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]"
-                >
-                  {name}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.setupTask.cloud.noSearchMatches')}</p>
-          )}
-        </motion.section>
-      ) : null}
+      {!isDraft ? <CloudConnectorCatalog connector={selectedConnector} onConfigure={props.onConfigure} /> : null}
+      {!isDraft ? <CloudConnectorReferences connectorId={selectedConnector.id} onOpenOwner={props.onOpenOwner} /> : null}
+      {!isDraft ? <CloudConnectorUsage connectorId={selectedConnector.id} onOpenHistory={props.onOpenHistory} /> : null}
+      <ConfirmDialog open={leavePrompt !== null} title={t('runtimeConfig.cloudWorkspace.unsavedTitle')} message={t('runtimeConfig.cloudWorkspace.unsavedBody')} confirmLabel={t('runtimeConfig.cloudWorkspace.discard')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => leavePrompt?.(false)} onConfirm={() => leavePrompt?.(true)} />
     </div>
   );
 }

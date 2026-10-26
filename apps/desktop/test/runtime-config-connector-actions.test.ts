@@ -3,6 +3,8 @@ import test from 'node:test';
 import { replaceConnectorsInState } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-actions.js';
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults.js';
 import { normalizeConnectorV11, type ApiConnector } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types.js';
+import { runSelectedConnectorTestCommand } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-test-command.js';
+import type { RuntimeConfigConnectorSdkService } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.js';
 
 const inventory = normalizeConnectorV11({
   id: 'connection-1', provider: 'test-provider', vendor: 'test-provider',
@@ -17,14 +19,15 @@ function stateWith(connector = checked) {
   return { ...createDefaultStateV11(), connectors: [connector] };
 }
 
-test('reloading inventory on page return retains the actual check and discovered models', () => {
-  const next = replaceConnectorsInState(stateWith(), [{ ...inventory, label: 'Renamed' }]);
+test('reloading inventory uses the persisted owner check', () => {
+  const next = replaceConnectorsInState(stateWith(inventory), [{ ...checked, label: 'Renamed' }]);
   assert.deepEqual(next.connectors, [{ ...checked, label: 'Renamed' }]);
 });
 
-test('inventory refresh preserves failed checks as well as successful checks', () => {
+test('inventory refresh preserves owner failures and never revives an invalidated result', () => {
   const failed: ApiConnector = { ...checked, status: 'unreachable', lastDetail: 'Connection timed out' };
-  assert.deepEqual(replaceConnectorsInState(stateWith(failed), [inventory]).connectors, [failed]);
+  assert.deepEqual(replaceConnectorsInState(stateWith(), [failed]).connectors, [failed]);
+  assert.deepEqual(replaceConnectorsInState(stateWith(failed), [inventory]).connectors, [inventory]);
 });
 
 test('changed connection settings do not inherit the previous check', () => {
@@ -52,4 +55,25 @@ test('new and deleted connections follow runtime inventory without reviving old 
   assert.deepEqual(next.connectors, [added]);
   const empty = replaceConnectorsInState(stateWith(), []);
   assert.deepEqual(empty.connectors, []);
+});
+
+test('a delayed connection check cannot replace a newer configuration or observation', async () => {
+  const selected: ApiConnector = { ...inventory, configurationVersion: 'version-1' };
+  for (const replacement of [
+    { ...selected, configurationVersion: 'version-2', endpoint: 'https://replacement.example/v1' },
+    { ...selected, status: 'unreachable' as const, lastCheckedAt: '2026-10-27T04:00:00.000Z', lastDetail: 'AI_PROVIDER_AUTH_FAILED' },
+  ]) {
+    let state = stateWith(selected);
+    let complete!: (value: ApiConnector) => void;
+    const pending = runSelectedConnectorTestCommand({
+      state, selectedConnector: selected, now: Date.now,
+      connectorSdk: { sdkTestConnector: () => new Promise<ApiConnector>(resolve => { complete = resolve; }) } as unknown as RuntimeConfigConnectorSdkService,
+      updateState: update => { state = update(state); },
+      setControlFeedback: () => {},
+    });
+    state = stateWith(replacement);
+    complete({ ...selected, status: 'healthy', lastCheckedAt: '2026-10-27T03:00:00.000Z', lastDetail: '' });
+    await pending;
+    assert.deepEqual(state.connectors, [replacement]);
+  }
 });
