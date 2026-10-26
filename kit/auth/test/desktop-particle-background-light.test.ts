@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { shouldEnableDesktopParticleBackground } from '../src/components/desktop-particle-background-light';
+import { allowsParticleMotion } from '../src/components/particle-background-policy';
 import { MAX_PARTICLE_PAIR_ATTEMPTS, particleCellKey, visitParticleNeighbors } from '../src/components/particle-background-neighbors';
 
 type TestEnvironmentOptions = {
@@ -8,7 +8,6 @@ type TestEnvironmentOptions = {
   saveData?: boolean;
   hardwareConcurrency?: number;
   deviceMemory?: number;
-  hasWebGL?: boolean;
 };
 
 function createTestEnvironment(options: TestEnvironmentOptions = {}) {
@@ -17,19 +16,9 @@ function createTestEnvironment(options: TestEnvironmentOptions = {}) {
     saveData = false,
     hardwareConcurrency = 8,
     deviceMemory = 8,
-    hasWebGL = true,
   } = options;
 
   return {
-    document: {
-      createElement() {
-        return {
-          getContext() {
-            return hasWebGL ? {} : null;
-          },
-        };
-      },
-    },
     matchMedia() {
       return { matches: reducedMotion };
     },
@@ -43,10 +32,10 @@ function createTestEnvironment(options: TestEnvironmentOptions = {}) {
   };
 }
 
-describe('shouldEnableDesktopParticleBackground', () => {
+describe('allowsParticleMotion', () => {
   it('disables the particle background when reduced motion is requested', () => {
     expect(
-      shouldEnableDesktopParticleBackground(
+      allowsParticleMotion(
         createTestEnvironment({
           reducedMotion: true,
         }),
@@ -56,21 +45,21 @@ describe('shouldEnableDesktopParticleBackground', () => {
 
   it('disables the particle background on low-capability or save-data devices', () => {
     expect(
-      shouldEnableDesktopParticleBackground(
+      allowsParticleMotion(
         createTestEnvironment({
           hardwareConcurrency: 2,
         }),
       ),
     ).toBe(false);
     expect(
-      shouldEnableDesktopParticleBackground(
+      allowsParticleMotion(
         createTestEnvironment({
           deviceMemory: 2,
         }),
       ),
     ).toBe(false);
     expect(
-      shouldEnableDesktopParticleBackground(
+      allowsParticleMotion(
         createTestEnvironment({
           saveData: true,
         }),
@@ -78,18 +67,8 @@ describe('shouldEnableDesktopParticleBackground', () => {
     ).toBe(false);
   });
 
-  it('disables the particle background when WebGL is unavailable', () => {
-    expect(
-      shouldEnableDesktopParticleBackground(
-        createTestEnvironment({
-          hasWebGL: false,
-        }),
-      ),
-    ).toBe(false);
-  });
-
-  it('keeps the particle background enabled on capable devices', () => {
-    expect(shouldEnableDesktopParticleBackground(createTestEnvironment())).toBe(true);
+  it('enables capable devices', () => {
+    expect(allowsParticleMotion(createTestEnvironment())).toBe(true);
   });
 });
 
