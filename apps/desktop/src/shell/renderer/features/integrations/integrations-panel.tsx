@@ -24,7 +24,7 @@ import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { integrationErrorCode, integrationErrorTranslationKey } from './integration-error.js';
 import { IntegrationSetupQr } from './integration-setup-qr.js';
 import { integrationSetupPending, observeIntegrationSetup } from './integration-setup-observer.js';
-import { ArrowLeft, Check, Plus, QrCode, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { Check, Plus, QrCode, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import {
   IntegrationSidebar,
   IntegrationServiceIcon,
@@ -78,12 +78,10 @@ function requestedEntryService(value: string | undefined): string {
 // displaying this form or declaring integration.manage grants no authority.
 // @nimi-authority: rule.nimi.runtime.integration.qq-onebot-protocol
 export function IntegrationsPanel({
-  onBack,
   appIconUrls,
   intent = null,
   onIntentConsumed,
 }: {
-  onBack: () => void;
   appIconUrls?: ReadonlyMap<string, string | null>;
   intent?: IntegrationsPanelIntent | null;
   onIntentConsumed?: () => void;
@@ -598,10 +596,7 @@ export function IntegrationsPanel({
           viewportClassName="bg-transparent"
           contentClassName="px-5 py-6 sm:px-7"
         >
-          <Button tone="ghost" size="sm" onClick={onBack} leadingIcon={<ArrowLeft size={15} />}>
-            {t('Integrations.back')}
-          </Button>
-          <header className="mt-3 flex flex-wrap items-center justify-between gap-4">
+          <header className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
               <IntegrationServiceIcon kind={service} large />
               <div className="min-w-0">

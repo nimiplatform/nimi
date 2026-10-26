@@ -3,7 +3,6 @@
   "configurationInvalidOnebot": "Check the connection settings. OneBot requires a numeric self ID and an IP-based listener address with a valid port.",
   "title": "Integrations",
   "description": "Connect accounts once, then choose which apps can use them.",
-  "back": "Back to Home",
   "refresh": "Refresh",
   "unavailable": "The integration service is unavailable. Check Nimi and try again.",
   "addConnection": "Add connection",

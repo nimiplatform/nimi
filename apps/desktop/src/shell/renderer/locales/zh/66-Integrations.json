@@ -3,7 +3,6 @@
   "configurationInvalidOnebot": "请检查连接设置。OneBot self_id 必须为数字，监听地址必须使用 IP 和有效端口。",
   "title": "集成",
   "description": "连接一次账户，再选择允许哪些应用使用。",
-  "back": "返回首页",
   "refresh": "刷新",
   "unavailable": "集成服务暂不可用，请检查 Nimi 后重试。",
   "addConnection": "添加连接",

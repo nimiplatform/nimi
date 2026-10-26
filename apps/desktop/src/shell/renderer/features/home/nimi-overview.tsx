@@ -397,7 +397,6 @@ export function NimiOverview() {
   ) : view === 'integrations' ? (
     <IntegrationsPanel
       appIconUrls={iconUrls}
-      onBack={() => navigation.push({ id: 'home', homeSection: 'overview' })}
       intent={integrationIntent}
       onIntentConsumed={() => setIntegrationIntent(null)}
     />

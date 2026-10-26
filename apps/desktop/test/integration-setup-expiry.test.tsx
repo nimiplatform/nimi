@@ -38,7 +38,7 @@ test(`Home presents a safe, actionable native identity conflict in ${locale}`, a
   const bindings = { sdk: { appProduct: () => ({ integration }) } } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
-    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
+    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel /></DesktopRendererBindingProvider>); });
     await openConnection(dom.window.document, 'weixin');
     const form = dom.window.document.querySelector('form')!;
     assert.equal(form.querySelector('select'), null);
@@ -76,7 +76,7 @@ test('Home recovers setup controls and clears QR and OTP after persistent RPC fa
   const bindings = { sdk: { appProduct: () => ({ integration }) } } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
-    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
+    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel /></DesktopRendererBindingProvider>); });
     await openConnection(dom.window.document, 'weixin');
     assert.equal(dom.window.document.querySelector('input[maxlength="256"]'), null, 'Weixin QR has no name prerequisite');
     if (!dom.window.document.querySelector('form')) await openConnection(dom.window.document);
@@ -132,7 +132,7 @@ test(`Home shows one account and a truthful ${terminalStatus} terminal result`, 
   const bindings = { sdk: { appProduct: () => ({ integration }) } } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
-    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
+    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel /></DesktopRendererBindingProvider>); });
     await act(async () => dom.window.document.querySelector<HTMLElement>('[data-testid=integration-target]')!.click());
     const options = [...dom.window.document.querySelectorAll<HTMLElement>('[role=option]')];
     assert.ok(options.some(option => option.textContent === 'My remark · bot@im.bot'));
@@ -195,7 +195,7 @@ test('a late initial submit cannot replace a new setup after expiry or restore i
   const bindings = { sdk: { appProduct: () => ({ integration }) } } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
-    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
+    await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel /></DesktopRendererBindingProvider>); });
     if (!dom.window.document.querySelector('form')) await openConnection(dom.window.document);
     let form = dom.window.document.querySelector('form')!;
     const name = form.querySelector('input[maxlength="256"]') as HTMLInputElement;
@@ -261,7 +261,7 @@ test(`Home new bot requires explicit confirmation and clears old grant draft: ${
   const root=createRoot(dom.window.document.getElementById('root')!);let unmounted=false;
   const button=(name:string)=>Array.from(dom.window.document.querySelectorAll('button')).find(item=>item.textContent===name)!;
   try {
-    await act(async()=>{root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={()=>{}}/></DesktopRendererBindingProvider>);});
+    await act(async()=>{root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel /></DesktopRendererBindingProvider>);});
     const targetSelect=dom.window.document.querySelector<HTMLElement>('[data-testid=integration-target]')!;
     assert.equal(targetSelect.textContent, `${old.displayName} · ${old.accountLabel}`);
     await clickButton(dom.window.document, 'Edit permissions');

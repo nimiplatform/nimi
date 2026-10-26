@@ -25,7 +25,7 @@ async function homePanel(integration:unknown, check:(document:Document,dom:JSDOM
   const bindings={sdk:{appProduct:()=>({integration})}} as unknown as DesktopCanonicalRendererBindings;
   let mounted=true;
   const unmount=async()=>{if(mounted){await act(async()=>{root.unmount(); await new Promise(resolve=>setTimeout(resolve,0));});mounted=false;}};
-  try{await act(async()=>root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={()=>{}}/></DesktopRendererBindingProvider>));if (!dom.window.document.querySelector('[data-testid="integration-target"]')) await act(async()=>{ dom.window.document.querySelector<HTMLButtonElement>('[data-testid="integration-add-connection"]')!.click(); }); await check(dom.window.document,dom,unmount);}
+  try{await act(async()=>root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel /></DesktopRendererBindingProvider>));if (!dom.window.document.querySelector('[data-testid="integration-target"]')) await act(async()=>{ dom.window.document.querySelector<HTMLButtonElement>('[data-testid="integration-add-connection"]')!.click(); }); await check(dom.window.document,dom,unmount);}
   finally{await unmount();dom.window.close();for(const [key,descriptor] of previous){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else Reflect.deleteProperty(globalThis,key);}}
 }
 const empty=async()=>({targets:[],permissions:[],consumers:[],calls:[]});
